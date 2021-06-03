@@ -9,7 +9,7 @@
 <body>
   <script src="../.cgenbuild/Debug/napitest.js"></script>
   <script>
-    var emscriptenModule = {
+    /* var emscriptenModule = {
       // Custom instantiating
       instantiateWasm: function (imports, receiveInstance) {
         fetch('/.cgenbuild/Debug/napitest.wasm', {
@@ -27,8 +27,8 @@
           });
         return {};
       }
-    };
-    napitest.default(emscriptenModule).then(({ Module }) => {
+    }; */
+    napitest.default().then(({ Module }) => {
       console.log(Module)
       Module._napi_register_wasm_v1(0, 0)
     })

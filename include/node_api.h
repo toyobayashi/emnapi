@@ -1,6 +1,8 @@
 #ifndef SRC_NODE_API_H_
 #define SRC_NODE_API_H_
 
+#define NAPI_EXTERN __attribute__((__import_module__("env")))
+
 #include "js_native_api.h"
 
 typedef napi_value (*napi_addon_register_func)(napi_env env,
