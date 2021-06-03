@@ -8,6 +8,7 @@
     "rebuild": "tsc && cgen rebuild -e -d"
   },
   "devDependencies": {
+    "tslib": "^2.2.0",
     "typescript": "^4.2.4"
   }
 }

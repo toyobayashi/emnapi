@@ -1,12 +1,12 @@
 // LinkedList
 
-declare interface IListNode<E> {
+interface IListNode<E> {
   prev: IListNode<E>
   next: IListNode<E>
   element: E
 }
 
-declare interface ILinkedList<E> {
+interface ILinkedList<E> {
   size: number
   isEmpty (): boolean
   clear (): void
@@ -24,7 +24,6 @@ declare var ListNode: {
 declare var LinkedList: new <E>() => ILinkedList<E>
 
 mergeInto(LibraryManager.library, {
-  $ListNode__postset: 'ListNode();',
   $ListNode: function () {
     ListNode = class ListNode<E> {
       static readonly Undefined = new ListNode<any>(undefined)
@@ -41,7 +40,6 @@ mergeInto(LibraryManager.library, {
     }
   },
 
-  $LinkedList__postset: 'LinkedList();',
   $LinkedList__deps: ['$ListNode'],
   $LinkedList: function () {
     LinkedList = class LinkedList<E> {

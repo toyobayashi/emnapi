@@ -9,6 +9,11 @@
   "files": [
     "./lib/runtime.d.ts",
     "./lib/LinkedList.ts",
-    "./lib/value.ts",
+    "./lib/Handle.ts",
+    "./lib/HandleScope.ts",
+    "./lib/register.ts",
+    "./lib/c2napi.ts",
+    "./lib/function.ts",
+    "./lib/init.ts"
   ]
 }

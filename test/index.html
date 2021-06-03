@@ -7,7 +7,7 @@
   <title>Document</title>
 </head>
 <body>
-  <script src="../.cgenbuild/Debug/napitest.js"></script>
+  <script src="../.cgenbuild/Release/napitest.js"></script>
   <script>
     /* var emscriptenModule = {
       // Custom instantiating
@@ -30,7 +30,9 @@
     }; */
     napitest.default().then(({ Module }) => {
       console.log(Module)
-      Module._napi_register_wasm_v1(0, 0)
+      console.log(Module.napiExports())
+      // const nativeFn = Module._napi_register_wasm_v1(0, 0)
+      // console.log(nativeFn())
     })
   </script>
 </body>
