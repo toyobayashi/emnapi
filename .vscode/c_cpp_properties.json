@@ -1,0 +1,68 @@
+{
+  "env": {
+    "includePath": [
+      "${default}"
+    ],
+    "defines": [],
+    "clPath": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Community\\VC\\Tools\\MSVC\\14.28.29910\\bin\\Hostx64\\x64\\cl.exe",
+    "gccPath": "/usr/bin/gcc",
+    "clangPath": "/usr/bin/clang"
+  },
+  "configurations": [
+    {
+      "name": "Win32",
+      "defines": ["${defines}", "_DEBUG", "UNICODE", "_UNICODE", "_CRT_SECURE_NO_WARNINGS"],
+      "compilerPath": "${clPath}",
+      "windowsSdkVersion": "10.0.19041.0",
+      "intelliSenseMode": "msvc-x64",
+      "cStandard": "c99",
+      "cppStandard": "c++11",
+      "includePath": ["${includePath}"]
+    },
+    {
+      "name": "Linux",
+      "defines": ["${defines}"],
+      "compilerPath": "${gccPath}",
+      "cStandard": "c99",
+      "cppStandard": "c++11",
+      "intelliSenseMode": "gcc-x64",
+      "browse": {
+        "path": [
+          "${workspaceFolder}"
+        ],
+        "limitSymbolsToIncludedHeaders": true,
+        "databaseFilename": ""
+      },
+      "includePath": ["${includePath}"]
+    },
+    {
+      "name": "macOS",
+      "includePath": ["${includePath}"],
+      "defines": ["${defines}"],
+      "macFrameworkPath": ["/System/Library/Frameworks", "/Library/Frameworks"],
+      "compilerPath": "${clangPath}",
+      "cStandard": "c99",
+      "cppStandard": "c++11",
+      "intelliSenseMode": "${default}"
+    },
+    {
+      "name": "Emscripten",
+      "defines": ["${defines}", "__wasm32__"],
+      "compilerPath": "${env:EMSDK}/upstream/emscripten/emcc",
+      "intelliSenseMode": "clang-x64",
+      "cStandard": "c99",
+      "cppStandard": "c++11",
+      "includePath": ["${includePath}"]
+    },
+    {
+      "name": "Win32 Emscripten",
+      "defines": ["${defines}", "__wasm32__"],
+      "compilerPath": "${env:EMSDK}/upstream/emscripten/emcc.bat",
+      "intelliSenseMode": "clang-x64",
+      "cStandard": "c99",
+      "cppStandard": "c++11",
+      "includePath": ["${includePath}"]
+    }
+  ],
+  "version": 4
+}

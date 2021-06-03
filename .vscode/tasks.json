@@ -1,0 +1,93 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "VC Debug",
+      "type": "shell",
+      "command": "cgen.cmd",
+      "args": [
+        "build",
+        "--debug"
+      ],
+      "group": "build"
+    },
+    {
+      "label": "VC Release",
+      "type": "shell",
+      "command": "cgen.cmd",
+      "args": [
+        "build"
+      ],
+      "group": "build"
+    },
+    {
+      "label": "GCC Debug",
+      "type": "shell",
+      "command": "cgen",
+      "args": [
+        "build",
+        "--debug"
+      ],
+      "group": "build"
+    },
+    {
+      "label": "GCC Release",
+      "type": "shell",
+      "command": "cgen",
+      "args": [
+        "build"
+      ],
+      "group": "build"
+    },
+    {
+      "label": "Clang Debug",
+      "type": "shell",
+      "command": "cgen",
+      "args": [
+        "build",
+        "--debug"
+      ],
+      "group": "build"
+    },
+    {
+      "label": "Clang Release",
+      "type": "shell",
+      "command": "cgen",
+      "args": [
+        "build"
+      ],
+      "group": "build"
+    },
+    {
+      "label": "WSL GCC Debug",
+      "type": "shell",
+      "command": "cgen",
+      "args": [
+        "build",
+        "--debug"
+      ],
+      "group": "build",
+      "options": {
+        "shell": {
+          "executable": "c:\\windows\\System32\\wsl.exe",
+          "args": []
+        }
+      }
+    },
+    {
+      "label": "WSL GCC Release",
+      "type": "shell",
+      "command": "cgen",
+      "args": [
+        "build"
+      ],
+      "group": "build",
+      "options": {
+        "shell": {
+          "executable": "c:\\windows\\System32\\wsl.exe",
+          "args": []
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "name": "@tybys/emnapi",
+  "main": "cgen.config.js",
+  "scripts": {
+    "configure": "cgen configure -e -d",
+    "build": "cgen build -d",
+    "clean": "cgen clean",
+    "rebuild": "tsc && cgen rebuild -e -d"
+  },
+  "devDependencies": {
+    "typescript": "^4.2.4"
+  }
+}
