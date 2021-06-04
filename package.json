@@ -3,7 +3,7 @@
   "main": "cgen.config.js",
   "scripts": {
     "configure": "cgen configure -e -d",
-    "build": "cgen build -d",
+    "build": "tsc -p ./lib/runtime/tsconfig.json && tsc && node ./script/build.js && cgen build -d",
     "clean": "cgen clean",
     "rebuild": "tsc -p ./lib/runtime/tsconfig.json && tsc && node ./script/build.js && cgen rebuild -e -d",
     "rebuild:r": "tsc -p ./lib/runtime/tsconfig.json && tsc && node ./script/build.js && cgen rebuild -e",

@@ -4,7 +4,8 @@ function napi_module_register (nodeModule: Pointer<node_module>): void {
   // const nm_flags = HEAPU32[addr + 1]
   // const nm_filename = HEAPU32[addr + 2]
   const nm_register_func = HEAPU32[addr + 3]
-  // const nm_modname = HEAPU32[addr + 4]
+  const nm_modname = HEAPU32[addr + 4]
+  const modName = UTF8ToString(nm_modname) || 'emnapiExports'
   // const nm_priv = HEAPU32[addr + 5]
 
   emnapi.callInNewHandleScope((scope) => {
@@ -12,7 +13,7 @@ function napi_module_register (nodeModule: Pointer<node_module>): void {
     const exportsHandle = scope.add(exports)
 
     const napiValue = dynCall_iii(nm_register_func, 0, exportsHandle.id)
-    Module.napiExports = emnapi.Handle.store[napiValue].value
+    Module[modName] = emnapi.Handle.store[napiValue].value
   })
   if (emnapi.tryCatch.hasCaught()) {
     const err = emnapi.tryCatch.extractException()

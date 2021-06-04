@@ -58,12 +58,16 @@ NAPI_EXTERN void napi_module_register(napi_module* mod);
   NAPI_MODULE_INITIALIZER_X(NAPI_MODULE_INITIALIZER_BASE,             \
       NAPI_MODULE_VERSION)
 
+#ifndef EMNAPI_MODULE_NAME
+#define EMNAPI_MODULE_NAME emnapiExports
+#endif
+
 #define NAPI_MODULE_INIT()                                            \
   EXTERN_C_START                                                      \
   NAPI_MODULE_EXPORT napi_value                                       \
   NAPI_MODULE_INITIALIZER(napi_env env, napi_value exports);          \
   EXTERN_C_END                                                        \
-  NAPI_MODULE(NODE_GYP_MODULE_NAME, NAPI_MODULE_INITIALIZER)          \
+  NAPI_MODULE(EMNAPI_MODULE_NAME, NAPI_MODULE_INITIALIZER)            \
   napi_value NAPI_MODULE_INITIALIZER(napi_env env,                    \
                                      napi_value exports)
 
