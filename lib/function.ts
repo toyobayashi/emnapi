@@ -24,7 +24,7 @@ function napi_create_function (env: napi_env, utf8name: Pointer<const_char>, len
   const valueHandle = emnapi.getCurrentScope().add(fn)
 
   HEAPU32[result >> 2] = valueHandle.id
-  return emnapi.napi_clear_last_error(env)
+  return emnapi.getReturnStatus(env)
 }
 
 emnapiImplement('napi_create_function', napi_create_function)

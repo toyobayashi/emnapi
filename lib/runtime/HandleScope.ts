@@ -102,7 +102,7 @@ function callInNewScope<Scope extends IHandleScope, Args extends any[], ReturnVa
 ): ReturnValue {
   const scope = new ScopeConstructor(getCurrentScope() ?? null)
   scopeList.push(scope)
-  let ret: ReturnValue = undefined as any
+  let ret: ReturnValue
   try {
     ret = fn(scope, ...args)
   } catch (err) {
@@ -110,7 +110,7 @@ function callInNewScope<Scope extends IHandleScope, Args extends any[], ReturnVa
   }
   scope.dispose()
   scopeList.pop()
-  return ret
+  return ret!
 }
 
 export function callInNewHandleScope<Args extends any[], T = any> (fn: (scope: HandleScope, ...args: Args) => T, ...args: Args): T {

@@ -97,4 +97,8 @@ export function napi_clear_last_error (_env: napi_env): napi_status {
   return napi_status.napi_ok
 }
 
+export function getReturnStatus (env: napi_env): napi_status {
+  return !tryCatch.hasCaught() ? napi_status.napi_ok : napi_set_last_error(env, napi_status.napi_pending_exception)
+}
+
 }
