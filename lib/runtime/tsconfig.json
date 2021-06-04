@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "ES5",
+    "module": "none",
+    "outFile": "../../dist/library_napi_runtime.js",
+    "downlevelIteration": true,
+    "declaration": true
+  },
+  "files": [
+    "../runtime.d.ts",
+    "./LinkedList.ts",
+    "./Handle.ts",
+    "./HandleScope.ts"
+  ]
+}

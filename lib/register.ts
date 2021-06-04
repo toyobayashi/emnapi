@@ -1,9 +1,9 @@
 mergeInto(LibraryManager.library, {
   napi_module_register__deps: [
-    '$emnapiInit',
+    '$emnapi'/* ,
     '$getCurrentScope',
     '$callInNewEscapableHandleScope',
-    '$findHandleById'
+    '$findHandleById' */
   ],
   napi_module_register: function (nodeModule: Pointer): void {
     const addr = nodeModule >> 2
@@ -14,13 +14,13 @@ mergeInto(LibraryManager.library, {
     // const nm_modname = HEAPU32[addr + 4]
     // const nm_priv = HEAPU32[addr + 5]
 
-    const handleId = callInNewEscapableHandleScope((scope) => {
+    const handleId = emnapi.callInNewEscapableHandleScope((scope) => {
       const exports = {}
-      const exportsHandle = new Handle(exports)
+      const exportsHandle = new emnapi.Handle(exports)
       scope.handles.push(exportsHandle)
 
       const napiValue = dynCall_iii(nm_register_func, 0, exportsHandle.id)
-      const handle = findHandleById(napiValue)
+      const handle = emnapi.findHandleById(napiValue)
       if (scope.handles.indexOf(handle) !== -1) {
         return scope.escape(handle).id
       } else {
@@ -28,6 +28,6 @@ mergeInto(LibraryManager.library, {
       }
     })
 
-    Module['napiExports'] = Handle.store[handleId]
+    Module['napiExports'] = emnapi.Handle.store[handleId]
   }
 })

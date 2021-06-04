@@ -8,9 +8,7 @@
   },
   "files": [
     "./lib/runtime.d.ts",
-    "./lib/LinkedList.ts",
-    "./lib/Handle.ts",
-    "./lib/HandleScope.ts",
+    "./dist/library_napi_runtime.d.ts",
     "./lib/register.ts",
     "./lib/c2napi.ts",
     "./lib/function.ts",
