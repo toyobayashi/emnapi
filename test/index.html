@@ -30,7 +30,9 @@
     }; */
     napitest.default().then(({ Module }) => {
       console.log(Module)
-      console.log(Module.napiExports())
+      const nativeFn = Module.napiExports
+      console.log(nativeFn.name)
+      console.log(nativeFn())
       // const nativeFn = Module._napi_register_wasm_v1(0, 0)
       // console.log(nativeFn())
     })

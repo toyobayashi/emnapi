@@ -23,6 +23,6 @@ NAPI_MODULE_INIT() {
   napi_set_instance_data(env, data, NULL, NULL);
   printf("instance_data: %d\n", *data);
   napi_value fn;
-  napi_create_function(env, NULL, 0, _native_fn, NULL, &fn);
+  napi_create_function(env, "nativeFn", -1, _native_fn, NULL, &fn);
   return fn;
 }

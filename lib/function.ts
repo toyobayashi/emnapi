@@ -1,12 +1,12 @@
 function napi_create_function (env: napi_env, utf8name: Pointer<const_char>, length: size_t, cb: napi_callback, data: Pointer<any>, result: Pointer<napi_value>) {
-  const fn = function (this: any) {
+  function executor (this: any, newTarget: any, ...args: any[]) {
     const callbackInfo = {
       _this: this,
       _data: data,
-      _length: arguments.length,
-      _args: Array.prototype.slice.call(arguments),
-      _newTarget: new.target,
-      _isConstructCall: !!new.target
+      _length: args.length,
+      _args: args,
+      _newTarget: newTarget,
+      _isConstructCall: !!newTarget
     }
     const ret = emnapi.callInNewHandleScope((scope) => {
       const cbinfoHandle = scope.add(callbackInfo)
@@ -19,9 +19,30 @@ function napi_create_function (env: napi_env, utf8name: Pointer<const_char>, len
     }
     return ret
   }
-  fn.name = length === 0xffffffff ? UTF8ToString(utf8name) : UTF8ToString(utf8name, length)
 
-  const valueHandle = emnapi.getCurrentScope().add(fn)
+  const valueHandle = emnapi.getCurrentScope().add(utf8name === 0
+    ? function (this: any) {
+        const args = Array.prototype.slice.call(arguments)
+        args.unshift(new.target)
+        return executor.apply(this, args as any)
+      }
+    : (function () {
+      const functionName = length === -1 ? UTF8ToString(utf8name) : UTF8ToString(utf8name, length)
+      try {
+        return (new Function('executor', `return function ${functionName} () {
+          var args = Array.prototype.slice.call(arguments);
+          args.unshift(new.target);
+          return executor.apply(this, args);
+        };`))(executor)
+      } catch (_) {
+        return function (this: any) {
+          const args = Array.prototype.slice.call(arguments)
+          args.unshift(new.target)
+          return executor.apply(this, args as any)
+        }
+      }
+    })()
+  )
 
   HEAPU32[result >> 2] = valueHandle.id
   return emnapi.getReturnStatus(env)
