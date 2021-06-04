@@ -1,23 +1,27 @@
-module.exports = function (_options, { isDebug }) {
-  const debugFlags = [
-    '-sDISABLE_EXCEPTION_CATCHING=0',
-    '-sSAFE_HEAP=1'
-  ]
+module.exports = function (_options, { isDebug, isEmscripten }) {
+  const debugFlags = isEmscripten
+    ? [
+        '-sDISABLE_EXCEPTION_CATCHING=0',
+        '-sSAFE_HEAP=1'
+      ]
+    : []
 
-  const commonFlags = [
-    '--bind',
-    '-sDYNCALLS=1',
-    // '-sERROR_ON_UNDEFINED_SYMBOLS=0', if add js function to imports.env
-    '-sALLOW_MEMORY_GROWTH=1',
-    ...(isDebug ? debugFlags : [])
-  ]
+  const commonFlags = isEmscripten
+    ? [
+        '--bind',
+        '-sDYNCALLS=1',
+        // '-sERROR_ON_UNDEFINED_SYMBOLS=0', if add js function to imports.env
+        '-sALLOW_MEMORY_GROWTH=1',
+        ...(isDebug ? debugFlags : [])
+      ]
+    : []
 
   return {
     project: 'napi',
     targets: [
       {
         name: 'napitest',
-        type: 'exe',
+        type: isEmscripten ? 'exe' : 'node',
         sources: [
           './src/main.c',
           './src/lib.c'
@@ -25,9 +29,10 @@ module.exports = function (_options, { isDebug }) {
         emwrap: { // compatible webpack
           // wrapScript: './export.js'
         },
-        includePaths: ['./include'],
+        includePaths: isEmscripten ? ['./include'] : [],
         compileOptions: [...commonFlags],
-        linkOptions: [...commonFlags, '--js-library=${CMAKE_CURRENT_SOURCE_DIR}/dist/library_napi.js']
+        // eslint-disable-next-line no-template-curly-in-string
+        linkOptions: [...commonFlags, ...(isEmscripten ? ['--js-library=${CMAKE_CURRENT_SOURCE_DIR}/dist/library_napi.js'] : [])]
       }
     ]
   }
