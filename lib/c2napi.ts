@@ -5,5 +5,5 @@ mergeInto(LibraryManager.library, {
     HEAPU32[result >> 2] = valueHandle.id
     return 0
   },
-  napi_create_int32__deps: ['$emnapi'/* , '$getCurrentScope' */]
+  napi_create_int32__deps: ['$emnapi']
 })

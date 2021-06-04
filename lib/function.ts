@@ -30,9 +30,6 @@ mergeInto(LibraryManager.library, {
     return 0
   },
   napi_create_function__deps: [
-    '$emnapi'/* ,
-    '$getCurrentScope',
-    '$callInNewEscapableHandleScope',
-    '$findHandleById' */
+    '$emnapi'
   ]
 })

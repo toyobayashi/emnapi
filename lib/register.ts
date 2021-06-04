@@ -1,9 +1,6 @@
 mergeInto(LibraryManager.library, {
   napi_module_register__deps: [
-    '$emnapi'/* ,
-    '$getCurrentScope',
-    '$callInNewEscapableHandleScope',
-    '$findHandleById' */
+    '$emnapi'
   ],
   napi_module_register: function (nodeModule: Pointer): void {
     const addr = nodeModule >> 2
