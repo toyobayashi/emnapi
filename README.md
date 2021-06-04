@@ -9,6 +9,7 @@
 未安装 `make` 的 Windows 用户请使用 Visual Studio Developer Command Prompt 跑命令（需要用到 `nmake`）
 
 ```bash
+npm install -g @tybys/cgen
 npm install
 npm run rebuild
 ```
