@@ -15,8 +15,9 @@ export class ListNode<E> {
 }
 
 export class LinkedList<E> {
-  private _first: ListNode<E> = ListNode.Undefined
-  private _last: ListNode<E> = ListNode.Undefined
+  first: ListNode<E> = ListNode.Undefined
+  last: ListNode<E> = ListNode.Undefined
+
   private _size: number = 0
 
   get size (): number {
@@ -24,12 +25,12 @@ export class LinkedList<E> {
   }
 
   isEmpty (): boolean {
-    return this._first === ListNode.Undefined
+    return this.first === ListNode.Undefined
   }
 
   clear (): void {
-    this._first = ListNode.Undefined
-    this._last = ListNode.Undefined
+    this.first = ListNode.Undefined
+    this.last = ListNode.Undefined
     this._size = 0
   }
 
@@ -43,19 +44,19 @@ export class LinkedList<E> {
 
   private _insert (element: E, atTheEnd: boolean): () => void {
     const newNode = new ListNode(element)
-    if (this._first === ListNode.Undefined) {
-      this._first = newNode
-      this._last = newNode
+    if (this.first === ListNode.Undefined) {
+      this.first = newNode
+      this.last = newNode
     } else if (atTheEnd) {
       // push
-      const oldLast = this._last
-      this._last = newNode
+      const oldLast = this.last
+      this.last = newNode
       newNode.prev = oldLast
       oldLast.next = newNode
     } else {
       // unshift
-      const oldFirst = this._first
-      this._first = newNode
+      const oldFirst = this.first
+      this.first = newNode
       newNode.next = oldFirst
       oldFirst.prev = newNode
     }
@@ -71,21 +72,21 @@ export class LinkedList<E> {
   }
 
   shift (): E | undefined {
-    if (this._first === ListNode.Undefined) {
+    if (this.first === ListNode.Undefined) {
       return undefined
     } else {
-      const res = this._first.element
-      this._remove(this._first)
+      const res = this.first.element
+      this._remove(this.first)
       return res
     }
   }
 
   pop (): E | undefined {
-    if (this._last === ListNode.Undefined) {
+    if (this.last === ListNode.Undefined) {
       return undefined
     } else {
-      const res = this._last.element
-      this._remove(this._last)
+      const res = this.last.element
+      this._remove(this.last)
       return res
     }
   }
@@ -98,16 +99,16 @@ export class LinkedList<E> {
       node.next.prev = anchor
     } else if (node.prev === ListNode.Undefined && node.next === ListNode.Undefined) {
       // only node
-      this._first = ListNode.Undefined
-      this._last = ListNode.Undefined
+      this.first = ListNode.Undefined
+      this.last = ListNode.Undefined
     } else if (node.next === ListNode.Undefined) {
       // last
-      this._last = this._last.prev!
-      this._last.next = ListNode.Undefined
+      this.last = this.last.prev!
+      this.last.next = ListNode.Undefined
     } else if (node.prev === ListNode.Undefined) {
       // first
-      this._first = this._first.next!
-      this._first.prev = ListNode.Undefined
+      this.first = this.first.next!
+      this.first.prev = ListNode.Undefined
     }
 
     // done

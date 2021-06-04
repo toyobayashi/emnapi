@@ -11,24 +11,13 @@ mergeInto(LibraryManager.library, {
     // const nm_modname = HEAPU32[addr + 4]
     // const nm_priv = HEAPU32[addr + 5]
 
-    const handleId = emnapi.callInNewEscapableHandleScope((scope) => {
+    emnapi.callInNewHandleScope((scope) => {
       const exports = {}
-      const exportsHandle = new emnapi.Handle(exports)
-      scope.handles.push(exportsHandle)
+      const exportsHandle = scope.add(exports)
 
       const napiValue = dynCall_iii(nm_register_func, 0, exportsHandle.id)
-      const handle = emnapi.findHandleById(napiValue)
-      if (!handle) {
-        // TODO
-        throw new Error('handle is not found')
-      }
-      if (scope.handles.indexOf(handle) !== -1) {
-        return scope.escape(handle)!.id
-      } else {
-        return handle.id
-      }
+      Module['napiExports'] = emnapi.Handle.store[napiValue].value
     })
-
-    Module['napiExports'] = emnapi.Handle.store[handleId]
+    // console.log(emnapi.Handle.store)
   }
 })

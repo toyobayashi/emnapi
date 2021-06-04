@@ -5,30 +5,19 @@ mergeInto(LibraryManager.library, {
         _this: this,
         _data: data,
         _length: arguments.length,
-        _args: Array.prototype.slice.call(arguments)
+        _args: Array.prototype.slice.call(arguments),
+        _newTarget: new.target,
+        _isConstructCall: !!new.target
       }
-      const handleId = emnapi.callInNewEscapableHandleScope((scope) => {
-        const cbinfoHandle = new emnapi.Handle(callbackInfo)
-        scope.handles.push(cbinfoHandle)
+      return emnapi.callInNewHandleScope((scope) => {
+        const cbinfoHandle = scope.add(callbackInfo)
         const napiValue = dynCall_iii(cb, _env, cbinfoHandle.id)
-        const handle = emnapi.findHandleById(napiValue)
-        if (!handle) {
-          // TODO
-          throw new Error('handle is not found')
-        }
-        if (scope.handles.indexOf(handle) !== -1) {
-          return scope.escape(handle)!.id
-        } else {
-          return handle.id
-        }
+        return emnapi.Handle.store[napiValue].value
       })
-
-      return emnapi.Handle.store[handleId]
     }
     fn.name = length === 0xffffffff ? UTF8ToString(utf8name) : UTF8ToString(utf8name, length)
 
-    const valueHandle = new emnapi.Handle(fn)
-    emnapi.getCurrentScope().handles.push(valueHandle)
+    const valueHandle = emnapi.getCurrentScope().add(fn)
 
     HEAPU32[result >> 2] = valueHandle.id
     return 0

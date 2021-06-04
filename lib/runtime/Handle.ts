@@ -1,21 +1,68 @@
+declare var __webpack_public_path__: any
+declare var global: typeof globalThis
+
 namespace emnapi {
 
-export class Handle {
-  private static _count: number = 0
-  public static store: { [id: number]: any } = Object.create(null)
+let handleCount: number = 0
+
+export class Handle<S> {
+  public static store: { [id: number]: Handle<any> } = (function () {
+    const store = Object.create(null)
+    store[0xfffffffa] = new Handle(0xfffffffa, undefined)
+    store[0xfffffffb] = new Handle(0xfffffffb, null)
+    store[0xfffffffc] = new Handle(0xfffffffc, false)
+    store[0xfffffffd] = new Handle(0xfffffffd, true)
+    store[0xfffffffe] = new Handle(0xfffffffe, NaN)
+    store[0xffffffff] = new Handle(0xffffffff, (function () {
+      var g;
+      g = (function () { return this; })();
+
+      try {
+        g = g || new Function('return this')();
+      } catch (_) {
+        if (typeof globalThis !== 'undefined') return globalThis;
+        if (typeof __webpack_public_path__ === 'undefined') {
+          if (typeof global !== 'undefined') return global;
+        }
+        if (typeof window !== 'undefined') return window;
+        if (typeof self !== 'undefined') return self;
+      }
+
+      return g;
+    })())
+    return store
+  })()
+
+  public static create<S> (value: S): Handle<S> {
+    while (handleCount in Handle.store) {
+      handleCount = (handleCount + 1) % 0xfffffffa
+    }
+    const h = new Handle(handleCount, value)
+    Handle.store[handleCount] = h
+    handleCount = (handleCount + 1) % 0xfffffffa
+    return h
+  }
 
   public id: number
   public nativeObject: Pointer<any> | null
-  public constructor (value: any) {
-    this.id = Handle._count
+  public value: S
+
+  private constructor (id: number, value: S) {
+    this.id = id
     this.nativeObject = null
-    Handle.store[this.id] = value
-    Handle._count = (Handle._count + 1) % 0x100000000
+    this.value = value
   }
-  public dispose () {
+
+  public isEmpty (): boolean {
+    return (this.id === -1) || (!('value' in this))
+  }
+
+  public dispose (): void {
     if (this.id in Handle.store) {
       delete Handle.store[this.id]
     }
+    this.id = -1
+    delete (this as any).value
   }
 }
 
