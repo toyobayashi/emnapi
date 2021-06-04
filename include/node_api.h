@@ -5,6 +5,8 @@
 
 #include "js_native_api.h"
 
+#define NAPI_MODULE_EXPORT __attribute__((used))
+
 typedef napi_value (*napi_addon_register_func)(napi_env env,
                                                napi_value exports);
 
@@ -43,7 +45,26 @@ NAPI_EXTERN void napi_module_register(napi_module* mod);
     }                                                                 \
   EXTERN_C_END
 
+#define NAPI_MODULE_INITIALIZER_X(base, version)                               \
+  NAPI_MODULE_INITIALIZER_X_HELPER(base, version)
+#define NAPI_MODULE_INITIALIZER_X_HELPER(base, version) base##version
+
 #define NAPI_MODULE(modname, regfunc)                                 \
   NAPI_MODULE_X(modname, regfunc, NULL, 0)  // NOLINT (readability/null_usage)
+
+#define NAPI_MODULE_INITIALIZER_BASE napi_register_module_v
+
+#define NAPI_MODULE_INITIALIZER                                       \
+  NAPI_MODULE_INITIALIZER_X(NAPI_MODULE_INITIALIZER_BASE,             \
+      NAPI_MODULE_VERSION)
+
+#define NAPI_MODULE_INIT()                                            \
+  EXTERN_C_START                                                      \
+  NAPI_MODULE_EXPORT napi_value                                       \
+  NAPI_MODULE_INITIALIZER(napi_env env, napi_value exports);          \
+  EXTERN_C_END                                                        \
+  NAPI_MODULE(NODE_GYP_MODULE_NAME, NAPI_MODULE_INITIALIZER)          \
+  napi_value NAPI_MODULE_INITIALIZER(napi_env env,                    \
+                                     napi_value exports)
 
 #endif

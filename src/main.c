@@ -17,7 +17,7 @@ static napi_value _native_fn(napi_env env, napi_callback_info info) {
   return number;
 }
 
-static napi_value _init(napi_env env, napi_value exports) {
+NAPI_MODULE_INIT() {
   int* data = (int*)malloc(sizeof(int));
   *data = 996;
   napi_set_instance_data(env, data, NULL, NULL);
@@ -26,5 +26,3 @@ static napi_value _init(napi_env env, napi_value exports) {
   napi_create_function(env, NULL, 0, _native_fn, NULL, &fn);
   return fn;
 }
-
-NAPI_MODULE(emnapitest, _init)
