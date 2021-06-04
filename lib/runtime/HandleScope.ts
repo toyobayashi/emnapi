@@ -68,6 +68,33 @@ export class EscapableHandleScope extends HandleScope {
 export const scopeList = new LinkedList<IHandleScope>()
 scopeList.push(new HandleScope(null))
 
+class TryCatch {
+  private _exception: Error | null = null
+  public hasCaught (): boolean {
+    return this._exception !== null
+  }
+
+  public exception (): Error | null {
+    return this._exception
+  }
+
+  public setError (err: Error): void {
+    this._exception = err
+  }
+
+  public reset (): void {
+    this._exception = null
+  }
+
+  public extractException (): Error | null {
+    const e = this._exception
+    this._exception = null
+    return e
+  }
+}
+
+export const tryCatch = new TryCatch()
+
 function callInNewScope<Scope extends IHandleScope, Args extends any[], ReturnValue = any> (
   ScopeConstructor: new (...args: any[]) => Scope,
   fn: (scope: Scope, ...args: Args) => ReturnValue,
@@ -75,14 +102,11 @@ function callInNewScope<Scope extends IHandleScope, Args extends any[], ReturnVa
 ): ReturnValue {
   const scope = new ScopeConstructor(getCurrentScope() ?? null)
   scopeList.push(scope)
-  let ret: any
+  let ret: ReturnValue = undefined as any
   try {
     ret = fn(scope, ...args)
   } catch (err) {
-    // TODO
-    scope.dispose()
-    scopeList.pop()
-    throw err
+    tryCatch.setError(err)
   }
   scope.dispose()
   scopeList.pop()
