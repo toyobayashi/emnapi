@@ -15,7 +15,7 @@ export class Handle<S> {
     store[0xfffffffe] = new Handle(0xfffffffe, NaN)
     store[0xffffffff] = new Handle(0xffffffff, (function () {
       var g;
-      g = (function () { return this; })();
+      g = (function (this: any) { return this; })();
 
       try {
         g = g || new Function('return this')();

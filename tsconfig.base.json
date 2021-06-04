@@ -4,9 +4,13 @@
     "module": "none",
     "noImplicitAny": true,
     "noImplicitReturns": true,
+    "noImplicitThis": true,
+    "noImplicitUseStrict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "strictNullChecks": true,
-    "strictPropertyInitialization": false
+    "strictPropertyInitialization": true,
+    "strictBindCallApply": true,
+    "strictFunctionTypes": true
   }
 }

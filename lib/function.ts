@@ -1,5 +1,5 @@
 function napi_create_function (env: napi_env, utf8name: Pointer<const_char>, length: size_t, cb: napi_callback, data: Pointer<any>, result: Pointer<napi_value>) {
-  const fn = function () {
+  const fn = function (this: any) {
     const callbackInfo = {
       _this: this,
       _data: data,
