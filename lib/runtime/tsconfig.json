@@ -3,7 +3,8 @@
   "compilerOptions": {
     "outFile": "../../dist/library_napi_runtime.js",
     "downlevelIteration": true,
-    "declaration": true
+    "declaration": true,
+    "types": []
   },
   "files": [
     "../typings/napi.d.ts",

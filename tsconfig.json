@@ -3,7 +3,8 @@
   "compilerOptions": {
     "outFile": "./dist/library_napi.js",
     "importHelpers": false,
-    "noEmitHelpers": true
+    "noEmitHelpers": true,
+    "types": []
   },
   "files": [
     "./lib/typings/runtime.d.ts",

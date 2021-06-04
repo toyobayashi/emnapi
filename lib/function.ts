@@ -1,5 +1,5 @@
-function napi_create_function (env: napi_env, utf8name: Pointer<const_char>, length: size_t, cb: napi_callback, data: Pointer<any>, result: Pointer<napi_value>) {
-  function executor (this: any, newTarget: any, ...args: any[]) {
+function napi_create_function (env: napi_env, utf8name: Pointer<const_char>, length: size_t, cb: napi_callback, data: Pointer<any>, result: Pointer<napi_value>): emnapi.napi_status {
+  function executor (this: any, newTarget: any, ...args: any[]): any {
     const callbackInfo = {
       _this: this,
       _data: data,
@@ -15,33 +15,34 @@ function napi_create_function (env: napi_env, utf8name: Pointer<const_char>, len
     })
     if (emnapi.tryCatch.hasCaught()) {
       const err = emnapi.tryCatch.extractException()
-      throw err
+      throw err!
     }
     return ret
   }
 
   const valueHandle = emnapi.getCurrentScope().add(utf8name === 0
     ? function (this: any) {
-        const args = Array.prototype.slice.call(arguments)
-        args.unshift(new.target)
-        return executor.apply(this, args as any)
-      }
+      const args = Array.prototype.slice.call(arguments)
+      args.unshift(new.target)
+      return executor.apply(this, args as any)
+    }
     : (function () {
-      const functionName = length === -1 ? UTF8ToString(utf8name) : UTF8ToString(utf8name, length)
-      try {
-        return (new Function('executor', `return function ${functionName} () {
+        const functionName = length === -1 ? UTF8ToString(utf8name) : UTF8ToString(utf8name, length)
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-implied-eval, no-new-func
+          return (new Function('executor', `return function ${functionName} () {
           var args = Array.prototype.slice.call(arguments);
           args.unshift(new.target);
           return executor.apply(this, args);
         };`))(executor)
-      } catch (_) {
-        return function (this: any) {
-          const args = Array.prototype.slice.call(arguments)
-          args.unshift(new.target)
-          return executor.apply(this, args as any)
+        } catch (_) {
+          return function (this: any) {
+            const args = Array.prototype.slice.call(arguments)
+            args.unshift(new.target)
+            return executor.apply(this, args as any)
+          }
         }
-      }
-    })()
+      })()
   )
 
   HEAPU32[result >> 2] = valueHandle.id

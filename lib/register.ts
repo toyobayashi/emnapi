@@ -12,11 +12,11 @@ function napi_module_register (nodeModule: Pointer<node_module>): void {
     const exportsHandle = scope.add(exports)
 
     const napiValue = dynCall_iii(nm_register_func, 0, exportsHandle.id)
-    Module['napiExports'] = emnapi.Handle.store[napiValue].value
+    Module.napiExports = emnapi.Handle.store[napiValue].value
   })
   if (emnapi.tryCatch.hasCaught()) {
     const err = emnapi.tryCatch.extractException()
-    throw err
+    throw err!
   }
   // console.log(emnapi.Handle.store)
 }
