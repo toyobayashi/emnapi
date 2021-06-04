@@ -5,8 +5,8 @@ export class Handle {
   public static store: { [id: number]: any } = Object.create(null)
 
   public id: number
-  public nativeObject: Pointer | null
-  public constructor (value) {
+  public nativeObject: Pointer<any> | null
+  public constructor (value: any) {
     this.id = Handle._count
     this.nativeObject = null
     Handle.store[this.id] = value

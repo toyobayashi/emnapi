@@ -1,5 +1,5 @@
 mergeInto(LibraryManager.library, {
-  napi_create_function: function (_env, utf8name: Pointer, length: number, cb: Pointer, data: Pointer, result: Pointer) {
+  napi_create_function: function (_env: napi_env, utf8name: Pointer<const_char>, length: size_t, cb: napi_callback, data: Pointer<any>, result: Pointer<napi_value>) {
     const fn = function () {
       const callbackInfo = {
         _this: this,
@@ -12,8 +12,12 @@ mergeInto(LibraryManager.library, {
         scope.handles.push(cbinfoHandle)
         const napiValue = dynCall_iii(cb, _env, cbinfoHandle.id)
         const handle = emnapi.findHandleById(napiValue)
+        if (!handle) {
+          // TODO
+          throw new Error('handle is not found')
+        }
         if (scope.handles.indexOf(handle) !== -1) {
-          return scope.escape(handle).id
+          return scope.escape(handle)!.id
         } else {
           return handle.id
         }

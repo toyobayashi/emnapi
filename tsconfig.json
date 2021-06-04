@@ -1,13 +1,14 @@
 {
+  "extends": "./tsconfig.base.json",
   "compilerOptions": {
-    "target": "ES5",
-    "module": "none",
     "outFile": "./dist/library_napi.js",
     "importHelpers": false,
     "noEmitHelpers": true
   },
   "files": [
-    "./lib/runtime.d.ts",
+    "./lib/typings/runtime.d.ts",
+    "./lib/typings/napi.d.ts",
+    "./lib/typings/compiler.d.ts",
     "./dist/library_napi_runtime.d.ts",
     "./lib/register.ts",
     "./lib/c2napi.ts",

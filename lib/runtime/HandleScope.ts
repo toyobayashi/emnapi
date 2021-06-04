@@ -43,7 +43,7 @@ export class EscapableHandleScope {
         return newHandle
       }
     } else {
-
+      return null
     }
     return null
   }
@@ -85,7 +85,8 @@ rootScope.handles.push(new Handle((function () {
 export const scopeList = new LinkedList()
 scopeList.push(rootScope)
 
-export function callInNewHandleScope (fn) {
+export function callInNewHandleScope<Args extends any[], T = any> (fn: (scope: HandleScope, ...args: Args) => T, ...args: Args): T
+export function callInNewHandleScope<Args extends any[], T = any> (fn: (scope: HandleScope, ...args: Args) => T): T {
   const scope = new HandleScope()
   scopeList.push(scope)
   const args = Array.prototype.slice.call(arguments, 1)
@@ -104,7 +105,8 @@ export function callInNewHandleScope (fn) {
   return ret
 }
 
-export function callInNewEscapableHandleScope (fn) {
+export function callInNewEscapableHandleScope<Args extends any[], T = any> (fn: (scope: EscapableHandleScope, ...args: Args) => T, ...args: Args): T
+export function callInNewEscapableHandleScope<Args extends any[], T = any> (fn: (scope: EscapableHandleScope, ...args: Args) => T): T {
   const scope = new EscapableHandleScope(getCurrentScope())
   scopeList.push(scope)
   const args = Array.prototype.slice.call(arguments, 1)
