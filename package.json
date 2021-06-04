@@ -6,7 +6,8 @@
     "build": "cgen build -d",
     "clean": "cgen clean",
     "rebuild": "tsc -p ./lib/runtime/tsconfig.json && tsc && node ./script/build.js && cgen rebuild -e -d",
-    "rebuild:r": "tsc -p ./lib/runtime/tsconfig.json && tsc && node ./script/build.js && cgen rebuild -e"
+    "rebuild:r": "tsc -p ./lib/runtime/tsconfig.json && tsc && node ./script/build.js && cgen rebuild -e",
+    "build:runtime": "tsc -p ./lib/runtime/tsconfig.json"
   },
   "devDependencies": {
     "tslib": "^2.2.0",

@@ -9,3 +9,6 @@ declare const HEAPU32: Uint32Array
 declare function UTF8ToString (ptr: const_char_p, maxRead?: number): string
 
 declare const Module: any
+
+declare function allocateUTF8 (str: string): char_p
+declare function _malloc (size: number): void_p
