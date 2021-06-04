@@ -39,11 +39,11 @@ Emscripten 需要 v2.0.13 以上的版本，开启 `DYNCALLS` 选项，链接上
 - [ ] napi_create_uint32
 - [ ] napi_create_int64
 - [ ] napi_create_string_latin1
-- [ ] napi_create_string_utf8
+- [x] napi_create_string_utf8
 - [ ] napi_create_string_utf16
 - [ ] napi_create_symbol
 - [x] napi_create_function
-- [ ] napi_create_error
+- [x] napi_create_error
 - [ ] napi_create_type_error
 - [ ] napi_create_range_error
 - [ ] napi_typeof
@@ -98,11 +98,11 @@ Emscripten 需要 v2.0.13 以上的版本，开启 `DYNCALLS` 选项，链接上
 - [ ] napi_open_escapable_handle_scope
 - [ ] napi_close_escapable_handle_scope
 - [ ] napi_escape_handle
-- [ ] napi_throw
-- [ ] napi_throw_error
-- [ ] napi_throw_type_error
-- [ ] napi_throw_range_error
-- [ ] napi_is_error
+- [x] napi_throw
+- [x] napi_throw_error
+- [x] napi_throw_type_error
+- [x] napi_throw_range_error
+- [x] napi_is_error
 - [ ] napi_is_exception_pending
 - [ ] napi_get_and_clear_last_exception
 - [ ] napi_is_arraybuffer

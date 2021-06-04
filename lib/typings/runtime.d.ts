@@ -5,6 +5,7 @@ declare function dynCall_iii (
 ): int32_t
 
 declare const HEAPU32: Uint32Array
+declare const HEAPU8: Uint8Array
 
 declare function UTF8ToString (ptr: const_char_p, maxRead?: number): string
 

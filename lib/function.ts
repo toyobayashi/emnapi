@@ -20,7 +20,7 @@ function napi_create_function (env: napi_env, utf8name: Pointer<const_char>, len
     return ret
   }
 
-  const valueHandle = emnapi.getCurrentScope().add(utf8name === 0
+  const valueHandle = emnapi.getCurrentScope().add((utf8name === 0 || length === 0)
     ? function (this: any) {
       const args = Array.prototype.slice.call(arguments)
       args.unshift(new.target)

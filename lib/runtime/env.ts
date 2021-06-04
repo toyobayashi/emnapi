@@ -69,7 +69,7 @@ namespace emnapi {
 
   function lazyInitErrorMemory (): void {
     if (!errorMessagesPtr) {
-      errorMessagesPtr = errorMessages.map(msg => allocateUTF8(msg))
+      errorMessagesPtr = errorMessages.map(msg => msg ? allocateUTF8(msg) : 0)
       napiExtendedErrorInfoPtr = _malloc(16)
     }
   }
