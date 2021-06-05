@@ -67,17 +67,16 @@ namespace emnapi {
   }
   export let napiExtendedErrorInfoPtr: Pointer<napi_extended_error_info>
 
-  function lazyInitErrorMemory (): void {
+  function initErrorMemory (): void {
     if (!errorMessagesPtr) {
       errorMessagesPtr = errorMessages.map(msg => msg ? allocateUTF8(msg) : 0)
       napiExtendedErrorInfoPtr = _malloc(16)
     }
   }
 
-  addOnInit(lazyInitErrorMemory)
+  addOnInit(initErrorMemory)
 
   export function napi_set_last_error (_env: napi_env, error_code: napi_status, engine_error_code: uint32_t = 0, engine_reserved: void_p = 0): napi_status {
-    // lazyInitErrorMemory()
     napiExtendedErrorInfo.error_code = error_code
     napiExtendedErrorInfo.engine_error_code = engine_error_code
     napiExtendedErrorInfo.engine_reserved = engine_reserved
@@ -89,7 +88,6 @@ namespace emnapi {
   }
 
   export function napi_clear_last_error (_env: napi_env): napi_status {
-    // lazyInitErrorMemory()
     napiExtendedErrorInfo.error_code = napi_status.napi_ok
     napiExtendedErrorInfo.engine_error_code = 0
     napiExtendedErrorInfo.engine_reserved = 0
