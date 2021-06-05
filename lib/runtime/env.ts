@@ -102,4 +102,8 @@ namespace emnapi {
     return !tryCatch.hasCaught() ? napi_status.napi_ok : napi_set_last_error(env, napi_status.napi_pending_exception)
   }
 
+  export let canSetFunctionName = false
+  try {
+    canSetFunctionName = !!Object.getOwnPropertyDescriptor(Function.prototype, 'name')?.configurable
+  } catch (_) {}
 }

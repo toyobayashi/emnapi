@@ -32,6 +32,7 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
     targets: [
       createTarget('env', ['./test/env/binding.c']),
       createTarget('value', ['./test/value/binding.c']),
+      createTarget('function', ['./test/function/binding.c']),
       createTarget('error', ['./test/error/binding.c'])
     ]
   }
