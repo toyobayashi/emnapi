@@ -6,6 +6,7 @@ declare function dynCall_iii (
 
 declare const HEAPU32: Uint32Array
 declare const HEAPU8: Uint8Array
+declare const wasmTable: WebAssembly.Table
 
 declare function UTF8ToString (ptr: const_char_p, maxRead?: number): string
 
@@ -14,12 +15,9 @@ declare const Module: any
 declare function allocateUTF8 (str: string): char_p
 declare function _malloc (size: number): void_p
 
-// fake
-declare function makeDynCall (sig: 'iii', ptr: string): (a: int32_t, b: int32_t) => int32_t
-declare function makeDynCall (sig: string, ptr: string): (...args: any[]) => any
-
-declare type InitCallback<Arg> = {
-  (arg?: Arg): void
-  arg?: Arg
+declare type LifecycleCallback<Arg> = {
+  func: (arg: Arg) => void
+  arg: Arg
 }
-declare function addOnInit (callback: number | InitCallback<any>): void
+declare function addOnInit (callback: number | ((Module: any) => void) | LifecycleCallback<any>): void
+declare function addOnExit (callback: number | ((Module: any) => void) | LifecycleCallback<any>): void
