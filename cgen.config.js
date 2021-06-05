@@ -30,6 +30,7 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
   return {
     project: 'emnapitest',
     targets: [
+      createTarget('env', ['./test/env/binding.c']),
       createTarget('value', ['./test/value/binding.c']),
       createTarget('error', ['./test/error/binding.c'])
     ]
