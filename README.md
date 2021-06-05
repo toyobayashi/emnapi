@@ -12,6 +12,9 @@
 npm install -g @tybys/cgen
 npm install
 npm run rebuild
+
+# test
+npm test
 ```
 
 ## 使用

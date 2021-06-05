@@ -1,6 +1,6 @@
 import { getEntry } from '../util'
 
-const wasmPromise = require(getEntry('c2napi')).default()
+const wasmPromise = require(getEntry('value')).default()
 
 test('Create int32', () => {
   return wasmPromise.then(({ Module }: { Module: any }) => {

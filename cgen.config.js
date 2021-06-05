@@ -20,10 +20,10 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
     project: 'emnapitest',
     targets: [
       {
-        name: 'c2napi',
+        name: 'value',
         type: isEmscripten ? 'exe' : 'node',
         sources: [
-          './test/c2napi/binding.c'
+          './test/value/binding.c'
         ],
         emwrap: {},
         includePaths: isEmscripten ? ['./include'] : [],

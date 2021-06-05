@@ -6,7 +6,6 @@ const runtimeTsconfig = JSON.parse(fs.readFileSync(runtimeTsconfigPath, 'utf8'))
 
 const runtimeOut = path.join(path.dirname(runtimeTsconfigPath), runtimeTsconfig.compilerOptions.outFile)
 
-
 const libTsconfigPath = path.join(__dirname, '../tsconfig.json')
 const libTsconfig = JSON.parse(fs.readFileSync(libTsconfigPath, 'utf8'))
 

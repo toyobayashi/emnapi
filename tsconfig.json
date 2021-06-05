@@ -15,7 +15,7 @@
     "./lib/register.ts",
     "./lib/env.ts",
     "./lib/error.ts",
-    "./lib/c2napi.ts",
+    "./lib/value.ts",
     "./lib/function.ts",
     "./lib/property.ts",
     "./lib/init.ts"
