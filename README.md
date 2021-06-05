@@ -66,7 +66,7 @@ Emscripten 需要 v2.0.13 以上的版本，开启 `DYNCALLS` 选项，链接上
 - [ ] napi_get_property
 - [ ] napi_delete_property
 - [ ] napi_has_own_property
-- [ ] napi_set_named_property
+- [x] napi_set_named_property
 - [ ] napi_has_named_property
 - [ ] napi_get_named_property
 - [ ] napi_set_element

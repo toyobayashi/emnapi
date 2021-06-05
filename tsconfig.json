@@ -17,6 +17,7 @@
     "./lib/error.ts",
     "./lib/c2napi.ts",
     "./lib/function.ts",
+    "./lib/property.ts",
     "./lib/init.ts"
   ]
 }
