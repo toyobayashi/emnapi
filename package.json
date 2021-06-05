@@ -1,6 +1,8 @@
 {
   "name": "@tybys/emnapi",
-  "main": "cgen.config.js",
+  "version": "0.0.1",
+  "description": " N-API implementation for Emscripten",
+  "main": "index.js",
   "scripts": {
     "clean": "cgen clean",
     "build:runtime": "tsc -p ./lib/runtime/tsconfig.json",
@@ -15,6 +17,32 @@
     "test:n": "cross-env EMNAPI_TEST_NATIVE=1 jest --runInBand",
     "test:nr": "cross-env EMNAPI_TEST_NATIVE=1 NODE_ENV=production jest --runInBand"
   },
+  "keywords": [
+    "emscripten",
+    "wasm",
+    "emcc",
+    "webassembly",
+    "bindings",
+    "c",
+    "c++",
+    "cpp",
+    "n-api",
+    "napi",
+    "node-addon-api"
+  ],
+  "author": "toyobayashi",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/toyobayashi/emnapi.git"
+  },
+  "bugs": {
+    "url": "https://github.com/toyobayashi/emnapi/issues"
+  },
+  "homepage": "https://github.com/toyobayashi/emnapi#readme",
+  "publishConfig": {
+    "access": "public"
+  },
+  "license": "MIT",
   "devDependencies": {
     "@types/jest": "^26.0.23",
     "@types/node": "^14.14.41",
