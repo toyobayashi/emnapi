@@ -1,4 +1,4 @@
-function napi_create_function (env: napi_env, utf8name: Pointer<const_char>, length: size_t, cb: napi_callback, data: Pointer<any>, result: Pointer<napi_value>): emnapi.napi_status {
+function napi_create_function (env: napi_env, utf8name: Pointer<const_char>, length: size_t, _cb: napi_callback, data: Pointer<any>, result: Pointer<napi_value>): emnapi.napi_status {
   function executor (this: any, newTarget: any, ...args: any[]): any {
     const callbackInfo = {
       _this: this,
@@ -10,7 +10,7 @@ function napi_create_function (env: napi_env, utf8name: Pointer<const_char>, len
     }
     const ret = emnapi.callInNewHandleScope((scope) => {
       const cbinfoHandle = scope.add(callbackInfo)
-      const napiValue = dynCall_iii(cb, env, cbinfoHandle.id)
+      const napiValue = makeDynCall('iii', '_cb')(env, cbinfoHandle.id)
       return emnapi.Handle.store[napiValue].value
     })
     if (emnapi.tryCatch.hasCaught()) {

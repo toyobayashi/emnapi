@@ -19,11 +19,10 @@ npm test
 
 ## 使用
 
-Emscripten 需要 v2.0.13 以上的版本，开启 `DYNCALLS` 选项，链接上一步构建出来的 js 库
+Emscripten 需要 v2.0.2 以上的版本，链接上一步构建出来的 js 库
 
 ```
 -I ./include
--sDYNCALLS=1
 --js-library=./dist/library_napi.js
 ```
 

@@ -9,7 +9,7 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
   const commonFlags = isEmscripten
     ? [
         '--bind',
-        '-sDYNCALLS=1',
+        // '-sDYNCALLS=1',
         // '-sERROR_ON_UNDEFINED_SYMBOLS=0', if add js function to imports.env
         '-sALLOW_MEMORY_GROWTH=1',
         ...(isDebug ? debugFlags : [])

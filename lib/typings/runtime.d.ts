@@ -13,3 +13,7 @@ declare const Module: any
 
 declare function allocateUTF8 (str: string): char_p
 declare function _malloc (size: number): void_p
+
+// fake
+declare function makeDynCall (sig: 'iii', ptr: string): (a: int32_t, b: int32_t) => int32_t
+declare function makeDynCall (sig: string, ptr: string): (...args: any[]) => any
