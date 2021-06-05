@@ -2,15 +2,18 @@
   "name": "@tybys/emnapi",
   "main": "cgen.config.js",
   "scripts": {
-    "configure": "cgen configure -e -d",
-    "build": "tsc -p ./lib/runtime/tsconfig.json && tsc && node ./script/build.js && cgen build -d",
     "clean": "cgen clean",
-    "rebuild": "tsc -p ./lib/runtime/tsconfig.json && tsc && node ./script/build.js && cgen rebuild -e -d",
-    "rebuild:r": "tsc -p ./lib/runtime/tsconfig.json && tsc && node ./script/build.js && cgen rebuild -e",
     "build:runtime": "tsc -p ./lib/runtime/tsconfig.json",
+    "build:lib": "tsc -p ./lib/runtime/tsconfig.json && tsc && node ./script/build.js",
+    "rebuild": "npm run build:lib && cgen rebuild -e -d",
+    "rebuild:r": "npm run build:lib && cgen rebuild -e",
+    "rebuild:n": "cgen rebuild -d",
+    "rebuild:nr": "cgen rebuild",
     "lint": "eslint lib",
     "test": "jest --runInBand",
-    "test:r": "cross-env NODE_ENV=production jest --runInBand"
+    "test:r": "cross-env NODE_ENV=production jest --runInBand",
+    "test:n": "cross-env EMNAPI_TEST_NATIVE=1 jest --runInBand",
+    "test:nr": "cross-env EMNAPI_TEST_NATIVE=1 NODE_ENV=production jest --runInBand"
   },
   "devDependencies": {
     "@types/jest": "^26.0.23",

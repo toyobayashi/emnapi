@@ -1,10 +1,10 @@
-import { getEntry } from '../util'
+import { load } from '../util'
 
-const wasmPromise = require(getEntry('error')).default()
+const promise = load('error')
 
 test('Last error info', () => {
-  return wasmPromise.then(({ Module }: { Module: any }) => {
-    const ret = Module.emnapiExports()
+  return promise.then(mod => {
+    const ret = mod()
     expect(ret.code).toBe(1)
     expect(ret.msg).toBe('Invalid argument')
   })
