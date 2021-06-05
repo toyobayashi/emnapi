@@ -8,9 +8,11 @@
     "rebuild": "tsc -p ./lib/runtime/tsconfig.json && tsc && node ./script/build.js && cgen rebuild -e -d",
     "rebuild:r": "tsc -p ./lib/runtime/tsconfig.json && tsc && node ./script/build.js && cgen rebuild -e",
     "build:runtime": "tsc -p ./lib/runtime/tsconfig.json",
-    "lint": "eslint lib"
+    "lint": "eslint lib",
+    "test": "jest --runInBand"
   },
   "devDependencies": {
+    "@types/jest": "^26.0.23",
     "@types/node": "^14.14.41",
     "@typescript-eslint/eslint-plugin": "^4.26.0",
     "@typescript-eslint/parser": "^4.26.0",
@@ -19,6 +21,9 @@
     "eslint-plugin-import": "^2.22.1",
     "eslint-plugin-node": "^11.1.0",
     "eslint-plugin-promise": "^5.1.0",
+    "jest": "^27.0.4",
+    "ts-jest": "^27.0.2",
+    "ts-node": "^10.0.0",
     "typescript": "~4.2.4"
   }
 }

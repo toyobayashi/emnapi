@@ -17,18 +17,15 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
     : []
 
   return {
-    project: 'napi',
+    project: 'emnapitest',
     targets: [
       {
-        name: 'napitest',
+        name: 'c2napi',
         type: isEmscripten ? 'exe' : 'node',
         sources: [
-          './src/main.c',
-          './src/lib.c'
+          './test/c2napi/binding.c'
         ],
-        emwrap: { // compatible webpack
-          // wrapScript: './export.js'
-        },
+        emwrap: {},
         includePaths: isEmscripten ? ['./include'] : [],
         compileOptions: [...commonFlags],
         // eslint-disable-next-line no-template-curly-in-string
