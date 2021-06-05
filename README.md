@@ -33,7 +33,7 @@ Emscripten 需要 v2.0.2 以上的版本，链接上一步构建出来的 js 库
 - [ ] napi_get_null
 - [ ] napi_get_global
 - [ ] napi_get_boolean
-- [ ] napi_create_object
+- [x] napi_create_object
 - [ ] napi_create_array
 - [ ] napi_create_array_with_length
 - [ ] napi_create_double
