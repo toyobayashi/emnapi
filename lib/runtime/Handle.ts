@@ -4,7 +4,7 @@ declare const global: typeof globalThis
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 namespace emnapi {
 
-  let handleCount: number = 0
+  let handleCount: number = 1
 
   export class Handle<S> {
     public static store: { [id: number]: Handle<any> } = (function () {
@@ -37,11 +37,11 @@ namespace emnapi {
 
     public static create<S> (value: S): Handle<S> {
       while (handleCount in Handle.store) {
-        handleCount = (handleCount + 1) % 0xfffffffa
+        handleCount = ((handleCount + 1) % 0xfffffff9) + 1
       }
       const h = new Handle(handleCount, value)
       Handle.store[handleCount] = h
-      handleCount = (handleCount + 1) % 0xfffffffa
+      handleCount = ((handleCount + 1) % 0xfffffff9) + 1
       return h
     }
 
