@@ -14,3 +14,15 @@ test('Create utf8', () => {
     expect(mod.utf8()).toBe('utf8')
   })
 })
+
+test('Get undefined', () => {
+  return promise.then(mod => {
+    expect(mod.undef()).toBe(undefined)
+  })
+})
+
+test('Get null', () => {
+  return promise.then(mod => {
+    expect(mod.nil()).toBe(null)
+  })
+})

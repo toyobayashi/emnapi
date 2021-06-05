@@ -3,18 +3,18 @@ declare const global: typeof globalThis
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 namespace emnapi {
-
-  let handleCount: number = 1
+  // -2147483648 <= handleCount <= 2147483647 && handleCount !== 0
+  let handleCount: number = -2147483642
 
   export class Handle<S> {
     public static store: { [id: number]: Handle<any> } = (function () {
       const store = Object.create(null)
-      store[0xfffffffa] = new Handle(0xfffffffa, undefined)
-      store[0xfffffffb] = new Handle(0xfffffffb, null)
-      store[0xfffffffc] = new Handle(0xfffffffc, false)
-      store[0xfffffffd] = new Handle(0xfffffffd, true)
-      store[0xfffffffe] = new Handle(0xfffffffe, NaN)
-      store[0xffffffff] = new Handle(0xffffffff, (function () {
+      store[-2147483648] = new Handle(-2147483648, undefined)
+      store[-2147483647] = new Handle(-2147483647, null)
+      store[-2147483646] = new Handle(-2147483646, false)
+      store[-2147483645] = new Handle(-2147483645, true)
+      store[-2147483644] = new Handle(-2147483644, NaN)
+      store[-2147483643] = new Handle(-2147483643, (function () {
         let g
         g = (function (this: any) { return this })()
 
@@ -37,11 +37,11 @@ namespace emnapi {
 
     public static create<S> (value: S): Handle<S> {
       while (handleCount in Handle.store) {
-        handleCount = ((handleCount + 1) % 0xfffffff9) + 1
+        handleCount = (handleCount === 2147483647 ? -2147483642 : (handleCount + 1)) || 1
       }
       const h = new Handle(handleCount, value)
       Handle.store[handleCount] = h
-      handleCount = ((handleCount + 1) % 0xfffffff9) + 1
+      handleCount = (handleCount === 2147483647 ? -2147483642 : (handleCount + 1)) || 1
       return h
     }
 

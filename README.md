@@ -29,8 +29,8 @@ Emscripten 需要 v2.0.2 以上的版本，链接上一步构建出来的 js 库
 ## 已实现
 
 - [x] napi_get_last_error_info
-- [ ] napi_get_undefined
-- [ ] napi_get_null
+- [x] napi_get_undefined
+- [x] napi_get_null
 - [ ] napi_get_global
 - [ ] napi_get_boolean
 - [x] napi_create_object

@@ -81,9 +81,9 @@ namespace emnapi {
     napiExtendedErrorInfo.engine_error_code = engine_error_code
     napiExtendedErrorInfo.engine_reserved = engine_reserved
 
-    HEAPU32[(napiExtendedErrorInfoPtr >> 2) + 1] = napiExtendedErrorInfo.engine_reserved
+    HEAP32[(napiExtendedErrorInfoPtr >> 2) + 1] = napiExtendedErrorInfo.engine_reserved
     HEAPU32[(napiExtendedErrorInfoPtr >> 2) + 2] = napiExtendedErrorInfo.engine_error_code
-    HEAPU32[(napiExtendedErrorInfoPtr >> 2) + 3] = napiExtendedErrorInfo.error_code
+    HEAP32[(napiExtendedErrorInfoPtr >> 2) + 3] = napiExtendedErrorInfo.error_code
     return error_code
   }
 
@@ -92,9 +92,9 @@ namespace emnapi {
     napiExtendedErrorInfo.engine_error_code = 0
     napiExtendedErrorInfo.engine_reserved = 0
 
-    HEAPU32[(napiExtendedErrorInfoPtr >> 2) + 1] = napiExtendedErrorInfo.engine_reserved
+    HEAP32[(napiExtendedErrorInfoPtr >> 2) + 1] = napiExtendedErrorInfo.engine_reserved
     HEAPU32[(napiExtendedErrorInfoPtr >> 2) + 2] = napiExtendedErrorInfo.engine_error_code
-    HEAPU32[(napiExtendedErrorInfoPtr >> 2) + 3] = napiExtendedErrorInfo.error_code
+    HEAP32[(napiExtendedErrorInfoPtr >> 2) + 3] = napiExtendedErrorInfo.error_code
     return napi_status.napi_ok
   }
 

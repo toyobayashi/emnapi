@@ -1,9 +1,9 @@
 function napi_get_last_error_info (env: napi_env, result: Pointer<Pointer<napi_extended_error_info>>): emnapi.napi_status {
   if (result === 0) return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_invalid_arg)
   emnapi.napiExtendedErrorInfo.error_message = emnapi.errorMessagesPtr[emnapi.napiExtendedErrorInfo.error_code]
-  HEAPU32[emnapi.napiExtendedErrorInfoPtr >> 2] = emnapi.napiExtendedErrorInfo.error_message
+  HEAP32[emnapi.napiExtendedErrorInfoPtr >> 2] = emnapi.napiExtendedErrorInfo.error_message
 
-  HEAPU32[result >> 2] = emnapi.napiExtendedErrorInfoPtr
+  HEAP32[result >> 2] = emnapi.napiExtendedErrorInfoPtr
   return emnapi.napi_status.napi_ok
 }
 
@@ -77,7 +77,7 @@ function napi_create_error (env: napi_env, code: napi_value, msg: napi_value, re
   if (code !== 0) {
     error.code = emnapi.Handle.store[code].value
   }
-  HEAPU32[result >> 2] = emnapi.getCurrentScope().add(error).id
+  HEAP32[result >> 2] = emnapi.getCurrentScope().add(error).id
   return emnapi.napi_clear_last_error(env)
 }
 

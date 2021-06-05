@@ -48,7 +48,7 @@ function napi_create_function (env: napi_env, utf8name: Pointer<const_char>, len
       })()
   )
 
-  HEAPU32[result >> 2] = valueHandle.id
+  HEAP32[result >> 2] = valueHandle.id
   return emnapi.getReturnStatus(env)
 }
 
