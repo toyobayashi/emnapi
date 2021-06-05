@@ -35,8 +35,19 @@ function napi_get_null (env: napi_env, result: Pointer<napi_value>): emnapi.napi
   return emnapi.napi_clear_last_error(env)
 }
 
+function napi_get_boolean (env: napi_env, value: bool, result: Pointer<napi_value>): emnapi.napi_status {
+  if (result === 0) return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_invalid_arg)
+  if (value === 0) {
+    HEAP32[result >> 2] = -2147483646
+  } else {
+    HEAP32[result >> 2] = -2147483645
+  }
+  return emnapi.napi_clear_last_error(env)
+}
+
 emnapiImplement('napi_create_int32', napi_create_int32)
 emnapiImplement('napi_create_string_utf8', napi_create_string_utf8)
 emnapiImplement('napi_create_object', napi_create_object)
 emnapiImplement('napi_get_undefined', napi_get_undefined)
 emnapiImplement('napi_get_null', napi_get_null)
+emnapiImplement('napi_get_boolean', napi_get_boolean)

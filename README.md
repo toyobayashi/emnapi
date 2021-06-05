@@ -32,7 +32,7 @@ Emscripten 需要 v2.0.2 以上的版本，链接上一步构建出来的 js 库
 - [x] napi_get_undefined
 - [x] napi_get_null
 - [ ] napi_get_global
-- [ ] napi_get_boolean
+- [x] napi_get_boolean
 - [x] napi_create_object
 - [ ] napi_create_array
 - [ ] napi_create_array_with_length
@@ -82,7 +82,7 @@ Emscripten 需要 v2.0.2 以上的版本，链接上一步构建出来的 js 库
 - [ ] napi_call_function
 - [ ] napi_new_instance
 - [ ] napi_instanceof
-- [ ] napi_get_cb_info
+- [x] napi_get_cb_info
 - [ ] napi_get_new_target
 - [ ] napi_define_class
 - [ ] napi_wrap
