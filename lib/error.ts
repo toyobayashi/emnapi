@@ -1,4 +1,5 @@
-function napi_get_last_error_info (_env: napi_env, result: Pointer<Pointer<napi_extended_error_info>>): emnapi.napi_status {
+function napi_get_last_error_info (env: napi_env, result: Pointer<Pointer<napi_extended_error_info>>): emnapi.napi_status {
+  if (result === 0) return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_invalid_arg)
   emnapi.napiExtendedErrorInfo.error_message = emnapi.errorMessagesPtr[emnapi.napiExtendedErrorInfo.error_code]
   HEAPU32[emnapi.napiExtendedErrorInfoPtr >> 2] = emnapi.napiExtendedErrorInfo.error_message
 
@@ -7,11 +8,19 @@ function napi_get_last_error_info (_env: napi_env, result: Pointer<Pointer<napi_
 }
 
 function napi_throw (env: napi_env, error: napi_value): emnapi.napi_status {
+  if (emnapi.tryCatch.hasCaught()) return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_pending_exception)
+  emnapi.napi_clear_last_error(env)
+  if (error === 0) return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_invalid_arg)
+
   emnapi.tryCatch.setError(emnapi.Handle.store[error].value)
   return emnapi.napi_clear_last_error(env)
 }
 
 function napi_throw_error (env: napi_env, code: const_char_p, msg: const_char_p): emnapi.napi_status {
+  if (emnapi.tryCatch.hasCaught()) return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_pending_exception)
+  emnapi.napi_clear_last_error(env)
+  if (msg === 0) return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_invalid_arg)
+
   const error: Error & { code?: string } = new Error(UTF8ToString(msg))
   if (code !== 0) {
     error.code = UTF8ToString(code)
@@ -21,6 +30,10 @@ function napi_throw_error (env: napi_env, code: const_char_p, msg: const_char_p)
 }
 
 function napi_throw_type_error (env: napi_env, code: const_char_p, msg: const_char_p): emnapi.napi_status {
+  if (emnapi.tryCatch.hasCaught()) return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_pending_exception)
+  emnapi.napi_clear_last_error(env)
+  if (msg === 0) return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_invalid_arg)
+
   const error: TypeError & { code?: string } = new TypeError(UTF8ToString(msg))
   if (code !== 0) {
     error.code = UTF8ToString(code)
@@ -30,6 +43,10 @@ function napi_throw_type_error (env: napi_env, code: const_char_p, msg: const_ch
 }
 
 function napi_throw_range_error (env: napi_env, code: const_char_p, msg: const_char_p): emnapi.napi_status {
+  if (emnapi.tryCatch.hasCaught()) return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_pending_exception)
+  emnapi.napi_clear_last_error(env)
+  if (msg === 0) return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_invalid_arg)
+
   const error: RangeError & { code?: string } = new RangeError(UTF8ToString(msg))
   if (code !== 0) {
     error.code = UTF8ToString(code)
@@ -39,13 +56,24 @@ function napi_throw_range_error (env: napi_env, code: const_char_p, msg: const_c
 }
 
 function napi_is_error (env: napi_env, value: napi_value, result: Pointer<boolean>): emnapi.napi_status {
+  if (value === 0) return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_invalid_arg)
+  if (result === 0) return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_invalid_arg)
+
   const r = emnapi.Handle.store[value].value instanceof Error
   HEAPU8[result] = r ? 1 : 0
   return emnapi.napi_clear_last_error(env)
 }
 
 function napi_create_error (env: napi_env, code: napi_value, msg: napi_value, result: Pointer<napi_value>): emnapi.napi_status {
-  const error: Error & { code?: string } = new Error(emnapi.Handle.store[msg].value)
+  if (msg === 0) return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_invalid_arg)
+  if (result === 0) return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_invalid_arg)
+
+  const msgValue = emnapi.Handle.store[msg].value
+  if (typeof msgValue !== 'string') {
+    return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_string_expected)
+  }
+
+  const error: Error & { code?: string } = new Error(msgValue)
   if (code !== 0) {
     error.code = emnapi.Handle.store[code].value
   }

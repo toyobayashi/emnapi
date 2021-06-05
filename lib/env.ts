@@ -6,6 +6,7 @@ function napi_set_instance_data (env: napi_env, data: void_p, finalize_cb: napi_
 }
 
 function napi_get_instance_data (env: napi_env, data: void_pp): emnapi.napi_status {
+  if (data === 0) return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_invalid_arg)
   HEAPU32[data >> 2] = emnapi.instanceData.data
   return emnapi.napi_clear_last_error(env)
 }
