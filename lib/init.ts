@@ -1,4 +1,4 @@
-declare const __EMNAPI_RUNTIME_REPLACE__: any
+declare const __EMNAPI_RUNTIME_REPLACE__: string
 
 mergeInto(LibraryManager.library, {
   $emnapi: undefined,

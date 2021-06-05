@@ -17,3 +17,9 @@ declare function _malloc (size: number): void_p
 // fake
 declare function makeDynCall (sig: 'iii', ptr: string): (a: int32_t, b: int32_t) => int32_t
 declare function makeDynCall (sig: string, ptr: string): (...args: any[]) => any
+
+declare type InitCallback<Arg> = {
+  (arg?: Arg): void
+  arg?: Arg
+}
+declare function addOnInit (callback: number | InitCallback<any>): void

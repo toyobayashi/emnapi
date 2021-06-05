@@ -74,8 +74,10 @@ namespace emnapi {
     }
   }
 
+  addOnInit(lazyInitErrorMemory)
+
   export function napi_set_last_error (_env: napi_env, error_code: napi_status, engine_error_code: uint32_t = 0, engine_reserved: void_p = 0): napi_status {
-    lazyInitErrorMemory()
+    // lazyInitErrorMemory()
     napiExtendedErrorInfo.error_code = error_code
     napiExtendedErrorInfo.engine_error_code = engine_error_code
     napiExtendedErrorInfo.engine_reserved = engine_reserved
@@ -87,7 +89,7 @@ namespace emnapi {
   }
 
   export function napi_clear_last_error (_env: napi_env): napi_status {
-    lazyInitErrorMemory()
+    // lazyInitErrorMemory()
     napiExtendedErrorInfo.error_code = napi_status.napi_ok
     napiExtendedErrorInfo.engine_error_code = 0
     napiExtendedErrorInfo.engine_reserved = 0
