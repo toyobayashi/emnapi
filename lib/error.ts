@@ -55,7 +55,7 @@ function napi_throw_range_error (env: napi_env, code: const_char_p, msg: const_c
   return emnapi.napi_clear_last_error(env)
 }
 
-function napi_is_error (env: napi_env, value: napi_value, result: Pointer<boolean>): emnapi.napi_status {
+function napi_is_error (env: napi_env, value: napi_value, result: Pointer<bool>): emnapi.napi_status {
   if (value === 0) return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_invalid_arg)
   if (result === 0) return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_invalid_arg)
 

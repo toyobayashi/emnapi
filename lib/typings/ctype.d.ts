@@ -5,6 +5,7 @@ declare type Const<T> = T
 
 declare type void_p = Pointer<void>
 declare type void_pp = Pointer<void_p>
+declare type bool = number
 declare type char = number
 declare type char_p = Pointer<char>
 declare type unsigned_char = number
