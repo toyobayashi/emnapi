@@ -22,3 +22,12 @@ declare type LifecycleCallback<Arg> = {
 }
 declare function addOnInit (callback: number | ((Module: any) => void) | LifecycleCallback<any>): void
 declare function addOnExit (callback: number | ((Module: any) => void) | LifecycleCallback<any>): void
+
+declare interface ICallbackInfo {
+  _this: any
+  _data: void_p
+  _length: number
+  _args: any[],
+  _newTarget: Function | undefined,
+  _isConstructCall: boolean
+}
