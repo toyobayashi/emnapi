@@ -3,6 +3,26 @@ declare const global: typeof globalThis
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 namespace emnapi {
+
+  const _global: typeof globalThis = (function () {
+    let g
+    g = (function (this: any) { return this })()
+
+    try {
+      // eslint-disable-next-line no-new-func, @typescript-eslint/no-implied-eval
+      g = g || new Function('return this')()
+    } catch (_) {
+      if (typeof globalThis !== 'undefined') return globalThis
+      if (typeof __webpack_public_path__ === 'undefined') {
+        if (typeof global !== 'undefined') return global
+      }
+      if (typeof window !== 'undefined') return window
+      if (typeof self !== 'undefined') return self
+    }
+
+    return g
+  })()
+
   export class HandleStore extends Store<Handle<any>> {
     public static ID_UNDEFINED: -2147483648 = -2147483648
     public static ID_NULL: -2147483647 = -2147483647
@@ -16,24 +36,7 @@ namespace emnapi {
       this.set(HandleStore.ID_NULL, new Handle(this._env, HandleStore.ID_NULL, null))
       this.set(HandleStore.ID_FALSE, new Handle(this._env, HandleStore.ID_FALSE, false))
       this.set(HandleStore.ID_TRUE, new Handle(this._env, HandleStore.ID_TRUE, true))
-      this.set(HandleStore.ID_GLOBAL, new Handle(this._env, HandleStore.ID_GLOBAL, (function () {
-        let g
-        g = (function (this: any) { return this })()
-
-        try {
-          // eslint-disable-next-line no-new-func, @typescript-eslint/no-implied-eval
-          g = g || new Function('return this')()
-        } catch (_) {
-          if (typeof globalThis !== 'undefined') return globalThis
-          if (typeof __webpack_public_path__ === 'undefined') {
-            if (typeof global !== 'undefined') return global
-          }
-          if (typeof window !== 'undefined') return window
-          if (typeof self !== 'undefined') return self
-        }
-
-        return g
-      })()))
+      this.set(HandleStore.ID_GLOBAL, new Handle(this._env, HandleStore.ID_GLOBAL, _global))
     }
   }
 
