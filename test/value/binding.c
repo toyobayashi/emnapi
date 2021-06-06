@@ -28,6 +28,23 @@ static napi_value _nil(napi_env env, napi_callback_info info) {
   return nil;
 }
 
+static napi_value _boolean(napi_env env, napi_callback_info info) {
+  napi_value boolean;
+  size_t argc = 1;
+  napi_value argv[1];
+  bool b;
+  napi_get_cb_info(env, info, &argc, argv, NULL, NULL);
+  napi_get_value_bool(env, argv[0], &b);
+  napi_get_boolean(env, b, &boolean);
+  return boolean;
+}
+
+static napi_value _global(napi_env env, napi_callback_info info) {
+  napi_value global;
+  napi_get_global(env, &global);
+  return global;
+}
+
 NAPI_MODULE_INIT() {
   napi_value js_i32;
   napi_create_function(env, NULL, 0, _i32, NULL, &js_i32);
@@ -44,5 +61,13 @@ NAPI_MODULE_INIT() {
   napi_value js_nil;
   napi_create_function(env, NULL, 0, _nil, NULL, &js_nil);
   napi_set_named_property(env, exports, "nil", js_nil);
+
+  napi_value js_boolean;
+  napi_create_function(env, NULL, 0, _boolean, NULL, &js_boolean);
+  napi_set_named_property(env, exports, "bool", js_boolean);
+
+  napi_value js_global;
+  napi_create_function(env, NULL, 0, _global, NULL, &js_global);
+  napi_set_named_property(env, exports, "global", js_global);
   return exports;
 }

@@ -31,7 +31,7 @@ Emscripten 需要 v2.0.2 以上的版本，链接上一步构建出来的 js 库
 - [x] napi_get_last_error_info
 - [x] napi_get_undefined
 - [x] napi_get_null
-- [ ] napi_get_global
+- [x] napi_get_global
 - [x] napi_get_boolean
 - [x] napi_create_object
 - [ ] napi_create_array
@@ -53,7 +53,7 @@ Emscripten 需要 v2.0.2 以上的版本，链接上一步构建出来的 js 库
 - [ ] napi_get_value_int32
 - [ ] napi_get_value_uint32
 - [ ] napi_get_value_int64
-- [ ] napi_get_value_bool
+- [x] napi_get_value_bool
 - [ ] napi_get_value_string_latin1
 - [ ] napi_get_value_string_utf8
 - [ ] napi_get_value_string_utf16

@@ -26,3 +26,16 @@ test('Get null', () => {
     expect(mod.nil()).toBe(null)
   })
 })
+
+test('Get boolean', () => {
+  return promise.then(mod => {
+    expect(mod.bool(true)).toBe(true)
+    expect(mod.bool(false)).toBe(false)
+  })
+})
+
+test('Get global', () => {
+  return promise.then(mod => {
+    expect(mod.global()).toBe(global)
+  })
+})
