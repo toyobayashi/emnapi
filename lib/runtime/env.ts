@@ -87,7 +87,8 @@ namespace emnapi {
       finalize_hint: 0
     }
 
-    public handleStore: HandleStore
+    public handleStore!: HandleStore
+    public scopeStore!: ScopeStore
 
     public scopeList = new LinkedList<IHandleScope>()
 
@@ -105,22 +106,23 @@ namespace emnapi {
     public static create (): Env {
       const env = new Env()
       envStore.add(env)
+      env.handleStore = new HandleStore(env.id)
+      env.scopeStore = new ScopeStore()
+      env.scopeList = new LinkedList<IHandleScope>()
+      env.scopeList.push(HandleScope.create(env.id, null))
       return env
     }
 
-    private constructor (id: number = 0) {
-      this.id = id
-      this.handleStore = new HandleStore(this.id)
-      this.scopeList = new LinkedList<IHandleScope>()
-      this.scopeList.push(new HandleScope(id, null))
+    private constructor () {
+      this.id = 0
     }
 
-    public callInNewScope<Scope extends IHandleScope, Args extends any[], ReturnValue = any> (
-      ScopeConstructor: new (...args: any[]) => Scope,
+    public callInNewScope<Scope extends HandleScope, Args extends any[], ReturnValue = any> (
+      ScopeConstructor: { create: (env: napi_env, parent: IHandleScope | null) => Scope },
       fn: (scope: Scope, ...args: Args) => ReturnValue,
       ...args: Args
     ): ReturnValue {
-      const scope = new ScopeConstructor(this.id, this.getCurrentScope() ?? null)
+      const scope = ScopeConstructor.create(this.id, this.getCurrentScope() ?? null)
       this.scopeList.push(scope)
       let ret: ReturnValue
       try {
