@@ -3,18 +3,20 @@ declare const global: typeof globalThis
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 namespace emnapi {
-  // -2147483648 <= handleCount <= 2147483647 && handleCount !== 0
-  let handleCount: number = -2147483642
+  export class HandleStore extends Store<Handle<any>> {
+    public static ID_UNDEFINED: -2147483648 = -2147483648
+    public static ID_NULL: -2147483647 = -2147483647
+    public static ID_FALSE: -2147483646 = -2147483646
+    public static ID_TRUE: -2147483645 = -2147483645
+    public static ID_GLOBAL: -2147483644 = -2147483644
+    public constructor (private readonly _env: napi_env) {
+      super(-2147483643)
 
-  export class Handle<S> {
-    public static store: { [id: number]: Handle<any> } = (function () {
-      const store = Object.create(null)
-      store[-2147483648] = new Handle(-2147483648, undefined)
-      store[-2147483647] = new Handle(-2147483647, null)
-      store[-2147483646] = new Handle(-2147483646, false)
-      store[-2147483645] = new Handle(-2147483645, true)
-      store[-2147483644] = new Handle(-2147483644, NaN)
-      store[-2147483643] = new Handle(-2147483643, (function () {
+      this.set(HandleStore.ID_UNDEFINED, new Handle(this._env, HandleStore.ID_UNDEFINED, undefined))
+      this.set(HandleStore.ID_NULL, new Handle(this._env, HandleStore.ID_NULL, null))
+      this.set(HandleStore.ID_FALSE, new Handle(this._env, HandleStore.ID_FALSE, false))
+      this.set(HandleStore.ID_TRUE, new Handle(this._env, HandleStore.ID_TRUE, true))
+      this.set(HandleStore.ID_GLOBAL, new Handle(this._env, HandleStore.ID_GLOBAL, (function () {
         let g
         g = (function (this: any) { return this })()
 
@@ -31,40 +33,35 @@ namespace emnapi {
         }
 
         return g
-      })())
-      return store
-    })()
+      })()))
+    }
+  }
 
-    public static create<S> (value: S): Handle<S> {
-      while (handleCount in Handle.store) {
-        handleCount = (handleCount === 2147483647 ? -2147483642 : (handleCount + 1)) || 1
-      }
-      const h = new Handle(handleCount, value)
-      Handle.store[handleCount] = h
-      handleCount = (handleCount === 2147483647 ? -2147483642 : (handleCount + 1)) || 1
-      return h
+  export class Handle<S> implements IStoreValue {
+    public static create<S> (env: napi_env, value: S): Handle<S> {
+      const handle = new Handle(env, 0, value)
+      envStore.get(env)!.handleStore.add(handle)
+      return handle
     }
 
     public id: number
+    public env: napi_env
     public nativeObject: Pointer<any> | null
     public value: S
 
-    private constructor (id: number, value: S) {
+    public constructor (env: napi_env, id: number, value: S) {
+      this.env = env
       this.id = id
       this.nativeObject = null
       this.value = value
     }
 
     public isEmpty (): boolean {
-      return (this.id === -1) || (!('value' in this))
+      return this.id === 0
     }
 
     public dispose (): void {
-      if (this.id in Handle.store) {
-        delete Handle.store[this.id]
-      }
-      this.id = -1
-      delete (this as any).value
+      envStore.get(this.env)!.handleStore.remove(this.id)
     }
   }
 

@@ -1,4 +1,6 @@
 function napi_module_register (nodeModule: Pointer<node_module>): void {
+  if (nodeModule === emnapi.NULL) return
+
   const addr = nodeModule >> 2
   // const nm_version = HEAP32[addr]
   // const nm_flags = HEAP32[addr + 1]
@@ -12,18 +14,21 @@ function napi_module_register (nodeModule: Pointer<node_module>): void {
   const modName = UTF8ToString(nm_modname) || 'emnapiExports'
   // const nm_priv = HEAP32[addr + 5]
 
-  emnapi.callInNewHandleScope((scope) => {
+  const env = emnapi.Env.create()
+  emnapi.initErrorMemory()
+
+  env.callInNewHandleScope((scope) => {
     const exports = {}
     const exportsHandle = scope.add(exports)
 
-    const napiValue = makeDynCall('iii', 'nm_register_func')(0, exportsHandle.id)
-    Module[modName] = emnapi.Handle.store[napiValue].value
+    const napiValue = makeDynCall('iii', 'nm_register_func')(env.id, exportsHandle.id)
+    Module[modName] = env.handleStore.get(napiValue)!.value
   })
-  if (emnapi.tryCatch.hasCaught()) {
-    const err = emnapi.tryCatch.extractException()
-    throw err!
+  if (env.tryCatch.hasCaught()) {
+    const err = env.tryCatch.extractException()!
+    throw err
   }
-  // console.log(emnapi.Handle.store)
+  // console.log(env.handleStore.allId())
 }
 
 emnapiImplement('napi_module_register', napi_module_register)

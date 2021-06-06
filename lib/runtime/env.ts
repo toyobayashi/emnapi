@@ -1,11 +1,6 @@
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 namespace emnapi {
-
-  export const instanceData = {
-    data: 0,
-    finalize_cb: 0,
-    finalize_hint: 0
-  }
+  export const NULL: 0 = 0
 
   export enum napi_status {
     napi_ok,
@@ -59,47 +54,150 @@ namespace emnapi {
 
   export let errorMessagesPtr: char_p[]
 
-  export const napiExtendedErrorInfo = {
-    error_message: 0,
-    engine_reserved: 0,
-    engine_error_code: 0,
-    error_code: napi_status.napi_ok
-  }
-  export let napiExtendedErrorInfoPtr: Pointer<napi_extended_error_info>
+  class TryCatch {
+    private _exception: Error | null = null
+    public hasCaught (): boolean {
+      return this._exception !== null
+    }
 
-  function initErrorMemory (): void {
+    public exception (): Error | null {
+      return this._exception
+    }
+
+    public setError (err: Error): void {
+      this._exception = err
+    }
+
+    public reset (): void {
+      this._exception = null
+    }
+
+    public extractException (): Error | null {
+      const e = this._exception
+      this._exception = null
+      return e
+    }
+  }
+
+  export class Env implements IStoreValue {
+    public id: number
+    public instanceData = {
+      data: 0,
+      finalize_cb: 0,
+      finalize_hint: 0
+    }
+
+    public handleStore: HandleStore
+
+    public scopeList = new LinkedList<IHandleScope>()
+
+    public napiExtendedErrorInfo = {
+      error_message: 0,
+      engine_reserved: 0,
+      engine_error_code: 0,
+      error_code: napi_status.napi_ok
+    }
+
+    public napiExtendedErrorInfoPtr!: Pointer<napi_extended_error_info>
+
+    public tryCatch = new TryCatch()
+
+    public static create (): Env {
+      const env = new Env()
+      envStore.add(env)
+      return env
+    }
+
+    private constructor (id: number = 0) {
+      this.id = id
+      this.handleStore = new HandleStore(this.id)
+      this.scopeList = new LinkedList<IHandleScope>()
+      this.scopeList.push(new HandleScope(id, null))
+    }
+
+    public callInNewScope<Scope extends IHandleScope, Args extends any[], ReturnValue = any> (
+      ScopeConstructor: new (...args: any[]) => Scope,
+      fn: (scope: Scope, ...args: Args) => ReturnValue,
+      ...args: Args
+    ): ReturnValue {
+      const scope = new ScopeConstructor(this.id, this.getCurrentScope() ?? null)
+      this.scopeList.push(scope)
+      let ret: ReturnValue
+      try {
+        ret = fn(scope, ...args)
+      } catch (err) {
+        this.tryCatch.setError(err)
+      }
+      scope.dispose()
+      this.scopeList.pop()
+      return ret!
+    }
+
+    public callInNewHandleScope<Args extends any[], T = any> (fn: (scope: HandleScope, ...args: Args) => T, ...args: Args): T {
+      return this.callInNewScope(HandleScope, fn, ...args)
+    }
+
+    public callInNewEscapableHandleScope<Args extends any[], T = any> (fn: (scope: EscapableHandleScope, ...args: Args) => T, ...args: Args): T {
+      return this.callInNewScope(EscapableHandleScope, fn, ...args)
+    }
+
+    public getCurrentScope (): IHandleScope {
+      return this.scopeList.last.element
+    }
+  }
+
+  class EnvStore extends Store<Env> {
+    public constructor () {
+      super()
+    }
+  }
+
+  export const envStore = new EnvStore()
+
+  export function initErrorMemory (): void {
     if (!errorMessagesPtr) {
       errorMessagesPtr = errorMessages.map(msg => msg ? allocateUTF8(msg) : 0)
-      napiExtendedErrorInfoPtr = _malloc(16)
     }
+    envStore.forEach((env) => {
+      if (!env.napiExtendedErrorInfoPtr) {
+        env.napiExtendedErrorInfoPtr = _malloc(16)
+      }
+    })
   }
 
   addOnInit(initErrorMemory)
 
-  export function napi_set_last_error (_env: napi_env, error_code: napi_status, engine_error_code: uint32_t = 0, engine_reserved: void_p = 0): napi_status {
-    napiExtendedErrorInfo.error_code = error_code
-    napiExtendedErrorInfo.engine_error_code = engine_error_code
-    napiExtendedErrorInfo.engine_reserved = engine_reserved
+  export function napi_set_last_error (env: napi_env, error_code: napi_status, engine_error_code: uint32_t = 0, engine_reserved: void_p = 0): napi_status {
+    const envObject = envStore.get(env)!
+    envObject.napiExtendedErrorInfo.error_code = error_code
+    envObject.napiExtendedErrorInfo.engine_error_code = engine_error_code
+    envObject.napiExtendedErrorInfo.engine_reserved = engine_reserved
 
-    HEAP32[(napiExtendedErrorInfoPtr >> 2) + 1] = napiExtendedErrorInfo.engine_reserved
-    HEAPU32[(napiExtendedErrorInfoPtr >> 2) + 2] = napiExtendedErrorInfo.engine_error_code
-    HEAP32[(napiExtendedErrorInfoPtr >> 2) + 3] = napiExtendedErrorInfo.error_code
+    HEAP32[(envObject.napiExtendedErrorInfoPtr >> 2) + 1] = envObject.napiExtendedErrorInfo.engine_reserved
+    HEAPU32[(envObject.napiExtendedErrorInfoPtr >> 2) + 2] = envObject.napiExtendedErrorInfo.engine_error_code
+    HEAP32[(envObject.napiExtendedErrorInfoPtr >> 2) + 3] = envObject.napiExtendedErrorInfo.error_code
     return error_code
   }
 
-  export function napi_clear_last_error (_env: napi_env): napi_status {
-    napiExtendedErrorInfo.error_code = napi_status.napi_ok
-    napiExtendedErrorInfo.engine_error_code = 0
-    napiExtendedErrorInfo.engine_reserved = 0
+  export function napi_clear_last_error (env: napi_env): napi_status {
+    const envObject = envStore.get(env)!
+    envObject.napiExtendedErrorInfo.error_code = napi_status.napi_ok
+    envObject.napiExtendedErrorInfo.engine_error_code = 0
+    envObject.napiExtendedErrorInfo.engine_reserved = 0
 
-    HEAP32[(napiExtendedErrorInfoPtr >> 2) + 1] = napiExtendedErrorInfo.engine_reserved
-    HEAPU32[(napiExtendedErrorInfoPtr >> 2) + 2] = napiExtendedErrorInfo.engine_error_code
-    HEAP32[(napiExtendedErrorInfoPtr >> 2) + 3] = napiExtendedErrorInfo.error_code
+    HEAP32[(envObject.napiExtendedErrorInfoPtr >> 2) + 1] = envObject.napiExtendedErrorInfo.engine_reserved
+    HEAPU32[(envObject.napiExtendedErrorInfoPtr >> 2) + 2] = envObject.napiExtendedErrorInfo.engine_error_code
+    HEAP32[(envObject.napiExtendedErrorInfoPtr >> 2) + 3] = envObject.napiExtendedErrorInfo.error_code
     return napi_status.napi_ok
   }
 
+  export function checkEnv (env: napi_env): boolean {
+    return (env !== NULL) && envStore.has(env)
+  }
+
   export function getReturnStatus (env: napi_env): napi_status {
-    return !tryCatch.hasCaught() ? napi_status.napi_ok : napi_set_last_error(env, napi_status.napi_pending_exception)
+    const envObject = envStore.get(env)!
+    return !envObject.tryCatch.hasCaught() ? napi_status.napi_ok : napi_set_last_error(env, napi_status.napi_pending_exception)
   }
 
   export let canSetFunctionName = false
