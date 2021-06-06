@@ -95,11 +95,11 @@ Emscripten 需要 v2.0.2 以上的版本，链接上一步构建出来的 js 库
 - [ ] napi_reference_ref
 - [ ] napi_reference_unref
 - [ ] napi_get_reference_value
-- [ ] napi_open_handle_scope
-- [ ] napi_close_handle_scope
-- [ ] napi_open_escapable_handle_scope
-- [ ] napi_close_escapable_handle_scope
-- [ ] napi_escape_handle
+- [x] napi_open_handle_scope
+- [x] napi_close_handle_scope
+- [x] napi_open_escapable_handle_scope
+- [x] napi_close_escapable_handle_scope
+- [x] napi_escape_handle
 - [x] napi_throw
 - [x] napi_throw_error
 - [x] napi_throw_type_error

@@ -63,11 +63,15 @@ namespace emnapi {
       return EscapableHandleScope._create(env, parentScope)
     }
 
+    private _escapeCalled: boolean
+
     public constructor (public env: napi_env, parentScope: IHandleScope | null) {
       super(env, parentScope)
+      this._escapeCalled = false
     }
 
     public escape (handle: number | Handle<any>): Handle<any> | null {
+      this._escapeCalled = true
       let exists: boolean = false
       let handleId: number
       if (typeof handle === 'number') {
@@ -88,6 +92,10 @@ namespace emnapi {
       } else {
         return null
       }
+    }
+
+    public escapeCalled (): boolean {
+      return this._escapeCalled
     }
   }
 

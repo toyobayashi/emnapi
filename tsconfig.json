@@ -17,6 +17,7 @@
     "./lib/error.ts",
     "./lib/value.ts",
     "./lib/function.ts",
+    "./lib/life.ts",
     "./lib/property.ts",
     "./lib/init.ts"
   ]

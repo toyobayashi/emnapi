@@ -81,6 +81,8 @@ namespace emnapi {
 
   export class Env implements IStoreValue {
     public id: number
+    public openHandleScopes: number = 0
+
     public instanceData = {
       data: 0,
       finalize_cb: 0,
@@ -109,7 +111,7 @@ namespace emnapi {
       env.handleStore = new HandleStore(env.id)
       env.scopeStore = new ScopeStore()
       env.scopeList = new LinkedList<IHandleScope>()
-      env.scopeList.push(HandleScope.create(env.id, null))
+      // env.scopeList.push(HandleScope.create(env.id, null))
       return env
     }
 
@@ -117,21 +119,32 @@ namespace emnapi {
       this.id = 0
     }
 
+    public openScope<Scope extends HandleScope> (ScopeConstructor: { create: (env: napi_env, parent: IHandleScope | null) => Scope }): Scope {
+      const scope = ScopeConstructor.create(this.id, this.getCurrentScope() ?? null)
+      this.scopeList.push(scope)
+      this.openHandleScopes++
+      return scope
+    }
+
+    public closeScope<Scope extends HandleScope> (scope: Scope): void {
+      scope.dispose()
+      this.scopeList.pop()
+      this.openHandleScopes--
+    }
+
     public callInNewScope<Scope extends HandleScope, Args extends any[], ReturnValue = any> (
       ScopeConstructor: { create: (env: napi_env, parent: IHandleScope | null) => Scope },
       fn: (scope: Scope, ...args: Args) => ReturnValue,
       ...args: Args
     ): ReturnValue {
-      const scope = ScopeConstructor.create(this.id, this.getCurrentScope() ?? null)
-      this.scopeList.push(scope)
+      const scope = this.openScope(ScopeConstructor)
       let ret: ReturnValue
       try {
         ret = fn(scope, ...args)
       } catch (err) {
         this.tryCatch.setError(err)
       }
-      scope.dispose()
-      this.scopeList.pop()
+      this.closeScope(scope)
       return ret!
     }
 

@@ -3,6 +3,8 @@
 declare type napi_env = Pointer<unknown>
 
 declare type napi_value = Pointer<unknown>
+declare type napi_handle_scope = Pointer<unknown>
+declare type napi_escapable_handle_scope = Pointer<unknown>
 
 declare type napi_addon_register_func = FunctionPointer<(env: napi_env, exports: napi_value) => napi_value>
 
