@@ -188,9 +188,10 @@ namespace emnapi {
     envObject.napiExtendedErrorInfo.engine_error_code = engine_error_code
     envObject.napiExtendedErrorInfo.engine_reserved = engine_reserved
 
-    HEAP32[(envObject.napiExtendedErrorInfoPtr >> 2) + 1] = envObject.napiExtendedErrorInfo.engine_reserved
-    HEAPU32[(envObject.napiExtendedErrorInfoPtr >> 2) + 2] = envObject.napiExtendedErrorInfo.engine_error_code
-    HEAP32[(envObject.napiExtendedErrorInfoPtr >> 2) + 3] = envObject.napiExtendedErrorInfo.error_code
+    const ptr32 = envObject.napiExtendedErrorInfoPtr >> 2
+    HEAP32[ptr32 + 1] = envObject.napiExtendedErrorInfo.engine_reserved
+    HEAPU32[ptr32 + 2] = envObject.napiExtendedErrorInfo.engine_error_code
+    HEAP32[ptr32 + 3] = envObject.napiExtendedErrorInfo.error_code
     return error_code
   }
 
@@ -200,9 +201,10 @@ namespace emnapi {
     envObject.napiExtendedErrorInfo.engine_error_code = 0
     envObject.napiExtendedErrorInfo.engine_reserved = 0
 
-    HEAP32[(envObject.napiExtendedErrorInfoPtr >> 2) + 1] = envObject.napiExtendedErrorInfo.engine_reserved
-    HEAPU32[(envObject.napiExtendedErrorInfoPtr >> 2) + 2] = envObject.napiExtendedErrorInfo.engine_error_code
-    HEAP32[(envObject.napiExtendedErrorInfoPtr >> 2) + 3] = envObject.napiExtendedErrorInfo.error_code
+    const ptr32 = envObject.napiExtendedErrorInfoPtr >> 2
+    HEAP32[ptr32 + 1] = envObject.napiExtendedErrorInfo.engine_reserved
+    HEAPU32[ptr32 + 2] = envObject.napiExtendedErrorInfo.engine_error_code
+    HEAP32[ptr32 + 3] = envObject.napiExtendedErrorInfo.error_code
     return napi_status.napi_ok
   }
 
