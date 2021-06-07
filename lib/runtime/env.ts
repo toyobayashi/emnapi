@@ -212,8 +212,33 @@ namespace emnapi {
     return napi_status.napi_ok
   }
 
-  export function checkEnv (env: napi_env): boolean {
-    return (env !== NULL) && envStore.has(env)
+  export function checkEnv (env: napi_env, fn: (envObject: Env) => napi_status): napi_status {
+    if ((env === NULL) || !envStore.has(env)) return napi_status.napi_invalid_arg
+    const envObject = envStore.get(env)!
+    return fn(envObject)
+  }
+
+  export function checkArgs (env: napi_env, args: any[], fn: () => napi_status): napi_status {
+    for (let i = 0; i < args.length; i++) {
+      const arg = args[i]
+      if (arg === NULL) {
+        return napi_set_last_error(env, napi_status.napi_invalid_arg)
+      }
+    }
+    return fn()
+  }
+
+  export function preamble (env: napi_env, fn: (envObject: Env) => napi_status): napi_status {
+    return checkEnv(env, (envObject) => {
+      if (envObject.tryCatch.hasCaught()) return napi_set_last_error(env, napi_status.napi_pending_exception)
+      napi_clear_last_error(env)
+      try {
+        return fn(envObject)
+      } catch (err) {
+        envObject.tryCatch.setError(err)
+        return napi_set_last_error(env, napi_status.napi_pending_exception)
+      }
+    })
   }
 
   export function getReturnStatus (env: napi_env): napi_status {
