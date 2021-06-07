@@ -6,6 +6,7 @@ declare function dynCall_iii (
 
 declare const HEAPU32: Uint32Array
 declare const HEAP32: Int32Array
+declare const HEAPF64: Float64Array
 declare const HEAPU8: Uint8Array
 declare const wasmTable: WebAssembly.Table
 

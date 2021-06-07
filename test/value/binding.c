@@ -45,6 +45,25 @@ static napi_value _global(napi_env env, napi_callback_info info) {
   return global;
 }
 
+static napi_value _create_double(napi_env env, napi_callback_info info) {
+  napi_value ret;
+  double d = 9.96;
+  napi_create_double(env, d, &ret);
+  return ret;
+}
+
+static napi_value _get_double(napi_env env, napi_callback_info info) {
+  double d;
+  size_t argc = 1;
+  napi_value argv[1];
+  napi_get_cb_info(env, info, &argc, argv, NULL, NULL);
+  napi_get_value_double(env, argv[0], &d);
+
+  napi_value ret;
+  napi_create_double(env, d + 1, &ret);
+  return ret;
+}
+
 NAPI_MODULE_INIT() {
   napi_value js_i32;
   napi_create_function(env, NULL, 0, _i32, NULL, &js_i32);
@@ -69,5 +88,13 @@ NAPI_MODULE_INIT() {
   napi_value js_global;
   napi_create_function(env, NULL, 0, _global, NULL, &js_global);
   napi_set_named_property(env, exports, "global", js_global);
+
+  napi_value js_create_double;
+  napi_create_function(env, NULL, 0, _create_double, NULL, &js_create_double);
+  napi_set_named_property(env, exports, "double", js_create_double);
+
+  napi_value js_get_double;
+  napi_create_function(env, NULL, 0, _get_double, NULL, &js_get_double);
+  napi_set_named_property(env, exports, "getDouble", js_get_double);
   return exports;
 }

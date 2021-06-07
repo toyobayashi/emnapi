@@ -36,7 +36,7 @@ Emscripten 需要 v2.0.2 以上的版本，链接上一步构建出来的 js 库
 - [x] napi_create_object
 - [ ] napi_create_array
 - [ ] napi_create_array_with_length
-- [ ] napi_create_double
+- [x] napi_create_double
 - [x] napi_create_int32
 - [ ] napi_create_uint32
 - [ ] napi_create_int64
@@ -49,7 +49,7 @@ Emscripten 需要 v2.0.2 以上的版本，链接上一步构建出来的 js 库
 - [ ] napi_create_type_error
 - [ ] napi_create_range_error
 - [ ] napi_typeof
-- [ ] napi_get_value_double
+- [x] napi_get_value_double
 - [ ] napi_get_value_int32
 - [ ] napi_get_value_uint32
 - [ ] napi_get_value_int64

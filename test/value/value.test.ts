@@ -39,3 +39,15 @@ test('Get global', () => {
     expect(mod.global()).toBe(global)
   })
 })
+
+test('Create double', () => {
+  return promise.then(mod => {
+    expect(mod.double()).toBe(9.96)
+  })
+})
+
+test('Get double', () => {
+  return promise.then(mod => {
+    expect(mod.getDouble(Math.PI)).toBe(Math.PI + 1)
+  })
+})
