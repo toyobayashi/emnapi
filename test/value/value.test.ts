@@ -5,7 +5,6 @@ const promise = load('value')
 test('Create int32', () => {
   return promise.then(mod => {
     expect(mod.i32()).toBe(996)
-    expect(mod.utf8()).toBe('utf8')
   })
 })
 
@@ -49,5 +48,23 @@ test('Create double', () => {
 test('Get double', () => {
   return promise.then(mod => {
     expect(mod.getDouble(Math.PI)).toBe(Math.PI + 1)
+  })
+})
+
+test('Get napi version', () => {
+  return promise.then(mod => {
+    expect(mod.getVersion()).toBe(6)
+  })
+})
+
+test('Create uint32', () => {
+  return promise.then(mod => {
+    expect(mod.uint32()).toBe(4294967295)
+  })
+})
+
+test('Get uint32', () => {
+  return promise.then(mod => {
+    expect(mod.getUint32(4294967295)).toBe(0)
   })
 })

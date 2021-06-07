@@ -38,7 +38,7 @@ Emscripten 需要 v2.0.2 以上的版本，链接上一步构建出来的 js 库
 - [ ] napi_create_array_with_length
 - [x] napi_create_double
 - [x] napi_create_int32
-- [ ] napi_create_uint32
+- [x] napi_create_uint32
 - [ ] napi_create_int64
 - [ ] napi_create_string_latin1
 - [x] napi_create_string_utf8
@@ -51,7 +51,7 @@ Emscripten 需要 v2.0.2 以上的版本，链接上一步构建出来的 js 库
 - [ ] napi_typeof
 - [x] napi_get_value_double
 - [ ] napi_get_value_int32
-- [ ] napi_get_value_uint32
+- [x] napi_get_value_uint32
 - [ ] napi_get_value_int64
 - [x] napi_get_value_bool
 - [ ] napi_get_value_string_latin1
@@ -117,7 +117,7 @@ Emscripten 需要 v2.0.2 以上的版本，链接上一步构建出来的 js 库
 - [ ] napi_create_dataview
 - [ ] napi_is_dataview
 - [ ] napi_get_dataview_info
-- [ ] napi_get_version
+- [x] napi_get_version
 - [ ] napi_create_promise
 - [ ] napi_resolve_deferred
 - [ ] napi_reject_deferred

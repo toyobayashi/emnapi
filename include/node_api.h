@@ -38,7 +38,7 @@ NAPI_EXTERN void napi_module_register(napi_module* mod);
       regfunc,                                                        \
       #modname,                                                       \
       priv,                                                           \
-      {0},                                                            \
+      {(void*)NAPI_VERSION, 0, 0, 0},                                 \
     };                                                                \
     NAPI_C_CTOR(_register_ ## modname) {                              \
       napi_module_register(&_module);                                 \

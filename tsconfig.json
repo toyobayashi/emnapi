@@ -14,6 +14,7 @@
     "./lib/util.ts",
     "./lib/register.ts",
     "./lib/env.ts",
+    "./lib/version.ts",
     "./lib/error.ts",
     "./lib/value.ts",
     "./lib/function.ts",

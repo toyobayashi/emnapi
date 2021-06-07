@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stddef.h>
 
+#define NAPI_VERSION 6
 #include "node_api.h"
 
 static napi_value _i32(napi_env env, napi_callback_info info) {
@@ -52,6 +53,25 @@ static napi_value _create_double(napi_env env, napi_callback_info info) {
   return ret;
 }
 
+static napi_value _create_uint32(napi_env env, napi_callback_info info) {
+  napi_value ret;
+  uint32_t u32 = NAPI_AUTO_LENGTH;
+  napi_create_uint32(env, u32, &ret);
+  return ret;
+}
+
+static napi_value _get_uint32(napi_env env, napi_callback_info info) {
+  uint32_t u32;
+  size_t argc = 1;
+  napi_value argv[1];
+  napi_get_cb_info(env, info, &argc, argv, NULL, NULL);
+  napi_get_value_uint32(env, argv[0], &u32);
+
+  napi_value ret;
+  napi_create_uint32(env, u32 + 1, &ret);
+  return ret;
+}
+
 static napi_value _get_double(napi_env env, napi_callback_info info) {
   double d;
   size_t argc = 1;
@@ -61,6 +81,15 @@ static napi_value _get_double(napi_env env, napi_callback_info info) {
 
   napi_value ret;
   napi_create_double(env, d + 1, &ret);
+  return ret;
+}
+
+static napi_value _get_version(napi_env env, napi_callback_info info) {
+  uint32_t v;
+  napi_get_version(env, &v);
+
+  napi_value ret;
+  napi_create_uint32(env, v, &ret);
   return ret;
 }
 
@@ -96,5 +125,17 @@ NAPI_MODULE_INIT() {
   napi_value js_get_double;
   napi_create_function(env, NULL, 0, _get_double, NULL, &js_get_double);
   napi_set_named_property(env, exports, "getDouble", js_get_double);
+
+  napi_value js_create_uint32;
+  napi_create_function(env, NULL, 0, _create_uint32, NULL, &js_create_uint32);
+  napi_set_named_property(env, exports, "uint32", js_create_uint32);
+
+  napi_value js_get_uint32;
+  napi_create_function(env, NULL, 0, _get_uint32, NULL, &js_get_uint32);
+  napi_set_named_property(env, exports, "getUint32", js_get_uint32);
+
+  napi_value js_get_version;
+  napi_create_function(env, NULL, 0, _get_version, NULL, &js_get_version);
+  napi_set_named_property(env, exports, "getVersion", js_get_version);
   return exports;
 }
