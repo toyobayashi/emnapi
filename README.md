@@ -81,7 +81,7 @@ Emscripten 需要 v2.0.2 以上的版本，链接上一步构建出来的 js 库
 - [ ] napi_is_array
 - [ ] napi_get_array_length
 - [ ] napi_strict_equals
-- [ ] napi_call_function
+- [x] napi_call_function
 - [ ] napi_new_instance
 - [ ] napi_instanceof
 - [x] napi_get_cb_info

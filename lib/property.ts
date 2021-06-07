@@ -22,6 +22,7 @@ function napi_define_properties (
 ): emnapi.napi_status {
   function createAnonymousFunction<F extends (...args: any[]) => any> (envObject: emnapi.Env, _cb: napi_callback, data: void_p): F {
     const _a = (() => function (this: any): any {
+      'use strict'
       const callbackInfo = {
         _this: this,
         _data: data,

@@ -2,6 +2,7 @@ function napi_create_function (env: napi_env, utf8name: Pointer<const_char>, len
   return emnapi.preamble(env, (envObject) => {
     return emnapi.checkArgs(env, [result, cb], () => {
       const _a = (() => function (this: any): any {
+        'use strict'
         const callbackInfo = {
           _this: this,
           _data: data,
@@ -44,8 +45,14 @@ function napi_get_cb_info (env: napi_env, cbinfo: napi_callback_info, argc: Poin
           if (argc === emnapi.NULL) return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_invalid_arg)
           const argcValue = HEAPU32[argc >> 2]
           const arrlen = argcValue < cbinfoValue._length ? argcValue : cbinfoValue._length
-          for (let i = 0; i < arrlen; i++) {
+          let i = 0
+          for (; i < arrlen; i++) {
             HEAP32[(argv >> 2) + i] = envObject.getCurrentScope().add(cbinfoValue._args[i]).id
+          }
+          if (i < argcValue) {
+            for (; i < argcValue; i++) {
+              HEAP32[(argv >> 2) + i] = emnapi.HandleStore.ID_UNDEFINED
+            }
           }
         }
         if (argc !== emnapi.NULL) {
@@ -66,5 +73,37 @@ function napi_get_cb_info (env: napi_env, cbinfo: napi_callback_info, argc: Poin
   })
 }
 
+function napi_call_function (
+  env: napi_env,
+  recv: napi_value,
+  func: napi_value,
+  argc: size_t,
+  argv: Const<Pointer<napi_value>>,
+  result: Pointer<napi_value>
+): emnapi.napi_status {
+  return emnapi.preamble(env, (envObject) => {
+    return emnapi.checkArgs(env, [recv], () => {
+      if (argc > 0) {
+        if (argv === emnapi.NULL) return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_invalid_arg)
+      }
+      const v8recv = envObject.handleStore.get(recv)!.value
+      if (func === emnapi.NULL) return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_invalid_arg)
+      const v8func = envObject.handleStore.get(func)!.value as Function
+      if (typeof v8func !== 'function') return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_invalid_arg)
+      const args = []
+      for (let i = 0; i < argc; i++) {
+        const argPtr = argv + (i * 4)
+        args.push(envObject.handleStore.get(HEAP32[argPtr >> 2])!.value)
+      }
+      const ret = v8func.apply(v8recv, args)
+      if (result !== emnapi.NULL) {
+        HEAP32[result >> 2] = envObject.getCurrentScope().add(ret).id
+      }
+      return emnapi.napi_clear_last_error(env)
+    })
+  })
+}
+
 emnapiImplement('napi_create_function', napi_create_function)
 emnapiImplement('napi_get_cb_info', napi_get_cb_info)
+emnapiImplement('napi_call_function', napi_call_function)
