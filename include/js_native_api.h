@@ -30,7 +30,7 @@
     #define NAPI_EXTERN __declspec(dllexport)
   #elif defined(__wasm32__)
     #define NAPI_EXTERN __attribute__((visibility("default")))                \
-                        __attribute__((__import_module__("napi")))
+                        __attribute__((__import_module__("env")))
   #else
     #define NAPI_EXTERN __attribute__((visibility("default")))
   #endif

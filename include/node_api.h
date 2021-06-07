@@ -1,7 +1,7 @@
 #ifndef SRC_NODE_API_H_
 #define SRC_NODE_API_H_
 
-#define NAPI_EXTERN __attribute__((__import_module__("env")))
+// #define NAPI_EXTERN __attribute__((__import_module__("env")))
 
 #include "js_native_api.h"
 
@@ -58,8 +58,8 @@ NAPI_EXTERN void napi_module_register(napi_module* mod);
   NAPI_MODULE_INITIALIZER_X(NAPI_MODULE_INITIALIZER_BASE,             \
       NAPI_MODULE_VERSION)
 
-#ifndef EMNAPI_MODULE_NAME
-#define EMNAPI_MODULE_NAME emnapiExports
+#ifndef NODE_GYP_MODULE_NAME
+#define NODE_GYP_MODULE_NAME emnapiExports
 #endif
 
 #define NAPI_MODULE_INIT()                                            \
@@ -67,7 +67,7 @@ NAPI_EXTERN void napi_module_register(napi_module* mod);
   NAPI_MODULE_EXPORT napi_value                                       \
   NAPI_MODULE_INITIALIZER(napi_env env, napi_value exports);          \
   EXTERN_C_END                                                        \
-  NAPI_MODULE(EMNAPI_MODULE_NAME, NAPI_MODULE_INITIALIZER)            \
+  NAPI_MODULE(NODE_GYP_MODULE_NAME, NAPI_MODULE_INITIALIZER)          \
   napi_value NAPI_MODULE_INITIALIZER(napi_env env,                    \
                                      napi_value exports)
 
