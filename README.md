@@ -28,7 +28,7 @@ Emscripten 需要 v2.0.2 以上的版本，链接上一步构建出来的 js 库
 
 ## 已实现
 
-33 / 115 \[28%\]
+34 / 115 \[29%\]
 
 - [x] napi_get_last_error_info
 - [x] napi_get_undefined
@@ -77,7 +77,7 @@ Emscripten 需要 v2.0.2 以上的版本，链接上一步构建出来的 js 库
 - [ ] napi_has_element
 - [ ] napi_get_element
 - [ ] napi_delete_element
-- [ ] napi_define_properties
+- [x] napi_define_properties
 - [ ] napi_is_array
 - [ ] napi_get_array_length
 - [ ] napi_strict_equals

@@ -18,6 +18,20 @@ declare interface napi_extended_error_info {
   error_code: emnapi.napi_status;
 }
 
+declare interface napi_property_descriptor {
+  // One of utf8name or name should be NULL.
+  utf8name: const_char_p
+  name: napi_value
+
+  method: napi_callback
+  getter: napi_callback
+  setter: napi_callback
+  value: napi_value
+
+  attributes: emnapi.napi_property_attributes
+  data: void_p
+}
+
 declare type napi_finalize = FunctionPointer<(
   env: napi_env,
   finalize_data: void_p,
