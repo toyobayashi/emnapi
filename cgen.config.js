@@ -21,6 +21,7 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
     type: isEmscripten ? 'exe' : 'node',
     sources: sources,
     emwrap: {},
+    libs: ['testcommon'],
     includePaths: isEmscripten ? ['./include'] : [],
     compileOptions: [...commonFlags],
     // eslint-disable-next-line no-template-curly-in-string
@@ -33,7 +34,15 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
       createTarget('env', ['./test/env/binding.c']),
       createTarget('value', ['./test/value/binding.c']),
       createTarget('function', ['./test/function/binding.c']),
-      createTarget('error', ['./test/error/binding.c'])
+      createTarget('error', ['./test/error/binding.c']),
+      {
+        type: 'lib',
+        name: 'testcommon',
+        sources: ['./test/common.c'],
+        includePaths: isEmscripten ? ['./include'] : [],
+        compileOptions: [...commonFlags],
+        linkOptions: [...commonFlags]
+      }
     ]
   }
 }

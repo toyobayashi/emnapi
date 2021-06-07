@@ -7,6 +7,16 @@ function napi_create_int32 (env: napi_env, value: int32_t, result: Pointer<napi_
   return emnapi.napi_clear_last_error(env)
 }
 
+function napi_create_int64 (env: napi_env, low: int32_t, high: int32_t, result: Pointer<napi_value>): emnapi.napi_status {
+  if (!emnapi.checkEnv(env)) return emnapi.napi_status.napi_invalid_arg
+  if (result === emnapi.NULL) return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_invalid_arg)
+  const envObject = emnapi.envStore.get(env)!
+
+  const value = (low >>> 0) + (high * Math.pow(2, 32))
+  HEAP32[result >> 2] = envObject.getCurrentScope().add(value).id
+  return emnapi.napi_clear_last_error(env)
+}
+
 function napi_create_uint32 (env: napi_env, value: uint32_t, result: Pointer<napi_value>): emnapi.napi_status {
   if (!emnapi.checkEnv(env)) return emnapi.napi_status.napi_invalid_arg
   if (result === emnapi.NULL) return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_invalid_arg)
@@ -114,6 +124,39 @@ function napi_get_value_uint32 (env: napi_env, value: napi_value, result: Pointe
   return emnapi.napi_clear_last_error(env)
 }
 
+function napi_get_value_int64 (env: napi_env, value: napi_value, result: Pointer<int64_t>): emnapi.napi_status {
+  if (!emnapi.checkEnv(env)) return emnapi.napi_status.napi_invalid_arg
+  if (value === emnapi.NULL) return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_invalid_arg)
+  if (result === emnapi.NULL) return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_invalid_arg)
+  const envObject = emnapi.envStore.get(env)!
+  try {
+    const handle = envObject.handleStore.get(value)!
+    if (typeof handle.value !== 'number') {
+      return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_number_expected)
+    }
+    const numberValue = handle.value
+    if (numberValue === Number.POSITIVE_INFINITY || numberValue === Number.NEGATIVE_INFINITY || isNaN(numberValue)) {
+      HEAP32[result >> 2] = 0
+      HEAP32[result + 4 >> 2] = 0
+    } else if (numberValue < emnapi.INT64_RANGE_NEGATIVE) {
+      HEAP32[result >> 2] = 0
+      HEAP32[result + 4 >> 2] = 0x80000000
+    } else if (numberValue >= emnapi.INT64_RANGE_POSITIVE) {
+      HEAPU32[result >> 2] = 0xffffffff
+      HEAPU32[result + 4 >> 2] = 0x7fffffff
+    } else {
+      let tempDouble
+      const tempI64 = [numberValue >>> 0, (tempDouble = numberValue, +Math.abs(tempDouble) >= 1 ? tempDouble > 0 ? (Math.min(+Math.floor(tempDouble / 4294967296), 4294967295) | 0) >>> 0 : ~~+Math.ceil((tempDouble - +(~~tempDouble >>> 0)) / 4294967296) >>> 0 : 0)]
+      HEAP32[result >> 2] = tempI64[0]
+      HEAP32[result + 4 >> 2] = tempI64[1]
+    }
+  } catch (err) {
+    envObject.tryCatch.setError(err)
+    return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_pending_exception)
+  }
+  return emnapi.napi_clear_last_error(env)
+}
+
 function napi_get_value_double (env: napi_env, value: napi_value, result: Pointer<double>): emnapi.napi_status {
   if (!emnapi.checkEnv(env)) return emnapi.napi_status.napi_invalid_arg
   if (value === emnapi.NULL) return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_invalid_arg)
@@ -133,6 +176,7 @@ function napi_get_value_double (env: napi_env, value: napi_value, result: Pointe
 }
 
 emnapiImplement('napi_create_int32', napi_create_int32)
+emnapiImplement('napi_create_int64', napi_create_int64)
 emnapiImplement('napi_create_uint32', napi_create_uint32)
 emnapiImplement('napi_create_double', napi_create_double)
 emnapiImplement('napi_create_string_utf8', napi_create_string_utf8)
@@ -143,5 +187,6 @@ emnapiImplement('napi_get_boolean', napi_get_boolean)
 emnapiImplement('napi_get_global', napi_get_global)
 
 emnapiImplement('napi_get_value_bool', napi_get_value_bool)
+emnapiImplement('napi_get_value_int64', napi_get_value_int64)
 emnapiImplement('napi_get_value_uint32', napi_get_value_uint32)
 emnapiImplement('napi_get_value_double', napi_get_value_double)

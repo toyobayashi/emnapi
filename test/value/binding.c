@@ -5,6 +5,8 @@
 #define NAPI_VERSION 6
 #include "node_api.h"
 
+#include "../common.h"
+
 static napi_value _i32(napi_env env, napi_callback_info info) {
   napi_value i32;
   napi_create_int32(env, 996, &i32);
@@ -93,6 +95,28 @@ static napi_value _get_version(napi_env env, napi_callback_info info) {
   return ret;
 }
 
+static napi_value TestInt64Truncation(napi_env env, napi_callback_info info) {
+  size_t argc = 1;
+  napi_value args[1];
+  NAPI_CALL(env, napi_get_cb_info(env, info, &argc, args, NULL, NULL));
+
+  NAPI_ASSERT(env, argc >= 1, "Wrong number of arguments");
+
+  // napi_valuetype valuetype0;
+  // NAPI_CALL(env, napi_typeof(env, args[0], &valuetype0));
+
+  // NAPI_ASSERT(env, valuetype0 == napi_number,
+  //     "Wrong type of arguments. Expects a number as first argument.");
+
+  int64_t input;
+  NAPI_CALL(env, napi_get_value_int64(env, args[0], &input));
+
+  napi_value output;
+  NAPI_CALL(env, napi_create_int64(env, input, &output));
+
+  return output;
+}
+
 NAPI_MODULE_INIT() {
   napi_value js_i32;
   napi_create_function(env, NULL, 0, _i32, NULL, &js_i32);
@@ -137,5 +161,9 @@ NAPI_MODULE_INIT() {
   napi_value js_get_version;
   napi_create_function(env, NULL, 0, _get_version, NULL, &js_get_version);
   napi_set_named_property(env, exports, "getVersion", js_get_version);
+
+  napi_value js_int64;
+  napi_create_function(env, NULL, 0, TestInt64Truncation, NULL, &js_int64);
+  napi_set_named_property(env, exports, "TestInt64Truncation", js_int64);
   return exports;
 }

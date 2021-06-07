@@ -100,6 +100,21 @@ function napi_is_error (env: napi_env, value: napi_value, result: Pointer<bool>)
   return emnapi.napi_clear_last_error(env)
 }
 
+function napi_is_exception_pending (env: napi_env, result: Pointer<bool>): emnapi.napi_status {
+  if (!emnapi.checkEnv(env)) return emnapi.napi_status.napi_invalid_arg
+  if (result === emnapi.NULL) return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_invalid_arg)
+  const envObject = emnapi.envStore.get(env)!
+  let r: boolean
+  try {
+    r = envObject.tryCatch.hasCaught()
+  } catch (err) {
+    envObject.tryCatch.setError(err)
+    return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_pending_exception)
+  }
+  HEAPU8[result] = r ? 1 : 0
+  return emnapi.napi_clear_last_error(env)
+}
+
 function napi_create_error (env: napi_env, code: napi_value, msg: napi_value, result: Pointer<napi_value>): emnapi.napi_status {
   if (!emnapi.checkEnv(env)) return emnapi.napi_status.napi_invalid_arg
   if (msg === emnapi.NULL) return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_invalid_arg)
@@ -132,3 +147,4 @@ emnapiImplement('napi_throw_type_error', napi_throw_type_error)
 emnapiImplement('napi_throw_range_error', napi_throw_range_error)
 emnapiImplement('napi_is_error', napi_is_error)
 emnapiImplement('napi_create_error', napi_create_error)
+emnapiImplement('napi_is_exception_pending', napi_is_exception_pending)

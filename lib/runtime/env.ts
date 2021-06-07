@@ -54,6 +54,9 @@ namespace emnapi {
 
   export let errorMessagesPtr: char_p[]
 
+  export const INT64_RANGE_POSITIVE = Math.pow(2, 63)
+  export const INT64_RANGE_NEGATIVE = -Math.pow(2, 63)
+
   class TryCatch {
     private _exception: Error | null = null
     public hasCaught (): boolean {
