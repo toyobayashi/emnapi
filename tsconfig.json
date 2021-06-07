@@ -15,20 +15,11 @@
       "DOM"
     ]
   },
-  "files": [
+  "include": [
+    "./dist/library_napi_runtime.d.ts",
     "./lib/typings/runtime.d.ts",
     "./lib/typings/napi.d.ts",
     "./lib/typings/compiler.d.ts",
-    "./dist/library_napi_runtime.d.ts",
-    "./lib/util.ts",
-    "./lib/register.ts",
-    "./lib/env.ts",
-    "./lib/version.ts",
-    "./lib/error.ts",
-    "./lib/value.ts",
-    "./lib/function.ts",
-    "./lib/life.ts",
-    "./lib/property.ts",
-    "./lib/init.ts"
+    "./lib/*.ts"
   ]
 }
