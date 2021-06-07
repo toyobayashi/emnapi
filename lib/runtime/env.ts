@@ -2,75 +2,6 @@
 namespace emnapi {
   export const NULL: 0 = 0
 
-  export enum napi_status {
-    napi_ok,
-    napi_invalid_arg,
-    napi_object_expected,
-    napi_string_expected,
-    napi_name_expected,
-    napi_function_expected,
-    napi_number_expected,
-    napi_boolean_expected,
-    napi_array_expected,
-    napi_generic_failure,
-    napi_pending_exception,
-    napi_cancelled,
-    napi_escape_called_twice,
-    napi_handle_scope_mismatch,
-    napi_callback_scope_mismatch,
-    napi_queue_full,
-    napi_closing,
-    napi_bigint_expected,
-    napi_date_expected,
-    napi_arraybuffer_expected,
-    napi_detachable_arraybuffer_expected,
-    napi_would_deadlock // unused
-  }
-
-  export enum napi_property_attributes {
-    napi_default = 0,
-    napi_writable = 1 << 0,
-    napi_enumerable = 1 << 1,
-    napi_configurable = 1 << 2,
-
-    // Used with napi_define_class to distinguish static properties
-    // from instance properties. Ignored by napi_define_properties.
-    napi_static = 1 << 10,
-
-    /// #ifdef NAPI_EXPERIMENTAL
-    // Default for class methods.
-    napi_default_method = napi_writable | napi_configurable,
-
-    // Default for object properties, like in JS obj[prop].
-    napi_default_jsproperty = napi_writable | napi_enumerable | napi_configurable
-    /// #endif  // NAPI_EXPERIMENTAL
-  }
-
-  export const errorMessages = [
-    '',
-    'Invalid argument',
-    'An object was expected',
-    'A string was expected',
-    'A string or symbol was expected',
-    'A function was expected',
-    'A number was expected',
-    'A boolean was expected',
-    'An array was expected',
-    'Unknown failure',
-    'An exception is pending',
-    'The async work item was cancelled',
-    'napi_escape_handle already called on scope',
-    'Invalid handle scope usage',
-    'Invalid callback scope usage',
-    'Thread-safe function queue is full',
-    'Thread-safe function handle is closing',
-    'A bigint was expected',
-    'A date was expected',
-    'An arraybuffer was expected',
-    'A detachable arraybuffer was expected',
-    'Main thread would deadlock'
-  ]
-
   export let errorMessagesPtr: char_p[]
 
   export const INT64_RANGE_POSITIVE = Math.pow(2, 63)
@@ -194,6 +125,30 @@ namespace emnapi {
 
   export function initErrorMemory (): void {
     if (!errorMessagesPtr) {
+      const errorMessages = [
+        '',
+        'Invalid argument',
+        'An object was expected',
+        'A string was expected',
+        'A string or symbol was expected',
+        'A function was expected',
+        'A number was expected',
+        'A boolean was expected',
+        'An array was expected',
+        'Unknown failure',
+        'An exception is pending',
+        'The async work item was cancelled',
+        'napi_escape_handle already called on scope',
+        'Invalid handle scope usage',
+        'Invalid callback scope usage',
+        'Thread-safe function queue is full',
+        'Thread-safe function handle is closing',
+        'A bigint was expected',
+        'A date was expected',
+        'An arraybuffer was expected',
+        'A detachable arraybuffer was expected',
+        'Main thread would deadlock'
+      ]
       errorMessagesPtr = errorMessages.map(msg => msg ? allocateUTF8(msg) : 0)
     }
     envStore.forEach((env) => {

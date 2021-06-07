@@ -51,16 +51,58 @@ namespace emnapi {
     public env: napi_env
     public nativeObject: Pointer<any> | null
     public value: S
+    public external: boolean
 
     public constructor (env: napi_env, id: number, value: S) {
       this.env = env
       this.id = id
       this.nativeObject = null
       this.value = value
+      this.external = false
     }
 
     public isEmpty (): boolean {
       return this.id === 0
+    }
+
+    public isNumber (): boolean {
+      return !this.isEmpty() && typeof this.value === 'number'
+    }
+
+    public isBigInt (): boolean {
+      return !this.isEmpty() && typeof this.value === 'bigint'
+    }
+
+    public isString (): boolean {
+      return !this.isEmpty() && typeof this.value === 'string'
+    }
+
+    public isFunction (): boolean {
+      return !this.isEmpty() && typeof this.value === 'function'
+    }
+
+    public isExternal (): boolean {
+      return !this.isEmpty() && this.external
+    }
+
+    public isObject (): boolean {
+      return !this.isEmpty() && typeof this.value === 'object' && this.value !== null
+    }
+
+    public isBoolean (): boolean {
+      return !this.isEmpty() && typeof this.value === 'boolean'
+    }
+
+    public isUndefined (): boolean {
+      return !this.isEmpty() && this.value === undefined
+    }
+
+    public isSymbol (): boolean {
+      return !this.isEmpty() && typeof this.value === 'symbol'
+    }
+
+    public isNull (): boolean {
+      return !this.isEmpty() && this.value === null
     }
 
     public dispose (): void {

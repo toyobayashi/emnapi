@@ -36,6 +36,7 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
       createTarget('function', ['./test/function/binding.c']),
       createTarget('error', ['./test/error/binding.c']),
       createTarget('hello', ['./test/hello/binding.c']),
+      createTarget('arg', ['./test/arg/binding.c', './test/entry_point.c']),
       {
         type: 'lib',
         name: 'testcommon',

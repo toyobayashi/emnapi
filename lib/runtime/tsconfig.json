@@ -11,6 +11,7 @@
     "../typings/runtime.d.ts",
     "./LinkedList.ts",
     "./Store.ts",
+    "./type.ts",
     "./Handle.ts",
     "./HandleScope.ts",
     "./env.ts"
