@@ -13,7 +13,7 @@ function napi_create_function (env: napi_env, utf8name: Pointer<const_char>, len
         }
         const ret = envObject.callInNewHandleScope((scope) => {
           const cbinfoHandle = scope.add(callbackInfo)
-          const napiValue = makeDynCall('iii', 'cb')(env, cbinfoHandle.id)
+          const napiValue = emnapi.call_iii(cb, env, cbinfoHandle.id)
           return (!napiValue) ? undefined : envObject.handleStore.get(napiValue)!.value
         })
         if (envObject.tryCatch.hasCaught()) {

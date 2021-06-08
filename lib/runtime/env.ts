@@ -45,6 +45,7 @@ namespace emnapi {
 
     public handleStore!: HandleStore
     public scopeStore!: ScopeStore
+    public refStore!: RefStore
 
     public scopeList = new LinkedList<IHandleScope>()
 
@@ -64,6 +65,7 @@ namespace emnapi {
       envStore.add(env)
       env.handleStore = new HandleStore(env.id)
       env.scopeStore = new ScopeStore()
+      env.refStore = new RefStore()
       env.scopeList = new LinkedList<IHandleScope>()
       // env.scopeList.push(HandleScope.create(env.id, null))
       return env

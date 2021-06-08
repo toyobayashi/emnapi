@@ -20,7 +20,7 @@ function napi_define_properties (
   property_count: size_t,
   properties: Const<Pointer<napi_property_descriptor>>
 ): emnapi.napi_status {
-  function createAnonymousFunction<F extends (...args: any[]) => any> (envObject: emnapi.Env, _cb: napi_callback, data: void_p): F {
+  function createAnonymousFunction<F extends (...args: any[]) => any> (envObject: emnapi.Env, cb: napi_callback, data: void_p): F {
     const _a = (() => function (this: any): any {
       'use strict'
       const callbackInfo = {
@@ -33,7 +33,7 @@ function napi_define_properties (
       }
       const ret = envObject.callInNewHandleScope((scope) => {
         const cbinfoHandle = scope.add(callbackInfo)
-        const napiValue = makeDynCall('iii', '_cb')(env, cbinfoHandle.id)
+        const napiValue = emnapi.call_iii(cb, env, cbinfoHandle.id)
         return (!napiValue) ? undefined : envObject.handleStore.get(napiValue)!.value
       })
       if (envObject.tryCatch.hasCaught()) {

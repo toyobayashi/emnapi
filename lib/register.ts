@@ -6,7 +6,6 @@ function napi_module_register (nodeModule: Pointer<node_module>): void {
   // const nm_flags = HEAP32[addr + 1]
   // const nm_filename = HEAP32[addr + 2]
 
-  // @ts-expect-error
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const nm_register_func = HEAP32[addr + 3]
 
@@ -23,7 +22,7 @@ function napi_module_register (nodeModule: Pointer<node_module>): void {
     const exports = {}
     const exportsHandle = scope.add(exports)
 
-    const napiValue = makeDynCall('iii', 'nm_register_func')(env.id, exportsHandle.id)
+    const napiValue = emnapi.call_iii(nm_register_func, env.id, exportsHandle.id)
     Module[modName] = env.handleStore.get(napiValue)!.value
   })
   if (env.tryCatch.hasCaught()) {

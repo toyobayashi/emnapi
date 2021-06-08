@@ -1,8 +1,8 @@
-declare function dynCall_iii (
-  ptr: FunctionPointer<(a: int32_t, b: int32_t) => int32_t>,
-  a: int32_t,
-  b: int32_t
-): int32_t
+declare interface IDynamicCalls {
+  call_iii (_ptr: number, a: int32_t, b: int32_t): int32_t
+  call_viii (_ptr: number, a: int32_t, b: int32_t, c: int32_t): void
+}
+declare function emnapiGetDynamicCalls (): IDynamicCalls
 
 declare const HEAPU32: Uint32Array
 declare const HEAP32: Int32Array

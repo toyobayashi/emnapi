@@ -15,9 +15,11 @@
     "../typings/napi.d.ts",
     "../typings/runtime.d.ts",
     "./LinkedList.ts",
+    "./util.ts",
     "./Store.ts",
     "./type.ts",
     "./Handle.ts",
+    "./Reference.ts",
     "./HandleScope.ts",
     "./env.ts"
   ]

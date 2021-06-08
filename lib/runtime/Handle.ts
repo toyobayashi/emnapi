@@ -72,6 +72,7 @@ namespace emnapi {
     public nativeObject: Pointer<any> | null
     public value: S
     public external: boolean
+    public refs: Reference[]
 
     public constructor (env: napi_env, id: number, value: S) {
       this.env = env
@@ -79,6 +80,7 @@ namespace emnapi {
       this.nativeObject = null
       this.value = value
       this.external = false
+      this.refs = []
     }
 
     public copy (): Handle<S> {
@@ -134,7 +136,25 @@ namespace emnapi {
       return !this.isEmpty() && this.value === null
     }
 
+    public addRef (ref: Reference): void {
+      if (this.refs.indexOf(ref) !== -1) {
+        return
+      }
+      this.refs.push(ref)
+    }
+
+    public canDispose (): boolean {
+      return (this.refs.length === 0) || (!this.refs.some(ref => ref.refcount > 0))
+    }
+
     public dispose (): void {
+      for (let i = 0; i < this.refs.length; i++) {
+        const ref = this.refs[i]
+        ref.dispose()
+      }
+      this.refs.length = 0
+      this.id = 0
+      this.value = undefined!
       envStore.get(this.env)!.handleStore.remove(this.id)
     }
   }
