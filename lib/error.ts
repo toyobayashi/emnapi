@@ -105,6 +105,52 @@ function napi_create_error (env: napi_env, code: napi_value, msg: napi_value, re
   })
 }
 
+function napi_create_type_error (env: napi_env, code: napi_value, msg: napi_value, result: Pointer<napi_value>): emnapi.napi_status {
+  return emnapi.checkEnv(env, (envObject) => {
+    return emnapi.checkArgs(env, [msg, result], () => {
+      let error: TypeError & { code?: string } 
+      try {
+        const msgValue = envObject.handleStore.get(msg)!.value
+        if (typeof msgValue !== 'string') {
+          return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_string_expected)
+        }
+        error = new TypeError(msgValue)
+        if (code !== emnapi.NULL) {
+          error.code = envObject.handleStore.get(code)!.value
+        }
+      } catch (err) {
+        envObject.tryCatch.setError(err)
+        return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_pending_exception)
+      }
+      HEAP32[result >> 2] = envObject.getCurrentScope().add(error).id
+      return emnapi.napi_clear_last_error(env)
+    })
+  })
+}
+
+function napi_create_range_error (env: napi_env, code: napi_value, msg: napi_value, result: Pointer<napi_value>): emnapi.napi_status {
+  return emnapi.checkEnv(env, (envObject) => {
+    return emnapi.checkArgs(env, [msg, result], () => {
+      let error: RangeError & { code?: string } 
+      try {
+        const msgValue = envObject.handleStore.get(msg)!.value
+        if (typeof msgValue !== 'string') {
+          return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_string_expected)
+        }
+        error = new RangeError(msgValue)
+        if (code !== emnapi.NULL) {
+          error.code = envObject.handleStore.get(code)!.value
+        }
+      } catch (err) {
+        envObject.tryCatch.setError(err)
+        return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_pending_exception)
+      }
+      HEAP32[result >> 2] = envObject.getCurrentScope().add(error).id
+      return emnapi.napi_clear_last_error(env)
+    })
+  })
+}
+
 emnapiImplement('napi_get_last_error_info', napi_get_last_error_info)
 emnapiImplement('napi_throw', napi_throw)
 emnapiImplement('napi_throw_error', napi_throw_error)
@@ -112,4 +158,6 @@ emnapiImplement('napi_throw_type_error', napi_throw_type_error)
 emnapiImplement('napi_throw_range_error', napi_throw_range_error)
 emnapiImplement('napi_is_error', napi_is_error)
 emnapiImplement('napi_create_error', napi_create_error)
+emnapiImplement('napi_create_type_error', napi_create_type_error)
+emnapiImplement('napi_create_range_error', napi_create_range_error)
 emnapiImplement('napi_is_exception_pending', napi_is_exception_pending)

@@ -15,6 +15,25 @@ test('Create utf8', () => {
   })
 })
 
+// test('Create array', () => {
+//   return promise.then(mod => {
+//     expect(mod.array()).toEqual([])
+//   })
+// })
+
+// test('Create array with length', () => {
+//   return promise.then(mod => {
+//     expect(mod.arrayWithLength()).toHaveLength(6)
+//   })
+// })
+
+// test('Create symbol', () => {
+//   return promise.then(mod => {
+//     expect(mod.symbol().toString()).toBe('Symbol(symbol)')
+//   })
+// })
+
+
 test('Get undefined', () => {
   return promise.then(mod => {
     expect(mod.undef()).toBe(undefined)
@@ -69,6 +88,12 @@ test('Get uint32', () => {
     expect(mod.getUint32(4294967295)).toBe(0)
   })
 })
+
+// test('Get int32', () => {
+//   return promise.then(mod => {
+//     expect(mod.getInt32(996)).toBe(996)
+//   })
+// })
 
 function testInt64 (mod: any, input: number, expected = input): void {
   assert.strictEqual(mod.TestInt64Truncation(input), expected)

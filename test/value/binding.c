@@ -62,6 +62,37 @@ static napi_value _create_uint32(napi_env env, napi_callback_info info) {
   return ret;
 }
 
+// static napi_value _create_array(napi_env env, napi_callback_info info) {
+//   napi_value arr;
+//   napi_create_array(env, &arr);
+//   return arr;
+// }
+
+// static napi_value _create_array_with_length(napi_env env, napi_callback_info info) {
+//   napi_value arr;
+//   size_t length = 6;
+//   napi_create_array_with_length(env, length, &arr);
+//   return arr;
+// }
+
+// static napi_value _create_symbol(napi_env env, napi_callback_info info) {
+//   napi_value ret;
+//   napi_create_symbol(env, "symbol", &ret);
+//   return ret;
+// }
+
+// static napi_value _get_int32(napi_env env, napi_callback_info info) {
+//   int32_t i32;
+//   size_t argc = 1;
+//   napi_value argv[1];
+//   napi_get_cb_info(env, info, &argc, argv, NULL, NULL);
+//   napi_get_value_int32(env, argv[0], &i32);
+
+//   napi_value ret;
+//   napi_create_int32(env, i32 + 1, &ret);
+//   return ret;
+// }
+
 static napi_value _get_uint32(napi_env env, napi_callback_info info) {
   uint32_t u32;
   size_t argc = 1;
@@ -146,6 +177,18 @@ NAPI_MODULE_INIT() {
   napi_create_function(env, NULL, 0, _create_double, NULL, &js_create_double);
   napi_set_named_property(env, exports, "double", js_create_double);
 
+  // napi_value js_create_array;
+  // napi_create_function(env, NULL, 0, _create_array, NULL, &js_create_array);
+  // napi_set_named_property(env, exports, "array", js_create_array);
+
+  // napi_value js_create_array_with_length;
+  // napi_create_function(env, NULL, 0, _create_array, NULL, &js_create_array_with_length);
+  // napi_set_named_property(env, exports, "arrayWithLength", js_create_array_with_length);
+
+  // napi_value js_create_symbol;
+  // napi_create_function(env, NULL, 0, _create_symbol, NULL, &js_create_symbol);
+  // napi_set_named_property(env, exports, "symbol", js_create_symbol);
+
   napi_value js_get_double;
   napi_create_function(env, NULL, 0, _get_double, NULL, &js_get_double);
   napi_set_named_property(env, exports, "getDouble", js_get_double);
@@ -157,6 +200,10 @@ NAPI_MODULE_INIT() {
   napi_value js_get_uint32;
   napi_create_function(env, NULL, 0, _get_uint32, NULL, &js_get_uint32);
   napi_set_named_property(env, exports, "getUint32", js_get_uint32);
+
+  // napi_value js_get_int32;
+  // napi_create_function(env, NULL, 0, _get_int32, NULL, &js_get_int32);
+  // napi_set_named_property(env, exports, "getInt32", js_get_int32);
 
   napi_value js_get_version;
   napi_create_function(env, NULL, 0, _get_version, NULL, &js_get_version);
