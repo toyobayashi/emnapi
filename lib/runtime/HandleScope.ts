@@ -5,7 +5,8 @@ namespace emnapi {
     parent: IHandleScope | null
     child: IHandleScope | null
     handles: Array<Handle<any>>
-    add<S> (value: S): Handle<S>
+    add<S> (value: Handle<S>): Handle<S>
+    add<V> (value: V): Handle<V>
     dispose (): void
   }
 
@@ -37,8 +38,15 @@ namespace emnapi {
       this.handles = []
     }
 
-    public add<S> (value: S): Handle<S> {
-      const h = Handle.create(this.env, value)
+    public add<S> (value: Handle<S>): Handle<S>
+    public add<V> (value: V): Handle<V>
+    public add (value: any): Handle<any> {
+      let h: Handle<any>
+      if (value instanceof Handle) {
+        h = value.copy()
+      } else {
+        h = Handle.create(this.env, value)
+      }
       this.handles.push(h)
       return h
     }
@@ -85,7 +93,7 @@ namespace emnapi {
         const envObject = envStore.get(this.env)!
         const h = envObject.handleStore.get(handleId)
         if (h && this.parent !== null) {
-          return this.parent.add(h.value)
+          return this.parent.add(h)
         } else {
           return null
         }

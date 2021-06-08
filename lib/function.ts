@@ -47,7 +47,7 @@ function napi_get_cb_info (env: napi_env, cbinfo: napi_callback_info, argc: Poin
           const arrlen = argcValue < cbinfoValue._length ? argcValue : cbinfoValue._length
           let i = 0
           for (; i < arrlen; i++) {
-            HEAP32[(argv >> 2) + i] = envObject.getCurrentScope().add(cbinfoValue._args[i]).id
+            HEAP32[(argv >> 2) + i] = envObject.ensureHandleId(cbinfoValue._args[i])
           }
           if (i < argcValue) {
             for (; i < argcValue; i++) {
@@ -59,7 +59,7 @@ function napi_get_cb_info (env: napi_env, cbinfo: napi_callback_info, argc: Poin
           HEAPU32[argc >> 2] = cbinfoValue._length
         }
         if (this_arg !== emnapi.NULL) {
-          HEAP32[this_arg >> 2] = envObject.getCurrentScope().add(cbinfoValue._this).id
+          HEAP32[this_arg >> 2] = envObject.ensureHandleId(cbinfoValue._this)
         }
         if (data !== emnapi.NULL) {
           HEAP32[data >> 2] = cbinfoValue._data
@@ -97,7 +97,7 @@ function napi_call_function (
       }
       const ret = v8func.apply(v8recv, args)
       if (result !== emnapi.NULL) {
-        HEAP32[result >> 2] = envObject.getCurrentScope().add(ret).id
+        HEAP32[result >> 2] = envObject.ensureHandleId(ret)
       }
       return emnapi.napi_clear_last_error(env)
     })

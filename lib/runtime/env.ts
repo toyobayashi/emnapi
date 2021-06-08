@@ -113,6 +113,10 @@ namespace emnapi {
     public getCurrentScope (): IHandleScope {
       return this.scopeList.last.element
     }
+
+    public ensureHandleId (value: any): napi_value {
+      return this.handleStore.find(value) || this.getCurrentScope().add(value).id
+    }
   }
 
   class EnvStore extends Store<Env> {

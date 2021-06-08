@@ -3,6 +3,17 @@ declare const global: typeof globalThis
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 namespace emnapi {
+  export const is = Object.is || function is (x: any, y: any): boolean {
+    // SameValue algorithm
+    if (x === y) { // Steps 1-5, 7-10
+      // Steps 6.b-6.e: +0 != -0
+      return x !== 0 || 1 / x === 1 / y
+    } else {
+      // Step 6.a: NaN == NaN
+      // eslint-disable-next-line no-self-compare
+      return x !== x && y !== y
+    }
+  }
 
   const _global: typeof globalThis = (function () {
     let g
@@ -38,6 +49,15 @@ namespace emnapi {
       this.set(HandleStore.ID_TRUE, new Handle(this._env, HandleStore.ID_TRUE, true))
       this.set(HandleStore.ID_GLOBAL, new Handle(this._env, HandleStore.ID_GLOBAL, _global))
     }
+
+    public find (value: any): napi_value {
+      for (const id in this._values) {
+        if (is(this._values[id].value, value)) {
+          return Number(id)
+        }
+      }
+      return NULL
+    }
   }
 
   export class Handle<S> implements IStoreValue {
@@ -59,6 +79,15 @@ namespace emnapi {
       this.nativeObject = null
       this.value = value
       this.external = false
+    }
+
+    public copy (): Handle<S> {
+      const h = new Handle(this.env, this.id, this.value)
+      h.nativeObject = this.nativeObject
+      h.external = this.external
+
+      envStore.get(this.env)!.handleStore.add(h)
+      return h
     }
 
     public isEmpty (): boolean {

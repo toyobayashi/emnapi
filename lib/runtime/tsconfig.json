@@ -4,7 +4,12 @@
     "outFile": "../../dist/library_napi_runtime.js",
     "downlevelIteration": true,
     "declaration": true,
-    "types": []
+    "types": [],
+    "lib": [
+      "DOM",
+      "ES5",
+      "ES2015.Core"
+    ]
   },
   "files": [
     "../typings/napi.d.ts",

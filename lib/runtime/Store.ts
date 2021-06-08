@@ -7,7 +7,7 @@ namespace emnapi {
   }
 
   export class Store<V extends IStoreValue> {
-    private readonly _values: { [id: number]: V }
+    protected readonly _values: { [id: number]: V }
     protected _min: number
 
     // -2147483648 <= _id <= 2147483647 && _id !== 0
