@@ -16,15 +16,12 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
       ]
     : []
 
-  const createTarget = (name, sources/* , needEntry */) => ({
+  const createTarget = (name, sources, needEntry) => ({
     name: name,
     type: isEmscripten ? 'exe' : 'node',
-    sources: sources,
+    sources: needEntry ? (sources.push('./test/entry_point.c'), sources) : sources,
     emwrap: {},
-    libs: [
-      'testcommon'/* ,
-      ...(needEntry ? ['testentry'] : []) */
-    ],
+    libs: ['testcommon'],
     includePaths: isEmscripten ? ['./include'] : [],
     compileOptions: [...commonFlags],
     // eslint-disable-next-line no-template-curly-in-string
@@ -42,21 +39,15 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
         compileOptions: [...commonFlags],
         linkOptions: [...commonFlags]
       },
-      /* {
-        type: 'lib',
-        name: 'testentry',
-        sources: ['./test/entry_point.c'],
-        includePaths: isEmscripten ? ['./include'] : [],
-        compileOptions: [...commonFlags],
-        linkOptions: [...commonFlags]
-      }, */
       createTarget('env', ['./test/env/binding.c']),
       createTarget('value', ['./test/value/binding.c']),
       createTarget('function', ['./test/function/binding.c']),
       createTarget('error', ['./test/error/binding.c']),
       createTarget('hello', ['./test/hello/binding.c']),
-      createTarget('arg', ['./test/arg/binding.c', './test/entry_point.c']),
-      createTarget('callback', ['./test/callback/binding.c', './test/entry_point.c'])
+      createTarget('arg', ['./test/arg/binding.c'], true),
+      createTarget('callback', ['./test/callback/binding.c'], true),
+      createTarget('objfac', ['./test/objfac/binding.c'], true),
+      createTarget('fnfac', ['./test/fnfac/binding.c'], true)
     ]
   }
 }
