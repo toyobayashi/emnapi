@@ -11,9 +11,9 @@ namespace emnapi {
       handle_id: napi_value,
       initialRefcount: uint32_t,
       deleteSelf: boolean,
-      finalize_callback: napi_finalize,
-      finalize_data: void_p,
-      finalize_hint: void_p
+      finalize_callback: napi_finalize = 0,
+      finalize_data: void_p = 0,
+      finalize_hint: void_p = 0
     ): Reference {
       const ref = new Reference(env, handle_id, initialRefcount, deleteSelf, finalize_callback, finalize_data, finalize_hint)
       const envObject = envStore.get(env)!
@@ -27,9 +27,9 @@ namespace emnapi {
       public handle_id: napi_value,
       initialRefcount: uint32_t,
       public deleteSelf: boolean,
-      public finalize_callback: napi_finalize,
-      public finalize_data: void_p,
-      public finalize_hint: void_p
+      public finalize_callback: napi_finalize = 0,
+      public finalize_data: void_p = 0,
+      public finalize_hint: void_p = 0
     ) {
       this.id = 0
       this.refcount = initialRefcount >>> 0

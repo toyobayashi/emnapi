@@ -63,9 +63,10 @@ namespace emnapi {
     public static create (): Env {
       const env = new Env()
       envStore.add(env)
-      env.handleStore = new HandleStore(env.id)
-      env.scopeStore = new ScopeStore()
       env.refStore = new RefStore()
+      env.handleStore = new HandleStore()
+      env.handleStore.addGlobalConstants(env.id)
+      env.scopeStore = new ScopeStore()
       env.scopeList = new LinkedList<IHandleScope>()
       // env.scopeList.push(HandleScope.create(env.id, null))
       return env
@@ -128,6 +129,14 @@ namespace emnapi {
   }
 
   export const envStore = new EnvStore()
+
+  export function gc (): void {
+    envStore.forEach(envObject => {
+      envObject.handleStore.forEach(h => {
+        h.tryDispose()
+      })
+    })
+  }
 
   export function initErrorMemory (): void {
     if (!errorMessagesPtr) {
