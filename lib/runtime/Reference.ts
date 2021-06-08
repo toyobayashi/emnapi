@@ -43,7 +43,12 @@ namespace emnapi {
       if (this.refcount === 0) {
         return 0
       }
-      return --this.refcount
+      this.refcount--
+      if (this.refcount === 0) {
+        const envObject = envStore.get(this.env)!
+        envObject.handleStore.get(this.handle_id)!.tryDispose()
+      }
+      return this.refcount
     }
 
     public data (): void_p {
@@ -51,10 +56,10 @@ namespace emnapi {
     }
 
     public doDelete (): void {
-      if ((this.refcount !== 0) ||
-        (this.deleteSelf) ||
-        (this.finalizeRan)) {
-        envStore.get(this.env)!.refStore.remove(this.id)
+      if ((this.refcount !== 0) || (this.deleteSelf) || (this.finalizeRan)) {
+        const envObject = envStore.get(this.env)!
+        envObject.refStore.remove(this.id)
+        envObject.handleStore.get(this.handle_id)!.removeRef(this)
       } else {
         this.deleteSelf = true
       }

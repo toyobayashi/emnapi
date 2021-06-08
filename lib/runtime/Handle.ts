@@ -72,6 +72,7 @@ namespace emnapi {
     public nativeObject: Pointer<any> | null
     public value: S
     public external: boolean
+    public inScope: IHandleScope | null
     public refs: Reference[]
 
     public constructor (env: napi_env, id: number, value: S) {
@@ -80,6 +81,7 @@ namespace emnapi {
       this.nativeObject = null
       this.value = value
       this.external = false
+      this.inScope = null
       this.refs = []
     }
 
@@ -143,13 +145,33 @@ namespace emnapi {
       this.refs.push(ref)
     }
 
+    public removeRef (ref: Reference): void {
+      const index = this.refs.indexOf(ref)
+      if (index !== -1) {
+        this.refs.splice(index, 1)
+      }
+      this.tryDispose()
+    }
+
+    public isInHandleScope (): boolean {
+      return this.inScope !== null
+    }
+
+    public tryDispose (): void {
+      if (this.canDispose()) {
+        this.dispose()
+      }
+    }
+
     public canDispose (): boolean {
-      return (this.refs.length === 0) || (!this.refs.some(ref => ref.refcount > 0))
+      return ((this.refs.length === 0) || (!this.refs.some(ref => ref.refcount > 0))) && (!this.isInHandleScope())
     }
 
     public dispose (): void {
-      for (let i = 0; i < this.refs.length; i++) {
-        const ref = this.refs[i]
+      if (this.id === 0) return
+      const refs = this.refs.slice()
+      for (let i = 0; i < refs.length; i++) {
+        const ref = refs[i]
         ref.dispose()
       }
       this.refs.length = 0

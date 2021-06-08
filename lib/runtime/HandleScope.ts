@@ -16,6 +16,7 @@ namespace emnapi {
     public parent: IHandleScope | null
     public child: IHandleScope | null
     public handles: Array<Handle<any>>
+    private _disposed: boolean = false
 
     protected static _create<T extends typeof HandleScope> (this: T, env: napi_env, parentScope: IHandleScope | null): InstanceType<T> {
       const scope = new this(env, parentScope)
@@ -48,14 +49,18 @@ namespace emnapi {
         h = Handle.create(this.env, value)
       }
       this.handles.push(h)
+      h.inScope = this
       return h
     }
 
     public dispose (): void {
+      if (this._disposed) return
+      this._disposed = true
       const handles = this.handles.slice()
       for (let i = 0; i < handles.length; i++) {
         const handle = handles[i]
-        handle.dispose()
+        handle.inScope = null
+        handle.tryDispose()
       }
       this.handles.length = 0
       if (this.parent) {

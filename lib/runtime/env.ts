@@ -82,7 +82,7 @@ namespace emnapi {
       return scope
     }
 
-    public closeScope<Scope extends HandleScope> (scope: Scope): void {
+    public closeScope (scope: IHandleScope): void {
       scope.dispose()
       this.scopeList.pop()
       this.openHandleScopes--
