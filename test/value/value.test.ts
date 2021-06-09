@@ -33,7 +33,6 @@ test('Create symbol', () => {
   })
 })
 
-
 test('Get undefined', () => {
   return promise.then(mod => {
     expect(mod.undef()).toBe(undefined)

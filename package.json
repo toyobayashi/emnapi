@@ -11,7 +11,7 @@
     "rebuild:r": "npm run build:lib && cgen rebuild -e",
     "rebuild:n": "cgen rebuild -d",
     "rebuild:nr": "cgen rebuild",
-    "lint": "eslint lib",
+    "lint": "eslint {lib/**/*.ts,test/**/*.ts}",
     "test": "jest --runInBand",
     "test:r": "cross-env NODE_ENV=production jest --runInBand",
     "test:n": "cross-env EMNAPI_TEST_NATIVE=1 jest --runInBand",

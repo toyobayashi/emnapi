@@ -108,7 +108,7 @@ function napi_create_error (env: napi_env, code: napi_value, msg: napi_value, re
 function napi_create_type_error (env: napi_env, code: napi_value, msg: napi_value, result: Pointer<napi_value>): emnapi.napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(env, [msg, result], () => {
-      let error: TypeError & { code?: string } 
+      let error: TypeError & { code?: string }
       try {
         const msgValue = envObject.handleStore.get(msg)!.value
         if (typeof msgValue !== 'string') {
@@ -131,7 +131,7 @@ function napi_create_type_error (env: napi_env, code: napi_value, msg: napi_valu
 function napi_create_range_error (env: napi_env, code: napi_value, msg: napi_value, result: Pointer<napi_value>): emnapi.napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(env, [msg, result], () => {
-      let error: RangeError & { code?: string } 
+      let error: RangeError & { code?: string }
       try {
         const msgValue = envObject.handleStore.get(msg)!.value
         if (typeof msgValue !== 'string') {

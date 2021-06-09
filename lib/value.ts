@@ -79,6 +79,7 @@ function napi_create_symbol (env: napi_env, description: napi_value, result: Poi
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(env, [result], () => {
       if (description === emnapi.NULL) {
+        // eslint-disable-next-line symbol-description
         HEAP32[result >> 2] = envObject.getCurrentScope().add(Symbol()).id
       } else {
         const handle = envObject.handleStore.get(description)!
