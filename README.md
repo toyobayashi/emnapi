@@ -28,7 +28,7 @@ Emscripten 需要 v2.0.2 以上的版本，链接上一步构建出来的 js 库
 
 ## 已实现
 
-进度：49 / 115 \[42%\]
+进度：53 / 115 \[46%\]
 
 斜体加粗表示该 API 受限于 JavaScript 运行时能力，可能与原生行为不一致，或是其残废的简易实现。
 
@@ -89,9 +89,9 @@ Emscripten 需要 v2.0.2 以上的版本，链接上一步构建出来的 js 库
 - [x] napi_get_cb_info
 - [ ] napi_get_new_target
 - [ ] napi_define_class
-- [ ] ***napi_wrap*** (require `FinalizationRegistry`)
-- [ ] ***napi_unwrap*** (require `FinalizationRegistry`)
-- [ ] ***napi_remove_wrap*** (require `FinalizationRegistry`)
+- [x] ***napi_wrap*** (require `FinalizationRegistry`)
+- [x] ***napi_unwrap*** (require `FinalizationRegistry`)
+- [x] ***napi_remove_wrap*** (require `FinalizationRegistry`)
 - [x] ***napi_create_external*** (require `FinalizationRegistry`)
 - [x] ***napi_get_value_external*** (require `FinalizationRegistry`)
 - [x] ***napi_create_reference*** (require `FinalizationRegistry`)
@@ -131,7 +131,7 @@ Emscripten 需要 v2.0.2 以上的版本，链接上一步构建出来的 js 库
 - [ ] napi_create_date
 - [ ] napi_is_date
 - [ ] napi_get_date_value
-- [ ] napi_add_finalizer
+- [x] ***napi_add_finalizer*** (require `FinalizationRegistry`)
 - [ ] napi_create_bigint_int64
 - [ ] napi_create_bigint_uint64
 - [ ] napi_create_bigint_words

@@ -241,4 +241,75 @@ namespace emnapi {
   } catch (_) {}
 
   export const supportFinalizer = typeof FinalizationRegistry !== 'undefined'
+
+  export enum WrapType {
+    retrievable,
+    anonymous
+  }
+
+  export function wrap (type: WrapType, env: napi_env, js_object: napi_value, native_object: void_p, finalize_cb: napi_finalize, finalize_hint: void_p, result: Pointer<napi_ref>): napi_status {
+    return preamble(env, (envObject) => {
+      return checkArgs(env, [js_object], () => {
+        const value = envObject.handleStore.get(js_object)!
+        if (!value.isObject()) {
+          return napi_set_last_error(env, napi_status.napi_invalid_arg)
+        }
+
+        if (type === WrapType.retrievable) {
+          if (value.wrapped !== 0) {
+            return napi_set_last_error(env, napi_status.napi_invalid_arg)
+          }
+        } else if (type === WrapType.anonymous) {
+          if (finalize_cb === NULL) return napi_set_last_error(env, napi_status.napi_invalid_arg)
+        }
+
+        let reference: Reference
+        if (result !== NULL) {
+          if (finalize_cb === NULL) return napi_set_last_error(env, napi_status.napi_invalid_arg)
+          reference = Reference.create(env, value.id, 0, false, finalize_cb, native_object, finalize_hint)
+          HEAP32[result >> 2] = reference.id
+        } else {
+          reference = Reference.create(env, value.id, 0, true, finalize_cb, native_object, finalize_cb === NULL ? NULL : finalize_hint)
+        }
+
+        if (type === WrapType.retrievable) {
+          // const external = ExternalHandle.createExternal(env, reference.id)
+          // envObject.getCurrentScope().addNoCopy(external)
+          // value.wrapped = external.id
+          value.wrapped = reference.id
+        }
+        return getReturnStatus(env)
+      })
+    })
+  }
+
+  export enum UnwrapAction {
+    KeepWrap,
+    RemoveWrap
+  }
+
+  export function unwrap (env: napi_env, js_object: napi_value, result: void_pp, action: UnwrapAction): napi_status {
+    return preamble(env, (envObject) => {
+      return checkArgs(env, [js_object], () => {
+        if (action === UnwrapAction.KeepWrap) {
+          if (result === NULL) return napi_set_last_error(env, napi_status.napi_invalid_arg)
+        }
+        const value = envObject.handleStore.get(js_object)!
+        if (!value.isObject()) {
+          return napi_set_last_error(env, napi_status.napi_invalid_arg)
+        }
+        const referenceId = value.wrapped
+        const ref = envObject.refStore.get(referenceId)
+        if (!ref) return napi_set_last_error(env, napi_status.napi_invalid_arg)
+        if (result !== NULL) {
+          HEAP32[result >> 2] = ref.data()
+        }
+        if (action === UnwrapAction.RemoveWrap) {
+          value.wrapped = 0
+          Reference.doDelete(ref)
+        }
+        return getReturnStatus(env)
+      })
+    })
+  }
 }

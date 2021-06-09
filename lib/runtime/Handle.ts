@@ -78,6 +78,7 @@ namespace emnapi {
     public env: napi_env
     public value: S
     public inScope: IHandleScope | null
+    public wrapped: number = 0 // wrapped Reference id
     public refs: Reference[]
 
     public constructor (env: napi_env, id: number, value: S) {
@@ -85,11 +86,15 @@ namespace emnapi {
       this.id = id
       this.value = value
       this.inScope = null
+      this.wrapped = 0
       this.refs = []
     }
 
     public copy (): Handle<S> {
       const h = new Handle(this.env, this.id, this.value)
+      h.inScope = this.inScope
+      h.wrapped = this.wrapped
+      h.refs = this.refs.slice()
 
       envStore.get(this.env)!.handleStore.add(h)
       return h
@@ -209,6 +214,9 @@ namespace emnapi {
     public copy (): ExternalHandle {
       const h = new ExternalHandle(this.env, this._data)
       h.id = this.id
+      h.inScope = this.inScope
+      h.wrapped = this.wrapped
+      h.refs = this.refs.slice()
 
       envStore.get(this.env)!.handleStore.add(h)
       return h
