@@ -239,4 +239,6 @@ namespace emnapi {
   try {
     canSetFunctionName = !!Object.getOwnPropertyDescriptor(Function.prototype, 'name')?.configurable
   } catch (_) {}
+
+  export const supportFinalizer = typeof FinalizationRegistry !== 'undefined'
 }

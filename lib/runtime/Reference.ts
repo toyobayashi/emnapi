@@ -6,6 +6,23 @@ namespace emnapi {
 
     private finalizeRan: boolean = false
 
+    public static finalizationGroup: FinalizationRegistry | null =
+    typeof FinalizationRegistry !== 'undefined'
+      ? new FinalizationRegistry((ref: Reference) => {
+        if (ref.finalize_callback !== NULL) {
+          call_viii(ref.finalize_callback, ref.env, ref.finalize_data, ref.finalize_hint)
+        }
+        if (ref.deleteSelf) {
+          Reference.doDelete(ref)
+        } else {
+          ref.finalizeRan = true
+          // leak if this is a non-self-delete weak reference
+          // should call napi_delete_referece manually
+          // Reference.doDelete(this)
+        }
+      })
+      : null
+
     public static create (
       env: napi_env,
       handle_id: napi_value,
@@ -68,23 +85,17 @@ namespace emnapi {
         const envObject = envStore.get(ref.env)!
         envObject.refStore.remove(ref.id)
         envObject.handleStore.get(ref.handle_id)?.removeRef(ref)
+        Reference.finalizationGroup?.unregister(this)
       } else {
         ref.deleteSelf = true
       }
     }
 
-    public dispose (): void {
-      if (this.finalize_callback !== NULL) {
-        call_viii(this.finalize_callback, this.env, this.finalize_data, this.finalize_hint)
-      }
-      if (this.deleteSelf) {
-        Reference.doDelete(this)
-      } else {
-        this.finalizeRan = true
-        // leak if this is a non-self-delete weak reference
-        // should call napi_delete_referece manually
-        // Reference.doDelete(this)
-      }
+    public queueFinalizer (): void {
+      if (!Reference.finalizationGroup) return
+      const envObject = envStore.get(this.env)!
+      const handle = envObject.handleStore.get(this.handle_id)!
+      Reference.finalizationGroup.register(handle.value, this, this)
     }
   }
 

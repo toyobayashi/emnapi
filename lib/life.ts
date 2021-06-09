@@ -80,6 +80,7 @@ function napi_create_reference (
   initial_refcount: uint32_t,
   result: Pointer<napi_ref>
 ): emnapi.napi_status {
+  if (!emnapi.supportFinalizer) return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_generic_failure)
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(env, [value, result], () => {
       try {
@@ -102,6 +103,7 @@ function napi_delete_reference (
   env: napi_env,
   ref: napi_ref
 ): emnapi.napi_status {
+  if (!emnapi.supportFinalizer) return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_generic_failure)
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(env, [ref], () => {
       try {
@@ -120,6 +122,7 @@ function napi_reference_ref (
   ref: napi_ref,
   result: Pointer<uint32_t>
 ): emnapi.napi_status {
+  if (!emnapi.supportFinalizer) return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_generic_failure)
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(env, [ref], () => {
       try {
@@ -141,6 +144,7 @@ function napi_reference_unref (
   ref: napi_ref,
   result: Pointer<uint32_t>
 ): emnapi.napi_status {
+  if (!emnapi.supportFinalizer) return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_generic_failure)
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(env, [ref], () => {
       try {
@@ -166,6 +170,7 @@ function napi_get_reference_value (
   ref: napi_ref,
   result: Pointer<napi_value>
 ): emnapi.napi_status {
+  if (!emnapi.supportFinalizer) return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_generic_failure)
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(env, [ref, result], () => {
       try {

@@ -173,7 +173,7 @@ namespace emnapi {
       const refs = this.refs.slice()
       for (let i = 0; i < refs.length; i++) {
         const ref = refs[i]
-        ref.dispose()
+        ref.queueFinalizer()
       }
       this.refs.length = 0
       this.id = 0
@@ -182,9 +182,14 @@ namespace emnapi {
     }
   }
 
-  export class External extends Handle<{}> {
-    public static createExternal (env: napi_env, data: void_p = 0): External {
-      const h = new External(env, data)
+  function External (this: any): void {
+    Object.setPrototypeOf(this, null)
+  }
+  External.prototype = null as any
+
+  export class ExternalHandle extends Handle<{}> {
+    public static createExternal (env: napi_env, data: void_p = 0): ExternalHandle {
+      const h = new ExternalHandle(env, data)
       envStore.get(env)!.handleStore.add(h)
       return h
     }
@@ -192,7 +197,7 @@ namespace emnapi {
     private readonly _data: void_p
 
     public constructor (env: napi_env, data: void_p = 0) {
-      super(env, 0, Object.create(null))
+      super(env, 0, new (External as any)())
       this._data = data
     }
 
@@ -201,8 +206,8 @@ namespace emnapi {
     }
 
     // @override
-    public copy (): External {
-      const h = new External(this.env, this._data)
+    public copy (): ExternalHandle {
+      const h = new ExternalHandle(this.env, this._data)
       h.id = this.id
 
       envStore.get(this.env)!.handleStore.add(h)

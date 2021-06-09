@@ -32,3 +32,9 @@ declare interface ICallbackInfo {
   _newTarget: Function | undefined,
   _isConstructCall: boolean
 }
+
+declare class FinalizationRegistry<H = any> {
+  constructor (callback: (heldValue: H) => void)
+  register (obj: object, heldValue: H, unregisterToken?: object): void
+  unregister (unregisterToken: object): void
+}

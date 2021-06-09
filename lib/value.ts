@@ -95,9 +95,10 @@ function napi_create_symbol (env: napi_env, description: napi_value, result: Poi
 }
 
 function napi_create_external (env: napi_env, data: void_p, finalize_cb: napi_finalize, finalize_hint: void_p, result: Pointer<napi_value>): emnapi.napi_status {
+  if (!emnapi.supportFinalizer) return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_generic_failure)
   return emnapi.preamble(env, (envObject) => {
     return emnapi.checkArgs(env, [result], () => {
-      const externalHandle = emnapi.External.createExternal(env, data)
+      const externalHandle = emnapi.ExternalHandle.createExternal(env, data)
       envObject.getCurrentScope().addNoCopy(externalHandle)
       emnapi.Reference.create(env, externalHandle.id, 0, true, finalize_cb, data, finalize_hint)
       HEAP32[result >> 2] = externalHandle.id
@@ -252,6 +253,7 @@ function napi_get_value_double (env: napi_env, value: napi_value, result: Pointe
 }
 
 function napi_get_value_external (env: napi_env, value: napi_value, result: void_pp): emnapi.napi_status {
+  if (!emnapi.supportFinalizer) return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_generic_failure)
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(env, [value, result], () => {
       try {
@@ -259,7 +261,7 @@ function napi_get_value_external (env: napi_env, value: napi_value, result: void
         if (!handle.isExternal()) {
           return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_invalid_arg)
         }
-        HEAP32[result >> 2] = (handle as emnapi.External).data()
+        HEAP32[result >> 2] = (handle as emnapi.ExternalHandle).data()
       } catch (err) {
         envObject.tryCatch.setError(err)
         return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_pending_exception)
