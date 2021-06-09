@@ -5,8 +5,9 @@ namespace emnapi {
     parent: IHandleScope | null
     child: IHandleScope | null
     handles: Array<Handle<any>>
-    add<S> (value: Handle<S>): Handle<S>
+    add<S, H extends Handle<S>> (value: H): H
     add<V> (value: V): Handle<V>
+    addNoCopy<H extends Handle<any>> (handle: H): H
     dispose (): void
   }
 
@@ -39,7 +40,7 @@ namespace emnapi {
       this.handles = []
     }
 
-    public add<S> (value: Handle<S>): Handle<S>
+    public add<S, H extends Handle<S>> (value: H): H
     public add<V> (value: V): Handle<V>
     public add (value: any): Handle<any> {
       let h: Handle<any>
@@ -51,6 +52,12 @@ namespace emnapi {
       this.handles.push(h)
       h.inScope = this
       return h
+    }
+
+    public addNoCopy<H extends Handle<any>> (handle: H): H {
+      this.handles.push(handle)
+      handle.inScope = this
+      return handle
     }
 
     public dispose (): void {

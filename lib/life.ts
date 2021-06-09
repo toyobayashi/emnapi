@@ -170,7 +170,13 @@ function napi_get_reference_value (
     return emnapi.checkArgs(env, [ref, result], () => {
       try {
         const reference = envObject.refStore.get(ref)!
-        HEAP32[result >> 2] = reference.get()
+        const handleId = reference.get()
+        if (handleId !== emnapi.NULL) {
+          const handle = envObject.handleStore.get(handleId)!
+          handle.addRef(reference)
+          envObject.getCurrentScope().addNoCopy(handle)
+        }
+        HEAP32[result >> 2] = handleId
         return emnapi.napi_clear_last_error(env)
       } catch (err) {
         envObject.tryCatch.setError(err)

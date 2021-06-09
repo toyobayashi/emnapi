@@ -67,7 +67,7 @@ namespace emnapi {
       if ((ref.refcount !== 0) || (ref.deleteSelf) || (ref.finalizeRan)) {
         const envObject = envStore.get(ref.env)!
         envObject.refStore.remove(ref.id)
-        envObject.handleStore.get(ref.handle_id)!.removeRef(ref)
+        envObject.handleStore.get(ref.handle_id)?.removeRef(ref)
       } else {
         ref.deleteSelf = true
       }

@@ -199,5 +199,14 @@ namespace emnapi {
     public data (): void_p {
       return this._data
     }
+
+    // @override
+    public copy (): External {
+      const h = new External(this.env, this._data)
+      h.id = this.id
+
+      envStore.get(this.env)!.handleStore.add(h)
+      return h
+    }
   }
 }
