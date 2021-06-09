@@ -3,6 +3,7 @@
 declare type napi_env = Pointer<unknown>
 
 declare type napi_value = Pointer<unknown>
+declare type napi_ref = Pointer<unknown>
 declare type napi_handle_scope = Pointer<unknown>
 declare type napi_escapable_handle_scope = Pointer<unknown>
 

@@ -76,26 +76,20 @@ namespace emnapi {
 
     public id: number
     public env: napi_env
-    public nativeObject: Pointer<any> | null
     public value: S
-    public external: boolean
     public inScope: IHandleScope | null
     public refs: Reference[]
 
     public constructor (env: napi_env, id: number, value: S) {
       this.env = env
       this.id = id
-      this.nativeObject = null
       this.value = value
-      this.external = false
       this.inScope = null
       this.refs = []
     }
 
     public copy (): Handle<S> {
       const h = new Handle(this.env, this.id, this.value)
-      h.nativeObject = this.nativeObject
-      h.external = this.external
 
       envStore.get(this.env)!.handleStore.add(h)
       return h
@@ -122,7 +116,7 @@ namespace emnapi {
     }
 
     public isExternal (): boolean {
-      return !this.isEmpty() && this.external
+      return !this.isEmpty() && (this instanceof External)
     }
 
     public isObject (): boolean {
@@ -188,4 +182,22 @@ namespace emnapi {
     }
   }
 
+  export class External extends Handle<{}> {
+    public static createExternal (env: napi_env, data: void_p = 0): External {
+      const h = new External(env, data)
+      envStore.get(env)!.handleStore.add(h)
+      return h
+    }
+
+    private readonly _data: void_p
+
+    public constructor (env: napi_env, data: void_p = 0) {
+      super(env, 0, Object.create(null))
+      this._data = data
+    }
+
+    public data (): void_p {
+      return this._data
+    }
+  }
 }

@@ -83,6 +83,7 @@ function napi_call_function (
 ): emnapi.napi_status {
   return emnapi.preamble(env, (envObject) => {
     return emnapi.checkArgs(env, [recv], () => {
+      argc = argc >>> 0
       if (argc > 0) {
         if (argv === emnapi.NULL) return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_invalid_arg)
       }

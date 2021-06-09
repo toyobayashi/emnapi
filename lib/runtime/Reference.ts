@@ -55,13 +55,17 @@ namespace emnapi {
       return this.finalize_data
     }
 
-    public doDelete (): void {
-      if ((this.refcount !== 0) || (this.deleteSelf) || (this.finalizeRan)) {
-        const envObject = envStore.get(this.env)!
-        envObject.refStore.remove(this.id)
-        envObject.handleStore.get(this.handle_id)!.removeRef(this)
+    public get (): napi_value {
+      return this.handle_id
+    }
+
+    public static doDelete (ref: Reference): void {
+      if ((ref.refcount !== 0) || (ref.deleteSelf) || (ref.finalizeRan)) {
+        const envObject = envStore.get(ref.env)!
+        envObject.refStore.remove(ref.id)
+        envObject.handleStore.get(ref.handle_id)!.removeRef(ref)
       } else {
-        this.deleteSelf = true
+        ref.deleteSelf = true
       }
     }
 
@@ -70,10 +74,12 @@ namespace emnapi {
         call_viii(this.finalize_callback, this.env, this.finalize_data, this.finalize_hint)
       }
       if (this.deleteSelf) {
-        this.doDelete()
+        Reference.doDelete(this)
       } else {
         this.finalizeRan = true
-        this.doDelete()
+        // leak if this is a non-self-delete weak reference
+        // should call napi_delete_referece manually
+        // Reference.doDelete(this)
       }
     }
   }
