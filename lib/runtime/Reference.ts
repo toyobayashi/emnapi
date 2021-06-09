@@ -56,7 +56,11 @@ namespace emnapi {
     }
 
     public get (): napi_value {
-      return this.handle_id
+      const envObject = envStore.get(this.env)!
+      if (envObject.handleStore.has(this.handle_id)) {
+        return this.handle_id
+      }
+      return NULL
     }
 
     public static doDelete (ref: Reference): void {
