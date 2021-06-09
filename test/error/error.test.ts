@@ -73,3 +73,23 @@ test('Create error & Is Error', () => {
     expect(mod.isError(error)).toBe(true)
   })
 })
+
+test('Create type error & Is Error', () => {
+  return promise.then(mod => {
+    const error = mod.createTypeError()
+    expect(error).toBeInstanceOf(TypeError)
+    expect(error.code).toBe('CODE 5')
+    expect(error.message).toBe('msg 5')
+    expect(mod.isError(error)).toBe(true)
+  })
+})
+
+test('Create range error & Is Error', () => {
+  return promise.then(mod => {
+    const error = mod.createRangeError()
+    expect(error).toBeInstanceOf(RangeError)
+    expect(error.code).toBe('CODE 6')
+    expect(error.message).toBe('msg 6')
+    expect(mod.isError(error)).toBe(true)
+  })
+})

@@ -55,6 +55,22 @@ static napi_value _create_error(napi_env env, napi_callback_info info) {
   return err;
 }
 
+static napi_value _create_type_error(napi_env env, napi_callback_info info) {
+  napi_value code, msg, err;
+  napi_create_string_utf8(env, "CODE 5", -1, &code);
+  napi_create_string_utf8(env, "msg 5", -1, &msg);
+  napi_create_type_error(env, code, msg, &err);
+  return err;
+}
+
+static napi_value _create_range_error(napi_env env, napi_callback_info info) {
+  napi_value code, msg, err;
+  napi_create_string_utf8(env, "CODE 6", -1, &code);
+  napi_create_string_utf8(env, "msg 6", -1, &msg);
+  napi_create_range_error(env, code, msg, &err);
+  return err;
+}
+
 static napi_value _is_error(napi_env env, napi_callback_info info) {
   size_t argc = 1;
   napi_value argv[1];
@@ -92,6 +108,14 @@ NAPI_MODULE_INIT() {
   napi_value js_create_error;
   napi_create_function(env, NULL, 0, _create_error, NULL, &js_create_error);
   napi_set_named_property(env, exports, "createError", js_create_error);
+
+  napi_value js_create_type_error;
+  napi_create_function(env, NULL, 0, _create_type_error, NULL, &js_create_type_error);
+  napi_set_named_property(env, exports, "createTypeError", js_create_type_error);
+
+  napi_value js_create_range_error;
+  napi_create_function(env, NULL, 0, _create_range_error, NULL, &js_create_range_error);
+  napi_set_named_property(env, exports, "createRangeError", js_create_range_error);
 
   napi_value js_is_error;
   napi_create_function(env, NULL, 0, _is_error, NULL, &js_is_error);
