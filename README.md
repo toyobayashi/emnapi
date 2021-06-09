@@ -26,6 +26,21 @@ Emscripten 需要 v2.0.2 以上的版本，链接上一步构建出来的 js 库
 --js-library=./dist/library_napi.js
 ```
 
+导出对象默认是 `Module.emnapiExports`，可通过在包含 `node_api.h` 前定义 `NODE_GYP_MODULE_NAME` 宏来设置导出的 key 值。
+
+```html
+<script>
+var Module = {
+  onRuntimeInitialized: function () {
+    var binding = Module.emnapiExports
+    // ...
+  }
+};
+</script>
+
+<script src="emscripten-js-glue-code.js"></script>
+```
+
 ## 已实现
 
 进度：56 / 115 \[48%\]
