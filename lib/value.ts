@@ -252,6 +252,34 @@ function napi_get_value_double (env: napi_env, value: napi_value, result: Pointe
   })
 }
 
+function napi_get_value_string_utf8 (env: napi_env, value: napi_value, buf: char_p, buf_size: size_t, result: Pointer<size_t>): emnapi.napi_status {
+  return emnapi.checkEnv(env, (envObject) => {
+    return emnapi.checkArgs(env, [value], () => {
+      try {
+        const handle = envObject.handleStore.get(value)!
+        if (typeof handle.value !== 'string') {
+          return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_string_expected)
+        }
+        if (buf === emnapi.NULL) {
+          if (result === emnapi.NULL) return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_invalid_arg)
+          HEAPU32[result >> 2] = handle.value.length
+        } else if (buf_size !== 0) {
+          const copied = stringToUTF8(handle.value, buf, buf_size)
+          if (result !== emnapi.NULL) {
+            HEAPU32[result >> 2] = copied
+          }
+        } else if (result !== emnapi.NULL) {
+          HEAPU32[result >> 2] = 0
+        }
+      } catch (err) {
+        envObject.tryCatch.setError(err)
+        return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_pending_exception)
+      }
+      return emnapi.napi_clear_last_error(env)
+    })
+  })
+}
+
 function napi_get_value_external (env: napi_env, value: napi_value, result: void_pp): emnapi.napi_status {
   if (!emnapi.supportFinalizer) return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_generic_failure)
   return emnapi.checkEnv(env, (envObject) => {
@@ -291,4 +319,5 @@ emnapiImplement('napi_get_value_int32', napi_get_value_int32)
 emnapiImplement('napi_get_value_int64', napi_get_value_int64)
 emnapiImplement('napi_get_value_uint32', napi_get_value_uint32)
 emnapiImplement('napi_get_value_double', napi_get_value_double)
+emnapiImplement('napi_get_value_string_utf8', napi_get_value_string_utf8)
 emnapiImplement('napi_get_value_external', napi_get_value_external)

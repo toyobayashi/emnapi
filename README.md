@@ -28,7 +28,7 @@ Emscripten 需要 v2.0.2 以上的版本，链接上一步构建出来的 js 库
 
 ## 已实现
 
-进度：54 / 115 \[46%\]
+进度：55 / 115 \[47%\]
 
 斜体加粗表示该 API 受限于 JavaScript 运行时能力，可能与原生行为不一致，或是其残废的简易实现。
 
@@ -59,7 +59,7 @@ Emscripten 需要 v2.0.2 以上的版本，链接上一步构建出来的 js 库
 - [x] napi_get_value_int64
 - [x] napi_get_value_bool
 - [ ] napi_get_value_string_latin1
-- [ ] napi_get_value_string_utf8
+- [x] napi_get_value_string_utf8
 - [ ] napi_get_value_string_utf16
 - [ ] napi_coerce_to_bool
 - [ ] napi_coerce_to_number
