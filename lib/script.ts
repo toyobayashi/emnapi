@@ -7,7 +7,7 @@ function napi_run_script (env: napi_env, script: napi_value, result: Pointer<nap
       }
       const g: typeof globalThis = envObject.handleStore.get(emnapi.HandleStore.ID_GLOBAL)!.value
       const ret = g.eval(v8Script.value)
-      HEAP32[ret >> 2] = envObject.ensureHandleId(ret)
+      HEAP32[result >> 2] = envObject.ensureHandleId(ret)
       return emnapi.getReturnStatus(env)
     })
   })
