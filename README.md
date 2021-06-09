@@ -28,7 +28,7 @@ Emscripten 需要 v2.0.2 以上的版本，链接上一步构建出来的 js 库
 
 ## 已实现
 
-进度：55 / 115 \[47%\]
+进度：56 / 115 \[48%\]
 
 斜体加粗表示该 API 受限于 JavaScript 运行时能力，可能与原生行为不一致，或是其残废的简易实现。
 
@@ -110,7 +110,7 @@ Emscripten 需要 v2.0.2 以上的版本，链接上一步构建出来的 js 库
 - [x] napi_throw_range_error
 - [x] napi_is_error
 - [x] napi_is_exception_pending
-- [ ] napi_get_and_clear_last_exception
+- [x] napi_get_and_clear_last_exception
 - [ ] napi_is_arraybuffer
 - [ ] napi_create_arraybuffer
 - [ ] napi_create_external_arraybuffer

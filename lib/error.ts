@@ -151,7 +151,25 @@ function napi_create_range_error (env: napi_env, code: napi_value, msg: napi_val
   })
 }
 
+declare function _napi_get_undefined (env: napi_env, result: Pointer<napi_value>): emnapi.napi_status
+
+function napi_get_and_clear_last_exception (env: napi_env, result: Pointer<napi_value>): emnapi.napi_status {
+  return emnapi.checkEnv(env, (envObject) => {
+    return emnapi.checkArgs(env, [result], () => {
+      if (!envObject.tryCatch.hasCaught()) {
+        return _napi_get_undefined(env, result)
+      } else {
+        const err = envObject.tryCatch.exception()!
+        HEAP32[result >> 2] = envObject.ensureHandleId(err)
+        envObject.tryCatch.reset()
+      }
+      return emnapi.napi_clear_last_error(env)
+    })
+  })
+}
+
 emnapiImplement('napi_get_last_error_info', napi_get_last_error_info)
+emnapiImplement('napi_get_and_clear_last_exception', napi_get_and_clear_last_exception)
 emnapiImplement('napi_throw', napi_throw)
 emnapiImplement('napi_throw_error', napi_throw_error)
 emnapiImplement('napi_throw_type_error', napi_throw_type_error)
