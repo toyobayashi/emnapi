@@ -28,7 +28,7 @@ Emscripten 需要 v2.0.2 以上的版本，链接上一步构建出来的 js 库
 
 ## 已实现
 
-进度：53 / 115 \[46%\]
+进度：54 / 115 \[46%\]
 
 斜体加粗表示该 API 受限于 JavaScript 运行时能力，可能与原生行为不一致，或是其残废的简易实现。
 
@@ -126,7 +126,7 @@ Emscripten 需要 v2.0.2 以上的版本，链接上一步构建出来的 js 库
 - [ ] napi_resolve_deferred
 - [ ] napi_reject_deferred
 - [ ] napi_is_promise
-- [ ] napi_run_script
+- [x] napi_run_script
 - [ ] napi_adjust_external_memory
 - [ ] napi_create_date
 - [ ] napi_is_date
