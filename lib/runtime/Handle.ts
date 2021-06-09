@@ -121,7 +121,7 @@ namespace emnapi {
     }
 
     public isExternal (): boolean {
-      return !this.isEmpty() && (this instanceof External)
+      return !this.isEmpty() && (this instanceof ExternalHandle)
     }
 
     public isObject (): boolean {
