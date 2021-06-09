@@ -28,7 +28,7 @@ Emscripten 需要 v2.0.2 以上的版本，链接上一步构建出来的 js 库
 
 ## 已实现
 
-41 / 115 \[35%\]
+47 / 115 \[40%\]
 
 - [x] napi_get_last_error_info
 - [x] napi_get_undefined
@@ -36,8 +36,8 @@ Emscripten 需要 v2.0.2 以上的版本，链接上一步构建出来的 js 库
 - [x] napi_get_global
 - [x] napi_get_boolean
 - [x] napi_create_object
-- [ ] napi_create_array
-- [ ] napi_create_array_with_length
+- [x] napi_create_array
+- [x] napi_create_array_with_length
 - [x] napi_create_double
 - [x] napi_create_int32
 - [x] napi_create_uint32
@@ -45,14 +45,14 @@ Emscripten 需要 v2.0.2 以上的版本，链接上一步构建出来的 js 库
 - [ ] napi_create_string_latin1
 - [x] napi_create_string_utf8
 - [ ] napi_create_string_utf16
-- [ ] napi_create_symbol
+- [x] napi_create_symbol
 - [x] napi_create_function
 - [x] napi_create_error
-- [ ] napi_create_type_error
-- [ ] napi_create_range_error
+- [x] napi_create_type_error
+- [x] napi_create_range_error
 - [x] napi_typeof
 - [x] napi_get_value_double
-- [ ] napi_get_value_int32
+- [x] napi_get_value_int32
 - [x] napi_get_value_uint32
 - [x] napi_get_value_int64
 - [x] napi_get_value_bool
