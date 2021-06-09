@@ -45,6 +45,7 @@ namespace emnapi {
 
     public handleStore!: HandleStore
     public scopeStore!: ScopeStore
+    public refStore!: RefStore
 
     public scopeList = new LinkedList<IHandleScope>()
 
@@ -62,7 +63,9 @@ namespace emnapi {
     public static create (): Env {
       const env = new Env()
       envStore.add(env)
-      env.handleStore = new HandleStore(env.id)
+      env.refStore = new RefStore()
+      env.handleStore = new HandleStore()
+      env.handleStore.addGlobalConstants(env.id)
       env.scopeStore = new ScopeStore()
       env.scopeList = new LinkedList<IHandleScope>()
       // env.scopeList.push(HandleScope.create(env.id, null))
@@ -80,7 +83,7 @@ namespace emnapi {
       return scope
     }
 
-    public closeScope<Scope extends HandleScope> (scope: Scope): void {
+    public closeScope (scope: IHandleScope): void {
       scope.dispose()
       this.scopeList.pop()
       this.openHandleScopes--
@@ -126,6 +129,14 @@ namespace emnapi {
   }
 
   export const envStore = new EnvStore()
+
+  export function gc (): void {
+    envStore.forEach(envObject => {
+      envObject.handleStore.forEach(h => {
+        h.tryDispose()
+      })
+    })
+  }
 
   export function initErrorMemory (): void {
     if (!errorMessagesPtr) {

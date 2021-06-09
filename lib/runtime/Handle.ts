@@ -40,14 +40,21 @@ namespace emnapi {
     public static ID_FALSE: -2147483646 = -2147483646
     public static ID_TRUE: -2147483645 = -2147483645
     public static ID_GLOBAL: -2147483644 = -2147483644
-    public constructor (private readonly _env: napi_env) {
+    public constructor () {
       super(-2147483643)
+    }
 
-      this.set(HandleStore.ID_UNDEFINED, new Handle(this._env, HandleStore.ID_UNDEFINED, undefined))
-      this.set(HandleStore.ID_NULL, new Handle(this._env, HandleStore.ID_NULL, null))
-      this.set(HandleStore.ID_FALSE, new Handle(this._env, HandleStore.ID_FALSE, false))
-      this.set(HandleStore.ID_TRUE, new Handle(this._env, HandleStore.ID_TRUE, true))
-      this.set(HandleStore.ID_GLOBAL, new Handle(this._env, HandleStore.ID_GLOBAL, _global))
+    public addGlobalConstants (env: napi_env): void {
+      this.set(HandleStore.ID_UNDEFINED, new Handle(env, HandleStore.ID_UNDEFINED, undefined))
+      Reference.create(env, HandleStore.ID_UNDEFINED, 1, false)
+      this.set(HandleStore.ID_NULL, new Handle(env, HandleStore.ID_NULL, null))
+      Reference.create(env, HandleStore.ID_NULL, 1, false)
+      this.set(HandleStore.ID_FALSE, new Handle(env, HandleStore.ID_FALSE, false))
+      Reference.create(env, HandleStore.ID_FALSE, 1, false)
+      this.set(HandleStore.ID_TRUE, new Handle(env, HandleStore.ID_TRUE, true))
+      Reference.create(env, HandleStore.ID_TRUE, 1, false)
+      this.set(HandleStore.ID_GLOBAL, new Handle(env, HandleStore.ID_GLOBAL, _global))
+      Reference.create(env, HandleStore.ID_GLOBAL, 1, false)
     }
 
     public find (value: any): napi_value {
@@ -69,22 +76,20 @@ namespace emnapi {
 
     public id: number
     public env: napi_env
-    public nativeObject: Pointer<any> | null
     public value: S
-    public external: boolean
+    public inScope: IHandleScope | null
+    public refs: Reference[]
 
     public constructor (env: napi_env, id: number, value: S) {
       this.env = env
       this.id = id
-      this.nativeObject = null
       this.value = value
-      this.external = false
+      this.inScope = null
+      this.refs = []
     }
 
     public copy (): Handle<S> {
       const h = new Handle(this.env, this.id, this.value)
-      h.nativeObject = this.nativeObject
-      h.external = this.external
 
       envStore.get(this.env)!.handleStore.add(h)
       return h
@@ -111,7 +116,7 @@ namespace emnapi {
     }
 
     public isExternal (): boolean {
-      return !this.isEmpty() && this.external
+      return !this.isEmpty() && (this instanceof External)
     }
 
     public isObject (): boolean {
@@ -134,9 +139,65 @@ namespace emnapi {
       return !this.isEmpty() && this.value === null
     }
 
+    public addRef (ref: Reference): void {
+      if (this.refs.indexOf(ref) !== -1) {
+        return
+      }
+      this.refs.push(ref)
+    }
+
+    public removeRef (ref: Reference): void {
+      const index = this.refs.indexOf(ref)
+      if (index !== -1) {
+        this.refs.splice(index, 1)
+      }
+      this.tryDispose()
+    }
+
+    public isInHandleScope (): boolean {
+      return this.inScope !== null
+    }
+
+    public tryDispose (): void {
+      if (this.canDispose()) {
+        this.dispose()
+      }
+    }
+
+    public canDispose (): boolean {
+      return ((this.refs.length === 0) || (!this.refs.some(ref => ref.refcount > 0))) && (!this.isInHandleScope())
+    }
+
     public dispose (): void {
+      if (this.id === 0) return
+      const refs = this.refs.slice()
+      for (let i = 0; i < refs.length; i++) {
+        const ref = refs[i]
+        ref.dispose()
+      }
+      this.refs.length = 0
+      this.id = 0
+      this.value = undefined!
       envStore.get(this.env)!.handleStore.remove(this.id)
     }
   }
 
+  export class External extends Handle<{}> {
+    public static createExternal (env: napi_env, data: void_p = 0): External {
+      const h = new External(env, data)
+      envStore.get(env)!.handleStore.add(h)
+      return h
+    }
+
+    private readonly _data: void_p
+
+    public constructor (env: napi_env, data: void_p = 0) {
+      super(env, 0, Object.create(null))
+      this._data = data
+    }
+
+    public data (): void_p {
+      return this._data
+    }
+  }
 }

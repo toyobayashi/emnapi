@@ -13,7 +13,7 @@ function napi_create_function (env: napi_env, utf8name: Pointer<const_char>, len
         }
         const ret = envObject.callInNewHandleScope((scope) => {
           const cbinfoHandle = scope.add(callbackInfo)
-          const napiValue = makeDynCall('iii', 'cb')(env, cbinfoHandle.id)
+          const napiValue = emnapi.call_iii(cb, env, cbinfoHandle.id)
           return (!napiValue) ? undefined : envObject.handleStore.get(napiValue)!.value
         })
         if (envObject.tryCatch.hasCaught()) {
@@ -83,6 +83,7 @@ function napi_call_function (
 ): emnapi.napi_status {
   return emnapi.preamble(env, (envObject) => {
     return emnapi.checkArgs(env, [recv], () => {
+      argc = argc >>> 0
       if (argc > 0) {
         if (argv === emnapi.NULL) return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_invalid_arg)
       }

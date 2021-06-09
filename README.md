@@ -28,7 +28,7 @@ Emscripten 需要 v2.0.2 以上的版本，链接上一步构建出来的 js 库
 
 ## 已实现
 
-36 / 115 \[31%\]
+41 / 115 \[35%\]
 
 - [x] napi_get_last_error_info
 - [x] napi_get_undefined
@@ -92,11 +92,11 @@ Emscripten 需要 v2.0.2 以上的版本，链接上一步构建出来的 js 库
 - [ ] napi_remove_wrap
 - [ ] napi_create_external
 - [ ] napi_get_value_external
-- [ ] napi_create_reference
-- [ ] napi_delete_reference
-- [ ] napi_reference_ref
-- [ ] napi_reference_unref
-- [ ] napi_get_reference_value
+- [x] napi_create_reference
+- [x] napi_delete_reference
+- [x] napi_reference_ref
+- [x] napi_reference_unref
+- [x] napi_get_reference_value
 - [x] napi_open_handle_scope
 - [x] napi_close_handle_scope
 - [x] napi_open_escapable_handle_scope
