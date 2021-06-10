@@ -273,6 +273,28 @@ namespace emnapi {
     return f as F
   }
 
+  export function createTypedArray (env: napi_env, Type: { new (...args: any[]): ArrayBufferView; name?: string }, size_of_element: number, buffer: ArrayBuffer, byte_offset: size_t, length: size_t, callback: (out: ArrayBufferView) => napi_status): napi_status {
+    byte_offset = byte_offset >>> 0
+    length = length >>> 0
+    const envObject = envStore.get(env)!
+    if (size_of_element > 1) {
+      if ((byte_offset) % (size_of_element) !== 0) {
+        const err: RangeError & { code?: string } = new RangeError(`start offset of ${Type.name ?? ''} should be a multiple of ${size_of_element}`)
+        err.code = 'ERR_NAPI_INVALID_TYPEDARRAY_ALIGNMENT'
+        envObject.tryCatch.setError(err)
+        return napi_set_last_error(env, napi_status.napi_generic_failure)
+      }
+    }
+    if (((length * size_of_element) + byte_offset) <= buffer.byteLength) {
+      const err: RangeError & { code?: string } = new RangeError('Invalid typed array length')
+      err.code = 'ERR_NAPI_INVALID_TYPEDARRAY_LENGTH'
+      envObject.tryCatch.setError(err)
+      return napi_set_last_error(env, napi_status.napi_generic_failure)
+    }
+    const out = new Type(buffer, byte_offset, length)
+    return callback(out)
+  }
+
   export const supportFinalizer = typeof FinalizationRegistry !== 'undefined'
 
   export enum WrapType {

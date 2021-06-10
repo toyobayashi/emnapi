@@ -96,9 +96,11 @@ var Module = {
 
 ## 已实现
 
-进度：61 / 115 \[53%\]
+进度：65 / 115 \[56%\]
 
 斜体加粗表示该 API 受限于 JavaScript 运行时能力，可能与原生行为不一致，或是其残废的简易实现，不推荐使用。
+
+中划线表示该 API 不可实现，调用时永远返回 `napi_generic_failure` 状态。
 
 - [x] napi_get_last_error_info
 - [x] napi_get_undefined
@@ -180,13 +182,13 @@ var Module = {
 - [x] napi_is_exception_pending
 - [x] napi_get_and_clear_last_exception
 - [ ] napi_is_arraybuffer
-- [ ] napi_create_arraybuffer
-- [ ] napi_create_external_arraybuffer
-- [ ] napi_get_arraybuffer_info
+- [x] ***napi_create_arraybuffer*** (`data` is always NULL)
+- [x] ~~napi_create_external_arraybuffer~~
+- [ ] ***napi_get_arraybuffer_info*** (`data` is always NULL)
 - [ ] napi_is_typedarray
-- [ ] napi_create_typedarray
+- [x] napi_create_typedarray
 - [ ] napi_get_typedarray_info
-- [ ] napi_create_dataview
+- [x] napi_create_dataview
 - [ ] napi_is_dataview
 - [ ] napi_get_dataview_info
 - [x] napi_get_version
