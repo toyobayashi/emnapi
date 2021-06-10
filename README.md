@@ -187,10 +187,10 @@ var Module = {
 - [ ] ***napi_get_arraybuffer_info*** (`data` is always NULL)
 - [ ] napi_is_typedarray
 - [x] napi_create_typedarray
-- [ ] napi_get_typedarray_info
+- [ ] ***napi_get_typedarray_info*** (`data` is always NULL)
 - [x] napi_create_dataview
 - [ ] napi_is_dataview
-- [ ] napi_get_dataview_info
+- [ ] ***napi_get_dataview_info*** (`data` is always NULL)
 - [x] napi_get_version
 - [ ] napi_create_promise
 - [ ] napi_resolve_deferred
@@ -213,7 +213,7 @@ var Module = {
 - [x] napi_get_instance_data
 - [x] ~~napi_detach_arraybuffer~~
 - [x] ~~napi_is_detached_arraybuffer~~
-- [ ] napi_type_tag_object
-- [ ] napi_check_object_type_tag
+- [ ] ***napi_type_tag_object*** (require `FinalizationRegistry`)
+- [ ] ***napi_check_object_type_tag*** (require `FinalizationRegistry`)
 - [ ] napi_object_freeze
 - [ ] napi_object_seal
