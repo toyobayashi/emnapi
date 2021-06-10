@@ -96,7 +96,7 @@ var Module = {
 
 ## 已实现
 
-进度：69 / 115 \[60%\]
+进度：71 / 115 \[61%\]
 
 斜体加粗表示该 API 受限于 JavaScript 运行时能力，可能与原生行为不一致，或是其残废的简易实现，不推荐使用。
 
@@ -211,8 +211,8 @@ var Module = {
 - [ ] napi_get_all_property_names
 - [x] napi_set_instance_data
 - [x] napi_get_instance_data
-- [ ] napi_detach_arraybuffer
-- [ ] napi_is_detached_arraybuffer
+- [x] ~~napi_detach_arraybuffer~~
+- [x] ~~napi_is_detached_arraybuffer~~
 - [ ] napi_type_tag_object
 - [ ] napi_check_object_type_tag
 - [ ] napi_object_freeze

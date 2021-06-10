@@ -41,4 +41,14 @@ function napi_typeof (env: napi_env, value: napi_value, result: Pointer<emnapi.n
   })
 }
 
+function napi_detach_arraybuffer (env: napi_env, _arraybuffer: napi_value): emnapi.napi_status {
+  return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_generic_failure)
+}
+
+function napi_is_detached_arraybuffer (env: napi_env, _arraybuffer: napi_value, _result: Pointer<bool>): emnapi.napi_status {
+  return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_generic_failure)
+}
+
 emnapiImplement('napi_typeof', napi_typeof)
+emnapiImplement('napi_detach_arraybuffer', napi_detach_arraybuffer)
+emnapiImplement('napi_is_detached_arraybuffer', napi_is_detached_arraybuffer)
