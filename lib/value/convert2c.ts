@@ -34,6 +34,67 @@ function napi_get_value_double (env: napi_env, value: napi_value, result: Pointe
   })
 }
 
+function napi_get_value_bigint_int64 (env: napi_env, value: napi_value, result: Pointer<int64_t>, lossless: Pointer<bool>): emnapi.napi_status {
+  if (!emnapi.supportBigInt) return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_generic_failure)
+  return emnapi.checkEnv(env, (envObject) => {
+    return emnapi.checkArgs(env, [value, result, lossless], () => {
+      try {
+        const handle = envObject.handleStore.get(value)!
+        let numberValue = handle.value
+        if (typeof numberValue !== 'bigint') {
+          return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_number_expected)
+        }
+        if ((numberValue >= (BigInt(-1) * (BigInt(1) << BigInt(63)))) && (numberValue < (BigInt(1) << BigInt(63)))) {
+          HEAPU8[lossless] = 1
+        } else {
+          HEAPU8[lossless] = 0
+          numberValue = numberValue & ((BigInt(1) << BigInt(64)) - BigInt(1))
+          if (numberValue >= (BigInt(1) << BigInt(63))) {
+            numberValue = numberValue - (BigInt(1) << BigInt(64))
+          }
+        }
+        const low = Number(numberValue & BigInt(0xffffffff))
+        const high = Number(numberValue >> BigInt(32))
+        HEAP32[result >> 2] = low
+        HEAP32[result + 4 >> 2] = high
+      } catch (err) {
+        envObject.tryCatch.setError(err)
+        return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_pending_exception)
+      }
+      return emnapi.napi_clear_last_error(env)
+    })
+  })
+}
+
+function napi_get_value_bigint_uint64 (env: napi_env, value: napi_value, result: Pointer<uint64_t>, lossless: Pointer<bool>): emnapi.napi_status {
+  if (!emnapi.supportBigInt) return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_generic_failure)
+  return emnapi.checkEnv(env, (envObject) => {
+    return emnapi.checkArgs(env, [value, result, lossless], () => {
+      try {
+        const handle = envObject.handleStore.get(value)!
+        let numberValue = handle.value
+        if (typeof numberValue !== 'bigint') {
+          return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_number_expected)
+        }
+        if ((numberValue >= BigInt(0)) && (numberValue < (BigInt(1) << BigInt(64)))) {
+          HEAPU8[lossless] = 1
+        } else {
+          HEAPU8[lossless] = 0
+          numberValue = numberValue & ((BigInt(1) << BigInt(64)) - BigInt(1))
+        }
+        const low = Number(numberValue & BigInt(0xffffffff))
+        const high = Number(numberValue >> BigInt(32))
+        HEAPU32[result >> 2] = low
+        HEAPU32[result + 4 >> 2] = high
+      } catch (err) {
+        envObject.tryCatch.setError(err)
+        return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_pending_exception)
+      }
+      return emnapi.napi_clear_last_error(env)
+    })
+  })
+}
+
 function napi_get_value_external (env: napi_env, value: napi_value, result: void_pp): emnapi.napi_status {
   if (!emnapi.supportFinalizer) return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_generic_failure)
   return emnapi.checkEnv(env, (envObject) => {
@@ -219,6 +280,8 @@ function napi_get_value_uint32 (env: napi_env, value: napi_value, result: Pointe
 
 emnapiImplement('napi_get_value_bool', napi_get_value_bool)
 emnapiImplement('napi_get_value_double', napi_get_value_double)
+emnapiImplement('napi_get_value_bigint_int64', napi_get_value_bigint_int64)
+emnapiImplement('napi_get_value_bigint_uint64', napi_get_value_bigint_uint64)
 emnapiImplement('napi_get_value_external', napi_get_value_external)
 emnapiImplement('napi_get_value_int32', napi_get_value_int32)
 emnapiImplement('napi_get_value_int64', napi_get_value_int64)
