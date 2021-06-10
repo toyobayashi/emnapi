@@ -296,6 +296,7 @@ namespace emnapi {
   }
 
   export const supportFinalizer = typeof FinalizationRegistry !== 'undefined'
+  export const supportBigInt = typeof BigInt !== 'undefined'
 
   export enum WrapType {
     retrievable,
