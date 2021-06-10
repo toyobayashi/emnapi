@@ -11,6 +11,7 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
         // '--bind',
         // '-sDYNCALLS=1',
         // '-sERROR_ON_UNDEFINED_SYMBOLS=0', if add js function to imports.env
+        "-sEXPORTED_FUNCTIONS=['_malloc','_free']",
         '-sALLOW_MEMORY_GROWTH=1',
         ...(isDebug ? debugFlags : [])
       ]
