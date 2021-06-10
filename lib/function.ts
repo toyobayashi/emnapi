@@ -1,35 +1,8 @@
 function napi_create_function (env: napi_env, utf8name: Pointer<const_char>, length: size_t, cb: napi_callback, data: void_p, result: Pointer<napi_value>): emnapi.napi_status {
   return emnapi.preamble(env, (envObject) => {
     return emnapi.checkArgs(env, [result, cb], () => {
-      const _a = (() => function (this: any): any {
-        'use strict'
-        const callbackInfo = {
-          _this: this,
-          _data: data,
-          _length: arguments.length,
-          _args: Array.prototype.slice.call(arguments),
-          _newTarget: new.target,
-          _isConstructCall: !!new.target
-        }
-        const ret = envObject.callInNewHandleScope((scope) => {
-          const cbinfoHandle = scope.add(callbackInfo)
-          const napiValue = emnapi.call_iii(cb, env, cbinfoHandle.id)
-          return (!napiValue) ? undefined : envObject.handleStore.get(napiValue)!.value
-        })
-        if (envObject.tryCatch.hasCaught()) {
-          const err = envObject.tryCatch.extractException()!
-          throw err
-        }
-        return ret
-      })()
-
-      if (emnapi.canSetFunctionName) {
-        Object.defineProperty(_a, 'name', {
-          value: (utf8name === emnapi.NULL || length === 0) ? '' : (length === -1 ? UTF8ToString(utf8name) : UTF8ToString(utf8name, length))
-        })
-      }
-
-      const valueHandle = envObject.getCurrentScope().add(_a)
+      const f = emnapi.createFunction(env, utf8name, length, cb, data)
+      const valueHandle = envObject.getCurrentScope().add(f)
       HEAP32[result >> 2] = valueHandle.id
       return emnapi.getReturnStatus(env)
     })

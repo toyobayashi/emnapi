@@ -20,37 +20,6 @@ function napi_define_properties (
   property_count: size_t,
   properties: Const<Pointer<napi_property_descriptor>>
 ): emnapi.napi_status {
-  function createAnonymousFunction<F extends (...args: any[]) => any> (envObject: emnapi.Env, cb: napi_callback, data: void_p): F {
-    const _a = (() => function (this: any): any {
-      'use strict'
-      const callbackInfo = {
-        _this: this,
-        _data: data,
-        _length: arguments.length,
-        _args: Array.prototype.slice.call(arguments),
-        _newTarget: new.target,
-        _isConstructCall: !!new.target
-      }
-      const ret = envObject.callInNewHandleScope((scope) => {
-        const cbinfoHandle = scope.add(callbackInfo)
-        const napiValue = emnapi.call_iii(cb, env, cbinfoHandle.id)
-        return (!napiValue) ? undefined : envObject.handleStore.get(napiValue)!.value
-      })
-      if (envObject.tryCatch.hasCaught()) {
-        const err = envObject.tryCatch.extractException()!
-        throw err
-      }
-      return ret
-    })()
-
-    if (emnapi.canSetFunctionName) {
-      Object.defineProperty(_a, 'name', {
-        value: ''
-      })
-    }
-    return _a as F
-  }
-
   return emnapi.preamble(env, (envObject) => {
     if (property_count > 0) {
       if (properties === emnapi.NULL) return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_invalid_arg)
@@ -87,10 +56,10 @@ function napi_define_properties (
         let localGetter: () => any
         let localSetter: (v: any) => void
         if (getter !== emnapi.NULL) {
-          localGetter = createAnonymousFunction(envObject, getter, data)
+          localGetter = emnapi.createFunction(env, emnapi.NULL, 0, getter, data)
         }
         if (setter !== emnapi.NULL) {
-          localSetter = createAnonymousFunction(envObject, setter, data)
+          localSetter = emnapi.createFunction(env, emnapi.NULL, 0, setter, data)
         }
         const desc: PropertyDescriptor = {
           configurable: (attributes & emnapi.napi_property_attributes.napi_configurable) !== 0,
@@ -100,7 +69,7 @@ function napi_define_properties (
         }
         Object.defineProperty(maybeObject, propertyName, desc)
       } else if (method !== emnapi.NULL) {
-        const localMethod = createAnonymousFunction(envObject, method, data)
+        const localMethod = emnapi.createFunction(env, emnapi.NULL, 0, method, data)
         const desc: PropertyDescriptor = {
           configurable: (attributes & emnapi.napi_property_attributes.napi_configurable) !== 0,
           enumerable: (attributes & emnapi.napi_property_attributes.napi_enumerable) !== 0,

@@ -240,6 +240,39 @@ namespace emnapi {
     canSetFunctionName = !!Object.getOwnPropertyDescriptor(Function.prototype, 'name')?.configurable
   } catch (_) {}
 
+  export function createFunction<F extends (...args: any[]) => any> (env: napi_env, utf8name: Pointer<const_char>, length: size_t, cb: napi_callback, data: void_p): F {
+    const envObject = envStore.get(env)!
+    const f = (() => function (this: any): any {
+      'use strict'
+      const callbackInfo = {
+        _this: this,
+        _data: data,
+        _length: arguments.length,
+        _args: Array.prototype.slice.call(arguments),
+        _newTarget: new.target,
+        _isConstructCall: !!new.target
+      }
+      const ret = envObject.callInNewHandleScope((scope) => {
+        const cbinfoHandle = scope.add(callbackInfo)
+        const napiValue = call_iii(cb, env, cbinfoHandle.id)
+        return (!napiValue) ? undefined : envObject.handleStore.get(napiValue)!.value
+      })
+      if (envObject.tryCatch.hasCaught()) {
+        const err = envObject.tryCatch.extractException()!
+        throw err
+      }
+      return ret
+    })()
+
+    if (canSetFunctionName) {
+      Object.defineProperty(f, 'name', {
+        value: (utf8name === NULL || length === 0) ? '' : (length === -1 ? UTF8ToString(utf8name) : UTF8ToString(utf8name, length))
+      })
+    }
+
+    return f as F
+  }
+
   export const supportFinalizer = typeof FinalizationRegistry !== 'undefined'
 
   export enum WrapType {
