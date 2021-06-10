@@ -151,13 +151,12 @@ function napi_create_range_error (env: napi_env, code: napi_value, msg: napi_val
   })
 }
 
-declare function _napi_get_undefined (env: napi_env, result: Pointer<napi_value>): emnapi.napi_status
-
 function napi_get_and_clear_last_exception (env: napi_env, result: Pointer<napi_value>): emnapi.napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(env, [result], () => {
       if (!envObject.tryCatch.hasCaught()) {
-        return _napi_get_undefined(env, result)
+        HEAP32[result >> 2] = emnapi.HandleStore.ID_UNDEFINED
+        return emnapi.napi_clear_last_error(env)
       } else {
         const err = envObject.tryCatch.exception()!
         HEAP32[result >> 2] = envObject.ensureHandleId(err)
