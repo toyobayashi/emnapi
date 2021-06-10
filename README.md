@@ -19,6 +19,8 @@ npm test
 
 ## 使用
 
+仅支持运行在近期版本的现代浏览器和 Node.js LTS 版本，不支持 IE
+
 Emscripten 需要 v2.0.2 以上的版本，链接上一步构建出来的 js 库，需要添加 `-sEXPORTED_FUNCTIONS=['_malloc','_free']`
 
 ```sh
@@ -30,7 +32,7 @@ emcc -O3 -I./include --js-library=./dist/library_napi.js \
 ```
 
 ```c
-// binding.c
+// hello.c
 #include <node_api.h>
 #include <string.h>
 
@@ -96,7 +98,7 @@ var Module = {
 
 进度：56 / 115 \[48%\]
 
-斜体加粗表示该 API 受限于 JavaScript 运行时能力，可能与原生行为不一致，或是其残废的简易实现。
+斜体加粗表示该 API 受限于 JavaScript 运行时能力，可能与原生行为不一致，或是其残废的简易实现，不推荐使用。
 
 - [x] napi_get_last_error_info
 - [x] napi_get_undefined
