@@ -49,7 +49,8 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
       createTarget('callback', ['./test/callback/binding.c'], true),
       createTarget('objfac', ['./test/objfac/binding.c'], true),
       createTarget('fnfac', ['./test/fnfac/binding.c'], true),
-      createTarget('general', ['./test/general/binding.c'], true)
+      createTarget('general', ['./test/general/binding.c'], true),
+      createTarget('string', ['./test/string/binding.c'], true)
     ]
   }
 }

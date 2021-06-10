@@ -96,7 +96,7 @@ var Module = {
 
 ## 已实现
 
-进度：56 / 115 \[48%\]
+进度：60 / 115 \[52%\]
 
 斜体加粗表示该 API 受限于 JavaScript 运行时能力，可能与原生行为不一致，或是其残废的简易实现，不推荐使用。
 
@@ -112,9 +112,9 @@ var Module = {
 - [x] napi_create_int32
 - [x] napi_create_uint32
 - [x] napi_create_int64
-- [ ] napi_create_string_latin1
+- [x] napi_create_string_latin1
 - [x] napi_create_string_utf8
-- [ ] napi_create_string_utf16
+- [x] napi_create_string_utf16
 - [x] napi_create_symbol
 - [x] napi_create_function
 - [x] napi_create_error
@@ -126,9 +126,9 @@ var Module = {
 - [x] napi_get_value_uint32
 - [x] napi_get_value_int64
 - [x] napi_get_value_bool
-- [ ] napi_get_value_string_latin1
+- [x] napi_get_value_string_latin1
 - [x] napi_get_value_string_utf8
-- [ ] napi_get_value_string_utf16
+- [x] napi_get_value_string_utf16
 - [ ] napi_coerce_to_bool
 - [ ] napi_coerce_to_number
 - [ ] napi_coerce_to_object

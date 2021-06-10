@@ -38,11 +38,59 @@ function napi_create_double (env: napi_env, value: double, result: Pointer<napi_
 function napi_create_string_utf8 (env: napi_env, str: const_char_p, length: size_t, result: Pointer<napi_value>): emnapi.napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(env, [result], () => {
-      if (!((length === -1) || (length <= 2147483647))) {
+      length = length >>> 0
+      if (!((length === 0xffffffff) || (length <= 2147483647)) || (str === emnapi.NULL)) {
         return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_invalid_arg)
       }
       const utf8String = length === -1 ? UTF8ToString(str) : UTF8ToString(str, length)
       HEAP32[result >> 2] = envObject.getCurrentScope().add(utf8String).id
+      return emnapi.napi_clear_last_error(env)
+    })
+  })
+}
+
+function napi_create_string_latin1 (env: napi_env, str: const_char_p, length: size_t, result: Pointer<napi_value>): emnapi.napi_status {
+  return emnapi.checkEnv(env, (envObject) => {
+    return emnapi.checkArgs(env, [result], () => {
+      length = length >>> 0
+      if (!((length === 0xffffffff) || (length <= 2147483647)) || (str === emnapi.NULL)) {
+        return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_invalid_arg)
+      }
+
+      let latin1String = ''
+      let len = 0
+      if (length === -1) {
+        while (true) {
+          const ch = HEAPU8[str]
+          if (!ch) break
+          latin1String += String.fromCharCode(ch)
+          str++
+        }
+      } else {
+        while (len < length) {
+          const ch = HEAPU8[str]
+          if (!ch) break
+          latin1String += String.fromCharCode(ch)
+          len++
+          str++
+        }
+      }
+      HEAP32[result >> 2] = envObject.getCurrentScope().add(latin1String).id
+      return emnapi.napi_clear_last_error(env)
+    })
+  })
+}
+
+function napi_create_string_utf16 (env: napi_env, str: const_char16_t_p, length: size_t, result: Pointer<napi_value>): emnapi.napi_status {
+  return emnapi.checkEnv(env, (envObject) => {
+    return emnapi.checkArgs(env, [result], () => {
+      length = length >>> 0
+      if (!((length === 0xffffffff) || (length <= 2147483647)) || (str === emnapi.NULL)) {
+        return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_invalid_arg)
+      }
+
+      const utf16String = length === -1 ? UTF16ToString(str) : UTF16ToString(str, length * 2)
+      HEAP32[result >> 2] = envObject.getCurrentScope().add(utf16String).id
       return emnapi.napi_clear_last_error(env)
     })
   })
@@ -252,9 +300,10 @@ function napi_get_value_double (env: napi_env, value: napi_value, result: Pointe
   })
 }
 
-function napi_get_value_string_utf8 (env: napi_env, value: napi_value, buf: char_p, buf_size: size_t, result: Pointer<size_t>): emnapi.napi_status {
+function napi_get_value_string_latin1 (env: napi_env, value: napi_value, buf: char_p, buf_size: size_t, result: Pointer<size_t>): emnapi.napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(env, [value], () => {
+      buf_size = buf_size >>> 0
       try {
         const handle = envObject.handleStore.get(value)!
         if (typeof handle.value !== 'string') {
@@ -264,9 +313,75 @@ function napi_get_value_string_utf8 (env: napi_env, value: napi_value, buf: char
           if (result === emnapi.NULL) return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_invalid_arg)
           HEAPU32[result >> 2] = handle.value.length
         } else if (buf_size !== 0) {
+          let copied: number = 0
+          for (let i = 0; i < buf_size - 1; ++i) {
+            HEAPU8[buf + i] = handle.value.charCodeAt(i) & 0xff
+            copied++
+          }
+          HEAPU8[buf + copied] = 0
+          if (result !== emnapi.NULL) {
+            HEAPU32[result >> 2] = copied
+          }
+        } else if (result !== emnapi.NULL) {
+          HEAPU32[result >> 2] = 0
+        }
+      } catch (err) {
+        envObject.tryCatch.setError(err)
+        return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_pending_exception)
+      }
+      return emnapi.napi_clear_last_error(env)
+    })
+  })
+}
+
+function napi_get_value_string_utf8 (env: napi_env, value: napi_value, buf: char_p, buf_size: size_t, result: Pointer<size_t>): emnapi.napi_status {
+  return emnapi.checkEnv(env, (envObject) => {
+    return emnapi.checkArgs(env, [value], () => {
+      buf_size = buf_size >>> 0
+      try {
+        const handle = envObject.handleStore.get(value)!
+        if (typeof handle.value !== 'string') {
+          return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_string_expected)
+        }
+        if (buf === emnapi.NULL) {
+          if (result === emnapi.NULL) return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_invalid_arg)
+          const stackPtrSize = handle.value.length * 3
+          const stackPtr = stackAlloc(stackPtrSize)
+          const copied = stringToUTF8(handle.value, stackPtr, stackPtrSize)
+          HEAPU32[result >> 2] = copied
+        } else if (buf_size !== 0) {
           const copied = stringToUTF8(handle.value, buf, buf_size)
           if (result !== emnapi.NULL) {
             HEAPU32[result >> 2] = copied
+          }
+        } else if (result !== emnapi.NULL) {
+          HEAPU32[result >> 2] = 0
+        }
+      } catch (err) {
+        envObject.tryCatch.setError(err)
+        return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_pending_exception)
+      }
+      return emnapi.napi_clear_last_error(env)
+    })
+  })
+}
+
+function napi_get_value_string_utf16 (env: napi_env, value: napi_value, buf: char16_t_p, buf_size: size_t, result: Pointer<size_t>): emnapi.napi_status {
+  return emnapi.checkEnv(env, (envObject) => {
+    return emnapi.checkArgs(env, [value], () => {
+      buf_size = buf_size >>> 0
+      try {
+        const handle = envObject.handleStore.get(value)!
+        if (typeof handle.value !== 'string') {
+          return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_string_expected)
+        }
+        if (buf === emnapi.NULL) {
+          if (result === emnapi.NULL) return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_invalid_arg)
+          HEAPU32[result >> 2] = handle.value.length
+        } else if (buf_size !== 0) {
+          const copied = stringToUTF16(handle.value, buf, buf_size * 2)
+          if (result !== emnapi.NULL) {
+            HEAPU32[result >> 2] = copied / 2
           }
         } else if (result !== emnapi.NULL) {
           HEAPU32[result >> 2] = 0
@@ -303,7 +418,9 @@ emnapiImplement('napi_create_int32', napi_create_int32)
 emnapiImplement('napi_create_int64', napi_create_int64)
 emnapiImplement('napi_create_uint32', napi_create_uint32)
 emnapiImplement('napi_create_double', napi_create_double)
+emnapiImplement('napi_create_string_latin1', napi_create_string_latin1)
 emnapiImplement('napi_create_string_utf8', napi_create_string_utf8)
+emnapiImplement('napi_create_string_utf16', napi_create_string_utf16)
 emnapiImplement('napi_create_object', napi_create_object)
 emnapiImplement('napi_create_array', napi_create_array)
 emnapiImplement('napi_create_array_with_length', napi_create_array_with_length)
@@ -319,5 +436,7 @@ emnapiImplement('napi_get_value_int32', napi_get_value_int32)
 emnapiImplement('napi_get_value_int64', napi_get_value_int64)
 emnapiImplement('napi_get_value_uint32', napi_get_value_uint32)
 emnapiImplement('napi_get_value_double', napi_get_value_double)
+emnapiImplement('napi_get_value_string_latin1', napi_get_value_string_latin1)
 emnapiImplement('napi_get_value_string_utf8', napi_get_value_string_utf8)
+emnapiImplement('napi_get_value_string_utf16', napi_get_value_string_utf16)
 emnapiImplement('napi_get_value_external', napi_get_value_external)

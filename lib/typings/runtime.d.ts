@@ -11,10 +11,13 @@ declare const HEAPU8: Uint8Array
 declare const wasmTable: WebAssembly.Table
 
 declare function UTF8ToString (ptr: const_char_p, maxRead?: number): string
+declare function UTF16ToString (ptr: const_char16_t_p, maxRead?: number): string
 declare function stringToUTF8 (ptr: string, outPtr: char_p, maxBytesToWrite?: number): number
+declare function stringToUTF16 (ptr: string, outPtr: char16_t_p, maxBytesToWrite?: number): number
 
 declare const Module: any
 
+declare function stackAlloc (size: number): void_p
 declare function allocateUTF8 (str: string): char_p
 declare function _malloc (size: number): void_p
 
