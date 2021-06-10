@@ -96,7 +96,7 @@ var Module = {
 
 ## 已实现
 
-进度：60 / 115 \[52%\]
+进度：61 / 115 \[53%\]
 
 斜体加粗表示该 API 受限于 JavaScript 运行时能力，可能与原生行为不一致，或是其残废的简易实现，不推荐使用。
 
@@ -196,7 +196,7 @@ var Module = {
 - [ ] napi_is_promise
 - [x] napi_run_script
 - [ ] napi_adjust_external_memory
-- [ ] napi_create_date
+- [x] napi_create_date
 - [ ] napi_is_date
 - [ ] napi_get_date_value
 - [x] ***napi_add_finalizer*** (require `FinalizationRegistry`)
