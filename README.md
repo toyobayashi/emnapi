@@ -154,10 +154,10 @@ var Module = {
 - [ ] napi_get_array_length
 - [ ] napi_strict_equals
 - [x] napi_call_function
-- [ ] napi_new_instance
+- [x] napi_new_instance
 - [ ] napi_instanceof
 - [x] napi_get_cb_info
-- [ ] napi_get_new_target
+- [x] napi_get_new_target
 - [ ] napi_define_class
 - [x] ***napi_wrap*** (require `FinalizationRegistry`)
 - [x] ***napi_unwrap*** (require `FinalizationRegistry`)
