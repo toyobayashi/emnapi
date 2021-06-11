@@ -49,6 +49,131 @@ function napi_is_detached_arraybuffer (env: napi_env, _arraybuffer: napi_value, 
   return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_generic_failure)
 }
 
+function napi_instanceof (env: napi_env, object: napi_value, constructor: napi_value, result: Pointer<bool>): emnapi.napi_status {
+  return emnapi.preamble(env, (envObject) => {
+    return emnapi.checkArgs(env, [object, result, constructor], () => {
+      HEAPU8[result] = 0
+      const ctor = envObject.handleStore.get(constructor)!
+      if (!ctor.isFunction()) {
+        return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_function_expected)
+      }
+      const val = envObject.handleStore.get(object)!.value
+      const ret = val instanceof ctor.value
+      HEAPU8[result] = ret ? 1 : 0
+      return emnapi.getReturnStatus(env)
+    })
+  })
+}
+
+function napi_is_array (env: napi_env, value: napi_value, result: Pointer<bool>): emnapi.napi_status {
+  return emnapi.checkEnv(env, (envObject) => {
+    return emnapi.checkArgs(env, [value, result], () => {
+      try {
+        const h = envObject.handleStore.get(value)!
+        HEAPU8[result] = h.isArray() ? 1 : 0
+      } catch (err) {
+        envObject.tryCatch.setError(err)
+        return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_pending_exception)
+      }
+      return emnapi.napi_clear_last_error(env)
+    })
+  })
+}
+
+function napi_is_arraybuffer (env: napi_env, value: napi_value, result: Pointer<bool>): emnapi.napi_status {
+  return emnapi.checkEnv(env, (envObject) => {
+    return emnapi.checkArgs(env, [value, result], () => {
+      try {
+        const h = envObject.handleStore.get(value)!
+        HEAPU8[result] = h.isArrayBuffer() ? 1 : 0
+      } catch (err) {
+        envObject.tryCatch.setError(err)
+        return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_pending_exception)
+      }
+      return emnapi.napi_clear_last_error(env)
+    })
+  })
+}
+
+function napi_is_date (env: napi_env, value: napi_value, result: Pointer<bool>): emnapi.napi_status {
+  return emnapi.checkEnv(env, (envObject) => {
+    return emnapi.checkArgs(env, [value, result], () => {
+      try {
+        const h = envObject.handleStore.get(value)!
+        HEAPU8[result] = h.isDate() ? 1 : 0
+      } catch (err) {
+        envObject.tryCatch.setError(err)
+        return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_pending_exception)
+      }
+      return emnapi.napi_clear_last_error(env)
+    })
+  })
+}
+
+function napi_is_error (env: napi_env, value: napi_value, result: Pointer<bool>): emnapi.napi_status {
+  return emnapi.checkEnv(env, (envObject) => {
+    return emnapi.checkArgs(env, [value, result], () => {
+      try {
+        const val = envObject.handleStore.get(value)!.value
+        HEAPU8[result] = val instanceof Error ? 1 : 0
+      } catch (err) {
+        envObject.tryCatch.setError(err)
+        return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_pending_exception)
+      }
+      return emnapi.napi_clear_last_error(env)
+    })
+  })
+}
+
+function napi_is_typedarray (env: napi_env, value: napi_value, result: Pointer<bool>): emnapi.napi_status {
+  return emnapi.checkEnv(env, (envObject) => {
+    return emnapi.checkArgs(env, [value, result], () => {
+      try {
+        const h = envObject.handleStore.get(value)!
+        HEAPU8[result] = h.isTypedArray() ? 1 : 0
+      } catch (err) {
+        envObject.tryCatch.setError(err)
+        return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_pending_exception)
+      }
+      return emnapi.napi_clear_last_error(env)
+    })
+  })
+}
+
+function napi_is_dataview (env: napi_env, value: napi_value, result: Pointer<bool>): emnapi.napi_status {
+  return emnapi.checkEnv(env, (envObject) => {
+    return emnapi.checkArgs(env, [value, result], () => {
+      try {
+        const h = envObject.handleStore.get(value)!
+        HEAPU8[result] = h.isDataView() ? 1 : 0
+      } catch (err) {
+        envObject.tryCatch.setError(err)
+        return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_pending_exception)
+      }
+      return emnapi.napi_clear_last_error(env)
+    })
+  })
+}
+
+function napi_strict_equals (env: napi_env, lhs: napi_value, rhs: napi_value, result: Pointer<bool>): emnapi.napi_status {
+  return emnapi.preamble(env, (envObject) => {
+    return emnapi.checkArgs(env, [lhs, rhs, result], () => {
+      const lv = envObject.handleStore.get(lhs)!.value
+      const rv = envObject.handleStore.get(rhs)!.value
+      HEAPU8[result] = (lv === rv) ? 1 : 0
+      return emnapi.getReturnStatus(env)
+    })
+  })
+}
+
 emnapiImplement('napi_typeof', napi_typeof)
+emnapiImplement('napi_instanceof', napi_instanceof)
+emnapiImplement('napi_is_array', napi_is_array)
+emnapiImplement('napi_is_arraybuffer', napi_is_arraybuffer)
+emnapiImplement('napi_is_date', napi_is_date)
+emnapiImplement('napi_is_error', napi_is_error)
+emnapiImplement('napi_is_typedarray', napi_is_typedarray)
+emnapiImplement('napi_is_dataview', napi_is_dataview)
+emnapiImplement('napi_strict_equals', napi_strict_equals)
 emnapiImplement('napi_detach_arraybuffer', napi_detach_arraybuffer)
 emnapiImplement('napi_is_detached_arraybuffer', napi_is_detached_arraybuffer)

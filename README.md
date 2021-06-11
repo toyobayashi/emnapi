@@ -96,7 +96,7 @@ var Module = {
 
 ## 已实现
 
-进度：83 / 115 \[72%\]
+进度：90 / 115 \[78%\]
 
 斜体加粗表示该 API 受限于 JavaScript 运行时能力，可能与原生行为不一致，或是其残废的简易实现，不推荐使用。
 
@@ -150,12 +150,12 @@ var Module = {
 - [ ] napi_get_element
 - [ ] napi_delete_element
 - [x] napi_define_properties
-- [ ] napi_is_array
+- [x] napi_is_array
 - [x] napi_get_array_length
-- [ ] napi_strict_equals
+- [x] napi_strict_equals
 - [x] napi_call_function
 - [x] napi_new_instance
-- [ ] napi_instanceof
+- [x] napi_instanceof
 - [x] napi_get_cb_info
 - [x] napi_get_new_target
 - [ ] napi_define_class
@@ -181,15 +181,15 @@ var Module = {
 - [x] napi_is_error
 - [x] napi_is_exception_pending
 - [x] napi_get_and_clear_last_exception
-- [ ] napi_is_arraybuffer
+- [x] napi_is_arraybuffer
 - [x] ***napi_create_arraybuffer*** (`data` is always NULL)
 - [x] ~~napi_create_external_arraybuffer~~
 - [x] ***napi_get_arraybuffer_info*** (`data` is always NULL)
-- [ ] napi_is_typedarray
+- [x] napi_is_typedarray
 - [x] napi_create_typedarray
 - [x] ***napi_get_typedarray_info*** (`data` is always NULL)
 - [x] napi_create_dataview
-- [ ] napi_is_dataview
+- [x] napi_is_dataview
 - [x] ***napi_get_dataview_info*** (`data` is always NULL)
 - [x] napi_get_version
 - [ ] napi_create_promise
@@ -199,7 +199,7 @@ var Module = {
 - [x] napi_run_script
 - [x] ~~napi_adjust_external_memory~~
 - [x] napi_create_date
-- [ ] napi_is_date
+- [x] napi_is_date
 - [x] napi_get_date_value
 - [x] ***napi_add_finalizer*** (require `FinalizationRegistry`)
 - [x] ***napi_create_bigint_int64*** (require `BigInt`)
