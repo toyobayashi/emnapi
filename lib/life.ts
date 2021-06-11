@@ -62,7 +62,8 @@ function napi_escape_handle (env: napi_env, scope: napi_escapable_handle_scope, 
       try {
         const scopeObject = envObject.scopeStore.get(scope) as emnapi.EscapableHandleScope
         if (!scopeObject.escapeCalled()) {
-          scopeObject.escape(escapee)
+          const newHandle = scopeObject.escape(escapee)
+          HEAP32[result >> 2] = newHandle ? newHandle.id : 0
           return emnapi.napi_clear_last_error(env)
         }
         return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_escape_called_twice)
