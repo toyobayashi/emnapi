@@ -24,6 +24,7 @@ function napi_define_properties (
     if (property_count > 0) {
       if (properties === emnapi.NULL) return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_invalid_arg)
     }
+    if (object === emnapi.NULL) return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_invalid_arg)
     const h = envObject.handleStore.get(object)!
     const maybeObject = h.value
     if (!h.isObject()) {
@@ -94,6 +95,7 @@ function napi_define_properties (
 
 function napi_object_freeze (env: napi_env, object: napi_value): emnapi.napi_status {
   return emnapi.preamble(env, (envObject) => {
+    if (object === emnapi.NULL) return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_invalid_arg)
     const h = envObject.handleStore.get(object)!
     const maybeObject = h.value
     if (!h.isObject()) {
@@ -106,6 +108,7 @@ function napi_object_freeze (env: napi_env, object: napi_value): emnapi.napi_sta
 
 function napi_object_seal (env: napi_env, object: napi_value): emnapi.napi_status {
   return emnapi.preamble(env, (envObject) => {
+    if (object === emnapi.NULL) return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_invalid_arg)
     const h = envObject.handleStore.get(object)!
     const maybeObject = h.value
     if (!h.isObject()) {
