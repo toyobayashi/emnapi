@@ -35,9 +35,9 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
         type: 'lib',
         name: 'testcommon',
         sources: ['./test/common.c'],
-        includePaths: isEmscripten ? ['./include'] : [
-          `${require('path').join(require('os').homedir(), 'AppData/Local/node-gyp/Cache', process.versions.node, 'include/node')}`
-        ],
+        includePaths: isEmscripten
+          ? ['./include']
+          : [`${require('path').join(require('os').homedir(), 'AppData/Local/node-gyp/Cache', process.versions.node, 'include/node')}`],
         compileOptions: [...commonFlags],
         linkOptions: [...commonFlags]
       },
@@ -51,7 +51,7 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
       createTarget('objfac', ['./test/objfac/binding.c'], true),
       createTarget('fnfac', ['./test/fnfac/binding.c'], true),
       createTarget('general', ['./test/general/binding.c'], true),
-      createTarget('value-operation', ['./test/value-operation/binding.c'])
+      createTarget('valueoperation', ['./test/value-operation/binding.c'])
     ]
   }
 }

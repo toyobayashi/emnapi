@@ -3,7 +3,7 @@
 import { load } from '../util'
 import * as assert from 'assert'
 
-const promise = load('value-operation')
+const promise = load('valueoperation')
 
 const testSym = Symbol('test')
 
@@ -41,7 +41,7 @@ test('Coerce to number', () => {
     expect(mod.toNumber(Number.NaN)).toBeNaN()
     expect(mod.toNumber({})).toBeNaN()
     expect(mod.toNumber(undefined)).toBeNaN()
-    expect(() => { mod.toNumber(testSym) }).toThrow(TypeError)
+    expect(() => { mod.toNumber(testSym) }).toThrow(/Cannot convert/)
   })
 })
 
@@ -81,6 +81,6 @@ test('Coerce to string', () => {
     expect(mod.toString({ toString: () => 'test' })).toBe('test')
     expect(mod.toString([])).toBe('')
     expect(mod.toString([1, 2, 3])).toBe('1,2,3')
-    expect(() => { mod.toString(testSym) }).toThrow(TypeError)
+    expect(() => { mod.toString(testSym) }).toThrow(/Cannot convert/)
   })
 })

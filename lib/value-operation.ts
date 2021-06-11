@@ -41,11 +41,11 @@ function napi_typeof (env: napi_env, value: napi_value, result: Pointer<emnapi.n
   })
 }
 
-function napi_coerce_to_bool (env: napi_env, value: napi_value, result: Pointer<emnapi.napi_valuetype>): emnapi.napi_status {
+function napi_coerce_to_bool (env: napi_env, value: napi_value, result: Pointer<napi_value>): emnapi.napi_status {
   return emnapi.preamble(env, (envObject) => {
     return emnapi.checkArgs(env, [value, result], () => {
       const handle = envObject.handleStore.get(value)!
-      HEAP32[result >> 2] = envObject.getCurrentScope().add(Boolean(handle.value)).id
+      HEAP32[result >> 2] = handle.value ? emnapi.HandleStore.ID_TRUE : emnapi.HandleStore.ID_FALSE
       return emnapi.getReturnStatus(env)
     })
   })
@@ -55,7 +55,11 @@ function napi_coerce_to_number (env: napi_env, value: napi_value, result: Pointe
   return emnapi.preamble(env, (envObject) => {
     return emnapi.checkArgs(env, [value, result], () => {
       const handle = envObject.handleStore.get(value)!
-      HEAP32[result >> 2] = envObject.getCurrentScope().add(Number(handle.value)).id
+      if (handle.isBigInt()) {
+        envObject.tryCatch.setError(new TypeError('Cannot convert a BigInt value to a number'))
+        return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_pending_exception)
+      }
+      HEAP32[result >> 2] = envObject.ensureHandleId(Number(handle.value))
       return emnapi.getReturnStatus(env)
     })
   })
@@ -65,7 +69,7 @@ function napi_coerce_to_object (env: napi_env, value: napi_value, result: Pointe
   return emnapi.preamble(env, (envObject) => {
     return emnapi.checkArgs(env, [value, result], () => {
       const handle = envObject.handleStore.get(value)!
-      HEAP32[result >> 2] = envObject.getCurrentScope().add(Object(handle.value)).id
+      HEAP32[result >> 2] = envObject.ensureHandleId(Object(handle.value))
       return emnapi.getReturnStatus(env)
     })
   })
@@ -75,6 +79,10 @@ function napi_coerce_to_string (env: napi_env, value: napi_value, result: Pointe
   return emnapi.preamble(env, (envObject) => {
     return emnapi.checkArgs(env, [value, result], () => {
       const handle = envObject.handleStore.get(value)!
+      if (handle.isSymbol()) {
+        envObject.tryCatch.setError(new TypeError('Cannot convert a Symbol value to a string'))
+        return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_pending_exception)
+      }
       HEAP32[result >> 2] = envObject.getCurrentScope().add(String(handle.value)).id
       return emnapi.getReturnStatus(env)
     })
