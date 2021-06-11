@@ -96,7 +96,7 @@ var Module = {
 
 ## 已实现
 
-进度：75 / 115 \[65%\]
+进度：83 / 115 \[72%\]
 
 斜体加粗表示该 API 受限于 JavaScript 运行时能力，可能与原生行为不一致，或是其残废的简易实现，不推荐使用。
 
@@ -135,7 +135,7 @@ var Module = {
 - [ ] napi_coerce_to_number
 - [ ] napi_coerce_to_object
 - [ ] napi_coerce_to_string
-- [ ] napi_get_prototype
+- [x] napi_get_prototype
 - [ ] napi_get_property_names
 - [ ] napi_set_property
 - [ ] napi_has_property
@@ -151,7 +151,7 @@ var Module = {
 - [ ] napi_delete_element
 - [x] napi_define_properties
 - [ ] napi_is_array
-- [ ] napi_get_array_length
+- [x] napi_get_array_length
 - [ ] napi_strict_equals
 - [x] napi_call_function
 - [x] napi_new_instance
@@ -184,13 +184,13 @@ var Module = {
 - [ ] napi_is_arraybuffer
 - [x] ***napi_create_arraybuffer*** (`data` is always NULL)
 - [x] ~~napi_create_external_arraybuffer~~
-- [ ] ***napi_get_arraybuffer_info*** (`data` is always NULL)
+- [x] ***napi_get_arraybuffer_info*** (`data` is always NULL)
 - [ ] napi_is_typedarray
 - [x] napi_create_typedarray
-- [ ] ***napi_get_typedarray_info*** (`data` is always NULL)
+- [x] ***napi_get_typedarray_info*** (`data` is always NULL)
 - [x] napi_create_dataview
 - [ ] napi_is_dataview
-- [ ] ***napi_get_dataview_info*** (`data` is always NULL)
+- [x] ***napi_get_dataview_info*** (`data` is always NULL)
 - [x] napi_get_version
 - [ ] napi_create_promise
 - [ ] napi_resolve_deferred
@@ -200,7 +200,7 @@ var Module = {
 - [x] ~~napi_adjust_external_memory~~
 - [x] napi_create_date
 - [ ] napi_is_date
-- [ ] napi_get_date_value
+- [x] napi_get_date_value
 - [x] ***napi_add_finalizer*** (require `FinalizationRegistry`)
 - [x] ***napi_create_bigint_int64*** (require `BigInt`)
 - [x] ***napi_create_bigint_uint64*** (require `BigInt`)
@@ -215,5 +215,5 @@ var Module = {
 - [x] ~~napi_is_detached_arraybuffer~~
 - [ ] ***napi_type_tag_object*** (require `FinalizationRegistry`)
 - [ ] ***napi_check_object_type_tag*** (require `FinalizationRegistry`)
-- [ ] napi_object_freeze
-- [ ] napi_object_seal
+- [x] napi_object_freeze
+- [x] napi_object_seal

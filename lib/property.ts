@@ -1,8 +1,8 @@
 function napi_set_named_property (env: napi_env, object: napi_value, name: const_char_p, value: napi_value): emnapi.napi_status {
   return emnapi.preamble(env, (envObject) => {
     return emnapi.checkArgs(env, [value, object], () => {
-      const maybeObject = envObject.handleStore.get(object)!.value
-      if (typeof maybeObject !== 'object' || maybeObject === null) {
+      const h = envObject.handleStore.get(object)!
+      if (!h.isObject()) {
         return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_object_expected)
       }
       if (name === emnapi.NULL) {
@@ -24,8 +24,9 @@ function napi_define_properties (
     if (property_count > 0) {
       if (properties === emnapi.NULL) return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_invalid_arg)
     }
-    const maybeObject = envObject.handleStore.get(object)!.value
-    if (typeof maybeObject !== 'object' || maybeObject === null) {
+    const h = envObject.handleStore.get(object)!
+    const maybeObject = h.value
+    if (!h.isObject()) {
       return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_object_expected)
     }
     for (let i = 0; i < property_count; i++) {
@@ -91,5 +92,31 @@ function napi_define_properties (
   })
 }
 
+function napi_object_freeze (env: napi_env, object: napi_value): emnapi.napi_status {
+  return emnapi.preamble(env, (envObject) => {
+    const h = envObject.handleStore.get(object)!
+    const maybeObject = h.value
+    if (!h.isObject()) {
+      return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_object_expected)
+    }
+    Object.freeze(maybeObject)
+    return emnapi.getReturnStatus(env)
+  })
+}
+
+function napi_object_seal (env: napi_env, object: napi_value): emnapi.napi_status {
+  return emnapi.preamble(env, (envObject) => {
+    const h = envObject.handleStore.get(object)!
+    const maybeObject = h.value
+    if (!h.isObject()) {
+      return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_object_expected)
+    }
+    Object.seal(maybeObject)
+    return emnapi.getReturnStatus(env)
+  })
+}
+
 emnapiImplement('napi_set_named_property', napi_set_named_property)
 emnapiImplement('napi_define_properties', napi_define_properties)
+emnapiImplement('napi_object_freeze', napi_object_freeze)
+emnapiImplement('napi_object_seal', napi_object_seal)
