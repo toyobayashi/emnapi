@@ -3,6 +3,7 @@
   "version": "0.0.1",
   "description": "N-API implementation for Emscripten",
   "main": "index.js",
+  "typings": "index.d.ts",
   "scripts": {
     "clean": "cgen clean",
     "build:runtime": "tsc -p ./lib/runtime/tsconfig.json",

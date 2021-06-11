@@ -20,6 +20,7 @@
     "./lib/typings/runtime.d.ts",
     "./lib/typings/napi.d.ts",
     "./lib/typings/compiler.d.ts",
-    "./lib/*.ts"
+    "./lib/*.ts",
+    "./lib/value/*.ts"
   ]
 }

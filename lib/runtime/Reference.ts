@@ -6,6 +6,8 @@ namespace emnapi {
 
     private finalizeRan: boolean = false
 
+    private finalizerRegistered: boolean = false
+
     public static finalizationGroup: FinalizationRegistry | null =
     typeof FinalizationRegistry !== 'undefined'
       ? new FinalizationRegistry((ref: Reference) => {
@@ -93,9 +95,11 @@ namespace emnapi {
 
     public queueFinalizer (): void {
       if (!Reference.finalizationGroup) return
+      if (this.finalizerRegistered) return
       const envObject = envStore.get(this.env)!
       const handle = envObject.handleStore.get(this.handle_id)!
       Reference.finalizationGroup.register(handle.value, this, this)
+      this.finalizerRegistered = true
     }
   }
 

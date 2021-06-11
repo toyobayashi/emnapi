@@ -128,6 +128,26 @@ namespace emnapi {
       return !this.isEmpty() && typeof this.value === 'object' && this.value !== null
     }
 
+    public isArray (): boolean {
+      return !this.isEmpty() && Array.isArray(this.value)
+    }
+
+    public isArrayBuffer (): boolean {
+      return !this.isEmpty() && (this.value instanceof ArrayBuffer)
+    }
+
+    public isTypedArray (): boolean {
+      return !this.isEmpty() && (ArrayBuffer.isView(this.value)) && !(this.value instanceof DataView)
+    }
+
+    public isDataView (): boolean {
+      return !this.isEmpty() && (this.value instanceof DataView)
+    }
+
+    public isDate (): boolean {
+      return !this.isEmpty() && (this.value instanceof Date)
+    }
+
     public isBoolean (): boolean {
       return !this.isEmpty() && typeof this.value === 'boolean'
     }

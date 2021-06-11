@@ -11,6 +11,7 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
         // '--bind',
         // '-sDYNCALLS=1',
         // '-sERROR_ON_UNDEFINED_SYMBOLS=0', if add js function to imports.env
+        "-sEXPORTED_FUNCTIONS=['_malloc','_free']",
         '-sALLOW_MEMORY_GROWTH=1',
         ...(isDebug ? debugFlags : [])
       ]
@@ -46,12 +47,13 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
       createTarget('function', ['./test/function/binding.c']),
       createTarget('error', ['./test/error/binding.c']),
       createTarget('hello', ['./test/hello/binding.c']),
+      createTarget('valueoperation', ['./test/value-operation/binding.c']),
       createTarget('arg', ['./test/arg/binding.c'], true),
       createTarget('callback', ['./test/callback/binding.c'], true),
       createTarget('objfac', ['./test/objfac/binding.c'], true),
       createTarget('fnfac', ['./test/fnfac/binding.c'], true),
       createTarget('general', ['./test/general/binding.c'], true),
-      createTarget('valueoperation', ['./test/value-operation/binding.c'])
+      createTarget('string', ['./test/string/binding.c'], true)
     ]
   }
 }

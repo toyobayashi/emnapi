@@ -1,8 +1,8 @@
 function napi_set_named_property (env: napi_env, object: napi_value, name: const_char_p, value: napi_value): emnapi.napi_status {
   return emnapi.preamble(env, (envObject) => {
     return emnapi.checkArgs(env, [value, object], () => {
-      const maybeObject = envObject.handleStore.get(object)!.value
-      if (typeof maybeObject !== 'object' || maybeObject === null) {
+      const h = envObject.handleStore.get(object)!
+      if (!h.isObject()) {
         return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_object_expected)
       }
       if (name === emnapi.NULL) {
@@ -20,43 +20,14 @@ function napi_define_properties (
   property_count: size_t,
   properties: Const<Pointer<napi_property_descriptor>>
 ): emnapi.napi_status {
-  function createAnonymousFunction<F extends (...args: any[]) => any> (envObject: emnapi.Env, cb: napi_callback, data: void_p): F {
-    const _a = (() => function (this: any): any {
-      'use strict'
-      const callbackInfo = {
-        _this: this,
-        _data: data,
-        _length: arguments.length,
-        _args: Array.prototype.slice.call(arguments),
-        _newTarget: new.target,
-        _isConstructCall: !!new.target
-      }
-      const ret = envObject.callInNewHandleScope((scope) => {
-        const cbinfoHandle = scope.add(callbackInfo)
-        const napiValue = emnapi.call_iii(cb, env, cbinfoHandle.id)
-        return (!napiValue) ? undefined : envObject.handleStore.get(napiValue)!.value
-      })
-      if (envObject.tryCatch.hasCaught()) {
-        const err = envObject.tryCatch.extractException()!
-        throw err
-      }
-      return ret
-    })()
-
-    if (emnapi.canSetFunctionName) {
-      Object.defineProperty(_a, 'name', {
-        value: ''
-      })
-    }
-    return _a as F
-  }
-
   return emnapi.preamble(env, (envObject) => {
     if (property_count > 0) {
       if (properties === emnapi.NULL) return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_invalid_arg)
     }
-    const maybeObject = envObject.handleStore.get(object)!.value
-    if (typeof maybeObject !== 'object' || maybeObject === null) {
+    if (object === emnapi.NULL) return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_invalid_arg)
+    const h = envObject.handleStore.get(object)!
+    const maybeObject = h.value
+    if (!h.isObject()) {
       return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_object_expected)
     }
     for (let i = 0; i < property_count; i++) {
@@ -87,10 +58,10 @@ function napi_define_properties (
         let localGetter: () => any
         let localSetter: (v: any) => void
         if (getter !== emnapi.NULL) {
-          localGetter = createAnonymousFunction(envObject, getter, data)
+          localGetter = emnapi.createFunction(env, emnapi.NULL, 0, getter, data)
         }
         if (setter !== emnapi.NULL) {
-          localSetter = createAnonymousFunction(envObject, setter, data)
+          localSetter = emnapi.createFunction(env, emnapi.NULL, 0, setter, data)
         }
         const desc: PropertyDescriptor = {
           configurable: (attributes & emnapi.napi_property_attributes.napi_configurable) !== 0,
@@ -100,7 +71,7 @@ function napi_define_properties (
         }
         Object.defineProperty(maybeObject, propertyName, desc)
       } else if (method !== emnapi.NULL) {
-        const localMethod = createAnonymousFunction(envObject, method, data)
+        const localMethod = emnapi.createFunction(env, emnapi.NULL, 0, method, data)
         const desc: PropertyDescriptor = {
           configurable: (attributes & emnapi.napi_property_attributes.napi_configurable) !== 0,
           enumerable: (attributes & emnapi.napi_property_attributes.napi_enumerable) !== 0,
@@ -122,5 +93,33 @@ function napi_define_properties (
   })
 }
 
+function napi_object_freeze (env: napi_env, object: napi_value): emnapi.napi_status {
+  return emnapi.preamble(env, (envObject) => {
+    if (object === emnapi.NULL) return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_invalid_arg)
+    const h = envObject.handleStore.get(object)!
+    const maybeObject = h.value
+    if (!h.isObject()) {
+      return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_object_expected)
+    }
+    Object.freeze(maybeObject)
+    return emnapi.getReturnStatus(env)
+  })
+}
+
+function napi_object_seal (env: napi_env, object: napi_value): emnapi.napi_status {
+  return emnapi.preamble(env, (envObject) => {
+    if (object === emnapi.NULL) return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_invalid_arg)
+    const h = envObject.handleStore.get(object)!
+    const maybeObject = h.value
+    if (!h.isObject()) {
+      return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_object_expected)
+    }
+    Object.seal(maybeObject)
+    return emnapi.getReturnStatus(env)
+  })
+}
+
 emnapiImplement('napi_set_named_property', napi_set_named_property)
 emnapiImplement('napi_define_properties', napi_define_properties)
+emnapiImplement('napi_object_freeze', napi_object_freeze)
+emnapiImplement('napi_object_seal', napi_object_seal)
