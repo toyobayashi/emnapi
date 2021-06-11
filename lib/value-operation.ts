@@ -41,4 +41,48 @@ function napi_typeof (env: napi_env, value: napi_value, result: Pointer<emnapi.n
   })
 }
 
+function napi_coerce_to_bool (env: napi_env, value: napi_value, result: Pointer<emnapi.napi_valuetype>): emnapi.napi_status {
+  return emnapi.preamble(env, (envObject) => {
+    return emnapi.checkArgs(env, [value, result], () => {
+      const handle = envObject.handleStore.get(value)!
+      HEAP32[result >> 2] = envObject.getCurrentScope().add(Boolean(handle.value)).id
+      return emnapi.getReturnStatus(env)
+    })
+  })
+}
+
+function napi_coerce_to_number (env: napi_env, value: napi_value, result: Pointer<napi_value>): emnapi.napi_status {
+  return emnapi.preamble(env, (envObject) => {
+    return emnapi.checkArgs(env, [value, result], () => {
+      const handle = envObject.handleStore.get(value)!
+      HEAP32[result >> 2] = envObject.getCurrentScope().add(Number(handle.value)).id
+      return emnapi.getReturnStatus(env)
+    })
+  })
+}
+
+function napi_coerce_to_object (env: napi_env, value: napi_value, result: Pointer<napi_value>): emnapi.napi_status {
+  return emnapi.preamble(env, (envObject) => {
+    return emnapi.checkArgs(env, [value, result], () => {
+      const handle = envObject.handleStore.get(value)!
+      HEAP32[result >> 2] = envObject.getCurrentScope().add(Object(handle.value)).id
+      return emnapi.getReturnStatus(env)
+    })
+  })
+}
+
+function napi_coerce_to_string (env: napi_env, value: napi_value, result: Pointer<napi_value>): emnapi.napi_status {
+  return emnapi.preamble(env, (envObject) => {
+    return emnapi.checkArgs(env, [value, result], () => {
+      const handle = envObject.handleStore.get(value)!
+      HEAP32[result >> 2] = envObject.getCurrentScope().add(String(handle.value)).id
+      return emnapi.getReturnStatus(env)
+    })
+  })
+}
+
 emnapiImplement('napi_typeof', napi_typeof)
+emnapiImplement('napi_coerce_to_bool', napi_coerce_to_bool)
+emnapiImplement('napi_coerce_to_number', napi_coerce_to_number)
+emnapiImplement('napi_coerce_to_object', napi_coerce_to_object)
+emnapiImplement('napi_coerce_to_string', napi_coerce_to_string)
