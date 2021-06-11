@@ -93,19 +93,30 @@ namespace emnapi {
     public escape (handle: number | Handle<any>): Handle<any> | null {
       this._escapeCalled = true
       let exists: boolean = false
+      let index: number = -1
       let handleId: number
       if (typeof handle === 'number') {
         handleId = handle
-        exists = this.handles.filter(h => h.id === handle).length > 0
+        for (let i = 0; i < this.handles.length; i++) {
+          if (this.handles[i].id === handleId) {
+            index = i
+            exists = true
+            break
+          }
+        }
       } else {
         handleId = handle.id
-        exists = this.handles.indexOf(handle) !== -1
+        index = this.handles.indexOf(handle)
+        exists = index !== -1
       }
       if (exists) {
         const envObject = envStore.get(this.env)!
         const h = envObject.handleStore.get(handleId)
         if (h && this.parent !== null) {
-          return this.parent.add(h)
+          const newHandle = this.parent.add(h)
+          this.handles.splice(index, 1)
+          envObject.handleStore.remove(handleId)
+          return newHandle
         } else {
           return null
         }
