@@ -36,7 +36,7 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
         type: 'lib',
         name: 'testcommon',
         sources: ['./test/common.c'],
-        includePaths: isEmscripten ? ['./include'] : [],
+        includePaths: isEmscripten ? ['./include'] : [`${require('path').join(require('os').homedir(), 'AppData/Local/node-gyp/Cache', process.versions.node, 'include/node')}`],
         compileOptions: [...commonFlags],
         linkOptions: [...commonFlags]
       },
