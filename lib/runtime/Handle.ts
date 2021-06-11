@@ -40,8 +40,12 @@ namespace emnapi {
     public static ID_FALSE: -2147483646 = -2147483646
     public static ID_TRUE: -2147483645 = -2147483645
     public static ID_GLOBAL: -2147483644 = -2147483644
+
+    public objWeakMap: WeakMap<object, Handle<object>>
+
     public constructor () {
       super(-2147483643)
+      this.objWeakMap = new WeakMap()
     }
 
     public addGlobalConstants (env: napi_env): void {
@@ -57,13 +61,34 @@ namespace emnapi {
       Reference.create(env, HandleStore.ID_GLOBAL, 1, false)
     }
 
-    public find (value: any): napi_value {
+    // @override
+    public add (h: Handle<any>): void {
+      super.add(h)
+      if ((typeof h.value === 'object' && h.value !== null) || typeof h.value === 'function') {
+        this.objWeakMap.set(h.value, h)
+      }
+    }
+
+    public findStoreHandle (value: any): Handle<any> | null {
       for (const id in this._values) {
         if (is(this._values[id].value, value)) {
-          return Number(id)
+          return this._values[id]
         }
       }
-      return NULL
+      return null
+    }
+
+    public findStoreHandleId (value: any): napi_value {
+      const maybeHandle = this.findStoreHandle(value)
+      return maybeHandle ? Number(maybeHandle.id) : NULL
+    }
+
+    public findObjectHandle (value: object): Handle<any> | null {
+      let maybeHandle = this.findStoreHandle(value)
+      if (!maybeHandle) {
+        maybeHandle = this.objWeakMap.get(value) ?? null
+      }
+      return maybeHandle
     }
   }
 
