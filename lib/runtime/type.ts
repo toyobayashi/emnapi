@@ -70,4 +70,23 @@ namespace emnapi {
     napi_bigint64_array,
     napi_biguint64_array
   }
+
+  export enum napi_key_collection_mode {
+    napi_key_include_prototypes,
+    napi_key_own_only
+  }
+
+  export enum napi_key_filter {
+    napi_key_all_properties = 0,
+    napi_key_writable = 1,
+    napi_key_enumerable = 1 << 1,
+    napi_key_configurable = 1 << 2,
+    napi_key_skip_strings = 1 << 3,
+    napi_key_skip_symbols = 1 << 4
+  }
+
+  export enum napi_key_conversion {
+    napi_key_keep_numbers,
+    napi_key_numbers_to_strings
+  }
 }

@@ -1,3 +1,25 @@
+function napi_get_all_property_names (
+  env: napi_env,
+  object: napi_value,
+  key_mode: emnapi.napi_key_collection_mode,
+  key_filter: emnapi.napi_key_filter,
+  key_conversion: emnapi.napi_key_conversion,
+  result: Pointer<napi_value>
+): emnapi.napi_status {
+  return emnapi.napi_get_all_property_names(env, object, key_mode, key_filter, key_conversion, result)
+}
+
+function napi_get_property_names (env: napi_env, object: napi_value, result: Pointer<napi_value>): emnapi.napi_status {
+  return emnapi.napi_get_all_property_names(
+    env,
+    object,
+    emnapi.napi_key_collection_mode.napi_key_include_prototypes,
+    emnapi.napi_key_filter.napi_key_enumerable | emnapi.napi_key_filter.napi_key_skip_symbols,
+    emnapi.napi_key_conversion.napi_key_numbers_to_strings,
+    result
+  )
+}
+
 function napi_set_named_property (env: napi_env, object: napi_value, name: const_char_p, value: napi_value): emnapi.napi_status {
   return emnapi.preamble(env, (envObject) => {
     return emnapi.checkArgs(env, [value, object], () => {
@@ -119,6 +141,8 @@ function napi_object_seal (env: napi_env, object: napi_value): emnapi.napi_statu
   })
 }
 
+emnapiImplement('napi_get_all_property_names', napi_get_all_property_names)
+emnapiImplement('napi_get_property_names', napi_get_property_names)
 emnapiImplement('napi_set_named_property', napi_set_named_property)
 emnapiImplement('napi_define_properties', napi_define_properties)
 emnapiImplement('napi_object_freeze', napi_object_freeze)

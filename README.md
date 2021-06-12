@@ -96,7 +96,7 @@ var Module = {
 
 ## 已实现
 
-进度：94 / 115 \[81%\]
+进度：96 / 115 \[83%\]
 
 斜体加粗表示该 API 受限于 JavaScript 运行时能力，可能与原生行为不一致，或是其残废的简易实现，不推荐使用。
 
@@ -136,7 +136,7 @@ var Module = {
 - [x] napi_coerce_to_object
 - [x] napi_coerce_to_string
 - [x] napi_get_prototype
-- [ ] napi_get_property_names
+- [x] napi_get_property_names
 - [ ] napi_set_property
 - [ ] napi_has_property
 - [ ] napi_get_property
@@ -208,7 +208,7 @@ var Module = {
 - [x] ***napi_get_value_bigint_int64*** (require `BigInt`)
 - [x] ***napi_get_value_bigint_uint64*** (require `BigInt`)
 - [ ] ***napi_get_value_bigint_words*** (require `BigInt`)
-- [ ] napi_get_all_property_names
+- [x] napi_get_all_property_names
 - [x] napi_set_instance_data
 - [x] napi_get_instance_data
 - [x] ~~napi_detach_arraybuffer~~
