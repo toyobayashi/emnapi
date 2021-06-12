@@ -96,7 +96,7 @@ var Module = {
 
 ## 已实现
 
-进度：96 / 115 \[83%\]
+进度：107 / 115 \[93%\]
 
 斜体加粗表示该 API 受限于 JavaScript 运行时能力，可能与原生行为不一致，或是其残废的简易实现，不推荐使用。
 
@@ -137,18 +137,18 @@ var Module = {
 - [x] napi_coerce_to_string
 - [x] napi_get_prototype
 - [x] napi_get_property_names
-- [ ] napi_set_property
-- [ ] napi_has_property
-- [ ] napi_get_property
-- [ ] napi_delete_property
-- [ ] napi_has_own_property
+- [x] napi_set_property
+- [x] napi_has_property
+- [x] napi_get_property
+- [x] napi_delete_property
+- [x] napi_has_own_property
 - [x] napi_set_named_property
-- [ ] napi_has_named_property
-- [ ] napi_get_named_property
-- [ ] napi_set_element
-- [ ] napi_has_element
-- [ ] napi_get_element
-- [ ] napi_delete_element
+- [x] napi_has_named_property
+- [x] napi_get_named_property
+- [x] napi_set_element
+- [x] napi_has_element
+- [x] napi_get_element
+- [x] napi_delete_element
 - [x] napi_define_properties
 - [x] napi_is_array
 - [x] napi_get_array_length

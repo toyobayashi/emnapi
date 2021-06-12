@@ -20,6 +20,75 @@ function napi_get_property_names (env: napi_env, object: napi_value, result: Poi
   )
 }
 
+function napi_set_property (env: napi_env, object: napi_value, key: napi_value, value: napi_value): emnapi.napi_status {
+  return emnapi.preamble(env, (envObject) => {
+    return emnapi.checkArgs(env, [key, value, object], () => {
+      const h = envObject.handleStore.get(object)!
+      if (!h.isObject()) {
+        return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_object_expected)
+      }
+      h.value[envObject.handleStore.get(key)!.value] = envObject.handleStore.get(value)!.value
+      return emnapi.getReturnStatus(env)
+    })
+  })
+}
+
+function napi_has_property (env: napi_env, object: napi_value, key: napi_value, result: Pointer<bool>): emnapi.napi_status {
+  return emnapi.preamble(env, (envObject) => {
+    return emnapi.checkArgs(env, [key, result, object], () => {
+      const h = envObject.handleStore.get(object)!
+      if (!h.isObject()) {
+        return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_object_expected)
+      }
+      HEAPU8[result] = (envObject.handleStore.get(key)!.value in h.value) ? 1 : 0
+      return emnapi.getReturnStatus(env)
+    })
+  })
+}
+
+function napi_get_property (env: napi_env, object: napi_value, key: napi_value, result: Pointer<napi_value>): emnapi.napi_status {
+  return emnapi.preamble(env, (envObject) => {
+    return emnapi.checkArgs(env, [key, result, object], () => {
+      const h = envObject.handleStore.get(object)!
+      if (!h.isObject()) {
+        return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_object_expected)
+      }
+      HEAP32[result >> 2] = envObject.ensureHandleId(h.value[envObject.handleStore.get(key)!.value])
+      return emnapi.getReturnStatus(env)
+    })
+  })
+}
+
+function napi_delete_property (env: napi_env, object: napi_value, key: napi_value, result: Pointer<bool>): emnapi.napi_status {
+  return emnapi.preamble(env, (envObject) => {
+    return emnapi.checkArgs(env, [key, object], () => {
+      const h = envObject.handleStore.get(object)!
+      if (!h.isObject()) {
+        return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_object_expected)
+      }
+      const r = delete h.value[envObject.handleStore.get(key)!.value]
+      if (result !== emnapi.NULL) {
+        HEAPU8[result] = r ? 1 : 0
+      }
+      return emnapi.getReturnStatus(env)
+    })
+  })
+}
+
+function napi_has_own_property (env: napi_env, object: napi_value, key: napi_value, result: Pointer<bool>): emnapi.napi_status {
+  return emnapi.preamble(env, (envObject) => {
+    return emnapi.checkArgs(env, [key, result, object], () => {
+      const h = envObject.handleStore.get(object)!
+      if (!h.isObject()) {
+        return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_object_expected)
+      }
+      const r = Object.prototype.hasOwnProperty.call(h.value, envObject.handleStore.get(key)!.value)
+      HEAPU8[result] = r ? 1 : 0
+      return emnapi.getReturnStatus(env)
+    })
+  })
+}
+
 function napi_set_named_property (env: napi_env, object: napi_value, name: const_char_p, value: napi_value): emnapi.napi_status {
   return emnapi.preamble(env, (envObject) => {
     return emnapi.checkArgs(env, [value, object], () => {
@@ -32,6 +101,94 @@ function napi_set_named_property (env: napi_env, object: napi_value, name: const
       }
       envObject.handleStore.get(object)!.value[UTF8ToString(name)] = envObject.handleStore.get(value)!.value
       return emnapi.napi_status.napi_ok
+    })
+  })
+}
+
+function napi_has_named_property (env: napi_env, object: napi_value, utf8name: const_char_p, result: Pointer<bool>): emnapi.napi_status {
+  return emnapi.preamble(env, (envObject) => {
+    return emnapi.checkArgs(env, [result, object], () => {
+      if (utf8name === emnapi.NULL) {
+        return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_invalid_arg)
+      }
+      const h = envObject.handleStore.get(object)!
+      if (!h.isObject()) {
+        return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_object_expected)
+      }
+      const r = UTF8ToString(utf8name) in h.value
+      HEAPU8[result] = r ? 1 : 0
+      return emnapi.getReturnStatus(env)
+    })
+  })
+}
+
+function napi_get_named_property (env: napi_env, object: napi_value, utf8name: const_char_p, result: Pointer<napi_value>): emnapi.napi_status {
+  return emnapi.preamble(env, (envObject) => {
+    return emnapi.checkArgs(env, [result, object], () => {
+      if (utf8name === emnapi.NULL) {
+        return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_invalid_arg)
+      }
+      const h = envObject.handleStore.get(object)!
+      if (!h.isObject()) {
+        return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_object_expected)
+      }
+      HEAP32[result >> 2] = envObject.ensureHandleId(h.value[UTF8ToString(utf8name)])
+      return emnapi.getReturnStatus(env)
+    })
+  })
+}
+
+function napi_set_element (env: napi_env, object: napi_value, index: uint32_t, value: napi_value): emnapi.napi_status {
+  return emnapi.preamble(env, (envObject) => {
+    return emnapi.checkArgs(env, [value, object], () => {
+      const h = envObject.handleStore.get(object)!
+      if (!h.isObject()) {
+        return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_object_expected)
+      }
+      h.value[index >>> 0] = envObject.handleStore.get(value)!.value
+      return emnapi.getReturnStatus(env)
+    })
+  })
+}
+
+function napi_has_element (env: napi_env, object: napi_value, index: uint32_t, result: Pointer<bool>): emnapi.napi_status {
+  return emnapi.preamble(env, (envObject) => {
+    return emnapi.checkArgs(env, [result, object], () => {
+      const h = envObject.handleStore.get(object)!
+      if (!h.isObject()) {
+        return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_object_expected)
+      }
+      HEAPU8[result] = ((index >>> 0) in h.value) ? 1 : 0
+      return emnapi.getReturnStatus(env)
+    })
+  })
+}
+
+function napi_get_element (env: napi_env, object: napi_value, index: uint32_t, result: Pointer<napi_value>): emnapi.napi_status {
+  return emnapi.preamble(env, (envObject) => {
+    return emnapi.checkArgs(env, [result, object], () => {
+      const h = envObject.handleStore.get(object)!
+      if (!h.isObject()) {
+        return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_object_expected)
+      }
+      HEAP32[result >> 2] = envObject.ensureHandleId(h.value[index >>> 0])
+      return emnapi.getReturnStatus(env)
+    })
+  })
+}
+
+function napi_delete_element (env: napi_env, object: napi_value, index: uint32_t, result: Pointer<bool>): emnapi.napi_status {
+  return emnapi.preamble(env, (envObject) => {
+    return emnapi.checkArgs(env, [object], () => {
+      const h = envObject.handleStore.get(object)!
+      if (!h.isObject()) {
+        return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_object_expected)
+      }
+      const r = delete h.value[index >>> 0]
+      if (result !== emnapi.NULL) {
+        HEAPU8[result] = r ? 1 : 0
+      }
+      return emnapi.getReturnStatus(env)
     })
   })
 }
@@ -143,7 +300,18 @@ function napi_object_seal (env: napi_env, object: napi_value): emnapi.napi_statu
 
 emnapiImplement('napi_get_all_property_names', napi_get_all_property_names)
 emnapiImplement('napi_get_property_names', napi_get_property_names)
+emnapiImplement('napi_set_property', napi_set_property)
+emnapiImplement('napi_has_property', napi_has_property)
+emnapiImplement('napi_get_property', napi_get_property)
+emnapiImplement('napi_delete_property', napi_delete_property)
+emnapiImplement('napi_has_own_property', napi_has_own_property)
 emnapiImplement('napi_set_named_property', napi_set_named_property)
+emnapiImplement('napi_has_named_property', napi_has_named_property)
+emnapiImplement('napi_get_named_property', napi_get_named_property)
+emnapiImplement('napi_set_element', napi_set_element)
+emnapiImplement('napi_has_element', napi_has_element)
+emnapiImplement('napi_get_element', napi_get_element)
+emnapiImplement('napi_delete_element', napi_delete_element)
 emnapiImplement('napi_define_properties', napi_define_properties)
 emnapiImplement('napi_object_freeze', napi_object_freeze)
 emnapiImplement('napi_object_seal', napi_object_seal)
