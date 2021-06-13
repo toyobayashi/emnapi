@@ -137,7 +137,7 @@ var Module = {
   - [x] ***napi_create_bigint_words***
   - [x] ***napi_get_value_bigint_int64***
   - [x] ***napi_get_value_bigint_uint64***
-  - [ ] ***napi_get_value_bigint_words***
+  - [x] ***napi_get_value_bigint_words***
 
 * `data` 指针返回值永远为 `NULL` 的 API：
 

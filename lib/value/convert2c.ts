@@ -275,6 +275,77 @@ function napi_get_value_bigint_uint64 (env: napi_env, value: napi_value, result:
   })
 }
 
+function napi_get_value_bigint_words (
+  env: napi_env,
+  value: napi_value,
+  sign_bit: Pointer<int>,
+  word_count: Pointer<size_t>,
+  words: Pointer<uint64_t>
+): emnapi.napi_status {
+  return emnapi.checkEnv(env, (envObject) => {
+    return emnapi.checkArgs(env, [value, word_count], () => {
+      try {
+        const handle = envObject.handleStore.get(value)!
+        if (!handle.isBigInt()) {
+          return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_bigint_expected)
+        }
+        const isMinus = handle.value < BigInt(0)
+        let word_count_int = HEAP32[word_count >> 2]
+        let wordCount = 0
+        let bigintValue: bigint = handle.value
+        do {
+          wordCount++
+          bigintValue = bigintValue >> BigInt(64)
+          if (bigintValue === BigInt(0) || bigintValue === BigInt(-1)) {
+            break
+          }
+        } while (true)
+        bigintValue = handle.value
+        word_count_int = bigintValue === BigInt(0) ? 0 : wordCount
+        if (sign_bit === emnapi.NULL && words === emnapi.NULL) {
+          HEAPU32[word_count >> 2] = word_count_int
+        } else {
+          if (sign_bit === emnapi.NULL) return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_invalid_arg)
+          if (words === emnapi.NULL) return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_invalid_arg)
+          const wordsArr = []
+          let first = true
+          do {
+            const uint64 = bigintValue & ((BigInt(1) << BigInt(64)) - BigInt(1))
+            if (isMinus) {
+              if (first) {
+                wordsArr.push((BigInt(1) << BigInt(64)) - uint64)
+              } else {
+                wordsArr.push((BigInt(1) << BigInt(64)) - uint64 - BigInt(1))
+              }
+            } else {
+              wordsArr.push(uint64)
+            }
+            bigintValue = bigintValue >> BigInt(64)
+            first = false
+            if (bigintValue === BigInt(0) || bigintValue === BigInt(-1)) {
+              break
+            }
+          } while (true)
+          bigintValue = handle.value
+          const len = Math.min(word_count_int, wordsArr.length)
+          for (let i = 0; i < len; i++) {
+            const low = Number(wordsArr[i] & BigInt(0xffffffff))
+            const high = Number(wordsArr[i] >> BigInt(32))
+            HEAPU32[(words + (i * 8)) >> 2] = low
+            HEAPU32[(words + 4 + (i * 8)) >> 2] = high
+          }
+          HEAP32[sign_bit >> 2] = isMinus ? 1 : 0
+          HEAPU32[word_count >> 2] = len
+        }
+      } catch (err) {
+        envObject.tryCatch.setError(err)
+        return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_pending_exception)
+      }
+      return emnapi.napi_clear_last_error(env)
+    })
+  })
+}
+
 function napi_get_value_external (env: napi_env, value: napi_value, result: void_pp): emnapi.napi_status {
   if (!emnapi.supportFinalizer) return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_generic_failure)
   return emnapi.checkEnv(env, (envObject) => {
@@ -468,6 +539,7 @@ emnapiImplement('napi_get_value_bool', napi_get_value_bool)
 emnapiImplement('napi_get_value_double', napi_get_value_double)
 emnapiImplement('napi_get_value_bigint_int64', napi_get_value_bigint_int64)
 emnapiImplement('napi_get_value_bigint_uint64', napi_get_value_bigint_uint64)
+emnapiImplement('napi_get_value_bigint_words', napi_get_value_bigint_words)
 emnapiImplement('napi_get_value_external', napi_get_value_external)
 emnapiImplement('napi_get_value_int32', napi_get_value_int32)
 emnapiImplement('napi_get_value_int64', napi_get_value_int64)
