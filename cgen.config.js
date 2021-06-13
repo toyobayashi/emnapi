@@ -53,7 +53,9 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
       createTarget('objfac', ['./test/objfac/binding.c'], true),
       createTarget('fnfac', ['./test/fnfac/binding.c'], true),
       createTarget('general', ['./test/general/binding.c'], true),
-      createTarget('string', ['./test/string/binding.c'], true)
+      createTarget('string', ['./test/string/binding.c'], true),
+      createTarget('property', ['./test/property/binding.c'], true),
+      createTarget('object', ['./test/object/test_null.c', './test/object/test_object.c'], true)
     ]
   }
 }

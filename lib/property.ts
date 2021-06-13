@@ -6,11 +6,28 @@ function napi_get_all_property_names (
   key_conversion: emnapi.napi_key_conversion,
   result: Pointer<napi_value>
 ): emnapi.napi_status {
-  return emnapi.napi_get_all_property_names(env, object, key_mode, key_filter, key_conversion, result)
+  return emnapi.preamble(env, (envObject) => {
+    return emnapi.checkArgs(env, [result, object], () => {
+      const h = envObject.handleStore.get(object)!
+      if (!h.isObject()) {
+        return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_object_expected)
+      }
+      if (key_mode !== emnapi.napi_key_collection_mode.napi_key_include_prototypes && key_mode !== emnapi.napi_key_collection_mode.napi_key_own_only) {
+        return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_invalid_arg)
+      }
+      if (key_conversion !== emnapi.napi_key_conversion.napi_key_keep_numbers && key_conversion !== emnapi.napi_key_conversion.napi_key_numbers_to_strings) {
+        return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_invalid_arg)
+      }
+      const names = emnapi.getPropertyNames(h.value, key_mode, key_filter, key_conversion)
+      HEAP32[result >> 2] = envObject.getCurrentScope().add(names).id
+      return emnapi.getReturnStatus(env)
+    })
+  })
 }
 
+declare const _napi_get_all_property_names: typeof napi_get_all_property_names
 function napi_get_property_names (env: napi_env, object: napi_value, result: Pointer<napi_value>): emnapi.napi_status {
-  return emnapi.napi_get_all_property_names(
+  return _napi_get_all_property_names(
     env,
     object,
     emnapi.napi_key_collection_mode.napi_key_include_prototypes,
@@ -81,6 +98,10 @@ function napi_has_own_property (env: napi_env, object: napi_value, key: napi_val
       const h = envObject.handleStore.get(object)!
       if (!h.isObject()) {
         return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_object_expected)
+      }
+      const prop = envObject.handleStore.get(key)!.value
+      if (typeof prop !== 'string' && typeof prop !== 'symbol') {
+        return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_name_expected)
       }
       const r = Object.prototype.hasOwnProperty.call(h.value, envObject.handleStore.get(key)!.value)
       HEAPU8[result] = r ? 1 : 0
@@ -299,7 +320,7 @@ function napi_object_seal (env: napi_env, object: napi_value): emnapi.napi_statu
 }
 
 emnapiImplement('napi_get_all_property_names', napi_get_all_property_names)
-emnapiImplement('napi_get_property_names', napi_get_property_names)
+emnapiImplement('napi_get_property_names', napi_get_property_names, ['napi_get_all_property_names'])
 emnapiImplement('napi_set_property', napi_set_property)
 emnapiImplement('napi_has_property', napi_has_property)
 emnapiImplement('napi_get_property', napi_get_property)

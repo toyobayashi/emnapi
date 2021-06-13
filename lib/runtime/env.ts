@@ -302,6 +302,7 @@ namespace emnapi {
         return napi_set_last_error(env, napi_status.napi_generic_failure)
       }
     }
+    // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
     if (((length * size_of_element) + byte_offset) <= buffer.byteLength) {
       const err: RangeError & { code?: string } = new RangeError('Invalid typed array length')
       err.code = 'ERR_NAPI_INVALID_TYPEDARRAY_LENGTH'
@@ -388,16 +389,19 @@ namespace emnapi {
 
   const integerIndiceRegex = /^(0|[1-9][0-9]*)$/
 
-  function addName (ret: Array<string | number | symbol>, name: string | number | symbol, conversion_mode: napi_key_conversion): void {
+  function addName (ret: Array<string | number | symbol>, name: string | number | symbol, key_filter: number, conversion_mode: napi_key_conversion): void {
     if (ret.indexOf(name) !== -1) return
     if (conversion_mode === napi_key_conversion.napi_key_keep_numbers) {
-      if (typeof name === 'string' && integerIndiceRegex.test(name)) {
-        ret.push(Number(name))
-      } else {
-        ret.push(name)
-      }
-    } else if (conversion_mode === napi_key_conversion.napi_key_numbers_to_strings) {
       ret.push(name)
+    } else if (conversion_mode === napi_key_conversion.napi_key_numbers_to_strings) {
+      const realName = typeof name === 'number' ? String(name) : name
+      if (typeof realName === 'string') {
+        if (!(key_filter & napi_key_filter.napi_key_skip_strings)) {
+          ret.push(realName)
+        }
+      } else {
+        ret.push(realName)
+      }
     }
   }
 
@@ -434,7 +438,7 @@ namespace emnapi {
     for (i = 0; i < props.length; i++) {
       const name = props[i].name
       if (key_filter === napi_key_filter.napi_key_all_properties) {
-        addName(ret, name, conversion_mode)
+        addName(ret, name, key_filter, conversion_mode)
       } else {
         if (key_filter & napi_key_filter.napi_key_skip_strings) {
           if (typeof name === 'string') continue
@@ -443,46 +447,20 @@ namespace emnapi {
           if (typeof name === 'symbol') continue
         }
         if (key_filter & napi_key_filter.napi_key_writable) {
-          if (props[i].desc.writable) addName(ret, name, conversion_mode)
+          if (props[i].desc.writable) addName(ret, name, key_filter, conversion_mode)
           continue
         }
         if (key_filter & napi_key_filter.napi_key_enumerable) {
-          if (props[i].desc.enumerable) addName(ret, name, conversion_mode)
+          if (props[i].desc.enumerable) addName(ret, name, key_filter, conversion_mode)
           continue
         }
         if (key_filter & napi_key_filter.napi_key_configurable) {
-          if (props[i].desc.configurable) addName(ret, name, conversion_mode)
+          if (props[i].desc.configurable) addName(ret, name, key_filter, conversion_mode)
           continue
         }
+        addName(ret, name, key_filter, conversion_mode)
       }
     }
     return ret
-  }
-
-  export function napi_get_all_property_names (
-    env: napi_env,
-    object: napi_value,
-    key_mode: napi_key_collection_mode,
-    key_filter: napi_key_filter,
-    key_conversion: napi_key_conversion,
-    result: Pointer<napi_value>
-  ): napi_status {
-    return preamble(env, (envObject) => {
-      return checkArgs(env, [result, object], () => {
-        const h = envObject.handleStore.get(object)!
-        if (!h.isObject()) {
-          return napi_set_last_error(env, napi_status.napi_object_expected)
-        }
-        if (key_mode !== napi_key_collection_mode.napi_key_include_prototypes && key_mode !== napi_key_collection_mode.napi_key_own_only) {
-          return napi_set_last_error(env, napi_status.napi_invalid_arg)
-        }
-        if (key_conversion !== napi_key_conversion.napi_key_keep_numbers && key_conversion !== napi_key_conversion.napi_key_numbers_to_strings) {
-          return napi_set_last_error(env, napi_status.napi_invalid_arg)
-        }
-        const names = getPropertyNames(h.value, key_mode, key_filter, key_conversion)
-        HEAP32[result >> 2] = envObject.getCurrentScope().add(names).id
-        return getReturnStatus(env)
-      })
-    })
   }
 }
