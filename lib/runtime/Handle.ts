@@ -173,6 +173,10 @@ namespace emnapi {
       return !this.isEmpty() && (this.value instanceof Date)
     }
 
+    public isPromise (): boolean {
+      return !this.isEmpty() && (this.value instanceof Promise)
+    }
+
     public isBoolean (): boolean {
       return !this.isEmpty() && typeof this.value === 'boolean'
     }

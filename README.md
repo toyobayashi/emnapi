@@ -96,7 +96,7 @@ var Module = {
 
 ## 已实现
 
-进度：107 / 115 \[93%\]
+进度：111 / 115 \[96%\]
 
 斜体加粗表示该 API 受限于 JavaScript 运行时能力，可能与原生行为不一致，或是其残废的简易实现，不推荐使用。
 
@@ -192,10 +192,10 @@ var Module = {
 - [x] napi_is_dataview
 - [x] ***napi_get_dataview_info*** (`data` is always NULL)
 - [x] napi_get_version
-- [ ] napi_create_promise
-- [ ] napi_resolve_deferred
-- [ ] napi_reject_deferred
-- [ ] napi_is_promise
+- [x] napi_create_promise
+- [x] napi_resolve_deferred
+- [x] napi_reject_deferred
+- [x] napi_is_promise
 - [x] napi_run_script
 - [x] ~~napi_adjust_external_memory~~
 - [x] napi_create_date

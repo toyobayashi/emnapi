@@ -55,6 +55,7 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
       createTarget('general', ['./test/general/binding.c'], true),
       createTarget('string', ['./test/string/binding.c'], true),
       createTarget('property', ['./test/property/binding.c'], true),
+      createTarget('promise', ['./test/promise/binding.c'], true),
       createTarget('object', ['./test/object/test_null.c', './test/object/test_object.c'], true)
     ]
   }

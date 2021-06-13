@@ -26,6 +26,7 @@
     "./type.ts",
     "./Handle.ts",
     "./Reference.ts",
+    "./Deferred.ts",
     "./HandleScope.ts",
     "./env.ts"
   ]
