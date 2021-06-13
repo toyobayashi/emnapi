@@ -96,7 +96,7 @@ var Module = {
 
 ## 已实现
 
-进度：111 / 115 \[96%\]
+进度：112 / 115 \[97%\]
 
 斜体加粗表示该 API 受限于 JavaScript 运行时能力，可能与原生行为不一致，或是其残废的简易实现，不推荐使用。
 
@@ -158,7 +158,7 @@ var Module = {
 - [x] napi_instanceof
 - [x] napi_get_cb_info
 - [x] napi_get_new_target
-- [ ] napi_define_class
+- [x] napi_define_class
 - [x] ***napi_wrap*** (require `FinalizationRegistry`)
 - [x] ***napi_unwrap*** (require `FinalizationRegistry`)
 - [x] ***napi_remove_wrap*** (require `FinalizationRegistry`)

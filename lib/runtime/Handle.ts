@@ -15,7 +15,7 @@ namespace emnapi {
     }
   }
 
-  const _global: typeof globalThis = (function () {
+  export const _global: typeof globalThis = (function () {
     let g
     g = (function (this: any) { return this })()
 
@@ -229,10 +229,11 @@ namespace emnapi {
         const ref = refs[i]
         ref.queueFinalizer()
       }
+      const id = this.id
       this.refs.length = 0
       this.id = 0
       this.value = undefined!
-      envStore.get(this.env)!.handleStore.remove(this.id)
+      envStore.get(this.env)!.handleStore.remove(id)
     }
   }
 

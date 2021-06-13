@@ -155,6 +155,9 @@ namespace emnapi {
         h.tryDispose()
       })
     })
+    if (typeof (_global as any).gc === 'function') {
+      (_global as any).gc()
+    }
   }
 
   export function initErrorMemory (): void {
@@ -464,5 +467,43 @@ namespace emnapi {
       }
     }
     return ret
+  }
+
+  export function defineProperty (env: napi_env, obj: object, propertyName: string | symbol, method: napi_callback, getter: napi_callback, setter: napi_callback, value: napi_value, attributes: number, data: void_p): void {
+    const envObject = envStore.get(env)!
+    if (getter !== NULL || setter !== NULL) {
+      let localGetter: () => any
+      let localSetter: (v: any) => void
+      if (getter !== NULL) {
+        localGetter = createFunction(env, NULL, 0, getter, data)
+      }
+      if (setter !== NULL) {
+        localSetter = createFunction(env, NULL, 0, setter, data)
+      }
+      const desc: PropertyDescriptor = {
+        configurable: (attributes & napi_property_attributes.napi_configurable) !== 0,
+        enumerable: (attributes & napi_property_attributes.napi_enumerable) !== 0,
+        get: localGetter!,
+        set: localSetter!
+      }
+      Object.defineProperty(obj, propertyName, desc)
+    } else if (method !== NULL) {
+      const localMethod = createFunction(env, NULL, 0, method, data)
+      const desc: PropertyDescriptor = {
+        configurable: (attributes & napi_property_attributes.napi_configurable) !== 0,
+        enumerable: (attributes & napi_property_attributes.napi_enumerable) !== 0,
+        writable: (attributes & napi_property_attributes.napi_writable) !== 0,
+        value: localMethod
+      }
+      Object.defineProperty(obj, propertyName, desc)
+    } else {
+      const desc: PropertyDescriptor = {
+        configurable: (attributes & napi_property_attributes.napi_configurable) !== 0,
+        enumerable: (attributes & napi_property_attributes.napi_enumerable) !== 0,
+        writable: (attributes & napi_property_attributes.napi_writable) !== 0,
+        value: envObject.handleStore.get(value)!.value
+      }
+      Object.defineProperty(obj, propertyName, desc)
+    }
   }
 }

@@ -253,41 +253,7 @@ function napi_define_properties (
           return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_name_expected)
         }
       }
-
-      if (getter !== emnapi.NULL || setter !== emnapi.NULL) {
-        let localGetter: () => any
-        let localSetter: (v: any) => void
-        if (getter !== emnapi.NULL) {
-          localGetter = emnapi.createFunction(env, emnapi.NULL, 0, getter, data)
-        }
-        if (setter !== emnapi.NULL) {
-          localSetter = emnapi.createFunction(env, emnapi.NULL, 0, setter, data)
-        }
-        const desc: PropertyDescriptor = {
-          configurable: (attributes & emnapi.napi_property_attributes.napi_configurable) !== 0,
-          enumerable: (attributes & emnapi.napi_property_attributes.napi_enumerable) !== 0,
-          get: localGetter!,
-          set: localSetter!
-        }
-        Object.defineProperty(maybeObject, propertyName, desc)
-      } else if (method !== emnapi.NULL) {
-        const localMethod = emnapi.createFunction(env, emnapi.NULL, 0, method, data)
-        const desc: PropertyDescriptor = {
-          configurable: (attributes & emnapi.napi_property_attributes.napi_configurable) !== 0,
-          enumerable: (attributes & emnapi.napi_property_attributes.napi_enumerable) !== 0,
-          writable: (attributes & emnapi.napi_property_attributes.napi_writable) !== 0,
-          value: localMethod
-        }
-        Object.defineProperty(maybeObject, propertyName, desc)
-      } else {
-        const desc: PropertyDescriptor = {
-          configurable: (attributes & emnapi.napi_property_attributes.napi_configurable) !== 0,
-          enumerable: (attributes & emnapi.napi_property_attributes.napi_enumerable) !== 0,
-          writable: (attributes & emnapi.napi_property_attributes.napi_writable) !== 0,
-          value: envObject.handleStore.get(value)!.value
-        }
-        Object.defineProperty(maybeObject, propertyName, desc)
-      }
+      emnapi.defineProperty(env, maybeObject, propertyName, method, getter, setter, value, attributes, data)
     }
     return emnapi.napi_status.napi_ok
   })

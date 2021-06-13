@@ -100,9 +100,9 @@ function napi_new_instance (
         const argPtr = argv + (i * 4)
         args.push(envObject.handleStore.get(HEAP32[argPtr >> 2])!.value)
       }
-      const ret = new (Ctor.bind.apply(Ctor, undefined, args))()
+      const ret = new Ctor(...args)
       if (result !== emnapi.NULL) {
-        HEAP32[result >> 2] = envObject.getCurrentScope().add(ret).id
+        HEAP32[result >> 2] = envObject.ensureHandleId(ret)
       }
       return emnapi.napi_clear_last_error(env)
     })

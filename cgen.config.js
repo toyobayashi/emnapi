@@ -21,7 +21,9 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
     name: name,
     type: isEmscripten ? 'exe' : 'node',
     sources: needEntry ? (sources.push('./test/entry_point.c'), sources) : sources,
-    emwrap: {},
+    emwrap: {
+      exportsOnInit: ['emnapi']
+    },
     libs: ['testcommon'],
     includePaths: isEmscripten ? ['./include'] : [],
     compileOptions: [...commonFlags],
@@ -56,7 +58,8 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
       createTarget('string', ['./test/string/binding.c'], true),
       createTarget('property', ['./test/property/binding.c'], true),
       createTarget('promise', ['./test/promise/binding.c'], true),
-      createTarget('object', ['./test/object/test_null.c', './test/object/test_object.c'], true)
+      createTarget('object', ['./test/object/test_null.c', './test/object/test_object.c'], true),
+      createTarget('objwrap', ['./test/objwrap/myobject.cc'], true)
     ]
   }
 }
