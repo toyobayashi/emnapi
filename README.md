@@ -2,6 +2,7 @@
 
 [WIP] 尝试用 JavaScript 为 emscripten 实现 [Node-API](https://nodejs.org/dist/latest-v14.x/docs/api/n-api.html) (v14.16.0)
 
+仅包含 `js_native_api.h` 中的 API 和 `node_api.h` 中的 `napi_module_register`。
 ## 构建
 
 设置 `$EMSDK` 环境变量为 emsdk 根目录，并确保 Emscripten 工具链二进制目录（`$EMSDK/upstream/emscripten`）和 CMake 在 `$PATH` 里
@@ -94,13 +95,58 @@ var Module = {
 <script src="hello.js"></script>
 ```
 
-## 已实现
+## API 列表
+
+勾选表示已实现。
 
 进度：112 / 115 \[97%\]
 
-斜体加粗表示该 API 受限于 JavaScript 运行时能力，可能与原生行为不一致，或是其残废的简易实现，不推荐使用。
+### 不支持的 API
 
-中划线表示该 API 不可实现，调用时永远返回 `napi_generic_failure` 状态。
+以下 API 不可实现，调用后将永远返回 `napi_generic_failure` 状态。
+
+- [x] ~~napi_create_external_arraybuffer~~
+- [x] ~~napi_adjust_external_memory~~
+- [x] ~~napi_detach_arraybuffer~~
+- [x] ~~napi_is_detached_arraybuffer~~
+
+### 能力受限的 API
+
+以下 API 受限于 JavaScript 运行时能力，可能与原生行为不一致，或是其残废的简易实现，请**谨慎使用**。
+
+* 需要 [FinalizationRegistry](https://www.caniuse.com/?search=FinalizationRegistry) 的 API：
+
+  - [x] ***napi_wrap***
+  - [x] ***napi_unwrap***
+  - [x] ***napi_remove_wrap***
+  - [x] ***napi_create_external***
+  - [x] ***napi_get_value_external***
+  - [x] ***napi_create_reference***
+  - [x] ***napi_delete_reference***
+  - [x] ***napi_reference_ref***
+  - [x] ***napi_reference_unref***
+  - [x] ***napi_get_reference_value***
+  - [x] ***napi_add_finalizer***
+  - [ ] ***napi_type_tag_object***
+  - [ ] ***napi_check_object_type_tag***
+
+* 需要 [BigInt](https://www.caniuse.com/?search=BigInt) 的 API
+
+  - [x] ***napi_create_bigint_int64***
+  - [x] ***napi_create_bigint_uint64***
+  - [x] ***napi_create_bigint_words***
+  - [x] ***napi_get_value_bigint_int64***
+  - [x] ***napi_get_value_bigint_uint64***
+  - [ ] ***napi_get_value_bigint_words***
+
+* `data` 指针返回值永远为 `NULL` 的 API：
+
+  - [x] ***napi_create_arraybuffer***
+  - [x] ***napi_get_arraybuffer_info***
+  - [x] ***napi_get_typedarray_info***
+  - [x] ***napi_get_dataview_info***
+
+### 可用的 API
 
 - [x] napi_get_last_error_info
 - [x] napi_get_undefined
@@ -159,16 +205,6 @@ var Module = {
 - [x] napi_get_cb_info
 - [x] napi_get_new_target
 - [x] napi_define_class
-- [x] ***napi_wrap*** (require `FinalizationRegistry`)
-- [x] ***napi_unwrap*** (require `FinalizationRegistry`)
-- [x] ***napi_remove_wrap*** (require `FinalizationRegistry`)
-- [x] ***napi_create_external*** (require `FinalizationRegistry`)
-- [x] ***napi_get_value_external*** (require `FinalizationRegistry`)
-- [x] ***napi_create_reference*** (require `FinalizationRegistry`)
-- [x] ***napi_delete_reference*** (require `FinalizationRegistry`)
-- [x] ***napi_reference_ref*** (require `FinalizationRegistry`)
-- [x] ***napi_reference_unref*** (require `FinalizationRegistry`)
-- [x] ***napi_get_reference_value*** (require `FinalizationRegistry`)
 - [x] napi_open_handle_scope
 - [x] napi_close_handle_scope
 - [x] napi_open_escapable_handle_scope
@@ -182,38 +218,21 @@ var Module = {
 - [x] napi_is_exception_pending
 - [x] napi_get_and_clear_last_exception
 - [x] napi_is_arraybuffer
-- [x] ***napi_create_arraybuffer*** (`data` is always NULL)
-- [x] ~~napi_create_external_arraybuffer~~
-- [x] ***napi_get_arraybuffer_info*** (`data` is always NULL)
 - [x] napi_is_typedarray
 - [x] napi_create_typedarray
-- [x] ***napi_get_typedarray_info*** (`data` is always NULL)
 - [x] napi_create_dataview
 - [x] napi_is_dataview
-- [x] ***napi_get_dataview_info*** (`data` is always NULL)
 - [x] napi_get_version
 - [x] napi_create_promise
 - [x] napi_resolve_deferred
 - [x] napi_reject_deferred
 - [x] napi_is_promise
 - [x] napi_run_script
-- [x] ~~napi_adjust_external_memory~~
 - [x] napi_create_date
 - [x] napi_is_date
 - [x] napi_get_date_value
-- [x] ***napi_add_finalizer*** (require `FinalizationRegistry`)
-- [x] ***napi_create_bigint_int64*** (require `BigInt`)
-- [x] ***napi_create_bigint_uint64*** (require `BigInt`)
-- [x] ***napi_create_bigint_words*** (require `BigInt`)
-- [x] ***napi_get_value_bigint_int64*** (require `BigInt`)
-- [x] ***napi_get_value_bigint_uint64*** (require `BigInt`)
-- [ ] ***napi_get_value_bigint_words*** (require `BigInt`)
 - [x] napi_get_all_property_names
 - [x] napi_set_instance_data
 - [x] napi_get_instance_data
-- [x] ~~napi_detach_arraybuffer~~
-- [x] ~~napi_is_detached_arraybuffer~~
-- [ ] ***napi_type_tag_object*** (require `FinalizationRegistry`)
-- [ ] ***napi_check_object_type_tag*** (require `FinalizationRegistry`)
 - [x] napi_object_freeze
 - [x] napi_object_seal
