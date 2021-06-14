@@ -1,6 +1,6 @@
 # emnapi
 
-[WIP] 尝试用 JavaScript 为 emscripten 实现 [Node-API](https://nodejs.org/dist/latest-v14.x/docs/api/n-api.html) (v14.16.0)
+适用于 [Emscripten](https://emscripten.org/index.html) 的 [Node-API](https://nodejs.org/dist/latest-v14.x/docs/api/n-api.html) (v14.16.0)。
 
 仅包含 `js_native_api.h` 中的 API 和 `node_api.h` 中的 `napi_module_register`。
 ## 构建
