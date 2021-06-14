@@ -37,9 +37,17 @@ namespace emnapi {
       const ref = new Reference(env, handle_id, initialRefcount, deleteSelf, finalize_callback, finalize_data, finalize_hint)
       const envObject = envStore.get(env)!
       envObject.refStore.add(ref)
-      envObject.handleStore.get(handle_id)!.addRef(ref)
+      const handle = envObject.handleStore.get(handle_id)!
+      handle.addRef(ref)
+      if (supportFinalizer && ((typeof handle.value === 'object' && handle.value !== null) || typeof handle.value === 'function')) {
+        ref.objWeakRef = new WeakRef<object>(handle.value)
+      } else {
+        ref.objWeakRef = null
+      }
       return ref
     }
+
+    public objWeakRef!: WeakRef<object> | null
 
     private constructor (
       public env: napi_env,
@@ -65,7 +73,10 @@ namespace emnapi {
       this.refcount--
       if (this.refcount === 0) {
         const envObject = envStore.get(this.env)!
-        envObject.handleStore.get(this.handle_id)!.tryDispose()
+        const handle = envObject.handleStore.get(this.handle_id)
+        if (handle) {
+          handle.tryDispose()
+        }
       }
       return this.refcount
     }
@@ -78,8 +89,16 @@ namespace emnapi {
       const envObject = envStore.get(this.env)!
       if (envObject.handleStore.has(this.handle_id)) {
         return this.handle_id
+      } else {
+        if (this.objWeakRef) {
+          const obj = this.objWeakRef.deref()
+          if (obj) {
+            this.handle_id = envObject.ensureHandleId(obj)
+            return this.handle_id
+          }
+        }
+        return NULL
       }
-      return NULL
     }
 
     public static doDelete (ref: Reference): void {

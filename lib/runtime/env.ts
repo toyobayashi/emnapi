@@ -320,7 +320,7 @@ namespace emnapi {
     return callback(out)
   }
 
-  export const supportFinalizer = typeof FinalizationRegistry !== 'undefined'
+  export const supportFinalizer = (typeof FinalizationRegistry !== 'undefined') && (typeof WeakRef !== 'undefined')
   export const supportBigInt = typeof BigInt !== 'undefined'
 
   export enum WrapType {

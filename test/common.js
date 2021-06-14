@@ -677,7 +677,8 @@ function gcUntil (name, condition) {
       setImmediate(() => {
         count++
         global.gc()
-        if (condition()) {
+        const r = condition()
+        if (r) {
           resolve()
         } else if (count < 10) {
           gcAndCheck()

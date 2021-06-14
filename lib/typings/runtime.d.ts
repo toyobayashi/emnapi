@@ -42,3 +42,8 @@ declare class FinalizationRegistry<H = any> {
   register (obj: object, heldValue: H, unregisterToken?: object): void
   unregister (unregisterToken: object): void
 }
+
+declare class WeakRef<T extends object> {
+  constructor (value: T)
+  deref (): T | undefined
+}
