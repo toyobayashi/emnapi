@@ -8,26 +8,29 @@ namespace emnapi {
   export const INT64_RANGE_NEGATIVE = -Math.pow(2, 63)
 
   class TryCatch {
-    private _exception: Error | null = null
+    private _exception: any = undefined
+    private _caught: boolean = false
     public hasCaught (): boolean {
-      return this._exception !== null
+      return this._caught
     }
 
-    public exception (): Error | null {
+    public exception (): any {
       return this._exception
     }
 
-    public setError (err: Error): void {
+    public setError (err: any): void {
       this._exception = err
+      this._caught = true
     }
 
     public reset (): void {
-      this._exception = null
+      this._exception = undefined
+      this._caught = false
     }
 
-    public extractException (): Error | null {
+    public extractException (): any {
       const e = this._exception
-      this._exception = null
+      this.reset()
       return e
     }
   }

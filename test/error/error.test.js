@@ -1,63 +1,129 @@
+/* eslint-disable camelcase */
 'use strict'
 const assert = require('assert')
 const { load } = require('../util')
 
 const promise = load('error')
 
-promise.then(mod => {
-  const ret = mod.getLastError()
-  assert.strictEqual(ret.code, 1)
-  assert.strictEqual(ret.msg, 'Invalid argument')
+promise.then(test_error => {
+  const theError = new Error('Some error')
+  const theTypeError = new TypeError('Some type error')
+  const theSyntaxError = new SyntaxError('Some syntax error')
+  const theRangeError = new RangeError('Some type error')
+  const theReferenceError = new ReferenceError('Some reference error')
+  const theURIError = new URIError('Some URI error')
+  const theEvalError = new EvalError('Some eval error')
 
-  try {
-    mod.throwUndef()
-    return Promise.reject(new Error('Should throw undefined'))
-  } catch (error) {
-    assert.strictEqual(error, undefined)
-  }
+  class MyError extends Error { }
+  const myError = new MyError('Some MyError')
 
-  try {
-    mod.throwError()
-    return Promise.reject(new Error('Should throw error'))
-  } catch (error) {
-    assert.ok(error instanceof Error)
-    assert.strictEqual(error.code, 'CODE 1')
-    assert.strictEqual(error.message, 'msg 1')
-  }
+  // Test that native error object is correctly classed
+  assert.strictEqual(test_error.checkError(theError), true)
 
-  try {
-    mod.throwTypeError()
-    return Promise.reject(new Error('Should throw type error'))
-  } catch (error) {
-    assert.ok(error instanceof TypeError)
-    assert.strictEqual(error.code, 'CODE 2')
-    assert.strictEqual(error.message, 'msg 2')
-  }
+  // Test that native type error object is correctly classed
+  assert.strictEqual(test_error.checkError(theTypeError), true)
 
-  try {
-    mod.throwRangeError()
-    return Promise.reject(new Error('Should throw range error'))
-  } catch (error) {
-    assert.ok(error instanceof RangeError)
-    assert.strictEqual(error.code, 'CODE 3')
-    assert.strictEqual(error.message, 'msg 3')
-  }
-  let error
-  error = mod.createError()
-  assert.ok(error instanceof Error)
-  assert.strictEqual(error.code, 'CODE 4')
-  assert.strictEqual(error.message, 'msg 4')
-  assert.strictEqual(mod.isError(error), true)
+  // Test that native syntax error object is correctly classed
+  assert.strictEqual(test_error.checkError(theSyntaxError), true)
 
-  error = mod.createTypeError()
-  assert.ok(error instanceof TypeError)
-  assert.strictEqual(error.code, 'CODE 5')
-  assert.strictEqual(error.message, 'msg 5')
-  assert.strictEqual(mod.isError(error), true)
+  // Test that native range error object is correctly classed
+  assert.strictEqual(test_error.checkError(theRangeError), true)
 
-  error = mod.createRangeError()
-  assert.ok(error instanceof RangeError)
-  assert.strictEqual(error.code, 'CODE 6')
-  assert.strictEqual(error.message, 'msg 6')
-  assert.strictEqual(mod.isError(error), true)
+  // Test that native reference error object is correctly classed
+  assert.strictEqual(test_error.checkError(theReferenceError), true)
+
+  // Test that native URI error object is correctly classed
+  assert.strictEqual(test_error.checkError(theURIError), true)
+
+  // Test that native eval error object is correctly classed
+  assert.strictEqual(test_error.checkError(theEvalError), true)
+
+  // Test that class derived from native error is correctly classed
+  assert.strictEqual(test_error.checkError(myError), true)
+
+  // Test that non-error object is correctly classed
+  assert.strictEqual(test_error.checkError({}), false)
+
+  // Test that non-error primitive is correctly classed
+  assert.strictEqual(test_error.checkError('non-object'), false)
+
+  assert.throws(() => {
+    test_error.throwExistingError()
+  }, /^Error: existing error$/)
+
+  assert.throws(() => {
+    test_error.throwError()
+  }, /^Error: error$/)
+
+  assert.throws(() => {
+    test_error.throwRangeError()
+  }, /^RangeError: range error$/)
+
+  assert.throws(() => {
+    test_error.throwTypeError()
+  }, /^TypeError: type error$/);
+
+  [42, {}, [], Symbol('xyzzy'), true, 'ball', undefined, null, NaN]
+    .forEach((value) => assert.throws(
+      () => test_error.throwArbitrary(value),
+      (err) => {
+        assert.strictEqual(err, value)
+        return true
+      }
+    ))
+
+  assert.throws(
+    () => test_error.throwErrorCode(),
+    {
+      code: 'ERR_TEST_CODE',
+      message: 'Error [error]'
+    })
+
+  assert.throws(
+    () => test_error.throwRangeErrorCode(),
+    {
+      code: 'ERR_TEST_CODE',
+      message: 'RangeError [range error]'
+    })
+
+  assert.throws(
+    () => test_error.throwTypeErrorCode(),
+    {
+      code: 'ERR_TEST_CODE',
+      message: 'TypeError [type error]'
+    })
+
+  let error = test_error.createError()
+  assert.ok(error instanceof Error, 'expected error to be an instance of Error')
+  assert.strictEqual(error.message, 'error')
+
+  error = test_error.createRangeError()
+  assert.ok(error instanceof RangeError,
+    'expected error to be an instance of RangeError')
+  assert.strictEqual(error.message, 'range error')
+
+  error = test_error.createTypeError()
+  assert.ok(error instanceof TypeError,
+    'expected error to be an instance of TypeError')
+  assert.strictEqual(error.message, 'type error')
+
+  error = test_error.createErrorCode()
+  assert.ok(error instanceof Error, 'expected error to be an instance of Error')
+  assert.strictEqual(error.code, 'ERR_TEST_CODE')
+  assert.strictEqual(error.message, 'Error [error]')
+  assert.strictEqual(error.name, 'Error')
+
+  error = test_error.createRangeErrorCode()
+  assert.ok(error instanceof RangeError,
+    'expected error to be an instance of RangeError')
+  assert.strictEqual(error.message, 'RangeError [range error]')
+  assert.strictEqual(error.code, 'ERR_TEST_CODE')
+  assert.strictEqual(error.name, 'RangeError')
+
+  error = test_error.createTypeErrorCode()
+  assert.ok(error instanceof TypeError,
+    'expected error to be an instance of TypeError')
+  assert.strictEqual(error.message, 'TypeError [type error]')
+  assert.strictEqual(error.code, 'ERR_TEST_CODE')
+  assert.strictEqual(error.name, 'TypeError')
 })
