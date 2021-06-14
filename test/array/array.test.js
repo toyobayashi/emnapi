@@ -56,4 +56,7 @@ load('array').then(test_array => {
     assert.strictEqual(arr.length, 4)
     assert.strictEqual(2 in arr, false)
   }
+}).catch(err => {
+  console.error(err)
+  process.exit(1)
 })

@@ -81,4 +81,7 @@ promise.then(mod => {
     name: 'RangeError',
     message: 'Maximum BigInt size exceeded'
   })
+}).catch(err => {
+  console.error(err)
+  process.exit(1)
 })

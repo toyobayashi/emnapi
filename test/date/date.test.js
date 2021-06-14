@@ -18,4 +18,7 @@ load('date').then(test_date => {
   assert.strictEqual(test_date.isDate({}), false)
 
   assert.strictEqual(test_date.getDateValue(new Date(1549183351)), 1549183351)
+}).catch(err => {
+  console.error(err)
+  process.exit(1)
 })

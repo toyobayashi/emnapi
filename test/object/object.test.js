@@ -315,4 +315,7 @@ load('object').then(test_object => {
       delete obj.x
     }, /Cannot delete property 'x' of #<Object>/)
   }
+}).catch(err => {
+  console.error(err)
+  process.exit(1)
 })

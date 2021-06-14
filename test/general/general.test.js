@@ -9,4 +9,7 @@ load('general').then(addon => {
 
   assert.strictEqual(actual, expected)
   assert.throws(() => addon.testNapiRun({ abc: 'def' }), /string was expected/)
+}).catch(err => {
+  console.error(err)
+  process.exit(1)
 })

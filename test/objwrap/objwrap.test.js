@@ -49,4 +49,7 @@ p.then(addon => {
   assert.strictEqual(newobj.value, -13)
   assert.strictEqual(newobj.valueReadonly, -13)
   assert.notStrictEqual(obj, newobj)
+}).catch(err => {
+  console.error(err)
+  process.exit(1)
 })

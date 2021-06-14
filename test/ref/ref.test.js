@@ -118,4 +118,7 @@ p.then(test_reference => {
     test_reference.validateDeleteBeforeFinalize(wrapObject)
     global.gc()
   }
+}).catch(err => {
+  console.error(err)
+  process.exit(1)
 })

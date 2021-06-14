@@ -59,4 +59,7 @@ load('promise').then(test_promise => {
   assert.strictEqual(test_promise.isPromise(undefined), false)
   assert.strictEqual(test_promise.isPromise(null), false)
   assert.strictEqual(test_promise.isPromise({}), false)
+}).catch(err => {
+  console.error(err)
+  process.exit(1)
 })

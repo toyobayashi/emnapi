@@ -48,7 +48,6 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
       createTarget('env', ['./test/env/binding.c']),
       createTarget('value', ['./test/value/binding.c']),
       createTarget('hello', ['./test/hello/binding.c']),
-      createTarget('valueoperation', ['./test/value-operation/binding.c']),
       createTarget('arg', ['./test/arg/binding.c'], true),
       createTarget('callback', ['./test/callback/binding.c'], true),
       createTarget('objfac', ['./test/objfac/binding.c'], true),

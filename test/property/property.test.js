@@ -66,4 +66,7 @@ load('property').then(test_object => {
     true)
   assert.strictEqual(test_object.hasNamedProperty(test_object, 'doesnotexist'),
     false)
+}).catch(err => {
+  console.error(err)
+  process.exit(1)
 })

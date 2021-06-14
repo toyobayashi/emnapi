@@ -126,4 +126,7 @@ promise.then(test_error => {
   assert.strictEqual(error.message, 'TypeError [type error]')
   assert.strictEqual(error.code, 'ERR_TEST_CODE')
   assert.strictEqual(error.name, 'TypeError')
+}).catch(err => {
+  console.error(err)
+  process.exit(1)
 })

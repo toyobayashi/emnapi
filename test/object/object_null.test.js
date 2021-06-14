@@ -54,4 +54,7 @@ load('object').then(test_object => {
   assert.deepStrictEqual(testNull.getPropertyNames(), expectedForElement)
   assert.deepStrictEqual(testNull.getAllPropertyNames(), expectedForElement)
   assert.deepStrictEqual(testNull.getPrototype(), expectedForElement)
+}).catch(err => {
+  console.error(err)
+  process.exit(1)
 })

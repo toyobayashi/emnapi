@@ -59,4 +59,7 @@ promise.catch(anException => {
       'Exception state did not remain clear as expected,' +
                      ` .wasPending() returned ${exception_pending}`)
   }
+}).catch(err => {
+  console.error(err)
+  process.exit(1)
 })

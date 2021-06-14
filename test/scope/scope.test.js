@@ -17,4 +17,7 @@ p.then(testHandleScope => {
       testHandleScope.NewScopeWithException(() => { throw new RangeError() })
     },
     RangeError)
+}).catch(err => {
+  console.error(err)
+  process.exit(1)
 })

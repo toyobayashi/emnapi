@@ -24,4 +24,7 @@ function load (request) {
 load(${JSON.stringify(getEntry('hello'))}).then((binding) => { const msg = binding.hello(); parentPort.postMessage(msg) });`, { eval: true, env: process.env })
       .on('message', common.mustCall((msg) => assert.strictEqual(msg, 'world')))
   })
+}).catch(err => {
+  console.error(err)
+  process.exit(1)
 })

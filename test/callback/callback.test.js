@@ -20,4 +20,7 @@ load('callback').then(addon => {
   testRecv('Hello')
   testRecv([])
   testRecv({})
+}).catch(err => {
+  console.error(err)
+  process.exit(1)
 })

@@ -23,4 +23,7 @@ load('dataview').then(test_dataview => {
       test_dataview.CreateDataView(buffer, 10, 200)
     }, RangeError)
   }
+}).catch(err => {
+  console.error(err)
+  process.exit(1)
 })

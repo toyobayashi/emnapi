@@ -23,4 +23,7 @@ p.then(binding => {
   assert.ok(binding.OrdinaryFunction())
   assert.ok(
     new binding.Constructor(binding.Constructor) instanceof binding.Constructor)
+}).catch(err => {
+  console.error(err)
+  process.exit(1)
 })

@@ -82,4 +82,7 @@ load('string').then(test_string => {
   }, /^Error: Invalid argument$/)
 
   test_string.TestMemoryCorruption(' '.repeat(64 * 1024))
+}).catch(err => {
+  console.error(err)
+  process.exit(1)
 })

@@ -61,4 +61,7 @@ load('constructor').then(TestConstructor => {
     propertiesIsNull: 'Invalid argument',
     resultIsNull: 'Invalid argument'
   })
+}).catch(err => {
+  console.error(err)
+  process.exit(1)
 })

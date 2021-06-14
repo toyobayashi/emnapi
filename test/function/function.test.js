@@ -43,4 +43,7 @@ load('function').then(async test_function => {
     cbIsNull: 'Invalid argument',
     resultIsNull: 'Invalid argument'
   })
+}).catch(err => {
+  console.error(err)
+  process.exit(1)
 })

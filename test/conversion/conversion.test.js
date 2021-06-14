@@ -218,4 +218,7 @@ load('conversion').then(test => {
     wrongTypeIn: 'A string was expected',
     bufAndOutLengthIsNull: 'Invalid argument'
   })
+}).catch(err => {
+  console.error(err)
+  process.exit(1)
 })

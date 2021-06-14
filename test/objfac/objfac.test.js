@@ -6,4 +6,7 @@ load('objfac').then(addon => {
   const obj1 = addon('hello')
   const obj2 = addon('world')
   assert.strictEqual(`${obj1.msg} ${obj2.msg}`, 'hello world')
+}).catch(err => {
+  console.error(err)
+  process.exit(1)
 })
