@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <stddef.h>
 
-#define NAPI_VERSION 6
 #include "node_api.h"
 
 #include "../common.h"

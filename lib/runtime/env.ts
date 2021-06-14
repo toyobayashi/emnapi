@@ -35,7 +35,6 @@ namespace emnapi {
   export class Env implements IStoreValue {
     public id: number
     public openHandleScopes: number = 0
-    public napiVersion: number = 0
 
     public instanceData = {
       data: 0,

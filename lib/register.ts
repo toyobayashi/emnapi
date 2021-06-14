@@ -12,11 +12,10 @@ function napi_module_register (nodeModule: Pointer<node_module>): void {
   const nm_modname = HEAP32[addr + 4]
   const modName = UTF8ToString(nm_modname) || 'emnapiExports'
   // const nm_priv = HEAP32[addr + 5]
-  const reserved = HEAP32[addr + 6]
+  // const reserved = HEAP32[addr + 6]
 
   const env = emnapi.Env.create()
   emnapi.initErrorMemory()
-  env.napiVersion = reserved
 
   env.callInNewHandleScope((scope) => {
     const exports = {}
