@@ -99,7 +99,7 @@ var Module = {
 
 勾选表示已实现。
 
-进度：112 / 115 \[97%\]
+进度：113 / 115 \[98%\]
 
 ### 不支持的 API
 
@@ -129,15 +129,6 @@ var Module = {
   - [x] ***napi_add_finalizer***
   - [ ] ***napi_type_tag_object***
   - [ ] ***napi_check_object_type_tag***
-
-* 需要 [BigInt](https://www.caniuse.com/?search=BigInt) 的 API
-
-  - [x] ***napi_create_bigint_int64***
-  - [x] ***napi_create_bigint_uint64***
-  - [x] ***napi_create_bigint_words***
-  - [x] ***napi_get_value_bigint_int64***
-  - [x] ***napi_get_value_bigint_uint64***
-  - [x] ***napi_get_value_bigint_words***
 
 * `data` 指针返回值永远为 `NULL` 的 API：
 
@@ -236,3 +227,9 @@ var Module = {
 - [x] napi_get_instance_data
 - [x] napi_object_freeze
 - [x] napi_object_seal
+- [x] ***napi_create_bigint_int64*** (需要 `BigInt`)
+- [x] ***napi_create_bigint_uint64*** (需要 `BigInt`)
+- [x] ***napi_create_bigint_words*** (需要 `BigInt`)
+- [x] ***napi_get_value_bigint_int64*** (需要 `BigInt`)
+- [x] ***napi_get_value_bigint_uint64*** (需要 `BigInt`)
+- [x] ***napi_get_value_bigint_words*** (需要 `BigInt`)

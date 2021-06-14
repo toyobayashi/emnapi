@@ -126,6 +126,9 @@ function napi_create_bigint_words (env: napi_env, sign_bit: int, word_count: siz
       if (word_count > 2147483647) {
         return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_invalid_arg)
       }
+      if (word_count > (1024 * 1024 / (4 * 8) / 2)) {
+        throw new RangeError('Maximum BigInt size exceeded')
+      }
       let value: bigint = BigInt(0)
       for (let i = 0; i < word_count; i++) {
         const low = HEAPU32[(words + (i * 8)) >> 2]

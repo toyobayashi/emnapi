@@ -292,41 +292,24 @@ function napi_get_value_bigint_words (
         const isMinus = handle.value < BigInt(0)
         let word_count_int = HEAP32[word_count >> 2]
         let wordCount = 0
-        let bigintValue: bigint = handle.value
-        do {
+        let bigintValue: bigint = isMinus ? (handle.value * BigInt(-1)) : handle.value
+        while (bigintValue !== BigInt(0)) {
           wordCount++
           bigintValue = bigintValue >> BigInt(64)
-          if (bigintValue === BigInt(0) || bigintValue === BigInt(-1)) {
-            break
-          }
-        } while (true)
-        bigintValue = handle.value
-        word_count_int = bigintValue === BigInt(0) ? 0 : wordCount
+        }
+        bigintValue = isMinus ? (handle.value * BigInt(-1)) : handle.value
+        word_count_int = wordCount
         if (sign_bit === emnapi.NULL && words === emnapi.NULL) {
           HEAPU32[word_count >> 2] = word_count_int
         } else {
           if (sign_bit === emnapi.NULL) return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_invalid_arg)
           if (words === emnapi.NULL) return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_invalid_arg)
           const wordsArr = []
-          let first = true
-          do {
+          while (bigintValue !== BigInt(0)) {
             const uint64 = bigintValue & ((BigInt(1) << BigInt(64)) - BigInt(1))
-            if (isMinus) {
-              if (first) {
-                wordsArr.push((BigInt(1) << BigInt(64)) - uint64)
-              } else {
-                wordsArr.push((BigInt(1) << BigInt(64)) - uint64 - BigInt(1))
-              }
-            } else {
-              wordsArr.push(uint64)
-            }
+            wordsArr.push(uint64)
             bigintValue = bigintValue >> BigInt(64)
-            first = false
-            if (bigintValue === BigInt(0) || bigintValue === BigInt(-1)) {
-              break
-            }
-          } while (true)
-          bigintValue = handle.value
+          }
           const len = Math.min(word_count_int, wordsArr.length)
           for (let i = 0; i < len; i++) {
             const low = Number(wordsArr[i] & BigInt(0xffffffff))

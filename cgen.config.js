@@ -59,7 +59,8 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
       createTarget('property', ['./test/property/binding.c'], true),
       createTarget('promise', ['./test/promise/binding.c'], true),
       createTarget('object', ['./test/object/test_null.c', './test/object/test_object.c'], true),
-      createTarget('objwrap', ['./test/objwrap/myobject.cc'], true)
+      createTarget('objwrap', ['./test/objwrap/myobject.cc'], true),
+      createTarget('bigint', ['./test/bigint/binding.c'], true)
     ]
   }
 }
