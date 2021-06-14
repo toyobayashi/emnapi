@@ -8,16 +8,20 @@ function getEntry (targetName) {
 exports.getEntry = getEntry
 
 exports.load = function (targetName) {
-  const request = getEntry(targetName)
-  const mod = require(request)
+  try {
+    const request = getEntry(targetName)
+    const mod = require(request)
 
-  if (typeof mod.default === 'function') {
-    const p = mod.default().then(({ Module, emnapi }) => {
-      p.emnapi = emnapi
-      return Module.emnapiExports
-    })
-    return p
-  } else {
-    return Promise.resolve(mod)
+    if (typeof mod.default === 'function') {
+      const p = mod.default().then(({ Module, emnapi }) => {
+        p.emnapi = emnapi
+        return Module.emnapiExports
+      })
+      return p
+    } else {
+      return Promise.resolve(mod)
+    }
+  } catch (err) {
+    return Promise.reject(err)
   }
 }
