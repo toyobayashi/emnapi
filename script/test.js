@@ -12,7 +12,7 @@ files.forEach((f) => {
 function test (f) {
   console.log('Test: ' + f)
   console.time(f)
-  const r = spawnSync('node', [f], { cwd, env: process.env, stdio: 'inherit' })
+  const r = spawnSync('node', ['--expose-gc', f], { cwd, env: process.env, stdio: 'inherit' })
   if (r.status !== 0) {
     process.exit(r.status)
   }
