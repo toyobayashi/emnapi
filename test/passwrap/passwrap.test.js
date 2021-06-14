@@ -21,5 +21,8 @@ p.then(addon => {
     await common.gcUntil('8_passing_wrapped',
       () => (addon.finalizeCount() === 2))
   }
-  runTest()
+  runTest().catch(err => {
+    console.error(err)
+    process.exit(1)
+  })
 })
