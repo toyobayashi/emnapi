@@ -2,6 +2,14 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "type": "node",
+      "request": "launch",
+      "name": "Launch Program",
+      "runtimeArgs": ["--expose-gc"],
+      "program": "${workspaceFolder}/test/ref/ref.test.js",
+      "args": ["--expose-gc"]
+    },
+    {
       "name": "Windows",
       "type": "cppvsdbg",
       "request": "launch",
