@@ -282,6 +282,7 @@ function napi_get_value_bigint_words (
   word_count: Pointer<size_t>,
   words: Pointer<uint64_t>
 ): emnapi.napi_status {
+  if (!emnapi.supportBigInt) return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_generic_failure)
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(env, [value, word_count], () => {
       try {

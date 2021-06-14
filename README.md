@@ -97,10 +97,6 @@ var Module = {
 
 ## API 列表
 
-勾选表示已实现。
-
-进度：113 / 115 \[98%\]
-
 ### 不支持的 API
 
 以下 API 不可实现，调用后将永远返回 `napi_generic_failure` 状态。
@@ -127,8 +123,6 @@ var Module = {
   - [x] ***napi_reference_unref***
   - [x] ***napi_get_reference_value***
   - [x] ***napi_add_finalizer***
-  - [ ] ***napi_type_tag_object***
-  - [ ] ***napi_check_object_type_tag***
 
 * `data` 指针返回值永远为 `NULL` 的 API：
 
@@ -137,7 +131,7 @@ var Module = {
   - [x] ***napi_get_typedarray_info***
   - [x] ***napi_get_dataview_info***
 
-### 可用的 API
+### 稳定的 API
 
 - [x] napi_get_last_error_info
 - [x] napi_get_undefined
@@ -227,6 +221,8 @@ var Module = {
 - [x] napi_get_instance_data
 - [x] napi_object_freeze
 - [x] napi_object_seal
+- [x] napi_type_tag_object
+- [x] napi_check_object_type_tag
 - [x] ***napi_create_bigint_int64*** (需要 `BigInt`)
 - [x] ***napi_create_bigint_uint64*** (需要 `BigInt`)
 - [x] ***napi_create_bigint_words*** (需要 `BigInt`)

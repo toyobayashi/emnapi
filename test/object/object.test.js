@@ -159,7 +159,7 @@ load('object').then(test_object => {
     assert(wrapper.protoB, true)
   }
 
-  /* {
+  {
   // Verify that objects can be type-tagged and type-tag-checked.
     const obj1 = test_object.TypeTaggedInstance(0)
     const obj2 = test_object.TypeTaggedInstance(1)
@@ -175,7 +175,7 @@ load('object').then(test_object => {
     // Verify that untagged objects are rejected.
     assert.strictEqual(test_object.CheckTypeTag(0, {}), false)
     assert.strictEqual(test_object.CheckTypeTag(1, {}), false)
-  } */
+  }
 
   {
     // Verify that normal and nonexistent properties can be deleted.

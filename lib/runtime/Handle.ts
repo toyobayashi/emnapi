@@ -104,6 +104,7 @@ namespace emnapi {
     public value: S
     public inScope: IHandleScope | null
     public wrapped: number = 0 // wrapped Reference id
+    public tag: [number, number, number, number] | null
     public refs: Reference[]
 
     public constructor (env: napi_env, id: number, value: S) {
@@ -112,6 +113,7 @@ namespace emnapi {
       this.value = value
       this.inScope = null
       this.wrapped = 0
+      this.tag = null
       this.refs = []
     }
 
@@ -119,6 +121,7 @@ namespace emnapi {
       const h = new Handle(this.env, this.id, this.value)
       h.inScope = this.inScope
       h.wrapped = this.wrapped
+      h.tag = (this.tag?.slice() as [number, number, number, number]) ?? null
       h.refs = this.refs.slice()
 
       envStore.get(this.env)!.handleStore.add(h)
@@ -266,6 +269,7 @@ namespace emnapi {
       h.id = this.id
       h.inScope = this.inScope
       h.wrapped = this.wrapped
+      h.tag = (this.tag?.slice() as [number, number, number, number]) ?? null
       h.refs = this.refs.slice()
 
       envStore.get(this.env)!.handleStore.add(h)

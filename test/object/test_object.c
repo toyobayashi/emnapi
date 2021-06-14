@@ -502,37 +502,37 @@ static const napi_type_tag type_tags[2] = {
   { 0xbb7936c374084d9b, 0xa9548d0762eeedb9 }
 };
 
-// static napi_value
-// TypeTaggedInstance(napi_env env, napi_callback_info info) {
-//   size_t argc = 1;
-//   uint32_t type_index;
-//   napi_value instance, which_type;
+static napi_value
+TypeTaggedInstance(napi_env env, napi_callback_info info) {
+  size_t argc = 1;
+  uint32_t type_index;
+  napi_value instance, which_type;
 
-//   NAPI_CALL(env, napi_get_cb_info(env, info, &argc, &which_type, NULL, NULL));
-//   NAPI_CALL(env, napi_get_value_uint32(env, which_type, &type_index));
-//   NAPI_CALL(env, napi_create_object(env, &instance));
-//   NAPI_CALL(env, napi_type_tag_object(env, instance, &type_tags[type_index]));
+  NAPI_CALL(env, napi_get_cb_info(env, info, &argc, &which_type, NULL, NULL));
+  NAPI_CALL(env, napi_get_value_uint32(env, which_type, &type_index));
+  NAPI_CALL(env, napi_create_object(env, &instance));
+  NAPI_CALL(env, napi_type_tag_object(env, instance, &type_tags[type_index]));
 
-//   return instance;
-// }
+  return instance;
+}
 
-// static napi_value
-// CheckTypeTag(napi_env env, napi_callback_info info) {
-//   size_t argc = 2;
-//   bool result;
-//   napi_value argv[2], js_result;
-//   uint32_t type_index;
+static napi_value
+CheckTypeTag(napi_env env, napi_callback_info info) {
+  size_t argc = 2;
+  bool result;
+  napi_value argv[2], js_result;
+  uint32_t type_index;
 
-//   NAPI_CALL(env, napi_get_cb_info(env, info, &argc, argv, NULL, NULL));
-//   NAPI_CALL(env, napi_get_value_uint32(env, argv[0], &type_index));
-//   NAPI_CALL(env, napi_check_object_type_tag(env,
-//                                             argv[1],
-//                                             &type_tags[type_index],
-//                                             &result));
-//   NAPI_CALL(env, napi_get_boolean(env, result, &js_result));
+  NAPI_CALL(env, napi_get_cb_info(env, info, &argc, argv, NULL, NULL));
+  NAPI_CALL(env, napi_get_value_uint32(env, argv[0], &type_index));
+  NAPI_CALL(env, napi_check_object_type_tag(env,
+                                            argv[1],
+                                            &type_tags[type_index],
+                                            &result));
+  NAPI_CALL(env, napi_get_boolean(env, result, &js_result));
 
-//   return js_result;
-// }
+  return js_result;
+}
 
 EXTERN_C_START
 napi_value Init(napi_env env, napi_value exports) {
@@ -553,8 +553,8 @@ napi_value Init(napi_env env, napi_value exports) {
     DECLARE_NAPI_PROPERTY("Unwrap", Unwrap),
     DECLARE_NAPI_PROPERTY("TestSetProperty", TestSetProperty),
     DECLARE_NAPI_PROPERTY("TestHasProperty", TestHasProperty),
-    // DECLARE_NAPI_PROPERTY("TypeTaggedInstance", TypeTaggedInstance),
-    // DECLARE_NAPI_PROPERTY("CheckTypeTag", CheckTypeTag),
+    DECLARE_NAPI_PROPERTY("TypeTaggedInstance", TypeTaggedInstance),
+    DECLARE_NAPI_PROPERTY("CheckTypeTag", CheckTypeTag),
     DECLARE_NAPI_PROPERTY("TestGetProperty", TestGetProperty),
     DECLARE_NAPI_PROPERTY("TestFreeze", TestFreeze),
     DECLARE_NAPI_PROPERTY("TestSeal", TestSeal),
