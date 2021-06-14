@@ -7,10 +7,7 @@
     "types": [],
     "lib": [
       "ES5",
-      "ES2015.Promise",
-      "ES2015.Symbol",
-      "ES2015.Symbol.WellKnown",
-      "ES2015.Iterable",
+      "ES2015",
       "ES2020.BigInt",
       "DOM"
     ]
