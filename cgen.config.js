@@ -13,6 +13,7 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
         // '-sERROR_ON_UNDEFINED_SYMBOLS=0', if add js function to imports.env
         "-sEXPORTED_FUNCTIONS=['_malloc','_free']",
         '-sALLOW_MEMORY_GROWTH=1',
+        '-sNODEJS_CATCH_EXIT=0',
         ...(isDebug ? debugFlags : [])
       ]
     : []
@@ -46,8 +47,6 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
       },
       createTarget('env', ['./test/env/binding.c']),
       createTarget('value', ['./test/value/binding.c']),
-      createTarget('function', ['./test/function/binding.c']),
-      createTarget('error', ['./test/error/binding.c']),
       createTarget('hello', ['./test/hello/binding.c']),
       createTarget('valueoperation', ['./test/value-operation/binding.c']),
       createTarget('arg', ['./test/arg/binding.c'], true),
@@ -60,7 +59,18 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
       createTarget('promise', ['./test/promise/binding.c'], true),
       createTarget('object', ['./test/object/test_null.c', './test/object/test_object.c'], true),
       createTarget('objwrap', ['./test/objwrap/myobject.cc'], true),
-      createTarget('bigint', ['./test/bigint/binding.c'], true)
+      createTarget('bigint', ['./test/bigint/binding.c'], true),
+      createTarget('fnwrap', ['./test/fnwrap/myobject.cc', './test/fnwrap/binding.cc'], true),
+      createTarget('passwrap', ['./test/passwrap/myobject.cc', './test/passwrap/binding.cc'], true),
+      createTarget('array', ['./test/array/binding.c'], true),
+      createTarget('constructor', ['./test/constructor/binding.c'], true),
+      createTarget('conversion', ['./test/conversion/test_conversions.c', './test/conversion/test_null.c'], true),
+      createTarget('dataview', ['./test/dataview/binding.c'], true),
+      createTarget('date', ['./test/date/binding.c'], true),
+      createTarget('error', ['./test/error/binding.c'], true),
+      createTarget('exception', ['./test/exception/binding.c'], true),
+      createTarget('ref', ['./test/ref/binding.c'], true),
+      createTarget('function', ['./test/function/binding.c'], true)
     ]
   }
 }
