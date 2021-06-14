@@ -12,9 +12,10 @@
 ```bash
 npm install -g @tybys/cgen
 npm install
-npm run rebuild
+npm run build:lib
 
 # test
+npm run rebuild
 npm test
 ```
 
