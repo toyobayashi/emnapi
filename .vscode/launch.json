@@ -6,7 +6,7 @@
       "request": "launch",
       "name": "Launch Program",
       "runtimeArgs": ["--expose-gc"],
-      "program": "${workspaceFolder}/test/ref/ref.test.js",
+      "program": "${workspaceFolder}/test/function/function.test.js",
       "args": ["--expose-gc"]
     },
     {

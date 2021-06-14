@@ -79,7 +79,7 @@ function napi_type_tag_object (env: napi_env, object: napi_value, type_tag: Cons
       return emnapi.napi_set_last_error(env, envObject.tryCatch.hasCaught() ? emnapi.napi_status.napi_pending_exception : emnapi.napi_status.napi_invalid_arg)
     }
     const value = envObject.handleStore.get(object)!
-    if (!value.isObject()) {
+    if (!(value.isObject() || value.isFunction())) {
       return emnapi.napi_set_last_error(env, envObject.tryCatch.hasCaught() ? emnapi.napi_status.napi_pending_exception : emnapi.napi_status.napi_object_expected)
     }
     if (type_tag === emnapi.NULL) {
@@ -105,7 +105,7 @@ function napi_check_object_type_tag (env: napi_env, object: napi_value, type_tag
       return emnapi.napi_set_last_error(env, envObject.tryCatch.hasCaught() ? emnapi.napi_status.napi_pending_exception : emnapi.napi_status.napi_invalid_arg)
     }
     const value = envObject.handleStore.get(object)!
-    if (!value.isObject()) {
+    if (!(value.isObject() || value.isFunction())) {
       return emnapi.napi_set_last_error(env, envObject.tryCatch.hasCaught() ? emnapi.napi_status.napi_pending_exception : emnapi.napi_status.napi_object_expected)
     }
     if (type_tag === emnapi.NULL) {

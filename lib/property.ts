@@ -9,7 +9,7 @@ function napi_get_all_property_names (
   return emnapi.preamble(env, (envObject) => {
     return emnapi.checkArgs(env, [result, object], () => {
       const h = envObject.handleStore.get(object)!
-      if (!h.isObject()) {
+      if (!(h.isObject() || h.isFunction())) {
         return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_object_expected)
       }
       if (key_mode !== emnapi.napi_key_collection_mode.napi_key_include_prototypes && key_mode !== emnapi.napi_key_collection_mode.napi_key_own_only) {
@@ -41,7 +41,7 @@ function napi_set_property (env: napi_env, object: napi_value, key: napi_value, 
   return emnapi.preamble(env, (envObject) => {
     return emnapi.checkArgs(env, [key, value, object], () => {
       const h = envObject.handleStore.get(object)!
-      if (!h.isObject()) {
+      if (!(h.isObject() || h.isFunction())) {
         return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_object_expected)
       }
       h.value[envObject.handleStore.get(key)!.value] = envObject.handleStore.get(value)!.value
@@ -54,7 +54,7 @@ function napi_has_property (env: napi_env, object: napi_value, key: napi_value, 
   return emnapi.preamble(env, (envObject) => {
     return emnapi.checkArgs(env, [key, result, object], () => {
       const h = envObject.handleStore.get(object)!
-      if (!h.isObject()) {
+      if (!(h.isObject() || h.isFunction())) {
         return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_object_expected)
       }
       HEAPU8[result] = (envObject.handleStore.get(key)!.value in h.value) ? 1 : 0
@@ -67,7 +67,7 @@ function napi_get_property (env: napi_env, object: napi_value, key: napi_value, 
   return emnapi.preamble(env, (envObject) => {
     return emnapi.checkArgs(env, [key, result, object], () => {
       const h = envObject.handleStore.get(object)!
-      if (!h.isObject()) {
+      if (!(h.isObject() || h.isFunction())) {
         return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_object_expected)
       }
       HEAP32[result >> 2] = envObject.ensureHandleId(h.value[envObject.handleStore.get(key)!.value])
@@ -80,7 +80,7 @@ function napi_delete_property (env: napi_env, object: napi_value, key: napi_valu
   return emnapi.preamble(env, (envObject) => {
     return emnapi.checkArgs(env, [key, object], () => {
       const h = envObject.handleStore.get(object)!
-      if (!h.isObject()) {
+      if (!(h.isObject() || h.isFunction())) {
         return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_object_expected)
       }
       const r = delete h.value[envObject.handleStore.get(key)!.value]
@@ -96,7 +96,7 @@ function napi_has_own_property (env: napi_env, object: napi_value, key: napi_val
   return emnapi.preamble(env, (envObject) => {
     return emnapi.checkArgs(env, [key, result, object], () => {
       const h = envObject.handleStore.get(object)!
-      if (!h.isObject()) {
+      if (!(h.isObject() || h.isFunction())) {
         return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_object_expected)
       }
       const prop = envObject.handleStore.get(key)!.value
@@ -114,7 +114,7 @@ function napi_set_named_property (env: napi_env, object: napi_value, name: const
   return emnapi.preamble(env, (envObject) => {
     return emnapi.checkArgs(env, [value, object], () => {
       const h = envObject.handleStore.get(object)!
-      if (!h.isObject()) {
+      if (!(h.isObject() || h.isFunction())) {
         return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_object_expected)
       }
       if (name === emnapi.NULL) {
@@ -133,7 +133,7 @@ function napi_has_named_property (env: napi_env, object: napi_value, utf8name: c
         return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_invalid_arg)
       }
       const h = envObject.handleStore.get(object)!
-      if (!h.isObject()) {
+      if (!(h.isObject() || h.isFunction())) {
         return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_object_expected)
       }
       const r = UTF8ToString(utf8name) in h.value
@@ -150,7 +150,7 @@ function napi_get_named_property (env: napi_env, object: napi_value, utf8name: c
         return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_invalid_arg)
       }
       const h = envObject.handleStore.get(object)!
-      if (!h.isObject()) {
+      if (!(h.isObject() || h.isFunction())) {
         return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_object_expected)
       }
       HEAP32[result >> 2] = envObject.ensureHandleId(h.value[UTF8ToString(utf8name)])
@@ -163,7 +163,7 @@ function napi_set_element (env: napi_env, object: napi_value, index: uint32_t, v
   return emnapi.preamble(env, (envObject) => {
     return emnapi.checkArgs(env, [value, object], () => {
       const h = envObject.handleStore.get(object)!
-      if (!h.isObject()) {
+      if (!(h.isObject() || h.isFunction())) {
         return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_object_expected)
       }
       h.value[index >>> 0] = envObject.handleStore.get(value)!.value
@@ -176,7 +176,7 @@ function napi_has_element (env: napi_env, object: napi_value, index: uint32_t, r
   return emnapi.preamble(env, (envObject) => {
     return emnapi.checkArgs(env, [result, object], () => {
       const h = envObject.handleStore.get(object)!
-      if (!h.isObject()) {
+      if (!(h.isObject() || h.isFunction())) {
         return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_object_expected)
       }
       HEAPU8[result] = ((index >>> 0) in h.value) ? 1 : 0
@@ -189,7 +189,7 @@ function napi_get_element (env: napi_env, object: napi_value, index: uint32_t, r
   return emnapi.preamble(env, (envObject) => {
     return emnapi.checkArgs(env, [result, object], () => {
       const h = envObject.handleStore.get(object)!
-      if (!h.isObject()) {
+      if (!(h.isObject() || h.isFunction())) {
         return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_object_expected)
       }
       HEAP32[result >> 2] = envObject.ensureHandleId(h.value[index >>> 0])
@@ -202,7 +202,7 @@ function napi_delete_element (env: napi_env, object: napi_value, index: uint32_t
   return emnapi.preamble(env, (envObject) => {
     return emnapi.checkArgs(env, [object], () => {
       const h = envObject.handleStore.get(object)!
-      if (!h.isObject()) {
+      if (!(h.isObject() || h.isFunction())) {
         return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_object_expected)
       }
       const r = delete h.value[index >>> 0]
@@ -227,7 +227,7 @@ function napi_define_properties (
     if (object === emnapi.NULL) return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_invalid_arg)
     const h = envObject.handleStore.get(object)!
     const maybeObject = h.value
-    if (!h.isObject()) {
+    if (!(h.isObject() || h.isFunction())) {
       return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_object_expected)
     }
     for (let i = 0; i < property_count; i++) {
@@ -264,7 +264,7 @@ function napi_object_freeze (env: napi_env, object: napi_value): emnapi.napi_sta
     if (object === emnapi.NULL) return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_invalid_arg)
     const h = envObject.handleStore.get(object)!
     const maybeObject = h.value
-    if (!h.isObject()) {
+    if (!(h.isObject() || h.isFunction())) {
       return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_object_expected)
     }
     Object.freeze(maybeObject)
@@ -277,7 +277,7 @@ function napi_object_seal (env: napi_env, object: napi_value): emnapi.napi_statu
     if (object === emnapi.NULL) return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_invalid_arg)
     const h = envObject.handleStore.get(object)!
     const maybeObject = h.value
-    if (!h.isObject()) {
+    if (!(h.isObject() || h.isFunction())) {
       return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_object_expected)
     }
     Object.seal(maybeObject)

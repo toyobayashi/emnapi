@@ -332,7 +332,7 @@ namespace emnapi {
     return preamble(env, (envObject) => {
       return checkArgs(env, [js_object], () => {
         const value = envObject.handleStore.get(js_object)!
-        if (!value.isObject()) {
+        if (!(value.isObject() || value.isFunction())) {
           return napi_set_last_error(env, napi_status.napi_invalid_arg)
         }
 
@@ -376,7 +376,7 @@ namespace emnapi {
           if (result === NULL) return napi_set_last_error(env, napi_status.napi_invalid_arg)
         }
         const value = envObject.handleStore.get(js_object)!
-        if (!value.isObject()) {
+        if (!(value.isObject() || value.isFunction())) {
           return napi_set_last_error(env, napi_status.napi_invalid_arg)
         }
         const referenceId = value.wrapped

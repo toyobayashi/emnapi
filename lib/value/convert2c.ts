@@ -44,7 +44,7 @@ function napi_get_prototype (env: napi_env, value: napi_value, result: Pointer<n
     return emnapi.checkArgs(env, [value, result], () => {
       try {
         const handle = envObject.handleStore.get(value)!
-        if (!handle.isObject()) {
+        if (!(handle.isObject() || handle.isFunction())) {
           return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_object_expected)
         }
         HEAP32[result >> 2] = envObject.ensureHandleId(Object.getPrototypeOf(handle.value))

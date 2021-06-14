@@ -86,7 +86,7 @@ function napi_create_reference (
     return emnapi.checkArgs(env, [value, result], () => {
       try {
         const handle = envObject.handleStore.get(value)!
-        if (!(handle.isObject || handle.isFunction())) {
+        if (!(handle.isObject() || handle.isFunction())) {
           return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_object_expected)
         }
         const ref = emnapi.Reference.create(env, handle.id, initial_refcount >>> 0, false)
