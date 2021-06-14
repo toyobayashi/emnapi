@@ -82,6 +82,8 @@ NAPI_MODULE_INIT() {
 
 导出对象默认是 `Module.emnapiExports`，可通过在包含 `node_api.h` 前定义 `NODE_GYP_MODULE_NAME` 宏来设置导出的 key 值。
 
+如果在 `NAPI_MODULE_INITIALIZER` 中报错，Emscripten 生成的 JS 代码在 Node.js 环境会触发 `uncaughtException` 事件终止进程，可以添加 `-sNODEJS_CATCH_EXIT=0` 解决。
+
 ```html
 <script>
 var Module = {
@@ -110,7 +112,7 @@ var Module = {
 
 以下 API 受限于 JavaScript 运行时能力，可能与原生行为不一致，或是其残废的简易实现，请**谨慎使用**。
 
-* 需要 [FinalizationRegistry](https://www.caniuse.com/?search=FinalizationRegistry) 的 API：
+* 需要 [FinalizationRegistry](https://www.caniuse.com/?search=FinalizationRegistry) 和 [WeakRef](https://www.caniuse.com/?search=WeakRef) 的 API：
 
   - [x] ***napi_wrap***
   - [x] ***napi_unwrap***
