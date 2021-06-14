@@ -180,7 +180,7 @@ function napi_get_reference_value (
         if (handleId !== emnapi.NULL) {
           const handle = envObject.handleStore.get(handleId)!
           handle.addRef(reference)
-          envObject.getCurrentScope().addNoCopy(handle)
+          envObject.getCurrentScope()?.addNoCopy(handle)
         }
         HEAP32[result >> 2] = handleId
         return emnapi.napi_clear_last_error(env)

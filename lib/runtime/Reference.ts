@@ -12,7 +12,10 @@ namespace emnapi {
     typeof FinalizationRegistry !== 'undefined'
       ? new FinalizationRegistry((ref: Reference) => {
         if (ref.finalize_callback !== NULL) {
-          call_viii(ref.finalize_callback, ref.env, ref.finalize_data, ref.finalize_hint)
+          const envObject = envStore.get(ref.env)!
+          envObject.callInNewHandleScope(() => {
+            call_viii(ref.finalize_callback, ref.env, ref.finalize_data, ref.finalize_hint)
+          })
         }
         if (ref.deleteSelf) {
           Reference.doDelete(ref)
