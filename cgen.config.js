@@ -73,7 +73,8 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
       createTarget('scope', ['./test/scope/binding.c'], true),
       createTarget('newtarget', ['./test/newtarget/binding.c'], true),
       createTarget('number', ['./test/number/binding.c'], true),
-      createTarget('symbol', ['./test/symbol/binding.c'], true)
+      createTarget('symbol', ['./test/symbol/binding.c'], true),
+      createTarget('typedarray', ['./test/typedarray/binding.c'], true)
     ]
   }
 }
