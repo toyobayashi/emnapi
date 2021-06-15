@@ -11,8 +11,9 @@ namespace emnapi {
     public static finalizationGroup: FinalizationRegistry | null =
     typeof FinalizationRegistry !== 'undefined'
       ? new FinalizationRegistry((ref: Reference) => {
+        let envObject: Env | undefined
         if (ref.finalize_callback !== NULL) {
-          const envObject = envStore.get(ref.env)!
+          envObject = envStore.get(ref.env)!
           envObject.callInNewHandleScope(() => {
             call_viii(ref.finalize_callback, ref.env, ref.finalize_data, ref.finalize_hint)
           })
@@ -24,6 +25,12 @@ namespace emnapi {
           // leak if this is a non-self-delete weak reference
           // should call napi_delete_referece manually
           // Reference.doDelete(this)
+        }
+        if (envObject) {
+          if (envObject.tryCatch.hasCaught()) {
+            const e = envObject.tryCatch.extractException()
+            throw e
+          }
         }
       })
       : null
