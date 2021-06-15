@@ -141,6 +141,18 @@ namespace emnapi {
         return this.handleStore.findStoreHandleId(value) || this.getCurrentScope().add(value).id
       }
     }
+
+    public callIntoModule<T> (fn: (env: Env, scope: IHandleScope) => T): T {
+      const r = this.callInNewHandleScope((scope) => {
+        napi_clear_last_error(this.id)
+        return fn(this, scope)
+      })
+      if (this.tryCatch.hasCaught()) {
+        const err = this.tryCatch.extractException()!
+        throw err
+      }
+      return r
+    }
   }
 
   class EnvStore extends Store<Env> {
@@ -196,8 +208,6 @@ namespace emnapi {
       }
     })
   }
-
-  addOnInit(initErrorMemory)
 
   export function napi_set_last_error (env: napi_env, error_code: napi_status, engine_error_code: uint32_t = 0, engine_reserved: void_p = 0): napi_status {
     const envObject = envStore.get(env)!
@@ -509,4 +519,20 @@ namespace emnapi {
       Object.defineProperty(obj, propertyName, desc)
     }
   }
+
+  export function moduleRegister (): any {
+    initErrorMemory()
+    const env = Env.create()
+    initErrorMemory()
+    return env.callIntoModule((envObject, scope) => {
+      const exports = {}
+      const exportsHandle = scope.add(exports)
+      const napiValue = Module._napi_register_wasm_v1(envObject.id, exportsHandle.id)
+      return envObject.handleStore.get(napiValue)!.value
+    })
+  }
+
+  addOnInit(function (Module) {
+    Module.emnapiExports = moduleRegister()
+  })
 }

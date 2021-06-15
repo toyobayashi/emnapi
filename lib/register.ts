@@ -1,4 +1,4 @@
-function napi_module_register (nodeModule: Pointer<node_module>): void {
+/* function napi_module_register (nodeModule: Pointer<node_module>): void {
   if (nodeModule === emnapi.NULL) return
 
   const addr = nodeModule >> 2
@@ -31,4 +31,4 @@ function napi_module_register (nodeModule: Pointer<node_module>): void {
   // console.log(env.handleStore.allId())
 }
 
-emnapiImplement('napi_module_register', napi_module_register)
+emnapiImplement('napi_module_register', napi_module_register) */

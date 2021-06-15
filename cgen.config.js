@@ -32,6 +32,20 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
     linkOptions: [...commonFlags, ...(isEmscripten ? ['--js-library=${CMAKE_CURRENT_SOURCE_DIR}/dist/library_napi.js'] : [])]
   })
 
+  const createNodeAddonApiTarget = (name, sources) => ({
+    name: name,
+    type: isEmscripten ? 'exe' : 'node',
+    sources: sources,
+    emwrap: {
+      exportsOnInit: ['emnapi']
+    },
+    includePaths: isEmscripten ? ['./include'] : [],
+    defines: ['NAPI_DISABLE_CPP_EXCEPTIONS'],
+    compileOptions: [...commonFlags],
+    // eslint-disable-next-line no-template-curly-in-string
+    linkOptions: [...commonFlags, ...(isEmscripten ? ['--js-library=${CMAKE_CURRENT_SOURCE_DIR}/dist/library_napi.js'] : [])]
+  })
+
   return {
     project: 'emnapitest',
     targets: [
@@ -74,7 +88,9 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
       createTarget('newtarget', ['./test/newtarget/binding.c'], true),
       createTarget('number', ['./test/number/binding.c'], true),
       createTarget('symbol', ['./test/symbol/binding.c'], true),
-      createTarget('typedarray', ['./test/typedarray/binding.c'], true)
+      createTarget('typedarray', ['./test/typedarray/binding.c'], true),
+
+      createNodeAddonApiTarget('n_hello', ['./test/node-addon-api/hello/binding.cc'])
     ]
   }
 }

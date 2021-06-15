@@ -2,7 +2,7 @@
 
 适用于 [Emscripten](https://emscripten.org/index.html) 的 [Node-API](https://nodejs.org/dist/latest-v14.x/docs/api/n-api.html) (v14.16.0)。
 
-仅包含 `js_native_api.h` 中的 API 和 `node_api.h` 中的 `napi_module_register`。
+仅包含 `js_native_api.h` 中的 API。
 ## 构建
 
 设置 `$EMSDK` 环境变量为 emsdk 根目录，并确保 Emscripten 工具链二进制目录（`$EMSDK/upstream/emscripten`）和 CMake 在 `$PATH` 里
@@ -80,7 +80,7 @@ NAPI_MODULE_INIT() {
 }
 ```
 
-导出对象默认是 `Module.emnapiExports`，可通过在包含 `node_api.h` 前定义 `NODE_GYP_MODULE_NAME` 宏来设置导出的 key 值。
+导出对象默认是 `Module.emnapiExports`。
 
 如果在 `NAPI_MODULE_INITIALIZER` 中报错，Emscripten 生成的 JS 代码在 Node.js 环境会触发 `uncaughtException` 事件终止进程，可以添加 `-sNODEJS_CATCH_EXIT=0` 解决。
 
