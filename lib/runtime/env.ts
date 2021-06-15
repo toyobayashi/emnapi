@@ -278,6 +278,7 @@ namespace emnapi {
       }
       const ret = envObject.callInNewHandleScope((scope) => {
         const cbinfoHandle = scope.add(callbackInfo)
+        napi_clear_last_error(env)
         const napiValue = call_iii(cb, env, cbinfoHandle.id)
         return (!napiValue) ? undefined : envObject.handleStore.get(napiValue)!.value
       })

@@ -15,6 +15,7 @@ namespace emnapi {
         if (ref.finalize_callback !== NULL) {
           envObject = envStore.get(ref.env)!
           envObject.callInNewHandleScope(() => {
+            napi_clear_last_error(ref.env)
             call_viii(ref.finalize_callback, ref.env, ref.finalize_data, ref.finalize_hint)
           })
         }
