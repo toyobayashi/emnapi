@@ -80,7 +80,7 @@ NAPI_MODULE_INIT() {
 }
 ```
 
-导出对象默认是 `Module.emnapiExports`。
+导出对象默认是 `Module.emnapiExports`，可通过预定义 `NODE_GYP_MODULE_NAME` 宏来设置导出的 key 值。
 
 如果在 `NAPI_MODULE_INITIALIZER` 中报错，Emscripten 生成的 JS 代码在 Node.js 环境会触发 `uncaughtException` 事件终止进程，可以添加 `-sNODEJS_CATCH_EXIT=0` 解决。
 

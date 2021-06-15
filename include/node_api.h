@@ -10,6 +10,12 @@ typedef napi_value (*napi_addon_register_func)(napi_env env,
 
 #define NAPI_MODULE_VERSION  1
 
+#ifndef NODE_GYP_MODULE_NAME
+#define NODE_GYP_MODULE_NAME emnapiExports
+#endif
+
+#define EMNAPI_MOD_NAME_X(modname) #modname
+
 #define NAPI_MODULE_INITIALIZER_X(base, version)                               \
   NAPI_MODULE_INITIALIZER_X_HELPER(base, version)
 #define NAPI_MODULE_INITIALIZER_X_HELPER(base, version) base##version
@@ -21,6 +27,9 @@ typedef napi_value (*napi_addon_register_func)(napi_env env,
   NAPI_MODULE_EXPORT napi_value NAPI_WASM_INITIALIZER(napi_env env,            \
                                                       napi_value exports) {    \
     return regfunc(env, exports);                                              \
+  }                                                                            \
+  NAPI_MODULE_EXPORT const char* emnapi_module_key() {                         \
+    return EMNAPI_MOD_NAME_X(modname);                                         \
   }                                                                            \
   EXTERN_C_END
 

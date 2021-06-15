@@ -153,6 +153,16 @@ namespace emnapi {
       }
       return r
     }
+
+    public dispose (): void {
+      this.scopeList.clear()
+      this.deferredStore.dispose()
+      this.refStore.dispose()
+      this.scopeStore.dispose()
+      this.handleStore.dispose()
+      this.tryCatch.extractException()
+      envStore.remove(this.id)
+    }
   }
 
   class EnvStore extends Store<Env> {
@@ -514,19 +524,38 @@ namespace emnapi {
     }
   }
 
+  let registered = false
+  let emnapiExports: any
+  let _napi_register_wasm_v1: ((env: napi_env, exports: napi_value) => napi_value) | undefined
+  let _emnapi_module_key: (() => const_char_p) | undefined
   export function moduleRegister (): any {
-    initErrorMemory()
-    const env = Env.create()
-    initErrorMemory()
-    return env.callIntoModule((envObject, scope) => {
-      const exports = {}
-      const exportsHandle = scope.add(exports)
-      const napiValue = Module._napi_register_wasm_v1(envObject.id, exportsHandle.id)
-      return envObject.handleStore.get(napiValue)!.value
-    })
+    if (registered) return emnapiExports
+    registered = true
+    let env: Env | undefined
+    try {
+      initErrorMemory()
+      env = Env.create()
+      initErrorMemory()
+      emnapiExports = env.callIntoModule((envObject, scope) => {
+        const exports = {}
+        const exportsHandle = scope.add(exports)
+        const napiValue = _napi_register_wasm_v1!(envObject.id, exportsHandle.id)
+        return envObject.handleStore.get(napiValue)!.value
+      })
+      return emnapiExports
+    } catch (err) {
+      registered = false
+      throw err
+    }
   }
 
   addOnInit(function (Module) {
-    Module.emnapiExports = moduleRegister()
+    _napi_register_wasm_v1 = Module._napi_register_wasm_v1
+    _emnapi_module_key = Module._emnapi_module_key
+    delete Module._napi_register_wasm_v1
+    delete Module._emnapi_module_key
+    const key = UTF8ToString(_emnapi_module_key!()) || 'emnapiExports'
+    Module.emnapiModuleRegister = moduleRegister
+    Module[key] = moduleRegister()
   })
 }

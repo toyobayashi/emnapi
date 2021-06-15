@@ -3,6 +3,7 @@ namespace emnapi {
 
   export interface IStoreValue {
     id: number
+    dispose (): void
     [x: string]: any
   }
 
@@ -60,6 +61,15 @@ namespace emnapi {
 
     public allId (): number[] {
       return Object.keys(this._values).map(Number)
+    }
+
+    public dispose (): void {
+      Object.keys(this._values).forEach((k) => {
+        try {
+          this._values[k as any].dispose()
+        } catch (_) {}
+        delete this._values[k as any]
+      })
     }
   }
 

@@ -90,6 +90,11 @@ namespace emnapi {
       }
       return maybeHandle
     }
+
+    public dispose (): void {
+      this.objWeakMap = null!
+      super.dispose()
+    }
   }
 
   export class Handle<S> implements IStoreValue {

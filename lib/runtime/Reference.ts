@@ -132,6 +132,11 @@ namespace emnapi {
       Reference.finalizationGroup.register(handle.value, this, this)
       this.finalizerRegistered = true
     }
+
+    public dispose (): void {
+      this.deleteSelf = true
+      Reference.doDelete(this)
+    }
   }
 
   export class RefStore extends Store<Reference> {
