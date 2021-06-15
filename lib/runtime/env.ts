@@ -192,7 +192,7 @@ namespace emnapi {
     }
     envStore.forEach((env) => {
       if (!env.napiExtendedErrorInfoPtr) {
-        env.napiExtendedErrorInfoPtr = _malloc(16)
+        env.napiExtendedErrorInfoPtr = call_malloc(16)
       }
     })
   }

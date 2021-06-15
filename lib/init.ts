@@ -8,6 +8,9 @@ mergeInto(LibraryManager.library, {
       },
       call_viii (_ptr: number, a: int32_t, b: int32_t, c: int32_t): void {
         return makeDynCall('viii', '_ptr')(a, b, c)
+      },
+      call_malloc (_size: size_t): void_p {
+        return makeMalloc('call_malloc', '_size')
       }
     }
   },

@@ -14,6 +14,7 @@ const libOut = path.join(path.dirname(libTsconfigPath), libTsconfig.compilerOpti
 fs.writeFileSync(libOut,
   fs.readFileSync(libOut, 'utf8')
     .replace('__EMNAPI_RUNTIME_REPLACE__', `'${fs.readFileSync(runtimeOut, 'utf8').replace(/\\/g, "\\\\'").replace(/\r?\n/g, '\\n').replace(/'/g, "\\'")}'`)
-    .replace(/(makeDynCall\(.*?\))/g, '{{{ $1 }}}'),
+    .replace(/(makeDynCall\(.*?\))/g, '{{{ $1 }}}')
+    .replace(/(makeMalloc\(.*?\))/g, '{{{ $1 }}}'),
   'utf8'
 )

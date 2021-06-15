@@ -4,4 +4,5 @@ namespace emnapi {
 
   export const call_iii = dynamicCalls.call_iii
   export const call_viii = dynamicCalls.call_viii
+  export const call_malloc = dynamicCalls.call_malloc
 }
