@@ -22,8 +22,6 @@ typedef struct napi_module {
 
 #define NAPI_MODULE_VERSION  1
 
-NAPI_EXTERN void napi_module_register(napi_module* mod);
-
 #define NAPI_C_CTOR(fn)                              \
   static void fn(void) __attribute__((constructor)); \
   static void fn(void)
@@ -70,5 +68,11 @@ NAPI_EXTERN void napi_module_register(napi_module* mod);
   NAPI_MODULE(NODE_GYP_MODULE_NAME, NAPI_MODULE_INITIALIZER)          \
   napi_value NAPI_MODULE_INITIALIZER(napi_env env,                    \
                                      napi_value exports)
+
+EXTERN_C_START
+
+NAPI_EXTERN void napi_module_register(napi_module* mod);
+
+EXTERN_C_END
 
 #endif
