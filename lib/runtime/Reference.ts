@@ -11,13 +11,17 @@ namespace emnapi {
     public static finalizationGroup: FinalizationRegistry | null =
     typeof FinalizationRegistry !== 'undefined'
       ? new FinalizationRegistry((ref: Reference) => {
-        let envObject: Env | undefined
+        let error: any
+        let caught = false
         if (ref.finalize_callback !== NULL) {
-          envObject = envStore.get(ref.env)!
-          envObject.callInNewHandleScope(() => {
-            napi_clear_last_error(ref.env)
-            call_viii(ref.finalize_callback, ref.env, ref.finalize_data, ref.finalize_hint)
-          })
+          try {
+            envStore.get(ref.env)!.callIntoModule(() => {
+              call_viii(ref.finalize_callback, ref.env, ref.finalize_data, ref.finalize_hint)
+            })
+          } catch (err) {
+            caught = true
+            error = err
+          }
         }
         if (ref.deleteSelf) {
           Reference.doDelete(ref)
@@ -27,11 +31,8 @@ namespace emnapi {
           // should call napi_delete_referece manually
           // Reference.doDelete(this)
         }
-        if (envObject) {
-          if (envObject.tryCatch.hasCaught()) {
-            const e = envObject.tryCatch.extractException()
-            throw e
-          }
+        if (caught) {
+          throw error
         }
       })
       : null

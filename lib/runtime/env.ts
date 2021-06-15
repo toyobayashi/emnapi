@@ -286,17 +286,11 @@ namespace emnapi {
         _newTarget: new.target,
         _isConstructCall: !!new.target
       }
-      const ret = envObject.callInNewHandleScope((scope) => {
+      return envObject.callIntoModule((envObject, scope) => {
         const cbinfoHandle = scope.add(callbackInfo)
-        napi_clear_last_error(env)
         const napiValue = call_iii(cb, env, cbinfoHandle.id)
         return (!napiValue) ? undefined : envObject.handleStore.get(napiValue)!.value
       })
-      if (envObject.tryCatch.hasCaught()) {
-        const err = envObject.tryCatch.extractException()!
-        throw err
-      }
-      return ret
     })()
 
     if (canSetFunctionName) {
