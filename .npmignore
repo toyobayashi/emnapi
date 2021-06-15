@@ -1,0 +1,14 @@
+node_modules
+package-lock.json
+tsconfig*
+CMakeLists.txt
+.vscode
+.cgenbuild
+/example
+dist/library_napi_*
+/lib
+/script
+/test
+.eslint*
+.gitignore
+cgen.config.js

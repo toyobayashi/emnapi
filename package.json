@@ -8,6 +8,7 @@
     "clean": "cgen clean",
     "build:runtime": "tsc -p ./lib/runtime/tsconfig.json",
     "build:lib": "tsc -p ./lib/runtime/tsconfig.json && tsc && node ./script/build.js",
+    "prepare": "npm run build:lib",
     "rebuild": "npm run build:lib && cgen rebuild -e -d",
     "rebuild:r": "npm run build:lib && cgen rebuild -e",
     "rebuild:n": "cgen rebuild -d",
