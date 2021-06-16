@@ -1,6 +1,7 @@
 .cgenbuild
 /CMakeLists.txt
-node_modules
+/node_modules
 /include/node_api_full.h
 /dist
 package-lock.json
+/example/build
