@@ -1,25 +1,21 @@
 # emnapi
 
-[Node-API (v14.16.0)](https://nodejs.org/docs/v14.16.0/api/n-api.html) implementation for [Emscripten](https://emscripten.org/index.html)
+适用于 [Emscripten](https://emscripten.org/index.html) 的 [Node-API (v14.16.0)](https://nodejs.org/dist/latest-v14.x/docs/api/n-api.html) 实现。
 
-Only APIs in `js_native_api.h` are implemented.
+仅实现了 `js_native_api.h` 中的 API。
 
-[中文 README](https://github.com/toyobayashi/emnapi/tree/main/README_CN.md).
+## 快速开始
 
-## Quick Start
+环境准备：
 
-You will need to install:
-
-* Node.js latest LTS
-* Emscripten tool chain v2.0.2+
+* Node.js 最新 LTS
+* Emscripten 工具链 v2.0.2+
 * CMake v3.9+
-* make / nmake (Windows only)
+* make / nmake (仅Windows)
 
-Set `$EMSDK` environment variable to the emsdk root path.
+设置 `$EMSDK` 环境变量为 emsdk 根目录，并确保 Emscripten 工具链二进制目录（`$EMSDK/upstream/emscripten`）和 CMake 在 `$PATH` 里
 
-Make sure `emcc` / `em++` / `cmake` / `make` can be found in `$PATH`.
-
-If you have not installed `make` on Windows, you can also execute build commands in `Visual Studio Developer Command Prompt`.
+未安装 `make` 的 Windows 用户请使用 Visual Studio Developer Command Prompt 跑命令（需要用到 `nmake`）
 
 ### NPM Install
 
@@ -27,9 +23,9 @@ If you have not installed `make` on Windows, you can also execute build commands
 npm install -D @tybys/emnapi
 ```
 
-### Using C
+### 使用 C 语言
 
-Create `hello.c`.
+创建 `hello.c`。
 
 ```c
 #include <node_api.h>
@@ -78,7 +74,7 @@ NAPI_MODULE_INIT() {
 }
 ```
 
-Compile `hello.c` using `emcc`, set include directory, link napi js implementation with `--js-library`, and `_malloc` and `_free` should be exported.
+使用 `emcc` 编译 `hello.c`，设置包含目录，用 `--js-library` 链接 JS 实现的库，并将 `_malloc` 和 `_free` 导出。
 
 ```bash
 emcc -O3 \
@@ -90,12 +86,12 @@ emcc -O3 \
      hello.c
 ```
 
-Use the output js in html. The default export key is `emnapiExports` on [`Module`](https://emscripten.org/docs/api_reference/module.html) object. You can change the key by predefining `NODE_GYP_MODULE_NAME`.
+把输出的 JS 引入进 HTML 使用，默认导出在 [`Module`](https://emscripten.org/docs/api_reference/module.html) 对象上的 `emnapiExports`。可通过预定义 `NODE_GYP_MODULE_NAME` 修改默认的导出键值。
 
 ```html
 <script src="hello.js"></script>
 <script>
-// Emscripten js glue code will create a global `Module` object
+// Emscripten js 胶水代码会在全局创建一个 `Module` 对象
 Module.onRuntimeInitialized = function () {
   var binding = Module.emnapiExports;
   var msg = 'hello ' + binding.hello();
@@ -104,7 +100,7 @@ Module.onRuntimeInitialized = function () {
 </script>
 ```
 
-Or in Node.js.
+或在 Node.js 中使用。
 
 ```js
 const Module = require('./hello.js')
@@ -116,11 +112,11 @@ Module.onRuntimeInitialized = function () {
 }
 ```
 
-### Using C++
+### 使用 C++ 语言
 
-Alternatively, you can also use [`node-addon-api`](https://github.com/nodejs/node-addon-api) which is official Node-API C++ wrapper, already shipped in this package but without Node.js specific API such as `ThreadSafeFunction`, `AsyncWorker`, etc.
+也可以用官方的 C++ wrapper [`node-addon-api`](https://github.com/nodejs/node-addon-api)，它已被集成在这个包里，但不可使用 Node.js 环境特定的 API，如 `ThreadSafeFunction`, `AsyncWorker` 等等。
 
-Create `hello.cpp`.
+创建 `hello.cpp`。
 
 ```cpp
 #include <napi.h>
@@ -139,7 +135,7 @@ Napi::Object Init(Napi::Env env, Napi::Object exports) {
 NODE_API_MODULE(NODE_GYP_MODULE_NAME, Init)
 ```
 
-Compile `hello.cpp` using `em++`. Exception is disabled by Emscripten default, so predefine `NAPI_DISABLE_CPP_EXCEPTIONS` here.
+使用 `em++` 编译 `hello.cpp`。Emscripten 默认禁用 C++ 异常，所以这里也预定义了 `NAPI_DISABLE_CPP_EXCEPTIONS`。
 
 ```bash
 em++ -O3 \
@@ -152,11 +148,11 @@ em++ -O3 \
      hello.cpp
 ```
 
-Then use the output js.
+然后使用输出的 JS。
 
-### Using CMake
+### 使用 CMake
 
-Create `CMakeLists.txt`.
+创建 `CMakeLists.txt`。
 
 ```cmake
 cmake_minimum_required(VERSION 3.9)
@@ -190,7 +186,7 @@ target_link_options(hello PRIVATE
 )
 ```
 
-Building with `emcmake`, output `build/hello.js` and `build/hello.wasm`.
+用 `emcmake` 构建，输出 `build/hello.js` 和 `build/hello.wasm`
 
 ```bash
 mkdir build
@@ -200,7 +196,7 @@ cmake --build .
 cd ..
 ```
 
-If you have not installed `make` on Windows, execute commands below in `Visual Studio Developer Command Prompt`.
+如果在 Windows 上未安装 `make`，请在 `Visual Studio Developer Command Prompt` 中跑下面的构建命令。
 
 ```bat
 mkdir build
@@ -210,37 +206,37 @@ cmake --build .
 cd ..
 ```
 
-Full example codes can be found in [here](https://github.com/toyobayashi/emnapi/tree/main/example).
+完整的示例代码可以在[这里](https://github.com/toyobayashi/emnapi/tree/main/example)找到。
 
-Output code can run in recent version modern browsers and Node.js latest LTS. IE is not supported.
+输出的代码可以运行在最近版本的现代浏览器和最新的 Node.js LTS 版本。不支持 IE。
 
-## Building
+## 构建
 
 ```bash
 git clone https://github.com/toyobayashi/emnapi.git
 cd ./emnapi
 npm install
-npm run build:lib # output ./dist/library_napi.js
+npm run build:lib # 输出 ./dist/library_napi.js
 
 # test
 npm run rebuild
 npm test
 ```
 
-## API List
+## API 列表
 
-### Unavailable
+### 不支持的 API
 
-These APIs always return `napi_generic_failure`.
+以下 API 不可实现，调用后将永远返回 `napi_generic_failure` 状态。
 
 - [x] ~~napi_create_external_arraybuffer~~
 - [x] ~~napi_adjust_external_memory~~
 - [x] ~~napi_detach_arraybuffer~~
 - [x] ~~napi_is_detached_arraybuffer~~
 
-### Limited
+### 能力受限的 API
 
-* These APIs require [FinalizationRegistry](https://www.caniuse.com/?search=FinalizationRegistry) 和 [WeakRef](https://www.caniuse.com/?search=WeakRef)
+* 需要 [FinalizationRegistry](https://www.caniuse.com/?search=FinalizationRegistry) 和 [WeakRef](https://www.caniuse.com/?search=WeakRef) 的 API：
 
   - [x] ***napi_wrap***
   - [x] ***napi_unwrap***
@@ -254,14 +250,14 @@ These APIs always return `napi_generic_failure`.
   - [x] ***napi_get_reference_value***
   - [x] ***napi_add_finalizer***
 
-* These APIs always return `NULL` data pointer
+* `data` 指针返回值永远为 `NULL` 的 API：
 
   - [x] ***napi_create_arraybuffer***
   - [x] ***napi_get_arraybuffer_info***
   - [x] ***napi_get_typedarray_info***
   - [x] ***napi_get_dataview_info***
 
-* These APIs require [BigInt](https://www.caniuse.com/?search=BigInt)
+* 需要 [BigInt](https://www.caniuse.com/?search=BigInt) 的 API：
 
   - [x] ***napi_create_bigint_int64***
   - [x] ***napi_create_bigint_uint64***
@@ -269,7 +265,8 @@ These APIs always return `napi_generic_failure`.
   - [x] ***napi_get_value_bigint_int64***
   - [x] ***napi_get_value_bigint_uint64***
   - [x] ***napi_get_value_bigint_words***
-### Stable
+
+### 稳定的 API
 
 - [x] napi_get_last_error_info
 - [x] napi_get_undefined

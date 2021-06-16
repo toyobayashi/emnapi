@@ -1,7 +1,7 @@
 {
   "name": "@tybys/emnapi",
   "version": "0.1.0",
-  "description": "N-API implementation for Emscripten",
+  "description": "Node-API implementation for Emscripten",
   "main": "index.js",
   "typings": "index.d.ts",
   "scripts": {
