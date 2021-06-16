@@ -120,6 +120,8 @@ Module.onRuntimeInitialized = function () {
 
 Alternatively, you can also use [`node-addon-api`](https://github.com/nodejs/node-addon-api) which is official Node-API C++ wrapper, already shipped in this package but without Node.js specific API such as `ThreadSafeFunction`, `AsyncWorker`, etc.
 
+**Note: C++ wrapper can only be used to target Node.js v14.6.0+ and modern browsers those support `FinalizationRegistry` and `WeakRef` ([v8 engine v8.4+](https://v8.dev/blog/v8-release-84))!**
+
 Create `hello.cpp`.
 
 ```cpp
@@ -240,7 +242,7 @@ These APIs always return `napi_generic_failure`.
 
 ### Limited
 
-* These APIs require [FinalizationRegistry](https://www.caniuse.com/?search=FinalizationRegistry) 和 [WeakRef](https://www.caniuse.com/?search=WeakRef)
+* These APIs require [FinalizationRegistry](https://www.caniuse.com/?search=FinalizationRegistry) and [WeakRef](https://www.caniuse.com/?search=WeakRef) (v8 engine v8.4+ / Node.js v14.6.0+)
 
   - [x] ***napi_wrap***
   - [x] ***napi_unwrap***
@@ -254,14 +256,7 @@ These APIs always return `napi_generic_failure`.
   - [x] ***napi_get_reference_value***
   - [x] ***napi_add_finalizer***
 
-* These APIs always return `NULL` data pointer
-
-  - [x] ***napi_create_arraybuffer***
-  - [x] ***napi_get_arraybuffer_info***
-  - [x] ***napi_get_typedarray_info***
-  - [x] ***napi_get_dataview_info***
-
-* These APIs require [BigInt](https://www.caniuse.com/?search=BigInt)
+* These APIs require [BigInt](https://www.caniuse.com/?search=BigInt) (v8 engine v6.7+ / Node.js v10.4.0+)
 
   - [x] ***napi_create_bigint_int64***
   - [x] ***napi_create_bigint_uint64***
@@ -269,6 +264,14 @@ These APIs always return `napi_generic_failure`.
   - [x] ***napi_get_value_bigint_int64***
   - [x] ***napi_get_value_bigint_uint64***
   - [x] ***napi_get_value_bigint_words***
+
+* These APIs always return `NULL` data pointer (No way to implement in JS)
+
+  - [x] ***napi_create_arraybuffer***
+  - [x] ***napi_get_arraybuffer_info***
+  - [x] ***napi_get_typedarray_info***
+  - [x] ***napi_get_dataview_info***
+
 ### Stable
 
 - [x] napi_get_last_error_info

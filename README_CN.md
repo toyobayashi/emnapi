@@ -116,6 +116,8 @@ Module.onRuntimeInitialized = function () {
 
 也可以用官方的 C++ wrapper [`node-addon-api`](https://github.com/nodejs/node-addon-api)，它已被集成在这个包里，但不可使用 Node.js 环境特定的 API，如 `ThreadSafeFunction`, `AsyncWorker` 等等。
 
+**特别注意: C++ wrapper 只能用于 Node.js v14.6.0+ 和支持 `FinalizationRegistry` 和 `WeakRef` 的现代浏览器（[v8 引擎 v8.4+](https://v8.dev/blog/v8-release-84))！**
+
 创建 `hello.cpp`。
 
 ```cpp
@@ -236,7 +238,7 @@ npm test
 
 ### 能力受限的 API
 
-* 需要 [FinalizationRegistry](https://www.caniuse.com/?search=FinalizationRegistry) 和 [WeakRef](https://www.caniuse.com/?search=WeakRef) 的 API：
+* 需要 [FinalizationRegistry](https://www.caniuse.com/?search=FinalizationRegistry) 和 [WeakRef](https://www.caniuse.com/?search=WeakRef) 的 API：(v8 引擎 v8.4+ / Node.js v14.6.0+)
 
   - [x] ***napi_wrap***
   - [x] ***napi_unwrap***
@@ -250,14 +252,7 @@ npm test
   - [x] ***napi_get_reference_value***
   - [x] ***napi_add_finalizer***
 
-* `data` 指针返回值永远为 `NULL` 的 API：
-
-  - [x] ***napi_create_arraybuffer***
-  - [x] ***napi_get_arraybuffer_info***
-  - [x] ***napi_get_typedarray_info***
-  - [x] ***napi_get_dataview_info***
-
-* 需要 [BigInt](https://www.caniuse.com/?search=BigInt) 的 API：
+* 需要 [BigInt](https://www.caniuse.com/?search=BigInt) 的 API：(v8 引擎 v6.7+ / Node.js v10.4.0+)
 
   - [x] ***napi_create_bigint_int64***
   - [x] ***napi_create_bigint_uint64***
@@ -265,6 +260,13 @@ npm test
   - [x] ***napi_get_value_bigint_int64***
   - [x] ***napi_get_value_bigint_uint64***
   - [x] ***napi_get_value_bigint_words***
+
+* `data` 指针返回值永远为 `NULL` 的 API：(JS 无法实现)
+
+  - [x] ***napi_create_arraybuffer***
+  - [x] ***napi_get_arraybuffer_info***
+  - [x] ***napi_get_typedarray_info***
+  - [x] ***napi_get_dataview_info***
 
 ### 稳定的 API
 
