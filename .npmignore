@@ -14,3 +14,4 @@ dist/library_napi_*
 cgen.config.js
 README_*
 .github
+emsdk-cache

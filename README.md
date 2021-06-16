@@ -1,5 +1,7 @@
 # emnapi
 
+[![Build](https://github.com/toyobayashi/emnapi/actions/workflows/main.yml/badge.svg?branch=main)](https://github.com/toyobayashi/emnapi/actions/workflows/main.yml)
+
 [Node-API (v14.16.0)](https://nodejs.org/docs/v14.16.0/api/n-api.html) implementation for [Emscripten](https://emscripten.org/index.html)
 
 Only APIs in `js_native_api.h` are implemented.

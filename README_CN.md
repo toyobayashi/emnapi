@@ -1,5 +1,7 @@
 # emnapi
 
+[![Build](https://github.com/toyobayashi/emnapi/actions/workflows/main.yml/badge.svg?branch=main)](https://github.com/toyobayashi/emnapi/actions/workflows/main.yml)
+
 适用于 [Emscripten](https://emscripten.org/index.html) 的 [Node-API (v14.16.0)](https://nodejs.org/dist/latest-v14.x/docs/api/n-api.html) 实现。
 
 仅实现了 `js_native_api.h` 中的 API。
