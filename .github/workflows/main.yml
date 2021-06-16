@@ -1,0 +1,52 @@
+name: Build
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    name: Build
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+
+    steps:
+    - uses: actions/checkout@v2
+    - uses: mymindstorm/setup-emsdk@v10
+      with:
+        version: '2.0.24'
+        # no-cache: true
+        actions-cache-folder: 'emsdk-cache'
+    - uses: actions/setup-node@v2
+      with:
+        node-version: '14.16.0'
+        registry-url: 'https://registry.npmjs.org'
+      env:
+        NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+    - name: Linux build
+      if: ${{ matrix.os == 'ubuntu-latest' }}
+      shell: bash
+      run: npm install
+
+    - name: Test
+      run: |
+        npx cgen rebuild -e -d
+        npm test
+
+    - name: Publish
+      if: ${{ startsWith(github.event.ref, 'refs/tags') && matrix.os == 'ubuntu-latest' }}
+      run: npm publish --ignore-scripts
+
+    - name: Create release
+      if: ${{ startsWith(github.event.ref, 'refs/tags') }}
+      uses: toyobayashi/upload-release-assets@v3.0.0
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.event.after }}
+        release_name: ${{ github.event.after }}
+        draft: true
+        prerelease: false
+        assets: ./dist/library_napi.js
