@@ -240,7 +240,7 @@ These APIs always return `napi_generic_failure`.
 
 ### Limited
 
-* These APIs require [FinalizationRegistry](https://www.caniuse.com/?search=FinalizationRegistry) and [WeakRef](https://www.caniuse.com/?search=WeakRef) (v8 engine v8.4+ / Node.js v14.6.0+)
+* These APIs require [FinalizationRegistry](https://www.caniuse.com/?search=FinalizationRegistry) and [WeakRef](https://www.caniuse.com/?search=WeakRef) (v8 engine v8.4+ / Node.js v14.6.0+), else return `napi_generic_failure`
 
   - ***napi_wrap***
   - ***napi_unwrap***
@@ -254,7 +254,7 @@ These APIs always return `napi_generic_failure`.
   - ***napi_get_reference_value***
   - ***napi_add_finalizer***
 
-* These APIs require [BigInt](https://www.caniuse.com/?search=BigInt) (v8 engine v6.7+ / Node.js v10.4.0+)
+* These APIs require [BigInt](https://www.caniuse.com/?search=BigInt) (v8 engine v6.7+ / Node.js v10.4.0+), else return `napi_generic_failure`
 
   - ***napi_create_bigint_int64***
   - ***napi_create_bigint_uint64***

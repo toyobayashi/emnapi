@@ -237,7 +237,7 @@ npm test
 
 ### 能力受限的 API
 
-* 需要 [FinalizationRegistry](https://www.caniuse.com/?search=FinalizationRegistry) 和 [WeakRef](https://www.caniuse.com/?search=WeakRef) 的 API：(v8 引擎 v8.4+ / Node.js v14.6.0+)
+* 以下 API 需要 [FinalizationRegistry](https://www.caniuse.com/?search=FinalizationRegistry) 和 [WeakRef](https://www.caniuse.com/?search=WeakRef) (v8 引擎 v8.4+ / Node.js v14.6.0+)，否则返回 `napi_generic_failure` 状态。
 
   - ***napi_wrap***
   - ***napi_unwrap***
@@ -251,7 +251,7 @@ npm test
   - ***napi_get_reference_value***
   - ***napi_add_finalizer***
 
-* 需要 [BigInt](https://www.caniuse.com/?search=BigInt) 的 API：(v8 引擎 v6.7+ / Node.js v10.4.0+)
+* 以下 API 需要 [BigInt](https://www.caniuse.com/?search=BigInt) (v8 引擎 v6.7+ / Node.js v10.4.0+)，否则返回 `napi_generic_failure` 状态。
 
   - ***napi_create_bigint_int64***
   - ***napi_create_bigint_uint64***
