@@ -8,7 +8,7 @@
 
 环境准备：
 
-* Node.js 最新 LTS
+* Node.js 最新 LTS (建议 v14.6.0 以上)
 * Emscripten 工具链 v2.0.2+
 * CMake v3.9+
 * make / nmake (仅Windows)
@@ -116,7 +116,7 @@ Module.onRuntimeInitialized = function () {
 
 也可以用官方的 C++ wrapper [`node-addon-api`](https://github.com/nodejs/node-addon-api)，它已被集成在这个包里，但不可使用 Node.js 环境特定的 API，如 `ThreadSafeFunction`, `AsyncWorker` 等等。
 
-**特别注意: C++ wrapper 只能用于 Node.js v14.6.0+ 和支持 `FinalizationRegistry` 和 `WeakRef` 的现代浏览器（[v8 引擎 v8.4+](https://v8.dev/blog/v8-release-84))！**
+**特别注意: 使用 C++ wrapper 编译出的代码只能运行在 Node.js v14.6.0+ 和支持 `FinalizationRegistry` 和 `WeakRef` 的现代浏览器（[v8 引擎 v8.4+](https://v8.dev/blog/v8-release-84))！**
 
 创建 `hello.cpp`。
 
@@ -137,7 +137,7 @@ Napi::Object Init(Napi::Env env, Napi::Object exports) {
 NODE_API_MODULE(NODE_GYP_MODULE_NAME, Init)
 ```
 
-使用 `em++` 编译 `hello.cpp`。Emscripten 默认禁用 C++ 异常，所以这里也预定义了 `NAPI_DISABLE_CPP_EXCEPTIONS`。
+使用 `em++` 编译 `hello.cpp`。Emscripten 默认禁用 C++ 异常，所以这里也预定义了 `NAPI_DISABLE_CPP_EXCEPTIONS`。如果想启用 C++ 异常，请使用 `-sDISABLE_EXCEPTION_CATCHING=0` 代替 `-DNAPI_DISABLE_CPP_EXCEPTIONS`。
 
 ```bash
 em++ -O3 \
@@ -176,9 +176,6 @@ execute_process(COMMAND node -p "require('@tybys/emnapi').js_library"
 )
 string(REGEX REPLACE "[\r\n\"]" "" EMNAPI_JS_LIBRARY ${EMNAPI_JS_LIBRARY})
 
-message(${EMNAPI_INCLUDE_DIR})
-message(${EMNAPI_JS_LIBRARY})
-
 target_include_directories(hello PRIVATE ${EMNAPI_INCLUDE_DIR})
 target_link_options(hello PRIVATE
   "-sALLOW_MEMORY_GROWTH=1"
@@ -212,6 +209,8 @@ cd ..
 
 输出的代码可以运行在最近版本的现代浏览器和最新的 Node.js LTS 版本。不支持 IE。
 
+如果在运行时初始化时抛出 JS 错误，Node.js 进程将会退出。可以使用`-sNODEJS_CATCH_EXIT=0` 并自己添加`uncaughtException` 事件处理器来避免这种情况。
+
 ## 构建
 
 ```bash
@@ -231,132 +230,132 @@ npm test
 
 以下 API 不可实现，调用后将永远返回 `napi_generic_failure` 状态。
 
-- [x] ~~napi_create_external_arraybuffer~~
-- [x] ~~napi_adjust_external_memory~~
-- [x] ~~napi_detach_arraybuffer~~
-- [x] ~~napi_is_detached_arraybuffer~~
+- ~~napi_create_external_arraybuffer~~
+- ~~napi_adjust_external_memory~~
+- ~~napi_detach_arraybuffer~~
+- ~~napi_is_detached_arraybuffer~~
 
 ### 能力受限的 API
 
 * 需要 [FinalizationRegistry](https://www.caniuse.com/?search=FinalizationRegistry) 和 [WeakRef](https://www.caniuse.com/?search=WeakRef) 的 API：(v8 引擎 v8.4+ / Node.js v14.6.0+)
 
-  - [x] ***napi_wrap***
-  - [x] ***napi_unwrap***
-  - [x] ***napi_remove_wrap***
-  - [x] ***napi_create_external***
-  - [x] ***napi_get_value_external***
-  - [x] ***napi_create_reference***
-  - [x] ***napi_delete_reference***
-  - [x] ***napi_reference_ref***
-  - [x] ***napi_reference_unref***
-  - [x] ***napi_get_reference_value***
-  - [x] ***napi_add_finalizer***
+  - ***napi_wrap***
+  - ***napi_unwrap***
+  - ***napi_remove_wrap***
+  - ***napi_create_external***
+  - ***napi_get_value_external***
+  - ***napi_create_reference***
+  - ***napi_delete_reference***
+  - ***napi_reference_ref***
+  - ***napi_reference_unref***
+  - ***napi_get_reference_value***
+  - ***napi_add_finalizer***
 
 * 需要 [BigInt](https://www.caniuse.com/?search=BigInt) 的 API：(v8 引擎 v6.7+ / Node.js v10.4.0+)
 
-  - [x] ***napi_create_bigint_int64***
-  - [x] ***napi_create_bigint_uint64***
-  - [x] ***napi_create_bigint_words***
-  - [x] ***napi_get_value_bigint_int64***
-  - [x] ***napi_get_value_bigint_uint64***
-  - [x] ***napi_get_value_bigint_words***
+  - ***napi_create_bigint_int64***
+  - ***napi_create_bigint_uint64***
+  - ***napi_create_bigint_words***
+  - ***napi_get_value_bigint_int64***
+  - ***napi_get_value_bigint_uint64***
+  - ***napi_get_value_bigint_words***
 
 * `data` 指针返回值永远为 `NULL` 的 API：(JS 无法实现)
 
-  - [x] ***napi_create_arraybuffer***
-  - [x] ***napi_get_arraybuffer_info***
-  - [x] ***napi_get_typedarray_info***
-  - [x] ***napi_get_dataview_info***
+  - ***napi_create_arraybuffer***
+  - ***napi_get_arraybuffer_info***
+  - ***napi_get_typedarray_info***
+  - ***napi_get_dataview_info***
 
 ### 稳定的 API
 
-- [x] napi_get_last_error_info
-- [x] napi_get_undefined
-- [x] napi_get_null
-- [x] napi_get_global
-- [x] napi_get_boolean
-- [x] napi_create_object
-- [x] napi_create_array
-- [x] napi_create_array_with_length
-- [x] napi_create_double
-- [x] napi_create_int32
-- [x] napi_create_uint32
-- [x] napi_create_int64
-- [x] napi_create_string_latin1
-- [x] napi_create_string_utf8
-- [x] napi_create_string_utf16
-- [x] napi_create_symbol
-- [x] napi_create_function
-- [x] napi_create_error
-- [x] napi_create_type_error
-- [x] napi_create_range_error
-- [x] napi_typeof
-- [x] napi_get_value_double
-- [x] napi_get_value_int32
-- [x] napi_get_value_uint32
-- [x] napi_get_value_int64
-- [x] napi_get_value_bool
-- [x] napi_get_value_string_latin1
-- [x] napi_get_value_string_utf8
-- [x] napi_get_value_string_utf16
-- [x] napi_coerce_to_bool
-- [x] napi_coerce_to_number
-- [x] napi_coerce_to_object
-- [x] napi_coerce_to_string
-- [x] napi_get_prototype
-- [x] napi_get_property_names
-- [x] napi_set_property
-- [x] napi_has_property
-- [x] napi_get_property
-- [x] napi_delete_property
-- [x] napi_has_own_property
-- [x] napi_set_named_property
-- [x] napi_has_named_property
-- [x] napi_get_named_property
-- [x] napi_set_element
-- [x] napi_has_element
-- [x] napi_get_element
-- [x] napi_delete_element
-- [x] napi_define_properties
-- [x] napi_is_array
-- [x] napi_get_array_length
-- [x] napi_strict_equals
-- [x] napi_call_function
-- [x] napi_new_instance
-- [x] napi_instanceof
-- [x] napi_get_cb_info
-- [x] napi_get_new_target
-- [x] napi_define_class
-- [x] napi_open_handle_scope
-- [x] napi_close_handle_scope
-- [x] napi_open_escapable_handle_scope
-- [x] napi_close_escapable_handle_scope
-- [x] napi_escape_handle
-- [x] napi_throw
-- [x] napi_throw_error
-- [x] napi_throw_type_error
-- [x] napi_throw_range_error
-- [x] napi_is_error
-- [x] napi_is_exception_pending
-- [x] napi_get_and_clear_last_exception
-- [x] napi_is_arraybuffer
-- [x] napi_is_typedarray
-- [x] napi_create_typedarray
-- [x] napi_create_dataview
-- [x] napi_is_dataview
-- [x] napi_get_version
-- [x] napi_create_promise
-- [x] napi_resolve_deferred
-- [x] napi_reject_deferred
-- [x] napi_is_promise
-- [x] napi_run_script
-- [x] napi_create_date
-- [x] napi_is_date
-- [x] napi_get_date_value
-- [x] napi_get_all_property_names
-- [x] napi_set_instance_data
-- [x] napi_get_instance_data
-- [x] napi_object_freeze
-- [x] napi_object_seal
-- [x] napi_type_tag_object
-- [x] napi_check_object_type_tag
+- napi_get_last_error_info
+- napi_get_undefined
+- napi_get_null
+- napi_get_global
+- napi_get_boolean
+- napi_create_object
+- napi_create_array
+- napi_create_array_with_length
+- napi_create_double
+- napi_create_int32
+- napi_create_uint32
+- napi_create_int64
+- napi_create_string_latin1
+- napi_create_string_utf8
+- napi_create_string_utf16
+- napi_create_symbol
+- napi_create_function
+- napi_create_error
+- napi_create_type_error
+- napi_create_range_error
+- napi_typeof
+- napi_get_value_double
+- napi_get_value_int32
+- napi_get_value_uint32
+- napi_get_value_int64
+- napi_get_value_bool
+- napi_get_value_string_latin1
+- napi_get_value_string_utf8
+- napi_get_value_string_utf16
+- napi_coerce_to_bool
+- napi_coerce_to_number
+- napi_coerce_to_object
+- napi_coerce_to_string
+- napi_get_prototype
+- napi_get_property_names
+- napi_set_property
+- napi_has_property
+- napi_get_property
+- napi_delete_property
+- napi_has_own_property
+- napi_set_named_property
+- napi_has_named_property
+- napi_get_named_property
+- napi_set_element
+- napi_has_element
+- napi_get_element
+- napi_delete_element
+- napi_define_properties
+- napi_is_array
+- napi_get_array_length
+- napi_strict_equals
+- napi_call_function
+- napi_new_instance
+- napi_instanceof
+- napi_get_cb_info
+- napi_get_new_target
+- napi_define_class
+- napi_open_handle_scope
+- napi_close_handle_scope
+- napi_open_escapable_handle_scope
+- napi_close_escapable_handle_scope
+- napi_escape_handle
+- napi_throw
+- napi_throw_error
+- napi_throw_type_error
+- napi_throw_range_error
+- napi_is_error
+- napi_is_exception_pending
+- napi_get_and_clear_last_exception
+- napi_is_arraybuffer
+- napi_is_typedarray
+- napi_create_typedarray
+- napi_create_dataview
+- napi_is_dataview
+- napi_get_version
+- napi_create_promise
+- napi_resolve_deferred
+- napi_reject_deferred
+- napi_is_promise
+- napi_run_script
+- napi_create_date
+- napi_is_date
+- napi_get_date_value
+- napi_get_all_property_names
+- napi_set_instance_data
+- napi_get_instance_data
+- napi_object_freeze
+- napi_object_seal
+- napi_type_tag_object
+- napi_check_object_type_tag
