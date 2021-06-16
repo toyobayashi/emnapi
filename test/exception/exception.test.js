@@ -9,7 +9,7 @@ const theError = new Error('Some error')
 
 const promise = load('exception')
 
-promise.catch(anException => {
+module.exports = promise.catch(anException => {
   const resultingException = anException
   assert.strictEqual(resultingException.message, 'Error during Init')
   return resultingException.binding
@@ -59,7 +59,4 @@ promise.catch(anException => {
       'Exception state did not remain clear as expected,' +
                      ` .wasPending() returned ${exception_pending}`)
   }
-}).catch(err => {
-  console.error(err)
-  process.exit(1)
 })

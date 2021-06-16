@@ -2,7 +2,7 @@
 const assert = require('assert')
 const { load } = require('../util')
 
-load('callback').then(addon => {
+module.exports = load('callback').then(addon => {
   addon.RunCallback(function (msg) {
     assert.strictEqual(msg, 'hello world')
   })
@@ -20,7 +20,4 @@ load('callback').then(addon => {
   testRecv('Hello')
   testRecv([])
   testRecv({})
-}).catch(err => {
-  console.error(err)
-  process.exit(1)
 })

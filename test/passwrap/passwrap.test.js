@@ -8,7 +8,7 @@ const common = require('../common')
 const { load } = require('../util')
 
 const p = load('passwrap')
-p.then(addon => {
+module.exports = p.then(addon => {
   async function runTest () {
     let obj1 = addon.createObject(10)
     let obj2 = addon.createObject(20)
@@ -25,7 +25,4 @@ p.then(addon => {
     console.error(err)
     process.exit(1)
   })
-}).catch(err => {
-  console.error(err)
-  process.exit(1)
 })

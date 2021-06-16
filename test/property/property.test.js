@@ -8,7 +8,7 @@ const readonlyErrorRE =
 const getterOnlyErrorRE =
 /^TypeError: Cannot set property .* of #<Object> which has only a getter$/
 
-load('property').then(test_object => {
+module.exports = load('property').then(test_object => {
   assert.strictEqual(test_object.echo('hello'), 'hello')
   test_object.readwriteValue = 1
   assert.strictEqual(test_object.readwriteValue, 1)
@@ -66,7 +66,4 @@ load('property').then(test_object => {
     true)
   assert.strictEqual(test_object.hasNamedProperty(test_object, 'doesnotexist'),
     false)
-}).catch(err => {
-  console.error(err)
-  process.exit(1)
 })

@@ -3,7 +3,7 @@ const assert = require('assert')
 const { load } = require('../util')
 
 // eslint-disable-next-line camelcase
-load('typedarray').then(test_typedarray => {
+module.exports = load('typedarray').then(test_typedarray => {
   const byteArray = new Uint8Array(3)
   byteArray[0] = 0
   byteArray[1] = 1
@@ -52,7 +52,4 @@ load('typedarray').then(test_typedarray => {
       console.log(`start of offset ${currentType}`)
     }, RangeError)
   })
-}).catch(err => {
-  console.error(err)
-  process.exit(1)
 })

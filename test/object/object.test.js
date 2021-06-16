@@ -4,7 +4,7 @@
 const assert = require('assert')
 const { load } = require('../util')
 
-load('object').then(test_object => {
+module.exports = load('object').then(test_object => {
   const object = {
     hello: 'world',
     array: [
@@ -315,7 +315,4 @@ load('object').then(test_object => {
       delete obj.x
     }, /Cannot delete property 'x' of #<Object>/)
   }
-}).catch(err => {
-  console.error(err)
-  process.exit(1)
 })

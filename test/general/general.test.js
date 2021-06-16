@@ -6,7 +6,7 @@ const assert = require('assert')
 const common = require('../common')
 const { load } = require('../util')
 
-load('general').then(async test_general => {
+module.exports = load('general').then(async test_general => {
   const val1 = '1'
   const val2 = 1
   const val3 = 1
@@ -91,7 +91,4 @@ load('general').then(async test_general => {
       () => (!test_general.finalizeWasCalled()))
   }
   await runGCTests()
-}).catch(err => {
-  console.error(err)
-  process.exit(1)
 })

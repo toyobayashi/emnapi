@@ -5,7 +5,7 @@
 const assert = require('assert')
 const { load } = require('../util')
 
-load('number').then(test_number => {
+module.exports = load('number').then(test_number => {
 // Testing api calls for number
   function testNumber (num) {
     assert.strictEqual(num, test_number.Test(num))
@@ -132,7 +132,4 @@ load('number').then(test_number => {
   testInt64(Number.POSITIVE_INFINITY, 0)
   testInt64(Number.NEGATIVE_INFINITY, 0)
   testInt64(Number.NaN, 0)
-}).catch(err => {
-  console.error(err)
-  process.exit(1)
 })

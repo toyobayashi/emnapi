@@ -6,7 +6,7 @@ const assert = require('assert')
 const common = require('../common')
 const { load } = require('../util')
 
-load('general').then(async test_general => {
+module.exports = load('general').then(async test_general => {
   let finalized = {}
   const callback = common.mustCall(2)
 
@@ -36,7 +36,4 @@ load('general').then(async test_general => {
       () => test_general.derefItemWasCalled())
   }
   await testFinalizeAndWrap()
-}).catch(err => {
-  console.error(err)
-  process.exit(1)
 })

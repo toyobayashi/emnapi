@@ -5,7 +5,7 @@ const { load } = require('../util')
 const getterOnlyErrorRE =
   /^TypeError: Cannot set property .* of #<.*> which has only a getter$/
 
-load('constructor').then(TestConstructor => {
+module.exports = load('constructor').then(TestConstructor => {
   assert.strictEqual(TestConstructor.name, 'MyObject')
   // Testing api calls for a constructor that defines properties
   const test_object = new TestConstructor()
@@ -61,7 +61,4 @@ load('constructor').then(TestConstructor => {
     propertiesIsNull: 'Invalid argument',
     resultIsNull: 'Invalid argument'
   })
-}).catch(err => {
-  console.error(err)
-  process.exit(1)
 })

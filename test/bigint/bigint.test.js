@@ -29,7 +29,7 @@ const promise = load('bigint')
 [2249227439184578641, 8929859034951574840, 4303658240311279431, 693152]
 */
 
-promise.then(mod => {
+module.exports = promise.then(mod => {
   const {
     IsLossless,
     TestInt64,
@@ -81,7 +81,4 @@ promise.then(mod => {
     name: 'RangeError',
     message: 'Maximum BigInt size exceeded'
   })
-}).catch(err => {
-  console.error(err)
-  process.exit(1)
 })

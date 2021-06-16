@@ -3,7 +3,7 @@ const assert = require('assert')
 const { load } = require('../util')
 
 // eslint-disable-next-line camelcase
-load('string').then(test_string => {
+module.exports = load('string').then(test_string => {
   const empty = ''
   assert.strictEqual(test_string.TestLatin1(empty), empty)
   assert.strictEqual(test_string.TestUtf8(empty), empty)
@@ -82,7 +82,4 @@ load('string').then(test_string => {
   }, /^Error: Invalid argument$/)
 
   test_string.TestMemoryCorruption(' '.repeat(64 * 1024))
-}).catch(err => {
-  console.error(err)
-  process.exit(1)
 })

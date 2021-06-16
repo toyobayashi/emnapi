@@ -60,7 +60,6 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
         linkOptions: [...commonFlags]
       },
       createTarget('env', ['./test/env/binding.c']),
-      createTarget('value', ['./test/value/binding.c']),
       createTarget('hello', ['./test/hello/binding.c']),
       createTarget('arg', ['./test/arg/binding.c'], true),
       createTarget('callback', ['./test/callback/binding.c'], true),

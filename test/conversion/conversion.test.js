@@ -5,7 +5,7 @@
 const assert = require('assert')
 const { load } = require('../util')
 
-load('conversion').then(test => {
+module.exports = load('conversion').then(test => {
   const boolExpected = /boolean was expected/
   const numberExpected = /number was expected/
   const stringExpected = /string was expected/
@@ -218,7 +218,4 @@ load('conversion').then(test => {
     wrongTypeIn: 'A string was expected',
     bufAndOutLengthIsNull: 'Invalid argument'
   })
-}).catch(err => {
-  console.error(err)
-  process.exit(1)
 })

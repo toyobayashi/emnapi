@@ -8,7 +8,7 @@ const common = require('../common')
 const { load } = require('../util')
 
 const p = load('fnwrap')
-p.then(test => {
+module.exports = p.then(test => {
   assert.strictEqual(test.finalizeCount, 0)
   async function runGCTests () {
     (() => {
@@ -31,7 +31,4 @@ p.then(test => {
     console.error(err)
     process.exit(1)
   })
-}).catch(err => {
-  console.error(err)
-  process.exit(1)
 })

@@ -7,7 +7,7 @@ const { load } = require('../util')
 const { gcUntil } = require('../common')
 
 const p = load('ref')
-p.then(test_reference => {
+module.exports = p.then(test_reference => {
   // This test script uses external values with finalizer callbacks
   // in order to track when values get garbage-collected. Each invocation
   // of a finalizer callback increments the finalizeCount property.
@@ -118,7 +118,4 @@ p.then(test_reference => {
     test_reference.validateDeleteBeforeFinalize(wrapObject)
     global.gc()
   }
-}).catch(err => {
-  console.error(err)
-  process.exit(1)
 })

@@ -4,7 +4,7 @@
 const assert = require('assert')
 const { load } = require('../util')
 
-load('object').then(test_object => {
+module.exports = load('object').then(test_object => {
 // Test passing NULL to object-related N-APIs.
   const { testNull } = test_object
 
@@ -54,7 +54,4 @@ load('object').then(test_object => {
   assert.deepStrictEqual(testNull.getPropertyNames(), expectedForElement)
   assert.deepStrictEqual(testNull.getAllPropertyNames(), expectedForElement)
   assert.deepStrictEqual(testNull.getPrototype(), expectedForElement)
-}).catch(err => {
-  console.error(err)
-  process.exit(1)
 })

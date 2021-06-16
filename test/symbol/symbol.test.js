@@ -3,7 +3,7 @@ const assert = require('assert')
 const { load } = require('../util')
 
 // eslint-disable-next-line camelcase
-load('symbol').then(test_symbol => {
+module.exports = load('symbol').then(test_symbol => {
   const sym = test_symbol.New('test')
   assert.strictEqual(sym.toString(), 'Symbol(test)')
 
@@ -40,7 +40,4 @@ load('symbol').then(test_symbol => {
   }
   assert.strictEqual(object[foo1], 1)
   assert.strictEqual(object[foo2], 2)
-}).catch(err => {
-  console.error(err)
-  process.exit(1)
 })

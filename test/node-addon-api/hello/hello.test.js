@@ -6,9 +6,6 @@ const assert = require('assert')
 const { load } = require('../../util')
 
 const p = load('n_hello')
-p.then(addon => {
+module.exports = p.then(addon => {
   assert.strictEqual(addon.hello(), 'world')
-}).catch(err => {
-  console.error(err)
-  process.exit(1)
 })

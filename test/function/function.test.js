@@ -4,7 +4,7 @@ const assert = require('assert')
 const common = require('../common')
 const { load } = require('../util')
 
-load('function').then(async test_function => {
+module.exports = load('function').then(async test_function => {
   function func1 () {
     return 1
   }
@@ -43,7 +43,4 @@ load('function').then(async test_function => {
     cbIsNull: 'Invalid argument',
     resultIsNull: 'Invalid argument'
   })
-}).catch(err => {
-  console.error(err)
-  process.exit(1)
 })

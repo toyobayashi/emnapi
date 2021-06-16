@@ -8,7 +8,7 @@ const getterOnlyErrorRE =
   /^TypeError: Cannot set property .* of #<.*> which has only a getter$/
 
 const p = load('objwrap')
-p.then(addon => {
+module.exports = p.then(addon => {
   const valueDescriptor = Object.getOwnPropertyDescriptor(
     addon.MyObject.prototype, 'value')
   const valueReadonlyDescriptor = Object.getOwnPropertyDescriptor(
@@ -49,7 +49,4 @@ p.then(addon => {
   assert.strictEqual(newobj.value, -13)
   assert.strictEqual(newobj.valueReadonly, -13)
   assert.notStrictEqual(obj, newobj)
-}).catch(err => {
-  console.error(err)
-  process.exit(1)
 })

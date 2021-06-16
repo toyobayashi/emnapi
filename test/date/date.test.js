@@ -5,7 +5,7 @@
 const assert = require('assert')
 const { load } = require('../util')
 
-load('date').then(test_date => {
+module.exports = load('date').then(test_date => {
   const dateTypeTestDate = test_date.createDate(1549183351)
   assert.strictEqual(test_date.isDate(dateTypeTestDate), true)
 
@@ -18,7 +18,4 @@ load('date').then(test_date => {
   assert.strictEqual(test_date.isDate({}), false)
 
   assert.strictEqual(test_date.getDateValue(new Date(1549183351)), 1549183351)
-}).catch(err => {
-  console.error(err)
-  process.exit(1)
 })

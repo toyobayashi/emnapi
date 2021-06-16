@@ -5,7 +5,7 @@ const assert = require('assert')
 const { Worker } = require('worker_threads')
 
 const bindingPath = getEntry('hello')
-load('hello').then((binding) => {
+module.exports = load('hello').then((binding) => {
   assert.strictEqual(binding.hello(), 'world')
   console.log('binding.hello() =', binding.hello())
   delete require.cache[bindingPath]
@@ -24,7 +24,4 @@ function load (request) {
 load(${JSON.stringify(getEntry('hello'))}).then((binding) => { const msg = binding.hello(); parentPort.postMessage(msg) });`, { eval: true, env: process.env })
       .on('message', common.mustCall((msg) => assert.strictEqual(msg, 'world')))
   })
-}).catch(err => {
-  console.error(err)
-  process.exit(1)
 })

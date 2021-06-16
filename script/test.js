@@ -10,12 +10,9 @@ files.forEach((f) => {
 })
 
 function test (f) {
-  console.log('Test: ' + f)
-  console.time(f)
-  const r = spawnSync('node', ['--expose-gc', f], { cwd, env: process.env, stdio: 'inherit' })
+  const r = spawnSync('node', ['--expose-gc', './script/test-entry.js', f], { cwd, env: process.env, stdio: 'inherit' })
   if (r.status !== 0) {
     process.exit(r.status)
   }
-  console.timeEnd(f)
   console.log()
 }

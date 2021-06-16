@@ -3,7 +3,7 @@ const assert = require('assert')
 const { load } = require('../util')
 
 // eslint-disable-next-line camelcase
-load('array').then(test_array => {
+module.exports = load('array').then(test_array => {
   const array = [
     1,
     9,
@@ -56,7 +56,4 @@ load('array').then(test_array => {
     assert.strictEqual(arr.length, 4)
     assert.strictEqual(2 in arr, false)
   }
-}).catch(err => {
-  console.error(err)
-  process.exit(1)
 })

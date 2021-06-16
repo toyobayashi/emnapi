@@ -5,7 +5,7 @@
 const assert = require('assert')
 const { load } = require('../util')
 
-load('dataview').then(test_dataview => {
+module.exports = load('dataview').then(test_dataview => {
 // Test for creating dataview
   {
     const buffer = new ArrayBuffer(128)
@@ -23,7 +23,4 @@ load('dataview').then(test_dataview => {
       test_dataview.CreateDataView(buffer, 10, 200)
     }, RangeError)
   }
-}).catch(err => {
-  console.error(err)
-  process.exit(1)
 })

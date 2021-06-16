@@ -5,7 +5,7 @@ const { load } = require('../util')
 
 const promise = load('error')
 
-promise.then(test_error => {
+module.exports = promise.then(test_error => {
   const theError = new Error('Some error')
   const theTypeError = new TypeError('Some type error')
   const theSyntaxError = new SyntaxError('Some syntax error')
@@ -126,7 +126,4 @@ promise.then(test_error => {
   assert.strictEqual(error.message, 'TypeError [type error]')
   assert.strictEqual(error.code, 'ERR_TEST_CODE')
   assert.strictEqual(error.name, 'TypeError')
-}).catch(err => {
-  console.error(err)
-  process.exit(1)
 })

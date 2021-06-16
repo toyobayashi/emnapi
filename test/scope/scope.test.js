@@ -6,7 +6,7 @@ const assert = require('assert')
 const { load } = require('../util')
 
 const p = load('scope')
-p.then(testHandleScope => {
+module.exports = p.then(testHandleScope => {
   testHandleScope.NewScope()
   assert.ok(testHandleScope.NewScopeEscape() instanceof Object)
 
@@ -17,7 +17,4 @@ p.then(testHandleScope => {
       testHandleScope.NewScopeWithException(() => { throw new RangeError() })
     },
     RangeError)
-}).catch(err => {
-  console.error(err)
-  process.exit(1)
 })
