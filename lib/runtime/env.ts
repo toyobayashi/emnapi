@@ -540,13 +540,7 @@ namespace emnapi {
         const exports = {}
         const exportsHandle = scope.add(exports)
         const napiValue = _napi_register_wasm_v1!(envObject.id, exportsHandle.id)
-        if (napiValue === NULL) {
-          if (envObject.tryCatch.hasCaught()) {
-            throw envObject.tryCatch.extractException()
-          }
-          return undefined
-        }
-        return envObject.handleStore.get(napiValue)!.value
+        return (!napiValue) ? undefined : envObject.handleStore.get(napiValue)!.value
       })
       return emnapiExports
     } catch (err) {
