@@ -78,16 +78,13 @@ static napi_value createNapiError(napi_env env, napi_callback_info info) {
       "Last error info code should match last status");
   NAPI_ASSERT(env, error_info->error_message,
       "Last error info message should not be null");
-  printf("create, code: %d, message: %s\n", error_info->error_code, error_info->error_message);
   NAPI_CALL(env, napi_get_last_error_info(env, &error_info));
-  printf("create, code: %d, message: %s\n", error_info->error_code, error_info->error_message);
   return NULL;
 }
 
 static napi_value testNapiErrorCleanup(napi_env env, napi_callback_info info) {
   const napi_extended_error_info *error_info = 0;
   NAPI_CALL(env, napi_get_last_error_info(env, &error_info));
-  printf("code: %d, message: %s\n", error_info->error_code, error_info->error_message);
   napi_value result;
   bool is_ok = error_info->error_code == napi_ok;
   NAPI_CALL(env, napi_get_boolean(env, is_ok, &result));

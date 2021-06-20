@@ -6,8 +6,8 @@
       "request": "launch",
       "name": "Launch Program",
       "runtimeArgs": ["--expose-gc"],
-      "program": "${workspaceFolder}/test/function/function.test.js",
-      "args": ["--expose-gc"]
+      "program": "${workspaceFolder}/test/emnapi/emnapi.test.js",
+      "args": []
     },
     {
       "name": "Windows",

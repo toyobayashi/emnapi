@@ -7,7 +7,5 @@ const { load } = require('../util')
 
 module.exports = load('general').then(addon => {
   addon.createNapiError()
-  const r = addon.testNapiErrorCleanup()
-  console.log(r)
-  assert(r, 'napi_status cleaned up for second call')
+  assert(addon.testNapiErrorCleanup(), 'napi_status cleaned up for second call')
 })

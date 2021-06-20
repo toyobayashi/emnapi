@@ -235,7 +235,7 @@ npm test
 
 These APIs always return `napi_generic_failure`.
 
-- ~~napi_create_external_arraybuffer~~
+- ~~napi_create_external_arraybuffer~~ (use [`emnapi_create_external_uint8array`][] instead)
 - ~~napi_adjust_external_memory~~
 - ~~napi_detach_arraybuffer~~
 - ~~napi_is_detached_arraybuffer~~
@@ -364,3 +364,64 @@ These APIs always return `napi_generic_failure`.
 - napi_object_seal
 - napi_type_tag_object
 - napi_check_object_type_tag
+
+### Additional
+
+These APIs are in `emnapi.h`.
+
+#### emnapi_get_module_object
+
+```c
+napi_status emnapi_get_module_object(napi_env env,
+                                     napi_value* result);
+```
+
+* `[in] env`: The environment that the API is invoked under.
+* `[out] result`: A `napi_value` representing the `Module` object of Emscripten.
+
+Returns `napi_ok` if the API succeeded.
+
+#### emnapi_get_module_property
+
+```c
+napi_status emnapi_get_module_property(napi_env env,
+                                       const char* utf8name,
+                                       napi_value* result);
+```
+
+* `[in] env`: The environment that the API is invoked under.
+* `[in] utf8Name`: The name of the `Module` property to get.
+* `[out] result`: The value of the property.
+
+Returns `napi_ok` if the API succeeded.
+
+#### emnapi_create_external_uint8array
+
+```c
+napi_status emnapi_create_external_uint8array(napi_env env,
+                                              void* external_data,
+                                              size_t byte_length,
+                                              napi_finalize finalize_cb,
+                                              void* finalize_hint,
+                                              napi_value* result);
+```
+
+* `[in] env`: The environment that the API is invoked under.
+* `[in] external_data`: Pointer to the underlying byte buffer of the
+  `Uint8Array`.
+* `[in] byte_length`: The length in bytes of the underlying buffer.
+* `[in] finalize_cb`: Optional callback to call when the `Uint8Array` is being
+  collected.
+* `[in] finalize_hint`: Optional hint to pass to the finalize callback during
+  collection.
+* `[out] result`: A `napi_value` representing a JavaScript `Uint8Array`.
+
+Returns `napi_ok` if the API succeeded.
+Returns `napi_generic_failure` if `FinalizationRegistry` or `WeakRef` is not supported.
+
+This API returns an N-API value corresponding to a JavaScript `Uint8Array`.
+The underlying byte buffer of the `Uint8Array` is externally allocated and
+managed. The caller must ensure that the byte buffer remains valid until the
+finalize callback is called.
+
+[`emnapi_create_external_uint8array`]: #emnapi_create_external_uint8array

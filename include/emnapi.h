@@ -7,6 +7,10 @@
 EXTERN_C_START
 
 NAPI_EXTERN
+napi_status emnapi_get_module_object(napi_env env,
+                                     napi_value* result);
+
+NAPI_EXTERN
 napi_status emnapi_get_module_property(napi_env env,
                                        const char* utf8name,
                                        napi_value* result);
