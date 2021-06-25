@@ -1,20 +1,15 @@
 module.exports = function (_options, { isDebug, isEmscripten }) {
-  const debugFlags = isEmscripten
+  const compilerFlags = isEmscripten
     ? [
-        '-sDISABLE_EXCEPTION_CATCHING=0',
-        '-sSAFE_HEAP=1'
+        // ...(isDebug ? ['-sDISABLE_EXCEPTION_CATCHING=0'] : [])
       ]
     : []
 
-  const commonFlags = isEmscripten
+  const linkerFlags = isEmscripten
     ? [
-        // '--bind',
-        // '-sDYNCALLS=1',
-        // '-sERROR_ON_UNDEFINED_SYMBOLS=0', if add js function to imports.env
         "-sEXPORTED_FUNCTIONS=['_malloc','_free']",
         '-sALLOW_MEMORY_GROWTH=1',
-        // '-sNODEJS_CATCH_EXIT=0',
-        ...(isDebug ? debugFlags : [])
+        ...(isDebug ? ['-sSAFE_HEAP=1'/* , '-sDISABLE_EXCEPTION_CATCHING=0' */] : [])
       ]
     : []
 
@@ -27,9 +22,9 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
     },
     libs: ['testcommon'],
     includePaths: isEmscripten ? ['./include'] : [],
-    compileOptions: [...commonFlags],
+    compileOptions: [...compilerFlags],
     // eslint-disable-next-line no-template-curly-in-string
-    linkOptions: [...commonFlags, ...(isEmscripten ? ['--js-library=${CMAKE_CURRENT_SOURCE_DIR}/dist/library_napi.js'] : [])]
+    linkOptions: [...linkerFlags, ...(isEmscripten ? ['--js-library=${CMAKE_CURRENT_SOURCE_DIR}/dist/library_napi.js'] : [])]
   })
 
   const createNodeAddonApiTarget = (name, sources) => ({
@@ -41,9 +36,9 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
     },
     includePaths: isEmscripten ? ['./include'] : [],
     defines: ['NAPI_DISABLE_CPP_EXCEPTIONS'],
-    compileOptions: [...commonFlags],
+    compileOptions: [...compilerFlags],
     // eslint-disable-next-line no-template-curly-in-string
-    linkOptions: [...commonFlags, ...(isEmscripten ? ['--js-library=${CMAKE_CURRENT_SOURCE_DIR}/dist/library_napi.js'] : [])]
+    linkOptions: [...linkerFlags, ...(isEmscripten ? ['--js-library=${CMAKE_CURRENT_SOURCE_DIR}/dist/library_napi.js'] : [])]
   })
 
   return {
@@ -56,8 +51,8 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
         includePaths: isEmscripten
           ? ['./include']
           : [`${require('path').join(require('os').homedir(), 'AppData/Local/node-gyp/Cache', process.versions.node, 'include/node')}`],
-        compileOptions: [...commonFlags],
-        linkOptions: [...commonFlags]
+        compileOptions: [...compilerFlags],
+        linkOptions: [...linkerFlags]
       },
       createTarget('env', ['./test/env/binding.c']),
       createTarget('hello', ['./test/hello/binding.c']),
