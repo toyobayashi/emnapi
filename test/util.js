@@ -13,9 +13,17 @@ exports.load = function (targetName) {
     const mod = require(request)
 
     if (typeof mod.default === 'function') {
-      const p = mod.default().then(({ Module, emnapi }) => {
-        p.emnapi = emnapi
-        return Module.emnapiExports
+      const p = new Promise((resolve, reject) => {
+        mod.default({
+          onEmnapiInitialized: (err) => {
+            if (err) {
+              reject(err)
+            }
+          }
+        }).then(({ Module, emnapi }) => {
+          p.emnapi = emnapi
+          resolve(Module.emnapiExports)
+        })
       })
       return p
     } else {

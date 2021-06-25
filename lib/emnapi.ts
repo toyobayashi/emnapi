@@ -41,7 +41,7 @@ function emnapi_create_external_uint8array (
       const u8arr = new Uint8Array(HEAPU8.buffer, external_data, byte_length)
       const handle = envObject.getCurrentScope().add(u8arr)
       if (finalize_cb !== emnapi.NULL) {
-        const status = emnapi.wrap(emnapi.WrapType.anonymous, env, handle.id, external_data, finalize_cb, finalize_hint, emnapi.NULL)
+        const status = emnapiWrap(emnapi.WrapType.anonymous, env, handle.id, external_data, finalize_cb, finalize_hint, emnapi.NULL)
         if (status === emnapi.napi_status.napi_pending_exception) {
           throw envObject.tryCatch.extractException()
         } else if (status !== emnapi.napi_status.napi_ok) {
@@ -56,4 +56,4 @@ function emnapi_create_external_uint8array (
 
 emnapiImplement('emnapi_get_module_object', emnapi_get_module_object)
 emnapiImplement('emnapi_get_module_property', emnapi_get_module_property)
-emnapiImplement('emnapi_create_external_uint8array', emnapi_create_external_uint8array)
+emnapiImplement('emnapi_create_external_uint8array', emnapi_create_external_uint8array, ['$emnapiWrap'])

@@ -1,3 +1,4 @@
+declare const _napi_get_all_property_names: typeof napi_get_all_property_names
 function napi_get_all_property_names (
   env: napi_env,
   object: napi_value,
@@ -18,14 +19,13 @@ function napi_get_all_property_names (
       if (key_conversion !== emnapi.napi_key_conversion.napi_key_keep_numbers && key_conversion !== emnapi.napi_key_conversion.napi_key_numbers_to_strings) {
         return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_invalid_arg)
       }
-      const names = emnapi.getPropertyNames(h.value, key_mode, key_filter, key_conversion)
+      const names = emnapiGetPropertyNames(h.value, key_mode, key_filter, key_conversion)
       HEAP32[result >> 2] = envObject.getCurrentScope().add(names).id
       return emnapi.getReturnStatus(env)
     })
   })
 }
 
-declare const _napi_get_all_property_names: typeof napi_get_all_property_names
 function napi_get_property_names (env: napi_env, object: napi_value, result: Pointer<napi_value>): emnapi.napi_status {
   return _napi_get_all_property_names(
     env,
@@ -253,7 +253,7 @@ function napi_define_properties (
           return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_name_expected)
         }
       }
-      emnapi.defineProperty(env, maybeObject, propertyName, method, getter, setter, value, attributes, data)
+      emnapiDefineProperty(env, maybeObject, propertyName, method, getter, setter, value, attributes, data)
     }
     return emnapi.napi_status.napi_ok
   })
@@ -285,7 +285,7 @@ function napi_object_seal (env: napi_env, object: napi_value): emnapi.napi_statu
   })
 }
 
-emnapiImplement('napi_get_all_property_names', napi_get_all_property_names)
+emnapiImplement('napi_get_all_property_names', napi_get_all_property_names, ['$emnapiGetPropertyNames'])
 emnapiImplement('napi_get_property_names', napi_get_property_names, ['napi_get_all_property_names'])
 emnapiImplement('napi_set_property', napi_set_property)
 emnapiImplement('napi_has_property', napi_has_property)
@@ -299,6 +299,6 @@ emnapiImplement('napi_set_element', napi_set_element)
 emnapiImplement('napi_has_element', napi_has_element)
 emnapiImplement('napi_get_element', napi_get_element)
 emnapiImplement('napi_delete_element', napi_delete_element)
-emnapiImplement('napi_define_properties', napi_define_properties)
+emnapiImplement('napi_define_properties', napi_define_properties, ['$emnapiDefineProperty'])
 emnapiImplement('napi_object_freeze', napi_object_freeze)
 emnapiImplement('napi_object_seal', napi_object_seal)

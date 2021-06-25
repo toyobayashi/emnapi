@@ -92,13 +92,25 @@ emcc -O3 \
      hello.c
 ```
 
-Use the output js in html. The default export key is `emnapiExports` on [`Module`](https://emscripten.org/docs/api_reference/module.html) object. You can change the key by predefining `NODE_GYP_MODULE_NAME`.
+Use the output js in html. The default export key is `emnapiExports` on [`Module`](https://emscripten.org/docs/api_reference/module.html) object. You can change the key by predefining `NODE_GYP_MODULE_NAME`. `onEmnapiInitialized` will be called before `onRuntimeInitialized`.
 
 ```html
 <script src="hello.js"></script>
 <script>
 // Emscripten js glue code will create a global `Module` object
+Module.onEmnapiInitialized = function (err, emnapiExports) {
+  if (err) {
+    // error handling
+    // emnapiExports === undefined
+    // Module[NODE_GYP_MODULE_NAME] === undefined
+    console.error(err);
+  } else {
+    // emnapiExports === Module[NODE_GYP_MODULE_NAME]
+  }
+};
+
 Module.onRuntimeInitialized = function () {
+  if (!('emnapiExports' in Module)) return;
   var binding = Module.emnapiExports;
   var msg = 'hello ' + binding.hello();
   window.alert(msg);
@@ -111,7 +123,12 @@ Or in Node.js.
 ```js
 const Module = require('./hello.js')
 
+Module.onEmnapiInitialized = function (err, emnapiExports) {
+  // ...
+}
+
 Module.onRuntimeInitialized = function () {
+  if (!('emnapiExports' in Module)) return
   const binding = Module.emnapiExports
   const msg = `hello ${binding.hello()}`
   console.log(msg)
@@ -214,7 +231,7 @@ Full example codes can be found [here](https://github.com/toyobayashi/emnapi/tre
 
 Output code can run in recent version modern browsers and Node.js latest LTS. IE is not supported.
 
-If a JS error is thrown on runtime initialization, Node.js process will exit. You can use `-sNODEJS_CATCH_EXIT=0` and add `ununcaughtException` handler yourself to avoid this.
+If a JS error is thrown on runtime initialization, Node.js process will exit. You can use `-sNODEJS_CATCH_EXIT=0` and add `ununcaughtException` handler yourself to avoid this. Alternatively, you can use `Module.onEmnapiInitialized` callback to catch error.
 
 ## Building
 

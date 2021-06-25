@@ -112,27 +112,27 @@ function napi_create_typedarray (
 
       switch (type) {
         case emnapi.napi_typedarray_type.napi_int8_array:
-          return emnapi.createTypedArray(env, Int8Array, 1, buffer, byte_offset, length, retCallback)
+          return emnapiCreateTypedArray(env, Int8Array, 1, buffer, byte_offset, length, retCallback)
         case emnapi.napi_typedarray_type.napi_uint8_array:
-          return emnapi.createTypedArray(env, Uint8Array, 1, buffer, byte_offset, length, retCallback)
+          return emnapiCreateTypedArray(env, Uint8Array, 1, buffer, byte_offset, length, retCallback)
         case emnapi.napi_typedarray_type.napi_uint8_clamped_array:
-          return emnapi.createTypedArray(env, Uint8ClampedArray, 1, buffer, byte_offset, length, retCallback)
+          return emnapiCreateTypedArray(env, Uint8ClampedArray, 1, buffer, byte_offset, length, retCallback)
         case emnapi.napi_typedarray_type.napi_int16_array:
-          return emnapi.createTypedArray(env, Int16Array, 2, buffer, byte_offset, length, retCallback)
+          return emnapiCreateTypedArray(env, Int16Array, 2, buffer, byte_offset, length, retCallback)
         case emnapi.napi_typedarray_type.napi_uint16_array:
-          return emnapi.createTypedArray(env, Uint16Array, 2, buffer, byte_offset, length, retCallback)
+          return emnapiCreateTypedArray(env, Uint16Array, 2, buffer, byte_offset, length, retCallback)
         case emnapi.napi_typedarray_type.napi_int32_array:
-          return emnapi.createTypedArray(env, Int32Array, 4, buffer, byte_offset, length, retCallback)
+          return emnapiCreateTypedArray(env, Int32Array, 4, buffer, byte_offset, length, retCallback)
         case emnapi.napi_typedarray_type.napi_uint32_array:
-          return emnapi.createTypedArray(env, Uint32Array, 4, buffer, byte_offset, length, retCallback)
+          return emnapiCreateTypedArray(env, Uint32Array, 4, buffer, byte_offset, length, retCallback)
         case emnapi.napi_typedarray_type.napi_float32_array:
-          return emnapi.createTypedArray(env, Float32Array, 4, buffer, byte_offset, length, retCallback)
+          return emnapiCreateTypedArray(env, Float32Array, 4, buffer, byte_offset, length, retCallback)
         case emnapi.napi_typedarray_type.napi_float64_array:
-          return emnapi.createTypedArray(env, Float64Array, 8, buffer, byte_offset, length, retCallback)
+          return emnapiCreateTypedArray(env, Float64Array, 8, buffer, byte_offset, length, retCallback)
         case emnapi.napi_typedarray_type.napi_bigint64_array:
-          return emnapi.createTypedArray(env, BigInt64Array, 8, buffer, byte_offset, length, retCallback)
+          return emnapiCreateTypedArray(env, BigInt64Array, 8, buffer, byte_offset, length, retCallback)
         case emnapi.napi_typedarray_type.napi_biguint64_array:
-          return emnapi.createTypedArray(env, BigUint64Array, 8, buffer, byte_offset, length, retCallback)
+          return emnapiCreateTypedArray(env, BigUint64Array, 8, buffer, byte_offset, length, retCallback)
         default:
           return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_invalid_arg)
       }
@@ -179,5 +179,5 @@ emnapiImplement('napi_create_external', napi_create_external)
 emnapiImplement('napi_create_external_arraybuffer', napi_create_external_arraybuffer)
 emnapiImplement('napi_create_object', napi_create_object)
 emnapiImplement('napi_create_symbol', napi_create_symbol)
-emnapiImplement('napi_create_typedarray', napi_create_typedarray)
+emnapiImplement('napi_create_typedarray', napi_create_typedarray, ['$emnapiCreateTypedArray'])
 emnapiImplement('napi_create_dataview', napi_create_dataview)

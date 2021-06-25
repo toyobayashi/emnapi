@@ -89,4 +89,14 @@ namespace emnapi {
     napi_key_keep_numbers,
     napi_key_numbers_to_strings
   }
+
+  export enum WrapType {
+    retrievable,
+    anonymous
+  }
+
+  export enum UnwrapAction {
+    KeepWrap,
+    RemoveWrap
+  }
 }

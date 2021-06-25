@@ -1,6 +1,3 @@
-declare const __webpack_public_path__: any
-declare const global: typeof globalThis
-
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 namespace emnapi {
   export const is = Object.is || function is (x: any, y: any): boolean {
@@ -14,25 +11,6 @@ namespace emnapi {
       return x !== x && y !== y
     }
   }
-
-  export const _global: typeof globalThis = (function () {
-    let g
-    g = (function (this: any) { return this })()
-
-    try {
-      // eslint-disable-next-line no-new-func, @typescript-eslint/no-implied-eval
-      g = g || new Function('return this')()
-    } catch (_) {
-      if (typeof globalThis !== 'undefined') return globalThis
-      if (typeof __webpack_public_path__ === 'undefined') {
-        if (typeof global !== 'undefined') return global
-      }
-      if (typeof window !== 'undefined') return window
-      if (typeof self !== 'undefined') return self
-    }
-
-    return g
-  })()
 
   export class HandleStore extends Store<Handle<any>> {
     public static ID_UNDEFINED: -2147483648 = -2147483648

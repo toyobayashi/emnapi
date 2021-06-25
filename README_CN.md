@@ -88,13 +88,25 @@ emcc -O3 \
      hello.c
 ```
 
-把输出的 JS 引入进 HTML 使用，默认导出在 [`Module`](https://emscripten.org/docs/api_reference/module.html) 对象上的 `emnapiExports`。可通过预定义 `NODE_GYP_MODULE_NAME` 修改默认的导出键值。
+把输出的 JS 引入进 HTML 使用，默认导出在 [`Module`](https://emscripten.org/docs/api_reference/module.html) 对象上的 `emnapiExports`。可通过预定义 `NODE_GYP_MODULE_NAME` 修改默认的导出键值。`onEmnapiInitialized` 将在 `onRuntimeInitialized` 之前被调用。
 
 ```html
 <script src="hello.js"></script>
 <script>
 // Emscripten js 胶水代码会在全局创建一个 `Module` 对象
+Module.onEmnapiInitialized = function (err, emnapiExports) {
+  if (err) {
+    // 错误处理
+    // emnapiExports === undefined
+    // Module[NODE_GYP_MODULE_NAME] === undefined
+    console.error(err);
+  } else {
+    // emnapiExports === Module[NODE_GYP_MODULE_NAME]
+  }
+};
+
 Module.onRuntimeInitialized = function () {
+  if (!('emnapiExports' in Module)) return;
   var binding = Module.emnapiExports;
   var msg = 'hello ' + binding.hello();
   window.alert(msg);
@@ -107,7 +119,12 @@ Module.onRuntimeInitialized = function () {
 ```js
 const Module = require('./hello.js')
 
+Module.onEmnapiInitialized = function (err, emnapiExports) {
+  // ...
+}
+
 Module.onRuntimeInitialized = function () {
+  if (!('emnapiExports' in Module)) return
   const binding = Module.emnapiExports
   const msg = `hello ${binding.hello()}`
   console.log(msg)
@@ -211,7 +228,7 @@ cd ..
 
 输出的代码可以运行在最近版本的现代浏览器和最新的 Node.js LTS 版本。不支持 IE。
 
-如果在运行时初始化时抛出 JS 错误，Node.js 进程将会退出。可以使用`-sNODEJS_CATCH_EXIT=0` 并自己添加`uncaughtException` 事件处理器来避免这种情况。
+如果在运行时初始化时抛出 JS 错误，Node.js 进程将会退出。可以使用`-sNODEJS_CATCH_EXIT=0` 并自己添加`uncaughtException`。或者可以使用 `Module.onEmnapiInitialized` 来捕获异常。
 
 ## 构建
 
