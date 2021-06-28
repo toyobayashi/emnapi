@@ -4,6 +4,7 @@
 #include "js_native_api.h"
 
 #define NAPI_MODULE_EXPORT __attribute__((used))
+#define NAPI_NO_RETURN __attribute__((__noreturn__))
 
 typedef napi_value (*napi_addon_register_func)(napi_env env,
                                                napi_value exports);

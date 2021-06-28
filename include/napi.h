@@ -98,7 +98,12 @@ static_assert(sizeof(char16_t) == sizeof(wchar_t), "Size mismatch between char16
     NAPI_DISALLOW_ASSIGN(CLASS)           \
     NAPI_DISALLOW_COPY(CLASS)
 
-#define NAPI_FATAL_IF_FAILED(status, location, message)
+#define NAPI_FATAL_IF_FAILED(status, location, message)  \
+  do {                                                   \
+    if ((status) != napi_ok) {                           \
+      Napi::Error::Fatal((location), (message));         \
+    }                                                    \
+  } while (0)
 
 ////////////////////////////////////////////////////////////////////////////////
 /// Node-API C++ Wrapper Classes
@@ -1372,6 +1377,8 @@ namespace Napi {
     static Error New(napi_env env, const char* message);
     static Error New(napi_env env, const std::string& message);
 
+    static NAPI_NO_RETURN void Fatal(const char* location, const char* message);
+
     Error();
     Error(napi_env env, napi_value value);
 
@@ -2303,9 +2310,8 @@ namespace Napi {
         Finalizer finalizeCallback,
         FinalizerDataType* data = nullptr);
 
-    TypedThreadSafeFunction<ContextType, DataType, CallJs>();
-    TypedThreadSafeFunction<ContextType, DataType, CallJs>(
-        napi_threadsafe_function tsFunctionValue);
+    TypedThreadSafeFunction();
+    TypedThreadSafeFunction(napi_threadsafe_function tsFunctionValue);
 
     operator napi_threadsafe_function() const;
 
