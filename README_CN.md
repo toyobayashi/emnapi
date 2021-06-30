@@ -4,8 +4,6 @@
 
 适用于 [Emscripten](https://emscripten.org/index.html) 的 [Node-API (v14.16.0)](https://nodejs.org/dist/latest-v14.x/docs/api/n-api.html) 实现。
 
-仅实现了 `js_native_api.h` 中的 API。
-
 ## 快速开始
 
 环境准备：
@@ -378,6 +376,8 @@ npm test
 - napi_object_seal
 - napi_type_tag_object
 - napi_check_object_type_tag
+- napi_fatal_error (`node_api.h`)
+- napi_get_node_version (`node_api.h`)
 
 ### 额外新增的 API
 

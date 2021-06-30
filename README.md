@@ -379,7 +379,8 @@ These APIs always return `napi_generic_failure`.
 - napi_object_seal
 - napi_type_tag_object
 - napi_check_object_type_tag
-- napi_fatal_error
+- napi_fatal_error (`node_api.h`)
+- napi_get_node_version (`node_api.h`)
 
 ### Additional
 
