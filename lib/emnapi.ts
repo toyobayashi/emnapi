@@ -54,6 +54,16 @@ function emnapi_create_external_uint8array (
   })
 }
 
+function emnapi_get_emscripten_version (env: napi_env, result: Pointer<Pointer<emnapi_emscripten_version>>): emnapi.napi_status {
+  return emnapi.checkEnv(env, () => {
+    return emnapi.checkArgs(env, [result], () => {
+      HEAPU32[result >> 2] = emnapi.emscriptenVersionPtr
+      return emnapi.napi_clear_last_error(env)
+    })
+  })
+}
+
 emnapiImplement('emnapi_get_module_object', emnapi_get_module_object)
 emnapiImplement('emnapi_get_module_property', emnapi_get_module_property)
 emnapiImplement('emnapi_create_external_uint8array', emnapi_create_external_uint8array, ['$emnapiWrap'])
+emnapiImplement('emnapi_get_emscripten_version', emnapi_get_emscripten_version)

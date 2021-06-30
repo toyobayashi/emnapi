@@ -151,4 +151,13 @@ namespace emnapi {
 
   export const supportFinalizer = (typeof FinalizationRegistry !== 'undefined') && (typeof WeakRef !== 'undefined')
   export const supportBigInt = typeof BigInt !== 'undefined'
+
+  export function free (ptr: void_p, size?: size_t): void {
+    if (typeof size === 'number' && size > 0) {
+      try {
+        HEAPU8.set(Array(size).fill(0), ptr)
+      } catch (_) {}
+    }
+    _free(ptr)
+  }
 }

@@ -67,13 +67,29 @@ static napi_value NullArrayBuffer(napi_env env, napi_callback_info info) {
   return output_array;
 }
 
+static napi_value testGetEmscriptenVersion(napi_env env, napi_callback_info info) {
+  const emnapi_emscripten_version* emscripten_version;
+  napi_value result, major, minor, patch;
+  NAPI_CALL(env, emnapi_get_emscripten_version(env, &emscripten_version));
+  NAPI_CALL(env, napi_create_uint32(env, emscripten_version->major, &major));
+  NAPI_CALL(env, napi_create_uint32(env, emscripten_version->minor, &minor));
+  NAPI_CALL(env, napi_create_uint32(env, emscripten_version->patch, &patch));
+
+  NAPI_CALL(env, napi_create_array_with_length(env, 3, &result));
+  NAPI_CALL(env, napi_set_element(env, result, 0, major));
+  NAPI_CALL(env, napi_set_element(env, result, 1, minor));
+  NAPI_CALL(env, napi_set_element(env, result, 2, patch));
+  return result;
+}
+
 EXTERN_C_START
 napi_value Init(napi_env env, napi_value exports) {
   napi_property_descriptor descriptors[] = {
     DECLARE_NAPI_PROPERTY("getModuleObject", getModuleObject),
     DECLARE_NAPI_PROPERTY("getModuleProperty", getModuleProperty),
     DECLARE_NAPI_PROPERTY("External", External),
-    DECLARE_NAPI_PROPERTY("NullArrayBuffer", NullArrayBuffer)
+    DECLARE_NAPI_PROPERTY("NullArrayBuffer", NullArrayBuffer),
+    DECLARE_NAPI_PROPERTY("testGetEmscriptenVersion", testGetEmscriptenVersion)
   };
 
   NAPI_CALL(env, napi_define_properties(

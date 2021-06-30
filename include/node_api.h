@@ -27,8 +27,14 @@ typedef napi_value (*napi_addon_register_func)(napi_env env,
   EXTERN_C_START                                                               \
   NAPI_MODULE_EXPORT napi_value NAPI_WASM_INITIALIZER(napi_env env,            \
                                                       napi_value exports,      \
-                                                      const char** key) {      \
+                                                      const char** key,        \
+                                                      int* version_major,      \
+                                                      int* version_minor,      \
+                                                      int* version_patch) {    \
     if (key) *key = EMNAPI_MOD_NAME_X(modname);                                \
+    if (version_major) *version_major = __EMSCRIPTEN_major__;                  \
+    if (version_minor) *version_minor = __EMSCRIPTEN_minor__;                  \
+    if (version_patch) *version_patch = __EMSCRIPTEN_tiny__;                   \
     return regfunc(env, exports);                                              \
   }                                                                            \
   EXTERN_C_END

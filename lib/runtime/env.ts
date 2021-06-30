@@ -24,7 +24,7 @@ namespace emnapi {
       error_code: napi_status.napi_ok
     }
 
-    public napiExtendedErrorInfoPtr!: Pointer<napi_extended_error_info>
+    public napiExtendedErrorInfoPtr: Pointer<napi_extended_error_info> = NULL
 
     public tryCatch = new TryCatch()
 
@@ -128,7 +128,8 @@ namespace emnapi {
       this.handleStore.dispose()
       this.tryCatch.extractException()
       try {
-        _free(this.napiExtendedErrorInfoPtr)
+        free(this.napiExtendedErrorInfoPtr, 16)
+        this.napiExtendedErrorInfoPtr = NULL
       } catch (_) {}
       envStore.remove(this.id)
     }
