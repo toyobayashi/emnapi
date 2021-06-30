@@ -51,6 +51,11 @@ typedef napi_value (*napi_addon_register_func)(napi_env env,
 
 EXTERN_C_START
 
+NAPI_EXTERN NAPI_NO_RETURN void napi_fatal_error(const char* location,
+                                                 size_t location_len,
+                                                 const char* message,
+                                                 size_t message_len);
+
 EXTERN_C_END
 
 #endif

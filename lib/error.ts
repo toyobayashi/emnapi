@@ -151,6 +151,10 @@ function napi_get_and_clear_last_exception (env: napi_env, result: Pointer<napi_
   })
 }
 
+function napi_fatal_error (location: const_char_p, location_len: size_t, message: const_char_p, message_len: size_t): void {
+  abort('FATAL ERROR: ' + (location_len === -1 ? UTF8ToString(location) : UTF8ToString(location, location_len)) + ' ' + (message_len === -1 ? UTF8ToString(message) : UTF8ToString(message, message_len)))
+}
+
 emnapiImplement('napi_get_last_error_info', napi_get_last_error_info)
 emnapiImplement('napi_get_and_clear_last_exception', napi_get_and_clear_last_exception)
 emnapiImplement('napi_throw', napi_throw)
@@ -161,3 +165,4 @@ emnapiImplement('napi_create_error', napi_create_error)
 emnapiImplement('napi_create_type_error', napi_create_type_error)
 emnapiImplement('napi_create_range_error', napi_create_range_error)
 emnapiImplement('napi_is_exception_pending', napi_is_exception_pending)
+emnapiImplement('napi_fatal_error', napi_fatal_error)

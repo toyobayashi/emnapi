@@ -2173,8 +2173,7 @@ inline Error Error::New(napi_env env, const std::string& message) {
 }
 
 inline NAPI_NO_RETURN void Error::Fatal(const char* location, const char* message) {
-  // napi_fatal_error(location, NAPI_AUTO_LENGTH, message, NAPI_AUTO_LENGTH);
-  abort();
+  napi_fatal_error(location, NAPI_AUTO_LENGTH, message, NAPI_AUTO_LENGTH);
 }
 
 inline Error::Error() : ObjectReference() {
