@@ -5141,7 +5141,7 @@ inline int64_t MemoryManagement::AdjustExternalMemory(Env env, int64_t change_in
 // Version Management class
 ////////////////////////////////////////////////////////////////////////////////
 
-/* inline uint32_t VersionManagement::GetNapiVersion(Env env) {
+inline uint32_t VersionManagement::GetNapiVersion(Env env) {
   uint32_t result;
   napi_status status = napi_get_version(env, &result);
   NAPI_THROW_IF_FAILED(env, status, 0);
@@ -5153,7 +5153,7 @@ inline const napi_node_version* VersionManagement::GetNodeVersion(Env env) {
   napi_status status = napi_get_node_version(env, &result);
   NAPI_THROW_IF_FAILED(env, status, 0);
   return result;
-} */
+}
 
 #if NAPI_VERSION > 5
 ////////////////////////////////////////////////////////////////////////////////

@@ -1,6 +1,33 @@
 function napi_get_last_error_info (env: napi_env, result: Pointer<Pointer<napi_extended_error_info>>): emnapi.napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(env, [result], () => {
+      if (!emnapi.errorMessagesPtr) {
+        const errorMessages = [
+          '',
+          'Invalid argument',
+          'An object was expected',
+          'A string was expected',
+          'A string or symbol was expected',
+          'A function was expected',
+          'A number was expected',
+          'A boolean was expected',
+          'An array was expected',
+          'Unknown failure',
+          'An exception is pending',
+          'The async work item was cancelled',
+          'napi_escape_handle already called on scope',
+          'Invalid handle scope usage',
+          'Invalid callback scope usage',
+          'Thread-safe function queue is full',
+          'Thread-safe function handle is closing',
+          'A bigint was expected',
+          'A date was expected',
+          'An arraybuffer was expected',
+          'A detachable arraybuffer was expected',
+          'Main thread would deadlock'
+        ]
+        emnapi.errorMessagesPtr = errorMessages.map(msg => msg ? allocateUTF8(msg) : 0)
+      }
       envObject.napiExtendedErrorInfo.error_message = emnapi.errorMessagesPtr[envObject.napiExtendedErrorInfo.error_code]
       HEAP32[envObject.napiExtendedErrorInfoPtr >> 2] = envObject.napiExtendedErrorInfo.error_message
 

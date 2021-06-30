@@ -49,3 +49,10 @@ declare interface node_module {
   nm_priv: Pointer<void>
   reserved: PointerPointer<void>
 }
+
+declare interface napi_node_version {
+  major: uint32_t
+  minor: uint32_t
+  patch: uint32_t
+  release: const_char_p
+}

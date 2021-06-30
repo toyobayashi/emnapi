@@ -2529,11 +2529,11 @@ namespace Napi {
   };
 
   // Version management
-  /* class VersionManagement {
+  class VersionManagement {
     public:
       static uint32_t GetNapiVersion(Env env);
       static const napi_node_version* GetNodeVersion(Env env);
-  }; */
+  };
 
 #if NAPI_VERSION > 5
   template <typename T>

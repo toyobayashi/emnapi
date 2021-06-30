@@ -60,36 +60,10 @@ namespace emnapi {
     }
   }
 
-  export let errorMessagesPtr: char_p[]
-  export function initErrorMemory (): void {
-    if (!errorMessagesPtr) {
-      const errorMessages = [
-        '',
-        'Invalid argument',
-        'An object was expected',
-        'A string was expected',
-        'A string or symbol was expected',
-        'A function was expected',
-        'A number was expected',
-        'A boolean was expected',
-        'An array was expected',
-        'Unknown failure',
-        'An exception is pending',
-        'The async work item was cancelled',
-        'napi_escape_handle already called on scope',
-        'Invalid handle scope usage',
-        'Invalid callback scope usage',
-        'Thread-safe function queue is full',
-        'Thread-safe function handle is closing',
-        'A bigint was expected',
-        'A date was expected',
-        'An arraybuffer was expected',
-        'A detachable arraybuffer was expected',
-        'Main thread would deadlock'
-      ]
-      errorMessagesPtr = errorMessages.map(msg => msg ? allocateUTF8(msg) : 0)
-    }
-  }
+  // eslint-disable-next-line prefer-const
+  export let errorMessagesPtr: char_p[] | null = null
+  // eslint-disable-next-line prefer-const
+  export let nodeVersionPtr: Pointer<napi_node_version> = NULL
 
   class EnvStore extends Store<Env> {
     public constructor () {

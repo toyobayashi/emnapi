@@ -84,6 +84,7 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
       createTarget('symbol', ['./test/symbol/binding.c'], true),
       createTarget('typedarray', ['./test/typedarray/binding.c'], true),
       createTarget('emnapi', ['./test/emnapi/binding.c'], true),
+      createTarget('version', ['./test/version/binding.c']),
 
       createNodeAddonApiTarget('n_hello', ['./test/node-addon-api/hello/binding.cc'])
     ]
