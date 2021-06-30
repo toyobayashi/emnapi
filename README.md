@@ -4,8 +4,6 @@
 
 [Node-API (v14.16.0)](https://nodejs.org/docs/v14.16.0/api/n-api.html) implementation for [Emscripten](https://emscripten.org/index.html)
 
-Only APIs in `js_native_api.h` are implemented.
-
 [中文 README](https://github.com/toyobayashi/emnapi/tree/main/README_CN.md).
 
 ## Quick Start
@@ -381,6 +379,7 @@ These APIs always return `napi_generic_failure`.
 - napi_object_seal
 - napi_type_tag_object
 - napi_check_object_type_tag
+- napi_fatal_error
 
 ### Additional
 
