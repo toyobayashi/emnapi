@@ -11,27 +11,27 @@ namespace emnapi {
     ) => napi_value) | undefined
   let pKey: Pointer<const_char_p> = NULL
 
-  export let emscriptenVersionPtr: Pointer<emnapi_emscripten_version> = NULL
+  export let emscriptenVersionPtr: number = NULL // Pointer<emnapi_emscripten_version>
+  export let emscriptenVersion: emnapi_emscripten_version | null = null
 
   function moduleRegister (): any {
     if (registered) return emnapiExports
     registered = true
     let env: Env | undefined
-    if (!pKey) pKey = call_malloc(4)
-    if (!emscriptenVersionPtr) emscriptenVersionPtr = call_malloc(12)
     try {
       env = Env.create()
       emnapiExports = env.callIntoModule((envObject, scope) => {
         const exports = {}
         const exportsHandle = scope.add(exports)
         const napiValue = _napi_register_wasm_v1!(envObject.id, exportsHandle.id,
-          pKey, emscriptenVersionPtr, emscriptenVersionPtr + 4, emscriptenVersionPtr + 8)
+          pKey,
+          emscriptenVersionPtr,
+          emscriptenVersionPtr ? emscriptenVersionPtr + 4 : NULL,
+          emscriptenVersionPtr ? emscriptenVersionPtr + 8 : NULL)
         return (!napiValue) ? undefined : envObject.handleStore.get(napiValue)!.value
       })
       return emnapiExports
     } catch (err) {
-      free(pKey, 4)
-      pKey = NULL
       registered = false
       throw err
     }
@@ -41,16 +41,31 @@ namespace emnapi {
     _napi_register_wasm_v1 = Module._napi_register_wasm_v1
     delete Module._napi_register_wasm_v1
     Module.emnapiModuleRegister = moduleRegister
+    if (!pKey) pKey = call_malloc(4)
+    if (!emscriptenVersionPtr) emscriptenVersionPtr = call_malloc(12)
     let exports: any
     try {
       exports = moduleRegister()
     } catch (err) {
+      free(pKey, 4)
+      pKey = NULL
+      free(emscriptenVersionPtr, 12)
+      emscriptenVersionPtr = NULL
       if (typeof Module.onEmnapiInitialized === 'function') {
         Module.onEmnapiInitialized(err || new Error(String(err)))
         return
       } else {
         throw err
       }
+    }
+    if (emscriptenVersionPtr) {
+      emscriptenVersion = {
+        major: HEAPU32[emscriptenVersionPtr >> 2],
+        minor: HEAPU32[(emscriptenVersionPtr >> 2) + 1],
+        patch: HEAPU32[(emscriptenVersionPtr >> 2) + 2]
+      }
+      free(emscriptenVersionPtr, 12)
+      emscriptenVersionPtr = NULL
     }
     const key = UTF8ToString(HEAP32[pKey >> 2]) || 'emnapiExports'
     free(pKey, 4)

@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <stdio.h>
 #include "js_native_api.h"
 #include "emnapi.h"
 #include "../common.h"
@@ -84,6 +85,10 @@ static napi_value testGetEmscriptenVersion(napi_env env, napi_callback_info info
 
 EXTERN_C_START
 napi_value Init(napi_env env, napi_value exports) {
+  const emnapi_emscripten_version* emscripten_version;
+  NAPI_CALL(env, emnapi_get_emscripten_version(env, &emscripten_version));
+  printf("Init: Emscripten v%u.%u.%u\n", emscripten_version->major, emscripten_version->minor, emscripten_version->patch);
+
   napi_property_descriptor descriptors[] = {
     DECLARE_NAPI_PROPERTY("getModuleObject", getModuleObject),
     DECLARE_NAPI_PROPERTY("getModuleProperty", getModuleProperty),

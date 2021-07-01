@@ -153,6 +153,7 @@ namespace emnapi {
   export const supportBigInt = typeof BigInt !== 'undefined'
 
   export function free (ptr: void_p, size?: size_t): void {
+    if (ptr === NULL) return
     if (typeof size === 'number' && size > 0) {
       try {
         HEAPU8.set(Array(size).fill(0), ptr)

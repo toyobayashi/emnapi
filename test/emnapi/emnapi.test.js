@@ -28,4 +28,5 @@ module.exports = load('emnapi').then(test_typedarray => {
 
   const [major, minor, patch] = test_typedarray.testGetEmscriptenVersion()
   assert.strictEqual(`v${major}.${minor}.${patch}`, 'v2.0.24')
+  console.log(`test: Emscripten v${major}.${minor}.${patch}`)
 })
