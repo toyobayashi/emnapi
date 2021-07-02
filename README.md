@@ -19,7 +19,7 @@ Set `$EMSDK` environment variable to the emsdk root path.
 
 Make sure `emcc` / `em++` / `cmake` / `make` can be found in `$PATH`.
 
-If you have not installed `make` on Windows, you can also execute build commands in `Visual Studio Developer Command Prompt`.
+If you have not installed [make](https://github.com/toyobayashi/make-win-build/releases) on Windows, you can also execute build commands in [Visual Studio Developer Command Prompt](https://visualstudio.microsoft.com/visual-cpp-build-tools/) where `nmake` is available.
 
 ### NPM Install
 

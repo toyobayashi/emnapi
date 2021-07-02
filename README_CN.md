@@ -15,7 +15,7 @@
 
 设置 `$EMSDK` 环境变量为 emsdk 根目录，并确保 Emscripten 工具链二进制目录（`$EMSDK/upstream/emscripten`）和 CMake 在 `$PATH` 里
 
-未安装 `make` 的 Windows 用户请使用 Visual Studio Developer Command Prompt 跑命令（需要用到 `nmake`）
+未安装 [make](https://github.com/toyobayashi/make-win-build/releases) 的 Windows 用户请使用 [Visual Studio Developer Command Prompt](https://visualstudio.microsoft.com/visual-cpp-build-tools/) 跑命令，因为这里面可以用到 `nmake` 作为替代
 
 ### NPM Install
 
