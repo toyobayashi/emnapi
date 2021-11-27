@@ -35,7 +35,7 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
       exports: ['emnapi']
     },
     includePaths: isEmscripten ? ['./include'] : [],
-    defines: ['NAPI_DISABLE_CPP_EXCEPTIONS'],
+    defines: ['NAPI_DISABLE_CPP_EXCEPTIONS', 'NODE_ADDON_API_ENABLE_MAYBE'],
     compileOptions: [...compilerFlags],
     // eslint-disable-next-line no-template-curly-in-string
     linkOptions: [...linkerFlags, ...(isEmscripten ? ['--js-library=${CMAKE_CURRENT_SOURCE_DIR}/dist/library_napi.js'] : [])]
