@@ -18,7 +18,7 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
     type: isEmscripten ? 'exe' : 'node',
     sources: needEntry ? (sources.push('./test/entry_point.c'), sources) : sources,
     emwrap: {
-      exportsOnInit: ['emnapi']
+      exports: ['emnapi']
     },
     libs: ['testcommon'],
     includePaths: isEmscripten ? ['./include'] : [],
@@ -32,7 +32,7 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
     type: isEmscripten ? 'exe' : 'node',
     sources: sources,
     emwrap: {
-      exportsOnInit: ['emnapi']
+      exports: ['emnapi']
     },
     includePaths: isEmscripten ? ['./include'] : [],
     defines: ['NAPI_DISABLE_CPP_EXCEPTIONS'],

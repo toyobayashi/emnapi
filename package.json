@@ -46,7 +46,7 @@
   },
   "license": "MIT",
   "devDependencies": {
-    "@tybys/cgen": "^0.7.1",
+    "@tybys/cgen": "^0.9.0",
     "@types/node": "^14.14.41",
     "@typescript-eslint/eslint-plugin": "^4.28.1",
     "@typescript-eslint/parser": "^4.28.1",
