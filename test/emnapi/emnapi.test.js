@@ -27,6 +27,8 @@ module.exports = load('emnapi').then(test_typedarray => {
   assert.notStrictEqual(buffer.buffer.byteLength, 0)
 
   const [major, minor, patch] = test_typedarray.testGetEmscriptenVersion()
-  assert.strictEqual(`v${major}.${minor}.${patch}`, 'v2.0.24')
+  assert.strictEqual(typeof major, 'number')
+  assert.strictEqual(typeof minor, 'number')
+  assert.strictEqual(typeof patch, 'number')
   console.log(`test: Emscripten v${major}.${minor}.${patch}`)
 })
