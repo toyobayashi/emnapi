@@ -8,7 +8,7 @@ module.exports = load('version').then(test_general => {
   // assert.strictEqual(process.version.split('-')[0],
   //                  `v${major}.${minor}.${patch}`)
   // assert.strictEqual(release, process.release.name)
-  assert.strictEqual('v14.16.0',
+  assert.strictEqual('v16.13.0',
                    `v${major}.${minor}.${patch}`)
   assert.strictEqual(release, 'node')
 })

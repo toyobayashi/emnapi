@@ -2,7 +2,7 @@
 
 [![Build](https://github.com/toyobayashi/emnapi/actions/workflows/main.yml/badge.svg?branch=main)](https://github.com/toyobayashi/emnapi/actions/workflows/main.yml)
 
-[Node-API (v14.16.0)](https://nodejs.org/docs/v14.16.0/api/n-api.html) implementation for [Emscripten](https://emscripten.org/index.html)
+[Node-API (version 8)](https://nodejs.org/docs/v16.13.0/api/n-api.html) implementation for [Emscripten](https://emscripten.org/index.html)
 
 [中文 README](https://github.com/toyobayashi/emnapi/tree/main/README_CN.md).
 

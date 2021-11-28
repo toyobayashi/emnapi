@@ -42,8 +42,8 @@ napi_get_node_version(napi_env env,
     return napi_set_last_error(env, napi_invalid_arg, 0, NULL);
   }
   static napi_node_version node_version = {
-    14,
     16,
+    13,
     0,
     "node"
   };

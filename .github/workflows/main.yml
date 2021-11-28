@@ -20,7 +20,7 @@ jobs:
         actions-cache-folder: 'emsdk-cache'
     - uses: actions/setup-node@v2
       with:
-        node-version: '14.16.0'
+        node-version: '16.13.0'
         registry-url: 'https://registry.npmjs.org'
       env:
         NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

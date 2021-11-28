@@ -35,7 +35,7 @@ module.exports = load('general').then(async test_general => {
     test_general.testGetPrototype(extendedObject))
 
   // Test version management functions
-  assert.strictEqual(test_general.testGetVersion(), 7);
+  assert.strictEqual(test_general.testGetVersion(), 8);
 
   [
     123,

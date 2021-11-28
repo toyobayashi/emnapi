@@ -1,4 +1,4 @@
-#include "node_api.h"
+#include <node_api.h>
 
 EXTERN_C_START
 napi_value Init(napi_env env, napi_value exports);

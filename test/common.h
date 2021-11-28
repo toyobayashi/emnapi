@@ -1,4 +1,4 @@
-#include "js_native_api.h"
+#include <js_native_api.h>
 
 // Empty value so that macros here are able to return NULL or void
 #define NAPI_RETVAL_NOTHING  // Intentionally blank #define
