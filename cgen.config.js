@@ -88,6 +88,7 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
       createTarget('error', ['./test/error/binding.c'], true),
       createTarget('exception', ['./test/exception/binding.c'], true),
       createTarget('ref', ['./test/ref/binding.c'], true),
+      createTarget('ref_double_free', ['./test/ref_double_free/binding.c'], true),
       createTarget('function', ['./test/function/binding.c'], true),
       createTarget('scope', ['./test/scope/binding.c'], true),
       createTarget('newtarget', ['./test/newtarget/binding.c'], true),
