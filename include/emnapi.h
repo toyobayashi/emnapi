@@ -1,7 +1,7 @@
 #ifndef EMNAPI_INCLUDE_EMNAPI_H_
 #define EMNAPI_INCLUDE_EMNAPI_H_
 
-#include "js_native_api_types.h"
+#include "js_native_api.h"
 #include "common.h"
 
 typedef struct {

@@ -78,15 +78,15 @@ NAPI_MODULE_INIT() {
 }
 ```
 
-Compile `hello.c` using `emcc`, set include directory, link napi js implementation with `--js-library`, and `_malloc` and `_free` should be exported.
+Compile `hello.c` using `emcc`, set include directory, link napi js implementation with `--js-library`.
 
 ```bash
 emcc -O3 \
      -I./node_modules/@tybys/emnapi/include \
      --js-library=./node_modules/@tybys/emnapi/dist/library_napi.js \
      -sALLOW_MEMORY_GROWTH=1 \
-     -sEXPORTED_FUNCTIONS=['_malloc','_free'] \
      -o hello.js \
+     ./node_modules/@tybys/emnapi/src/emnapi.c \
      hello.c
 ```
 
@@ -158,16 +158,17 @@ Napi::Object Init(Napi::Env env, Napi::Object exports) {
 NODE_API_MODULE(NODE_GYP_MODULE_NAME, Init)
 ```
 
-Compile `hello.cpp` using `em++`. C++ exception is disabled by Emscripten default, so predefine `NAPI_DISABLE_CPP_EXCEPTIONS` here. If you would like to enable C++ exception, use `-sDISABLE_EXCEPTION_CATCHING=0` instead of `-DNAPI_DISABLE_CPP_EXCEPTIONS`.
+Compile `hello.cpp` using `em++`. C++ exception is disabled by Emscripten default, so predefine `NAPI_DISABLE_CPP_EXCEPTIONS` and `NODE_ADDON_API_ENABLE_MAYBE` here. If you would like to enable C++ exception, use `-sDISABLE_EXCEPTION_CATCHING=0` instead of `-DNAPI_DISABLE_CPP_EXCEPTIONS`.
 
 ```bash
 em++ -O3 \
      -DNAPI_DISABLE_CPP_EXCEPTIONS \
+     -DNODE_ADDON_API_ENABLE_MAYBE \
      -I./node_modules/@tybys/emnapi/include \
      --js-library=./node_modules/@tybys/emnapi/dist/library_napi.js \
      -sALLOW_MEMORY_GROWTH=1 \
-     -sEXPORTED_FUNCTIONS=['_malloc','_free'] \
      -o hello.js \
+     ./node_modules/@tybys/emnapi/src/emnapi.c \
      hello.cpp
 ```
 
@@ -197,10 +198,20 @@ execute_process(COMMAND node -p "require('@tybys/emnapi').js_library"
 )
 string(REGEX REPLACE "[\r\n\"]" "" EMNAPI_JS_LIBRARY ${EMNAPI_JS_LIBRARY})
 
+execute_process(COMMAND node -p "require('@tybys/emnapi').sources.join(';').replace(/\\\\/g, '/')"
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+  OUTPUT_VARIABLE EMNAPI_SOURCES
+)
+string(REGEX REPLACE "[\r\n\"]" "" EMNAPI_SOURCES ${EMNAPI_SOURCES})
+
+add_library(emnapi STATIC ${EMNAPI_SOURCES})
+target_include_directories(emnapi PRIVATE ${EMNAPI_INCLUDE_DIR})
+
 target_include_directories(hello PRIVATE ${EMNAPI_INCLUDE_DIR})
+target_link_libraries(hello emnapi)
 target_link_options(hello PRIVATE
   "-sALLOW_MEMORY_GROWTH=1"
-  "-sEXPORTED_FUNCTIONS=['_malloc','_free']"
+  "-sNODEJS_CATCH_EXIT=0"
   "--js-library=${EMNAPI_JS_LIBRARY}"
 )
 ```

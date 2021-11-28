@@ -24,9 +24,11 @@ namespace emnapi {
 
   const dynamicCalls = emnapiGetDynamicCalls()
 
+  export const call_vi = dynamicCalls.call_vi
+  export const call_ii = dynamicCalls.call_ii
   export const call_iii = dynamicCalls.call_iii
   export const call_viii = dynamicCalls.call_viii
-  export const call_malloc = dynamicCalls.call_malloc
+  // export const call_malloc = dynamicCalls.call_malloc
 
   export const NULL: 0 = 0
   export const INT64_RANGE_POSITIVE = Math.pow(2, 63)
@@ -60,8 +62,6 @@ namespace emnapi {
     }
   }
 
-  // eslint-disable-next-line prefer-const
-  export let errorMessagesPtr: char_p[] | null = null
   // eslint-disable-next-line prefer-const
   export let nodeVersionPtr: Pointer<napi_node_version> = NULL
 
@@ -152,13 +152,9 @@ namespace emnapi {
   export const supportFinalizer = (typeof FinalizationRegistry !== 'undefined') && (typeof WeakRef !== 'undefined')
   export const supportBigInt = typeof BigInt !== 'undefined'
 
-  export function free (ptr: void_p, size?: size_t): void {
-    if (ptr === NULL) return
-    if (typeof size === 'number' && size > 0) {
-      try {
-        HEAPU8.set(Array(size).fill(0), ptr)
-      } catch (_) {}
-    }
-    _free(ptr)
-  }
+  export let malloc: ((size: number) => number) | undefined
+  export let free: ((ptr: number) => void) | undefined
+  // eslint-disable-next-line prefer-const
+  export let exportsKey: string = 'emnapiExports'
+  export let errorMessagesPtr: Pointer<const_char_p> | undefined
 }

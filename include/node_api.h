@@ -1,6 +1,7 @@
 #ifndef SRC_NODE_API_H_
 #define SRC_NODE_API_H_
 
+#include <stdlib.h>
 #include "js_native_api.h"
 
 #define NAPI_MODULE_EXPORT __attribute__((used))
@@ -25,16 +26,19 @@ typedef napi_value (*napi_addon_register_func)(napi_env env,
   NAPI_MODULE_INITIALIZER_X(napi_register_wasm_v, NAPI_MODULE_VERSION)
 #define NAPI_MODULE(modname, regfunc)                                          \
   EXTERN_C_START                                                               \
+  NAPI_MODULE_EXPORT void emnapi_runtime_init(int* malloc_p,                   \
+                                              int* free_p,                     \
+                                              const char** key,                \
+                                              const char*** error_messages) {  \
+    if (malloc_p) *malloc_p = (int)(malloc);                                   \
+    if (free_p) *free_p = (int)(free);                                         \
+    if (key) {                                                                 \
+      *key = EMNAPI_MOD_NAME_X(modname);                                       \
+    }                                                                          \
+    if (error_messages) *error_messages = emnapi_error_messages;               \
+  }                                                                            \
   NAPI_MODULE_EXPORT napi_value NAPI_WASM_INITIALIZER(napi_env env,            \
-                                                      napi_value exports,      \
-                                                      const char** key,        \
-                                                      int* version_major,      \
-                                                      int* version_minor,      \
-                                                      int* version_patch) {    \
-    if (key) *key = EMNAPI_MOD_NAME_X(modname);                                \
-    if (version_major) *version_major = __EMSCRIPTEN_major__;                  \
-    if (version_minor) *version_minor = __EMSCRIPTEN_minor__;                  \
-    if (version_patch) *version_patch = __EMSCRIPTEN_tiny__;                   \
+                                                      napi_value exports) {    \
     return regfunc(env, exports);                                              \
   }                                                                            \
   EXTERN_C_END
@@ -62,6 +66,8 @@ typedef struct {
 } napi_node_version;
 
 EXTERN_C_START
+
+extern const char* emnapi_error_messages[22];
 
 NAPI_EXTERN NAPI_NO_RETURN void napi_fatal_error(const char* location,
                                                  size_t location_len,

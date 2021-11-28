@@ -38,7 +38,7 @@ namespace emnapi {
       env.scopeStore = new ScopeStore()
       env.scopeList = new LinkedList<IHandleScope>()
       // env.scopeList.push(HandleScope.create(env.id, null))
-      env.napiExtendedErrorInfoPtr = call_malloc(16)
+      env.napiExtendedErrorInfoPtr = malloc!(16)
       return env
     }
 
@@ -128,7 +128,7 @@ namespace emnapi {
       this.handleStore.dispose()
       this.tryCatch.extractException()
       try {
-        free(this.napiExtendedErrorInfoPtr, 16)
+        free!(this.napiExtendedErrorInfoPtr)
         this.napiExtendedErrorInfoPtr = NULL
       } catch (_) {}
       envStore.remove(this.id)

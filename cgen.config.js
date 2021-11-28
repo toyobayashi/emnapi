@@ -7,7 +7,7 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
 
   const linkerFlags = isEmscripten
     ? [
-        "-sEXPORTED_FUNCTIONS=['_malloc','_free']",
+        // "-sEXPORTED_FUNCTIONS=['_malloc','_free']",
         '-sALLOW_MEMORY_GROWTH=1',
         ...(isDebug ? ['-sSAFE_HEAP=1'/* , '-sDISABLE_EXCEPTION_CATCHING=0' */] : [])
       ]
@@ -16,11 +16,11 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
   const createTarget = (name, sources, needEntry) => ({
     name: name,
     type: isEmscripten ? 'exe' : 'node',
-    sources: needEntry ? (sources.push('./test/entry_point.c'), sources) : sources,
+    sources: [...(needEntry ? (sources.push('./test/entry_point.c'), sources) : sources)/* , ...(isEmscripten ? ['./src/emnapi.c'] : []) */],
     emwrap: {
       exports: ['emnapi']
     },
-    libs: ['testcommon'],
+    libs: ['testcommon', ...(isEmscripten ? ['napi'] : [])],
     includePaths: isEmscripten ? ['./include'] : [],
     compileOptions: [...compilerFlags],
     // eslint-disable-next-line no-template-curly-in-string
@@ -30,10 +30,11 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
   const createNodeAddonApiTarget = (name, sources) => ({
     name: name,
     type: isEmscripten ? 'exe' : 'node',
-    sources: sources,
+    sources: [...sources/* , ...(isEmscripten ? ['./src/emnapi.c'] : []) */],
     emwrap: {
       exports: ['emnapi']
     },
+    libs: [...(isEmscripten ? ['napi'] : [])],
     includePaths: isEmscripten ? ['./include'] : [],
     defines: ['NAPI_DISABLE_CPP_EXCEPTIONS', 'NODE_ADDON_API_ENABLE_MAYBE'],
     compileOptions: [...compilerFlags],
@@ -54,6 +55,16 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
         compileOptions: [...compilerFlags],
         linkOptions: [...linkerFlags]
       },
+      ...(isEmscripten
+        ? [{
+            type: 'lib',
+            name: 'napi',
+            sources: ['./src/emnapi.c'],
+            includePaths: ['./include'],
+            compileOptions: [...compilerFlags],
+            linkOptions: [...linkerFlags]
+          }]
+        : []),
       createTarget('env', ['./test/env/binding.c']),
       createTarget('hello', ['./test/hello/binding.c']),
       createTarget('arg', ['./test/arg/binding.c'], true),

@@ -74,15 +74,15 @@ NAPI_MODULE_INIT() {
 }
 ```
 
-使用 `emcc` 编译 `hello.c`，设置包含目录，用 `--js-library` 链接 JS 实现的库，并将 `_malloc` 和 `_free` 导出。
+使用 `emcc` 编译 `hello.c`，设置包含目录，用 `--js-library` 链接 JS 实现的库。
 
 ```bash
 emcc -O3 \
      -I./node_modules/@tybys/emnapi/include \
      --js-library=./node_modules/@tybys/emnapi/dist/library_napi.js \
      -sALLOW_MEMORY_GROWTH=1 \
-     -sEXPORTED_FUNCTIONS=['_malloc','_free'] \
      -o hello.js \
+     ./node_modules/@tybys/emnapi/src/emnapi.c \
      hello.c
 ```
 
@@ -154,16 +154,17 @@ Napi::Object Init(Napi::Env env, Napi::Object exports) {
 NODE_API_MODULE(NODE_GYP_MODULE_NAME, Init)
 ```
 
-使用 `em++` 编译 `hello.cpp`。Emscripten 默认禁用 C++ 异常，所以这里也预定义了 `NAPI_DISABLE_CPP_EXCEPTIONS`。如果想启用 C++ 异常，请使用 `-sDISABLE_EXCEPTION_CATCHING=0` 代替 `-DNAPI_DISABLE_CPP_EXCEPTIONS`。
+使用 `em++` 编译 `hello.cpp`。Emscripten 默认禁用 C++ 异常，所以这里也预定义了 `NAPI_DISABLE_CPP_EXCEPTIONS` 和 `NODE_ADDON_API_ENABLE_MAYBE`。如果想启用 C++ 异常，请使用 `-sDISABLE_EXCEPTION_CATCHING=0` 代替 `-DNAPI_DISABLE_CPP_EXCEPTIONS`。
 
 ```bash
 em++ -O3 \
      -DNAPI_DISABLE_CPP_EXCEPTIONS \
+     -DNODE_ADDON_API_ENABLE_MAYBE \
      -I./node_modules/@tybys/emnapi/include \
      --js-library=./node_modules/@tybys/emnapi/dist/library_napi.js \
      -sALLOW_MEMORY_GROWTH=1 \
-     -sEXPORTED_FUNCTIONS=['_malloc','_free'] \
      -o hello.js \
+     ./node_modules/@tybys/emnapi/src/emnapi.c \
      hello.cpp
 ```
 
@@ -193,11 +194,20 @@ execute_process(COMMAND node -p "require('@tybys/emnapi').js_library"
 )
 string(REGEX REPLACE "[\r\n\"]" "" EMNAPI_JS_LIBRARY ${EMNAPI_JS_LIBRARY})
 
+execute_process(COMMAND node -p "require('@tybys/emnapi').sources.join(';').replace(/\\\\/g, '/')"
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+  OUTPUT_VARIABLE EMNAPI_SOURCES
+)
+string(REGEX REPLACE "[\r\n\"]" "" EMNAPI_SOURCES ${EMNAPI_SOURCES})
+
+add_library(emnapi STATIC ${EMNAPI_SOURCES})
+target_include_directories(emnapi PRIVATE ${EMNAPI_INCLUDE_DIR})
+
 target_include_directories(hello PRIVATE ${EMNAPI_INCLUDE_DIR})
+target_link_libraries(hello emnapi)
 target_link_options(hello PRIVATE
   "-sALLOW_MEMORY_GROWTH=1"
   "-sNODEJS_CATCH_EXIT=0"
-  "-sEXPORTED_FUNCTIONS=['_malloc','_free']"
   "--js-library=${EMNAPI_JS_LIBRARY}"
 )
 ```
