@@ -49,4 +49,6 @@ jobs:
         release_name: ${{ github.event.after }}
         draft: true
         prerelease: false
-        assets: ./dist/library_napi.js
+        assets: |
+          ./dist/library_napi.js
+          ./src/emnapi.c
