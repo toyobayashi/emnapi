@@ -5,3 +5,5 @@
 /dist
 package-lock.json
 /example/build
+/script/out
+/script/emnapi.zip

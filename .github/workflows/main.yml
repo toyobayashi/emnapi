@@ -37,7 +37,9 @@ jobs:
 
     - name: Publish
       if: ${{ startsWith(github.event.ref, 'refs/tags') && matrix.os == 'ubuntu-latest' }}
-      run: npm publish --ignore-scripts
+      run: |
+        node ./script/release.js
+        npm publish --ignore-scripts
 
     - name: Create release
       if: ${{ startsWith(github.event.ref, 'refs/tags') }}
@@ -49,6 +51,4 @@ jobs:
         release_name: ${{ github.event.after }}
         draft: true
         prerelease: false
-        assets: |
-          ./dist/library_napi.js
-          ./src/emnapi.c
+        assets: ./script/emnapi.zip

@@ -291,12 +291,12 @@ These APIs always return `napi_generic_failure`.
   - ***napi_get_value_bigint_uint64***
   - ***napi_get_value_bigint_words***
 
-* These APIs always return `NULL` data pointer (No way to implement in JS)
+* These APIs may return `NULL` data pointer
 
-  - ***napi_create_arraybuffer***
-  - ***napi_get_arraybuffer_info***
-  - ***napi_get_typedarray_info***
-  - ***napi_get_dataview_info***
+  - ***napi_create_arraybuffer*** (No way to implement in JS)
+  - ***napi_get_arraybuffer_info*** (Require `FinalizationRegistry`, data is a copy in wasm memory)
+  - ***napi_get_typedarray_info*** (Require `FinalizationRegistry`, data is a copy in wasm memory)
+  - ***napi_get_dataview_info*** (Require `FinalizationRegistry`, data is a copy in wasm memory)
 
 ### Stable
 

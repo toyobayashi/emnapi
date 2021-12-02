@@ -287,12 +287,12 @@ npm test
   - ***napi_get_value_bigint_uint64***
   - ***napi_get_value_bigint_words***
 
-* `data` 指针返回值永远为 `NULL` 的 API：(JS 无法实现)
+* `data` 指针返回值可能为 `NULL` 的 API：
 
-  - ***napi_create_arraybuffer***
-  - ***napi_get_arraybuffer_info***
-  - ***napi_get_typedarray_info***
-  - ***napi_get_dataview_info***
+  - ***napi_create_arraybuffer*** (JS 无法实现)
+  - ***napi_get_arraybuffer_info*** (需要 `FinalizationRegistry`，data 是 wasm 内存中的一份拷贝)
+  - ***napi_get_typedarray_info*** (需要 `FinalizationRegistry`，data 是 wasm 内存中的一份拷贝)
+  - ***napi_get_dataview_info*** (需要 `FinalizationRegistry`，data 是 wasm 内存中的一份拷贝)
 
 ### 稳定的 API
 

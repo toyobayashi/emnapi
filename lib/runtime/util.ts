@@ -157,4 +157,55 @@ namespace emnapi {
   // eslint-disable-next-line prefer-const
   export let exportsKey: string = 'emnapiExports'
   export let errorMessagesPtr: Pointer<const_char_p> | undefined
+
+  export type TypedArray = Int8Array | Uint8Array | Int16Array | Uint16Array | Int32Array | Uint32Array | Uint8ClampedArray | Float32Array | Float64Array
+
+  const typedArrayMemoryMap = new WeakMap<TypedArray | DataView, void_p>()
+  const arrayBufferMemoryMap = new WeakMap<ArrayBuffer, void_p>()
+  const memoryPointerDeleter: FinalizationRegistry<void_p> = supportFinalizer
+    ? new FinalizationRegistry<void_p>((heldValue) => {
+      free!(heldValue)
+    })
+    : null!
+
+  export function getViewPointer (view: TypedArray | DataView): void_p {
+    if (!supportFinalizer) {
+      return NULL
+    }
+    if (view.buffer === HEAPU8.buffer) {
+      return view.byteOffset
+    }
+
+    let pointer: void_p
+    if (typedArrayMemoryMap.has(view)) {
+      pointer = typedArrayMemoryMap.get(view)!
+      HEAPU8.set(new Uint8Array(view.buffer, view.byteOffset, view.byteLength), pointer)
+      return pointer
+    }
+
+    pointer = malloc!(view.byteLength)
+    HEAPU8.set(new Uint8Array(view.buffer, view.byteOffset, view.byteLength), pointer)
+    typedArrayMemoryMap.set(view, pointer)
+    memoryPointerDeleter.register(view, pointer)
+    return pointer
+  }
+
+  export function getArrayBufferPointer (arrayBuffer: ArrayBuffer): void_p {
+    if ((!supportFinalizer) || (arrayBuffer === HEAPU8.buffer)) {
+      return NULL
+    }
+
+    let pointer: void_p
+    if (arrayBufferMemoryMap.has(arrayBuffer)) {
+      pointer = arrayBufferMemoryMap.get(arrayBuffer)!
+      HEAPU8.set(new Uint8Array(arrayBuffer), pointer)
+      return pointer
+    }
+
+    pointer = malloc!(arrayBuffer.byteLength)
+    HEAPU8.set(new Uint8Array(arrayBuffer), pointer)
+    arrayBufferMemoryMap.set(arrayBuffer, pointer)
+    memoryPointerDeleter.register(arrayBuffer, pointer)
+    return pointer
+  }
 }
