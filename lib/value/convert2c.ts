@@ -445,10 +445,7 @@ function napi_get_value_string_utf8 (env: napi_env, value: napi_value, buf: char
         }
         if (buf === emnapi.NULL) {
           if (result === emnapi.NULL) return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_invalid_arg)
-          const stackPtrSize = handle.value.length * 3
-          const stackPtr = stackAlloc(stackPtrSize)
-          const copied = stringToUTF8(handle.value, stackPtr, stackPtrSize)
-          HEAPU32[result >> 2] = copied
+          HEAPU32[result >> 2] = lengthBytesUTF8(handle.value)
         } else if (buf_size !== 0) {
           const copied = stringToUTF8(handle.value, buf, buf_size)
           if (result !== emnapi.NULL) {

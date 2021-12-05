@@ -17,6 +17,7 @@ declare function UTF8ToString (ptr: const_char_p, maxRead?: number): string
 declare function UTF16ToString (ptr: const_char16_t_p, maxRead?: number): string
 declare function stringToUTF8 (ptr: string, outPtr: char_p, maxBytesToWrite?: number): number
 declare function stringToUTF16 (ptr: string, outPtr: char16_t_p, maxBytesToWrite?: number): number
+declare function lengthBytesUTF8 (str: string): number
 
 declare const Module: any
 
