@@ -21,11 +21,9 @@ npm install -D @tybys/emnapi
 * Use CMake
 
   ```bash
-  mkdir build
-  cd build
-  emcmake cmake -DCMAKE_BUILD_TYPE=Release ..
-  cmake --build .
-  cd ..
+  mkdir -p build
+  emcmake cmake -DCMAKE_BUILD_TYPE=Release -H. -Bbuild
+  cmake --build build
   node ./index
   ```
 
@@ -33,9 +31,7 @@ npm install -D @tybys/emnapi
 
   ```bat
   mkdir build
-  cd build
-  emcmake cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_MAKE_PROGRAM=nmake -G "NMake Makefiles" ..
-  cmake --build .
-  cd ..
+  emcmake cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_MAKE_PROGRAM=nmake -G "NMake Makefiles" -H. -Bbuild
+  cmake --build build
   node ./index
   ```
