@@ -2,7 +2,7 @@ const { join } = require('path')
 const common = require('./common.js')
 
 function getEntry (targetName) {
-  return join(__dirname, `../.cgenbuild/${common.buildType}/${targetName}.${process.env.EMNAPI_TEST_NATIVE ? 'node' : 'js'}`)
+  return join(__dirname, `./.cgenbuild/${common.buildType}/${targetName}.${process.env.EMNAPI_TEST_NATIVE ? 'node' : 'js'}`)
 }
 
 exports.getEntry = getEntry
