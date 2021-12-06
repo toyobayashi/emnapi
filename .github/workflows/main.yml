@@ -32,7 +32,7 @@ jobs:
 
     - name: Test
       run: |
-        npx cgen rebuild -e -d
+        cd test && npx cgen rebuild -e -d && cd ..
         npm test
 
     - name: Publish
