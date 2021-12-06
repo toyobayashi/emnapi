@@ -16,34 +16,33 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
   const createTarget = (name, sources, needEntry) => ({
     name: name,
     type: isEmscripten ? 'exe' : 'node',
-    sources: [...(needEntry ? (sources.push('../test/entry_point.c'), sources) : sources)/* , ...(isEmscripten ? ['../src/emnapi.c'] : []) */],
+    sources: [...(needEntry ? (sources.push('../test/entry_point.c'), sources) : sources)],
     emwrap: {
       exports: ['emnapi']
     },
-    libs: ['testcommon', ...(isEmscripten ? ['napi'] : [])],
-    includePaths: isEmscripten ? ['../include'] : [],
+    libs: ['testcommon', ...(isEmscripten ? ['emnapi'] : [])],
     compileOptions: [...compilerFlags],
     // eslint-disable-next-line no-template-curly-in-string
-    linkOptions: [...linkerFlags, ...(isEmscripten ? ['--js-library=${CMAKE_CURRENT_SOURCE_DIR}/../dist/library_napi.js'] : [])]
+    linkOptions: [...linkerFlags]
   })
 
   const createNodeAddonApiTarget = (name, sources) => ({
     name: name,
     type: isEmscripten ? 'exe' : 'node',
-    sources: [...sources/* , ...(isEmscripten ? ['./src/emnapi.c'] : []) */],
+    sources: [...sources],
     emwrap: {
       exports: ['emnapi']
     },
-    libs: [...(isEmscripten ? ['napi'] : [])],
-    includePaths: isEmscripten ? ['../include'] : [],
+    libs: [...(isEmscripten ? ['emnapi'] : [])],
     defines: ['NAPI_DISABLE_CPP_EXCEPTIONS', 'NODE_ADDON_API_ENABLE_MAYBE'],
     compileOptions: [...compilerFlags],
     // eslint-disable-next-line no-template-curly-in-string
-    linkOptions: [...linkerFlags, ...(isEmscripten ? ['--js-library=${CMAKE_CURRENT_SOURCE_DIR}/../dist/library_napi.js'] : [])]
+    linkOptions: [...linkerFlags]
   })
 
   return {
     project: 'emnapitest',
+    dependencies: isEmscripten ? { '..': {} } : {},
     targets: [
       {
         type: 'lib',
@@ -55,16 +54,6 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
         compileOptions: [...compilerFlags],
         linkOptions: [...linkerFlags]
       },
-      ...(isEmscripten
-        ? [{
-            type: 'lib',
-            name: 'napi',
-            sources: ['../src/emnapi.c'],
-            includePaths: ['../include'],
-            compileOptions: [...compilerFlags],
-            linkOptions: [...linkerFlags]
-          }]
-        : []),
       createTarget('env', ['../test/env/binding.c']),
       createTarget('hello', ['../test/hello/binding.c']),
       createTarget('arg', ['../test/arg/binding.c'], true),
@@ -95,7 +84,7 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
       createTarget('number', ['../test/number/binding.c'], true),
       createTarget('symbol', ['../test/symbol/binding.c'], true),
       createTarget('typedarray', ['../test/typedarray/binding.c'], true),
-      createTarget('emnapi', ['../test/emnapi/binding.c'], true),
+      createTarget('emnapitest', ['../test/emnapitest/binding.c'], true),
       createTarget('version', ['../test/version/binding.c']),
 
       createNodeAddonApiTarget('n_hello', ['../test/node-addon-api/hello/binding.cc'])

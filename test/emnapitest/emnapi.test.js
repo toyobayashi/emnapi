@@ -5,7 +5,7 @@
 const assert = require('assert')
 const { load } = require('../util')
 
-module.exports = load('emnapi').then(test_typedarray => {
+module.exports = load('emnapitest').then(test_typedarray => {
   const mod = test_typedarray.getModuleObject()
 
   const HEAPU8 = test_typedarray.getModuleProperty('HEAPU8')
