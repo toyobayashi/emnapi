@@ -1,5 +1,8 @@
 .cgenbuild
 /test/CMakeLists.txt
+/test/cmake_install.cmake
+/test/Makefile
+/test/CMakefiles
 /node_modules
 /include/node_api_full.h
 /dist
