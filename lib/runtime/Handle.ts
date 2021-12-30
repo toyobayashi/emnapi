@@ -19,54 +19,88 @@ namespace emnapi {
     public static ID_TRUE: -2147483645 = -2147483645
     public static ID_GLOBAL: -2147483644 = -2147483644
 
+    public static get getMinId (): number {
+      return -2147483643
+    }
+
     // js object -> Handle
-    private _objWeakMap: WeakMap<object, Handle<object>>
+    private _objWeakMap: WeakMap<object, Array<Handle<object>>>
     // js value in store -> Handle id
-    private _map: Map<any, number>
+    private _map: Map<any, number[]>
 
     public constructor () {
-      super(-2147483643)
+      super(HandleStore.getMinId)
       this._objWeakMap = new WeakMap()
       this._map = new Map()
     }
 
     public addGlobalConstants (env: napi_env): void {
       this.set(HandleStore.ID_UNDEFINED, new Handle(env, HandleStore.ID_UNDEFINED, undefined))
+      this._map.set(undefined, [HandleStore.ID_UNDEFINED])
       Reference.create(env, HandleStore.ID_UNDEFINED, 1, false)
       this.set(HandleStore.ID_NULL, new Handle(env, HandleStore.ID_NULL, null))
+      this._map.set(null, [HandleStore.ID_NULL])
       Reference.create(env, HandleStore.ID_NULL, 1, false)
       this.set(HandleStore.ID_FALSE, new Handle(env, HandleStore.ID_FALSE, false))
+      this._map.set(false, [HandleStore.ID_FALSE])
       Reference.create(env, HandleStore.ID_FALSE, 1, false)
       this.set(HandleStore.ID_TRUE, new Handle(env, HandleStore.ID_TRUE, true))
+      this._map.set(true, [HandleStore.ID_TRUE])
       Reference.create(env, HandleStore.ID_TRUE, 1, false)
       this.set(HandleStore.ID_GLOBAL, new Handle(env, HandleStore.ID_GLOBAL, _global))
+      this._map.set(_global, [HandleStore.ID_GLOBAL])
       Reference.create(env, HandleStore.ID_GLOBAL, 1, false)
     }
 
     public override add (h: Handle<any>): void {
       super.add(h)
-      this._map.set(h.value, h.id)
+      this.tryAddToMap(h)
       if (isReferenceType(h.value)) {
-        this._objWeakMap.set(h.value, h)
+        if (this._objWeakMap.has(h.value)) {
+          const handleArray = this._objWeakMap.get(h.value)!
+          if (handleArray.indexOf(h) === -1) {
+            handleArray.push(h)
+          }
+        } else {
+          this._objWeakMap.set(h.value, [h])
+        }
+      }
+    }
+
+    public tryAddToMap (h: Handle<any>): void {
+      if (this._map.has(h.value)) {
+        const idArray = this._map.get(h.value)!
+        if (idArray.indexOf(h.id) === -1) {
+          idArray.push(h.id)
+        }
+      } else {
+        this._map.set(h.value, [h.id])
       }
     }
 
     public override remove (id: number): void {
-      this._map.delete(this.get(id)!.value)
+      if (!this.has(id) || id < this._min) return
+      const value = this.get(id)!.value
+      const idArray = this._map.get(value)!
+      const index = idArray.indexOf(id)
+      if (index !== -1) idArray.splice(index, 1)
+      if (idArray.length === 0) this._map.delete(value)
       super.remove(id)
     }
 
     public getHandleByValue (value: any): Handle<any> | null {
-      const id = this._map.get(value)
-      return id ? this.get(id)! : null
+      const idArray = this._map.get(value)
+      return (idArray && idArray.length > 0) ? this.get(idArray[0])! : null
     }
 
     public getHandleByAliveObject (value: object): Handle<any> | null {
-      return this._objWeakMap.get(value) ?? null
+      const handleArray = this._objWeakMap.get(value)
+      return (handleArray && handleArray.length > 0) ? handleArray[0] : null
     }
 
     public dispose (): void {
       this._objWeakMap = null!
+      this._map.forEach(arr => { arr.length = 0 })
       this._map.clear()
       this._map = null!
       super.dispose()
@@ -192,7 +226,9 @@ namespace emnapi {
     }
 
     public canDispose (): boolean {
-      return ((this.refs.length === 0) || (!this.refs.some(ref => ref.refcount > 0))) && (!this.isInHandleScope())
+      return (this.id >= HandleStore.getMinId) &&
+        ((this.refs.length === 0) || (!this.refs.some(ref => ref.refcount > 0))) &&
+        (!this.isInHandleScope())
     }
 
     public dispose (): void {

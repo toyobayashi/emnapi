@@ -39,9 +39,22 @@ namespace emnapi {
       this.handles = []
     }
 
-    public add<V> (value: V): Handle<V> {
+    public add<V extends unknown> (value: V): Handle<V> {
       if (value instanceof Handle) {
         throw new TypeError('Can not add a handle to scope')
+      }
+
+      if (value === undefined) {
+        return envStore.get(this.env)!.handleStore.get(HandleStore.ID_UNDEFINED)!
+      }
+      if (value === null) {
+        return envStore.get(this.env)!.handleStore.get(HandleStore.ID_NULL)!
+      }
+      if (typeof value === 'boolean') {
+        return envStore.get(this.env)!.handleStore.get(value ? HandleStore.ID_TRUE : HandleStore.ID_FALSE)!
+      }
+      if (value === _global) {
+        return envStore.get(this.env)!.handleStore.get(HandleStore.ID_GLOBAL)!
       }
 
       const h = Handle.create(this.env, value)
