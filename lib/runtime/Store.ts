@@ -39,6 +39,7 @@ namespace emnapi {
 
     protected set (id: number, value: V): void {
       this._values[id] = value
+      value.id = id
     }
 
     public has (id: number): boolean {

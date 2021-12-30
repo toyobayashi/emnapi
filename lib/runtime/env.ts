@@ -88,24 +88,25 @@ namespace emnapi {
     }
 
     public ensureHandleId (value: any): napi_value {
-      if ((typeof value === 'object' && value !== null) || typeof value === 'function') {
-        const h = this.handleStore.findObjectHandle(value)
-        if (h != null) {
-          if (h.value === undefined) {
-            const currentScope = this.getCurrentScope()
-            h.value = value
-            Store.prototype.add.call(this.handleStore, h)
-            currentScope.addNoCopy(h)
-            return h.id
-          } else {
-            return h.id
-          }
-        } else {
+      let handle = this.handleStore.getHandleByValue(value)
+      if (handle) return handle.id
+
+      if (isReferenceType(value)) {
+        handle = this.handleStore.getHandleByAliveObject(value)
+        if (!handle) {
           return this.getCurrentScope().add(value).id
         }
-      } else {
-        return this.handleStore.findStoreHandleId(value) || this.getCurrentScope().add(value).id
+        if (handle.value === undefined) {
+          // should always true
+          const currentScope = this.getCurrentScope()
+          handle.value = value
+          Store.prototype.add.call(this.handleStore, handle)
+          currentScope.addNoCopy(handle)
+        }
+        return handle.id
       }
+
+      return this.getCurrentScope().add(value).id
     }
 
     public callIntoModule<T> (fn: (env: Env, scope: IHandleScope) => T): T {

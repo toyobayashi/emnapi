@@ -3,3 +3,5 @@ node_modules
 /lib/typings
 .eslintrc.js
 /example
+/test/.cgenbuild
+/test/CMakeFiles

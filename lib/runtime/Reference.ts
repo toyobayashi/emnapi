@@ -8,35 +8,35 @@ namespace emnapi {
 
     private finalizerRegistered: boolean = false
 
-    public static finalizationGroup: FinalizationRegistry | null =
-    typeof FinalizationRegistry !== 'undefined'
-      ? new FinalizationRegistry((ref: Reference) => {
-        let error: any
-        let caught = false
-        if (ref.finalize_callback !== NULL) {
-          try {
-            envStore.get(ref.env)!.callIntoModule(() => {
-              call_viii(ref.finalize_callback, ref.env, ref.finalize_data, ref.finalize_hint)
-              ref.finalize_callback = NULL
-            })
-          } catch (err) {
-            caught = true
-            error = err
+    public static finalizationGroup: FinalizationRegistry<any> | null =
+      typeof FinalizationRegistry !== 'undefined'
+        ? new FinalizationRegistry((ref: Reference) => {
+          let error: any
+          let caught = false
+          if (ref.finalize_callback !== NULL) {
+            try {
+              envStore.get(ref.env)!.callIntoModule(() => {
+                call_viii(ref.finalize_callback, ref.env, ref.finalize_data, ref.finalize_hint)
+                ref.finalize_callback = NULL
+              })
+            } catch (err) {
+              caught = true
+              error = err
+            }
           }
-        }
-        if (ref.deleteSelf) {
-          Reference.doDelete(ref)
-        } else {
-          ref.finalizeRan = true
-          // leak if this is a non-self-delete weak reference
-          // should call napi_delete_referece manually
-          // Reference.doDelete(this)
-        }
-        if (caught) {
-          throw error
-        }
-      })
-      : null
+          if (ref.deleteSelf) {
+            Reference.doDelete(ref)
+          } else {
+            ref.finalizeRan = true
+            // leak if this is a non-self-delete weak reference
+            // should call napi_delete_referece manually
+            // Reference.doDelete(this)
+          }
+          if (caught) {
+            throw error
+          }
+        })
+        : null
 
     public static create (
       env: napi_env,
@@ -52,7 +52,7 @@ namespace emnapi {
       envObject.refStore.add(ref)
       const handle = envObject.handleStore.get(handle_id)!
       handle.addRef(ref)
-      if (supportFinalizer && ((typeof handle.value === 'object' && handle.value !== null) || typeof handle.value === 'function')) {
+      if (supportFinalizer && isReferenceType(handle.value)) {
         ref.objWeakRef = new WeakRef<object>(handle.value)
       } else {
         ref.objWeakRef = null

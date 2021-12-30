@@ -208,4 +208,8 @@ namespace emnapi {
     memoryPointerDeleter.register(arrayBuffer, pointer)
     return pointer
   }
+
+  export function isReferenceType (v: any): v is object {
+    return (typeof v === 'object' && v !== null) || typeof v === 'function'
+  }
 }

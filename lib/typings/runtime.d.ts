@@ -44,7 +44,7 @@ declare interface ICallbackInfo {
   _isConstructCall: boolean
 }
 
-declare class FinalizationRegistry<H = any> {
+/* declare class FinalizationRegistry<H = any> {
   constructor (callback: (heldValue: H) => void)
   register (obj: object, heldValue: H, unregisterToken?: object): void
   unregister (unregisterToken: object): void
@@ -53,4 +53,4 @@ declare class FinalizationRegistry<H = any> {
 declare class WeakRef<T extends object> {
   constructor (value: T)
   deref (): T | undefined
-}
+} */

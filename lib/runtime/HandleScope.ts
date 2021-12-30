@@ -5,7 +5,6 @@ namespace emnapi {
     parent: IHandleScope | null
     child: IHandleScope | null
     handles: Array<Handle<any>>
-    add<S, H extends Handle<S>> (value: H): H
     add<V> (value: V): Handle<V>
     addNoCopy<H extends Handle<any>> (handle: H): H
     dispose (): void
@@ -40,15 +39,12 @@ namespace emnapi {
       this.handles = []
     }
 
-    public add<S, H extends Handle<S>> (value: H): H
-    public add<V> (value: V): Handle<V>
-    public add (value: any): Handle<any> {
-      let h: Handle<any>
+    public add<V> (value: V): Handle<V> {
       if (value instanceof Handle) {
-        h = value.copy()
-      } else {
-        h = Handle.create(this.env, value)
+        throw new TypeError('Can not add a handle to scope')
       }
+
+      const h = Handle.create(this.env, value)
       this.handles.push(h)
       h.inScope = this
       return h
@@ -91,6 +87,7 @@ namespace emnapi {
     }
 
     public escape (handle: number | Handle<any>): Handle<any> | null {
+      if (this._escapeCalled) return null
       this._escapeCalled = true
       let exists: boolean = false
       let index: number = -1
@@ -113,9 +110,9 @@ namespace emnapi {
         const envObject = envStore.get(this.env)!
         const h = envObject.handleStore.get(handleId)
         if (h && this.parent !== null) {
-          const newHandle = this.parent.add(h)
           this.handles.splice(index, 1)
           envObject.handleStore.remove(handleId)
+          const newHandle = this.parent.add(h.value)
           return newHandle
         } else {
           return null

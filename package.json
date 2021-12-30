@@ -1,6 +1,6 @@
 {
   "name": "@tybys/emnapi",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "Node-API implementation for Emscripten",
   "main": "index.js",
   "typings": "index.d.ts",
@@ -50,16 +50,16 @@
     "@tybys/cgen": "^0.10.1",
     "@tybys/cross-zip": "^3.1.0",
     "@types/node": "^14.14.41",
-    "@typescript-eslint/eslint-plugin": "^4.28.1",
-    "@typescript-eslint/parser": "^4.28.1",
+    "@typescript-eslint/eslint-plugin": "^5.8.1",
+    "@typescript-eslint/parser": "^5.8.1",
     "chalk": "^4.1.1",
     "cross-env": "^7.0.3",
-    "eslint": "^7.29.0",
-    "eslint-config-standard-with-typescript": "^20.0.0",
-    "eslint-plugin-import": "^2.23.4",
+    "eslint": "^8.5.0",
+    "eslint-config-standard-with-typescript": "^21.0.1",
+    "eslint-plugin-import": "^2.25.3",
     "eslint-plugin-node": "^11.1.0",
-    "eslint-plugin-promise": "^5.1.0",
-    "glob": "^7.1.7",
-    "typescript": "~4.3.2"
+    "eslint-plugin-promise": "^6.0.0",
+    "glob": "^7.2.0",
+    "typescript": "~4.5.2"
   }
 }

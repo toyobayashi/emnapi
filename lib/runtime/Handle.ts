@@ -19,11 +19,15 @@ namespace emnapi {
     public static ID_TRUE: -2147483645 = -2147483645
     public static ID_GLOBAL: -2147483644 = -2147483644
 
-    public objWeakMap: WeakMap<object, Handle<object>>
+    // js object -> Handle
+    private _objWeakMap: WeakMap<object, Handle<object>>
+    // js value in store -> Handle id
+    private _map: Map<any, number>
 
     public constructor () {
       super(-2147483643)
-      this.objWeakMap = new WeakMap()
+      this._objWeakMap = new WeakMap()
+      this._map = new Map()
     }
 
     public addGlobalConstants (env: napi_env): void {
@@ -39,38 +43,32 @@ namespace emnapi {
       Reference.create(env, HandleStore.ID_GLOBAL, 1, false)
     }
 
-    // @override
-    public add (h: Handle<any>): void {
+    public override add (h: Handle<any>): void {
       super.add(h)
-      if ((typeof h.value === 'object' && h.value !== null) || typeof h.value === 'function') {
-        this.objWeakMap.set(h.value, h)
+      this._map.set(h.value, h.id)
+      if (isReferenceType(h.value)) {
+        this._objWeakMap.set(h.value, h)
       }
     }
 
-    public findStoreHandle (value: any): Handle<any> | null {
-      for (const id in this._values) {
-        if (is(this._values[id].value, value)) {
-          return this._values[id]
-        }
-      }
-      return null
+    public override remove (id: number): void {
+      this._map.delete(this.get(id)!.value)
+      super.remove(id)
     }
 
-    public findStoreHandleId (value: any): napi_value {
-      const maybeHandle = this.findStoreHandle(value)
-      return maybeHandle ? Number(maybeHandle.id) : NULL
+    public getHandleByValue (value: any): Handle<any> | null {
+      const id = this._map.get(value)
+      return id ? this.get(id)! : null
     }
 
-    public findObjectHandle (value: object): Handle<any> | null {
-      let maybeHandle = this.findStoreHandle(value)
-      if (!maybeHandle) {
-        maybeHandle = this.objWeakMap.get(value) ?? null
-      }
-      return maybeHandle
+    public getHandleByAliveObject (value: object): Handle<any> | null {
+      return this._objWeakMap.get(value) ?? null
     }
 
     public dispose (): void {
-      this.objWeakMap = null!
+      this._objWeakMap = null!
+      this._map.clear()
+      this._map = null!
       super.dispose()
     }
   }
@@ -98,17 +96,6 @@ namespace emnapi {
       this.wrapped = 0
       this.tag = null
       this.refs = []
-    }
-
-    public copy (): Handle<S> {
-      const h = new Handle(this.env, this.id, this.value)
-      h.inScope = this.inScope
-      h.wrapped = this.wrapped
-      h.tag = (this.tag?.slice() as [number, number, number, number]) ?? null
-      h.refs = this.refs.slice()
-
-      envStore.get(this.env)!.handleStore.add(h)
-      return h
     }
 
     public isEmpty (): boolean {
@@ -216,10 +203,10 @@ namespace emnapi {
         ref.queueFinalizer()
       }
       const id = this.id
+      envStore.get(this.env)!.handleStore.remove(id)
       this.refs.length = 0
       this.id = 0
       this.value = undefined!
-      envStore.get(this.env)!.handleStore.remove(id)
     }
   }
 
@@ -244,19 +231,6 @@ namespace emnapi {
 
     public data (): void_p {
       return this._data
-    }
-
-    // @override
-    public copy (): ExternalHandle {
-      const h = new ExternalHandle(this.env, this._data)
-      h.id = this.id
-      h.inScope = this.inScope
-      h.wrapped = this.wrapped
-      h.tag = (this.tag?.slice() as [number, number, number, number]) ?? null
-      h.refs = this.refs.slice()
-
-      envStore.get(this.env)!.handleStore.add(h)
-      return h
     }
   }
 }
