@@ -28,7 +28,7 @@ jobs:
     - name: Linux build
       if: ${{ matrix.os == 'ubuntu-latest' }}
       shell: bash
-      run: npm install
+      run: npm install --legacy-peer-deps
 
     - name: Test
       run: |
