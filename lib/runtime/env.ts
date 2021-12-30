@@ -101,7 +101,7 @@ namespace emnapi {
           const currentScope = this.getCurrentScope()
           handle.value = value
           Store.prototype.add.call(this.handleStore, handle)
-          currentScope.addNoCopy(handle)
+          currentScope.addHandle(handle)
         }
         return handle.id
       }

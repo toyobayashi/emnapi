@@ -6,7 +6,7 @@ namespace emnapi {
     child: IHandleScope | null
     handles: Array<Handle<any>>
     add<V> (value: V): Handle<V>
-    addNoCopy<H extends Handle<any>> (handle: H): H
+    addHandle<H extends Handle<any>> (handle: H): H
     dispose (): void
   }
 
@@ -50,7 +50,10 @@ namespace emnapi {
       return h
     }
 
-    public addNoCopy<H extends Handle<any>> (handle: H): H {
+    public addHandle<H extends Handle<any>> (handle: H): H {
+      if (this.handles.indexOf(handle) !== -1) {
+        return handle
+      }
       this.handles.push(handle)
       handle.inScope = this
       return handle

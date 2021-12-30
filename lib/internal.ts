@@ -120,9 +120,6 @@ function $emnapiWrap (type: emnapi.WrapType, env: napi_env, js_object: napi_valu
       }
 
       if (type === emnapi.WrapType.retrievable) {
-        // const external = ExternalHandle.createExternal(env, reference.id)
-        // envObject.getCurrentScope().addNoCopy(external)
-        // value.wrapped = external.id
         value.wrapped = reference.id
       }
       return emnapi.getReturnStatus(env)

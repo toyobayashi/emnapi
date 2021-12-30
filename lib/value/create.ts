@@ -40,7 +40,7 @@ function napi_create_external (env: napi_env, data: void_p, finalize_cb: napi_fi
   return emnapi.preamble(env, (envObject) => {
     return emnapi.checkArgs(env, [result], () => {
       const externalHandle = emnapi.ExternalHandle.createExternal(env, data)
-      envObject.getCurrentScope().addNoCopy(externalHandle)
+      envObject.getCurrentScope().addHandle(externalHandle)
       emnapi.Reference.create(env, externalHandle.id, 0, true, finalize_cb, data, finalize_hint)
       HEAP32[result >> 2] = externalHandle.id
       return emnapi.napi_clear_last_error(env)
