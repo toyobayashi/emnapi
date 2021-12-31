@@ -89,9 +89,9 @@ namespace emnapi {
 
     public ensureHandleId (value: any): napi_value {
       if (isReferenceType(value)) {
-        let handle = this.handleStore.getHandleByValue(value)
+        let handle = this.handleStore.getObjectHandleExistsInStore(value)
         if (handle) return handle.id
-        handle = this.handleStore.getHandleByAliveObject(value)
+        handle = this.handleStore.getObjectHandleAlive(value)
         if (!handle) {
           return this.getCurrentScope().add(value).id
         }
@@ -100,7 +100,7 @@ namespace emnapi {
           const currentScope = this.getCurrentScope()
           handle.value = value
           Store.prototype.add.call(this.handleStore, handle)
-          this.handleStore.tryAddToMap(handle)
+          this.handleStore.tryAddToMap(handle, true)
           currentScope.addHandle(handle)
         }
         return handle.id

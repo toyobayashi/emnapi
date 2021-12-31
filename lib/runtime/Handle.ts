@@ -1,17 +1,5 @@
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 namespace emnapi {
-  export const is = Object.is || function is (x: any, y: any): boolean {
-    // SameValue algorithm
-    if (x === y) { // Steps 1-5, 7-10
-      // Steps 6.b-6.e: +0 != -0
-      return x !== 0 || 1 / x === 1 / y
-    } else {
-      // Step 6.a: NaN == NaN
-      // eslint-disable-next-line no-self-compare
-      return x !== x && y !== y
-    }
-  }
-
   export class HandleStore extends Store<Handle<any>> {
     public static ID_UNDEFINED: -2147483648 = -2147483648
     public static ID_NULL: -2147483647 = -2147483647
@@ -23,8 +11,16 @@ namespace emnapi {
       return -2147483643
     }
 
+    public static globalConstants = {
+      [HandleStore.ID_UNDEFINED]: undefined,
+      [HandleStore.ID_NULL]: null,
+      [HandleStore.ID_FALSE]: false,
+      [HandleStore.ID_TRUE]: true,
+      [HandleStore.ID_GLOBAL]: _global
+    }
+
     // js object -> Handle
-    private _objWeakMap: WeakMap<object, Array<Handle<object>>>
+    private _objWeakMap: WeakMap<object, Handle<object>>
     // js value in store -> Handle id
     private _map: Map<any, number[]>
 
@@ -35,40 +31,39 @@ namespace emnapi {
     }
 
     public addGlobalConstants (env: napi_env): void {
-      this.set(HandleStore.ID_UNDEFINED, new Handle(env, HandleStore.ID_UNDEFINED, undefined))
-      this._map.set(undefined, [HandleStore.ID_UNDEFINED])
-      Reference.create(env, HandleStore.ID_UNDEFINED, 1, false)
-      this.set(HandleStore.ID_NULL, new Handle(env, HandleStore.ID_NULL, null))
-      this._map.set(null, [HandleStore.ID_NULL])
-      Reference.create(env, HandleStore.ID_NULL, 1, false)
-      this.set(HandleStore.ID_FALSE, new Handle(env, HandleStore.ID_FALSE, false))
-      this._map.set(false, [HandleStore.ID_FALSE])
-      Reference.create(env, HandleStore.ID_FALSE, 1, false)
-      this.set(HandleStore.ID_TRUE, new Handle(env, HandleStore.ID_TRUE, true))
-      this._map.set(true, [HandleStore.ID_TRUE])
-      Reference.create(env, HandleStore.ID_TRUE, 1, false)
-      this.set(HandleStore.ID_GLOBAL, new Handle(env, HandleStore.ID_GLOBAL, _global))
-      this._map.set(_global, [HandleStore.ID_GLOBAL])
-      Reference.create(env, HandleStore.ID_GLOBAL, 1, false)
+      Object.keys(HandleStore.globalConstants).forEach(k => {
+        const id = Number(k) as keyof typeof HandleStore.globalConstants
+        const value = HandleStore.globalConstants[id]
+        this.set(id, new Handle(env, id, value))
+        this._map.set(value, [id])
+        Reference.create(env, id, 1, false)
+      })
     }
 
     public override add (h: Handle<any>): void {
       super.add(h)
-      this.tryAddToMap(h)
-      if (isReferenceType(h.value)) {
+      const isRefType = isReferenceType(h.value)
+      try {
+        this.tryAddToMap(h, isRefType)
+      } catch (err) {
+        super.remove(h.id)
+        throw err
+      }
+      if (isRefType) {
         if (this._objWeakMap.has(h.value)) {
-          const handleArray = this._objWeakMap.get(h.value)!
-          if (handleArray.indexOf(h) === -1) {
-            handleArray.push(h)
-          }
-        } else {
-          this._objWeakMap.set(h.value, [h])
+          const old = this._objWeakMap.get(h.value)!
+          old.moveTo(h)
         }
+        this._objWeakMap.set(h.value, h)
       }
     }
 
-    public tryAddToMap (h: Handle<any>): void {
+    public tryAddToMap (h: Handle<any>, isRefType?: boolean): void {
+      isRefType = typeof isRefType === 'boolean' ? isRefType : isReferenceType(h.value)
       if (this._map.has(h.value)) {
+        if (isRefType) {
+          throw new Error('An object is added to store twice')
+        }
         const idArray = this._map.get(h.value)!
         if (idArray.indexOf(h.id) === -1) {
           idArray.push(h.id)
@@ -88,14 +83,13 @@ namespace emnapi {
       super.remove(id)
     }
 
-    public getHandleByValue (value: any): Handle<any> | null {
+    public getObjectHandleExistsInStore<T extends object> (value: T): Handle<T> | null {
       const idArray = this._map.get(value)
       return (idArray && idArray.length > 0) ? this.get(idArray[0])! : null
     }
 
-    public getHandleByAliveObject (value: object): Handle<any> | null {
-      const handleArray = this._objWeakMap.get(value)
-      return (handleArray && handleArray.length > 0) ? handleArray[0] : null
+    public getObjectHandleAlive<T extends object> (value: T): Handle<T> | null {
+      return (this._objWeakMap.get(value) as Handle<T>) ?? null
     }
 
     public dispose (): void {
@@ -130,6 +124,23 @@ namespace emnapi {
       this.wrapped = 0
       this.tag = null
       this.refs = []
+    }
+
+    public moveTo (other: Handle<S>): void {
+      // other.env = this.env
+      this.env = 0
+      // other.id = this.id
+      this.id = 0
+      // other.value = this.value
+      this.value = undefined!
+      // other.inScope = this.inScope
+      this.inScope = null
+      other.wrapped = this.wrapped
+      this.wrapped = 0
+      other.tag = this.tag
+      this.tag = null
+      other.refs = this.refs.slice()
+      this.refs.length = 0
     }
 
     public isEmpty (): boolean {
