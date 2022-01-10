@@ -4,6 +4,8 @@
 
 [Node-API (version 8)](https://nodejs.org/docs/v16.13.0/api/n-api.html) implementation for [Emscripten](https://emscripten.org/index.html)
 
+[How it works (Chinese)](https://github.com/toyobayashi/emnapi/tree/main/docs/how-it-works.md).
+
 [中文 README](https://github.com/toyobayashi/emnapi/tree/main/README_CN.md).
 
 ## Quick Start

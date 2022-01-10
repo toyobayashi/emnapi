@@ -4,6 +4,8 @@
 
 适用于 [Emscripten](https://emscripten.org/index.html) 的 [Node-API (version 8)](https://nodejs.org/dist/latest-v16.x/docs/api/n-api.html) 实现。
 
+[工作原理](https://github.com/toyobayashi/emnapi/tree/main/docs/how-it-works.md)
+
 ## 快速开始
 
 环境准备：
