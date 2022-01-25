@@ -137,7 +137,7 @@ Module.onRuntimeInitialized = function () {
 
 ### Using C++
 
-Alternatively, you can also use [`node-addon-api`](https://github.com/nodejs/node-addon-api) which is official Node-API C++ wrapper, already shipped in this package but without Node.js specific API such as `ThreadSafeFunction`, `AsyncWorker`, etc.
+Alternatively, you can also use [`node-addon-api`](https://github.com/nodejs/node-addon-api) which is official Node-API C++ wrapper, already shipped (v4.3.0) in this package but without Node.js specific API such as `ThreadSafeFunction`, `AsyncWorker`, etc.
 
 **Note: C++ wrapper can only be used to target Node.js v14.6.0+ and modern browsers those support `FinalizationRegistry` and `WeakRef` ([v8 engine v8.4+](https://v8.dev/blog/v8-release-84))!**
 

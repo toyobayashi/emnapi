@@ -741,6 +741,14 @@ namespace Napi {
       uint32_t index /// Property / element index
     );
 
+    /// Gets or sets an indexed property or array element.
+    PropertyLValue<Value> operator[](Value index  /// Property / element index
+    );
+
+    /// Gets or sets an indexed property or array element.
+    PropertyLValue<Value> operator[](Value index  /// Property / element index
+    ) const;
+
     /// Gets a named property.
     MaybeOrValue<Value> operator[](
         const char* utf8name  ///< UTF-8 encoded null-terminated property name
@@ -928,6 +936,21 @@ namespace Napi {
     inline void AddFinalizer(Finalizer finalizeCallback,
                              T* data,
                              Hint* finalizeHint);
+
+#ifdef NAPI_CPP_EXCEPTIONS
+    class const_iterator;
+
+    inline const_iterator begin() const;
+
+    inline const_iterator end() const;
+
+    class iterator;
+
+    inline iterator begin();
+
+    inline iterator end();
+#endif  // NAPI_CPP_EXCEPTIONS
+
 #if NAPI_VERSION >= 8
     /// This operation can fail in case of Proxy.[[GetPrototypeOf]] calling into
     /// JavaScript.
@@ -975,6 +998,55 @@ namespace Napi {
 
     uint32_t Length() const;
   };
+
+#ifdef NAPI_CPP_EXCEPTIONS
+  class Object::const_iterator {
+   private:
+    enum class Type { BEGIN, END };
+
+    inline const_iterator(const Object* object, const Type type);
+
+   public:
+    inline const_iterator& operator++();
+
+    inline bool operator==(const const_iterator& other) const;
+
+    inline bool operator!=(const const_iterator& other) const;
+
+    inline const std::pair<Value, Object::PropertyLValue<Value>> operator*()
+        const;
+
+   private:
+    const Napi::Object* _object;
+    Array _keys;
+    uint32_t _index;
+
+    friend class Object;
+  };
+
+  class Object::iterator {
+   private:
+    enum class Type { BEGIN, END };
+
+    inline iterator(Object* object, const Type type);
+
+   public:
+    inline iterator& operator++();
+
+    inline bool operator==(const iterator& other) const;
+
+    inline bool operator!=(const iterator& other) const;
+
+    inline std::pair<Value, Object::PropertyLValue<Value>> operator*();
+
+   private:
+    Napi::Object* _object;
+    Array _keys;
+    uint32_t _index;
+
+    friend class Object;
+  };
+#endif  // NAPI_CPP_EXCEPTIONS
 
   /// A JavaScript array buffer value.
   class ArrayBuffer : public Object {
@@ -1036,10 +1108,10 @@ namespace Napi {
    void* Data();         ///< Gets a pointer to the data buffer.
    size_t ByteLength();  ///< Gets the length of the array buffer in bytes.
 
-#if NAPI_VERSION >= 7
-    bool IsDetached() const;
-    void Detach();
-#endif  // NAPI_VERSION >= 7
+// #if NAPI_VERSION >= 7
+//     bool IsDetached() const;
+//     void Detach();
+// #endif  // NAPI_VERSION >= 7
   };
 
   /// A JavaScript typed-array value with unknown array type.
@@ -1627,6 +1699,8 @@ namespace Napi {
     const std::string& Message() const NAPI_NOEXCEPT;
     void ThrowAsJavaScriptException() const;
 
+    Object Value() const;
+
 #ifdef NAPI_CPP_EXCEPTIONS
     const char* what() const NAPI_NOEXCEPT override;
 #endif // NAPI_CPP_EXCEPTIONS
@@ -1646,7 +1720,9 @@ namespace Napi {
    /// !endcond
 
   private:
-    mutable std::string _message;
+   const char* ERROR_WRAP_VALUE =
+       "4bda9e7e-4913-4dbc-95de-891cbf66598e-errorVal";
+   mutable std::string _message;
   };
 
   class TypeError : public Error {
@@ -2224,94 +2300,94 @@ namespace Napi {
 //   };
 // #endif
 
-  // class AsyncContext {
-  // public:
-  //   explicit AsyncContext(napi_env env, const char* resource_name);
-  //   explicit AsyncContext(napi_env env, const char* resource_name, const Object& resource);
-  //   virtual ~AsyncContext();
+//   class AsyncContext {
+//   public:
+//     explicit AsyncContext(napi_env env, const char* resource_name);
+//     explicit AsyncContext(napi_env env, const char* resource_name, const Object& resource);
+//     virtual ~AsyncContext();
 
-  //   AsyncContext(AsyncContext&& other);
-  //   AsyncContext& operator =(AsyncContext&& other);
-  //   NAPI_DISALLOW_ASSIGN_COPY(AsyncContext)
+//     AsyncContext(AsyncContext&& other);
+//     AsyncContext& operator =(AsyncContext&& other);
+//     NAPI_DISALLOW_ASSIGN_COPY(AsyncContext)
 
-  //   operator napi_async_context() const;
+//     operator napi_async_context() const;
 
-  //   Napi::Env Env() const;
+//     Napi::Env Env() const;
 
-  // private:
-  //   napi_env _env;
-  //   napi_async_context _context;
-  // };
+//   private:
+//     napi_env _env;
+//     napi_async_context _context;
+//   };
 
-  // class AsyncWorker {
-  // public:
-  //   virtual ~AsyncWorker();
+//   class AsyncWorker {
+//   public:
+//     virtual ~AsyncWorker();
 
-  //   // An async worker can be moved but cannot be copied.
-  //   AsyncWorker(AsyncWorker&& other);
-  //   AsyncWorker& operator =(AsyncWorker&& other);
-  //   NAPI_DISALLOW_ASSIGN_COPY(AsyncWorker)
+//     // An async worker can be moved but cannot be copied.
+//     AsyncWorker(AsyncWorker&& other);
+//     AsyncWorker& operator =(AsyncWorker&& other);
+//     NAPI_DISALLOW_ASSIGN_COPY(AsyncWorker)
 
-  //   operator napi_async_work() const;
+//     operator napi_async_work() const;
 
-  //   Napi::Env Env() const;
+//     Napi::Env Env() const;
 
-  //   void Queue();
-  //   void Cancel();
-  //   void SuppressDestruct();
+//     void Queue();
+//     void Cancel();
+//     void SuppressDestruct();
 
-  //   ObjectReference& Receiver();
-  //   FunctionReference& Callback();
+//     ObjectReference& Receiver();
+//     FunctionReference& Callback();
 
-  //   virtual void OnExecute(Napi::Env env);
-  //   virtual void OnWorkComplete(Napi::Env env,
-  //                               napi_status status);
+//     virtual void OnExecute(Napi::Env env);
+//     virtual void OnWorkComplete(Napi::Env env,
+//                                 napi_status status);
 
-  // protected:
-  //   explicit AsyncWorker(const Function& callback);
-  //   explicit AsyncWorker(const Function& callback,
-  //                        const char* resource_name);
-  //   explicit AsyncWorker(const Function& callback,
-  //                        const char* resource_name,
-  //                        const Object& resource);
-  //   explicit AsyncWorker(const Object& receiver,
-  //                        const Function& callback);
-  //   explicit AsyncWorker(const Object& receiver,
-  //                        const Function& callback,
-  //                        const char* resource_name);
-  //   explicit AsyncWorker(const Object& receiver,
-  //                        const Function& callback,
-  //                        const char* resource_name,
-  //                        const Object& resource);
+//   protected:
+//     explicit AsyncWorker(const Function& callback);
+//     explicit AsyncWorker(const Function& callback,
+//                          const char* resource_name);
+//     explicit AsyncWorker(const Function& callback,
+//                          const char* resource_name,
+//                          const Object& resource);
+//     explicit AsyncWorker(const Object& receiver,
+//                          const Function& callback);
+//     explicit AsyncWorker(const Object& receiver,
+//                          const Function& callback,
+//                          const char* resource_name);
+//     explicit AsyncWorker(const Object& receiver,
+//                          const Function& callback,
+//                          const char* resource_name,
+//                          const Object& resource);
 
-  //   explicit AsyncWorker(Napi::Env env);
-  //   explicit AsyncWorker(Napi::Env env,
-  //                        const char* resource_name);
-  //   explicit AsyncWorker(Napi::Env env,
-  //                        const char* resource_name,
-  //                        const Object& resource);
+//     explicit AsyncWorker(Napi::Env env);
+//     explicit AsyncWorker(Napi::Env env,
+//                          const char* resource_name);
+//     explicit AsyncWorker(Napi::Env env,
+//                          const char* resource_name,
+//                          const Object& resource);
 
-  //   virtual void Execute() = 0;
-  //   virtual void OnOK();
-  //   virtual void OnError(const Error& e);
-  //   virtual void Destroy();
-  //   virtual std::vector<napi_value> GetResult(Napi::Env env);
+//     virtual void Execute() = 0;
+//     virtual void OnOK();
+//     virtual void OnError(const Error& e);
+//     virtual void Destroy();
+//     virtual std::vector<napi_value> GetResult(Napi::Env env);
 
-  //   void SetError(const std::string& error);
+//     void SetError(const std::string& error);
 
-  // private:
-  //   static inline void OnAsyncWorkExecute(napi_env env, void* asyncworker);
-  //   static inline void OnAsyncWorkComplete(napi_env env,
-  //                                          napi_status status,
-  //                                          void* asyncworker);
+//   private:
+//     static inline void OnAsyncWorkExecute(napi_env env, void* asyncworker);
+//     static inline void OnAsyncWorkComplete(napi_env env,
+//                                            napi_status status,
+//                                            void* asyncworker);
 
-  //   napi_env _env;
-  //   napi_async_work _work;
-  //   ObjectReference _receiver;
-  //   FunctionReference _callback;
-  //   std::string _error;
-  //   bool _suppress_destruct;
-  // };
+//     napi_env _env;
+//     napi_async_work _work;
+//     ObjectReference _receiver;
+//     FunctionReference _callback;
+//     std::string _error;
+//     bool _suppress_destruct;
+//   };
 
   #if (NAPI_VERSION > 3 && !defined(__wasm32__))
   class ThreadSafeFunction {
@@ -2868,10 +2944,10 @@ namespace Napi {
   #endif  // NAPI_VERSION > 3 && !defined(__wasm32__)
 
   // Memory management.
-  class MemoryManagement {
-    public:
-      static int64_t AdjustExternalMemory(Env env, int64_t change_in_bytes);
-  };
+  // class MemoryManagement {
+  //   public:
+  //     static int64_t AdjustExternalMemory(Env env, int64_t change_in_bytes);
+  // };
 
   // Version management
   class VersionManagement {

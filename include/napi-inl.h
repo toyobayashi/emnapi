@@ -1306,6 +1306,14 @@ inline Object::PropertyLValue<uint32_t> Object::operator [](uint32_t index) {
   return PropertyLValue<uint32_t>(*this, index);
 }
 
+inline Object::PropertyLValue<Value> Object::operator[](Value index) {
+  return PropertyLValue<Value>(*this, index);
+}
+
+inline Object::PropertyLValue<Value> Object::operator[](Value index) const {
+  return PropertyLValue<Value>(*this, index);
+}
+
 inline MaybeOrValue<Value> Object::operator[](const char* utf8name) const {
   return Get(utf8name);
 }
@@ -1530,6 +1538,83 @@ inline void Object::AddFinalizer(Finalizer finalizeCallback,
   }
 }
 
+#ifdef NAPI_CPP_EXCEPTIONS
+inline Object::const_iterator::const_iterator(const Object* object,
+                                              const Type type) {
+  _object = object;
+  _keys = object->GetPropertyNames();
+  _index = type == Type::BEGIN ? 0 : _keys.Length();
+}
+
+inline Object::const_iterator Napi::Object::begin() const {
+  const_iterator it(this, Object::const_iterator::Type::BEGIN);
+  return it;
+}
+
+inline Object::const_iterator Napi::Object::end() const {
+  const_iterator it(this, Object::const_iterator::Type::END);
+  return it;
+}
+
+inline Object::const_iterator& Object::const_iterator::operator++() {
+  ++_index;
+  return *this;
+}
+
+inline bool Object::const_iterator::operator==(
+    const const_iterator& other) const {
+  return _index == other._index;
+}
+
+inline bool Object::const_iterator::operator!=(
+    const const_iterator& other) const {
+  return _index != other._index;
+}
+
+inline const std::pair<Value, Object::PropertyLValue<Value>>
+Object::const_iterator::operator*() const {
+  const Value key = _keys[_index];
+  const PropertyLValue<Value> value = (*_object)[key];
+  return {key, value};
+}
+
+inline Object::iterator::iterator(Object* object, const Type type) {
+  _object = object;
+  _keys = object->GetPropertyNames();
+  _index = type == Type::BEGIN ? 0 : _keys.Length();
+}
+
+inline Object::iterator Napi::Object::begin() {
+  iterator it(this, Object::iterator::Type::BEGIN);
+  return it;
+}
+
+inline Object::iterator Napi::Object::end() {
+  iterator it(this, Object::iterator::Type::END);
+  return it;
+}
+
+inline Object::iterator& Object::iterator::operator++() {
+  ++_index;
+  return *this;
+}
+
+inline bool Object::iterator::operator==(const iterator& other) const {
+  return _index == other._index;
+}
+
+inline bool Object::iterator::operator!=(const iterator& other) const {
+  return _index != other._index;
+}
+
+inline std::pair<Value, Object::PropertyLValue<Value>>
+Object::iterator::operator*() {
+  Value key = _keys[_index];
+  PropertyLValue<Value> value = (*_object)[key];
+  return {key, value};
+}
+#endif  // NAPI_CPP_EXCEPTIONS
+
 #if NAPI_VERSION >= 8
 inline MaybeOrValue<bool> Object::Freeze() {
   napi_status status = napi_object_freeze(_env, _value);
@@ -1740,19 +1825,19 @@ inline size_t ArrayBuffer::ByteLength() {
   return length;
 }
 
-#if NAPI_VERSION >= 7
-inline bool ArrayBuffer::IsDetached() const {
-  bool detached;
-  napi_status status = napi_is_detached_arraybuffer(_env, _value, &detached);
-  NAPI_THROW_IF_FAILED(_env, status, false);
-  return detached;
-}
+// #if NAPI_VERSION >= 7
+// inline bool ArrayBuffer::IsDetached() const {
+//   bool detached;
+//   napi_status status = napi_is_detached_arraybuffer(_env, _value, &detached);
+//   NAPI_THROW_IF_FAILED(_env, status, false);
+//   return detached;
+// }
 
-inline void ArrayBuffer::Detach() {
-  napi_status status = napi_detach_arraybuffer(_env, _value);
-  NAPI_THROW_IF_FAILED_VOID(_env, status);
-}
-#endif  // NAPI_VERSION >= 7
+// inline void ArrayBuffer::Detach() {
+//   napi_status status = napi_detach_arraybuffer(_env, _value);
+//   NAPI_THROW_IF_FAILED_VOID(_env, status);
+// }
+// #endif  // NAPI_VERSION >= 7
 
 ////////////////////////////////////////////////////////////////////////////////
 // DataView class
@@ -2435,12 +2520,23 @@ inline Error Error::New(napi_env env) {
   napi_status status;
   napi_value error = nullptr;
   bool is_exception_pending;
-  const napi_extended_error_info* info;
+  napi_extended_error_info last_error_info_copy;
 
-  // We must retrieve the last error info before doing anything else, because
-  // doing anything else will replace the last error info.
-  status = napi_get_last_error_info(env, &info);
-  NAPI_FATAL_IF_FAILED(status, "Error::New", "napi_get_last_error_info");
+  {
+    // We must retrieve the last error info before doing anything else because
+    // doing anything else will replace the last error info.
+    const napi_extended_error_info* last_error_info;
+    status = napi_get_last_error_info(env, &last_error_info);
+    NAPI_FATAL_IF_FAILED(status, "Error::New", "napi_get_last_error_info");
+
+    // All fields of the `napi_extended_error_info` structure gets reset in
+    // subsequent Node-API function calls on the same `env`. This includes a
+    // call to `napi_is_exception_pending()`. So here it is necessary to make a
+    // copy of the information as the `error_code` field is used later on.
+    memcpy(&last_error_info_copy,
+           last_error_info,
+           sizeof(napi_extended_error_info));
+  }
 
   status = napi_is_exception_pending(env, &is_exception_pending);
   NAPI_FATAL_IF_FAILED(status, "Error::New", "napi_is_exception_pending");
@@ -2451,8 +2547,9 @@ inline Error Error::New(napi_env env) {
     NAPI_FATAL_IF_FAILED(status, "Error::New", "napi_get_and_clear_last_exception");
   }
   else {
-    const char* error_message = info->error_message != nullptr ?
-      info->error_message : "Error in native callback";
+    const char* error_message = last_error_info_copy.error_message != nullptr
+                                    ? last_error_info_copy.error_message
+                                    : "Error in native callback";
 
     napi_value message;
     status = napi_create_string_utf8(
@@ -2462,16 +2559,16 @@ inline Error Error::New(napi_env env) {
       &message);
     NAPI_FATAL_IF_FAILED(status, "Error::New", "napi_create_string_utf8");
 
-    switch (info->error_code) {
-    case napi_object_expected:
-    case napi_string_expected:
-    case napi_boolean_expected:
-    case napi_number_expected:
-      status = napi_create_type_error(env, nullptr, message, &error);
-      break;
-    default:
-      status = napi_create_error(env, nullptr,  message, &error);
-      break;
+    switch (last_error_info_copy.error_code) {
+      case napi_object_expected:
+      case napi_string_expected:
+      case napi_boolean_expected:
+      case napi_number_expected:
+        status = napi_create_type_error(env, nullptr, message, &error);
+        break;
+      default:
+        status = napi_create_error(env, nullptr, message, &error);
+        break;
     }
     NAPI_FATAL_IF_FAILED(status, "Error::New", "napi_create_error");
   }
@@ -2496,12 +2593,78 @@ inline Error::Error() : ObjectReference() {
 
 inline Error::Error(napi_env env, napi_value value) : ObjectReference(env, nullptr) {
   if (value != nullptr) {
+    // Attempting to create a reference on the error object.
+    // If it's not a Object/Function/Symbol, this call will return an error
+    // status.
     napi_status status = napi_create_reference(env, value, 1, &_ref);
 
+    if (status != napi_ok) {
+      napi_value wrappedErrorObj;
+
+      // Create an error object
+      status = napi_create_object(env, &wrappedErrorObj);
+      NAPI_FATAL_IF_FAILED(status, "Error::Error", "napi_create_object");
+
+      // property flag that we attach to show the error object is wrapped
+      napi_property_descriptor wrapObjFlag = {
+          ERROR_WRAP_VALUE,  // Unique GUID identifier since Symbol isn't a
+                             // viable option
+          nullptr,
+          nullptr,
+          nullptr,
+          nullptr,
+          Value::From(env, value),
+          napi_enumerable,
+          nullptr};
+
+      status = napi_define_properties(env, wrappedErrorObj, 1, &wrapObjFlag);
+      NAPI_FATAL_IF_FAILED(status, "Error::Error", "napi_define_properties");
+
+      // Create a reference on the newly wrapped object
+      status = napi_create_reference(env, wrappedErrorObj, 1, &_ref);
+    }
+
     // Avoid infinite recursion in the failure case.
-    // Don't try to construct & throw another Error instance.
     NAPI_FATAL_IF_FAILED(status, "Error::Error", "napi_create_reference");
   }
+}
+
+inline Object Error::Value() const {
+  if (_ref == nullptr) {
+    return Object(_env, nullptr);
+  }
+
+  napi_value refValue;
+  napi_status status = napi_get_reference_value(_env, _ref, &refValue);
+  NAPI_THROW_IF_FAILED(_env, status, Object());
+
+  napi_valuetype type;
+  status = napi_typeof(_env, refValue, &type);
+  NAPI_THROW_IF_FAILED(_env, status, Object());
+
+  // If refValue isn't a symbol, then we proceed to whether the refValue has the
+  // wrapped error flag
+  if (type != napi_symbol) {
+    // We are checking if the object is wrapped
+    bool isWrappedObject = false;
+
+    status = napi_has_property(
+        _env, refValue, String::From(_env, ERROR_WRAP_VALUE), &isWrappedObject);
+
+    // Don't care about status
+    if (isWrappedObject) {
+      napi_value unwrappedValue;
+      status = napi_get_property(_env,
+                                 refValue,
+                                 String::From(_env, ERROR_WRAP_VALUE),
+                                 &unwrappedValue);
+      NAPI_THROW_IF_FAILED(_env, status, Object());
+
+      return Object(_env, unwrappedValue);
+    }
+  }
+
+  return Object(_env, refValue);
 }
 
 inline Error::Error(Error&& other) : ObjectReference(std::move(other)) {
@@ -2554,6 +2717,7 @@ inline const std::string& Error::Message() const NAPI_NOEXCEPT {
   return _message;
 }
 
+// we created an object on the &_ref
 inline void Error::ThrowAsJavaScriptException() const {
   HandleScope scope(_env);
   if (!IsEmpty()) {
@@ -5925,12 +6089,12 @@ inline void AsyncProgressQueueWorker<T>::ExecutionProgress::Send(const T* data, 
 // Memory Management class
 ////////////////////////////////////////////////////////////////////////////////
 
-inline int64_t MemoryManagement::AdjustExternalMemory(Env env, int64_t change_in_bytes) {
-  int64_t result;
-  napi_status status = napi_adjust_external_memory(env, change_in_bytes, &result);
-  NAPI_THROW_IF_FAILED(env, status, 0);
-  return result;
-}
+// inline int64_t MemoryManagement::AdjustExternalMemory(Env env, int64_t change_in_bytes) {
+//   int64_t result;
+//   napi_status status = napi_adjust_external_memory(env, change_in_bytes, &result);
+//   NAPI_THROW_IF_FAILED(env, status, 0);
+//   return result;
+// }
 
 ////////////////////////////////////////////////////////////////////////////////
 // Version Management class
