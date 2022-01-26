@@ -76,43 +76,17 @@ namespace emnapi {
     }
   } */
 
-  export function napi_set_last_error (env: napi_env, error_code: napi_status, engine_error_code: uint32_t = 0, engine_reserved: void_p = 0): napi_status {
-    const envObject = envStore.get(env)!
-    envObject.napiExtendedErrorInfo.error_code = error_code
-    envObject.napiExtendedErrorInfo.engine_error_code = engine_error_code
-    envObject.napiExtendedErrorInfo.engine_reserved = engine_reserved
-
-    const ptr32 = envObject.napiExtendedErrorInfoPtr >> 2
-    envObject.HEAP32[ptr32 + 1] = envObject.napiExtendedErrorInfo.engine_reserved
-    envObject.HEAPU32[ptr32 + 2] = envObject.napiExtendedErrorInfo.engine_error_code
-    envObject.HEAP32[ptr32 + 3] = envObject.napiExtendedErrorInfo.error_code
-    return error_code
-  }
-
-  export function napi_clear_last_error (env: napi_env): napi_status {
-    const envObject = envStore.get(env)!
-    envObject.napiExtendedErrorInfo.error_code = napi_status.napi_ok
-    envObject.napiExtendedErrorInfo.engine_error_code = 0
-    envObject.napiExtendedErrorInfo.engine_reserved = 0
-
-    const ptr32 = envObject.napiExtendedErrorInfoPtr >> 2
-    envObject.HEAP32[ptr32 + 1] = envObject.napiExtendedErrorInfo.engine_reserved
-    envObject.HEAPU32[ptr32 + 2] = envObject.napiExtendedErrorInfo.engine_error_code
-    envObject.HEAP32[ptr32 + 3] = envObject.napiExtendedErrorInfo.error_code
-    return napi_status.napi_ok
-  }
-
   export function checkEnv (env: napi_env, fn: (envObject: Env) => napi_status): napi_status {
     if ((env === NULL) || !envStore.has(env)) return napi_status.napi_invalid_arg
     const envObject = envStore.get(env)!
     return fn(envObject)
   }
 
-  export function checkArgs (env: napi_env, args: any[], fn: () => napi_status): napi_status {
+  export function checkArgs (envObject: Env, args: any[], fn: () => napi_status): napi_status {
     for (let i = 0; i < args.length; i++) {
       const arg = args[i]
       if (arg === NULL) {
-        return napi_set_last_error(env, napi_status.napi_invalid_arg)
+        return envObject.setLastError(napi_status.napi_invalid_arg)
       }
     }
     return fn()
@@ -120,20 +94,15 @@ namespace emnapi {
 
   export function preamble (env: napi_env, fn: (envObject: Env) => napi_status): napi_status {
     return checkEnv(env, (envObject) => {
-      if (envObject.tryCatch.hasCaught()) return napi_set_last_error(env, napi_status.napi_pending_exception)
-      napi_clear_last_error(env)
+      if (envObject.tryCatch.hasCaught()) return envObject.setLastError(napi_status.napi_pending_exception)
+      envObject.clearLastError()
       try {
         return fn(envObject)
       } catch (err) {
         envObject.tryCatch.setError(err)
-        return napi_set_last_error(env, napi_status.napi_pending_exception)
+        return envObject.setLastError(napi_status.napi_pending_exception)
       }
     })
-  }
-
-  export function getReturnStatus (env: napi_env): napi_status {
-    const envObject = envStore.get(env)!
-    return !envObject.tryCatch.hasCaught() ? napi_status.napi_ok : napi_set_last_error(env, napi_status.napi_pending_exception)
   }
 
   export let canSetFunctionName = false

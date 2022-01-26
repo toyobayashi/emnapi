@@ -1,39 +1,39 @@
 function napi_get_boolean (env: napi_env, value: bool, result: Pointer<napi_value>): emnapi.napi_status {
-  return emnapi.checkEnv(env, () => {
-    return emnapi.checkArgs(env, [result], () => {
+  return emnapi.checkEnv(env, (envObject) => {
+    return emnapi.checkArgs(envObject, [result], () => {
       if (value === 0) {
         HEAP32[result >> 2] = emnapi.HandleStore.ID_FALSE
       } else {
         HEAP32[result >> 2] = emnapi.HandleStore.ID_TRUE
       }
-      return emnapi.napi_clear_last_error(env)
+      return envObject.clearLastError()
     })
   })
 }
 
 function napi_get_global (env: napi_env, result: Pointer<napi_value>): emnapi.napi_status {
-  return emnapi.checkEnv(env, () => {
-    return emnapi.checkArgs(env, [result], () => {
+  return emnapi.checkEnv(env, (envObject) => {
+    return emnapi.checkArgs(envObject, [result], () => {
       HEAP32[result >> 2] = emnapi.HandleStore.ID_GLOBAL
-      return emnapi.napi_clear_last_error(env)
+      return envObject.clearLastError()
     })
   })
 }
 
 function napi_get_null (env: napi_env, result: Pointer<napi_value>): emnapi.napi_status {
-  return emnapi.checkEnv(env, () => {
-    return emnapi.checkArgs(env, [result], () => {
+  return emnapi.checkEnv(env, (envObject) => {
+    return emnapi.checkArgs(envObject, [result], () => {
       HEAP32[result >> 2] = emnapi.HandleStore.ID_NULL
-      return emnapi.napi_clear_last_error(env)
+      return envObject.clearLastError()
     })
   })
 }
 
 function napi_get_undefined (env: napi_env, result: Pointer<napi_value>): emnapi.napi_status {
-  return emnapi.checkEnv(env, () => {
-    return emnapi.checkArgs(env, [result], () => {
+  return emnapi.checkEnv(env, (envObject) => {
+    return emnapi.checkArgs(envObject, [result], () => {
       HEAP32[result >> 2] = emnapi.HandleStore.ID_UNDEFINED
-      return emnapi.napi_clear_last_error(env)
+      return envObject.clearLastError()
     })
   })
 }

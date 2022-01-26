@@ -1,17 +1,17 @@
 function emnapi_get_module_object (env: napi_env, result: Pointer<napi_value>): emnapi.napi_status {
   return emnapi.preamble(env, (envObject) => {
-    return emnapi.checkArgs(env, [result], () => {
+    return emnapi.checkArgs(envObject, [result], () => {
       HEAP32[result >> 2] = envObject.ensureHandleId(Module)
-      return emnapi.getReturnStatus(env)
+      return envObject.getReturnStatus()
     })
   })
 }
 
 function emnapi_get_module_property (env: napi_env, utf8name: const_char_p, result: Pointer<napi_value>): emnapi.napi_status {
   return emnapi.preamble(env, (envObject) => {
-    return emnapi.checkArgs(env, [utf8name, result], () => {
+    return emnapi.checkArgs(envObject, [utf8name, result], () => {
       HEAP32[result >> 2] = envObject.ensureHandleId(Module[UTF8ToString(utf8name)])
-      return emnapi.getReturnStatus(env)
+      return envObject.getReturnStatus()
     })
   })
 }
@@ -24,9 +24,9 @@ function emnapi_create_external_uint8array (
   finalize_hint: void_p,
   result: Pointer<napi_value>
 ): emnapi.napi_status {
-  if (!emnapi.supportFinalizer) return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_generic_failure)
   return emnapi.preamble(env, (envObject) => {
-    return emnapi.checkArgs(env, [result], () => {
+    if (!emnapi.supportFinalizer) return envObject.setLastError(emnapi.napi_status.napi_generic_failure)
+    return emnapi.checkArgs(envObject, [result], () => {
       byte_length = byte_length >>> 0
       if (external_data === emnapi.NULL) {
         byte_length = 0
@@ -45,11 +45,11 @@ function emnapi_create_external_uint8array (
         if (status === emnapi.napi_status.napi_pending_exception) {
           throw envObject.tryCatch.extractException()
         } else if (status !== emnapi.napi_status.napi_ok) {
-          return emnapi.napi_set_last_error(env, status)
+          return envObject.setLastError(status)
         }
       }
       HEAP32[result >> 2] = handle.id
-      return emnapi.getReturnStatus(env)
+      return envObject.getReturnStatus()
     })
   })
 }

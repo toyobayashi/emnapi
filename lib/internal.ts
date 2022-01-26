@@ -112,7 +112,7 @@ function $emnapiCreateTypedArray (env: napi_env, Type: { new (...args: any[]): A
       const err: RangeError & { code?: string } = new RangeError(`start offset of ${Type.name ?? ''} should be a multiple of ${size_of_element}`)
       err.code = 'ERR_NAPI_INVALID_TYPEDARRAY_ALIGNMENT'
       envObject.tryCatch.setError(err)
-      return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_generic_failure)
+      return envObject.setLastError(emnapi.napi_status.napi_generic_failure)
     }
   }
   // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
@@ -120,7 +120,7 @@ function $emnapiCreateTypedArray (env: napi_env, Type: { new (...args: any[]): A
     const err: RangeError & { code?: string } = new RangeError('Invalid typed array length')
     err.code = 'ERR_NAPI_INVALID_TYPEDARRAY_LENGTH'
     envObject.tryCatch.setError(err)
-    return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_generic_failure)
+    return envObject.setLastError(emnapi.napi_status.napi_generic_failure)
   }
   const out = new Type(buffer, byte_offset, length)
   return callback(out)
@@ -130,23 +130,23 @@ function $emnapiCreateTypedArray (env: napi_env, Type: { new (...args: any[]): A
 declare const emnapiWrap: typeof $emnapiWrap
 function $emnapiWrap (type: emnapi.WrapType, env: napi_env, js_object: napi_value, native_object: void_p, finalize_cb: napi_finalize, finalize_hint: void_p, result: Pointer<napi_ref>): emnapi.napi_status {
   return emnapi.preamble(env, (envObject) => {
-    return emnapi.checkArgs(env, [js_object], () => {
+    return emnapi.checkArgs(envObject, [js_object], () => {
       const value = envObject.handleStore.get(js_object)!
       if (!(value.isObject() || value.isFunction())) {
-        return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_invalid_arg)
+        return envObject.setLastError(emnapi.napi_status.napi_invalid_arg)
       }
 
       if (type === emnapi.WrapType.retrievable) {
         if (value.wrapped !== 0) {
-          return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_invalid_arg)
+          return envObject.setLastError(emnapi.napi_status.napi_invalid_arg)
         }
       } else if (type === emnapi.WrapType.anonymous) {
-        if (finalize_cb === emnapi.NULL) return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_invalid_arg)
+        if (finalize_cb === emnapi.NULL) return envObject.setLastError(emnapi.napi_status.napi_invalid_arg)
       }
 
       let reference: emnapi.Reference
       if (result !== emnapi.NULL) {
-        if (finalize_cb === emnapi.NULL) return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_invalid_arg)
+        if (finalize_cb === emnapi.NULL) return envObject.setLastError(emnapi.napi_status.napi_invalid_arg)
         reference = emnapi.Reference.create(env, value.id, 0, false, finalize_cb, native_object, finalize_hint)
         HEAP32[result >> 2] = reference.id
       } else {
@@ -156,7 +156,7 @@ function $emnapiWrap (type: emnapi.WrapType, env: napi_env, js_object: napi_valu
       if (type === emnapi.WrapType.retrievable) {
         value.wrapped = reference.id
       }
-      return emnapi.getReturnStatus(env)
+      return envObject.getReturnStatus()
     })
   })
 }
@@ -165,17 +165,17 @@ function $emnapiWrap (type: emnapi.WrapType, env: napi_env, js_object: napi_valu
 declare const emnapiUnwrap: typeof $emnapiUnwrap
 function $emnapiUnwrap (env: napi_env, js_object: napi_value, result: void_pp, action: emnapi.UnwrapAction): emnapi.napi_status {
   return emnapi.preamble(env, (envObject) => {
-    return emnapi.checkArgs(env, [js_object], () => {
+    return emnapi.checkArgs(envObject, [js_object], () => {
       if (action === emnapi.UnwrapAction.KeepWrap) {
-        if (result === emnapi.NULL) return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_invalid_arg)
+        if (result === emnapi.NULL) return envObject.setLastError(emnapi.napi_status.napi_invalid_arg)
       }
       const value = envObject.handleStore.get(js_object)!
       if (!(value.isObject() || value.isFunction())) {
-        return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_invalid_arg)
+        return envObject.setLastError(emnapi.napi_status.napi_invalid_arg)
       }
       const referenceId = value.wrapped
       const ref = envObject.refStore.get(referenceId)
-      if (!ref) return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_invalid_arg)
+      if (!ref) return envObject.setLastError(emnapi.napi_status.napi_invalid_arg)
       if (result !== emnapi.NULL) {
         HEAP32[result >> 2] = ref.data()
       }
@@ -183,7 +183,7 @@ function $emnapiUnwrap (env: napi_env, js_object: napi_value, result: void_pp, a
         value.wrapped = 0
         emnapi.Reference.doDelete(ref)
       }
-      return emnapi.getReturnStatus(env)
+      return envObject.getReturnStatus()
     })
   })
 }

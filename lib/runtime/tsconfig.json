@@ -4,6 +4,7 @@
     "outFile": "../../dist/library_napi_runtime.js",
     "downlevelIteration": true,
     "declaration": true,
+    "removeComments": true,
     "types": [],
     "lib": [
       "ES5",

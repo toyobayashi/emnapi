@@ -134,9 +134,37 @@ namespace emnapi {
       return this.getCurrentScope().add(value).id
     }
 
+    public clearLastError (): napi_status {
+      this.napiExtendedErrorInfo.error_code = napi_status.napi_ok
+      this.napiExtendedErrorInfo.engine_error_code = 0
+      this.napiExtendedErrorInfo.engine_reserved = 0
+
+      const ptr32 = this.napiExtendedErrorInfoPtr >> 2
+      this.HEAP32[ptr32 + 1] = this.napiExtendedErrorInfo.engine_reserved
+      this.HEAPU32[ptr32 + 2] = this.napiExtendedErrorInfo.engine_error_code
+      this.HEAP32[ptr32 + 3] = this.napiExtendedErrorInfo.error_code
+      return napi_status.napi_ok
+    }
+
+    public setLastError (error_code: napi_status, engine_error_code: uint32_t = 0, engine_reserved: void_p = 0): napi_status {
+      this.napiExtendedErrorInfo.error_code = error_code
+      this.napiExtendedErrorInfo.engine_error_code = engine_error_code
+      this.napiExtendedErrorInfo.engine_reserved = engine_reserved
+
+      const ptr32 = this.napiExtendedErrorInfoPtr >> 2
+      this.HEAP32[ptr32 + 1] = this.napiExtendedErrorInfo.engine_reserved
+      this.HEAPU32[ptr32 + 2] = this.napiExtendedErrorInfo.engine_error_code
+      this.HEAP32[ptr32 + 3] = this.napiExtendedErrorInfo.error_code
+      return error_code
+    }
+
+    public getReturnStatus (): napi_status {
+      return !this.tryCatch.hasCaught() ? napi_status.napi_ok : this.setLastError(napi_status.napi_pending_exception)
+    }
+
     public callIntoModule<T> (fn: (env: Env, scope: IHandleScope) => T): T {
       const r = this.callInNewHandleScope((scope) => {
-        napi_clear_last_error(this.id)
+        this.clearLastError()
         return fn(this, scope)
       })
       if (this.tryCatch.hasCaught()) {
