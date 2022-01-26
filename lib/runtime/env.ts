@@ -2,6 +2,15 @@
 namespace emnapi {
   export class Env implements IStoreValue {
     public id: number
+
+    typedArrayMemoryMap = new WeakMap<TypedArray | DataView, void_p>()
+    arrayBufferMemoryMap = new WeakMap<ArrayBuffer, void_p>()
+    memoryPointerDeleter: FinalizationRegistry<void_p> = supportFinalizer
+      ? new FinalizationRegistry<void_p>((heldValue) => {
+        this.free(heldValue)
+      })
+      : null!
+
     public openHandleScopes: number = 0
 
     public instanceData = {
@@ -28,8 +37,16 @@ namespace emnapi {
 
     public tryCatch = new TryCatch()
 
-    public static create (): Env {
-      const env = new Env()
+    public static create (
+      malloc: (size: number) => number,
+      free: (ptr: number) => void,
+      call_iii: (ptr: number, ...args: [number, number]) => number,
+      call_viii: (ptr: number, ...args: [number, number, number]) => void,
+      HEAP32: Int32Array,
+      HEAPU32: Uint32Array,
+      HEAPU8: Uint8Array
+    ): Env {
+      const env = new Env(malloc, free, call_iii, call_viii, HEAP32, HEAPU32, HEAPU8)
       envStore.add(env)
       env.refStore = new RefStore()
       env.handleStore = new HandleStore()
@@ -38,11 +55,19 @@ namespace emnapi {
       env.scopeStore = new ScopeStore()
       env.scopeList = new LinkedList<IHandleScope>()
       // env.scopeList.push(HandleScope.create(env.id, null))
-      env.napiExtendedErrorInfoPtr = malloc!(16)
+      env.napiExtendedErrorInfoPtr = env.malloc(16)
       return env
     }
 
-    private constructor () {
+    private constructor (
+      public malloc: (size: number) => number,
+      public free: (ptr: number) => void,
+      public call_iii: (ptr: number, ...args: [number, number]) => number,
+      public call_viii: (ptr: number, ...args: [number, number, number]) => void,
+      public HEAP32: Int32Array,
+      public HEAPU32: Uint32Array,
+      public HEAPU8: Uint8Array
+    ) {
       this.id = 0
     }
 
@@ -121,6 +146,47 @@ namespace emnapi {
       return r
     }
 
+    public getViewPointer (view: TypedArray | DataView): void_p {
+      if (!supportFinalizer) {
+        return NULL
+      }
+      if (view.buffer === this.HEAPU8.buffer) {
+        return view.byteOffset
+      }
+
+      let pointer: void_p
+      if (this.typedArrayMemoryMap.has(view)) {
+        pointer = this.typedArrayMemoryMap.get(view)!
+        this.HEAPU8.set(new Uint8Array(view.buffer, view.byteOffset, view.byteLength), pointer)
+        return pointer
+      }
+
+      pointer = this.malloc(view.byteLength)
+      this.HEAPU8.set(new Uint8Array(view.buffer, view.byteOffset, view.byteLength), pointer)
+      this.typedArrayMemoryMap.set(view, pointer)
+      this.memoryPointerDeleter.register(view, pointer)
+      return pointer
+    }
+
+    public getArrayBufferPointer (arrayBuffer: ArrayBuffer): void_p {
+      if ((!supportFinalizer) || (arrayBuffer === this.HEAPU8.buffer)) {
+        return NULL
+      }
+
+      let pointer: void_p
+      if (this.arrayBufferMemoryMap.has(arrayBuffer)) {
+        pointer = this.arrayBufferMemoryMap.get(arrayBuffer)!
+        this.HEAPU8.set(new Uint8Array(arrayBuffer), pointer)
+        return pointer
+      }
+
+      pointer = this.malloc(arrayBuffer.byteLength)
+      this.HEAPU8.set(new Uint8Array(arrayBuffer), pointer)
+      this.arrayBufferMemoryMap.set(arrayBuffer, pointer)
+      this.memoryPointerDeleter.register(arrayBuffer, pointer)
+      return pointer
+    }
+
     public dispose (): void {
       this.scopeList.clear()
       this.deferredStore.dispose()
@@ -129,7 +195,7 @@ namespace emnapi {
       this.handleStore.dispose()
       this.tryCatch.extractException()
       try {
-        free!(this.napiExtendedErrorInfoPtr)
+        this.free(this.napiExtendedErrorInfoPtr)
         this.napiExtendedErrorInfoPtr = NULL
       } catch (_) {}
       envStore.remove(this.id)

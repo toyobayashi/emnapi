@@ -1,6 +1,6 @@
 {
   "name": "@tybys/emnapi",
-  "version": "0.9.0",
+  "version": "0.10.0",
   "description": "Node-API implementation for Emscripten",
   "main": "index.js",
   "typings": "index.d.ts",
@@ -60,6 +60,7 @@
     "eslint-plugin-node": "^11.1.0",
     "eslint-plugin-promise": "^6.0.0",
     "glob": "^7.2.0",
+    "node-addon-api": "4.3.0",
     "typescript": "~4.5.2"
   }
 }

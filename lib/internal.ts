@@ -13,7 +13,7 @@ function $emnapiCreateFunction<F extends (...args: any[]) => any> (env: napi_env
     }
     return envObject.callIntoModule((envObject, scope) => {
       const cbinfoHandle = scope.add(callbackInfo)
-      const napiValue = emnapi.call_iii(cb, env, cbinfoHandle.id)
+      const napiValue = envObject.call_iii(cb, env, cbinfoHandle.id)
       return (!napiValue) ? undefined : envObject.handleStore.get(napiValue)!.value
     })
   })()

@@ -25,7 +25,7 @@ function napi_get_arraybuffer_info (env: napi_env, arraybuffer: napi_value, data
           return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_invalid_arg)
         }
         if (data !== emnapi.NULL) {
-          HEAP32[data >> 2] = emnapi.getArrayBufferPointer(handle.value)
+          HEAP32[data >> 2] = envObject.getArrayBufferPointer(handle.value)
         }
         if (byte_length !== emnapi.NULL) {
           HEAPU32[byte_length >> 2] = (handle.value as ArrayBuffer).byteLength
@@ -106,7 +106,7 @@ function napi_get_typedarray_info (
         if (data !== emnapi.NULL || arraybuffer !== emnapi.NULL) {
           buffer = v.buffer
           if (data !== emnapi.NULL) {
-            HEAP32[data >> 2] = emnapi.getViewPointer(v)
+            HEAP32[data >> 2] = envObject.getViewPointer(v)
           }
           if (arraybuffer !== emnapi.NULL) {
             HEAP32[arraybuffer >> 2] = envObject.ensureHandleId(buffer)
@@ -147,7 +147,7 @@ function napi_get_dataview_info (
         if (data !== emnapi.NULL || arraybuffer !== emnapi.NULL) {
           buffer = v.buffer
           if (data !== emnapi.NULL) {
-            HEAP32[data >> 2] = emnapi.getViewPointer(v)
+            HEAP32[data >> 2] = envObject.getViewPointer(v)
           }
           if (arraybuffer !== emnapi.NULL) {
             HEAP32[arraybuffer >> 2] = envObject.ensureHandleId(buffer)

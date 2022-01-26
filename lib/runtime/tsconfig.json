@@ -15,7 +15,6 @@
   },
   "files": [
     "../typings/napi.d.ts",
-    "../typings/runtime.d.ts",
     "./LinkedList.ts",
     "./Store.ts",
     "./type.ts",
@@ -24,7 +23,6 @@
     "./Reference.ts",
     "./Deferred.ts",
     "./HandleScope.ts",
-    "./env.ts",
-    "./bootstrap.ts"
+    "./env.ts"
   ]
 }

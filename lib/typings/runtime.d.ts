@@ -44,6 +44,8 @@ declare interface ICallbackInfo {
   _isConstructCall: boolean
 }
 
+declare let errorMessagesPtr: number | undefined
+
 /* declare class FinalizationRegistry<H = any> {
   constructor (callback: (heldValue: H) => void)
   register (obj: object, heldValue: H, unregisterToken?: object): void

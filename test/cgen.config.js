@@ -13,6 +13,10 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
       ]
     : []
 
+  const includePaths = isEmscripten
+    ? ['../include']
+    : [`${require('path').join(require('os').homedir(), 'AppData/Local/node-gyp/Cache', process.versions.node, 'include/node')}`, '../node_modules/node-addon-api']
+
   const createTarget = (name, sources, needEntry) => ({
     name: name,
     type: isEmscripten ? 'exe' : 'node',
@@ -20,6 +24,7 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
     emwrap: {
       exports: ['emnapi']
     },
+    includePaths,
     libs: ['testcommon', ...(isEmscripten ? ['emnapi'] : [])],
     compileOptions: [...compilerFlags],
     // eslint-disable-next-line no-template-curly-in-string
@@ -33,6 +38,7 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
     emwrap: {
       exports: ['emnapi']
     },
+    includePaths,
     libs: [...(isEmscripten ? ['emnapi'] : [])],
     defines: ['NAPI_DISABLE_CPP_EXCEPTIONS', 'NODE_ADDON_API_ENABLE_MAYBE'],
     compileOptions: [...compilerFlags],
@@ -48,9 +54,7 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
         type: 'lib',
         name: 'testcommon',
         sources: ['../test/common.c'],
-        includePaths: isEmscripten
-          ? ['../include']
-          : [`${require('path').join(require('os').homedir(), 'AppData/Local/node-gyp/Cache', process.versions.node, 'include/node')}`],
+        includePaths,
         compileOptions: [...compilerFlags],
         linkOptions: [...linkerFlags]
       },
@@ -84,7 +88,7 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
       createTarget('number', ['../test/number/binding.c'], true),
       createTarget('symbol', ['../test/symbol/binding.c'], true),
       createTarget('typedarray', ['../test/typedarray/binding.c'], true),
-      createTarget('emnapitest', ['../test/emnapitest/binding.c'], true),
+      ...(isEmscripten ? [createTarget('emnapitest', ['../test/emnapitest/binding.c'], true)] : []),
       createTarget('version', ['../test/version/binding.c']),
 
       createNodeAddonApiTarget('n_hello', ['../test/node-addon-api/hello/binding.cc'])

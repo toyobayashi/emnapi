@@ -15,8 +15,8 @@ namespace emnapi {
           let caught = false
           if (ref.finalize_callback !== NULL) {
             try {
-              envStore.get(ref.env)!.callIntoModule(() => {
-                call_viii(ref.finalize_callback, ref.env, ref.finalize_data, ref.finalize_hint)
+              envStore.get(ref.env)!.callIntoModule((envObject) => {
+                envObject.call_viii(ref.finalize_callback, ref.env, ref.finalize_data, ref.finalize_hint)
                 ref.finalize_callback = NULL
               })
             } catch (err) {

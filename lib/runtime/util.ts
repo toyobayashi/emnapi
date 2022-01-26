@@ -22,14 +22,6 @@ namespace emnapi {
     return g
   })()
 
-  const dynamicCalls = emnapiGetDynamicCalls()
-
-  export const call_vi = dynamicCalls.call_vi
-  export const call_ii = dynamicCalls.call_ii
-  export const call_iii = dynamicCalls.call_iii
-  export const call_viii = dynamicCalls.call_viii
-  // export const call_malloc = dynamicCalls.call_malloc
-
   export const NULL: 0 = 0
   export const INT64_RANGE_POSITIVE = Math.pow(2, 63)
   export const INT64_RANGE_NEGATIVE = -Math.pow(2, 63)
@@ -91,9 +83,9 @@ namespace emnapi {
     envObject.napiExtendedErrorInfo.engine_reserved = engine_reserved
 
     const ptr32 = envObject.napiExtendedErrorInfoPtr >> 2
-    HEAP32[ptr32 + 1] = envObject.napiExtendedErrorInfo.engine_reserved
-    HEAPU32[ptr32 + 2] = envObject.napiExtendedErrorInfo.engine_error_code
-    HEAP32[ptr32 + 3] = envObject.napiExtendedErrorInfo.error_code
+    envObject.HEAP32[ptr32 + 1] = envObject.napiExtendedErrorInfo.engine_reserved
+    envObject.HEAPU32[ptr32 + 2] = envObject.napiExtendedErrorInfo.engine_error_code
+    envObject.HEAP32[ptr32 + 3] = envObject.napiExtendedErrorInfo.error_code
     return error_code
   }
 
@@ -104,9 +96,9 @@ namespace emnapi {
     envObject.napiExtendedErrorInfo.engine_reserved = 0
 
     const ptr32 = envObject.napiExtendedErrorInfoPtr >> 2
-    HEAP32[ptr32 + 1] = envObject.napiExtendedErrorInfo.engine_reserved
-    HEAPU32[ptr32 + 2] = envObject.napiExtendedErrorInfo.engine_error_code
-    HEAP32[ptr32 + 3] = envObject.napiExtendedErrorInfo.error_code
+    envObject.HEAP32[ptr32 + 1] = envObject.napiExtendedErrorInfo.engine_reserved
+    envObject.HEAPU32[ptr32 + 2] = envObject.napiExtendedErrorInfo.engine_error_code
+    envObject.HEAP32[ptr32 + 3] = envObject.napiExtendedErrorInfo.error_code
     return napi_status.napi_ok
   }
 
@@ -152,62 +144,7 @@ namespace emnapi {
   export const supportFinalizer = (typeof FinalizationRegistry !== 'undefined') && (typeof WeakRef !== 'undefined')
   export const supportBigInt = typeof BigInt !== 'undefined'
 
-  export let malloc: ((size: number) => number) | undefined
-  export let free: ((ptr: number) => void) | undefined
-  // eslint-disable-next-line prefer-const
-  export let exportsKey: string = 'emnapiExports'
-  export let errorMessagesPtr: Pointer<const_char_p> | undefined
-
   export type TypedArray = Int8Array | Uint8Array | Int16Array | Uint16Array | Int32Array | Uint32Array | Uint8ClampedArray | Float32Array | Float64Array
-
-  const typedArrayMemoryMap = new WeakMap<TypedArray | DataView, void_p>()
-  const arrayBufferMemoryMap = new WeakMap<ArrayBuffer, void_p>()
-  const memoryPointerDeleter: FinalizationRegistry<void_p> = supportFinalizer
-    ? new FinalizationRegistry<void_p>((heldValue) => {
-      free!(heldValue)
-    })
-    : null!
-
-  export function getViewPointer (view: TypedArray | DataView): void_p {
-    if (!supportFinalizer) {
-      return NULL
-    }
-    if (view.buffer === HEAPU8.buffer) {
-      return view.byteOffset
-    }
-
-    let pointer: void_p
-    if (typedArrayMemoryMap.has(view)) {
-      pointer = typedArrayMemoryMap.get(view)!
-      HEAPU8.set(new Uint8Array(view.buffer, view.byteOffset, view.byteLength), pointer)
-      return pointer
-    }
-
-    pointer = malloc!(view.byteLength)
-    HEAPU8.set(new Uint8Array(view.buffer, view.byteOffset, view.byteLength), pointer)
-    typedArrayMemoryMap.set(view, pointer)
-    memoryPointerDeleter.register(view, pointer)
-    return pointer
-  }
-
-  export function getArrayBufferPointer (arrayBuffer: ArrayBuffer): void_p {
-    if ((!supportFinalizer) || (arrayBuffer === HEAPU8.buffer)) {
-      return NULL
-    }
-
-    let pointer: void_p
-    if (arrayBufferMemoryMap.has(arrayBuffer)) {
-      pointer = arrayBufferMemoryMap.get(arrayBuffer)!
-      HEAPU8.set(new Uint8Array(arrayBuffer), pointer)
-      return pointer
-    }
-
-    pointer = malloc!(arrayBuffer.byteLength)
-    HEAPU8.set(new Uint8Array(arrayBuffer), pointer)
-    arrayBufferMemoryMap.set(arrayBuffer, pointer)
-    memoryPointerDeleter.register(arrayBuffer, pointer)
-    return pointer
-  }
 
   export function isReferenceType (v: any): v is object {
     return (typeof v === 'object' && v !== null) || typeof v === 'function'

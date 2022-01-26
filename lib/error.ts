@@ -1,7 +1,7 @@
 function napi_get_last_error_info (env: napi_env, result: Pointer<Pointer<napi_extended_error_info>>): emnapi.napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(env, [result], () => {
-      envObject.napiExtendedErrorInfo.error_message = HEAP32[(emnapi.errorMessagesPtr! >> 2) + envObject.napiExtendedErrorInfo.error_code]
+      envObject.napiExtendedErrorInfo.error_message = HEAP32[(errorMessagesPtr! >> 2) + envObject.napiExtendedErrorInfo.error_code]
       HEAP32[envObject.napiExtendedErrorInfoPtr >> 2] = envObject.napiExtendedErrorInfo.error_message
 
       HEAP32[result >> 2] = envObject.napiExtendedErrorInfoPtr
@@ -155,7 +155,7 @@ function napi_fatal_error (location: const_char_p, location_len: size_t, message
   abort('FATAL ERROR: ' + (location_len === -1 ? UTF8ToString(location) : UTF8ToString(location, location_len)) + ' ' + (message_len === -1 ? UTF8ToString(message) : UTF8ToString(message, message_len)))
 }
 
-emnapiImplement('napi_get_last_error_info', napi_get_last_error_info)
+emnapiImplement('napi_get_last_error_info', napi_get_last_error_info, ['$errorMessagesPtr'])
 emnapiImplement('napi_get_and_clear_last_exception', napi_get_and_clear_last_exception)
 emnapiImplement('napi_throw', napi_throw)
 emnapiImplement('napi_throw_error', napi_throw_error)

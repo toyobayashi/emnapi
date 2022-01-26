@@ -3,7 +3,7 @@ const glob = require('glob')
 
 const cwd = require('path').join(__dirname, '..')
 
-const files = glob.sync('test/**/*.test.js', { cwd })
+const files = glob.sync('test/**/*.test.js', { cwd, ignore: process.env.EMNAPI_TEST_NATIVE ? 'test/emnapitest/**/*' : [] })
 
 files.forEach((f) => {
   test(f)

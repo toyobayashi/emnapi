@@ -2,7 +2,7 @@
 function emnapiImplement (name: string, compilerTimeFunction: Function, deps?: string[]): void {
   mergeInto(LibraryManager.library, {
     [name]: compilerTimeFunction,
-    [name + '__deps']: (['$emnapi']).concat(deps ?? [])
+    [name + '__deps']: (['$emnapi', '$emnapiInit']).concat(deps ?? [])
   })
 }
 
