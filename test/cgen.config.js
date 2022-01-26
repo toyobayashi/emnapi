@@ -48,7 +48,7 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
 
   return {
     project: 'emnapitest',
-    dependencies: isEmscripten ? { '..': {} } : {},
+    dependencies: isEmscripten ? { '..': { EMNAPI_LIB_NO_RUNTIME: 'ON' } } : {},
     targets: [
       {
         type: 'lib',
