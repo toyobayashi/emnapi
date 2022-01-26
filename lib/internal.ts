@@ -1,30 +1,64 @@
+/* eslint-disable no-new-func */
+/* eslint-disable @typescript-eslint/no-implied-eval */
+
 declare const emnapiCreateFunction: typeof $emnapiCreateFunction
 function $emnapiCreateFunction<F extends (...args: any[]) => any> (env: napi_env, utf8name: Pointer<const_char>, length: size_t, cb: napi_callback, data: void_p): F {
   const envObject = emnapi.envStore.get(env)!
-  const f = (() => function (this: any): any {
+  const functionName = (utf8name === emnapi.NULL || length === 0) ? '' : (length === -1 ? UTF8ToString(utf8name) : UTF8ToString(utf8name, length))
+
+  let f: F
+
+  const makeFunction = () => function (this: any): any {
     'use strict'
+    const newTarget = this && this instanceof f ? this.constructor : undefined
     const callbackInfo = {
       _this: this,
       _data: data,
       _length: arguments.length,
       _args: Array.prototype.slice.call(arguments),
-      _newTarget: new.target,
-      _isConstructCall: !!new.target
+      _newTarget: newTarget,
+      _isConstructCall: Boolean(newTarget)
     }
     return envObject.callIntoModule((envObject, scope) => {
       const cbinfoHandle = scope.add(callbackInfo)
       const napiValue = envObject.call_iii(cb, env, cbinfoHandle.id)
       return (!napiValue) ? undefined : envObject.handleStore.get(napiValue)!.value
     })
-  })()
-
-  if (emnapi.canSetFunctionName) {
-    Object.defineProperty(f, 'name', {
-      value: (utf8name === emnapi.NULL || length === 0) ? '' : (length === -1 ? UTF8ToString(utf8name) : UTF8ToString(utf8name, length))
-    })
   }
 
-  return f as F
+  if (functionName === '') {
+    f = makeFunction() as F
+  } else {
+    try {
+      f = (new Function('data', 'envObject', 'cb', 'env',
+`return function ${functionName}(){` +
+  '"use strict";' +
+  `var newTarget=this&&this instanceof ${functionName}?this.constructor:undefined;` +
+  'var callbackInfo={' +
+    '_this:this,' +
+    '_data:data,' +
+    '_length:arguments.length,' +
+    '_args:Array.prototype.slice.call(arguments),' +
+    '_newTarget:newTarget,' +
+    '_isConstructCall:Boolean(newTarget)' +
+  '};' +
+  'return envObject.callIntoModule(function(envObject,scope){' +
+    'var cbinfoHandle=scope.add(callbackInfo);' +
+    'var napiValue=envObject.call_iii(cb,env,cbinfoHandle.id);' +
+    'return !napiValue?undefined:envObject.handleStore.get(napiValue).value;' +
+  '});' +
+'};'))(data, envObject, cb, env)
+    } catch (_) {
+      f = makeFunction() as F
+      if (emnapi.canSetFunctionName) {
+        Object.defineProperty(f, 'name', {
+          value: functionName
+        })
+      }
+    }
+  }
+
+  return f
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
