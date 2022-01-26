@@ -1,4 +1,8 @@
+/* eslint-disable no-new-func */
+/* eslint-disable @typescript-eslint/no-implied-eval */
+
 declare const __EMNAPI_RUNTIME_REPLACE__: string
+declare const __EMNAPI_RUNTIME_INIT__: string
 
 mergeInto(LibraryManager.library, {
   $emnapiGetDynamicCalls: function () {
@@ -79,6 +83,9 @@ mergeInto(LibraryManager.library, {
     }
 
     addOnInit(function (Module) {
+      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+      __EMNAPI_RUNTIME_INIT__
+
       _napi_register_wasm_v1 = Module._napi_register_wasm_v1
       delete Module._napi_register_wasm_v1
       const _emnapi_runtime_init = Module._emnapi_runtime_init

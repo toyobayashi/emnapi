@@ -19,6 +19,7 @@ module.exports = {
     '@typescript-eslint/naming-convention': 'off',
     '@typescript-eslint/no-dynamic-delete': 'off',
     '@typescript-eslint/method-signature-style': 'off',
+    '@typescript-eslint/prefer-includes': 'off',
     '@typescript-eslint/member-delimiter-style': ['error', {
       multiline: {
         delimiter: 'none',

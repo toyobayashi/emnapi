@@ -4,8 +4,9 @@ tsconfig*
 .vscode
 .cgenbuild
 /example
-dist/library_napi_*
+/dist/library_napi_runtime*
 /lib
+/docs
 /script
 /test
 .eslint*
