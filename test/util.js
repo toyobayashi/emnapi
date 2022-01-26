@@ -15,6 +15,7 @@ exports.load = function (targetName) {
     if (typeof mod.default === 'function') {
       const p = new Promise((resolve, reject) => {
         mod.default({
+          emnapi: require('../dist/emnapi.js'),
           onEmnapiInitialized: (err) => {
             if (err) {
               reject(err)
