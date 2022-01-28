@@ -28,7 +28,7 @@ const runtimeDts = extractorConfig.publicTrimmedFilePath
 fs.removeSync(path.join(__dirname, '../dist/runtime'))
 fs.appendFileSync(runtimeDts, '\nexport as namespace emnapi;\n', 'utf8')
 
-const runtimeTsconfigPath = path.join(__dirname, '../lib/runtime/tsconfig.prod.json')
+const runtimeTsconfigPath = path.join(__dirname, '../tsconfig.prod.json')
 
 /**
  * @param {boolean=} minify

@@ -1,0 +1,21 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "downlevelIteration": true,
+    "removeComments": true,
+    "declaration": false,
+    "types": [],
+    "lib": [
+      "ES5",
+      "ES2015",
+      "ES2020.BigInt",
+      "ES2021.WeakRef",
+      "DOM"
+    ]
+  },
+  "include": [
+    "./lib/typings/napi.d.ts",
+    "./lib/runtime/**/*.ts"
+  ]
+}
