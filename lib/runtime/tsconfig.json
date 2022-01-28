@@ -1,11 +1,13 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "outFile": "../../dist/library_napi_runtime.js",
+    "module": "ESNext",
     "downlevelIteration": true,
     "declaration": true,
     "removeComments": true,
     "types": [],
+    "declarationDir": "../../dist/runtime",
+    "emitDeclarationOnly": true,
     "lib": [
       "ES5",
       "ES2015",
@@ -14,16 +16,8 @@
       "DOM"
     ]
   },
-  "files": [
+  "include": [
     "../typings/napi.d.ts",
-    "./LinkedList.ts",
-    "./Store.ts",
-    "./type.ts",
-    "./util.ts",
-    "./Handle.ts",
-    "./Reference.ts",
-    "./Deferred.ts",
-    "./HandleScope.ts",
-    "./env.ts"
+    "./**/*.ts"
   ]
 }

@@ -6,9 +6,9 @@
   "typings": "index.d.ts",
   "scripts": {
     "clean": "cd test && cgen clean",
-    "build:runtime": "tsc -p ./lib/runtime/tsconfig.json",
-    "build:lib": "tsc -p ./lib/runtime/tsconfig.json && tsc && node ./script/build.js",
-    "release": "tsc -p ./lib/runtime/tsconfig.json && tsc && node ./script/build.js&&node ./script/release.js",
+    "build:runtime": "tsc -p ./lib/runtime/tsconfig.json && node ./script/build-runtime.js",
+    "build:lib": "npm run build:runtime && tsc && node ./script/build.js",
+    "release": "npm run build:runtime && tsc && node ./script/build.js&&node ./script/release.js",
     "prepare": "npm run build:lib",
     "rebuild": "npm run build:lib && cd test && cgen rebuild -e -d",
     "rebuild:r": "npm run build:lib && cd test && cgen rebuild -e",
@@ -47,8 +47,12 @@
   },
   "license": "MIT",
   "devDependencies": {
+    "@microsoft/api-extractor": "^7.19.4",
+    "@rollup/plugin-node-resolve": "^13.1.3",
+    "@rollup/plugin-typescript": "^8.3.0",
     "@tybys/cgen": "^0.11.1",
     "@tybys/cross-zip": "^3.1.0",
+    "@types/fs-extra": "^9.0.13",
     "@types/node": "^16.11.21",
     "@typescript-eslint/eslint-plugin": "^5.8.1",
     "@typescript-eslint/parser": "^5.8.1",
@@ -59,9 +63,12 @@
     "eslint-plugin-import": "^2.25.3",
     "eslint-plugin-node": "^11.1.0",
     "eslint-plugin-promise": "^6.0.0",
+    "fs-extra": "^10.0.0",
     "glob": "^7.2.0",
     "node-addon-api": "4.3.0",
-    "terser": "^5.10.0",
+    "rollup": "^2.66.1",
+    "rollup-plugin-terser": "^7.0.2",
+    "tslib": "^2.3.1",
     "typescript": "~4.5.2"
   }
 }

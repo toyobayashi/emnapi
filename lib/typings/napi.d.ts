@@ -17,7 +17,7 @@ declare interface napi_extended_error_info {
   error_message: const_char_p
   engine_reserved: void_p
   engine_error_code: uint32_t;
-  error_code: emnapi.napi_status;
+  error_code: number;
 }
 
 declare interface napi_property_descriptor {
@@ -29,8 +29,8 @@ declare interface napi_property_descriptor {
   getter: napi_callback
   setter: napi_callback
   value: napi_value
-
-  attributes: emnapi.napi_property_attributes
+  /* emnapi.napi_property_attributes */
+  attributes: number
   data: void_p
 }
 
