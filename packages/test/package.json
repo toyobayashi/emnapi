@@ -1,0 +1,47 @@
+{
+  "name": "@tybys/emnapi-test",
+  "private": true,
+  "version": "0.10.0",
+  "description": "emnapi test",
+  "main": "index.js",
+  "devDependencies": {
+    "@tybys/cgen": "^0.11.1",
+    "chalk": "^4.1.1",
+    "cross-env": "^7.0.3",
+    "glob": "^7.2.0",
+    "node-addon-api": "4.3.0"
+  },
+  "scripts": {
+    "rebuild": "cd ../..&&npm run build&&cd ./packages/test && cgen rebuild -e -d",
+    "rebuild:r": "cd ../..&&npm run build&&cd ./packages/test && cgen rebuild -e",
+    "rebuild:n": "cgen rebuild -d",
+    "rebuild:nr": "cgen rebuild",
+    "test": "node ./script/test.js",
+    "test:r": "cross-env NODE_ENV=production node ./script/test.js",
+    "test:n": "cross-env EMNAPI_TEST_NATIVE=1 node ./script/test.js",
+    "test:nr": "cross-env EMNAPI_TEST_NATIVE=1 NODE_ENV=production node ./script/test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/toyobayashi/emnapi.git"
+  },
+  "keywords": [
+    "emscripten",
+    "wasm",
+    "emcc",
+    "webassembly",
+    "bindings",
+    "c",
+    "c++",
+    "cpp",
+    "n-api",
+    "napi",
+    "node-addon-api"
+  ],
+  "author": "toyobayashi",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/toyobayashi/emnapi/issues"
+  },
+  "homepage": "https://github.com/toyobayashi/emnapi#readme"
+}

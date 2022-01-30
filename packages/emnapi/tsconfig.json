@@ -1,10 +1,9 @@
 {
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
-    "module": "ESNext",
-    "downlevelIteration": true,
-    "removeComments": true,
-    "declaration": false,
+    "outFile": "./dist/library_napi.js",
+    "importHelpers": false,
+    "noEmitHelpers": true,
     "types": [],
     "lib": [
       "ES5",
@@ -15,7 +14,8 @@
     ]
   },
   "include": [
-    "./lib/typings/napi.d.ts",
-    "./lib/runtime/**/*.ts"
+    "../runtime/dist/emnapi.d.ts",
+    "../runtime/src/napi.d.ts",
+    "./src/**/*.ts"
   ]
 }

@@ -1,38 +1,11 @@
 {
-  "name": "@tybys/emnapi",
+  "private": true,
   "version": "0.10.0",
-  "description": "Node-API implementation for Emscripten",
-  "main": "index.js",
-  "typings": "index.d.ts",
   "scripts": {
-    "clean": "cd test && cgen clean",
-    "build:runtime": "tsc -p ./lib/runtime/tsconfig.json && node ./script/build-runtime.js",
-    "build:lib": "npm run build:runtime && tsc && node ./script/build.js",
+    "build": "cd ./packages/runtime&&npm run build&&cd ../emnapi&&npm run build",
     "release": "npm run build:runtime && tsc && node ./script/build.js&&node ./script/release.js",
-    "prepare": "npm run build:lib",
-    "rebuild": "npm run build:lib && cd test && cgen rebuild -e -d",
-    "rebuild:r": "npm run build:lib && cd test && cgen rebuild -e",
-    "rebuild:n": "cd test && cgen rebuild -d",
-    "rebuild:nr": "cd test && cgen rebuild",
-    "lint": "eslint {lib/**/*.ts,test/**/*.ts}",
-    "test": "node ./script/test.js",
-    "test:r": "cross-env NODE_ENV=production node ./script/test.js",
-    "test:n": "cross-env EMNAPI_TEST_NATIVE=1 node ./script/test.js",
-    "test:nr": "cross-env EMNAPI_TEST_NATIVE=1 NODE_ENV=production node ./script/test.js"
+    "lint": "eslint packages/**/*.ts"
   },
-  "keywords": [
-    "emscripten",
-    "wasm",
-    "emcc",
-    "webassembly",
-    "bindings",
-    "c",
-    "c++",
-    "cpp",
-    "n-api",
-    "napi",
-    "node-addon-api"
-  ],
   "author": "toyobayashi",
   "repository": {
     "type": "git",
@@ -47,28 +20,20 @@
   },
   "license": "MIT",
   "devDependencies": {
-    "@microsoft/api-extractor": "^7.19.4",
-    "@rollup/plugin-node-resolve": "^13.1.3",
-    "@rollup/plugin-typescript": "^8.3.0",
-    "@tybys/cgen": "^0.11.1",
     "@tybys/cross-zip": "^3.1.0",
     "@types/fs-extra": "^9.0.13",
     "@types/node": "^16.11.21",
     "@typescript-eslint/eslint-plugin": "^5.8.1",
     "@typescript-eslint/parser": "^5.8.1",
-    "chalk": "^4.1.1",
-    "cross-env": "^7.0.3",
     "eslint": "^8.5.0",
     "eslint-config-standard-with-typescript": "^21.0.1",
     "eslint-plugin-import": "^2.25.3",
     "eslint-plugin-node": "^11.1.0",
     "eslint-plugin-promise": "^6.0.0",
     "fs-extra": "^10.0.0",
-    "glob": "^7.2.0",
-    "node-addon-api": "4.3.0",
-    "rollup": "^2.66.1",
-    "rollup-plugin-terser": "^7.0.2",
-    "tslib": "^2.3.1",
-    "typescript": "~4.5.2"
-  }
+    "typescript": "~4.5.5"
+  },
+  "workspaces": [
+    "./packages/*"
+  ]
 }

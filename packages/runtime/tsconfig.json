@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES5",
-    "module": "none",
+    "module": "ESNext",
     "noImplicitAny": true,
     "noImplicitReturns": true,
     "noImplicitThis": true,
@@ -12,8 +12,15 @@
     "strictPropertyInitialization": true,
     "strictBindCallApply": true,
     "strictFunctionTypes": true,
-    "noEmit": true,
-    "types": [],
+    "downlevelIteration": true,
+    "noEmitHelpers": true,
+    "importHelpers": true,
+    "declaration": true,
+    "outDir": "./lib",
+    "removeComments": true,
+    "paths": {
+      "tslib" : ["./node_modules/tslib/tslib.d.ts"]
+    },
     "lib": [
       "ES5",
       "ES2015",
@@ -23,6 +30,7 @@
     ]
   },
   "include": [
-    "./packages/**/*.ts"
+    "../emnapi/src/typings/ctype.d.ts",
+    "./src/**/*.ts"
   ]
 }

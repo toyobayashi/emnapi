@@ -6,7 +6,7 @@
       "request": "launch",
       "name": "Launch Program",
       "runtimeArgs": ["--expose-gc"],
-      "program": "${workspaceFolder}/test/emnapi/emnapi.test.js",
+      "program": "${workspaceFolder}/packages/test/emnapi/emnapi.test.js",
       "args": []
     },
     {

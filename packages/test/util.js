@@ -15,7 +15,7 @@ exports.load = function (targetName) {
     if (typeof mod.default === 'function') {
       const p = new Promise((resolve, reject) => {
         mod.default({
-          emnapiRuntime: require('../dist/emnapi.min.js'),
+          emnapiRuntime: require('@tybys/emnapi-runtime'),
           onEmnapiInitialized: (err) => {
             if (err) {
               reject(err)

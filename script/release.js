@@ -10,14 +10,15 @@ fs.mkdirSync(path.join(root, 'lib'), { recursive: true })
 fs.mkdirSync(path.join(root, 'include/emnapi'), { recursive: true })
 fs.mkdirSync(path.join(root, 'src'), { recursive: true })
 
-fs.copyFileSync(path.join(__dirname, '../dist/library_napi.js'), path.join(root, 'lib', 'library_napi.js'))
-fs.copyFileSync(path.join(__dirname, '../dist/library_napi_no_runtime.js'), path.join(root, 'lib', 'library_napi_no_runtime.js'))
-fs.copyFileSync(path.join(__dirname, '../dist/emnapi.js'), path.join(root, 'lib', 'emnapi.js'))
-fs.copyFileSync(path.join(__dirname, '../dist/emnapi.min.js'), path.join(root, 'lib', 'emnapi.min.js'))
-fs.copyFileSync(path.join(__dirname, '../src/emnapi.c'), path.join(root, 'src', 'emnapi.c'))
-fs.readdirSync(path.join(__dirname, '../include')).forEach(item => {
+fs.copyFileSync(path.join(__dirname, '../packages/emnapi/dist/library_napi.js'), path.join(root, 'lib', 'library_napi.js'))
+fs.copyFileSync(path.join(__dirname, '../packages/emnapi/dist/library_napi_no_runtime.js'), path.join(root, 'lib', 'library_napi_no_runtime.js'))
+fs.copyFileSync(path.join(__dirname, '../packages/runtime/dist/emnapi.js'), path.join(root, 'lib', 'emnapi.js'))
+fs.copyFileSync(path.join(__dirname, '../packages/runtime/dist/emnapi.min.js'), path.join(root, 'lib', 'emnapi.min.js'))
+fs.copyFileSync(path.join(__dirname, '../packages/runtime/dist/emnapi.d.ts'), path.join(root, 'lib', 'emnapi.d.ts'))
+fs.copyFileSync(path.join(__dirname, '../packages/emnapi/src/emnapi.c'), path.join(root, 'src', 'emnapi.c'))
+fs.readdirSync(path.join(__dirname, '../packages/emnapi/include')).forEach(item => {
   if (item !== '.' && item !== '..') {
-    fs.copyFileSync(path.join(__dirname, '../include', item), path.join(root, 'include/emnapi', item))
+    fs.copyFileSync(path.join(__dirname, '../packages/emnapi/include', item), path.join(root, 'include/emnapi', item))
   }
 })
 

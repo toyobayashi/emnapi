@@ -1,7 +1,9 @@
-/dist
+**/dist
 node_modules
 /lib/typings
 .eslintrc.js
 /example
 /test/.cgenbuild
 /test/CMakeFiles
+/packages/runtime/lib
+/packages/emnapi/lib

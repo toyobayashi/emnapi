@@ -1,4 +1,6 @@
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 declare type Pointer<T> = number
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 declare type PointerPointer<T> = number
 declare type FunctionPointer<T extends (...args: any[]) => any> = Pointer<T>
 declare type Const<T> = T

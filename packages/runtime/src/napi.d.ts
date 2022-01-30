@@ -1,5 +1,3 @@
-/// <reference path="ctype.d.ts" />
-
 declare type napi_env = Pointer<unknown>
 
 declare type napi_value = Pointer<unknown>
@@ -16,8 +14,8 @@ declare type napi_callback = FunctionPointer<(env: napi_env, info: napi_callback
 declare interface napi_extended_error_info {
   error_message: const_char_p
   engine_reserved: void_p
-  engine_error_code: uint32_t;
-  error_code: number;
+  engine_error_code: uint32_t
+  error_code: number
 }
 
 declare interface napi_property_descriptor {

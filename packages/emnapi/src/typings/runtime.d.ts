@@ -39,8 +39,8 @@ declare interface ICallbackInfo {
   _this: any
   _data: void_p
   _length: number
-  _args: any[],
-  _newTarget: Function | undefined,
+  _args: any[]
+  _newTarget: Function | undefined
   _isConstructCall: boolean
 }
 

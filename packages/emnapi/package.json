@@ -1,0 +1,36 @@
+{
+  "name": "@tybys/emnapi",
+  "version": "0.10.0",
+  "description": "Node-API implementation for Emscripten",
+  "main": "index.js",
+  "devDependencies": {},
+  "scripts": {
+    "build": "tsc && node ./script/build.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/toyobayashi/emnapi.git"
+  },
+  "keywords": [
+    "emscripten",
+    "wasm",
+    "emcc",
+    "webassembly",
+    "bindings",
+    "c",
+    "c++",
+    "cpp",
+    "n-api",
+    "napi",
+    "node-addon-api"
+  ],
+  "author": "toyobayashi",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/toyobayashi/emnapi/issues"
+  },
+  "homepage": "https://github.com/toyobayashi/emnapi#readme",
+  "publishConfig": {
+    "access": "public"
+  }
+}

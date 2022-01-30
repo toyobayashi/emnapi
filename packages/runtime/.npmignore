@@ -1,0 +1,9 @@
+.vscode
+node_modules
+/script
+/lib/**/*.d.ts
+/src
+.gitignore
+.npmignore
+api-extractor.json
+tsconfig.json

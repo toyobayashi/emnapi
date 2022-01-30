@@ -1,0 +1,4 @@
+.cgenbuild
+node_modules
+/emnapi
+/CMakeLists.txt
