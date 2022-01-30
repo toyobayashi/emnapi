@@ -5,8 +5,7 @@
   "main": "index.js",
   "devDependencies": {},
   "scripts": {
-    "build": "tsc && node ./script/build.js",
-    "prepare": "npm run build"
+    "build": "tsc && node ./script/build.js"
   },
   "repository": {
     "type": "git",
