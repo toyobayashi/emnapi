@@ -28,17 +28,20 @@ jobs:
     - name: Linux build
       if: ${{ matrix.os == 'ubuntu-latest' }}
       shell: bash
-      run: npm install --legacy-peer-deps
+      run: npm run fetch
 
     - name: Test
       run: |
-        cd test && npx cgen rebuild -e -d && cd ..
+        cd packages/test && npm run rebuild
         npm test
 
     - name: Publish
       if: ${{ startsWith(github.event.ref, 'refs/tags') && matrix.os == 'ubuntu-latest' }}
       run: |
         node ./script/release.js
+        cd ./packages/emnapi
+        npm publish --ignore-scripts
+        cd ../packages/runtime
         npm publish --ignore-scripts
 
     - name: Create release

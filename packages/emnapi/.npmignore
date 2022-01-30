@@ -1,0 +1,3 @@
+/script
+tsconfig*
+/src/**/*.ts
