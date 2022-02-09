@@ -3,7 +3,6 @@ const common = require('../common')
 const { getEntry, load } = require('../util')
 const assert = require('assert')
 const { Worker } = require('worker_threads')
-const { join } = require('path')
 
 const bindingPath = getEntry('hello')
 module.exports = new Promise((resolve, reject) => {
@@ -21,7 +20,7 @@ module.exports = new Promise((resolve, reject) => {
   function load (request) {
     const mod = require(request)
   
-    return typeof mod.default === 'function' ? mod.default({ emnapiRuntime: require(${JSON.stringify(require.resolve('@tybys/emnapi-runtime'))}) }).then(({ Module }) => Module.emnapiExports) : Promise.resolve(mod)
+    return typeof mod.default === 'function' ? mod.default({ emnapiRuntime: require(${JSON.stringify(require.resolve('../../runtime'))}) }).then(({ Module }) => Module.emnapiExports) : Promise.resolve(mod)
   }
   load(${JSON.stringify(getEntry('hello'))}).then((binding) => { const msg = binding.hello(); parentPort.postMessage(msg) });`, { eval: true, env: process.env })
         .on('message', common.mustCall((msg) => {
