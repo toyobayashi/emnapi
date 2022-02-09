@@ -4,8 +4,6 @@
 
 适用于 [Emscripten](https://emscripten.org/index.html) 的 [Node-API (version 8)](https://nodejs.org/dist/latest-v16.x/docs/api/n-api.html) 实现。
 
-[工作原理](https://github.com/toyobayashi/emnapi/tree/main/docs/how-it-works.md)
-
 ## 快速开始
 
 环境准备：
@@ -215,16 +213,70 @@ cmake --build build
 
 如果在运行时初始化时抛出 JS 错误，Node.js 进程将会退出。可以使用`-sNODEJS_CATCH_EXIT=0` 并自己添加`uncaughtException`。或者可以使用 `Module.onEmnapiInitialized` 来捕获异常。
 
+## Emnapi 运行时
+
+大多数 API 都是用 JavaScript 实现的，它们依赖于 `library_napi.js` 库文件中提供的运行时代码。因此，如果要构建多个 wasm 目标，则相同的运行时代码将链接到每个 wasm 胶水 js 文件中。如果想要“动态链接”运行时代码，即在多个 wasm 之间共享运行时代码，可以这样做：
+
+1. 安装 emnapi 运行时
+
+    ```bash
+    npm install @tybys/emnapi-runtime
+    ```
+
+2. 链接无运行时的库文件
+
+    - emcc
+
+      ```bash
+      emcc ... --js-library=./node_modules/@tybys/emnapi/dist/library_napi_no_runtime.js
+      ```
+
+    - cmake
+
+      ```cmake
+      add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/node_modules/@tybys/emnapi")
+      target_link_libraries(hello emnapi_noruntime)
+      ```
+
+3. 导入运行时
+
+    - 浏览器
+
+        ```html
+        <script src="node_modules/@tybys/emnapi-runtime/dist/emnapi.min.js"></script>
+        <script src="your-wasm-glue.js"></script>
+        ```
+    
+    - Node.js
+
+        Just npm install `@tybys/emnapi-runtime` 
+
+    也可以显式指定 `emnapiRuntime`，这一步是可选的：
+
+    ```html
+    <script src="node_modules/@tybys/emnapi-runtime/dist/emnapi.min.js"></script>
+    <script>
+      var Module = { /* ... */ };
+      Module.emnapiRuntime = emnapi;
+    </script>
+    <script src="your-wasm-glue.js"></script>
+    ```
+
+    ```js
+    // Node.js
+    Module.emnapiRuntime = require('@tybys/emnapi-runtime')
+    ```
+
 ## 构建
 
 ```bash
 git clone https://github.com/toyobayashi/emnapi.git
 cd ./emnapi
-npm install
-npm run build:lib # 输出 ./dist/library_napi.js
+npm run fetch
+npm run build # output ./packages/*/dist
 
 # test
-npm run rebuild
+cd packages/test
 npm test
 ```
 

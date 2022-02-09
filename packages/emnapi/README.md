@@ -4,8 +4,6 @@
 
 [Node-API (version 8)](https://nodejs.org/docs/v16.13.0/api/n-api.html) implementation for [Emscripten](https://emscripten.org/index.html)
 
-[How it works (Chinese)](https://github.com/toyobayashi/emnapi/tree/main/docs/how-it-works.md).
-
 [中文 README](https://github.com/toyobayashi/emnapi/tree/main/README_CN.md).
 
 ## Quick Start
@@ -219,16 +217,70 @@ Output code can run in recent version modern browsers and Node.js latest LTS. IE
 
 If a JS error is thrown on runtime initialization, Node.js process will exit. You can use `-sNODEJS_CATCH_EXIT=0` and add `ununcaughtException` handler yourself to avoid this. Alternatively, you can use `Module.onEmnapiInitialized` callback to catch error.
 
+## Emnapi Runtime
+
+Most APIs are implemented in JavaScript and they are depend on runtime code shipped in `library_napi.js` library file. So if you are building multiple wasm target, the same runtime code will be linked into each wasm glue js file. To "dynamic linking" the runtime code, that is, to share the runtime code among multiple wasm, you could do:
+
+1. Installing emnapi runtime
+
+    ```bash
+    npm install @tybys/emnapi-runtime
+    ```
+
+2. Linking no runtime library build
+
+    - emcc
+
+      ```bash
+      emcc ... --js-library=./node_modules/@tybys/emnapi/dist/library_napi_no_runtime.js
+      ```
+
+    - cmake
+
+      ```cmake
+      add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/node_modules/@tybys/emnapi")
+      target_link_libraries(hello emnapi_noruntime)
+      ```
+
+3. Importing runtime code
+
+    - Browser
+
+        ```html
+        <script src="node_modules/@tybys/emnapi-runtime/dist/emnapi.min.js"></script>
+        <script src="your-wasm-glue.js"></script>
+        ```
+    
+    - Node.js
+
+        Just npm install `@tybys/emnapi-runtime` 
+
+    You can specify `emnapiRuntime` explicitly, this step is optional:
+
+    ```html
+    <script src="node_modules/@tybys/emnapi-runtime/dist/emnapi.min.js"></script>
+    <script>
+      var Module = { /* ... */ };
+      Module.emnapiRuntime = emnapi;
+    </script>
+    <script src="your-wasm-glue.js"></script>
+    ```
+
+    ```js
+    // Node.js
+    Module.emnapiRuntime = require('@tybys/emnapi-runtime')
+    ```
+
 ## Building
 
 ```bash
 git clone https://github.com/toyobayashi/emnapi.git
 cd ./emnapi
-npm install
-npm run build:lib # output ./dist/library_napi.js
+npm run fetch
+npm run build # output ./packages/*/dist
 
 # test
-npm run rebuild
+cd packages/test
 npm test
 ```
 
