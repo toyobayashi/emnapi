@@ -41,7 +41,7 @@ jobs:
         node ./script/release.js
         cd ./packages/emnapi
         npm publish --ignore-scripts
-        cd ../packages/runtime
+        cd ../runtime
         npm publish --ignore-scripts
 
     - name: Create release
