@@ -1,7 +1,7 @@
 {
   "name": "@tybys/emnapi-test",
   "private": true,
-  "version": "0.10.1",
+  "version": "0.0.0",
   "description": "emnapi test",
   "main": "index.js",
   "devDependencies": {

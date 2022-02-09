@@ -257,7 +257,7 @@ cmake --build build
     <script src="node_modules/@tybys/emnapi-runtime/dist/emnapi.min.js"></script>
     <script>
       var Module = { /* ... */ };
-      Module.emnapiRuntime = emnapi;
+      Module.emnapiRuntime = window.__emnapi_runtime__;
     </script>
     <script src="your-wasm-glue.js"></script>
     ```

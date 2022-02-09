@@ -52,7 +52,7 @@ async function build () {
             }
     
             return g;
-          })().emnapi;
+          })().__emnapi_runtime__;
         }
         if (!emnapi) {
           var err = new Error('Emnapi runtime is not detected. Check if the runtime code is imported or consider using builtin runtime js library.');

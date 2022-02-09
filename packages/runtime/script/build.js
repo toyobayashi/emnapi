@@ -25,7 +25,7 @@ function build () {
 
   const runtimeDts = extractorConfig.publicTrimmedFilePath
 
-  fs.appendFileSync(runtimeDts, '\nexport as namespace emnapi;\n', 'utf8')
+  fs.appendFileSync(runtimeDts, '\nexport as namespace __emnapi_runtime__;\n', 'utf8')
 
   /**
    * @param {boolean=} minify
@@ -68,7 +68,7 @@ function build () {
       output: {
         file: path.join(path.dirname(runtimeOut), 'emnapi.js'),
         format: 'umd',
-        name: 'emnapi',
+        name: '__emnapi_runtime__',
         exports: 'named'
       }
     },
@@ -77,7 +77,7 @@ function build () {
       output: {
         file: path.join(path.dirname(runtimeOut), 'emnapi.min.js'),
         format: 'umd',
-        name: 'emnapi',
+        name: '__emnapi_runtime__',
         exports: 'named'
       }
     }
