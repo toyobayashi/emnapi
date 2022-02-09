@@ -27,35 +27,43 @@ async function build () {
     libCode
       .replace('__EMNAPI_RUNTIME_REPLACE__', '""')
       .replace('__EMNAPI_RUNTIME_INIT__;', `
-        (function () {
-          if ('emnapiRuntime' in Module) {
-            emnapi = Module.emnapiRuntime;
-          }
-          if (!emnapi && typeof require === 'function') {
+        if ('emnapiRuntime' in Module) {
+          emnapi = Module.emnapiRuntime;
+        }
+        if (!emnapi && typeof require === 'function') {
+          try {
+            emnapi = require('@tybys/emnapi-runtime')
+          } catch (_) {}
+        }
+        if (!emnapi) {
+          emnapi = (function () {
+            let g;
+            g = (function () { return this })();
+    
             try {
-              emnapi = require('@tybys/emnapi-runtime')
-            } catch (_) {}
-          }
-          if (!emnapi) {
-            emnapi = (function () {
-              let g;
-              g = (function () { return this })();
-      
-              try {
-                g = g || new Function('return this')();
-              } catch (_) {
-                if (typeof globalThis !== 'undefined') return globalThis;
-                if (typeof __webpack_public_path__ === 'undefined') {
-                  if (typeof global !== 'undefined') return global;
-                }
-                if (typeof window !== 'undefined') return window;
-                if (typeof self !== 'undefined') return self;
+              g = g || new Function('return this')();
+            } catch (_) {
+              if (typeof globalThis !== 'undefined') return globalThis;
+              if (typeof __webpack_public_path__ === 'undefined') {
+                if (typeof global !== 'undefined') return global;
               }
-      
-              return g;
-            })().emnapi;
+              if (typeof window !== 'undefined') return window;
+              if (typeof self !== 'undefined') return self;
+            }
+    
+            return g;
+          })().emnapi;
+        }
+        if (!emnapi) {
+          var err = new Error('Emnapi runtime is not detected. Check if the runtime code is imported or consider using builtin runtime js library.');
+          if (typeof Module.onEmnapiInitialized === 'function') {
+            Module.onEmnapiInitialized(err);
+            return;
+          } else {
+            throw err;
           }
-        })();`)
+        }
+      `)
       .replace(/(makeDynCall\(.*?\))/g, '{{{ $1 }}}')
       /* .replace(/(makeMalloc\(.*?\))/g, '{{{ $1 }}}') */,
     'utf8'
