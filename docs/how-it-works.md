@@ -35,12 +35,11 @@ mergeInto(LibraryManager.library, {
 
 链接器会把函数体字符串内联进输出的运行时代码中，受限于这种模式，开发时不太方便用 ESModule / CommonJS 那样的模块系统，而是使用多文件命名空间合并的方式代替模块化开发。
 
-源码分为了四部分：
+源码分为了三部分：
 
-- **NAPI 的 JS 实现代码**：`lib/*.ts`, `lib/value/*.ts`，这部分代码在工具链的运行时里运行，提供的函数实现会被内联进运行时
-- **emnapi 运行时 JS 代码**：`lib/runtime/*.ts`，这部分代码是函数实现依赖的运行时代码
-- **公用的 TypeScript 声明**：`lib/typings/*.d.ts`
-- **少数 NAPI 的 C 代码实现**：`src/**/*.c`
+- **NAPI 的 JS 实现代码**：`packages/emnapi/src/**/*.ts`，这部分代码在工具链的运行时里运行，提供的函数实现会被内联进运行时
+- **emnapi 运行时 JS 代码**：`packages/runtime/src`，这部分代码是函数实现依赖的运行时代码
+- **少数 NAPI 的 C 代码实现**：`packages/emnapi/src/*.c`
 
 # 大体思路
 
