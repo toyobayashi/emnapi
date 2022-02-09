@@ -25,7 +25,7 @@ function build () {
 
   const runtimeDts = extractorConfig.publicTrimmedFilePath
 
-  fs.appendFileSync(runtimeDts, '\nexport as namespace __emnapi_runtime__;\n', 'utf8')
+  fs.appendFileSync(runtimeDts, '\nexport as namespace emnapi;\n', 'utf8')
 
   /**
    * @param {boolean=} minify

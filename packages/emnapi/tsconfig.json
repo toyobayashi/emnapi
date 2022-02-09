@@ -14,7 +14,7 @@
     ]
   },
   "include": [
-    "../runtime/dist/emnapi.d.ts",
+    "../runtime/dist/library_napi_runtime.d.ts",
     "../runtime/src/napi.d.ts",
     "./src/**/*.ts"
   ]

@@ -4,7 +4,6 @@
   "description": "emnapi runtime",
   "main": "index.js",
   "module": "./lib/index.js",
-  "typings": "./dist/emnapi.d.ts",
   "devDependencies": {
     "@microsoft/api-extractor": "^7.19.4",
     "@rollup/plugin-node-resolve": "^13.1.3",
