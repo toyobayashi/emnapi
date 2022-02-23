@@ -35,7 +35,8 @@ export {
 } from './HandleScope'
 
 export {
-  Env
+  Env,
+  ILastError
 } from './env'
 
 export {

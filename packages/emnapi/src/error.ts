@@ -1,10 +1,13 @@
 function napi_get_last_error_info (env: napi_env, result: Pointer<Pointer<napi_extended_error_info>>): emnapi.napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [result], () => {
-      envObject.napiExtendedErrorInfo.error_message = HEAP32[(errorMessagesPtr! >> 2) + envObject.napiExtendedErrorInfo.error_code]
-      HEAP32[envObject.napiExtendedErrorInfoPtr >> 2] = envObject.napiExtendedErrorInfo.error_message
+      const error_code = envObject.lastError.errorCode
+      envObject.lastError.errorMessage = HEAP32[(errorMessagesPtr! >> 2) + (error_code as number)]
 
-      HEAP32[result >> 2] = envObject.napiExtendedErrorInfoPtr
+      if (error_code === emnapi.napi_status.napi_ok) {
+        envObject.clearLastError()
+      }
+      HEAP32[result >> 2] = envObject.lastError.data
       return emnapi.napi_status.napi_ok
     })
   })

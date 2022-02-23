@@ -40,10 +40,11 @@ Create `hello.c`.
     const napi_extended_error_info *error_info;                          \
     napi_get_last_error_info((env), &error_info);                        \
     bool is_pending;                                                     \
+    const char* err_message = error_info->error_message;                 \
     napi_is_exception_pending((env), &is_pending);                       \
     if (!is_pending) {                                                   \
-      const char* error_message = error_info->error_message != NULL ?    \
-        error_info->error_message :                                      \
+      const char* error_message = err_message != NULL ?                  \
+        err_message :                                                    \
         "empty error message";                                           \
       napi_throw_error((env), NULL, error_message);                      \
     }                                                                    \
