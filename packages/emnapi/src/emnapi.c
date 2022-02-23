@@ -1,3 +1,4 @@
+#include <emscripten.h>
 #include "emnapi.h"
 #include "node_api.h"
 
