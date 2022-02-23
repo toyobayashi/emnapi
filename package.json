@@ -1,6 +1,6 @@
 {
   "private": true,
-  "version": "0.10.2",
+  "version": "0.10.3",
   "scripts": {
     "fetch": "node ./script/install",
     "build": "cd ./packages/runtime&&npm run build&&cd ../emnapi&&npm run build",
