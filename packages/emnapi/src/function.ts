@@ -104,7 +104,7 @@ function napi_new_instance (
       if (result !== emnapi.NULL) {
         HEAP32[result >> 2] = envObject.ensureHandleId(ret)
       }
-      return envObject.clearLastError()
+      return envObject.getReturnStatus()
     })
   })
 }
