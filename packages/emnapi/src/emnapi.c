@@ -44,7 +44,7 @@ napi_get_node_version(napi_env env,
   }
   static napi_node_version node_version = {
     16,
-    13,
+    15,
     0,
     "node"
   };
