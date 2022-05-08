@@ -86,8 +86,8 @@ function napi_create_reference (
     return emnapi.checkArgs(envObject, [value, result], () => {
       try {
         const handle = envObject.handleStore.get(value)!
-        if (!(handle.isObject() || handle.isFunction())) {
-          return envObject.setLastError(emnapi.napi_status.napi_object_expected)
+        if (!(handle.isObject() || handle.isFunction() || handle.isSymbol())) {
+          return envObject.setLastError(emnapi.napi_status.napi_invalid_arg)
         }
         const ref = emnapi.Reference.create(env, handle.id, initial_refcount >>> 0, false)
         HEAP32[result >> 2] = ref.id
