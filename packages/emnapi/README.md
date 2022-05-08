@@ -2,7 +2,7 @@
 
 [![Build](https://github.com/toyobayashi/emnapi/actions/workflows/main.yml/badge.svg?branch=main)](https://github.com/toyobayashi/emnapi/actions/workflows/main.yml)
 
-[Node-API (version 8)](https://nodejs.org/docs/v16.13.0/api/n-api.html) implementation for [Emscripten](https://emscripten.org/index.html)
+[Node-API (version 8)](https://nodejs.org/docs/v16.15.0/api/n-api.html) implementation for [Emscripten](https://emscripten.org/index.html), based on Node.js v16.15.0.
 
 [中文 README](https://github.com/toyobayashi/emnapi/tree/main/README_CN.md).
 
@@ -136,7 +136,7 @@ Module.onRuntimeInitialized = function () {
 
 ### Using C++
 
-Alternatively, you can also use [`node-addon-api`](https://github.com/nodejs/node-addon-api) which is official Node-API C++ wrapper, already shipped (v4.3.0) in this package but without Node.js specific API such as `ThreadSafeFunction`, `AsyncWorker`, etc.
+Alternatively, you can also use [`node-addon-api`](https://github.com/nodejs/node-addon-api) which is official Node-API C++ wrapper, already shipped (v5.0.0) in this package but without Node.js specific API such as `ThreadSafeFunction`, `AsyncWorker`, etc.
 
 **Note: C++ wrapper can only be used to target Node.js v14.6.0+ and modern browsers those support `FinalizationRegistry` and `WeakRef` ([v8 engine v8.4+](https://v8.dev/blog/v8-release-84))!**
 
@@ -298,7 +298,7 @@ These APIs always return `napi_generic_failure`.
 
 ### Limited
 
-* These APIs require [FinalizationRegistry](https://www.caniuse.com/?search=FinalizationRegistry) and [WeakRef](https://www.caniuse.com/?search=WeakRef) (v8 engine v8.4+ / Node.js v14.6.0+), else return `napi_generic_failure`
+* These APIs require [FinalizationRegistry](https://www.caniuse.com/?search=FinalizationRegistry) and [WeakRef](https://www.caniuse.com/?search=WeakRef) (v8 engine v8.4+ / Node.js v14.6.0+), else return `napi_generic_failure`. Only `Object` and  `Function` can be referenced, `Symbol` is not support.
 
   - ***napi_wrap***
   - ***napi_unwrap***
@@ -346,10 +346,12 @@ These APIs always return `napi_generic_failure`.
 - napi_create_string_utf8
 - napi_create_string_utf16
 - napi_create_symbol
+- **node_api_symbol_for (NAPI_EXPERIMENTAL)**
 - napi_create_function
 - napi_create_error
 - napi_create_type_error
 - napi_create_range_error
+- **node_api_create_syntax_error (NAPI_EXPERIMENTAL)**
 - napi_typeof
 - napi_get_value_double
 - napi_get_value_int32
@@ -396,6 +398,7 @@ These APIs always return `napi_generic_failure`.
 - napi_throw_error
 - napi_throw_type_error
 - napi_throw_range_error
+- **node_api_throw_syntax_error (NAPI_EXPERIMENTAL)**
 - napi_is_error
 - napi_is_exception_pending
 - napi_get_and_clear_last_exception

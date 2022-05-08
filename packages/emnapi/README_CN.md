@@ -2,7 +2,8 @@
 
 [![Build](https://github.com/toyobayashi/emnapi/actions/workflows/main.yml/badge.svg?branch=main)](https://github.com/toyobayashi/emnapi/actions/workflows/main.yml)
 
-适用于 [Emscripten](https://emscripten.org/index.html) 的 [Node-API (version 8)](https://nodejs.org/dist/latest-v16.x/docs/api/n-api.html) 实现。
+适用于 [Emscripten](https://emscripten.org/index.html) 的 [Node-API (version 8)](https://nodejs.org/dist/latest-v16.x/docs/api/n-api.html) 实现，基于 Node.js v16.15.0
+
 
 ## 快速开始
 
@@ -132,7 +133,7 @@ Module.onRuntimeInitialized = function () {
 
 ### 使用 C++ 语言
 
-也可以用官方的 C++ wrapper [`node-addon-api`](https://github.com/nodejs/node-addon-api)，它（v4.3.0）已被集成在这个包里，但不可使用 Node.js 环境特定的 API，如 `ThreadSafeFunction`, `AsyncWorker` 等等。
+也可以用官方的 C++ wrapper [`node-addon-api`](https://github.com/nodejs/node-addon-api)，它（v5.0.0）已被集成在这个包里，但不可使用 Node.js 环境特定的 API，如 `ThreadSafeFunction`, `AsyncWorker` 等等。
 
 **特别注意: 使用 C++ wrapper 编译出的代码只能运行在 Node.js v14.6.0+ 和支持 `FinalizationRegistry` 和 `WeakRef` 的现代浏览器（[v8 引擎 v8.4+](https://v8.dev/blog/v8-release-84))！**
 
@@ -294,7 +295,7 @@ npm test
 
 ### 能力受限的 API
 
-* 以下 API 需要 [FinalizationRegistry](https://www.caniuse.com/?search=FinalizationRegistry) 和 [WeakRef](https://www.caniuse.com/?search=WeakRef) (v8 引擎 v8.4+ / Node.js v14.6.0+)，否则返回 `napi_generic_failure` 状态。
+* 以下 API 需要 [FinalizationRegistry](https://www.caniuse.com/?search=FinalizationRegistry) 和 [WeakRef](https://www.caniuse.com/?search=WeakRef) (v8 引擎 v8.4+ / Node.js v14.6.0+)，否则返回 `napi_generic_failure` 状态。只有 `Object` 和  `Function` 可以被引用，不支持 `Symbol`。
 
   - ***napi_wrap***
   - ***napi_unwrap***
@@ -342,10 +343,12 @@ npm test
 - napi_create_string_utf8
 - napi_create_string_utf16
 - napi_create_symbol
+- **node_api_symbol_for (NAPI_EXPERIMENTAL)**
 - napi_create_function
 - napi_create_error
 - napi_create_type_error
 - napi_create_range_error
+- **node_api_create_syntax_error (NAPI_EXPERIMENTAL)**
 - napi_typeof
 - napi_get_value_double
 - napi_get_value_int32
@@ -392,6 +395,7 @@ npm test
 - napi_throw_error
 - napi_throw_type_error
 - napi_throw_range_error
+- **node_api_throw_syntax_error (NAPI_EXPERIMENTAL)**
 - napi_is_error
 - napi_is_exception_pending
 - napi_get_and_clear_last_exception
