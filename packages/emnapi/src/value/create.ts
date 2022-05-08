@@ -171,6 +171,16 @@ function napi_create_dataview (
   })
 }
 
+function node_api_symbol_for (env: napi_env, utf8description: const_char_p, length: size_t, result: Pointer<napi_value>): emnapi.napi_status {
+  return emnapi.checkEnv(env, (envObject) => {
+    return emnapi.checkArgs(envObject, [result], () => {
+      const descriptionString = length === -1 ? UTF8ToString(utf8description) : UTF8ToString(utf8description, length)
+      HEAP32[result >> 2] = envObject.getCurrentScope().add(Symbol.for(descriptionString)).id
+      return envObject.clearLastError()
+    })
+  })
+}
+
 emnapiImplement('napi_create_array', napi_create_array)
 emnapiImplement('napi_create_array_with_length', napi_create_array_with_length)
 emnapiImplement('napi_create_arraybuffer', napi_create_arraybuffer)
@@ -181,3 +191,4 @@ emnapiImplement('napi_create_object', napi_create_object)
 emnapiImplement('napi_create_symbol', napi_create_symbol)
 emnapiImplement('napi_create_typedarray', napi_create_typedarray, ['$emnapiCreateTypedArray'])
 emnapiImplement('napi_create_dataview', napi_create_dataview)
+emnapiImplement('node_api_symbol_for', node_api_symbol_for)
