@@ -1,6 +1,6 @@
 {
   "private": true,
-  "version": "0.10.3",
+  "version": "0.0.0",
   "scripts": {
     "fetch": "node ./script/install",
     "build": "cd ./packages/runtime&&npm run build&&cd ../emnapi&&npm run build",
@@ -24,17 +24,14 @@
     "@tybys/cross-zip": "^3.1.0",
     "@types/fs-extra": "^9.0.13",
     "@types/node": "^16.11.21",
-    "@typescript-eslint/eslint-plugin": "^5.8.1",
-    "@typescript-eslint/parser": "^5.8.1",
-    "eslint": "^8.5.0",
+    "@typescript-eslint/eslint-plugin": "^5.22.0",
+    "@typescript-eslint/parser": "^5.22.0",
+    "eslint": "^8.15.0",
     "eslint-config-standard-with-typescript": "^21.0.1",
-    "eslint-plugin-import": "^2.25.3",
+    "eslint-plugin-import": "^2.26.0",
     "eslint-plugin-node": "^11.1.0",
     "eslint-plugin-promise": "^6.0.0",
-    "fs-extra": "^10.0.0",
-    "typescript": "~4.5.5"
-  },
-  "workspaces": [
-    "./packages/*"
-  ]
+    "fs-extra": "^10.1.0",
+    "typescript": "~4.6.4"
+  }
 }
