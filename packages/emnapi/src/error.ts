@@ -91,9 +91,8 @@ function napi_create_error (env: napi_env, code: napi_value, msg: napi_value, re
         }
 
         error = new Error(msgValue)
-        if (code !== emnapi.NULL) {
-          error.code = envObject.handleStore.get(code)!.value
-        }
+        const status = emnapiSetErrorCode(envObject, error, code, emnapi.NULL)
+        if (status !== emnapi.napi_status.napi_ok) return status
       } catch (err) {
         envObject.tryCatch.setError(err)
         return envObject.setLastError(emnapi.napi_status.napi_pending_exception)
@@ -114,9 +113,8 @@ function napi_create_type_error (env: napi_env, code: napi_value, msg: napi_valu
           return envObject.setLastError(emnapi.napi_status.napi_string_expected)
         }
         error = new TypeError(msgValue)
-        if (code !== emnapi.NULL) {
-          error.code = envObject.handleStore.get(code)!.value
-        }
+        const status = emnapiSetErrorCode(envObject, error, code, emnapi.NULL)
+        if (status !== emnapi.napi_status.napi_ok) return status
       } catch (err) {
         envObject.tryCatch.setError(err)
         return envObject.setLastError(emnapi.napi_status.napi_pending_exception)
@@ -137,9 +135,8 @@ function napi_create_range_error (env: napi_env, code: napi_value, msg: napi_val
           return envObject.setLastError(emnapi.napi_status.napi_string_expected)
         }
         error = new RangeError(msgValue)
-        if (code !== emnapi.NULL) {
-          error.code = envObject.handleStore.get(code)!.value
-        }
+        const status = emnapiSetErrorCode(envObject, error, code, emnapi.NULL)
+        if (status !== emnapi.napi_status.napi_ok) return status
       } catch (err) {
         envObject.tryCatch.setError(err)
         return envObject.setLastError(emnapi.napi_status.napi_pending_exception)
@@ -160,9 +157,8 @@ function node_api_create_syntax_error (env: napi_env, code: napi_value, msg: nap
           return envObject.setLastError(emnapi.napi_status.napi_string_expected)
         }
         error = new SyntaxError(msgValue)
-        if (code !== emnapi.NULL) {
-          error.code = envObject.handleStore.get(code)!.value
-        }
+        const status = emnapiSetErrorCode(envObject, error, code, emnapi.NULL)
+        if (status !== emnapi.napi_status.napi_ok) return status
       } catch (err) {
         envObject.tryCatch.setError(err)
         return envObject.setLastError(emnapi.napi_status.napi_pending_exception)
@@ -200,9 +196,9 @@ emnapiImplement('napi_throw_error', napi_throw_error)
 emnapiImplement('napi_throw_type_error', napi_throw_type_error)
 emnapiImplement('napi_throw_range_error', napi_throw_range_error)
 emnapiImplement('node_api_throw_syntax_error', node_api_throw_syntax_error)
-emnapiImplement('napi_create_error', napi_create_error)
-emnapiImplement('napi_create_type_error', napi_create_type_error)
-emnapiImplement('napi_create_range_error', napi_create_range_error)
-emnapiImplement('node_api_create_syntax_error', node_api_create_syntax_error)
+emnapiImplement('napi_create_error', napi_create_error, ['$emnapiSetErrorCode'])
+emnapiImplement('napi_create_type_error', napi_create_type_error, ['$emnapiSetErrorCode'])
+emnapiImplement('napi_create_range_error', napi_create_range_error, ['$emnapiSetErrorCode'])
+emnapiImplement('node_api_create_syntax_error', node_api_create_syntax_error, ['$emnapiSetErrorCode'])
 emnapiImplement('napi_is_exception_pending', napi_is_exception_pending)
 emnapiImplement('napi_fatal_error', napi_fatal_error)
