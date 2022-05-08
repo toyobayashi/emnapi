@@ -58,6 +58,18 @@ function napi_throw_range_error (env: napi_env, code: const_char_p, msg: const_c
   })
 }
 
+function node_api_throw_syntax_error (env: napi_env, code: const_char_p, msg: const_char_p): emnapi.napi_status {
+  return emnapi.preamble(env, (envObject) => {
+    if (msg === emnapi.NULL) return envObject.setLastError(emnapi.napi_status.napi_invalid_arg)
+    const error: SyntaxError & { code?: string } = new SyntaxError(UTF8ToString(msg))
+    if (code !== emnapi.NULL) {
+      error.code = UTF8ToString(code)
+    }
+    envObject.tryCatch.setError(error)
+    return envObject.clearLastError()
+  })
+}
+
 function napi_is_exception_pending (env: napi_env, result: Pointer<bool>): emnapi.napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [result], () => {
@@ -138,6 +150,29 @@ function napi_create_range_error (env: napi_env, code: napi_value, msg: napi_val
   })
 }
 
+function node_api_create_syntax_error (env: napi_env, code: napi_value, msg: napi_value, result: Pointer<napi_value>): emnapi.napi_status {
+  return emnapi.checkEnv(env, (envObject) => {
+    return emnapi.checkArgs(envObject, [msg, result], () => {
+      let error: SyntaxError & { code?: string }
+      try {
+        const msgValue = envObject.handleStore.get(msg)!.value
+        if (typeof msgValue !== 'string') {
+          return envObject.setLastError(emnapi.napi_status.napi_string_expected)
+        }
+        error = new SyntaxError(msgValue)
+        if (code !== emnapi.NULL) {
+          error.code = envObject.handleStore.get(code)!.value
+        }
+      } catch (err) {
+        envObject.tryCatch.setError(err)
+        return envObject.setLastError(emnapi.napi_status.napi_pending_exception)
+      }
+      HEAP32[result >> 2] = envObject.getCurrentScope().add(error).id
+      return envObject.clearLastError()
+    })
+  })
+}
+
 function napi_get_and_clear_last_exception (env: napi_env, result: Pointer<napi_value>): emnapi.napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [result], () => {
@@ -164,8 +199,10 @@ emnapiImplement('napi_throw', napi_throw)
 emnapiImplement('napi_throw_error', napi_throw_error)
 emnapiImplement('napi_throw_type_error', napi_throw_type_error)
 emnapiImplement('napi_throw_range_error', napi_throw_range_error)
+emnapiImplement('node_api_throw_syntax_error', node_api_throw_syntax_error)
 emnapiImplement('napi_create_error', napi_create_error)
 emnapiImplement('napi_create_type_error', napi_create_type_error)
 emnapiImplement('napi_create_range_error', napi_create_range_error)
+emnapiImplement('node_api_create_syntax_error', node_api_create_syntax_error)
 emnapiImplement('napi_is_exception_pending', napi_is_exception_pending)
 emnapiImplement('napi_fatal_error', napi_fatal_error)

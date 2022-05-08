@@ -73,6 +73,12 @@ NAPI_EXTERN napi_status napi_create_string_utf16(napi_env env,
 NAPI_EXTERN napi_status napi_create_symbol(napi_env env,
                                            napi_value description,
                                            napi_value* result);
+#ifdef NAPI_EXPERIMENTAL
+NAPI_EXTERN napi_status node_api_symbol_for(napi_env env,
+                                            const char* utf8description,
+                                            size_t length,
+                                            napi_value* result);
+#endif  // NAPI_EXPERIMENTAL
 NAPI_EXTERN napi_status napi_create_function(napi_env env,
                                              const char* utf8name,
                                              size_t length,
@@ -91,6 +97,12 @@ NAPI_EXTERN napi_status napi_create_range_error(napi_env env,
                                                 napi_value code,
                                                 napi_value msg,
                                                 napi_value* result);
+#ifdef NAPI_EXPERIMENTAL
+NAPI_EXTERN napi_status node_api_create_syntax_error(napi_env env,
+                                                     napi_value code,
+                                                     napi_value msg,
+                                                     napi_value* result);
+#endif  // NAPI_EXPERIMENTAL
 
 // Methods to get the native napi_value from Primitive type
 NAPI_EXTERN napi_status napi_typeof(napi_env env,
@@ -350,6 +362,11 @@ NAPI_EXTERN napi_status napi_throw_type_error(napi_env env,
 NAPI_EXTERN napi_status napi_throw_range_error(napi_env env,
                                          const char* code,
                                          const char* msg);
+#ifdef NAPI_EXPERIMENTAL
+NAPI_EXTERN napi_status node_api_throw_syntax_error(napi_env env,
+                                                    const char* code,
+                                                    const char* msg);
+#endif  // NAPI_EXPERIMENTAL
 NAPI_EXTERN napi_status napi_is_error(napi_env env,
                                       napi_value value,
                                       bool* result);
