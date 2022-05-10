@@ -1,4 +1,4 @@
-function emnapi_get_module_object (env: napi_env, result: Pointer<napi_value>): emnapi.napi_status {
+function emnapi_get_module_object (env: napi_env, result: Pointer<napi_value>): napi_status {
   return emnapi.preamble(env, (envObject) => {
     return emnapi.checkArgs(envObject, [result], () => {
       HEAP32[result >> 2] = envObject.ensureHandleId(Module)
@@ -7,7 +7,7 @@ function emnapi_get_module_object (env: napi_env, result: Pointer<napi_value>): 
   })
 }
 
-function emnapi_get_module_property (env: napi_env, utf8name: const_char_p, result: Pointer<napi_value>): emnapi.napi_status {
+function emnapi_get_module_property (env: napi_env, utf8name: const_char_p, result: Pointer<napi_value>): napi_status {
   return emnapi.preamble(env, (envObject) => {
     return emnapi.checkArgs(envObject, [utf8name, result], () => {
       HEAP32[result >> 2] = envObject.ensureHandleId(Module[UTF8ToString(utf8name)])
@@ -23,9 +23,9 @@ function emnapi_create_external_uint8array (
   finalize_cb: napi_finalize,
   finalize_hint: void_p,
   result: Pointer<napi_value>
-): emnapi.napi_status {
+): napi_status {
   return emnapi.preamble(env, (envObject) => {
-    if (!emnapi.supportFinalizer) return envObject.setLastError(emnapi.napi_status.napi_generic_failure)
+    if (!emnapi.supportFinalizer) return envObject.setLastError(napi_status.napi_generic_failure)
     return emnapi.checkArgs(envObject, [result], () => {
       byte_length = byte_length >>> 0
       if (external_data === emnapi.NULL) {
@@ -41,10 +41,10 @@ function emnapi_create_external_uint8array (
       const u8arr = new Uint8Array(HEAPU8.buffer, external_data, byte_length)
       const handle = envObject.getCurrentScope().add(u8arr)
       if (finalize_cb !== emnapi.NULL) {
-        const status = emnapiWrap(emnapi.WrapType.anonymous, env, handle.id, external_data, finalize_cb, finalize_hint, emnapi.NULL)
-        if (status === emnapi.napi_status.napi_pending_exception) {
+        const status = emnapiWrap(WrapType.anonymous, env, handle.id, external_data, finalize_cb, finalize_hint, emnapi.NULL)
+        if (status === napi_status.napi_pending_exception) {
           throw envObject.tryCatch.extractException()
-        } else if (status !== emnapi.napi_status.napi_ok) {
+        } else if (status !== napi_status.napi_ok) {
           return envObject.setLastError(status)
         }
       }

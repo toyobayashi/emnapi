@@ -1,6 +1,5 @@
 import { Env } from './env'
 import { Store } from './Store'
-import { napi_status } from './type'
 
 declare const __webpack_public_path__: any
 declare const global: typeof globalThis

@@ -1,28 +1,28 @@
-function napi_get_array_length (env: napi_env, value: napi_value, result: Pointer<uint32_t>): emnapi.napi_status {
+function napi_get_array_length (env: napi_env, value: napi_value, result: Pointer<uint32_t>): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [value, result], () => {
       try {
         const handle = envObject.handleStore.get(value)!
         if (!handle.isArray()) {
-          return envObject.setLastError(emnapi.napi_status.napi_array_expected)
+          return envObject.setLastError(napi_status.napi_array_expected)
         }
         HEAPU32[result >> 2] = handle.value.length >>> 0
       } catch (err) {
         envObject.tryCatch.setError(err)
-        return envObject.setLastError(emnapi.napi_status.napi_pending_exception)
+        return envObject.setLastError(napi_status.napi_pending_exception)
       }
       return envObject.clearLastError()
     })
   })
 }
 
-function napi_get_arraybuffer_info (env: napi_env, arraybuffer: napi_value, data: void_pp, byte_length: Pointer<size_t>): emnapi.napi_status {
+function napi_get_arraybuffer_info (env: napi_env, arraybuffer: napi_value, data: void_pp, byte_length: Pointer<size_t>): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [arraybuffer], () => {
       try {
         const handle = envObject.handleStore.get(arraybuffer)!
         if (!handle.isArrayBuffer()) {
-          return envObject.setLastError(emnapi.napi_status.napi_invalid_arg)
+          return envObject.setLastError(napi_status.napi_invalid_arg)
         }
         if (data !== emnapi.NULL) {
           HEAP32[data >> 2] = envObject.getArrayBufferPointer(handle.value)
@@ -32,25 +32,25 @@ function napi_get_arraybuffer_info (env: napi_env, arraybuffer: napi_value, data
         }
       } catch (err) {
         envObject.tryCatch.setError(err)
-        return envObject.setLastError(emnapi.napi_status.napi_pending_exception)
+        return envObject.setLastError(napi_status.napi_pending_exception)
       }
       return envObject.clearLastError()
     })
   })
 }
 
-function napi_get_prototype (env: napi_env, value: napi_value, result: Pointer<napi_value>): emnapi.napi_status {
+function napi_get_prototype (env: napi_env, value: napi_value, result: Pointer<napi_value>): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [value, result], () => {
       try {
         const handle = envObject.handleStore.get(value)!
         if (!(handle.isObject() || handle.isFunction())) {
-          return envObject.setLastError(emnapi.napi_status.napi_object_expected)
+          return envObject.setLastError(napi_status.napi_object_expected)
         }
         HEAP32[result >> 2] = envObject.ensureHandleId(Object.getPrototypeOf(handle.value))
       } catch (err) {
         envObject.tryCatch.setError(err)
-        return envObject.setLastError(emnapi.napi_status.napi_pending_exception)
+        return envObject.setLastError(napi_status.napi_pending_exception)
       }
       return envObject.clearLastError()
     })
@@ -60,43 +60,43 @@ function napi_get_prototype (env: napi_env, value: napi_value, result: Pointer<n
 function napi_get_typedarray_info (
   env: napi_env,
   typedarray: napi_value,
-  type: Pointer<emnapi.napi_typedarray_type>,
+  type: Pointer<napi_typedarray_type>,
   length: Pointer<size_t>,
   data: void_pp,
   arraybuffer: Pointer<napi_value>,
   byte_offset: Pointer<size_t>
-): emnapi.napi_status {
+): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [typedarray], () => {
       try {
         const handle = envObject.handleStore.get(typedarray)!
         if (!handle.isTypedArray()) {
-          return envObject.setLastError(emnapi.napi_status.napi_invalid_arg)
+          return envObject.setLastError(napi_status.napi_invalid_arg)
         }
         const v = handle.value
         if (type !== emnapi.NULL) {
           if (v instanceof Int8Array) {
-            HEAP32[type >> 2] = emnapi.napi_typedarray_type.napi_int8_array
+            HEAP32[type >> 2] = napi_typedarray_type.napi_int8_array
           } else if (v instanceof Uint8Array) {
-            HEAP32[type >> 2] = emnapi.napi_typedarray_type.napi_uint8_array
+            HEAP32[type >> 2] = napi_typedarray_type.napi_uint8_array
           } else if (v instanceof Uint8ClampedArray) {
-            HEAP32[type >> 2] = emnapi.napi_typedarray_type.napi_uint8_clamped_array
+            HEAP32[type >> 2] = napi_typedarray_type.napi_uint8_clamped_array
           } else if (v instanceof Int16Array) {
-            HEAP32[type >> 2] = emnapi.napi_typedarray_type.napi_int16_array
+            HEAP32[type >> 2] = napi_typedarray_type.napi_int16_array
           } else if (v instanceof Uint16Array) {
-            HEAP32[type >> 2] = emnapi.napi_typedarray_type.napi_uint16_array
+            HEAP32[type >> 2] = napi_typedarray_type.napi_uint16_array
           } else if (v instanceof Int32Array) {
-            HEAP32[type >> 2] = emnapi.napi_typedarray_type.napi_int32_array
+            HEAP32[type >> 2] = napi_typedarray_type.napi_int32_array
           } else if (v instanceof Uint32Array) {
-            HEAP32[type >> 2] = emnapi.napi_typedarray_type.napi_uint32_array
+            HEAP32[type >> 2] = napi_typedarray_type.napi_uint32_array
           } else if (v instanceof Float32Array) {
-            HEAP32[type >> 2] = emnapi.napi_typedarray_type.napi_float32_array
+            HEAP32[type >> 2] = napi_typedarray_type.napi_float32_array
           } else if (v instanceof Float64Array) {
-            HEAP32[type >> 2] = emnapi.napi_typedarray_type.napi_float64_array
+            HEAP32[type >> 2] = napi_typedarray_type.napi_float64_array
           } else if (v instanceof BigInt64Array) {
-            HEAP32[type >> 2] = emnapi.napi_typedarray_type.napi_bigint64_array
+            HEAP32[type >> 2] = napi_typedarray_type.napi_bigint64_array
           } else if (v instanceof BigUint64Array) {
-            HEAP32[type >> 2] = emnapi.napi_typedarray_type.napi_biguint64_array
+            HEAP32[type >> 2] = napi_typedarray_type.napi_biguint64_array
           }
         }
         if (length !== emnapi.NULL) {
@@ -117,7 +117,7 @@ function napi_get_typedarray_info (
         }
       } catch (err) {
         envObject.tryCatch.setError(err)
-        return envObject.setLastError(emnapi.napi_status.napi_pending_exception)
+        return envObject.setLastError(napi_status.napi_pending_exception)
       }
       return envObject.clearLastError()
     })
@@ -131,13 +131,13 @@ function napi_get_dataview_info (
   data: void_pp,
   arraybuffer: Pointer<napi_value>,
   byte_offset: Pointer<size_t>
-): emnapi.napi_status {
+): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [dataview], () => {
       try {
         const handle = envObject.handleStore.get(dataview)!
         if (!handle.isDataView()) {
-          return envObject.setLastError(emnapi.napi_status.napi_invalid_arg)
+          return envObject.setLastError(napi_status.napi_invalid_arg)
         }
         const v = handle.value as DataView
         if (byte_length !== emnapi.NULL) {
@@ -158,19 +158,19 @@ function napi_get_dataview_info (
         }
       } catch (err) {
         envObject.tryCatch.setError(err)
-        return envObject.setLastError(emnapi.napi_status.napi_pending_exception)
+        return envObject.setLastError(napi_status.napi_pending_exception)
       }
       return envObject.clearLastError()
     })
   })
 }
 
-function napi_get_date_value (env: napi_env, value: napi_value, result: Pointer<double>): emnapi.napi_status {
+function napi_get_date_value (env: napi_env, value: napi_value, result: Pointer<double>): napi_status {
   return emnapi.preamble(env, (envObject) => {
     return emnapi.checkArgs(envObject, [value, result], () => {
       const handle = envObject.handleStore.get(value)!
       if (!handle.isDate()) {
-        return envObject.setLastError(emnapi.napi_status.napi_invalid_arg)
+        return envObject.setLastError(napi_status.napi_invalid_arg)
       }
       HEAPF64[result >> 3] = (handle.value as Date).valueOf()
       return envObject.getReturnStatus()
@@ -178,51 +178,51 @@ function napi_get_date_value (env: napi_env, value: napi_value, result: Pointer<
   })
 }
 
-function napi_get_value_bool (env: napi_env, value: napi_value, result: Pointer<bool>): emnapi.napi_status {
+function napi_get_value_bool (env: napi_env, value: napi_value, result: Pointer<bool>): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [value, result], () => {
       try {
         const handle = envObject.handleStore.get(value)!
         if (typeof handle.value !== 'boolean') {
-          return envObject.setLastError(emnapi.napi_status.napi_boolean_expected)
+          return envObject.setLastError(napi_status.napi_boolean_expected)
         }
         HEAPU8[result] = handle.value ? 1 : 0
       } catch (err) {
         envObject.tryCatch.setError(err)
-        return envObject.setLastError(emnapi.napi_status.napi_pending_exception)
+        return envObject.setLastError(napi_status.napi_pending_exception)
       }
       return envObject.clearLastError()
     })
   })
 }
 
-function napi_get_value_double (env: napi_env, value: napi_value, result: Pointer<double>): emnapi.napi_status {
+function napi_get_value_double (env: napi_env, value: napi_value, result: Pointer<double>): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [value, result], () => {
       try {
         const handle = envObject.handleStore.get(value)!
         if (typeof handle.value !== 'number') {
-          return envObject.setLastError(emnapi.napi_status.napi_number_expected)
+          return envObject.setLastError(napi_status.napi_number_expected)
         }
         HEAPF64[result >> 3] = handle.value
       } catch (err) {
         envObject.tryCatch.setError(err)
-        return envObject.setLastError(emnapi.napi_status.napi_pending_exception)
+        return envObject.setLastError(napi_status.napi_pending_exception)
       }
       return envObject.clearLastError()
     })
   })
 }
 
-function napi_get_value_bigint_int64 (env: napi_env, value: napi_value, result: Pointer<int64_t>, lossless: Pointer<bool>): emnapi.napi_status {
+function napi_get_value_bigint_int64 (env: napi_env, value: napi_value, result: Pointer<int64_t>, lossless: Pointer<bool>): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
-    if (!emnapi.supportBigInt) return envObject.setLastError(emnapi.napi_status.napi_generic_failure)
+    if (!emnapi.supportBigInt) return envObject.setLastError(napi_status.napi_generic_failure)
     return emnapi.checkArgs(envObject, [value, result, lossless], () => {
       try {
         const handle = envObject.handleStore.get(value)!
         let numberValue = handle.value
         if (typeof numberValue !== 'bigint') {
-          return envObject.setLastError(emnapi.napi_status.napi_number_expected)
+          return envObject.setLastError(napi_status.napi_number_expected)
         }
         if ((numberValue >= (BigInt(-1) * (BigInt(1) << BigInt(63)))) && (numberValue < (BigInt(1) << BigInt(63)))) {
           HEAPU8[lossless] = 1
@@ -239,22 +239,22 @@ function napi_get_value_bigint_int64 (env: napi_env, value: napi_value, result: 
         HEAP32[result + 4 >> 2] = high
       } catch (err) {
         envObject.tryCatch.setError(err)
-        return envObject.setLastError(emnapi.napi_status.napi_pending_exception)
+        return envObject.setLastError(napi_status.napi_pending_exception)
       }
       return envObject.clearLastError()
     })
   })
 }
 
-function napi_get_value_bigint_uint64 (env: napi_env, value: napi_value, result: Pointer<uint64_t>, lossless: Pointer<bool>): emnapi.napi_status {
+function napi_get_value_bigint_uint64 (env: napi_env, value: napi_value, result: Pointer<uint64_t>, lossless: Pointer<bool>): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
-    if (!emnapi.supportBigInt) return envObject.setLastError(emnapi.napi_status.napi_generic_failure)
+    if (!emnapi.supportBigInt) return envObject.setLastError(napi_status.napi_generic_failure)
     return emnapi.checkArgs(envObject, [value, result, lossless], () => {
       try {
         const handle = envObject.handleStore.get(value)!
         let numberValue = handle.value
         if (typeof numberValue !== 'bigint') {
-          return envObject.setLastError(emnapi.napi_status.napi_number_expected)
+          return envObject.setLastError(napi_status.napi_number_expected)
         }
         if ((numberValue >= BigInt(0)) && (numberValue < (BigInt(1) << BigInt(64)))) {
           HEAPU8[lossless] = 1
@@ -268,7 +268,7 @@ function napi_get_value_bigint_uint64 (env: napi_env, value: napi_value, result:
         HEAPU32[result + 4 >> 2] = high
       } catch (err) {
         envObject.tryCatch.setError(err)
-        return envObject.setLastError(emnapi.napi_status.napi_pending_exception)
+        return envObject.setLastError(napi_status.napi_pending_exception)
       }
       return envObject.clearLastError()
     })
@@ -281,14 +281,14 @@ function napi_get_value_bigint_words (
   sign_bit: Pointer<int>,
   word_count: Pointer<size_t>,
   words: Pointer<uint64_t>
-): emnapi.napi_status {
+): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
-    if (!emnapi.supportBigInt) return envObject.setLastError(emnapi.napi_status.napi_generic_failure)
+    if (!emnapi.supportBigInt) return envObject.setLastError(napi_status.napi_generic_failure)
     return emnapi.checkArgs(envObject, [value, word_count], () => {
       try {
         const handle = envObject.handleStore.get(value)!
         if (!handle.isBigInt()) {
-          return envObject.setLastError(emnapi.napi_status.napi_bigint_expected)
+          return envObject.setLastError(napi_status.napi_bigint_expected)
         }
         const isMinus = handle.value < BigInt(0)
         let word_count_int = HEAP32[word_count >> 2]
@@ -303,8 +303,8 @@ function napi_get_value_bigint_words (
         if (sign_bit === emnapi.NULL && words === emnapi.NULL) {
           HEAPU32[word_count >> 2] = word_count_int
         } else {
-          if (sign_bit === emnapi.NULL) return envObject.setLastError(emnapi.napi_status.napi_invalid_arg)
-          if (words === emnapi.NULL) return envObject.setLastError(emnapi.napi_status.napi_invalid_arg)
+          if (sign_bit === emnapi.NULL) return envObject.setLastError(napi_status.napi_invalid_arg)
+          if (words === emnapi.NULL) return envObject.setLastError(napi_status.napi_invalid_arg)
           const wordsArr = []
           while (bigintValue !== BigInt(0)) {
             const uint64 = bigintValue & ((BigInt(1) << BigInt(64)) - BigInt(1))
@@ -323,57 +323,57 @@ function napi_get_value_bigint_words (
         }
       } catch (err) {
         envObject.tryCatch.setError(err)
-        return envObject.setLastError(emnapi.napi_status.napi_pending_exception)
+        return envObject.setLastError(napi_status.napi_pending_exception)
       }
       return envObject.clearLastError()
     })
   })
 }
 
-function napi_get_value_external (env: napi_env, value: napi_value, result: void_pp): emnapi.napi_status {
+function napi_get_value_external (env: napi_env, value: napi_value, result: void_pp): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
-    if (!emnapi.supportFinalizer) return envObject.setLastError(emnapi.napi_status.napi_generic_failure)
+    if (!emnapi.supportFinalizer) return envObject.setLastError(napi_status.napi_generic_failure)
     return emnapi.checkArgs(envObject, [value, result], () => {
       try {
         const handle = envObject.handleStore.get(value)!
         if (!handle.isExternal()) {
-          return envObject.setLastError(emnapi.napi_status.napi_invalid_arg)
+          return envObject.setLastError(napi_status.napi_invalid_arg)
         }
         HEAP32[result >> 2] = (handle as emnapi.ExternalHandle).data()
       } catch (err) {
         envObject.tryCatch.setError(err)
-        return envObject.setLastError(emnapi.napi_status.napi_pending_exception)
+        return envObject.setLastError(napi_status.napi_pending_exception)
       }
       return envObject.clearLastError()
     })
   })
 }
 
-function napi_get_value_int32 (env: napi_env, value: napi_value, result: Pointer<int32_t>): emnapi.napi_status {
+function napi_get_value_int32 (env: napi_env, value: napi_value, result: Pointer<int32_t>): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [value, result], () => {
       try {
         const handle = envObject.handleStore.get(value)!
         if (typeof handle.value !== 'number') {
-          return envObject.setLastError(emnapi.napi_status.napi_number_expected)
+          return envObject.setLastError(napi_status.napi_number_expected)
         }
         HEAP32[result >> 2] = handle.value
       } catch (err) {
         envObject.tryCatch.setError(err)
-        return envObject.setLastError(emnapi.napi_status.napi_pending_exception)
+        return envObject.setLastError(napi_status.napi_pending_exception)
       }
       return envObject.clearLastError()
     })
   })
 }
 
-function napi_get_value_int64 (env: napi_env, value: napi_value, result: Pointer<int64_t>): emnapi.napi_status {
+function napi_get_value_int64 (env: napi_env, value: napi_value, result: Pointer<int64_t>): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [value, result], () => {
       try {
         const handle = envObject.handleStore.get(value)!
         if (typeof handle.value !== 'number') {
-          return envObject.setLastError(emnapi.napi_status.napi_number_expected)
+          return envObject.setLastError(napi_status.napi_number_expected)
         }
         const numberValue = handle.value
         if (numberValue === Number.POSITIVE_INFINITY || numberValue === Number.NEGATIVE_INFINITY || isNaN(numberValue)) {
@@ -393,24 +393,24 @@ function napi_get_value_int64 (env: napi_env, value: napi_value, result: Pointer
         }
       } catch (err) {
         envObject.tryCatch.setError(err)
-        return envObject.setLastError(emnapi.napi_status.napi_pending_exception)
+        return envObject.setLastError(napi_status.napi_pending_exception)
       }
       return envObject.clearLastError()
     })
   })
 }
 
-function napi_get_value_string_latin1 (env: napi_env, value: napi_value, buf: char_p, buf_size: size_t, result: Pointer<size_t>): emnapi.napi_status {
+function napi_get_value_string_latin1 (env: napi_env, value: napi_value, buf: char_p, buf_size: size_t, result: Pointer<size_t>): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [value], () => {
       buf_size = buf_size >>> 0
       try {
         const handle = envObject.handleStore.get(value)!
         if (typeof handle.value !== 'string') {
-          return envObject.setLastError(emnapi.napi_status.napi_string_expected)
+          return envObject.setLastError(napi_status.napi_string_expected)
         }
         if (buf === emnapi.NULL) {
-          if (result === emnapi.NULL) return envObject.setLastError(emnapi.napi_status.napi_invalid_arg)
+          if (result === emnapi.NULL) return envObject.setLastError(napi_status.napi_invalid_arg)
           HEAPU32[result >> 2] = handle.value.length
         } else if (buf_size !== 0) {
           let copied: number = 0
@@ -427,24 +427,24 @@ function napi_get_value_string_latin1 (env: napi_env, value: napi_value, buf: ch
         }
       } catch (err) {
         envObject.tryCatch.setError(err)
-        return envObject.setLastError(emnapi.napi_status.napi_pending_exception)
+        return envObject.setLastError(napi_status.napi_pending_exception)
       }
       return envObject.clearLastError()
     })
   })
 }
 
-function napi_get_value_string_utf8 (env: napi_env, value: napi_value, buf: char_p, buf_size: size_t, result: Pointer<size_t>): emnapi.napi_status {
+function napi_get_value_string_utf8 (env: napi_env, value: napi_value, buf: char_p, buf_size: size_t, result: Pointer<size_t>): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [value], () => {
       buf_size = buf_size >>> 0
       try {
         const handle = envObject.handleStore.get(value)!
         if (typeof handle.value !== 'string') {
-          return envObject.setLastError(emnapi.napi_status.napi_string_expected)
+          return envObject.setLastError(napi_status.napi_string_expected)
         }
         if (buf === emnapi.NULL) {
-          if (result === emnapi.NULL) return envObject.setLastError(emnapi.napi_status.napi_invalid_arg)
+          if (result === emnapi.NULL) return envObject.setLastError(napi_status.napi_invalid_arg)
           HEAPU32[result >> 2] = lengthBytesUTF8(handle.value)
         } else if (buf_size !== 0) {
           const copied = stringToUTF8(handle.value, buf, buf_size)
@@ -456,24 +456,24 @@ function napi_get_value_string_utf8 (env: napi_env, value: napi_value, buf: char
         }
       } catch (err) {
         envObject.tryCatch.setError(err)
-        return envObject.setLastError(emnapi.napi_status.napi_pending_exception)
+        return envObject.setLastError(napi_status.napi_pending_exception)
       }
       return envObject.clearLastError()
     })
   })
 }
 
-function napi_get_value_string_utf16 (env: napi_env, value: napi_value, buf: char16_t_p, buf_size: size_t, result: Pointer<size_t>): emnapi.napi_status {
+function napi_get_value_string_utf16 (env: napi_env, value: napi_value, buf: char16_t_p, buf_size: size_t, result: Pointer<size_t>): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [value], () => {
       buf_size = buf_size >>> 0
       try {
         const handle = envObject.handleStore.get(value)!
         if (typeof handle.value !== 'string') {
-          return envObject.setLastError(emnapi.napi_status.napi_string_expected)
+          return envObject.setLastError(napi_status.napi_string_expected)
         }
         if (buf === emnapi.NULL) {
-          if (result === emnapi.NULL) return envObject.setLastError(emnapi.napi_status.napi_invalid_arg)
+          if (result === emnapi.NULL) return envObject.setLastError(napi_status.napi_invalid_arg)
           HEAPU32[result >> 2] = handle.value.length
         } else if (buf_size !== 0) {
           const copied = stringToUTF16(handle.value, buf, buf_size * 2)
@@ -485,25 +485,25 @@ function napi_get_value_string_utf16 (env: napi_env, value: napi_value, buf: cha
         }
       } catch (err) {
         envObject.tryCatch.setError(err)
-        return envObject.setLastError(emnapi.napi_status.napi_pending_exception)
+        return envObject.setLastError(napi_status.napi_pending_exception)
       }
       return envObject.clearLastError()
     })
   })
 }
 
-function napi_get_value_uint32 (env: napi_env, value: napi_value, result: Pointer<uint32_t>): emnapi.napi_status {
+function napi_get_value_uint32 (env: napi_env, value: napi_value, result: Pointer<uint32_t>): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [value, result], () => {
       try {
         const handle = envObject.handleStore.get(value)!
         if (typeof handle.value !== 'number') {
-          return envObject.setLastError(emnapi.napi_status.napi_number_expected)
+          return envObject.setLastError(napi_status.napi_number_expected)
         }
         HEAPU32[result >> 2] = handle.value
       } catch (err) {
         envObject.tryCatch.setError(err)
-        return envObject.setLastError(emnapi.napi_status.napi_pending_exception)
+        return envObject.setLastError(napi_status.napi_pending_exception)
       }
       return envObject.clearLastError()
     })

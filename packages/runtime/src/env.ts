@@ -4,7 +4,6 @@ import { ScopeStore, IHandleScope, HandleScope, EscapableHandleScope } from './H
 import { LinkedList } from './LinkedList'
 import { RefStore } from './Reference'
 import { IStoreValue, Store } from './Store'
-import { napi_status } from './type'
 import { TypedArray, supportFinalizer, NULL, TryCatch, envStore, isReferenceType } from './util'
 
 export interface ILastError {

@@ -75,8 +75,8 @@ function $emnapiDefineProperty (env: napi_env, obj: object, propertyName: string
       localSetter = emnapiCreateFunction(env, emnapi.NULL, 0, setter, data)
     }
     const desc: PropertyDescriptor = {
-      configurable: (attributes & emnapi.napi_property_attributes.napi_configurable) !== 0,
-      enumerable: (attributes & emnapi.napi_property_attributes.napi_enumerable) !== 0,
+      configurable: (attributes & napi_property_attributes.napi_configurable) !== 0,
+      enumerable: (attributes & napi_property_attributes.napi_enumerable) !== 0,
       get: localGetter!,
       set: localSetter!
     }
@@ -84,17 +84,17 @@ function $emnapiDefineProperty (env: napi_env, obj: object, propertyName: string
   } else if (method !== emnapi.NULL) {
     const localMethod = emnapiCreateFunction(env, emnapi.NULL, 0, method, data)
     const desc: PropertyDescriptor = {
-      configurable: (attributes & emnapi.napi_property_attributes.napi_configurable) !== 0,
-      enumerable: (attributes & emnapi.napi_property_attributes.napi_enumerable) !== 0,
-      writable: (attributes & emnapi.napi_property_attributes.napi_writable) !== 0,
+      configurable: (attributes & napi_property_attributes.napi_configurable) !== 0,
+      enumerable: (attributes & napi_property_attributes.napi_enumerable) !== 0,
+      writable: (attributes & napi_property_attributes.napi_writable) !== 0,
       value: localMethod
     }
     Object.defineProperty(obj, propertyName, desc)
   } else {
     const desc: PropertyDescriptor = {
-      configurable: (attributes & emnapi.napi_property_attributes.napi_configurable) !== 0,
-      enumerable: (attributes & emnapi.napi_property_attributes.napi_enumerable) !== 0,
-      writable: (attributes & emnapi.napi_property_attributes.napi_writable) !== 0,
+      configurable: (attributes & napi_property_attributes.napi_configurable) !== 0,
+      enumerable: (attributes & napi_property_attributes.napi_enumerable) !== 0,
+      writable: (attributes & napi_property_attributes.napi_writable) !== 0,
       value: envObject.handleStore.get(value)!.value
     }
     Object.defineProperty(obj, propertyName, desc)
@@ -103,7 +103,7 @@ function $emnapiDefineProperty (env: napi_env, obj: object, propertyName: string
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 declare const emnapiCreateTypedArray: typeof $emnapiCreateTypedArray
-function $emnapiCreateTypedArray (env: napi_env, Type: { new (...args: any[]): ArrayBufferView; name?: string }, size_of_element: number, buffer: ArrayBuffer, byte_offset: size_t, length: size_t, callback: (out: ArrayBufferView) => emnapi.napi_status): emnapi.napi_status {
+function $emnapiCreateTypedArray (env: napi_env, Type: { new (...args: any[]): ArrayBufferView; name?: string }, size_of_element: number, buffer: ArrayBuffer, byte_offset: size_t, length: size_t, callback: (out: ArrayBufferView) => napi_status): napi_status {
   byte_offset = byte_offset >>> 0
   length = length >>> 0
   const envObject = emnapi.envStore.get(env)!
@@ -112,7 +112,7 @@ function $emnapiCreateTypedArray (env: napi_env, Type: { new (...args: any[]): A
       const err: RangeError & { code?: string } = new RangeError(`start offset of ${Type.name ?? ''} should be a multiple of ${size_of_element}`)
       err.code = 'ERR_NAPI_INVALID_TYPEDARRAY_ALIGNMENT'
       envObject.tryCatch.setError(err)
-      return envObject.setLastError(emnapi.napi_status.napi_generic_failure)
+      return envObject.setLastError(napi_status.napi_generic_failure)
     }
   }
   // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
@@ -120,7 +120,7 @@ function $emnapiCreateTypedArray (env: napi_env, Type: { new (...args: any[]): A
     const err: RangeError & { code?: string } = new RangeError('Invalid typed array length')
     err.code = 'ERR_NAPI_INVALID_TYPEDARRAY_LENGTH'
     envObject.tryCatch.setError(err)
-    return envObject.setLastError(emnapi.napi_status.napi_generic_failure)
+    return envObject.setLastError(napi_status.napi_generic_failure)
   }
   const out = new Type(buffer, byte_offset, length)
   return callback(out)
@@ -128,32 +128,32 @@ function $emnapiCreateTypedArray (env: napi_env, Type: { new (...args: any[]): A
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 declare const emnapiWrap: typeof $emnapiWrap
-function $emnapiWrap (type: emnapi.WrapType, env: napi_env, js_object: napi_value, native_object: void_p, finalize_cb: napi_finalize, finalize_hint: void_p, result: Pointer<napi_ref>): emnapi.napi_status {
+function $emnapiWrap (type: WrapType, env: napi_env, js_object: napi_value, native_object: void_p, finalize_cb: napi_finalize, finalize_hint: void_p, result: Pointer<napi_ref>): napi_status {
   return emnapi.preamble(env, (envObject) => {
     return emnapi.checkArgs(envObject, [js_object], () => {
       const value = envObject.handleStore.get(js_object)!
       if (!(value.isObject() || value.isFunction())) {
-        return envObject.setLastError(emnapi.napi_status.napi_invalid_arg)
+        return envObject.setLastError(napi_status.napi_invalid_arg)
       }
 
-      if (type === emnapi.WrapType.retrievable) {
+      if (type === WrapType.retrievable) {
         if (value.wrapped !== 0) {
-          return envObject.setLastError(emnapi.napi_status.napi_invalid_arg)
+          return envObject.setLastError(napi_status.napi_invalid_arg)
         }
-      } else if (type === emnapi.WrapType.anonymous) {
-        if (finalize_cb === emnapi.NULL) return envObject.setLastError(emnapi.napi_status.napi_invalid_arg)
+      } else if (type === WrapType.anonymous) {
+        if (finalize_cb === emnapi.NULL) return envObject.setLastError(napi_status.napi_invalid_arg)
       }
 
       let reference: emnapi.Reference
       if (result !== emnapi.NULL) {
-        if (finalize_cb === emnapi.NULL) return envObject.setLastError(emnapi.napi_status.napi_invalid_arg)
+        if (finalize_cb === emnapi.NULL) return envObject.setLastError(napi_status.napi_invalid_arg)
         reference = emnapi.Reference.create(env, value.id, 0, false, finalize_cb, native_object, finalize_hint)
         HEAP32[result >> 2] = reference.id
       } else {
         reference = emnapi.Reference.create(env, value.id, 0, true, finalize_cb, native_object, finalize_cb === emnapi.NULL ? emnapi.NULL : finalize_hint)
       }
 
-      if (type === emnapi.WrapType.retrievable) {
+      if (type === WrapType.retrievable) {
         value.wrapped = reference.id
       }
       return envObject.getReturnStatus()
@@ -163,23 +163,23 @@ function $emnapiWrap (type: emnapi.WrapType, env: napi_env, js_object: napi_valu
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 declare const emnapiUnwrap: typeof $emnapiUnwrap
-function $emnapiUnwrap (env: napi_env, js_object: napi_value, result: void_pp, action: emnapi.UnwrapAction): emnapi.napi_status {
+function $emnapiUnwrap (env: napi_env, js_object: napi_value, result: void_pp, action: UnwrapAction): napi_status {
   return emnapi.preamble(env, (envObject) => {
     return emnapi.checkArgs(envObject, [js_object], () => {
-      if (action === emnapi.UnwrapAction.KeepWrap) {
-        if (result === emnapi.NULL) return envObject.setLastError(emnapi.napi_status.napi_invalid_arg)
+      if (action === UnwrapAction.KeepWrap) {
+        if (result === emnapi.NULL) return envObject.setLastError(napi_status.napi_invalid_arg)
       }
       const value = envObject.handleStore.get(js_object)!
       if (!(value.isObject() || value.isFunction())) {
-        return envObject.setLastError(emnapi.napi_status.napi_invalid_arg)
+        return envObject.setLastError(napi_status.napi_invalid_arg)
       }
       const referenceId = value.wrapped
       const ref = envObject.refStore.get(referenceId)
-      if (!ref) return envObject.setLastError(emnapi.napi_status.napi_invalid_arg)
+      if (!ref) return envObject.setLastError(napi_status.napi_invalid_arg)
       if (result !== emnapi.NULL) {
         HEAP32[result >> 2] = ref.data()
       }
-      if (action === emnapi.UnwrapAction.RemoveWrap) {
+      if (action === UnwrapAction.RemoveWrap) {
         value.wrapped = 0
         emnapi.Reference.doDelete(ref)
       }
@@ -190,14 +190,14 @@ function $emnapiUnwrap (env: napi_env, js_object: napi_value, result: void_pp, a
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 declare const emnapiAddName: typeof $emnapiAddName
-function $emnapiAddName (ret: Array<string | number | symbol>, name: string | number | symbol, key_filter: number, conversion_mode: emnapi.napi_key_conversion): void {
+function $emnapiAddName (ret: Array<string | number | symbol>, name: string | number | symbol, key_filter: number, conversion_mode: napi_key_conversion): void {
   if (ret.indexOf(name) !== -1) return
-  if (conversion_mode === emnapi.napi_key_conversion.napi_key_keep_numbers) {
+  if (conversion_mode === napi_key_conversion.napi_key_keep_numbers) {
     ret.push(name)
-  } else if (conversion_mode === emnapi.napi_key_conversion.napi_key_numbers_to_strings) {
+  } else if (conversion_mode === napi_key_conversion.napi_key_numbers_to_strings) {
     const realName = typeof name === 'number' ? String(name) : name
     if (typeof realName === 'string') {
-      if (!(key_filter & emnapi.napi_key_filter.napi_key_skip_strings)) {
+      if (!(key_filter & napi_key_filter.napi_key_skip_strings)) {
         ret.push(realName)
       }
     } else {
@@ -208,7 +208,7 @@ function $emnapiAddName (ret: Array<string | number | symbol>, name: string | nu
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 declare const emnapiGetPropertyNames: typeof $emnapiGetPropertyNames
-function $emnapiGetPropertyNames (obj: object, collection_mode: emnapi.napi_key_collection_mode, key_filter: number, conversion_mode: emnapi.napi_key_conversion): Array<string | symbol | number> {
+function $emnapiGetPropertyNames (obj: object, collection_mode: napi_key_collection_mode, key_filter: number, conversion_mode: napi_key_conversion): Array<string | symbol | number> {
   const props: Array<{ name: string | number | symbol; desc: PropertyDescriptor; own: boolean }> = []
   let names: string[]
   let symbols: symbol[]
@@ -232,7 +232,7 @@ function $emnapiGetPropertyNames (obj: object, collection_mode: emnapi.napi_key_
         own: own
       })
     }
-    if (collection_mode === emnapi.napi_key_collection_mode.napi_key_own_only) {
+    if (collection_mode === napi_key_collection_mode.napi_key_own_only) {
       break
     }
     obj = Object.getPrototypeOf(obj)
@@ -241,24 +241,24 @@ function $emnapiGetPropertyNames (obj: object, collection_mode: emnapi.napi_key_
   const ret: Array<string | number | symbol> = []
   for (i = 0; i < props.length; i++) {
     const name = props[i].name
-    if (key_filter === emnapi.napi_key_filter.napi_key_all_properties) {
+    if (key_filter === napi_key_filter.napi_key_all_properties) {
       emnapiAddName(ret, name, key_filter, conversion_mode)
     } else {
-      if (key_filter & emnapi.napi_key_filter.napi_key_skip_strings) {
+      if (key_filter & napi_key_filter.napi_key_skip_strings) {
         if (typeof name === 'string') continue
       }
-      if (key_filter & emnapi.napi_key_filter.napi_key_skip_symbols) {
+      if (key_filter & napi_key_filter.napi_key_skip_symbols) {
         if (typeof name === 'symbol') continue
       }
-      if (key_filter & emnapi.napi_key_filter.napi_key_writable) {
+      if (key_filter & napi_key_filter.napi_key_writable) {
         if (props[i].desc.writable) emnapiAddName(ret, name, key_filter, conversion_mode)
         continue
       }
-      if (key_filter & emnapi.napi_key_filter.napi_key_enumerable) {
+      if (key_filter & napi_key_filter.napi_key_enumerable) {
         if (props[i].desc.enumerable) emnapiAddName(ret, name, key_filter, conversion_mode)
         continue
       }
-      if (key_filter & emnapi.napi_key_filter.napi_key_configurable) {
+      if (key_filter & napi_key_filter.napi_key_configurable) {
         if (props[i].desc.configurable) emnapiAddName(ret, name, key_filter, conversion_mode)
         continue
       }
@@ -270,20 +270,20 @@ function $emnapiGetPropertyNames (obj: object, collection_mode: emnapi.napi_key_
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 declare const emnapiSetErrorCode: typeof $emnapiSetErrorCode
-function $emnapiSetErrorCode (envObject: emnapi.Env, error: Error & { code?: string }, code: napi_value, code_string: const_char_p): emnapi.napi_status {
+function $emnapiSetErrorCode (envObject: emnapi.Env, error: Error & { code?: string }, code: napi_value, code_string: const_char_p): napi_status {
   if (code !== emnapi.NULL || code_string !== emnapi.NULL) {
     let codeValue: string
     if (code !== emnapi.NULL) {
       codeValue = envObject.handleStore.get(code)!.value
       if (typeof codeValue !== 'string') {
-        return envObject.setLastError(emnapi.napi_status.napi_string_expected)
+        return envObject.setLastError(napi_status.napi_string_expected)
       }
     } else {
       codeValue = UTF8ToString(code_string)
     }
     error.code = codeValue
   }
-  return emnapi.napi_status.napi_ok
+  return napi_status.napi_ok
 }
 
 emnapiImplement('$emnapiCreateFunction', $emnapiCreateFunction)

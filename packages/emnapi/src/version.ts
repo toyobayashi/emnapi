@@ -1,4 +1,4 @@
-function napi_get_version (env: napi_env, result: Pointer<int32_t>): emnapi.napi_status {
+function napi_get_version (env: napi_env, result: Pointer<int32_t>): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [result], () => {
       HEAPU32[result >> 2] = 8

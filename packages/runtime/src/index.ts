@@ -1,5 +1,3 @@
-export * from './type'
-
 export {
   preamble,
   checkArgs,

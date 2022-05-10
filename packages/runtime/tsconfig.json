@@ -30,7 +30,6 @@
     ]
   },
   "include": [
-    "../emnapi/src/typings/ctype.d.ts",
     "./src/**/*.ts"
   ]
 }

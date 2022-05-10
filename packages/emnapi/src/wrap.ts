@@ -6,16 +6,16 @@ function napi_define_class (
   callback_data: void_p,
   property_count: size_t,
   properties: Const<Pointer<napi_property_descriptor>>,
-  result: Pointer<napi_value>): emnapi.napi_status {
+  result: Pointer<napi_value>): napi_status {
   return emnapi.preamble(env, (envObject) => {
     return emnapi.checkArgs(envObject, [result, constructor], () => {
       property_count = property_count >>> 0
       length = length >>> 0
       if (property_count > 0) {
-        if (properties === emnapi.NULL) return envObject.setLastError(emnapi.napi_status.napi_invalid_arg)
+        if (properties === emnapi.NULL) return envObject.setLastError(napi_status.napi_invalid_arg)
       }
       if (!((length === 0xffffffff) || (length <= 2147483647)) || (utf8name === emnapi.NULL)) {
-        return envObject.setLastError(emnapi.napi_status.napi_invalid_arg)
+        return envObject.setLastError(napi_status.napi_invalid_arg)
       }
       const F = emnapiCreateFunction(env, utf8name, length, constructor, callback_data)
 
@@ -36,15 +36,15 @@ function napi_define_class (
           propertyName = UTF8ToString(utf8Name)
         } else {
           if (name === emnapi.NULL) {
-            return envObject.setLastError(emnapi.napi_status.napi_name_expected)
+            return envObject.setLastError(napi_status.napi_name_expected)
           }
           propertyName = envObject.handleStore.get(name)!.value
           if (typeof propertyName !== 'string' && typeof propertyName !== 'symbol') {
-            return envObject.setLastError(emnapi.napi_status.napi_name_expected)
+            return envObject.setLastError(napi_status.napi_name_expected)
           }
         }
 
-        if ((attributes & emnapi.napi_property_attributes.napi_static) !== 0) {
+        if ((attributes & napi_property_attributes.napi_static) !== 0) {
           emnapiDefineProperty(env, F, propertyName, method, getter, setter, value, attributes, data)
           continue
         }
@@ -58,35 +58,35 @@ function napi_define_class (
   })
 }
 
-function napi_wrap (env: napi_env, js_object: napi_value, native_object: void_p, finalize_cb: napi_finalize, finalize_hint: void_p, result: Pointer<napi_ref>): emnapi.napi_status {
-  if (!emnapi.supportFinalizer) return _napi_set_last_error(env, emnapi.napi_status.napi_generic_failure, 0, 0)
-  return emnapiWrap(emnapi.WrapType.retrievable, env, js_object, native_object, finalize_cb, finalize_hint, result)
+function napi_wrap (env: napi_env, js_object: napi_value, native_object: void_p, finalize_cb: napi_finalize, finalize_hint: void_p, result: Pointer<napi_ref>): napi_status {
+  if (!emnapi.supportFinalizer) return _napi_set_last_error(env, napi_status.napi_generic_failure, 0, 0)
+  return emnapiWrap(WrapType.retrievable, env, js_object, native_object, finalize_cb, finalize_hint, result)
 }
 
-function napi_unwrap (env: napi_env, js_object: napi_value, result: void_pp): emnapi.napi_status {
-  if (!emnapi.supportFinalizer) return _napi_set_last_error(env, emnapi.napi_status.napi_generic_failure, 0, 0)
-  return emnapiUnwrap(env, js_object, result, emnapi.UnwrapAction.KeepWrap)
+function napi_unwrap (env: napi_env, js_object: napi_value, result: void_pp): napi_status {
+  if (!emnapi.supportFinalizer) return _napi_set_last_error(env, napi_status.napi_generic_failure, 0, 0)
+  return emnapiUnwrap(env, js_object, result, UnwrapAction.KeepWrap)
 }
 
-function napi_remove_wrap (env: napi_env, js_object: napi_value, result: void_pp): emnapi.napi_status {
-  if (!emnapi.supportFinalizer) return _napi_set_last_error(env, emnapi.napi_status.napi_generic_failure, 0, 0)
-  return emnapiUnwrap(env, js_object, result, emnapi.UnwrapAction.RemoveWrap)
+function napi_remove_wrap (env: napi_env, js_object: napi_value, result: void_pp): napi_status {
+  if (!emnapi.supportFinalizer) return _napi_set_last_error(env, napi_status.napi_generic_failure, 0, 0)
+  return emnapiUnwrap(env, js_object, result, UnwrapAction.RemoveWrap)
 }
 
-function napi_type_tag_object (env: napi_env, object: napi_value, type_tag: Const<Pointer<unknown>>): emnapi.napi_status {
+function napi_type_tag_object (env: napi_env, object: napi_value, type_tag: Const<Pointer<unknown>>): napi_status {
   return emnapi.preamble(env, (envObject) => {
     if (object === emnapi.NULL) {
-      return envObject.setLastError(envObject.tryCatch.hasCaught() ? emnapi.napi_status.napi_pending_exception : emnapi.napi_status.napi_invalid_arg)
+      return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_invalid_arg)
     }
     const value = envObject.handleStore.get(object)!
     if (!(value.isObject() || value.isFunction())) {
-      return envObject.setLastError(envObject.tryCatch.hasCaught() ? emnapi.napi_status.napi_pending_exception : emnapi.napi_status.napi_object_expected)
+      return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_object_expected)
     }
     if (type_tag === emnapi.NULL) {
-      return envObject.setLastError(envObject.tryCatch.hasCaught() ? emnapi.napi_status.napi_pending_exception : emnapi.napi_status.napi_invalid_arg)
+      return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_invalid_arg)
     }
     if (value.tag !== null) {
-      return envObject.setLastError(envObject.tryCatch.hasCaught() ? emnapi.napi_status.napi_pending_exception : emnapi.napi_status.napi_invalid_arg)
+      return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_invalid_arg)
     }
     value.tag = [
       HEAPU32[type_tag >> 2],
@@ -99,20 +99,20 @@ function napi_type_tag_object (env: napi_env, object: napi_value, type_tag: Cons
   })
 }
 
-function napi_check_object_type_tag (env: napi_env, object: napi_value, type_tag: Const<Pointer<unknown>>, result: Pointer<bool>): emnapi.napi_status {
+function napi_check_object_type_tag (env: napi_env, object: napi_value, type_tag: Const<Pointer<unknown>>, result: Pointer<bool>): napi_status {
   return emnapi.preamble(env, (envObject) => {
     if (object === emnapi.NULL) {
-      return envObject.setLastError(envObject.tryCatch.hasCaught() ? emnapi.napi_status.napi_pending_exception : emnapi.napi_status.napi_invalid_arg)
+      return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_invalid_arg)
     }
     const value = envObject.handleStore.get(object)!
     if (!(value.isObject() || value.isFunction())) {
-      return envObject.setLastError(envObject.tryCatch.hasCaught() ? emnapi.napi_status.napi_pending_exception : emnapi.napi_status.napi_object_expected)
+      return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_object_expected)
     }
     if (type_tag === emnapi.NULL) {
-      return envObject.setLastError(envObject.tryCatch.hasCaught() ? emnapi.napi_status.napi_pending_exception : emnapi.napi_status.napi_invalid_arg)
+      return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_invalid_arg)
     }
     if (result === emnapi.NULL) {
-      return envObject.setLastError(envObject.tryCatch.hasCaught() ? emnapi.napi_status.napi_pending_exception : emnapi.napi_status.napi_invalid_arg)
+      return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_invalid_arg)
     }
     let ret = true
     if (value.tag !== null) {
@@ -132,9 +132,9 @@ function napi_check_object_type_tag (env: napi_env, object: napi_value, type_tag
   })
 }
 
-function napi_add_finalizer (env: napi_env, js_object: napi_value, native_object: void_p, finalize_cb: napi_finalize, finalize_hint: void_p, result: Pointer<napi_ref>): emnapi.napi_status {
-  if (!emnapi.supportFinalizer) return _napi_set_last_error(env, emnapi.napi_status.napi_generic_failure, 0, 0)
-  return emnapiWrap(emnapi.WrapType.anonymous, env, js_object, native_object, finalize_cb, finalize_hint, result)
+function napi_add_finalizer (env: napi_env, js_object: napi_value, native_object: void_p, finalize_cb: napi_finalize, finalize_hint: void_p, result: Pointer<napi_ref>): napi_status {
+  if (!emnapi.supportFinalizer) return _napi_set_last_error(env, napi_status.napi_generic_failure, 0, 0)
+  return emnapiWrap(WrapType.anonymous, env, js_object, native_object, finalize_cb, finalize_hint, result)
 }
 
 emnapiImplement('napi_define_class', napi_define_class, ['$emnapiCreateFunction', '$emnapiDefineProperty'])

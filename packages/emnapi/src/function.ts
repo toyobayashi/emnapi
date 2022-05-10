@@ -1,4 +1,4 @@
-function napi_create_function (env: napi_env, utf8name: Pointer<const_char>, length: size_t, cb: napi_callback, data: void_p, result: Pointer<napi_value>): emnapi.napi_status {
+function napi_create_function (env: napi_env, utf8name: Pointer<const_char>, length: size_t, cb: napi_callback, data: void_p, result: Pointer<napi_value>): napi_status {
   return emnapi.preamble(env, (envObject) => {
     return emnapi.checkArgs(envObject, [result, cb], () => {
       const f = emnapiCreateFunction(env, utf8name, length, cb, data)
@@ -9,13 +9,13 @@ function napi_create_function (env: napi_env, utf8name: Pointer<const_char>, len
   })
 }
 
-function napi_get_cb_info (env: napi_env, cbinfo: napi_callback_info, argc: Pointer<size_t>, argv: Pointer<napi_value>, this_arg: Pointer<napi_value>, data: void_pp): emnapi.napi_status {
+function napi_get_cb_info (env: napi_env, cbinfo: napi_callback_info, argc: Pointer<size_t>, argv: Pointer<napi_value>, this_arg: Pointer<napi_value>, data: void_pp): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [cbinfo], () => {
       try {
         const cbinfoValue: ICallbackInfo = envObject.handleStore.get(cbinfo)!.value
         if (argv !== emnapi.NULL) {
-          if (argc === emnapi.NULL) return envObject.setLastError(emnapi.napi_status.napi_invalid_arg)
+          if (argc === emnapi.NULL) return envObject.setLastError(napi_status.napi_invalid_arg)
           const argcValue = HEAPU32[argc >> 2]
           const arrlen = argcValue < cbinfoValue._length ? argcValue : cbinfoValue._length
           let i = 0
@@ -40,7 +40,7 @@ function napi_get_cb_info (env: napi_env, cbinfo: napi_callback_info, argc: Poin
         return envObject.clearLastError()
       } catch (err) {
         envObject.tryCatch.setError(err)
-        return envObject.setLastError(emnapi.napi_status.napi_pending_exception)
+        return envObject.setLastError(napi_status.napi_pending_exception)
       }
     })
   })
@@ -53,17 +53,17 @@ function napi_call_function (
   argc: size_t,
   argv: Const<Pointer<napi_value>>,
   result: Pointer<napi_value>
-): emnapi.napi_status {
+): napi_status {
   return emnapi.preamble(env, (envObject) => {
     return emnapi.checkArgs(envObject, [recv], () => {
       argc = argc >>> 0
       if (argc > 0) {
-        if (argv === emnapi.NULL) return envObject.setLastError(emnapi.napi_status.napi_invalid_arg)
+        if (argv === emnapi.NULL) return envObject.setLastError(napi_status.napi_invalid_arg)
       }
       const v8recv = envObject.handleStore.get(recv)!.value
-      if (func === emnapi.NULL) return envObject.setLastError(emnapi.napi_status.napi_invalid_arg)
+      if (func === emnapi.NULL) return envObject.setLastError(napi_status.napi_invalid_arg)
       const v8func = envObject.handleStore.get(func)!.value as Function
-      if (typeof v8func !== 'function') return envObject.setLastError(emnapi.napi_status.napi_invalid_arg)
+      if (typeof v8func !== 'function') return envObject.setLastError(napi_status.napi_invalid_arg)
       const args = []
       for (let i = 0; i < argc; i++) {
         const argPtr = argv + (i * 4)
@@ -84,17 +84,17 @@ function napi_new_instance (
   argc: size_t,
   argv: Pointer<napi_value>,
   result: Pointer<napi_value>
-): emnapi.napi_status {
+): napi_status {
   return emnapi.preamble(env, (envObject) => {
     return emnapi.checkArgs(envObject, [constructor], () => {
       argc = argc >>> 0
       if (argc > 0) {
-        if (argv === emnapi.NULL) return envObject.setLastError(emnapi.napi_status.napi_invalid_arg)
+        if (argv === emnapi.NULL) return envObject.setLastError(napi_status.napi_invalid_arg)
       }
-      if (result === emnapi.NULL) return envObject.setLastError(emnapi.napi_status.napi_invalid_arg)
+      if (result === emnapi.NULL) return envObject.setLastError(napi_status.napi_invalid_arg)
 
       const Ctor = envObject.handleStore.get(constructor)!.value
-      if (typeof Ctor !== 'function') return envObject.setLastError(emnapi.napi_status.napi_invalid_arg)
+      if (typeof Ctor !== 'function') return envObject.setLastError(napi_status.napi_invalid_arg)
       const args = []
       for (let i = 0; i < argc; i++) {
         const argPtr = argv + (i * 4)
@@ -113,7 +113,7 @@ function napi_get_new_target (
   env: napi_env,
   cbinfo: napi_callback_info,
   result: Pointer<napi_value>
-): emnapi.napi_status {
+): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [cbinfo, result], () => {
       try {
@@ -125,7 +125,7 @@ function napi_get_new_target (
         }
       } catch (err) {
         envObject.tryCatch.setError(err)
-        return envObject.setLastError(emnapi.napi_status.napi_pending_exception)
+        return envObject.setLastError(napi_status.napi_pending_exception)
       }
       return envObject.clearLastError()
     })

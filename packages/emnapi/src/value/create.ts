@@ -1,4 +1,4 @@
-function napi_create_array (env: napi_env, result: Pointer<napi_value>): emnapi.napi_status {
+function napi_create_array (env: napi_env, result: Pointer<napi_value>): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [result], () => {
       HEAP32[result >> 2] = envObject.getCurrentScope().add([]).id
@@ -7,7 +7,7 @@ function napi_create_array (env: napi_env, result: Pointer<napi_value>): emnapi.
   })
 }
 
-function napi_create_array_with_length (env: napi_env, length: size_t, result: Pointer<napi_value>): emnapi.napi_status {
+function napi_create_array_with_length (env: napi_env, length: size_t, result: Pointer<napi_value>): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [result], () => {
       HEAP32[result >> 2] = envObject.getCurrentScope().add(new Array(length >>> 0)).id
@@ -16,7 +16,7 @@ function napi_create_array_with_length (env: napi_env, length: size_t, result: P
   })
 }
 
-function napi_create_arraybuffer (env: napi_env, byte_length: size_t, _data: void_pp, result: Pointer<napi_value>): emnapi.napi_status {
+function napi_create_arraybuffer (env: napi_env, byte_length: size_t, _data: void_pp, result: Pointer<napi_value>): napi_status {
   return emnapi.preamble(env, (envObject) => {
     return emnapi.checkArgs(envObject, [result], () => {
       byte_length = byte_length >>> 0
@@ -26,7 +26,7 @@ function napi_create_arraybuffer (env: napi_env, byte_length: size_t, _data: voi
   })
 }
 
-function napi_create_date (env: napi_env, time: double, result: Pointer<napi_value>): emnapi.napi_status {
+function napi_create_date (env: napi_env, time: double, result: Pointer<napi_value>): napi_status {
   return emnapi.preamble(env, (envObject) => {
     return emnapi.checkArgs(envObject, [result], () => {
       HEAP32[result >> 2] = envObject.getCurrentScope().add(new Date(time)).id
@@ -35,9 +35,9 @@ function napi_create_date (env: napi_env, time: double, result: Pointer<napi_val
   })
 }
 
-function napi_create_external (env: napi_env, data: void_p, finalize_cb: napi_finalize, finalize_hint: void_p, result: Pointer<napi_value>): emnapi.napi_status {
+function napi_create_external (env: napi_env, data: void_p, finalize_cb: napi_finalize, finalize_hint: void_p, result: Pointer<napi_value>): napi_status {
   return emnapi.preamble(env, (envObject) => {
-    if (!emnapi.supportFinalizer) return envObject.setLastError(emnapi.napi_status.napi_generic_failure)
+    if (!emnapi.supportFinalizer) return envObject.setLastError(napi_status.napi_generic_failure)
     return emnapi.checkArgs(envObject, [result], () => {
       const externalHandle = emnapi.ExternalHandle.createExternal(env, data)
       envObject.getCurrentScope().addHandle(externalHandle)
@@ -55,11 +55,11 @@ function napi_create_external_arraybuffer (
   _finalize_cb: napi_finalize,
   _finalize_hint: void_p,
   _result: Pointer<napi_value>
-): emnapi.napi_status {
-  return _napi_set_last_error(env, emnapi.napi_status.napi_generic_failure, 0, 0)
+): napi_status {
+  return _napi_set_last_error(env, napi_status.napi_generic_failure, 0, 0)
 }
 
-function napi_create_object (env: napi_env, result: Pointer<napi_value>): emnapi.napi_status {
+function napi_create_object (env: napi_env, result: Pointer<napi_value>): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [result], () => {
       HEAP32[result >> 2] = envObject.getCurrentScope().add({}).id
@@ -68,7 +68,7 @@ function napi_create_object (env: napi_env, result: Pointer<napi_value>): emnapi
   })
 }
 
-function napi_create_symbol (env: napi_env, description: napi_value, result: Pointer<napi_value>): emnapi.napi_status {
+function napi_create_symbol (env: napi_env, description: napi_value, result: Pointer<napi_value>): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [result], () => {
       if (description === emnapi.NULL) {
@@ -78,7 +78,7 @@ function napi_create_symbol (env: napi_env, description: napi_value, result: Poi
         const handle = envObject.handleStore.get(description)!
         const desc = handle.value
         if (typeof desc !== 'string') {
-          return envObject.setLastError(emnapi.napi_status.napi_string_expected)
+          return envObject.setLastError(napi_status.napi_string_expected)
         }
         HEAP32[result >> 2] = envObject.getCurrentScope().add(Symbol(desc)).id
       }
@@ -89,12 +89,12 @@ function napi_create_symbol (env: napi_env, description: napi_value, result: Poi
 
 function napi_create_typedarray (
   env: napi_env,
-  type: emnapi.napi_typedarray_type,
+  type: napi_typedarray_type,
   length: size_t,
   arraybuffer: napi_value,
   byte_offset: size_t,
   result: Pointer<napi_value>
-): emnapi.napi_status {
+): napi_status {
   return emnapi.preamble(env, (envObject) => {
     return emnapi.checkArgs(envObject, [arraybuffer, result], () => {
       length = length >>> 0
@@ -102,39 +102,39 @@ function napi_create_typedarray (
       const handle = envObject.handleStore.get(arraybuffer)!
       const buffer = handle.value
       if (!(buffer instanceof ArrayBuffer)) {
-        return envObject.setLastError(emnapi.napi_status.napi_invalid_arg)
+        return envObject.setLastError(napi_status.napi_invalid_arg)
       }
 
-      const retCallback = (out: ArrayBufferView): emnapi.napi_status => {
+      const retCallback = (out: ArrayBufferView): napi_status => {
         HEAP32[result >> 2] = envObject.getCurrentScope().add(out).id
         return envObject.getReturnStatus()
       }
 
       switch (type) {
-        case emnapi.napi_typedarray_type.napi_int8_array:
+        case napi_typedarray_type.napi_int8_array:
           return emnapiCreateTypedArray(env, Int8Array, 1, buffer, byte_offset, length, retCallback)
-        case emnapi.napi_typedarray_type.napi_uint8_array:
+        case napi_typedarray_type.napi_uint8_array:
           return emnapiCreateTypedArray(env, Uint8Array, 1, buffer, byte_offset, length, retCallback)
-        case emnapi.napi_typedarray_type.napi_uint8_clamped_array:
+        case napi_typedarray_type.napi_uint8_clamped_array:
           return emnapiCreateTypedArray(env, Uint8ClampedArray, 1, buffer, byte_offset, length, retCallback)
-        case emnapi.napi_typedarray_type.napi_int16_array:
+        case napi_typedarray_type.napi_int16_array:
           return emnapiCreateTypedArray(env, Int16Array, 2, buffer, byte_offset, length, retCallback)
-        case emnapi.napi_typedarray_type.napi_uint16_array:
+        case napi_typedarray_type.napi_uint16_array:
           return emnapiCreateTypedArray(env, Uint16Array, 2, buffer, byte_offset, length, retCallback)
-        case emnapi.napi_typedarray_type.napi_int32_array:
+        case napi_typedarray_type.napi_int32_array:
           return emnapiCreateTypedArray(env, Int32Array, 4, buffer, byte_offset, length, retCallback)
-        case emnapi.napi_typedarray_type.napi_uint32_array:
+        case napi_typedarray_type.napi_uint32_array:
           return emnapiCreateTypedArray(env, Uint32Array, 4, buffer, byte_offset, length, retCallback)
-        case emnapi.napi_typedarray_type.napi_float32_array:
+        case napi_typedarray_type.napi_float32_array:
           return emnapiCreateTypedArray(env, Float32Array, 4, buffer, byte_offset, length, retCallback)
-        case emnapi.napi_typedarray_type.napi_float64_array:
+        case napi_typedarray_type.napi_float64_array:
           return emnapiCreateTypedArray(env, Float64Array, 8, buffer, byte_offset, length, retCallback)
-        case emnapi.napi_typedarray_type.napi_bigint64_array:
+        case napi_typedarray_type.napi_bigint64_array:
           return emnapiCreateTypedArray(env, BigInt64Array, 8, buffer, byte_offset, length, retCallback)
-        case emnapi.napi_typedarray_type.napi_biguint64_array:
+        case napi_typedarray_type.napi_biguint64_array:
           return emnapiCreateTypedArray(env, BigUint64Array, 8, buffer, byte_offset, length, retCallback)
         default:
-          return envObject.setLastError(emnapi.napi_status.napi_invalid_arg)
+          return envObject.setLastError(napi_status.napi_invalid_arg)
       }
     })
   })
@@ -146,7 +146,7 @@ function napi_create_dataview (
   arraybuffer: napi_value,
   byte_offset: size_t,
   result: Pointer<napi_value>
-): emnapi.napi_status {
+): napi_status {
   return emnapi.preamble(env, (envObject) => {
     return emnapi.checkArgs(envObject, [arraybuffer, result], () => {
       byte_length = byte_length >>> 0
@@ -154,14 +154,14 @@ function napi_create_dataview (
       const handle = envObject.handleStore.get(arraybuffer)!
       const buffer = handle.value
       if (!(buffer instanceof ArrayBuffer)) {
-        return envObject.setLastError(emnapi.napi_status.napi_invalid_arg)
+        return envObject.setLastError(napi_status.napi_invalid_arg)
       }
 
       if ((byte_length + byte_offset) > buffer.byteLength) {
         const err: RangeError & { code?: string } = new RangeError('byte_offset + byte_length should be less than or equal to the size in bytes of the array passed in')
         err.code = 'ERR_NAPI_INVALID_DATAVIEW_ARGS'
         envObject.tryCatch.setError(err)
-        return envObject.setLastError(emnapi.napi_status.napi_pending_exception)
+        return envObject.setLastError(napi_status.napi_pending_exception)
       }
 
       const dataview = new DataView(buffer, byte_offset, byte_length)
@@ -171,7 +171,7 @@ function napi_create_dataview (
   })
 }
 
-function node_api_symbol_for (env: napi_env, utf8description: const_char_p, length: size_t, result: Pointer<napi_value>): emnapi.napi_status {
+function node_api_symbol_for (env: napi_env, utf8description: const_char_p, length: size_t, result: Pointer<napi_value>): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [result], () => {
       const descriptionString = length === -1 ? UTF8ToString(utf8description) : UTF8ToString(utf8description, length)
