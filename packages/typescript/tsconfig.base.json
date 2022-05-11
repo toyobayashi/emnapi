@@ -1,7 +1,5 @@
 {
   "compilerOptions": {
-    "target": "ES5",
-    "module": "none",
     "noImplicitAny": true,
     "noImplicitReturns": true,
     "noImplicitThis": true,

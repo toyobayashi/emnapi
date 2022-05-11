@@ -78,17 +78,7 @@ function logError (program, emitResult, ignoreErrorCodes = []) {
   formatDiagnosticsWithColorAndContext(diagnostics)
 }
 
-/** @typedef {{ pureClass?: boolean; ignoreErrorCodes?: number[]; }} TransformOptions */
-
-function applyCompilerHost (compilerHost, customTransformOptions) {
-  const oldWriteFile = compilerHost.writeFile
-  compilerHost.writeFile = function (fileName, data, writeByteOrderMark, onError, sourceFiles) {
-    if (customTransformOptions.pureClass) {
-      data = data.replace(/\/\*\* @class \*\/ \(function/g, '/*#__PURE__*/ (function')
-    }
-    return oldWriteFile.call(this, fileName, data, writeByteOrderMark, onError, sourceFiles)
-  }
-}
+/** @typedef {{ ignoreErrorCodes?: number[]; }} TransformOptions */
 
 function getDefault (mod) {
   const esModuleDesc = Object.getOwnPropertyDescriptor(mod, '__esModule')
@@ -134,7 +124,6 @@ function getTransformers (tsconfig, compilerOptions, program) {
  * @param {TransformOptions=} customTransformOptions
  */
 function compile (tsconfig, customTransformOptions = {
-  pureClass: true,
   ignoreErrorCodes: []
 }) {
   customTransformOptions = customTransformOptions || {}
@@ -142,7 +131,6 @@ function compile (tsconfig, customTransformOptions = {
 
   const parsedCommandLine = parseTsConfigToCommandLine(tsconfig)
   const compilerHost = ts.createCompilerHost(parsedCommandLine.options)
-  applyCompilerHost(compilerHost, customTransformOptions, parsedCommandLine.options)
 
   const program = ts.createProgram(parsedCommandLine.fileNames, parsedCommandLine.options, compilerHost)
   const customTransformers = getTransformers(tsconfig, parsedCommandLine.options, program)
@@ -172,7 +160,6 @@ function createGetCanonicalFileName (useCaseSensitiveFileNames) {
 }
 
 function watch (tsconfig, customTransformOptions = {
-  pureClass: true,
   ignoreErrorCodes: []
 }) {
   customTransformOptions = customTransformOptions || {}
@@ -207,7 +194,6 @@ function watch (tsconfig, customTransformOptions = {
 
   const origCreateProgram = host.createProgram
   host.createProgram = (rootNames, options, host, oldProgram) => {
-    applyCompilerHost(host, customTransformOptions, options)
     return origCreateProgram.call(this, rootNames, options, host, oldProgram)
   }
 

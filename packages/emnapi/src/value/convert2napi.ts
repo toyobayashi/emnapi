@@ -39,7 +39,7 @@ function napi_create_string_latin1 (env: napi_env, str: const_char_p, length: si
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [result], () => {
       length = length >>> 0
-      if (!((length === 0xffffffff) || (length <= 2147483647)) || (str === emnapi.NULL)) {
+      if (!((length === 0xffffffff) || (length <= 2147483647)) || (str === NULL)) {
         return envObject.setLastError(napi_status.napi_invalid_arg)
       }
 
@@ -71,7 +71,7 @@ function napi_create_string_utf16 (env: napi_env, str: const_char16_t_p, length:
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [result], () => {
       length = length >>> 0
-      if (!((length === 0xffffffff) || (length <= 2147483647)) || (str === emnapi.NULL)) {
+      if (!((length === 0xffffffff) || (length <= 2147483647)) || (str === NULL)) {
         return envObject.setLastError(napi_status.napi_invalid_arg)
       }
 
@@ -86,7 +86,7 @@ function napi_create_string_utf8 (env: napi_env, str: const_char_p, length: size
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [result], () => {
       length = length >>> 0
-      if (!((length === 0xffffffff) || (length <= 2147483647)) || (str === emnapi.NULL)) {
+      if (!((length === 0xffffffff) || (length <= 2147483647)) || (str === NULL)) {
         return envObject.setLastError(napi_status.napi_invalid_arg)
       }
       const utf8String = length === -1 ? UTF8ToString(str) : UTF8ToString(str, length)

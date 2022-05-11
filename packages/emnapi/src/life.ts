@@ -128,7 +128,7 @@ function napi_reference_ref (
     return emnapi.checkArgs(envObject, [ref], () => {
       try {
         const count = envObject.refStore.get(ref)!.ref()
-        if (result !== emnapi.NULL) {
+        if (result !== NULL) {
           HEAPU32[result >> 2] = count
         }
         return envObject.clearLastError()
@@ -154,7 +154,7 @@ function napi_reference_unref (
           return envObject.setLastError(napi_status.napi_generic_failure)
         }
         const count = reference.unref()
-        if (result !== emnapi.NULL) {
+        if (result !== NULL) {
           HEAPU32[result >> 2] = count
         }
         return envObject.clearLastError()
@@ -177,7 +177,7 @@ function napi_get_reference_value (
       try {
         const reference = envObject.refStore.get(ref)!
         const handleId = reference.get()
-        if (handleId !== emnapi.NULL) {
+        if (handleId !== NULL) {
           const handle = envObject.handleStore.get(handleId)!
           handle.addRef(reference)
           envObject.getCurrentScope()?.addHandle(handle)

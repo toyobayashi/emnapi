@@ -12,7 +12,7 @@
     "tslib": "^2.4.0"
   },
   "scripts": {
-    "build": "tsc -p ./tsconfig.json && node ./script/build.js"
+    "build": "node ./script/build.js"
   },
   "repository": {
     "type": "git",

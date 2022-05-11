@@ -4,8 +4,10 @@ const rollup = require('rollup')
 const rollupNodeResolve = require('@rollup/plugin-node-resolve').default
 const rollupTerser = require('rollup-plugin-terser').terser
 const runtimeOut = path.join(__dirname, '../dist/library_napi_runtime.js')
+const { compile } = require('../../typescript')
 
 function build () {
+  compile(path.join(__dirname, '../tsconfig.json'))
   const {
     Extractor,
     ExtractorConfig

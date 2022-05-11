@@ -1,5 +1,5 @@
 /* function napi_module_register (nodeModule: Pointer<node_module>): void {
-  if (nodeModule === emnapi.NULL) return
+  if (nodeModule === NULL) return
 
   const addr = nodeModule >> 2
   // const nm_version = HEAP32[addr]

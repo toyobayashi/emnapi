@@ -4,7 +4,7 @@ import { ScopeStore, IHandleScope, HandleScope, EscapableHandleScope } from './H
 import { LinkedList } from './LinkedList'
 import { RefStore } from './Reference'
 import { IStoreValue, Store } from './Store'
-import { TypedArray, supportFinalizer, NULL, TryCatch, envStore, isReferenceType } from './util'
+import { TypedArray, supportFinalizer, TryCatch, envStore, isReferenceType } from './util'
 
 export interface ILastError {
   errorMessage: const_char_p

@@ -23,7 +23,6 @@ export const _global: typeof globalThis = (function () {
   return g
 })()
 
-export const NULL: 0 = 0
 export const INT64_RANGE_POSITIVE = Math.pow(2, 63)
 export const INT64_RANGE_NEGATIVE = -Math.pow(2, 63)
 

@@ -1,6 +1,8 @@
 {
-  "extends": "./tsconfig.base.json",
+  "extends": "../typescript/tsconfig.base.json",
   "compilerOptions": {
+    "target": "ES5",
+    "module": "none",
     "outFile": "./dist/library_napi.js",
     "importHelpers": false,
     "noEmitHelpers": true,
@@ -11,6 +13,14 @@
       "ES2020.BigInt",
       "ES2021.WeakRef",
       "DOM"
+    ],
+    "plugins": [
+      {
+        "transform": "../typescript/define-transformer.js",
+        "defines": {
+          "NULL": 0
+        }
+      }
     ]
   },
   "include": [

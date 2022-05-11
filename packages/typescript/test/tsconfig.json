@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "target": "ES5",
+    "plugins": [
+      {
+        "transform": "../define-transformer.js",
+        "defines": {
+          "NULL": 0
+        }
+      }
+    ]
+  },
+  "include": [
+    "./**/*.ts"
+  ]
+}

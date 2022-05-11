@@ -24,7 +24,7 @@ function spawn (command, args, cwdPath, stdin) {
 
 async function main () {
   const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm'
-  await spawn(npm, ['install', '--legacy-peer-deps', '--no-package-lock', '--ignore-scripts'], path.join(__dirname, '..'))
+  await spawn(npm, ['install', '--legacy-peer-deps', '--no-package-lock'], path.join(__dirname, '..'))
   await spawn(npm, ['install', '--legacy-peer-deps', '--no-package-lock', '--ignore-scripts'], path.join(__dirname, '../packages/runtime'))
   await spawn(npm, ['install', '--legacy-peer-deps', '--no-package-lock', '--ignore-scripts'], path.join(__dirname, '../packages/emnapi'))
   await spawn(npm, ['install', '--legacy-peer-deps', '--no-package-lock', '--ignore-scripts'], path.join(__dirname, '../packages/test'))

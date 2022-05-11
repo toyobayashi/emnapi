@@ -71,7 +71,7 @@ function napi_create_object (env: napi_env, result: Pointer<napi_value>): napi_s
 function napi_create_symbol (env: napi_env, description: napi_value, result: Pointer<napi_value>): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [result], () => {
-      if (description === emnapi.NULL) {
+      if (description === NULL) {
         // eslint-disable-next-line symbol-description
         HEAP32[result >> 2] = envObject.getCurrentScope().add(Symbol()).id
       } else {

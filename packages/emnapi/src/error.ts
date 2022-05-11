@@ -24,9 +24,9 @@ function napi_throw (env: napi_env, error: napi_value): napi_status {
 
 function napi_throw_error (env: napi_env, code: const_char_p, msg: const_char_p): napi_status {
   return emnapi.preamble(env, (envObject) => {
-    if (msg === emnapi.NULL) return envObject.setLastError(napi_status.napi_invalid_arg)
+    if (msg === NULL) return envObject.setLastError(napi_status.napi_invalid_arg)
     const error: Error & { code?: string } = new Error(UTF8ToString(msg))
-    if (code !== emnapi.NULL) {
+    if (code !== NULL) {
       error.code = UTF8ToString(code)
     }
     envObject.tryCatch.setError(error)
@@ -36,9 +36,9 @@ function napi_throw_error (env: napi_env, code: const_char_p, msg: const_char_p)
 
 function napi_throw_type_error (env: napi_env, code: const_char_p, msg: const_char_p): napi_status {
   return emnapi.preamble(env, (envObject) => {
-    if (msg === emnapi.NULL) return envObject.setLastError(napi_status.napi_invalid_arg)
+    if (msg === NULL) return envObject.setLastError(napi_status.napi_invalid_arg)
     const error: TypeError & { code?: string } = new TypeError(UTF8ToString(msg))
-    if (code !== emnapi.NULL) {
+    if (code !== NULL) {
       error.code = UTF8ToString(code)
     }
     envObject.tryCatch.setError(error)
@@ -48,9 +48,9 @@ function napi_throw_type_error (env: napi_env, code: const_char_p, msg: const_ch
 
 function napi_throw_range_error (env: napi_env, code: const_char_p, msg: const_char_p): napi_status {
   return emnapi.preamble(env, (envObject) => {
-    if (msg === emnapi.NULL) return envObject.setLastError(napi_status.napi_invalid_arg)
+    if (msg === NULL) return envObject.setLastError(napi_status.napi_invalid_arg)
     const error: RangeError & { code?: string } = new RangeError(UTF8ToString(msg))
-    if (code !== emnapi.NULL) {
+    if (code !== NULL) {
       error.code = UTF8ToString(code)
     }
     envObject.tryCatch.setError(error)
@@ -60,9 +60,9 @@ function napi_throw_range_error (env: napi_env, code: const_char_p, msg: const_c
 
 function node_api_throw_syntax_error (env: napi_env, code: const_char_p, msg: const_char_p): napi_status {
   return emnapi.preamble(env, (envObject) => {
-    if (msg === emnapi.NULL) return envObject.setLastError(napi_status.napi_invalid_arg)
+    if (msg === NULL) return envObject.setLastError(napi_status.napi_invalid_arg)
     const error: SyntaxError & { code?: string } = new SyntaxError(UTF8ToString(msg))
-    if (code !== emnapi.NULL) {
+    if (code !== NULL) {
       error.code = UTF8ToString(code)
     }
     envObject.tryCatch.setError(error)
@@ -91,7 +91,7 @@ function napi_create_error (env: napi_env, code: napi_value, msg: napi_value, re
         }
 
         error = new Error(msgValue)
-        const status = emnapiSetErrorCode(envObject, error, code, emnapi.NULL)
+        const status = emnapiSetErrorCode(envObject, error, code, NULL)
         if (status !== napi_status.napi_ok) return status
       } catch (err) {
         envObject.tryCatch.setError(err)
@@ -113,7 +113,7 @@ function napi_create_type_error (env: napi_env, code: napi_value, msg: napi_valu
           return envObject.setLastError(napi_status.napi_string_expected)
         }
         error = new TypeError(msgValue)
-        const status = emnapiSetErrorCode(envObject, error, code, emnapi.NULL)
+        const status = emnapiSetErrorCode(envObject, error, code, NULL)
         if (status !== napi_status.napi_ok) return status
       } catch (err) {
         envObject.tryCatch.setError(err)
@@ -135,7 +135,7 @@ function napi_create_range_error (env: napi_env, code: napi_value, msg: napi_val
           return envObject.setLastError(napi_status.napi_string_expected)
         }
         error = new RangeError(msgValue)
-        const status = emnapiSetErrorCode(envObject, error, code, emnapi.NULL)
+        const status = emnapiSetErrorCode(envObject, error, code, NULL)
         if (status !== napi_status.napi_ok) return status
       } catch (err) {
         envObject.tryCatch.setError(err)
@@ -157,7 +157,7 @@ function node_api_create_syntax_error (env: napi_env, code: napi_value, msg: nap
           return envObject.setLastError(napi_status.napi_string_expected)
         }
         error = new SyntaxError(msgValue)
-        const status = emnapiSetErrorCode(envObject, error, code, emnapi.NULL)
+        const status = emnapiSetErrorCode(envObject, error, code, NULL)
         if (status !== napi_status.napi_ok) return status
       } catch (err) {
         envObject.tryCatch.setError(err)

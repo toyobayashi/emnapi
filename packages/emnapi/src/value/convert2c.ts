@@ -24,10 +24,10 @@ function napi_get_arraybuffer_info (env: napi_env, arraybuffer: napi_value, data
         if (!handle.isArrayBuffer()) {
           return envObject.setLastError(napi_status.napi_invalid_arg)
         }
-        if (data !== emnapi.NULL) {
+        if (data !== NULL) {
           HEAP32[data >> 2] = envObject.getArrayBufferPointer(handle.value)
         }
-        if (byte_length !== emnapi.NULL) {
+        if (byte_length !== NULL) {
           HEAPU32[byte_length >> 2] = (handle.value as ArrayBuffer).byteLength
         }
       } catch (err) {
@@ -74,7 +74,7 @@ function napi_get_typedarray_info (
           return envObject.setLastError(napi_status.napi_invalid_arg)
         }
         const v = handle.value
-        if (type !== emnapi.NULL) {
+        if (type !== NULL) {
           if (v instanceof Int8Array) {
             HEAP32[type >> 2] = napi_typedarray_type.napi_int8_array
           } else if (v instanceof Uint8Array) {
@@ -99,20 +99,20 @@ function napi_get_typedarray_info (
             HEAP32[type >> 2] = napi_typedarray_type.napi_biguint64_array
           }
         }
-        if (length !== emnapi.NULL) {
+        if (length !== NULL) {
           HEAPU32[length >> 2] = v.length
         }
         let buffer: ArrayBuffer
-        if (data !== emnapi.NULL || arraybuffer !== emnapi.NULL) {
+        if (data !== NULL || arraybuffer !== NULL) {
           buffer = v.buffer
-          if (data !== emnapi.NULL) {
+          if (data !== NULL) {
             HEAP32[data >> 2] = envObject.getViewPointer(v)
           }
-          if (arraybuffer !== emnapi.NULL) {
+          if (arraybuffer !== NULL) {
             HEAP32[arraybuffer >> 2] = envObject.ensureHandleId(buffer)
           }
         }
-        if (byte_offset !== emnapi.NULL) {
+        if (byte_offset !== NULL) {
           HEAPU32[byte_offset >> 2] = v.byteOffset
         }
       } catch (err) {
@@ -140,20 +140,20 @@ function napi_get_dataview_info (
           return envObject.setLastError(napi_status.napi_invalid_arg)
         }
         const v = handle.value as DataView
-        if (byte_length !== emnapi.NULL) {
+        if (byte_length !== NULL) {
           HEAPU32[byte_length >> 2] = v.byteLength
         }
         let buffer: ArrayBuffer
-        if (data !== emnapi.NULL || arraybuffer !== emnapi.NULL) {
+        if (data !== NULL || arraybuffer !== NULL) {
           buffer = v.buffer
-          if (data !== emnapi.NULL) {
+          if (data !== NULL) {
             HEAP32[data >> 2] = envObject.getViewPointer(v)
           }
-          if (arraybuffer !== emnapi.NULL) {
+          if (arraybuffer !== NULL) {
             HEAP32[arraybuffer >> 2] = envObject.ensureHandleId(buffer)
           }
         }
-        if (byte_offset !== emnapi.NULL) {
+        if (byte_offset !== NULL) {
           HEAPU32[byte_offset >> 2] = v.byteOffset
         }
       } catch (err) {
@@ -300,11 +300,11 @@ function napi_get_value_bigint_words (
         }
         bigintValue = isMinus ? (handle.value * BigInt(-1)) : handle.value
         word_count_int = wordCount
-        if (sign_bit === emnapi.NULL && words === emnapi.NULL) {
+        if (sign_bit === NULL && words === NULL) {
           HEAPU32[word_count >> 2] = word_count_int
         } else {
-          if (sign_bit === emnapi.NULL) return envObject.setLastError(napi_status.napi_invalid_arg)
-          if (words === emnapi.NULL) return envObject.setLastError(napi_status.napi_invalid_arg)
+          if (sign_bit === NULL) return envObject.setLastError(napi_status.napi_invalid_arg)
+          if (words === NULL) return envObject.setLastError(napi_status.napi_invalid_arg)
           const wordsArr = []
           while (bigintValue !== BigInt(0)) {
             const uint64 = bigintValue & ((BigInt(1) << BigInt(64)) - BigInt(1))
@@ -409,8 +409,8 @@ function napi_get_value_string_latin1 (env: napi_env, value: napi_value, buf: ch
         if (typeof handle.value !== 'string') {
           return envObject.setLastError(napi_status.napi_string_expected)
         }
-        if (buf === emnapi.NULL) {
-          if (result === emnapi.NULL) return envObject.setLastError(napi_status.napi_invalid_arg)
+        if (buf === NULL) {
+          if (result === NULL) return envObject.setLastError(napi_status.napi_invalid_arg)
           HEAPU32[result >> 2] = handle.value.length
         } else if (buf_size !== 0) {
           let copied: number = 0
@@ -419,10 +419,10 @@ function napi_get_value_string_latin1 (env: napi_env, value: napi_value, buf: ch
             copied++
           }
           HEAPU8[buf + copied] = 0
-          if (result !== emnapi.NULL) {
+          if (result !== NULL) {
             HEAPU32[result >> 2] = copied
           }
-        } else if (result !== emnapi.NULL) {
+        } else if (result !== NULL) {
           HEAPU32[result >> 2] = 0
         }
       } catch (err) {
@@ -443,15 +443,15 @@ function napi_get_value_string_utf8 (env: napi_env, value: napi_value, buf: char
         if (typeof handle.value !== 'string') {
           return envObject.setLastError(napi_status.napi_string_expected)
         }
-        if (buf === emnapi.NULL) {
-          if (result === emnapi.NULL) return envObject.setLastError(napi_status.napi_invalid_arg)
+        if (buf === NULL) {
+          if (result === NULL) return envObject.setLastError(napi_status.napi_invalid_arg)
           HEAPU32[result >> 2] = lengthBytesUTF8(handle.value)
         } else if (buf_size !== 0) {
           const copied = stringToUTF8(handle.value, buf, buf_size)
-          if (result !== emnapi.NULL) {
+          if (result !== NULL) {
             HEAPU32[result >> 2] = copied
           }
-        } else if (result !== emnapi.NULL) {
+        } else if (result !== NULL) {
           HEAPU32[result >> 2] = 0
         }
       } catch (err) {
@@ -472,15 +472,15 @@ function napi_get_value_string_utf16 (env: napi_env, value: napi_value, buf: cha
         if (typeof handle.value !== 'string') {
           return envObject.setLastError(napi_status.napi_string_expected)
         }
-        if (buf === emnapi.NULL) {
-          if (result === emnapi.NULL) return envObject.setLastError(napi_status.napi_invalid_arg)
+        if (buf === NULL) {
+          if (result === NULL) return envObject.setLastError(napi_status.napi_invalid_arg)
           HEAPU32[result >> 2] = handle.value.length
         } else if (buf_size !== 0) {
           const copied = stringToUTF16(handle.value, buf, buf_size * 2)
-          if (result !== emnapi.NULL) {
+          if (result !== NULL) {
             HEAPU32[result >> 2] = copied / 2
           }
-        } else if (result !== emnapi.NULL) {
+        } else if (result !== NULL) {
           HEAPU32[result >> 2] = 0
         }
       } catch (err) {

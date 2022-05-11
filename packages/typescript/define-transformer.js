@@ -60,6 +60,7 @@ function defineTransformer (program, { defines = {} } = {}) {
             (() => {
               const nodeSymbol = typeChecker.getSymbolAtLocation(node)
               if (!nodeSymbol) return true
+              if (!nodeSymbol.valueDeclaration) return false
               if (ts.isVariableDeclaration(nodeSymbol.valueDeclaration)) {
                 if (ts.isVariableStatement(nodeSymbol.valueDeclaration.parent.parent)) {
                   return (nodeSymbol.valueDeclaration.parent.parent.modifiers &&

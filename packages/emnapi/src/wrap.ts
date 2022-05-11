@@ -12,9 +12,9 @@ function napi_define_class (
       property_count = property_count >>> 0
       length = length >>> 0
       if (property_count > 0) {
-        if (properties === emnapi.NULL) return envObject.setLastError(napi_status.napi_invalid_arg)
+        if (properties === NULL) return envObject.setLastError(napi_status.napi_invalid_arg)
       }
-      if (!((length === 0xffffffff) || (length <= 2147483647)) || (utf8name === emnapi.NULL)) {
+      if (!((length === 0xffffffff) || (length <= 2147483647)) || (utf8name === NULL)) {
         return envObject.setLastError(napi_status.napi_invalid_arg)
       }
       const F = emnapiCreateFunction(env, utf8name, length, constructor, callback_data)
@@ -32,10 +32,10 @@ function napi_define_class (
         const data = HEAP32[propPtr + 28 >> 2]
 
         let propertyName: string | symbol
-        if (utf8Name !== emnapi.NULL) {
+        if (utf8Name !== NULL) {
           propertyName = UTF8ToString(utf8Name)
         } else {
-          if (name === emnapi.NULL) {
+          if (name === NULL) {
             return envObject.setLastError(napi_status.napi_name_expected)
           }
           propertyName = envObject.handleStore.get(name)!.value
@@ -75,14 +75,14 @@ function napi_remove_wrap (env: napi_env, js_object: napi_value, result: void_pp
 
 function napi_type_tag_object (env: napi_env, object: napi_value, type_tag: Const<Pointer<unknown>>): napi_status {
   return emnapi.preamble(env, (envObject) => {
-    if (object === emnapi.NULL) {
+    if (object === NULL) {
       return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_invalid_arg)
     }
     const value = envObject.handleStore.get(object)!
     if (!(value.isObject() || value.isFunction())) {
       return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_object_expected)
     }
-    if (type_tag === emnapi.NULL) {
+    if (type_tag === NULL) {
       return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_invalid_arg)
     }
     if (value.tag !== null) {
@@ -101,17 +101,17 @@ function napi_type_tag_object (env: napi_env, object: napi_value, type_tag: Cons
 
 function napi_check_object_type_tag (env: napi_env, object: napi_value, type_tag: Const<Pointer<unknown>>, result: Pointer<bool>): napi_status {
   return emnapi.preamble(env, (envObject) => {
-    if (object === emnapi.NULL) {
+    if (object === NULL) {
       return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_invalid_arg)
     }
     const value = envObject.handleStore.get(object)!
     if (!(value.isObject() || value.isFunction())) {
       return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_object_expected)
     }
-    if (type_tag === emnapi.NULL) {
+    if (type_tag === NULL) {
       return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_invalid_arg)
     }
-    if (result === emnapi.NULL) {
+    if (result === NULL) {
       return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_invalid_arg)
     }
     let ret = true

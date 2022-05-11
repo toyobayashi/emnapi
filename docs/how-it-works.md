@@ -355,7 +355,7 @@ function napi_get_reference_value (
       try {
         const reference = envObject.refStore.get(ref)!
         const handleId = reference.get()
-        if (handleId !== emnapi.NULL) {
+        if (handleId !== NULL) {
           const handle = envObject.handleStore.get(handleId)!
           handle.addRef(reference)
           envObject.getCurrentScope()?.addHandle(handle)
@@ -530,7 +530,7 @@ function $emnapiCreateFunction<F extends (...args: any[]) => any> (
 
   if (emnapi.canSetFunctionName) {
     Object.defineProperty(f, 'name', {
-      value: (utf8name === emnapi.NULL || length === 0)
+      value: (utf8name === NULL || length === 0)
         ? ''
         : (length === -1
           ? UTF8ToString(utf8name)

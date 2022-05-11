@@ -1,17 +1,8 @@
 {
+  "extends": "../typescript/tsconfig.base.json",
   "compilerOptions": {
     "target": "ES5",
     "module": "ESNext",
-    "noImplicitAny": true,
-    "noImplicitReturns": true,
-    "noImplicitThis": true,
-    "noImplicitUseStrict": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "strictNullChecks": true,
-    "strictPropertyInitialization": true,
-    "strictBindCallApply": true,
-    "strictFunctionTypes": true,
     "downlevelIteration": true,
     "noEmitHelpers": true,
     "importHelpers": true,
@@ -27,6 +18,14 @@
       "ES2020.BigInt",
       "ES2021.WeakRef",
       "DOM"
+    ],
+    "plugins": [
+      {
+        "transform": "../typescript/define-transformer.js",
+        "defines": {
+          "NULL": 0
+        }
+      }
     ]
   },
   "include": [

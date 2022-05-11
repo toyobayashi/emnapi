@@ -28,7 +28,7 @@ function emnapi_create_external_uint8array (
     if (!emnapi.supportFinalizer) return envObject.setLastError(napi_status.napi_generic_failure)
     return emnapi.checkArgs(envObject, [result], () => {
       byte_length = byte_length >>> 0
-      if (external_data === emnapi.NULL) {
+      if (external_data === NULL) {
         byte_length = 0
       }
 
@@ -40,8 +40,8 @@ function emnapi_create_external_uint8array (
       }
       const u8arr = new Uint8Array(HEAPU8.buffer, external_data, byte_length)
       const handle = envObject.getCurrentScope().add(u8arr)
-      if (finalize_cb !== emnapi.NULL) {
-        const status = emnapiWrap(WrapType.anonymous, env, handle.id, external_data, finalize_cb, finalize_hint, emnapi.NULL)
+      if (finalize_cb !== NULL) {
+        const status = emnapiWrap(WrapType.anonymous, env, handle.id, external_data, finalize_cb, finalize_hint, NULL)
         if (status === napi_status.napi_pending_exception) {
           throw envObject.tryCatch.extractException()
         } else if (status !== napi_status.napi_ok) {

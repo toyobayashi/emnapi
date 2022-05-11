@@ -1,5 +1,5 @@
 import { IStoreValue, Store } from './Store'
-import { NULL, envStore, supportFinalizer, isReferenceType } from './util'
+import { envStore, supportFinalizer, isReferenceType } from './util'
 
 export class Reference implements IStoreValue {
   public id: number

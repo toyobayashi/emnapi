@@ -5,7 +5,6 @@ export {
   supportFinalizer,
   supportBigInt,
   canSetFunctionName,
-  NULL,
   envStore,
   INT64_RANGE_NEGATIVE,
   INT64_RANGE_POSITIVE,

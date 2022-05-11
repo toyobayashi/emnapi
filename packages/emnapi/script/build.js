@@ -1,5 +1,6 @@
 const fs = require('fs')
 const path = require('path')
+const { compile } = require('../../typescript')
 
 const {
   runtimeOut
@@ -7,6 +8,7 @@ const {
 
 async function build () {
   const libTsconfigPath = path.join(__dirname, '../tsconfig.json')
+  compile(libTsconfigPath)
   const libTsconfig = JSON.parse(fs.readFileSync(libTsconfigPath, 'utf8'))
 
   const libOut = path.join(path.dirname(libTsconfigPath), libTsconfig.compilerOptions.outFile)
