@@ -8,6 +8,10 @@
         "defines": {
           "NULL": 0
         }
+      },
+      {
+        "transform": "../pure-class-transformer.js",
+        "after": true
       }
     ]
   },

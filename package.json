@@ -5,8 +5,7 @@
     "fetch": "node ./script/install",
     "build": "cd ./packages/runtime&&npm run build&&cd ../emnapi&&npm run build",
     "release": "npm run build:runtime && tsc && node ./script/build.js&&node ./script/release.js",
-    "lint": "eslint packages/**/*.ts",
-    "postinstall": "patch-package"
+    "lint": "eslint packages/**/*.ts"
   },
   "author": "toyobayashi",
   "repository": {
@@ -33,7 +32,6 @@
     "eslint-plugin-node": "^11.1.0",
     "eslint-plugin-promise": "^6.0.0",
     "fs-extra": "^10.1.0",
-    "patch-package": "^6.4.7",
-    "typescript": "4.6.4"
+    "typescript": "~4.6.4"
   }
 }
