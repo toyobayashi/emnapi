@@ -40,19 +40,22 @@ function parseTsConfigToCommandLine (tsconfig) {
   if (!configFileName) {
     throw new Error(`TSConfig not found: ${tsconfig}`)
   }
-  const configFile = ts.readConfigFile(configFileName, ts.sys.readFile)
+
   const parseConfigHost = {
     fileExists: ts.sys.fileExists,
     readFile: ts.sys.readFile,
     readDirectory: ts.sys.readDirectory,
-    useCaseSensitiveFileNames: true
+    useCaseSensitiveFileNames: true,
+    getCurrentDirectory: ts.sys.getCurrentDirectory,
+    onUnRecoverableConfigFileDiagnostic: (diagnostic) => {
+      formatDiagnosticsWithColorAndContext([diagnostic])
+      throw new TSError(diagnostic.messageText, diagnostic.code)
+    }
   }
-  const parsedCommandLine = ts.parseJsonConfigFileContent(
-    configFile.config,
-    parseConfigHost,
-    dirname(tsconfig)
-  )
+
+  const parsedCommandLine = ts.getParsedCommandLineOfConfigFile(configFileName, undefined, parseConfigHost, undefined, undefined, undefined)
   if (parsedCommandLine.errors.length) {
+    formatDiagnosticsWithColorAndContext(parsedCommandLine.errors)
     throw new TSError(parsedCommandLine.errors[0].messageText, parsedCommandLine.errors[0].code)
   }
   return parsedCommandLine
