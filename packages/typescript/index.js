@@ -31,6 +31,17 @@ Object.defineProperty(TSError.prototype, 'name', {
   value: 'TSError'
 })
 
+function reportDiagnostics (diagnostics) {
+  if (diagnostics.length) {
+    const host = {
+      getCurrentDirectory: ts.sys.getCurrentDirectory,
+      getCanonicalFileName: _ => _,
+      getNewLine: () => ts.sys.newLine
+    }
+    console.error(ts.formatDiagnosticsWithColorAndContext(diagnostics, host))
+  }
+}
+
 function parseTsConfigToCommandLine (tsconfig) {
   const configFileName = ts.findConfigFile(
     dirname(tsconfig),
@@ -48,40 +59,18 @@ function parseTsConfigToCommandLine (tsconfig) {
     useCaseSensitiveFileNames: true,
     getCurrentDirectory: ts.sys.getCurrentDirectory,
     onUnRecoverableConfigFileDiagnostic: (diagnostic) => {
-      formatDiagnosticsWithColorAndContext([diagnostic])
+      reportDiagnostics([diagnostic])
       throw new TSError(diagnostic.messageText, diagnostic.code)
     }
   }
 
   const parsedCommandLine = ts.getParsedCommandLineOfConfigFile(configFileName, undefined, parseConfigHost, undefined, undefined, undefined)
   if (parsedCommandLine.errors.length) {
-    formatDiagnosticsWithColorAndContext(parsedCommandLine.errors)
+    reportDiagnostics(parsedCommandLine.errors)
     throw new TSError(parsedCommandLine.errors[0].messageText, parsedCommandLine.errors[0].code)
   }
   return parsedCommandLine
 }
-
-function formatDiagnosticsWithColorAndContext (diagnostics) {
-  if (diagnostics.length) {
-    const host = {
-      getCurrentDirectory: ts.sys.getCurrentDirectory,
-      getCanonicalFileName: createGetCanonicalFileName(true),
-      getNewLine: function () { return ts.sys.newLine }
-    }
-    console.error(ts.formatDiagnosticsWithColorAndContext(diagnostics, host))
-  }
-}
-
-function logError (program, emitResult, ignoreErrorCodes = []) {
-  const allDiagnostics = ts
-    .getPreEmitDiagnostics(program)
-    .concat(emitResult.diagnostics)
-
-  const diagnostics = allDiagnostics.filter(d => !ignoreErrorCodes.includes(d.code))
-  formatDiagnosticsWithColorAndContext(diagnostics)
-}
-
-/** @typedef {{ ignoreErrorCodes?: number[]; }} TransformOptions */
 
 function getDefault (mod) {
   const esModuleDesc = Object.getOwnPropertyDescriptor(mod, '__esModule')
@@ -97,41 +86,66 @@ function getDefault (mod) {
   return mod
 }
 
+/**
+ * @param {any} target
+ * @param {string=} type
+ * @param {Record<string, any>} config
+ * @param {ts.CompilerOptions} compilerOptions
+ * @param {ts.Program} program
+ * @returns {ts.TransformerFactory<ts.SourceFile> | ts.CustomTransformerFactory}
+ */
+function getTransformer (target, type, config, compilerOptions, program) {
+  if (type === undefined || type === 'program') {
+    return target(program, config)
+  }
+  if (type === 'config') {
+    return target(config)
+  }
+  if (type === 'checker') {
+    return target(program.getTypeChecker(), config)
+  }
+  if (type === 'raw') {
+    return target
+  }
+  if (type === 'compilerOptions') {
+    return target(compilerOptions, config)
+  }
+  throw new TypeError(`Unsupport plugin type: ${type}`)
+}
+
+/**
+ * @param {string} tsconfig
+ * @param {ts.CompilerOptions} compilerOptions
+ * @param {ts.Program} program
+ * @returns {ts.CustomTransformers}
+ */
 function getTransformers (tsconfig, compilerOptions, program) {
   const _require = createRequire(resolve(tsconfig))
   const customTransformers = {}
   if (Array.isArray(compilerOptions.plugins)) {
     for (let i = 0; i < compilerOptions.plugins.length; ++i) {
-      const plugin = compilerOptions.plugins[i]
-      const config = { ...plugin }
-      if (plugin.after) {
-        (customTransformers.after || (customTransformers.after = [])).push(
-          getDefault(_require(plugin.transform))(program, config)
-        )
-      } else if (plugin.afterDeclarations) {
-        (customTransformers.afterDeclarations || (customTransformers.afterDeclarations = [])).push(
-          getDefault(_require(plugin.transform))(program, config)
-        )
-      } else {
-        (customTransformers.before || (customTransformers.before = [])).push(
-          getDefault(_require(plugin.transform))(program, config)
-        )
-      }
+      let plugin = compilerOptions.plugins[i]
+      if (typeof plugin === 'string') plugin = { transform: plugin }
+      const { transform, type, after, afterDeclarations, ...config } = plugin
+      delete config.import
+      const mod = _require(transform)
+      const target = plugin.import ? mod[plugin.import] : getDefault(mod)
+      const timing = after ? 'after' : (afterDeclarations ? 'afterDeclarations' : 'before')
+      ;(customTransformers[timing] || (customTransformers[timing] = [])).push(
+        getTransformer(target, type, config, compilerOptions, program)
+      )
     }
   }
   return customTransformers
 }
 
+/** @typedef {{ ignoreErrorCodes?: number[]; }} TransformOptions */
+
 /**
  * @param {string} tsconfig
  * @param {TransformOptions=} customTransformOptions
  */
-function compile (tsconfig, customTransformOptions = {
-  ignoreErrorCodes: []
-}) {
-  customTransformOptions = customTransformOptions || {}
-  customTransformOptions.ignoreErrorCodes = customTransformOptions.ignoreErrorCodes || []
-
+function compile (tsconfig, { ignoreErrorCodes = [] } = {}) {
   const parsedCommandLine = parseTsConfigToCommandLine(tsconfig)
   const compilerHost = ts.createCompilerHost(parsedCommandLine.options)
 
@@ -139,35 +153,19 @@ function compile (tsconfig, customTransformOptions = {
   const customTransformers = getTransformers(tsconfig, parsedCommandLine.options, program)
   const emitResult = program.emit(undefined, undefined, undefined, !!parsedCommandLine.options.emitDeclarationOnly, customTransformers)
 
-  logError(program, emitResult, customTransformOptions.ignoreErrorCodes)
+  const allDiagnostics = ts
+    .getPreEmitDiagnostics(program)
+    .concat(emitResult.diagnostics)
+
+  const diagnostics = allDiagnostics.filter(d => !ignoreErrorCodes.includes(d.code))
+  reportDiagnostics(diagnostics)
 
   if (emitResult.emitSkipped && !parsedCommandLine.options.noEmit) {
     throw new Error('TypeScript compile failed.')
   }
 }
 
-function identity (x) { return x }
-
-function toLowerCase (x) { return x.toLowerCase() }
-
-const fileNameLowerCaseRegExp = /[^\u0130\u0131\u00DFa-z0-9\\/:\-_. ]+/g
-
-function toFileNameLowerCase (x) {
-  return fileNameLowerCaseRegExp.test(x)
-    ? x.replace(fileNameLowerCaseRegExp, toLowerCase)
-    : x
-}
-
-function createGetCanonicalFileName (useCaseSensitiveFileNames) {
-  return useCaseSensitiveFileNames ? identity : toFileNameLowerCase
-}
-
-function watch (tsconfig, customTransformOptions = {
-  ignoreErrorCodes: []
-}) {
-  customTransformOptions = customTransformOptions || {}
-  customTransformOptions.ignoreErrorCodes = customTransformOptions.ignoreErrorCodes || []
-
+function watch (tsconfig, { ignoreErrorCodes = [] } = {}) {
   const configPath = ts.findConfigFile(
     dirname(tsconfig),
     ts.sys.fileExists,
@@ -179,8 +177,8 @@ function watch (tsconfig, customTransformOptions = {
   }
 
   function reportDiagnostic (diagnostic) {
-    if (customTransformOptions.ignoreErrorCodes.includes(diagnostic.code)) return
-    formatDiagnosticsWithColorAndContext([diagnostic])
+    if (ignoreErrorCodes.includes(diagnostic.code)) return
+    reportDiagnostics([diagnostic])
   }
 
   const host = ts.createWatchCompilerHost(
@@ -189,10 +187,7 @@ function watch (tsconfig, customTransformOptions = {
     ts.sys,
     ts.createSemanticDiagnosticsBuilderProgram,
     reportDiagnostic,
-    function reportWatchStatusChanged (diagnostic) {
-      if (customTransformOptions.ignoreErrorCodes.includes(diagnostic.code)) return
-      formatDiagnosticsWithColorAndContext([diagnostic])
-    }
+    reportDiagnostic
   )
 
   const origCreateProgram = host.createProgram
