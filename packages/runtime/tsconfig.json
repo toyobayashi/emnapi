@@ -1,5 +1,5 @@
 {
-  "extends": "../typescript/tsconfig.base.json",
+  "extends": "../shared/tsconfig.base.json",
   "compilerOptions": {
     "target": "ES5",
     "module": "ESNext",
@@ -21,7 +21,7 @@
     ],
     "plugins": [
       {
-        "transform": "../typescript/define-transformer.js",
+        "transform": "@tybys/ts-transform-define",
         "defines": {
           "NULL": 0
         }

@@ -1,6 +1,6 @@
 const fs = require('fs')
 const path = require('path')
-const { compile } = require('../../typescript')
+const { compile } = require('@tybys/tsapi')
 
 const {
   runtimeOut
