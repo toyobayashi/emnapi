@@ -38,6 +38,7 @@
   "workspaces": [
     "packages/runtime",
     "packages/emnapi",
-    "packages/test"
+    "packages/test",
+    "packages/bench"
   ]
 }

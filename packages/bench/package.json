@@ -1,0 +1,13 @@
+{
+  "name": "@tybys/emnapi-bench",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "rebuild": "cgen rebuild -e"
+  },
+  "devDependencies": {
+    "@tybys/cgen": "^0.11.1",
+    "node-addon-api": "5.0.0",
+    "benchmark": "^2.1.4"
+  }
+}
