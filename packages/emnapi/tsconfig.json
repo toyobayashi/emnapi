@@ -18,7 +18,9 @@
       {
         "transform": "@tybys/ts-transform-define",
         "defines": {
-          "NULL": 0
+          "NULL": 0,
+          "INT64_RANGE_POSITIVE": "9223372036854776000",
+          "INT64_RANGE_NEGATIVE": "-9223372036854776000"
         }
       }
     ]

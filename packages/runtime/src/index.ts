@@ -6,8 +6,6 @@ export {
   supportBigInt,
   canSetFunctionName,
   envStore,
-  INT64_RANGE_NEGATIVE,
-  INT64_RANGE_POSITIVE,
   TypedArray,
   TryCatch,
   EnvStore
