@@ -12,8 +12,8 @@
     "node-addon-api": "5.0.0"
   },
   "scripts": {
-    "rebuild": "cd ../..&&npm run build&&cd ./packages/test && cgen rebuild -e -d",
-    "rebuild:r": "cd ../..&&npm run build&&cd ./packages/test && cgen rebuild -e",
+    "rebuild": "cgen rebuild -e -d",
+    "rebuild:r": "cgen rebuild -e",
     "rebuild:n": "cgen rebuild -d",
     "rebuild:nr": "cgen rebuild",
     "test": "node ./script/test.js",

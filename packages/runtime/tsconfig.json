@@ -10,7 +10,7 @@
     "outDir": "./lib",
     "removeComments": true,
     "paths": {
-      "tslib" : ["./node_modules/tslib/tslib.d.ts"]
+      "tslib" : ["../../node_modules/tslib/tslib.d.ts"]
     },
     "lib": [
       "ES5",
