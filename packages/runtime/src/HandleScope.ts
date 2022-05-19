@@ -1,9 +1,10 @@
 import { Handle, HandleStore } from './Handle'
 import { IStoreValue, Store } from './Store'
-import { envStore, _global } from './util'
+import { _global } from './util'
+import type { Env } from './env'
 
 export interface IHandleScope extends IStoreValue {
-  env: napi_env
+  readonly env: napi_env
   parent: IHandleScope | null
   child: IHandleScope | null
   handles: Array<Handle<any>>
@@ -13,28 +14,32 @@ export interface IHandleScope extends IStoreValue {
 }
 
 export class HandleScope implements IHandleScope {
-  public env: napi_env
+  protected _envObject: Env
   public id: number
   public parent: IHandleScope | null
   public child: IHandleScope | null
   public handles: Array<Handle<any>>
   private _disposed: boolean = false
 
-  protected static _create<T extends typeof HandleScope> (this: T, env: napi_env, parentScope: IHandleScope | null): InstanceType<T> {
-    const scope = new this(env, parentScope)
+  public get env (): napi_env {
+    return this._envObject.id
+  }
+
+  protected static _create<T extends typeof HandleScope> (this: T, envObject: Env, parentScope: IHandleScope | null): InstanceType<T> {
+    const scope = new this(envObject, parentScope)
     if (parentScope) {
       parentScope.child = scope
     }
-    envStore.get(env)!.scopeStore.add(scope)
+    envObject.scopeStore.add(scope)
     return scope as InstanceType<T>
   }
 
-  public static create (env: napi_env, parentScope: IHandleScope | null): HandleScope {
-    return HandleScope._create(env, parentScope)
+  public static create (envObject: Env, parentScope: IHandleScope | null): HandleScope {
+    return HandleScope._create(envObject, parentScope)
   }
 
-  public constructor (env: napi_env, parentScope: IHandleScope | null) {
-    this.env = env
+  public constructor (envObject: Env, parentScope: IHandleScope | null) {
+    this._envObject = envObject
     this.id = 0
     this.parent = parentScope
     this.child = null
@@ -47,19 +52,19 @@ export class HandleScope implements IHandleScope {
     }
 
     if (value === undefined) {
-      return envStore.get(this.env)!.handleStore.get(HandleStore.ID_UNDEFINED)!
+      return this._envObject.handleStore.get(HandleStore.ID_UNDEFINED)!
     }
     if (value === null) {
-      return envStore.get(this.env)!.handleStore.get(HandleStore.ID_NULL)!
+      return this._envObject.handleStore.get(HandleStore.ID_NULL)!
     }
     if (typeof value === 'boolean') {
-      return envStore.get(this.env)!.handleStore.get(value ? HandleStore.ID_TRUE : HandleStore.ID_FALSE)!
+      return this._envObject.handleStore.get(value ? HandleStore.ID_TRUE : HandleStore.ID_FALSE)!
     }
     if (value === _global) {
-      return envStore.get(this.env)!.handleStore.get(HandleStore.ID_GLOBAL)!
+      return this._envObject.handleStore.get(HandleStore.ID_GLOBAL)!
     }
 
-    const h = Handle.create(this.env, value)
+    const h = Handle.create(this._envObject, value)
     this.handles.push(h)
     h.inScope = this
     return h
@@ -88,19 +93,20 @@ export class HandleScope implements IHandleScope {
       this.parent.child = null
     }
     this.parent = null
-    envStore.get(this.env)!.scopeStore.remove(this.id)
+    this._envObject.scopeStore.remove(this.id)
+    this._envObject = undefined!
   }
 }
 
 export class EscapableHandleScope extends HandleScope {
-  public static create (env: napi_env, parentScope: IHandleScope | null): EscapableHandleScope {
-    return EscapableHandleScope._create(env, parentScope)
+  public static create (envObject: Env, parentScope: IHandleScope | null): EscapableHandleScope {
+    return EscapableHandleScope._create(envObject, parentScope)
   }
 
   private _escapeCalled: boolean
 
-  public constructor (public env: napi_env, parentScope: IHandleScope | null) {
-    super(env, parentScope)
+  public constructor (envObject: Env, parentScope: IHandleScope | null) {
+    super(envObject, parentScope)
     this._escapeCalled = false
   }
 
@@ -125,11 +131,10 @@ export class EscapableHandleScope extends HandleScope {
       exists = index !== -1
     }
     if (exists) {
-      const envObject = envStore.get(this.env)!
-      const h = envObject.handleStore.get(handleId)
+      const h = this._envObject.handleStore.get(handleId)
       if (h && this.parent !== null) {
         this.handles.splice(index, 1)
-        envObject.handleStore.remove(handleId)
+        this._envObject.handleStore.remove(handleId)
         const newHandle = this.parent.add(h.value)
         return newHandle
       } else {

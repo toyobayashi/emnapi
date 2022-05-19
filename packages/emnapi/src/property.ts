@@ -253,7 +253,7 @@ function napi_define_properties (
           return envObject.setLastError(napi_status.napi_name_expected)
         }
       }
-      emnapiDefineProperty(env, maybeObject, propertyName, method, getter, setter, value, attributes, data)
+      emnapiDefineProperty(envObject, maybeObject, propertyName, method, getter, setter, value, attributes, data)
     }
     return napi_status.napi_ok
   })

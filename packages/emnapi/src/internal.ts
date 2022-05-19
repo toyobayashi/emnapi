@@ -2,8 +2,7 @@
 /* eslint-disable @typescript-eslint/no-implied-eval */
 
 declare const emnapiCreateFunction: typeof $emnapiCreateFunction
-function $emnapiCreateFunction<F extends (...args: any[]) => any> (env: napi_env, utf8name: Pointer<const_char>, length: size_t, cb: napi_callback, data: void_p): F {
-  const envObject = emnapi.envStore.get(env)!
+function $emnapiCreateFunction<F extends (...args: any[]) => any> (envObject: emnapi.Env, utf8name: Pointer<const_char>, length: size_t, cb: napi_callback, data: void_p): F {
   const functionName = (utf8name === NULL || length === 0) ? '' : (length === -1 ? UTF8ToString(utf8name) : UTF8ToString(utf8name, length))
 
   let f: F
@@ -21,7 +20,7 @@ function $emnapiCreateFunction<F extends (...args: any[]) => any> (env: napi_env
     }
     return envObject.callIntoModule((envObject, scope) => {
       const cbinfoHandle = scope.add(callbackInfo)
-      const napiValue = envObject.call_iii(cb, env, cbinfoHandle.id)
+      const napiValue = envObject.call_iii(cb, envObject.id, cbinfoHandle.id)
       return (!napiValue) ? undefined : envObject.handleStore.get(napiValue)!.value
     })
   }
@@ -30,7 +29,7 @@ function $emnapiCreateFunction<F extends (...args: any[]) => any> (env: napi_env
     f = makeFunction() as F
   } else {
     try {
-      f = (new Function('data', 'envObject', 'cb', 'env',
+      f = (new Function('data', 'envObject', 'cb',
 `return function ${functionName}(){` +
   '"use strict";' +
   `var newTarget=this&&this instanceof ${functionName}?this.constructor:undefined;` +
@@ -44,10 +43,10 @@ function $emnapiCreateFunction<F extends (...args: any[]) => any> (env: napi_env
   '};' +
   'return envObject.callIntoModule(function(envObject,scope){' +
     'var cbinfoHandle=scope.add(callbackInfo);' +
-    'var napiValue=envObject.call_iii(cb,env,cbinfoHandle.id);' +
+    'var napiValue=envObject.call_iii(cb,envObject.id,cbinfoHandle.id);' +
     'return !napiValue?undefined:envObject.handleStore.get(napiValue).value;' +
   '});' +
-'};'))(data, envObject, cb, env)
+'};'))(data, envObject, cb)
     } catch (_) {
       f = makeFunction() as F
       if (emnapi.canSetFunctionName) {
@@ -63,16 +62,15 @@ function $emnapiCreateFunction<F extends (...args: any[]) => any> (env: napi_env
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 declare const emnapiDefineProperty: typeof $emnapiDefineProperty
-function $emnapiDefineProperty (env: napi_env, obj: object, propertyName: string | symbol, method: napi_callback, getter: napi_callback, setter: napi_callback, value: napi_value, attributes: number, data: void_p): void {
-  const envObject = emnapi.envStore.get(env)!
+function $emnapiDefineProperty (envObject: emnapi.Env, obj: object, propertyName: string | symbol, method: napi_callback, getter: napi_callback, setter: napi_callback, value: napi_value, attributes: number, data: void_p): void {
   if (getter !== NULL || setter !== NULL) {
     let localGetter: () => any
     let localSetter: (v: any) => void
     if (getter !== NULL) {
-      localGetter = emnapiCreateFunction(env, NULL, 0, getter, data)
+      localGetter = emnapiCreateFunction(envObject, NULL, 0, getter, data)
     }
     if (setter !== NULL) {
-      localSetter = emnapiCreateFunction(env, NULL, 0, setter, data)
+      localSetter = emnapiCreateFunction(envObject, NULL, 0, setter, data)
     }
     const desc: PropertyDescriptor = {
       configurable: (attributes & napi_property_attributes.napi_configurable) !== 0,
@@ -82,7 +80,7 @@ function $emnapiDefineProperty (env: napi_env, obj: object, propertyName: string
     }
     Object.defineProperty(obj, propertyName, desc)
   } else if (method !== NULL) {
-    const localMethod = emnapiCreateFunction(env, NULL, 0, method, data)
+    const localMethod = emnapiCreateFunction(envObject, NULL, 0, method, data)
     const desc: PropertyDescriptor = {
       configurable: (attributes & napi_property_attributes.napi_configurable) !== 0,
       enumerable: (attributes & napi_property_attributes.napi_enumerable) !== 0,
@@ -103,10 +101,9 @@ function $emnapiDefineProperty (env: napi_env, obj: object, propertyName: string
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 declare const emnapiCreateTypedArray: typeof $emnapiCreateTypedArray
-function $emnapiCreateTypedArray (env: napi_env, Type: { new (...args: any[]): ArrayBufferView; name?: string }, size_of_element: number, buffer: ArrayBuffer, byte_offset: size_t, length: size_t, callback: (out: ArrayBufferView) => napi_status): napi_status {
+function $emnapiCreateTypedArray (envObject: emnapi.Env, Type: { new (...args: any[]): ArrayBufferView; name?: string }, size_of_element: number, buffer: ArrayBuffer, byte_offset: size_t, length: size_t, callback: (out: ArrayBufferView) => napi_status): napi_status {
   byte_offset = byte_offset >>> 0
   length = length >>> 0
-  const envObject = emnapi.envStore.get(env)!
   if (size_of_element > 1) {
     if ((byte_offset) % (size_of_element) !== 0) {
       const err: RangeError & { code?: string } = new RangeError(`start offset of ${Type.name ?? ''} should be a multiple of ${size_of_element}`)

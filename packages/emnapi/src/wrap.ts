@@ -17,7 +17,7 @@ function napi_define_class (
       if (!((length === 0xffffffff) || (length <= 2147483647)) || (utf8name === NULL)) {
         return envObject.setLastError(napi_status.napi_invalid_arg)
       }
-      const F = emnapiCreateFunction(env, utf8name, length, constructor, callback_data)
+      const F = emnapiCreateFunction(envObject, utf8name, length, constructor, callback_data)
 
       for (let i = 0; i < property_count; i++) {
         const propPtr = properties + (i * 32)
@@ -45,10 +45,10 @@ function napi_define_class (
         }
 
         if ((attributes & napi_property_attributes.napi_static) !== 0) {
-          emnapiDefineProperty(env, F, propertyName, method, getter, setter, value, attributes, data)
+          emnapiDefineProperty(envObject, F, propertyName, method, getter, setter, value, attributes, data)
           continue
         }
-        emnapiDefineProperty(env, F.prototype, propertyName, method, getter, setter, value, attributes, data)
+        emnapiDefineProperty(envObject, F.prototype, propertyName, method, getter, setter, value, attributes, data)
       }
 
       const valueHandle = envObject.getCurrentScope().add(F)

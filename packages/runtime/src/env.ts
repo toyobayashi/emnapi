@@ -59,7 +59,7 @@ export class Env implements IStoreValue {
     envStore.add(env)
     env.refStore = new RefStore()
     env.handleStore = new HandleStore()
-    env.handleStore.addGlobalConstants(env.id)
+    env.handleStore.addGlobalConstants(env)
     env.deferredStore = new DeferredStore()
     env.scopeStore = new ScopeStore()
     env.scopeList = new LinkedList<IHandleScope>()
@@ -113,8 +113,8 @@ export class Env implements IStoreValue {
     this.lastError = lastError
   }
 
-  public openScope<Scope extends HandleScope> (ScopeConstructor: { create: (env: napi_env, parent: IHandleScope | null) => Scope }): Scope {
-    const scope = ScopeConstructor.create(this.id, this.getCurrentScope() ?? null)
+  public openScope<Scope extends HandleScope> (ScopeConstructor: { create: (envObject: Env, parent: IHandleScope | null) => Scope }): Scope {
+    const scope = ScopeConstructor.create(this, this.getCurrentScope() ?? null)
     this.scopeList.push(scope)
     this.openHandleScopes++
     return scope
@@ -127,7 +127,7 @@ export class Env implements IStoreValue {
   }
 
   public callInNewScope<Scope extends HandleScope, Args extends any[], ReturnValue = any> (
-    ScopeConstructor: { create: (env: napi_env, parent: IHandleScope | null) => Scope },
+    ScopeConstructor: { create: (envObject: Env, parent: IHandleScope | null) => Scope },
     fn: (scope: Scope, ...args: Args) => ReturnValue,
     ...args: Args
   ): ReturnValue {

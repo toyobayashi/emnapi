@@ -1,7 +1,8 @@
 import { IHandleScope } from './HandleScope'
 import { Reference } from './Reference'
 import { Store, IStoreValue } from './Store'
-import { _global, isReferenceType, envStore } from './util'
+import { _global, isReferenceType } from './util'
+import type { Env } from './env'
 
 export class HandleStore extends Store<Handle<any>> {
   public static ID_UNDEFINED: -2147483648 = -2147483648
@@ -33,13 +34,13 @@ export class HandleStore extends Store<Handle<any>> {
     this._map = new Map()
   }
 
-  public addGlobalConstants (env: napi_env): void {
+  public addGlobalConstants (envObject: Env): void {
     Object.keys(HandleStore.globalConstants).forEach(k => {
       const id = Number(k) as keyof typeof HandleStore.globalConstants
       const value = HandleStore.globalConstants[id]
-      this.set(id, new Handle(env, id, value))
+      this.set(id, new Handle(envObject, id, value))
       this._map.set(value, [id])
-      Reference.create(env, id, 1, false)
+      Reference.create(envObject.id, id, 1, false)
     })
   }
 
@@ -105,22 +106,26 @@ export class HandleStore extends Store<Handle<any>> {
 }
 
 export class Handle<S> implements IStoreValue {
-  public static create<S> (env: napi_env, value: S): Handle<S> {
-    const handle = new Handle(env, 0, value)
-    envStore.get(env)!.handleStore.add(handle)
+  public static create<S> (envObject: Env, value: S): Handle<S> {
+    const handle = new Handle(envObject, 0, value)
+    envObject.handleStore.add(handle)
     return handle
   }
 
   public id: number
-  public env: napi_env
+  protected _envObject: Env
   public value: S
   public inScope: IHandleScope | null
   public wrapped: number = 0 // wrapped Reference id
   public tag: [number, number, number, number] | null
   public refs: Reference[]
 
-  public constructor (env: napi_env, id: number, value: S) {
-    this.env = env
+  public get env (): napi_env {
+    return this._envObject?.id ?? 0
+  }
+
+  public constructor (envObject: Env, id: number, value: S) {
+    this._envObject = envObject
     this.id = id
     this.value = value
     this.inScope = null
@@ -131,7 +136,7 @@ export class Handle<S> implements IStoreValue {
 
   public moveTo (other: Handle<S>): void {
     // other.env = this.env
-    this.env = 0
+    this._envObject = undefined!
     // other.id = this.id
     this.id = 0
     // other.value = this.value
@@ -253,10 +258,11 @@ export class Handle<S> implements IStoreValue {
       ref.queueFinalizer()
     }
     const id = this.id
-    envStore.get(this.env)!.handleStore.remove(id)
+    this._envObject.handleStore.remove(id)
     this.refs.length = 0
     this.id = 0
     this.value = undefined!
+    this._envObject = undefined!
   }
 }
 
@@ -266,16 +272,16 @@ function External (this: any): void {
 External.prototype = null as any
 
 export class ExternalHandle extends Handle<{}> {
-  public static createExternal (env: napi_env, data: void_p = 0): ExternalHandle {
-    const h = new ExternalHandle(env, data)
-    envStore.get(env)!.handleStore.add(h)
+  public static createExternal (envObject: Env, data: void_p = 0): ExternalHandle {
+    const h = new ExternalHandle(envObject, data)
+    envObject.handleStore.add(h)
     return h
   }
 
   private readonly _data: void_p
 
-  public constructor (env: napi_env, data: void_p = 0) {
-    super(env, 0, new (External as any)())
+  public constructor (envObject: Env, data: void_p = 0) {
+    super(envObject, 0, new (External as any)())
     this._data = data
   }
 

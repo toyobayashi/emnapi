@@ -1,7 +1,7 @@
 function napi_create_function (env: napi_env, utf8name: Pointer<const_char>, length: size_t, cb: napi_callback, data: void_p, result: Pointer<napi_value>): napi_status {
   return emnapi.preamble(env, (envObject) => {
     return emnapi.checkArgs(envObject, [result, cb], () => {
-      const f = emnapiCreateFunction(env, utf8name, length, cb, data)
+      const f = emnapiCreateFunction(envObject, utf8name, length, cb, data)
       const valueHandle = envObject.getCurrentScope().add(f)
       HEAP32[result >> 2] = valueHandle.id
       return envObject.getReturnStatus()

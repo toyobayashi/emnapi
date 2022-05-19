@@ -5,14 +5,14 @@ export interface IStoreValue {
 }
 
 export class Store<V extends IStoreValue> {
-  protected readonly _values: { [id: number]: V }
+  protected readonly _values: Map<number, V>
   protected _min: number
 
   // -2147483648 <= _id <= 2147483647 && _id !== 0
   private _id: number
 
   public constructor (min = -2147483648) {
-    this._values = Object.create(null)
+    this._values = new Map<number, V>()
     this._min = min
     this._id = min
   }
@@ -22,51 +22,49 @@ export class Store<V extends IStoreValue> {
   }
 
   public add (value: V): void {
-    while (this._id in this._values) {
+    while (this._values.has(this._id)) {
       this._nextId()
     }
     value.id = this._id
-    this._values[this._id] = value
+    this._values.set(this._id, value)
     this._nextId()
   }
 
   public get (id: number): V | undefined {
-    return this._values[id]
+    return this._values.get(id)
   }
 
   protected set (id: number, value: V): void {
-    this._values[id] = value
+    this._values.set(id, value)
     value.id = id
   }
 
   public has (id: number): boolean {
-    return id in this._values
+    return this._values.has(id)
   }
 
   public remove (id: number): void {
-    if (id in this._values) {
-      this._values[id].id = 0
-      delete this._values[id]
+    const value = this._values.get(id)
+    if (value) {
+      value.id = 0
+      this._values.delete(id)
     }
   }
 
   public forEach (fn: (this: any, value: V, id: number, store: Store<V>) => void, thisArg?: any): void {
-    Object.keys(this._values).forEach((value) => {
-      const _id = Number(value)
-      fn.call(thisArg, this._values[_id], _id, this)
+    this._values.forEach((value, id) => {
+      fn.call(thisArg, value, id, this)
     })
   }
 
-  public allId (): number[] {
-    return Object.keys(this._values).map(Number)
-  }
+  // public allId (): number[] {
+  //   return [...this._values.keys()]
+  // }
 
   public dispose (): void {
-    Object.keys(this._values).forEach((k) => {
-      try {
-        this._values[k as any].dispose()
-      } catch (_) {}
-      delete this._values[k as any]
+    this._values.forEach(value => {
+      value.dispose()
     })
+    this._values.clear()
   }
 }
