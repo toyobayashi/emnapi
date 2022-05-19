@@ -40,7 +40,7 @@ export class HandleStore extends Store<Handle<any>> {
       const value = HandleStore.globalConstants[id]
       this.set(id, new Handle(envObject, id, value))
       this._map.set(value, [id])
-      Reference.create(envObject.id, id, 1, false)
+      Reference.create(envObject, id, 1, false)
     })
   }
 

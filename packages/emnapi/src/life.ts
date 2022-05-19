@@ -89,7 +89,7 @@ function napi_create_reference (
         if (!(handle.isObject() || handle.isFunction())) {
           return envObject.setLastError(napi_status.napi_object_expected)
         }
-        const ref = emnapi.Reference.create(env, handle.id, initial_refcount >>> 0, false)
+        const ref = emnapi.Reference.create(envObject, handle.id, initial_refcount >>> 0, false)
         HEAP32[result >> 2] = ref.id
         return envObject.clearLastError()
       } catch (err) {

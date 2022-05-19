@@ -144,10 +144,10 @@ function $emnapiWrap (type: WrapType, env: napi_env, js_object: napi_value, nati
       let reference: emnapi.Reference
       if (result !== NULL) {
         if (finalize_cb === NULL) return envObject.setLastError(napi_status.napi_invalid_arg)
-        reference = emnapi.Reference.create(env, value.id, 0, false, finalize_cb, native_object, finalize_hint)
+        reference = emnapi.Reference.create(envObject, value.id, 0, false, finalize_cb, native_object, finalize_hint)
         HEAP32[result >> 2] = reference.id
       } else {
-        reference = emnapi.Reference.create(env, value.id, 0, true, finalize_cb, native_object, finalize_cb === NULL ? NULL : finalize_hint)
+        reference = emnapi.Reference.create(envObject, value.id, 0, true, finalize_cb, native_object, finalize_cb === NULL ? NULL : finalize_hint)
       }
 
       if (type === WrapType.retrievable) {

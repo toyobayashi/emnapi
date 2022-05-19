@@ -1,5 +1,6 @@
 import { IStoreValue, Store } from './Store'
-import { envStore, supportFinalizer, isReferenceType } from './util'
+import { supportFinalizer, isReferenceType } from './util'
+import type { Env } from './env'
 
 export class Reference implements IStoreValue {
   public id: number
@@ -16,8 +17,8 @@ export class Reference implements IStoreValue {
         let caught = false
         if (ref.finalize_callback !== NULL) {
           try {
-            envStore.get(ref.env)!.callIntoModule((envObject) => {
-              envObject.call_viii(ref.finalize_callback, ref.env, ref.finalize_data, ref.finalize_hint)
+            ref.envObject.callIntoModule((envObject) => {
+              envObject.call_viii(ref.finalize_callback, envObject.id, ref.finalize_data, ref.finalize_hint)
               ref.finalize_callback = NULL
             })
           } catch (err) {
@@ -40,7 +41,7 @@ export class Reference implements IStoreValue {
       : null
 
   public static create (
-    env: napi_env,
+    envObject: Env,
     handle_id: napi_value,
     initialRefcount: uint32_t,
     deleteSelf: boolean,
@@ -48,8 +49,7 @@ export class Reference implements IStoreValue {
     finalize_data: void_p = 0,
     finalize_hint: void_p = 0
   ): Reference {
-    const ref = new Reference(env, handle_id, initialRefcount, deleteSelf, finalize_callback, finalize_data, finalize_hint)
-    const envObject = envStore.get(env)!
+    const ref = new Reference(envObject, handle_id, initialRefcount, deleteSelf, finalize_callback, finalize_data, finalize_hint)
     envObject.refStore.add(ref)
     const handle = envObject.handleStore.get(handle_id)!
     handle.addRef(ref)
@@ -64,7 +64,7 @@ export class Reference implements IStoreValue {
   public objWeakRef!: WeakRef<object> | null
 
   private constructor (
-    public env: napi_env,
+    public envObject: Env,
     public handle_id: napi_value,
     initialRefcount: uint32_t,
     public deleteSelf: boolean,
@@ -86,8 +86,7 @@ export class Reference implements IStoreValue {
     }
     this.refcount--
     if (this.refcount === 0) {
-      const envObject = envStore.get(this.env)!
-      const handle = envObject.handleStore.get(this.handle_id)
+      const handle = this.envObject.handleStore.get(this.handle_id)
       if (handle) {
         handle.tryDispose()
       }
@@ -100,14 +99,13 @@ export class Reference implements IStoreValue {
   }
 
   public get (): napi_value {
-    const envObject = envStore.get(this.env)!
-    if (envObject.handleStore.has(this.handle_id)) {
+    if (this.envObject.handleStore.has(this.handle_id)) {
       return this.handle_id
     } else {
       if (this.objWeakRef) {
         const obj = this.objWeakRef.deref()
         if (obj) {
-          this.handle_id = envObject.ensureHandleId(obj)
+          this.handle_id = this.envObject.ensureHandleId(obj)
           return this.handle_id
         }
       }
@@ -117,9 +115,8 @@ export class Reference implements IStoreValue {
 
   public static doDelete (ref: Reference): void {
     if ((ref.refcount !== 0) || (ref.deleteSelf) || (ref.finalizeRan)) {
-      const envObject = envStore.get(ref.env)!
-      envObject.refStore.remove(ref.id)
-      envObject.handleStore.get(ref.handle_id)?.removeRef(ref)
+      ref.envObject.refStore.remove(ref.id)
+      ref.envObject.handleStore.get(ref.handle_id)?.removeRef(ref)
       Reference.finalizationGroup?.unregister(this)
     } else {
       ref.deleteSelf = true
@@ -129,8 +126,7 @@ export class Reference implements IStoreValue {
   public queueFinalizer (): void {
     if (!Reference.finalizationGroup) return
     if (this.finalizerRegistered) return
-    const envObject = envStore.get(this.env)!
-    const handle = envObject.handleStore.get(this.handle_id)!
+    const handle = this.envObject.handleStore.get(this.handle_id)!
     Reference.finalizationGroup.register(handle.value, this, this)
     this.finalizerRegistered = true
   }
