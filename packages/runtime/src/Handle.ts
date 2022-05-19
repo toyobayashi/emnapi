@@ -262,7 +262,6 @@ export class Handle<S> implements IStoreValue {
     this.refs.length = 0
     this.id = 0
     this.value = undefined!
-    this._envObject = undefined!
   }
 }
 
