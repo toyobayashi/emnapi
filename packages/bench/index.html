@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>test</title>
+</head>
+<body>
+  <div>
+    <button id="testNapi">test napi</button>
+  </div>
+  <script src="../../node_modules/lodash/lodash.min.js"></script>
+  <script src="../../node_modules/platform/platform.js"></script>
+  <script src="../../node_modules/benchmark/benchmark.js"></script>
+  <script src="../runtime/dist/emnapi.js"></script>
+  <script src="./.cgenbuild/Release/embindcpp.js"></script>
+  <script src="./.cgenbuild/Release/emnapic.js"></script>
+  <script src="./.cgenbuild/Release/emnapicpp.js"></script>
+  <script src="./index.js"></script>
+</body>
+</html>
