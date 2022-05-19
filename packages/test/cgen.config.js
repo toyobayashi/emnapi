@@ -9,6 +9,7 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
     ? [
         // "-sEXPORTED_FUNCTIONS=['_malloc','_free']",
         '-sALLOW_MEMORY_GROWTH=1',
+        '-sMIN_CHROME_VERSION=48',
         ...(isDebug ? ['-sSAFE_HEAP=1'/* , '-sDISABLE_EXCEPTION_CATCHING=0' */] : [])
       ]
     : []

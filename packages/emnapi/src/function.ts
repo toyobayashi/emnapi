@@ -13,7 +13,7 @@ function napi_get_cb_info (env: napi_env, cbinfo: napi_callback_info, argc: Poin
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [cbinfo], () => {
       try {
-        const cbinfoValue: ICallbackInfo = envObject.handleStore.get(cbinfo)!.value
+        const cbinfoValue: emnapi.CallbackInfo = envObject.cbInfoStore.get(cbinfo)!
         if (argv !== NULL) {
           if (argc === NULL) return envObject.setLastError(napi_status.napi_invalid_arg)
           const argcValue = HEAPU32[argc >> 2]
@@ -117,7 +117,7 @@ function napi_get_new_target (
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [cbinfo, result], () => {
       try {
-        const cbinfoValue: ICallbackInfo = envObject.handleStore.get(cbinfo)!.value
+        const cbinfoValue: emnapi.CallbackInfo = envObject.cbInfoStore.get(cbinfo)!
         if (cbinfoValue._newTarget) {
           HEAP32[result >> 2] = envObject.ensureHandleId(cbinfoValue._newTarget)
         } else {

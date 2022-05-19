@@ -143,8 +143,8 @@ export class Handle<S> implements IStoreValue {
     this.wrapped = 0
     other.tag = this.tag
     this.tag = null
-    other.refs = this.refs.slice()
-    this.refs.length = 0
+    other.refs = this.refs
+    this.refs = []
   }
 
   public isEmpty (): boolean {
@@ -255,7 +255,7 @@ export class Handle<S> implements IStoreValue {
     }
     const id = this.id
     this._envObject.handleStore.remove(id)
-    this.refs.length = 0
+    this.refs = []
     this.id = 0
     this.value = undefined!
   }

@@ -88,7 +88,7 @@ export class HandleScope implements IHandleScope {
       handle.inScope = null
       handle.tryDispose()
     }
-    this.handles.length = 0
+    this.handles = []
     if (this.parent) {
       this.parent.child = null
     }

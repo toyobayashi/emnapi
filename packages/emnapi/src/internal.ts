@@ -10,17 +10,17 @@ function $emnapiCreateFunction<F extends (...args: any[]) => any> (envObject: em
   const makeFunction = () => function (this: any): any {
     'use strict'
     const newTarget = this && this instanceof f ? this.constructor : undefined
-    const callbackInfo = {
-      _this: this,
-      _data: data,
-      _length: arguments.length,
-      _args: Array.prototype.slice.call(arguments),
-      _newTarget: newTarget,
-      _isConstructCall: Boolean(newTarget)
-    }
-    return envObject.callIntoModule((envObject, scope) => {
-      const cbinfoHandle = scope.add(callbackInfo)
-      const napiValue = envObject.call_iii(cb, envObject.id, cbinfoHandle.id)
+    const cbinfo = emnapi.CallbackInfo.create(
+      envObject,
+      this,
+      data,
+      arguments.length,
+      Array.prototype.slice.call(arguments),
+      newTarget
+    )
+    return envObject.callIntoModule((envObject, _scope) => {
+      const napiValue = envObject.call_iii(cb, envObject.id, cbinfo.id)
+      cbinfo.dispose()
       return (!napiValue) ? undefined : envObject.handleStore.get(napiValue)!.value
     })
   }
@@ -29,24 +29,17 @@ function $emnapiCreateFunction<F extends (...args: any[]) => any> (envObject: em
     f = makeFunction() as F
   } else {
     try {
-      f = (new Function('data', 'envObject', 'cb',
+      f = (new Function('data', 'envObject', 'cb', 'emnapi',
 `return function ${functionName}(){` +
   '"use strict";' +
   `var newTarget=this&&this instanceof ${functionName}?this.constructor:undefined;` +
-  'var callbackInfo={' +
-    '_this:this,' +
-    '_data:data,' +
-    '_length:arguments.length,' +
-    '_args:Array.prototype.slice.call(arguments),' +
-    '_newTarget:newTarget,' +
-    '_isConstructCall:Boolean(newTarget)' +
-  '};' +
+  'var cbinfo=emnapi.CallbackInfo.create(envObject,this,data,arguments.length,Array.prototype.slice.call(arguments),newTarget);' +
   'return envObject.callIntoModule(function(envObject,scope){' +
-    'var cbinfoHandle=scope.add(callbackInfo);' +
-    'var napiValue=envObject.call_iii(cb,envObject.id,cbinfoHandle.id);' +
+    'var napiValue=envObject.call_iii(cb,envObject.id,cbinfo.id);' +
+    'cbinfo.dispose();' +
     'return !napiValue?undefined:envObject.handleStore.get(napiValue).value;' +
   '});' +
-'};'))(data, envObject, cb)
+'};'))(data, envObject, cb, emnapi)
     } catch (_) {
       f = makeFunction() as F
       if (emnapi.canSetFunctionName) {

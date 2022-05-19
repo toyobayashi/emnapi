@@ -44,3 +44,8 @@ export {
   DeferredStore,
   IDeferrdValue
 } from './Deferred'
+
+export {
+  CallbackInfo,
+  CallbackInfoStore
+} from './CallbackInfo'

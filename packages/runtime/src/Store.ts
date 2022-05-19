@@ -5,7 +5,7 @@ export interface IStoreValue {
 }
 
 export class Store<V extends IStoreValue> {
-  protected readonly _values: Array<V | undefined>
+  protected _values: Array<V | undefined>
   protected _freeList: number[]
 
   // -2147483648 <= _id <= 2147483647 && _id !== 0
@@ -55,9 +55,10 @@ export class Store<V extends IStoreValue> {
   // }
 
   public dispose (): void {
-    this._values.slice(1).forEach(value => {
+    for (let i = 1; i < this._values.length; ++i) {
+      const value = this._values[i]
       value?.dispose()
-    })
-    this._values.length = 1
+    }
+    this._values = [undefined]
   }
 }

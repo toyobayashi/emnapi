@@ -1,3 +1,4 @@
+import { CallbackInfoStore } from './CallbackInfo'
 import { DeferredStore } from './Deferred'
 import { HandleStore } from './Handle'
 import { ScopeStore, IHandleScope, HandleScope, EscapableHandleScope } from './HandleScope'
@@ -35,6 +36,7 @@ export class Env implements IStoreValue {
 
   public handleStore!: HandleStore
   public scopeStore!: ScopeStore
+  public cbInfoStore!: CallbackInfoStore
   public refStore!: RefStore
   public deferredStore!: DeferredStore
 
@@ -64,6 +66,7 @@ export class Env implements IStoreValue {
     env.scopeStore = new ScopeStore()
     env.scopeList = new LinkedList<IHandleScope>()
     // env.scopeList.push(HandleScope.create(env.id, null))
+    env.cbInfoStore = new CallbackInfoStore()
     env.napiExtendedErrorInfoPtr = env.malloc(16)
     return env
   }
@@ -126,15 +129,14 @@ export class Env implements IStoreValue {
     this.openHandleScopes--
   }
 
-  public callInNewScope<Scope extends HandleScope, Args extends any[], ReturnValue = any> (
+  public callInNewScope<Scope extends HandleScope, ReturnValue = any> (
     ScopeConstructor: { create: (envObject: Env, parent: IHandleScope | null) => Scope },
-    fn: (scope: Scope, ...args: Args) => ReturnValue,
-    ...args: Args
+    fn: (scope: Scope) => ReturnValue
   ): ReturnValue {
     const scope = this.openScope(ScopeConstructor)
     let ret: ReturnValue
     try {
-      ret = fn(scope, ...args)
+      ret = fn(scope)
     } catch (err) {
       this.tryCatch.setError(err)
     }
@@ -142,12 +144,12 @@ export class Env implements IStoreValue {
     return ret!
   }
 
-  public callInNewHandleScope<Args extends any[], T = any> (fn: (scope: HandleScope, ...args: Args) => T, ...args: Args): T {
-    return this.callInNewScope(HandleScope, fn, ...args)
+  public callInNewHandleScope<T = any> (fn: (scope: HandleScope) => T): T {
+    return this.callInNewScope(HandleScope, fn)
   }
 
-  public callInNewEscapableHandleScope<Args extends any[], T = any> (fn: (scope: EscapableHandleScope, ...args: Args) => T, ...args: Args): T {
-    return this.callInNewScope(EscapableHandleScope, fn, ...args)
+  public callInNewEscapableHandleScope<T = any> (fn: (scope: EscapableHandleScope) => T): T {
+    return this.callInNewScope(EscapableHandleScope, fn)
   }
 
   public getCurrentScope (): IHandleScope {
