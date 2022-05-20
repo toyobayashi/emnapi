@@ -17,7 +17,7 @@ export class Store<V extends IStoreValue> {
   }
 
   public add (value: V): void {
-    const id = this._freeList.length ? this._freeList.pop()! : this._values.length
+    const id = this._freeList.length ? this._freeList.shift()! : this._values.length
     value.id = id
     this._values[id] = value
   }
@@ -60,5 +60,6 @@ export class Store<V extends IStoreValue> {
       value?.dispose()
     }
     this._values = [undefined]
+    this._freeList = []
   }
 }
