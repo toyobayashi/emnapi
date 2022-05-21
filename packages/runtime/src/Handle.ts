@@ -196,20 +196,13 @@ export class Handle<S> implements IStoreValue {
     this.tryDispose()
   }
 
-  public isInHandleScope (): boolean {
-    return this.inScope !== null
-  }
-
   public tryDispose (): void {
-    if (this.canDispose()) {
-      this.dispose()
-    }
-  }
-
-  public canDispose (): boolean {
-    return (this.id >= HandleStore.getMinId) &&
-      ((this.refs.length === 0) || (!this.refs.some(ref => ref.refcount > 0))) &&
-      (!this.isInHandleScope())
+    if (
+      this.id < HandleStore.getMinId ||
+      this.inScope !== null ||
+      this.refs.some(ref => ref.refcount > 0)
+    ) return
+    this.dispose()
   }
 
   public dispose (): void {
@@ -217,7 +210,7 @@ export class Handle<S> implements IStoreValue {
     if (this.refs.length > 0) {
       const refs = this.refs
       for (let i = 0; i < refs.length; i++) {
-        refs[i].queueFinalizer()
+        refs[i].queueFinalizer(this.value as unknown as object)
       }
     }
     const id = this.id

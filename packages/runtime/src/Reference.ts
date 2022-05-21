@@ -125,11 +125,13 @@ export class Reference implements IStoreValue {
     }
   }
 
-  public queueFinalizer (): void {
+  public queueFinalizer (value?: object): void {
     if (!Reference.finalizationGroup) return
     if (this.finalizerRegistered) return
-    const handle = this.envObject.handleStore.get(this.handle_id)!
-    Reference.finalizationGroup.register(handle.value, this, this)
+    if (!value) {
+      value = this.envObject.handleStore.get(this.handle_id)!.value as object
+    }
+    Reference.finalizationGroup.register(value, this, this)
     this.finalizerRegistered = true
   }
 
