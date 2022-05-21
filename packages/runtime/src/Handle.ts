@@ -25,13 +25,10 @@ export class HandleStore extends Store<Handle<any>> {
 
   // js object -> Handle
   private _objWeakMap: WeakMap<object, Handle<object>>
-  // js value in store -> Handle id
-  private _map: Map<any, Set<number>>
 
   public constructor () {
     super()
     this._objWeakMap = new WeakMap()
-    this._map = new Map()
   }
 
   public addGlobalConstants (envObject: Env): void {
@@ -39,7 +36,6 @@ export class HandleStore extends Store<Handle<any>> {
       const id = Number(k) as keyof typeof HandleStore.globalConstants
       const value = HandleStore.globalConstants[id]
       this.set(id, new Handle(envObject, id, value))
-      this._map.set(value, new Set([id]))
       Reference.create(envObject, id, 1, false)
     })
   }
@@ -47,12 +43,6 @@ export class HandleStore extends Store<Handle<any>> {
   public override add (h: Handle<any>): void {
     super.add(h)
     const isRefType = isReferenceType(h.value)
-    try {
-      this.tryAddToMap(h, isRefType)
-    } catch (err) {
-      super.remove(h.id)
-      throw err
-    }
     if (isRefType) {
       if (this._objWeakMap.has(h.value)) {
         const old = this._objWeakMap.get(h.value)!
@@ -62,41 +52,17 @@ export class HandleStore extends Store<Handle<any>> {
     }
   }
 
-  public tryAddToMap (h: Handle<any>, isRefType?: boolean): void {
-    isRefType = typeof isRefType === 'boolean' ? isRefType : isReferenceType(h.value)
-    if (this._map.has(h.value)) {
-      if (isRefType) {
-        throw new Error('An object is added to store twice')
-      }
-      this._map.get(h.value)!.add(h.id)
-    } else {
-      this._map.set(h.value, new Set([h.id]))
-    }
-  }
-
   public override remove (id: number): void {
     if (!this.has(id) || id < HandleStore.getMinId) return
-    const value = this.get(id)!.value
-    const idArray = this._map.get(value)!
-    idArray.delete(id)
-    if (idArray.size === 0) this._map.delete(value)
     super.remove(id)
   }
 
-  public getObjectHandleExistsInStore<T extends object> (value: T): Handle<T> | null {
-    const idArray = this._map.get(value)
-    return (idArray && idArray.size > 0) ? this.get(idArray.values().next().value)! : null
-  }
-
-  public getObjectHandleAlive<T extends object> (value: T): Handle<T> | null {
-    return (this._objWeakMap.get(value) as Handle<T>) ?? null
+  public getObjectHandle<T extends object> (value: T): Handle<T> | undefined {
+    return this._objWeakMap.get(value) as Handle<T>
   }
 
   public dispose (): void {
     this._objWeakMap = null!
-    this._map.forEach(arr => { arr.clear() })
-    this._map.clear()
-    this._map = null!
     super.dispose()
   }
 }
@@ -248,10 +214,11 @@ export class Handle<S> implements IStoreValue {
 
   public dispose (): void {
     if (this.id === 0) return
-    const refs = this.refs.slice()
-    for (let i = 0; i < refs.length; i++) {
-      const ref = refs[i]
-      ref.queueFinalizer()
+    if (this.refs.length > 0) {
+      const refs = this.refs
+      for (let i = 0; i < refs.length; i++) {
+        refs[i].queueFinalizer()
+      }
     }
     const id = this.id
     this._envObject.handleStore.remove(id)

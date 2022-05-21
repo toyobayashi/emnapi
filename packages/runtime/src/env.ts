@@ -158,20 +158,19 @@ export class Env implements IStoreValue {
 
   public ensureHandleId (value: any): napi_value {
     if (isReferenceType(value)) {
-      let handle = this.handleStore.getObjectHandleExistsInStore(value)
-      if (handle) return handle.id
-      handle = this.handleStore.getObjectHandleAlive(value)
+      const handle = this.handleStore.getObjectHandle(value)
       if (!handle) {
+        // not exist in handle store
         return this.getCurrentScope().add(value).id
       }
-      if (handle.value === undefined) {
-        // should always true
-        const currentScope = this.getCurrentScope()
-        handle.value = value
-        Store.prototype.add.call(this.handleStore, handle)
-        this.handleStore.tryAddToMap(handle, true)
-        currentScope.addHandle(handle)
+      if (handle.value === value) {
+        // exist in handle store
+        return handle.id
       }
+      // alive, go back to handle store
+      handle.value = value
+      Store.prototype.add.call(this.handleStore, handle)
+      this.getCurrentScope().addHandle(handle)
       return handle.id
     }
 
