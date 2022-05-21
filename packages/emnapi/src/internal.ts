@@ -18,27 +18,47 @@ function $emnapiCreateFunction<F extends (...args: any[]) => any> (envObject: em
       Array.prototype.slice.call(arguments),
       newTarget
     )
-    return envObject.callIntoModule((envObject, _scope) => {
-      const napiValue = envObject.call_iii(cb, envObject.id, cbinfo.id)
+    const scope = envObject.openScope(emnapi.HandleScope)
+    let r: napi_value
+    try {
+      r = envObject.callIntoModule((envObject) => {
+        const napiValue = envObject.call_iii(cb, envObject.id, cbinfo.id)
+        return (!napiValue) ? undefined : envObject.handleStore.get(napiValue)!.value
+      })
+    } catch (err) {
       cbinfo.dispose()
-      return (!napiValue) ? undefined : envObject.handleStore.get(napiValue)!.value
-    })
+      envObject.closeScope(scope)
+      throw err
+    }
+    cbinfo.dispose()
+    envObject.closeScope(scope)
+    return r
   }
 
   if (functionName === '') {
     f = makeFunction() as F
   } else {
     try {
-      f = (new Function('data', 'envObject', 'cb', 'emnapi',
+      f = (new Function('data', 'env', 'cb', 'emnapi',
 `return function ${functionName}(){` +
   '"use strict";' +
   `var newTarget=this&&this instanceof ${functionName}?this.constructor:undefined;` +
-  'var cbinfo=emnapi.CallbackInfo.create(envObject,this,data,arguments.length,Array.prototype.slice.call(arguments),newTarget);' +
-  'return envObject.callIntoModule(function(envObject,scope){' +
-    'var napiValue=envObject.call_iii(cb,envObject.id,cbinfo.id);' +
+  'var cbinfo=emnapi.CallbackInfo.create(env,this,data,arguments.length,Array.prototype.slice.call(arguments),newTarget);' +
+  'var scope=env.openScope(emnapi.HandleScope);' +
+  'var r;' +
+  'try{' +
+    'r=env.callIntoModule(function(env){' +
+      'var napiValue=env.call_iii(cb,env.id,cbinfo.id);' +
+      'return !napiValue?undefined:env.handleStore.get(napiValue).value;' +
+    '});' +
+  '}catch(err){' +
     'cbinfo.dispose();' +
-    'return !napiValue?undefined:envObject.handleStore.get(napiValue).value;' +
-  '});' +
+    'env.closeScope(scope);' +
+    'throw err;' +
+  '}' +
+  'cbinfo.dispose();' +
+  'env.closeScope(scope);' +
+  'return r;' +
 '};'))(data, envObject, cb, emnapi)
     } catch (_) {
       f = makeFunction() as F

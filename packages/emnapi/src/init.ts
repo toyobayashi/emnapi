@@ -59,25 +59,28 @@ mergeInto(LibraryManager.library, {
     function moduleRegister (): any {
       if (registered) return emnapiExports
       registered = true
+      env = emnapi.Env.create(
+        malloc!,
+        free!,
+        dynCalls.call_iii,
+        dynCalls.call_viii,
+        HEAPU8
+      )
+      const scope = env.openScope(emnapi.HandleScope)
       try {
-        env = emnapi.Env.create(
-          malloc!,
-          free!,
-          dynCalls.call_iii,
-          dynCalls.call_viii,
-          HEAPU8
-        )
-        emnapiExports = env.callIntoModule((envObject, scope) => {
+        emnapiExports = env.callIntoModule((envObject) => {
           const exports = {}
           const exportsHandle = scope.add(exports)
           const napiValue = _napi_register_wasm_v1!(envObject.id, exportsHandle.id)
           return (!napiValue) ? undefined : envObject.handleStore.get(napiValue)!.value
         })
-        return emnapiExports
       } catch (err) {
+        env.closeScope(scope)
         registered = false
         throw err
       }
+      env.closeScope(scope)
+      return emnapiExports
     }
 
     addOnInit(function (Module) {

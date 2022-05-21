@@ -1,7 +1,7 @@
 import { CallbackInfoStore } from './CallbackInfo'
 import { DeferredStore } from './Deferred'
 import { HandleStore } from './Handle'
-import { ScopeStore, IHandleScope, HandleScope, EscapableHandleScope } from './HandleScope'
+import { ScopeStore, IHandleScope, HandleScope } from './HandleScope'
 import { LinkedList } from './LinkedList'
 import { RefStore } from './Reference'
 import { IStoreValue, Store } from './Store'
@@ -84,40 +84,17 @@ export class Env implements IStoreValue {
     }
   }
 
-  public openScope<Scope extends HandleScope> (ScopeConstructor: { create: (envObject: Env, parent: IHandleScope | null) => Scope }): Scope {
+  public openScope<Scope extends HandleScope> (ScopeConstructor = HandleScope): Scope {
     const scope = ScopeConstructor.create(this, this.getCurrentScope() ?? null)
     this.scopeList.push(scope)
     this.openHandleScopes++
-    return scope
+    return scope as Scope
   }
 
   public closeScope (scope: IHandleScope): void {
     scope.dispose()
     this.scopeList.pop()
     this.openHandleScopes--
-  }
-
-  public callInNewScope<Scope extends HandleScope, ReturnValue = any> (
-    ScopeConstructor: { create: (envObject: Env, parent: IHandleScope | null) => Scope },
-    fn: (scope: Scope) => ReturnValue
-  ): ReturnValue {
-    const scope = this.openScope(ScopeConstructor)
-    let ret: ReturnValue
-    try {
-      ret = fn(scope)
-    } catch (err) {
-      this.tryCatch.setError(err)
-    }
-    this.closeScope(scope)
-    return ret!
-  }
-
-  public callInNewHandleScope<T = any> (fn: (scope: HandleScope) => T): T {
-    return this.callInNewScope(HandleScope, fn)
-  }
-
-  public callInNewEscapableHandleScope<T = any> (fn: (scope: EscapableHandleScope) => T): T {
-    return this.callInNewScope(EscapableHandleScope, fn)
   }
 
   public getCurrentScope (): IHandleScope {
@@ -166,16 +143,19 @@ export class Env implements IStoreValue {
     return !this.tryCatch.hasCaught() ? napi_status.napi_ok : this.setLastError(napi_status.napi_pending_exception)
   }
 
-  public callIntoModule<T> (fn: (env: Env, scope: IHandleScope) => T): T {
-    const r = this.callInNewHandleScope((scope) => {
-      this.clearLastError()
-      return fn(this, scope)
-    })
+  public callIntoModule<T> (fn: (env: Env) => T): T {
+    this.clearLastError()
+    let r: T
+    try {
+      r = fn(this)
+    } catch (err) {
+      this.tryCatch.setError(err)
+    }
     if (this.tryCatch.hasCaught()) {
       const err = this.tryCatch.extractException()!
       throw err
     }
-    return r
+    return r!
   }
 
   public getViewPointer (view: TypedArray | DataView): void_p {

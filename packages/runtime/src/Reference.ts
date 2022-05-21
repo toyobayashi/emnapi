@@ -16,6 +16,7 @@ export class Reference implements IStoreValue {
         let error: any
         let caught = false
         if (ref.finalize_callback !== NULL) {
+          const scope = ref.envObject.openScope()
           try {
             ref.envObject.callIntoModule((envObject) => {
               envObject.call_viii(ref.finalize_callback, envObject.id, ref.finalize_data, ref.finalize_hint)
@@ -25,6 +26,7 @@ export class Reference implements IStoreValue {
             caught = true
             error = err
           }
+          ref.envObject.closeScope(scope)
         }
         if (ref.deleteSelf) {
           Reference.doDelete(ref)
