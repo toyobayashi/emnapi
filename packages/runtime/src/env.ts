@@ -2,7 +2,6 @@ import { CallbackInfoStore } from './CallbackInfo'
 import { DeferredStore } from './Deferred'
 import { HandleStore } from './Handle'
 import { ScopeStore, IHandleScope, HandleScope } from './HandleScope'
-import { LinkedList } from './LinkedList'
 import { RefStore } from './Reference'
 import { IStoreValue, Store } from './Store'
 import { TypedArray, supportFinalizer, TryCatch, envStore, isReferenceType } from './util'
@@ -40,7 +39,7 @@ export class Env implements IStoreValue {
   public refStore!: RefStore
   public deferredStore!: DeferredStore
 
-  private scopeList = new LinkedList<IHandleScope>()
+  private currentScope: IHandleScope | null = null
 
   public lastError: ILastError
 
@@ -60,8 +59,6 @@ export class Env implements IStoreValue {
     env.handleStore.addGlobalConstants(env)
     env.deferredStore = new DeferredStore()
     env.scopeStore = new ScopeStore()
-    env.scopeList = new LinkedList<IHandleScope>()
-    // env.scopeList.push(HandleScope.create(env.id, null))
     env.cbInfoStore = new CallbackInfoStore()
     return env
   }
@@ -85,20 +82,33 @@ export class Env implements IStoreValue {
   }
 
   public openScope<Scope extends HandleScope> (ScopeConstructor = HandleScope): Scope {
-    const scope = ScopeConstructor.create(this, this.getCurrentScope() ?? null)
-    this.scopeList.push(scope)
+    const scope = ScopeConstructor.create(this, this.currentScope)
+    if (this.currentScope) {
+      this.currentScope.child = scope
+    }
+    this.currentScope = scope
+    // this.scopeList.push(scope)
     this.openHandleScopes++
     return scope as Scope
   }
 
   public closeScope (scope: IHandleScope): void {
+    if (scope === this.currentScope) {
+      this.currentScope = scope.parent
+    }
+    if (scope.parent) {
+      scope.parent.child = scope.child
+    }
+    if (scope.child) {
+      scope.child.parent = scope.parent
+    }
     scope.dispose()
-    this.scopeList.pop()
+    // this.scopeList.pop()
     this.openHandleScopes--
   }
 
   public getCurrentScope (): IHandleScope {
-    return this.scopeList.last.element
+    return this.currentScope!
   }
 
   public ensureHandleId (value: any): napi_value {
@@ -106,7 +116,7 @@ export class Env implements IStoreValue {
       const handle = this.handleStore.getObjectHandle(value)
       if (!handle) {
         // not exist in handle store
-        return this.getCurrentScope().add(value).id
+        return this.currentScope!.add(value).id
       }
       if (handle.value === value) {
         // exist in handle store
@@ -115,11 +125,11 @@ export class Env implements IStoreValue {
       // alive, go back to handle store
       handle.value = value
       Store.prototype.add.call(this.handleStore, handle)
-      this.getCurrentScope().addHandle(handle)
+      this.currentScope!.addHandle(handle)
       return handle.id
     }
 
-    return this.getCurrentScope().add(value).id
+    return this.currentScope!.add(value).id
   }
 
   public clearLastError (): napi_status {
@@ -200,7 +210,8 @@ export class Env implements IStoreValue {
   }
 
   public dispose (): void {
-    this.scopeList.clear()
+    // this.scopeList.clear()
+    this.currentScope = null
     this.deferredStore.dispose()
     this.refStore.dispose()
     this.scopeStore.dispose()
