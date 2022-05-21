@@ -1,39 +1,34 @@
 function napi_typeof (env: napi_env, value: napi_value, result: Pointer<napi_valuetype>): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [value, result], () => {
-      try {
-        const v = envObject.handleStore.get(value)!
-        if (v.isNumber()) {
-          HEAP32[result >> 2] = napi_valuetype.napi_number
-        } else if (v.isBigInt()) {
-          HEAP32[result >> 2] = napi_valuetype.napi_bigint
-        } else if (v.isString()) {
-          HEAP32[result >> 2] = napi_valuetype.napi_string
-        } else if (v.isFunction()) {
-        // This test has to come before IsObject because IsFunction
-        // implies IsObject
-          HEAP32[result >> 2] = napi_valuetype.napi_function
-        } else if (v.isExternal()) {
-        // This test has to come before IsObject because IsExternal
-        // implies IsObject
-          HEAP32[result >> 2] = napi_valuetype.napi_external
-        } else if (v.isObject()) {
-          HEAP32[result >> 2] = napi_valuetype.napi_object
-        } else if (v.isBoolean()) {
-          HEAP32[result >> 2] = napi_valuetype.napi_boolean
-        } else if (v.isUndefined()) {
-          HEAP32[result >> 2] = napi_valuetype.napi_undefined
-        } else if (v.isSymbol()) {
-          HEAP32[result >> 2] = napi_valuetype.napi_symbol
-        } else if (v.isNull()) {
-          HEAP32[result >> 2] = napi_valuetype.napi_null
-        } else {
-        // Should not get here unless V8 has added some new kind of value.
-          return envObject.setLastError(napi_status.napi_invalid_arg)
-        }
-      } catch (err) {
-        envObject.tryCatch.setError(err)
-        return envObject.setLastError(napi_status.napi_pending_exception)
+      const v = envObject.handleStore.get(value)!
+      if (v.isNumber()) {
+        HEAP32[result >> 2] = napi_valuetype.napi_number
+      } else if (v.isBigInt()) {
+        HEAP32[result >> 2] = napi_valuetype.napi_bigint
+      } else if (v.isString()) {
+        HEAP32[result >> 2] = napi_valuetype.napi_string
+      } else if (v.isFunction()) {
+      // This test has to come before IsObject because IsFunction
+      // implies IsObject
+        HEAP32[result >> 2] = napi_valuetype.napi_function
+      } else if (v.isExternal()) {
+      // This test has to come before IsObject because IsExternal
+      // implies IsObject
+        HEAP32[result >> 2] = napi_valuetype.napi_external
+      } else if (v.isObject()) {
+        HEAP32[result >> 2] = napi_valuetype.napi_object
+      } else if (v.isBoolean()) {
+        HEAP32[result >> 2] = napi_valuetype.napi_boolean
+      } else if (v.isUndefined()) {
+        HEAP32[result >> 2] = napi_valuetype.napi_undefined
+      } else if (v.isSymbol()) {
+        HEAP32[result >> 2] = napi_valuetype.napi_symbol
+      } else if (v.isNull()) {
+        HEAP32[result >> 2] = napi_valuetype.napi_null
+      } else {
+      // Should not get here unless V8 has added some new kind of value.
+        return envObject.setLastError(napi_status.napi_invalid_arg)
       }
 
       return envObject.clearLastError()
@@ -108,13 +103,8 @@ function napi_instanceof (env: napi_env, object: napi_value, constructor: napi_v
 function napi_is_array (env: napi_env, value: napi_value, result: Pointer<bool>): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [value, result], () => {
-      try {
-        const h = envObject.handleStore.get(value)!
-        HEAPU8[result] = h.isArray() ? 1 : 0
-      } catch (err) {
-        envObject.tryCatch.setError(err)
-        return envObject.setLastError(napi_status.napi_pending_exception)
-      }
+      const h = envObject.handleStore.get(value)!
+      HEAPU8[result] = h.isArray() ? 1 : 0
       return envObject.clearLastError()
     })
   })
@@ -123,13 +113,8 @@ function napi_is_array (env: napi_env, value: napi_value, result: Pointer<bool>)
 function napi_is_arraybuffer (env: napi_env, value: napi_value, result: Pointer<bool>): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [value, result], () => {
-      try {
-        const h = envObject.handleStore.get(value)!
-        HEAPU8[result] = h.isArrayBuffer() ? 1 : 0
-      } catch (err) {
-        envObject.tryCatch.setError(err)
-        return envObject.setLastError(napi_status.napi_pending_exception)
-      }
+      const h = envObject.handleStore.get(value)!
+      HEAPU8[result] = h.isArrayBuffer() ? 1 : 0
       return envObject.clearLastError()
     })
   })
@@ -138,13 +123,8 @@ function napi_is_arraybuffer (env: napi_env, value: napi_value, result: Pointer<
 function napi_is_date (env: napi_env, value: napi_value, result: Pointer<bool>): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [value, result], () => {
-      try {
-        const h = envObject.handleStore.get(value)!
-        HEAPU8[result] = h.isDate() ? 1 : 0
-      } catch (err) {
-        envObject.tryCatch.setError(err)
-        return envObject.setLastError(napi_status.napi_pending_exception)
-      }
+      const h = envObject.handleStore.get(value)!
+      HEAPU8[result] = h.isDate() ? 1 : 0
       return envObject.clearLastError()
     })
   })
@@ -153,13 +133,8 @@ function napi_is_date (env: napi_env, value: napi_value, result: Pointer<bool>):
 function napi_is_error (env: napi_env, value: napi_value, result: Pointer<bool>): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [value, result], () => {
-      try {
-        const val = envObject.handleStore.get(value)!.value
-        HEAPU8[result] = val instanceof Error ? 1 : 0
-      } catch (err) {
-        envObject.tryCatch.setError(err)
-        return envObject.setLastError(napi_status.napi_pending_exception)
-      }
+      const val = envObject.handleStore.get(value)!.value
+      HEAPU8[result] = val instanceof Error ? 1 : 0
       return envObject.clearLastError()
     })
   })
@@ -168,13 +143,8 @@ function napi_is_error (env: napi_env, value: napi_value, result: Pointer<bool>)
 function napi_is_typedarray (env: napi_env, value: napi_value, result: Pointer<bool>): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [value, result], () => {
-      try {
-        const h = envObject.handleStore.get(value)!
-        HEAPU8[result] = h.isTypedArray() ? 1 : 0
-      } catch (err) {
-        envObject.tryCatch.setError(err)
-        return envObject.setLastError(napi_status.napi_pending_exception)
-      }
+      const h = envObject.handleStore.get(value)!
+      HEAPU8[result] = h.isTypedArray() ? 1 : 0
       return envObject.clearLastError()
     })
   })
@@ -183,13 +153,8 @@ function napi_is_typedarray (env: napi_env, value: napi_value, result: Pointer<b
 function napi_is_dataview (env: napi_env, value: napi_value, result: Pointer<bool>): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [value, result], () => {
-      try {
-        const h = envObject.handleStore.get(value)!
-        HEAPU8[result] = h.isDataView() ? 1 : 0
-      } catch (err) {
-        envObject.tryCatch.setError(err)
-        return envObject.setLastError(napi_status.napi_pending_exception)
-      }
+      const h = envObject.handleStore.get(value)!
+      HEAPU8[result] = h.isDataView() ? 1 : 0
       return envObject.clearLastError()
     })
   })

@@ -74,8 +74,9 @@ export const envStore = new EnvStore()
 } */
 
 export function checkEnv (env: napi_env, fn: (envObject: Env) => napi_status): napi_status {
-  if ((env === NULL) || !envStore.has(env)) return napi_status.napi_invalid_arg
-  const envObject = envStore.get(env)!
+  if (env === NULL) return napi_status.napi_invalid_arg
+  const envObject = envStore.get(env)
+  if (envObject === undefined) return napi_status.napi_invalid_arg
   return fn(envObject)
 }
 

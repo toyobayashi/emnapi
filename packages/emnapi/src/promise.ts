@@ -34,13 +34,8 @@ function napi_reject_deferred (env: napi_env, deferred: napi_deferred, resolutio
 function napi_is_promise (env: napi_env, value: napi_value, is_promise: Pointer<bool>): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [value, is_promise], () => {
-      try {
-        const h = envObject.handleStore.get(value)!
-        HEAPU8[is_promise] = h.isPromise() ? 1 : 0
-      } catch (err) {
-        envObject.tryCatch.setError(err)
-        return envObject.setLastError(napi_status.napi_pending_exception)
-      }
+      const h = envObject.handleStore.get(value)!
+      HEAPU8[is_promise] = h.isPromise() ? 1 : 0
       return envObject.clearLastError()
     })
   })

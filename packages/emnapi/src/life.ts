@@ -16,12 +16,7 @@ function napi_close_handle_scope (env: napi_env, scope: napi_handle_scope): napi
         return napi_status.napi_handle_scope_mismatch
       }
 
-      try {
-        envObject.closeScope(envObject.scopeStore.get(scope)!)
-      } catch (err) {
-        envObject.tryCatch.setError(err)
-        return envObject.setLastError(napi_status.napi_pending_exception)
-      }
+      envObject.closeScope(envObject.scopeStore.get(scope)!)
       return envObject.clearLastError()
     })
   })
@@ -45,12 +40,7 @@ function napi_close_escapable_handle_scope (env: napi_env, scope: napi_escapable
         return napi_status.napi_handle_scope_mismatch
       }
 
-      try {
-        envObject.closeScope(envObject.scopeStore.get(scope)!)
-      } catch (err) {
-        envObject.tryCatch.setError(err)
-        return envObject.setLastError(napi_status.napi_pending_exception)
-      }
+      envObject.closeScope(envObject.scopeStore.get(scope)!)
       return envObject.clearLastError()
     })
   })
@@ -59,18 +49,13 @@ function napi_close_escapable_handle_scope (env: napi_env, scope: napi_escapable
 function napi_escape_handle (env: napi_env, scope: napi_escapable_handle_scope, escapee: napi_value, result: Pointer<napi_value>): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [scope, escapee, result], () => {
-      try {
-        const scopeObject = envObject.scopeStore.get(scope) as emnapi.EscapableHandleScope
-        if (!scopeObject.escapeCalled()) {
-          const newHandle = scopeObject.escape(escapee)
-          HEAP32[result >> 2] = newHandle ? newHandle.id : 0
-          return envObject.clearLastError()
-        }
-        return envObject.setLastError(napi_status.napi_escape_called_twice)
-      } catch (err) {
-        envObject.tryCatch.setError(err)
-        return envObject.setLastError(napi_status.napi_pending_exception)
+      const scopeObject = envObject.scopeStore.get(scope) as emnapi.EscapableHandleScope
+      if (!scopeObject.escapeCalled()) {
+        const newHandle = scopeObject.escape(escapee)
+        HEAP32[result >> 2] = newHandle ? newHandle.id : 0
+        return envObject.clearLastError()
       }
+      return envObject.setLastError(napi_status.napi_escape_called_twice)
     })
   })
 }
@@ -84,18 +69,13 @@ function napi_create_reference (
   return emnapi.checkEnv(env, (envObject) => {
     if (!emnapi.supportFinalizer) return envObject.setLastError(napi_status.napi_generic_failure)
     return emnapi.checkArgs(envObject, [value, result], () => {
-      try {
-        const handle = envObject.handleStore.get(value)!
-        if (!(handle.isObject() || handle.isFunction())) {
-          return envObject.setLastError(napi_status.napi_object_expected)
-        }
-        const ref = emnapi.Reference.create(envObject, handle.id, initial_refcount >>> 0, false)
-        HEAP32[result >> 2] = ref.id
-        return envObject.clearLastError()
-      } catch (err) {
-        envObject.tryCatch.setError(err)
-        return envObject.setLastError(napi_status.napi_pending_exception)
+      const handle = envObject.handleStore.get(value)!
+      if (!(handle.isObject() || handle.isFunction())) {
+        return envObject.setLastError(napi_status.napi_object_expected)
       }
+      const ref = emnapi.Reference.create(envObject, handle.id, initial_refcount >>> 0, false)
+      HEAP32[result >> 2] = ref.id
+      return envObject.clearLastError()
     })
   })
 }
@@ -107,13 +87,8 @@ function napi_delete_reference (
   return emnapi.checkEnv(env, (envObject) => {
     if (!emnapi.supportFinalizer) return envObject.setLastError(napi_status.napi_generic_failure)
     return emnapi.checkArgs(envObject, [ref], () => {
-      try {
-        emnapi.Reference.doDelete(envObject.refStore.get(ref)!)
-        return envObject.clearLastError()
-      } catch (err) {
-        envObject.tryCatch.setError(err)
-        return envObject.setLastError(napi_status.napi_pending_exception)
-      }
+      emnapi.Reference.doDelete(envObject.refStore.get(ref)!)
+      return envObject.clearLastError()
     })
   })
 }
@@ -126,16 +101,11 @@ function napi_reference_ref (
   return emnapi.checkEnv(env, (envObject) => {
     if (!emnapi.supportFinalizer) return envObject.setLastError(napi_status.napi_generic_failure)
     return emnapi.checkArgs(envObject, [ref], () => {
-      try {
-        const count = envObject.refStore.get(ref)!.ref()
-        if (result !== NULL) {
-          HEAPU32[result >> 2] = count
-        }
-        return envObject.clearLastError()
-      } catch (err) {
-        envObject.tryCatch.setError(err)
-        return envObject.setLastError(napi_status.napi_pending_exception)
+      const count = envObject.refStore.get(ref)!.ref()
+      if (result !== NULL) {
+        HEAPU32[result >> 2] = count
       }
+      return envObject.clearLastError()
     })
   })
 }
@@ -148,20 +118,15 @@ function napi_reference_unref (
   return emnapi.checkEnv(env, (envObject) => {
     if (!emnapi.supportFinalizer) return envObject.setLastError(napi_status.napi_generic_failure)
     return emnapi.checkArgs(envObject, [ref], () => {
-      try {
-        const reference = envObject.refStore.get(ref)!
-        if (reference.refcount === 0) {
-          return envObject.setLastError(napi_status.napi_generic_failure)
-        }
-        const count = reference.unref()
-        if (result !== NULL) {
-          HEAPU32[result >> 2] = count
-        }
-        return envObject.clearLastError()
-      } catch (err) {
-        envObject.tryCatch.setError(err)
-        return envObject.setLastError(napi_status.napi_pending_exception)
+      const reference = envObject.refStore.get(ref)!
+      if (reference.refcount === 0) {
+        return envObject.setLastError(napi_status.napi_generic_failure)
       }
+      const count = reference.unref()
+      if (result !== NULL) {
+        HEAPU32[result >> 2] = count
+      }
+      return envObject.clearLastError()
     })
   })
 }
@@ -174,20 +139,15 @@ function napi_get_reference_value (
   return emnapi.checkEnv(env, (envObject) => {
     if (!emnapi.supportFinalizer) return envObject.setLastError(napi_status.napi_generic_failure)
     return emnapi.checkArgs(envObject, [ref, result], () => {
-      try {
-        const reference = envObject.refStore.get(ref)!
-        const handleId = reference.get()
-        if (handleId !== NULL) {
-          const handle = envObject.handleStore.get(handleId)!
-          handle.addRef(reference)
-          envObject.getCurrentScope()?.addHandle(handle)
-        }
-        HEAP32[result >> 2] = handleId
-        return envObject.clearLastError()
-      } catch (err) {
-        envObject.tryCatch.setError(err)
-        return envObject.setLastError(napi_status.napi_pending_exception)
+      const reference = envObject.refStore.get(ref)!
+      const handleId = reference.get()
+      if (handleId !== NULL) {
+        const handle = envObject.handleStore.get(handleId)!
+        handle.addRef(reference)
+        envObject.getCurrentScope()?.addHandle(handle)
       }
+      HEAP32[result >> 2] = handleId
+      return envObject.clearLastError()
     })
   })
 }
