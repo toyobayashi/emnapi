@@ -82,13 +82,15 @@ export class HandleScope implements IHandleScope {
   public dispose (): void {
     if (this._disposed) return
     this._disposed = true
-    const handles = this.handles.slice()
-    for (let i = 0; i < handles.length; i++) {
-      const handle = handles[i]
-      handle.inScope = null
-      handle.tryDispose()
+    if (this.handles.length > 0) {
+      const handles = this.handles
+      for (let i = 0; i < handles.length; i++) {
+        const handle = handles[i]
+        handle.inScope = null
+        handle.tryDispose()
+      }
+      this.handles = []
     }
-    this.handles = []
     if (this.parent) {
       this.parent.child = null
     }
