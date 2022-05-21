@@ -1,5 +1,5 @@
+import type { Env } from './env'
 import { IStoreValue, Store } from './Store'
-import { envStore } from './util'
 
 export interface IDeferrdValue<T = any> {
   resolve: (value: T) => void
@@ -7,19 +7,19 @@ export interface IDeferrdValue<T = any> {
 }
 
 export class Deferred<T = any> implements IStoreValue {
-  public static create<T = any> (env: napi_env, value: IDeferrdValue<T>): Deferred {
-    const deferred = new Deferred<T>(env, value)
-    envStore.get(env)!.deferredStore.add(deferred)
+  public static create<T = any> (envObject: Env, value: IDeferrdValue<T>): Deferred {
+    const deferred = new Deferred<T>(envObject, value)
+    envObject.deferredStore.add(deferred)
     return deferred
   }
 
   public id: number
-  public env: napi_env
+  public envObject: Env
   public value: IDeferrdValue<T>
 
-  public constructor (env: napi_env, value: IDeferrdValue<T>) {
+  public constructor (envObject: Env, value: IDeferrdValue<T>) {
     this.id = 0
-    this.env = env
+    this.envObject = envObject
     this.value = value
   }
 
@@ -34,7 +34,7 @@ export class Deferred<T = any> implements IStoreValue {
   }
 
   public dispose (): void {
-    envStore.get(this.env)!.deferredStore.remove(this.id)
+    this.envObject.deferredStore.remove(this.id)
     this.id = 0
     this.value = null!
   }

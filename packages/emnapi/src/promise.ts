@@ -2,7 +2,7 @@ function napi_create_promise (env: napi_env, deferred: Pointer<napi_deferred>, p
   return emnapi.preamble(env, (envObject) => {
     return emnapi.checkArgs(envObject, [deferred, promise], () => {
       const p = new Promise<any>((resolve, reject) => {
-        const deferredObject = emnapi.Deferred.create<any>(env, { resolve, reject })
+        const deferredObject = emnapi.Deferred.create<any>(envObject, { resolve, reject })
         HEAP32[deferred >> 2] = deferredObject.id
       })
       HEAP32[promise >> 2] = envObject.getCurrentScope().add(p).id
