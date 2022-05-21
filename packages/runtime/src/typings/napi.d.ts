@@ -15,7 +15,7 @@ declare interface napi_extended_error_info {
   error_message: const_char_p
   engine_reserved: void_p
   engine_error_code: uint32_t
-  error_code: number
+  error_code: napi_status
 }
 
 declare interface napi_property_descriptor {

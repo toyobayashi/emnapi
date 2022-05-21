@@ -65,8 +65,6 @@ mergeInto(LibraryManager.library, {
           free!,
           dynCalls.call_iii,
           dynCalls.call_viii,
-          HEAP32,
-          HEAPU32,
           HEAPU8
         )
         emnapiExports = env.callIntoModule((envObject, scope) => {

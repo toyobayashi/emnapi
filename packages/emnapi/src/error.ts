@@ -1,8 +1,8 @@
 function napi_get_last_error_info (env: napi_env, result: Pointer<Pointer<napi_extended_error_info>>): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [result], () => {
-      const error_code = envObject.lastError.errorCode
-      envObject.lastError.errorMessage = HEAP32[(errorMessagesPtr! >> 2) + (error_code as number)]
+      const error_code = envObject.lastError.errorCode[0]
+      envObject.lastError.errorMessage[0] = HEAP32[(errorMessagesPtr! >> 2) + (error_code as number)]
 
       if (error_code === napi_status.napi_ok) {
         envObject.clearLastError()

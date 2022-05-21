@@ -8,11 +8,11 @@ import { IStoreValue, Store } from './Store'
 import { TypedArray, supportFinalizer, TryCatch, envStore, isReferenceType } from './util'
 
 export interface ILastError {
-  errorMessage: const_char_p
-  engineReserved: void_p
-  engineErrorCode: uint32_t
-  errorCode: napi_status
-  readonly data: Pointer<napi_extended_error_info>
+  errorMessage: Int32Array
+  engineReserved: Int32Array
+  engineErrorCode: Uint32Array
+  errorCode: Int32Array
+  data: Pointer<napi_extended_error_info>
 }
 
 export class Env implements IStoreValue {
@@ -42,8 +42,6 @@ export class Env implements IStoreValue {
 
   private scopeList = new LinkedList<IHandleScope>()
 
-  private napiExtendedErrorInfoPtr: Pointer<napi_extended_error_info> = NULL
-
   public lastError: ILastError
 
   public tryCatch = new TryCatch()
@@ -53,11 +51,9 @@ export class Env implements IStoreValue {
     free: (ptr: number) => void,
     call_iii: (ptr: number, ...args: [number, number]) => number,
     call_viii: (ptr: number, ...args: [number, number, number]) => void,
-    HEAP32: Int32Array,
-    HEAPU32: Uint32Array,
     HEAPU8: Uint8Array
   ): Env {
-    const env = new Env(malloc, free, call_iii, call_viii, HEAP32, HEAPU32, HEAPU8)
+    const env = new Env(malloc, free, call_iii, call_viii, HEAPU8)
     envStore.add(env)
     env.refStore = new RefStore()
     env.handleStore = new HandleStore()
@@ -67,7 +63,6 @@ export class Env implements IStoreValue {
     env.scopeList = new LinkedList<IHandleScope>()
     // env.scopeList.push(HandleScope.create(env.id, null))
     env.cbInfoStore = new CallbackInfoStore()
-    env.napiExtendedErrorInfoPtr = env.malloc(16)
     return env
   }
 
@@ -76,44 +71,17 @@ export class Env implements IStoreValue {
     public free: (ptr: number) => void,
     public call_iii: (ptr: number, ...args: [number, number]) => number,
     public call_viii: (ptr: number, ...args: [number, number, number]) => void,
-    public HEAP32: Int32Array,
-    public HEAPU32: Uint32Array,
     public HEAPU8: Uint8Array
   ) {
     this.id = 0
-
-    const lastError = {} as unknown as ILastError;
-
-    (['errorMessage', 'engineReserved', 'engineErrorCode', 'errorCode']).forEach((key, index) => {
-      const isUnsigned = key === 'engineErrorCode'
-      const HEAP = isUnsigned ? this.HEAPU32 : this.HEAP32
-      Object.defineProperty(lastError, key, {
-        configurable: true,
-        enumerable: true,
-        get: () => {
-          return this.napiExtendedErrorInfoPtr !== NULL ? HEAP[(this.napiExtendedErrorInfoPtr >> 2) + index] : NULL
-        },
-        set: isUnsigned
-          ? (value: number) => {
-              if (this.napiExtendedErrorInfoPtr !== NULL) {
-                HEAP[(this.napiExtendedErrorInfoPtr >> 2) + index] = value >>> 0
-              }
-            }
-          : (value: number) => {
-              if (this.napiExtendedErrorInfoPtr !== NULL) {
-                HEAP[(this.napiExtendedErrorInfoPtr >> 2) + index] = value
-              }
-            }
-      })
-    })
-
-    Object.defineProperty(lastError, 'data', {
-      configurable: true,
-      enumerable: false,
-      get: () => this.napiExtendedErrorInfoPtr
-    })
-
-    this.lastError = lastError
+    const napiExtendedErrorInfoPtr = malloc(16)
+    this.lastError = {
+      data: napiExtendedErrorInfoPtr,
+      errorMessage: new Int32Array(HEAPU8.buffer, napiExtendedErrorInfoPtr, 4),
+      engineReserved: new Int32Array(HEAPU8.buffer, napiExtendedErrorInfoPtr + 4, 4),
+      engineErrorCode: new Uint32Array(HEAPU8.buffer, napiExtendedErrorInfoPtr + 8, 4),
+      errorCode: new Int32Array(HEAPU8.buffer, napiExtendedErrorInfoPtr + 12, 4)
+    }
   }
 
   public openScope<Scope extends HandleScope> (ScopeConstructor: { create: (envObject: Env, parent: IHandleScope | null) => Scope }): Scope {
@@ -178,18 +146,18 @@ export class Env implements IStoreValue {
   }
 
   public clearLastError (): napi_status {
-    this.lastError.errorCode = napi_status.napi_ok
-    this.lastError.engineErrorCode = 0
-    this.lastError.engineReserved = 0
-    this.lastError.errorMessage = 0
+    this.lastError.errorCode[0] = napi_status.napi_ok
+    this.lastError.engineErrorCode[0] = 0
+    this.lastError.engineReserved[0] = 0
+    this.lastError.errorMessage[0] = 0
 
     return napi_status.napi_ok
   }
 
   public setLastError (error_code: napi_status, engine_error_code: uint32_t = 0, engine_reserved: void_p = 0): napi_status {
-    this.lastError.errorCode = error_code
-    this.lastError.engineErrorCode = engine_error_code
-    this.lastError.engineReserved = engine_reserved
+    this.lastError.errorCode[0] = error_code
+    this.lastError.engineErrorCode[0] = engine_error_code
+    this.lastError.engineReserved[0] = engine_reserved
 
     return error_code
   }
@@ -259,9 +227,10 @@ export class Env implements IStoreValue {
     this.handleStore.dispose()
     this.tryCatch.extractException()
     try {
-      this.free(this.napiExtendedErrorInfoPtr)
-      this.napiExtendedErrorInfoPtr = NULL
+      this.free(this.lastError.data)
+      this.lastError.data = NULL
     } catch (_) {}
+    this.lastError = null!
     envStore.remove(this.id)
   }
 }
