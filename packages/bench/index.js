@@ -11,9 +11,9 @@ if (typeof window !== 'undefined') {
 
 function testEmptyFunction (embind, napi, naa) {
   const suite = new Benchmark.Suite('emptyFunction')
-  suite.add('raw#emptyFunction', function () {
-    embind._empty_function()
-  })
+  // suite.add('raw#emptyFunction', function () {
+  //   embind._empty_function()
+  // })
   suite.add('embind#emptyFunction', function () {
     embind.emptyFunction()
   })
@@ -22,6 +22,46 @@ function testEmptyFunction (embind, napi, naa) {
   })
   suite.add('naa#emptyFunction', function () {
     naa.emptyFunction()
+  })
+  suite.on('cycle', function (event) {
+    console.log(String(event.target))
+  })
+  suite.on('complete', function () {
+    console.log('Fastest is ' + this.filter('fastest').map('name'))
+  })
+  suite.run({ async: false })
+}
+
+function testReturnPrimitive (embind, napi, naa) {
+  const suite = new Benchmark.Suite('returnPrimitive')
+  suite.add('embind#returnPrimitive', function () {
+    embind.returnParam(1)
+  })
+  suite.add('napi#returnPrimitive', function () {
+    napi.returnParam(1)
+  })
+  suite.add('naa#returnPrimitive', function () {
+    naa.returnParam(1)
+  })
+  suite.on('cycle', function (event) {
+    console.log(String(event.target))
+  })
+  suite.on('complete', function () {
+    console.log('Fastest is ' + this.filter('fastest').map('name'))
+  })
+  suite.run({ async: false })
+}
+
+function testReturnObject (embind, napi, naa) {
+  const suite = new Benchmark.Suite('returnObject')
+  suite.add('embind#returnObject', function () {
+    embind.returnParam([])
+  })
+  suite.add('napi#returnObject', function () {
+    napi.returnParam([])
+  })
+  suite.add('naa#returnObject', function () {
+    naa.returnParam([])
   })
   suite.on('cycle', function (event) {
     console.log(String(event.target))
@@ -45,6 +85,8 @@ function browserMain () {
     const btnNapi = document.getElementById('testNapi')
     btnNapi.addEventListener('click', () => {
       testEmptyFunction(embind, napi, naa)
+      testReturnPrimitive(embind, napi, naa)
+      testReturnObject(embind, napi, naa)
     })
   })
 }
@@ -60,5 +102,7 @@ function nodeMain () {
     { Module: { emnapiExports: naa } }
   ]) => {
     testEmptyFunction(embind, napi, naa)
+    testReturnPrimitive(embind, napi, naa)
+    testReturnObject(embind, napi, naa)
   })
 }
