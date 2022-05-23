@@ -4,6 +4,7 @@
 
 适用于 [Emscripten](https://emscripten.org/index.html) 的 [Node-API (version 8)](https://nodejs.org/dist/latest-v16.x/docs/api/n-api.html) 实现，基于 Node.js v16.15.0
 
+[查看文档](https://emnapi-docs.vercel.app/)
 
 ## 快速开始
 
@@ -269,16 +270,18 @@ cmake --build build
     Module.emnapiRuntime = require('@tybys/emnapi-runtime')
     ```
 
+`@tybys/emnapi-runtime` 版本应与 `@tybys/emnapi` 版本保持一致。
+
 ## 构建
 
 ```bash
 git clone https://github.com/toyobayashi/emnapi.git
 cd ./emnapi
-npm run fetch
+npm install
 npm run build # output ./packages/*/dist
 
 # test
-cd packages/test
+npm run rebuild:test
 npm test
 ```
 
