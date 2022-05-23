@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-implied-eval */
 
 declare const emnapiCreateFunction: typeof $emnapiCreateFunction
-function $emnapiCreateFunction<F extends (...args: any[]) => any> (envObject: emnapi.Env, utf8name: Pointer<const_char>, length: size_t, cb: napi_callback, data: void_p): F {
+function $emnapiCreateFunction<F extends (...args: any[]) => any> (envObject: emnapi.Env, utf8name: Pointer<const_char>, length: size_t, cb: napi_callback, data: void_p): { status: napi_status; f: F } {
   const functionName = (utf8name === NULL || length === 0) ? '' : (length === -1 ? UTF8ToString(utf8name) : UTF8ToString(utf8name, length))
 
   let f: F
@@ -38,6 +38,9 @@ function $emnapiCreateFunction<F extends (...args: any[]) => any> (envObject: em
   if (functionName === '') {
     f = makeFunction() as F
   } else {
+    if (!(/^[_$a-zA-Z][_$a-zA-Z0-9]*$/.test(functionName))) {
+      return { status: napi_status.napi_invalid_arg, f: undefined! }
+    }
     try {
       f = (new Function('data', 'env', 'cb', 'emnapi',
 `return function ${functionName}(){` +
@@ -70,7 +73,7 @@ function $emnapiCreateFunction<F extends (...args: any[]) => any> (envObject: em
     }
   }
 
-  return f
+  return { status: napi_status.napi_ok, f }
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -80,10 +83,10 @@ function $emnapiDefineProperty (envObject: emnapi.Env, obj: object, propertyName
     let localGetter: () => any
     let localSetter: (v: any) => void
     if (getter !== NULL) {
-      localGetter = emnapiCreateFunction(envObject, NULL, 0, getter, data)
+      localGetter = emnapiCreateFunction(envObject, NULL, 0, getter, data).f
     }
     if (setter !== NULL) {
-      localSetter = emnapiCreateFunction(envObject, NULL, 0, setter, data)
+      localSetter = emnapiCreateFunction(envObject, NULL, 0, setter, data).f
     }
     const desc: PropertyDescriptor = {
       configurable: (attributes & napi_property_attributes.napi_configurable) !== 0,
@@ -93,7 +96,7 @@ function $emnapiDefineProperty (envObject: emnapi.Env, obj: object, propertyName
     }
     Object.defineProperty(obj, propertyName, desc)
   } else if (method !== NULL) {
-    const localMethod = emnapiCreateFunction(envObject, NULL, 0, method, data)
+    const localMethod = emnapiCreateFunction(envObject, NULL, 0, method, data).f
     const desc: PropertyDescriptor = {
       configurable: (attributes & napi_property_attributes.napi_configurable) !== 0,
       enumerable: (attributes & napi_property_attributes.napi_enumerable) !== 0,

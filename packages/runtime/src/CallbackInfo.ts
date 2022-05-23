@@ -44,6 +44,6 @@ export class CallbackInfo implements IStoreValue {
 
 export class CallbackInfoStore extends Store<CallbackInfo> {
   public constructor () {
-    super()
+    super(16)
   }
 }

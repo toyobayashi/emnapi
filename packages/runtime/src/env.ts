@@ -39,6 +39,7 @@ export class Env implements IStoreValue {
   public refStore!: RefStore
   public deferredStore!: DeferredStore
 
+  private _rootScope!: HandleScope
   private currentScope: IHandleScope | null = null
 
   public lastError: ILastError
@@ -55,11 +56,12 @@ export class Env implements IStoreValue {
     const env = new Env(malloc, free, call_iii, call_viii, HEAPU8)
     envStore.add(env)
     env.refStore = new RefStore()
-    env.handleStore = new HandleStore()
-    env.handleStore.addGlobalConstants(env)
+    env.handleStore = new HandleStore(env)
     env.deferredStore = new DeferredStore()
     env.scopeStore = new ScopeStore()
     env.cbInfoStore = new CallbackInfoStore()
+
+    env._rootScope = HandleScope.create(env, null)
     return env
   }
 
@@ -82,14 +84,16 @@ export class Env implements IStoreValue {
   }
 
   public openScope<Scope extends HandleScope> (ScopeConstructor = HandleScope): Scope {
-    const scope = ScopeConstructor.create(this, this.currentScope)
     if (this.currentScope) {
+      const scope = ScopeConstructor.create(this, this.currentScope)
       this.currentScope.child = scope
+      this.currentScope = scope
+    } else {
+      this.currentScope = this._rootScope
     }
-    this.currentScope = scope
     // this.scopeList.push(scope)
     this.openHandleScopes++
-    return scope as Scope
+    return this.currentScope as Scope
   }
 
   public closeScope (scope: IHandleScope): void {
@@ -102,7 +106,12 @@ export class Env implements IStoreValue {
     if (scope.child) {
       scope.child.parent = scope.parent
     }
-    scope.dispose()
+    if (scope === this._rootScope) {
+      scope.clearHandles()
+      scope.child = null
+    } else {
+      scope.dispose()
+    }
     // this.scopeList.pop()
     this.openHandleScopes--
   }
@@ -155,17 +164,12 @@ export class Env implements IStoreValue {
 
   public callIntoModule<T> (fn: (env: Env) => T): T {
     this.clearLastError()
-    let r: T
-    try {
-      r = fn(this)
-    } catch (err) {
-      this.tryCatch.setError(err)
-    }
+    const r = fn(this)
     if (this.tryCatch.hasCaught()) {
       const err = this.tryCatch.extractException()!
       throw err
     }
-    return r!
+    return r
   }
 
   public getViewPointer (view: TypedArray | DataView): void_p {

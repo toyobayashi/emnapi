@@ -56,7 +56,7 @@ export let nodeVersionPtr: Pointer<napi_node_version> = NULL
 
 export class EnvStore extends Store<Env> {
   public constructor () {
-    super()
+    super(4)
   }
 }
 

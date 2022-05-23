@@ -143,6 +143,6 @@ export class Reference implements IStoreValue {
 
 export class RefStore extends Store<Reference> {
   public constructor () {
-    super()
+    super(8)
   }
 }

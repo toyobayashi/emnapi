@@ -17,7 +17,9 @@ function napi_define_class (
       if (!((length === 0xffffffff) || (length <= 2147483647)) || (utf8name === NULL)) {
         return envObject.setLastError(napi_status.napi_invalid_arg)
       }
-      const F = emnapiCreateFunction(envObject, utf8name, length, constructor, callback_data)
+      const fresult = emnapiCreateFunction(envObject, utf8name, length, constructor, callback_data)
+      if (fresult.status !== napi_status.napi_ok) return envObject.setLastError(fresult.status)
+      const F = fresult.f
 
       for (let i = 0; i < property_count; i++) {
         const propPtr = properties + (i * 32)

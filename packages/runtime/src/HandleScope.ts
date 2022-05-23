@@ -10,6 +10,7 @@ export interface IHandleScope extends IStoreValue {
   handles: Array<Handle<any>>
   add<V> (value: V): Handle<V>
   addHandle<H extends Handle<any>> (handle: H): H
+  clearHandles (): void
   dispose (): void
 }
 
@@ -79,9 +80,7 @@ export class HandleScope implements IHandleScope {
     return handle
   }
 
-  public dispose (): void {
-    if (this._disposed) return
-    this._disposed = true
+  public clearHandles (): void {
     if (this.handles.length > 0) {
       const handles = this.handles
       for (let i = 0; i < handles.length; i++) {
@@ -91,6 +90,12 @@ export class HandleScope implements IHandleScope {
       }
       this.handles = []
     }
+  }
+
+  public dispose (): void {
+    if (this._disposed) return
+    this._disposed = true
+    this.clearHandles()
     if (this.parent) {
       this.parent.child = null
     }
@@ -154,6 +159,6 @@ export class EscapableHandleScope extends HandleScope {
 
 export class ScopeStore extends Store<IHandleScope> {
   public constructor () {
-    super()
+    super(8)
   }
 }

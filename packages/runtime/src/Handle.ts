@@ -26,18 +26,14 @@ export class HandleStore extends Store<Handle<any>> {
   // js object -> Handle
   private _objWeakMap: WeakMap<object, Handle<object>>
 
-  public constructor () {
-    super()
+  public constructor (envObject: Env) {
+    super(16)
     this._objWeakMap = new WeakMap()
-  }
-
-  public addGlobalConstants (envObject: Env): void {
-    Object.keys(HandleStore.globalConstants).forEach(k => {
-      const id = Number(k) as keyof typeof HandleStore.globalConstants
-      const value = HandleStore.globalConstants[id]
-      this.set(id, new Handle(envObject, id, value))
-      Reference.create(envObject, id, 1, false)
-    })
+    super.add(new Handle(envObject, 1, undefined))
+    super.add(new Handle(envObject, 2, null))
+    super.add(new Handle(envObject, 3, false))
+    super.add(new Handle(envObject, 4, true))
+    super.add(new Handle(envObject, 5, _global))
   }
 
   public override add (h: Handle<any>): void {

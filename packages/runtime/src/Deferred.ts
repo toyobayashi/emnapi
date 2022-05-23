@@ -42,6 +42,6 @@ export class Deferred<T = any> implements IStoreValue {
 
 export class DeferredStore extends Store<Deferred> {
   public constructor () {
-    super()
+    super(8)
   }
 }
