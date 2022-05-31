@@ -7,10 +7,9 @@ import { IStoreValue, Store } from './Store'
 import { TypedArray, supportFinalizer, TryCatch, envStore, isReferenceType } from './util'
 
 export interface ILastError {
-  errorMessage: Int32Array
-  engineReserved: Int32Array
-  engineErrorCode: Uint32Array
-  errorCode: Int32Array
+  setErrorMessage: (ptr: number) => void
+  getErrorCode: () => number
+  setErrorCode: (code: number) => void
   data: Pointer<napi_extended_error_info>
 }
 
@@ -51,9 +50,9 @@ export class Env implements IStoreValue {
     free: (ptr: number) => void,
     call_iii: (ptr: number, ...args: [number, number]) => number,
     call_viii: (ptr: number, ...args: [number, number, number]) => void,
-    HEAPU8: Uint8Array
+    Module: any
   ): Env {
-    const env = new Env(malloc, free, call_iii, call_viii, HEAPU8)
+    const env = new Env(malloc, free, call_iii, call_viii, Module)
     envStore.add(env)
     env.refStore = new RefStore()
     env.handleStore = new HandleStore(env)
@@ -70,16 +69,19 @@ export class Env implements IStoreValue {
     public free: (ptr: number) => void,
     public call_iii: (ptr: number, ...args: [number, number]) => number,
     public call_viii: (ptr: number, ...args: [number, number, number]) => void,
-    public HEAPU8: Uint8Array
+    public Module: any
   ) {
     this.id = 0
     const napiExtendedErrorInfoPtr = malloc(16)
     this.lastError = {
       data: napiExtendedErrorInfoPtr,
-      errorMessage: new Int32Array(HEAPU8.buffer, napiExtendedErrorInfoPtr, 4),
-      engineReserved: new Int32Array(HEAPU8.buffer, napiExtendedErrorInfoPtr + 4, 4),
-      engineErrorCode: new Uint32Array(HEAPU8.buffer, napiExtendedErrorInfoPtr + 8, 4),
-      errorCode: new Int32Array(HEAPU8.buffer, napiExtendedErrorInfoPtr + 12, 4)
+      getErrorCode: () => Module.HEAP32[(napiExtendedErrorInfoPtr >> 2) + 3],
+      setErrorCode: (code) => {
+        Module.HEAP32[(napiExtendedErrorInfoPtr >> 2) + 3] = code
+      },
+      setErrorMessage: (ptr) => {
+        Module.HEAP32[napiExtendedErrorInfoPtr >> 2] = ptr
+      }
     }
   }
 
@@ -142,19 +144,14 @@ export class Env implements IStoreValue {
   }
 
   public clearLastError (): napi_status {
-    this.lastError.errorCode[0] = napi_status.napi_ok
-    this.lastError.engineErrorCode[0] = 0
-    this.lastError.engineReserved[0] = 0
-    this.lastError.errorMessage[0] = 0
+    this.lastError.setErrorCode(napi_status.napi_ok)
+    this.lastError.setErrorMessage(NULL)
 
     return napi_status.napi_ok
   }
 
-  public setLastError (error_code: napi_status, engine_error_code: uint32_t = 0, engine_reserved: void_p = 0): napi_status {
-    this.lastError.errorCode[0] = error_code
-    this.lastError.engineErrorCode[0] = engine_error_code
-    this.lastError.engineReserved[0] = engine_reserved
-
+  public setLastError (error_code: napi_status, _engine_error_code: uint32_t = 0, _engine_reserved: void_p = 0): napi_status {
+    this.lastError.setErrorCode(error_code)
     return error_code
   }
 
@@ -176,38 +173,38 @@ export class Env implements IStoreValue {
     if (!supportFinalizer) {
       return NULL
     }
-    if (view.buffer === this.HEAPU8.buffer) {
+    if (view.buffer === this.Module.HEAPU8.buffer) {
       return view.byteOffset
     }
 
     let pointer: void_p
     if (this.typedArrayMemoryMap.has(view)) {
       pointer = this.typedArrayMemoryMap.get(view)!
-      this.HEAPU8.set(new Uint8Array(view.buffer, view.byteOffset, view.byteLength), pointer)
+      this.Module.HEAPU8.set(new Uint8Array(view.buffer, view.byteOffset, view.byteLength), pointer)
       return pointer
     }
 
     pointer = this.malloc(view.byteLength)
-    this.HEAPU8.set(new Uint8Array(view.buffer, view.byteOffset, view.byteLength), pointer)
+    this.Module.HEAPU8.set(new Uint8Array(view.buffer, view.byteOffset, view.byteLength), pointer)
     this.typedArrayMemoryMap.set(view, pointer)
     this.memoryPointerDeleter.register(view, pointer)
     return pointer
   }
 
   public getArrayBufferPointer (arrayBuffer: ArrayBuffer): void_p {
-    if ((!supportFinalizer) || (arrayBuffer === this.HEAPU8.buffer)) {
+    if ((!supportFinalizer) || (arrayBuffer === this.Module.HEAPU8.buffer)) {
       return NULL
     }
 
     let pointer: void_p
     if (this.arrayBufferMemoryMap.has(arrayBuffer)) {
       pointer = this.arrayBufferMemoryMap.get(arrayBuffer)!
-      this.HEAPU8.set(new Uint8Array(arrayBuffer), pointer)
+      this.Module.HEAPU8.set(new Uint8Array(arrayBuffer), pointer)
       return pointer
     }
 
     pointer = this.malloc(arrayBuffer.byteLength)
-    this.HEAPU8.set(new Uint8Array(arrayBuffer), pointer)
+    this.Module.HEAPU8.set(new Uint8Array(arrayBuffer), pointer)
     this.arrayBufferMemoryMap.set(arrayBuffer, pointer)
     this.memoryPointerDeleter.register(arrayBuffer, pointer)
     return pointer

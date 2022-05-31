@@ -64,7 +64,7 @@ mergeInto(LibraryManager.library, {
         free!,
         dynCalls.call_iii,
         dynCalls.call_viii,
-        HEAPU8
+        Module
       )
       const scope = env.openScope(emnapi.HandleScope)
       try {
