@@ -96,10 +96,8 @@ export class HandleScope implements IHandleScope {
     if (this._disposed) return
     this._disposed = true
     this.clearHandles()
-    if (this.parent) {
-      this.parent.child = null
-    }
     this.parent = null
+    this.child = null
     this._envObject.scopeStore.remove(this.id)
     this._envObject = undefined!
   }

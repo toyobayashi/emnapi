@@ -31,7 +31,8 @@ export {
 
 export {
   Env,
-  ILastError
+  ILastError,
+  IInstanceData
 } from './env'
 
 export {

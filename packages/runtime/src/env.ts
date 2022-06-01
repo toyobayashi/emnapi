@@ -13,6 +13,12 @@ export interface ILastError {
   data: Pointer<napi_extended_error_info>
 }
 
+export interface IInstanceData {
+  data: number
+  finalize_cb: number
+  finalize_hint: number
+}
+
 export class Env implements IStoreValue {
   public id: number
 
@@ -26,11 +32,7 @@ export class Env implements IStoreValue {
 
   public openHandleScopes: number = 0
 
-  public instanceData = {
-    data: 0,
-    finalize_cb: 0,
-    finalize_hint: 0
-  }
+  public instanceData: IInstanceData | null = null
 
   public handleStore!: HandleStore
   public scopeStore!: ScopeStore
