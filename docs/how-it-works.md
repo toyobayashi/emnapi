@@ -1,17 +1,17 @@
-# 动机
+# 中文文档
 
-如果我需要写一个库，这个库需要支持 Node.js 和浏览器环境，而且用到了 C/C++ 依赖，那么就需要为 C/C++ 依赖编写 Node-API 和 Embind 两套 Binding 代码。
-
-开发 emnapi 的初衷是希望一套 C++ Binding 代码可以同时适用于 Node.js 原生模块和 Emscripten WebAssembly。
+[中文文档](https://emnapi-docs.vercel.app/zh/guide/)
 
 # 源码结构
 
-源码使用 TypeScript 语言。
+使用 NPM 8 workspace 做 monorepo。
+
+核心实现使用 TypeScript，极少部分使用 C。
 
 由于 Emscripten JavaScript 链接库需要交给工具链在链接时运行，最终输出的 JavaScript library 文件形如：
 
 ```js
-// 链接时工具链的运行时
+// 链接时 Emscripten 工具链的运行时
 
 mergeInto(LibraryManager.library, {
   $emnapi: undefined,
@@ -35,15 +35,14 @@ mergeInto(LibraryManager.library, {
 
 链接器会把函数体字符串内联进输出的运行时代码中，受限于这种模式，开发时不太方便用 ESModule / CommonJS 那样的模块系统，而是使用多文件命名空间合并的方式代替模块化开发。
 
-源码分为了三部分：
+最核心的两部分：
 
-- **NAPI 的 JS 实现代码**：`packages/emnapi/src/**/*.ts`，这部分代码在工具链的运行时里运行，提供的函数实现会被内联进运行时
-- **emnapi 运行时 JS 代码**：`packages/runtime/src`，这部分代码是函数实现依赖的运行时代码
-- **少数 NAPI 的 C 代码实现**：`packages/emnapi/src/*.c`
+- **NAPI 实现**：`packages/emnapi`，这部分代码在工具链的运行时里运行，提供的函数实现会被按需链接进运行时
+- **emnapi 运行时**：`packages/runtime`，这部分代码是函数实现依赖的运行时代码
 
 # 大体思路
 
-## Store 模拟指针地址
+## 假的 NAPI 透明指针
 
 `napi_env`，`napi_value` 等类型实际上是指针，在 JS 中用 32 位范围内（WASM 是 32 位的）的整数 `number` 表示即可，这些 `number` 不必是真实的 WASM 内存地址，所以我写了一个 `Store` 基类来专门分配和存储指针，不同类型的指针由 Store 的子类去存储：
 
@@ -75,7 +74,7 @@ class DeferredStore extends Store<Deferred> { /* ... */ }
 
 ## Handle 与 HandleScope
 
-`HandleStore` 中可以存在多个相同原始类型值的 Handle，但是引用类型（`object` / `function`）只能存在一个 Handle，因为引用类型可以被 `napi_wrap`、`napi_add_finalizer` 等 API 绑定指针和清理回调函数，这些数据必须一一对应记录在 Handle 关联的 `Reference` 中，引用的对象和对应的 Handle 放在了 HandleStore 的 WeakMap 中，方便弱引用取回它的初始 Handle 而不是再分配一个 Handle，引用和析构清理回调的实现将会在下面的 [Reference](#Reference) 章节提到。
+`HandleStore` 中可以存在多个相同原始类型值的 Handle，但是引用类型（`object` / `function`）只能存在一个 Handle，因为引用类型可以被 `napi_wrap`、`napi_add_finalizer` 等 API 绑定指针和清理回调函数，这些数据必须一一对应记录在 Handle 关联的 `Reference` 中，引用的对象和对应的 Handle 放在了 HandleStore 的 WeakMap 中，方便弱引用取回它的初始 Handle 而不是再分配一个 Handle，引用和析构清理回调的实现将会在下面的 [Reference](#Reference) 部分提到。
 
 ```ts
 class Handle<S> implements IStoreValue {
@@ -92,18 +91,28 @@ class HandleStore extends Store<Handle<any>> {
 }
 ```
 
-每个 Env 有一个 HandleScope 链表，`Handle` 需要放进当前最顶部的 `HandleScope` 里面。
+每个 Env 有一个 HandleScope 链表，`Handle` 需要放进当前最尾的 `HandleScope` 里面。
 
 ```ts
 // napi_handle_scope
-interface IHandleScope extends IStoreValue { /* ... */ }
+interface IHandleScope extends IStoreValue {
+  readonly env: napi_env
+  parent: IHandleScope | null
+  child: IHandleScope | null
+  handles: Array<Handle<any>>
+  add<V> (value: V): Handle<V>
+  addHandle<H extends Handle<any>> (handle: H): H
+  clearHandles (): void
+  dispose (): void
+}
+
 class HandleScope implements IHandleScope { /* ... */ }
 // napi_escapable_handle_scope
 class EscapableHandleScope extends HandleScope { /* ... */ }
 class ScopeStore extends Store<IHandleScope> { /* ... */ }
 
 class Env implements IStoreValue {
-  public scopeList: LinkedList<IHandleScope>
+  private currentScope: IHandleScope | null = null
   /* ... */
 }
 ```
@@ -114,21 +123,26 @@ class Env implements IStoreValue {
 class HandleScope implements IHandleScope {
   /* ... */
 
+  public clearHandles (): void {
+    if (this.handles.length > 0) {
+      const handles = this.handles
+      for (let i = 0; i < handles.length; i++) {
+        const handle = handles[i]
+        handle.inScope = null
+        handle.tryDispose()
+      }
+      this.handles = []
+    }
+  }
+
   public dispose (): void {
     if (this._disposed) return
     this._disposed = true
-    const handles = this.handles.slice()
-    for (let i = 0; i < handles.length; i++) {
-      const handle = handles[i]
-      handle.inScope = null
-      handle.tryDispose() // 检查是否可删除
-    }
-    this.handles.length = 0
-    if (this.parent) {
-      this.parent.child = null
-    }
+    this.clearHandles()
     this.parent = null
-    envStore.get(this.env)!.scopeStore.remove(this.id)
+    this.child = null
+    this._envObject.scopeStore.remove(this.id)
+    this._envObject = undefined!
   }
 }
 ```
@@ -138,37 +152,34 @@ class Handle<S> implements IStoreValue {
   /* ... */
 
   public tryDispose (): void {
-    if (this.canDispose()) {
-      this.dispose()
-    }
-  }
-
-  public canDispose (): boolean {
     // 非全局 且 无引用或只存在弱引用 且 不在 HandleScope 中
     // 即可从 HandleStore 中删除
-    return (this.id >= HandleStore.getMinId) &&
-      (this.refs.length === 0 ||
-        !this.refs.some(ref => ref.refcount > 0))) &&
-      (!this.isInHandleScope())
+    if (
+      this.id < HandleStore.getMinId ||
+      this.inScope !== null ||
+      this.refs.some(ref => ref.refcount > 0)
+    ) return
+    this.dispose()
   }
 
   public dispose (): void {
     if (this.id === 0) return
-    // 由 napi_create_reference / napi_wrap /
-    // napi_create_external / napi_add_finalizer
-    // 添加的 Reference 放在这个数组里
-    // Reference 记录了绑定的数据指针和清理回调函数指针
-    const refs = this.refs.slice()
-    for (let i = 0; i < refs.length; i++) {
-      const ref = refs[i]
-      ref.queueFinalizer() // FinalizationRegistry 注册清理回调
+    if (this.refs.length > 0) {
+      // 由 napi_create_reference / napi_wrap /
+      // napi_create_external / napi_add_finalizer
+      // 添加的 Reference 放在这个数组里
+      // Reference 记录了绑定的数据指针和清理回调函数指针
+      const refs = this.refs
+      for (let i = 0; i < refs.length; i++) {
+        refs[i].queueFinalizer(this.value as unknown as object)
+      }
     }
     const id = this.id
-    envStore.get(this.env)!.handleStore.remove(id)
-    this.refs.length = 0
+    this._envObject.handleStore.remove(id)
+    this.refs = []
     this.id = 0
     // 释放引用，同时解除 WeakMap 里的循环引用，等待 GC
-    this.value = undefined! 
+    this.value = undefined!
   }
 }
 ```
@@ -185,11 +196,10 @@ class EscapableHandleScope extends HandleScope {
     if (this._escapeCalled) return null
     this._escapeCalled = true
     // 中间省略
-    const envObject = envStore.get(this.env)!
-    const h = envObject.handleStore.get(handleId)
+    const h = this._envObject.handleStore.get(handleId)
     if (h && this.parent !== null) {
       this.handles.splice(index, 1)
-      envObject.handleStore.remove(handleId)
+      this._envObject.handleStore.remove(handleId)
       // 拿出来再加回去的过程回从 WeakMap 中找到最初的 Handle
       // 所以不会丢失 Reference
       const newHandle = this.parent.add(h.value)
@@ -206,7 +216,7 @@ class EscapableHandleScope extends HandleScope {
 
 `Reference` 对象记录了以下主要信息：
 
-- `env: number` napi_env
+- `envObject: Env` Env 对象
 - `id: number` napi_ref
 - `refcount: number` 当前 Reference 的引用计数，大于 0 是强引用，等于 0 是弱引用，由 `napi_reference_ref` 和 `napi_reference_unref` 进行增减
 - `handle_id: number` 关联的 napi_value
@@ -247,15 +257,17 @@ class Reference implements IStoreValue {
     let error: any
     let caught = false
     if (ref.finalize_callback !== NULL) {
+      const scope = ref.envObject.openScope()
       try {
-        envStore.get(ref.env)!.callIntoModule(() => {
-          call_viii(ref.finalize_callback, ref.env, ref.finalize_data, ref.finalize_hint)
+        ref.envObject.callIntoModule((envObject) => {
+          envObject.call_viii(ref.finalize_callback, envObject.id, ref.finalize_data, ref.finalize_hint)
           ref.finalize_callback = NULL
         })
       } catch (err) {
         caught = true
         error = err
       }
+      ref.envObject.closeScope(scope)
     }
     if (ref.deleteSelf) {
       Reference.doDelete(ref)
@@ -270,20 +282,21 @@ class Reference implements IStoreValue {
     }
   })
 
-  public queueFinalizer (): void {
+  public queueFinalizer (value?: object): void {
+    if (!Reference.finalizationGroup) return
     if (this.finalizerRegistered) return
-    const envObject = envStore.get(this.env)!
-    const handle = envObject.handleStore.get(this.handle_id)!
-    Reference.finalizationGroup.register(handle.value, this, this)
+    if (!value) {
+      value = this.envObject.handleStore.get(this.handle_id)!.value as object
+    }
+    Reference.finalizationGroup.register(value, this, this)
     this.finalizerRegistered = true
   }
 
   public static doDelete (ref: Reference): void {
     if ((ref.refcount !== 0) || (ref.deleteSelf) || (ref.finalizeRan)) {
       // 强引用 或 自杀引用 或 清理回调已经调用过
-      const envObject = envStore.get(ref.env)!
-      envObject.refStore.remove(ref.id)
-      envObject.handleStore.get(ref.handle_id)?.removeRef(ref)
+      ref.envObject.refStore.remove(ref.id)
+      ref.envObject.handleStore.get(ref.handle_id)?.removeRef(ref)
       Reference.finalizationGroup?.unregister(this)
     } else {
       ref.deleteSelf = true
@@ -303,7 +316,7 @@ class Reference implements IStoreValue {
   private objWeakRef!: WeakRef<object> | null
 
   public static create (
-    env: napi_env,
+    envObject: Env,
     handle_id: napi_value,
     initialRefcount: uint32_t,
     deleteSelf: boolean,
@@ -311,9 +324,8 @@ class Reference implements IStoreValue {
     finalize_data: void_p = 0,
     finalize_hint: void_p = 0
   ): Reference {
-    const ref = new Reference(env, handle_id, initialRefcount, deleteSelf,
+    const ref = new Reference(envObject, handle_id, initialRefcount, deleteSelf,
       finalize_callback, finalize_data, finalize_hint)
-    const envObject = envStore.get(env)!
     envObject.refStore.add(ref)
     const handle = envObject.handleStore.get(handle_id)!
     handle.addRef(ref)
@@ -326,15 +338,14 @@ class Reference implements IStoreValue {
   }
 
   public get (): napi_value {
-    const envObject = envStore.get(this.env)!
-    if (envObject.handleStore.has(this.handle_id)) {
+    if (this.envObject.handleStore.has(this.handle_id)) {
       return this.handle_id
     } else {
       if (this.objWeakRef) {
         const obj = this.objWeakRef.deref()
         if (obj) {
           // 这一步检查 HandleStore 的 WeakMap
-          this.handle_id = envObject.ensureHandleId(obj)
+          this.handle_id = this.envObject.ensureHandleId(obj)
           return this.handle_id
         }
       }
@@ -347,25 +358,19 @@ function napi_get_reference_value (
   env: napi_env,
   ref: napi_ref,
   result: Pointer<napi_value>
-): emnapi.napi_status {
-  if (!emnapi.supportFinalizer)
-    return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_generic_failure)
+): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
-    return emnapi.checkArgs(env, [ref, result], () => {
-      try {
-        const reference = envObject.refStore.get(ref)!
-        const handleId = reference.get()
-        if (handleId !== NULL) {
-          const handle = envObject.handleStore.get(handleId)!
-          handle.addRef(reference)
-          envObject.getCurrentScope()?.addHandle(handle)
-        }
-        HEAP32[result >> 2] = handleId
-        return emnapi.napi_clear_last_error(env)
-      } catch (err) {
-        envObject.tryCatch.setError(err)
-        return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_pending_exception)
+    if (!emnapi.supportFinalizer) return envObject.setLastError(napi_status.napi_generic_failure)
+    return emnapi.checkArgs(envObject, [ref, result], () => {
+      const reference = envObject.refStore.get(ref)!
+      const handleId = reference.get()
+      if (handleId !== NULL) {
+        const handle = envObject.handleStore.get(handleId)!
+        handle.addRef(reference)
+        envObject.getCurrentScope()?.addHandle(handle)
       }
+      HEAP32[result >> 2] = handleId
+      return envObject.clearLastError()
     })
   })
 }
@@ -382,16 +387,16 @@ function External (this: any): void {
 External.prototype = null as any
 
 class ExternalHandle extends Handle<{}> {
-  public static createExternal (env: napi_env, data: void_p = 0): ExternalHandle {
-    const h = new ExternalHandle(env, data)
-    envStore.get(env)!.handleStore.add(h)
+  public static createExternal (envObject: Env, data: void_p = 0): ExternalHandle {
+    const h = new ExternalHandle(envObject, data)
+    envObject.handleStore.add(h)
     return h
   }
 
   private readonly _data: void_p
 
-  public constructor (env: napi_env, data: void_p = 0) {
-    super(env, 0, new (External as any)())
+  public constructor (envObject: Env, data: void_p = 0) {
+    super(envObject, 0, new (External as any)())
     this._data = data
   }
 
@@ -410,17 +415,15 @@ function napi_create_external (
   finalize_cb: napi_finalize,
   finalize_hint: void_p,
   result: Pointer<napi_value>
-): emnapi.napi_status {
-  if (!emnapi.supportFinalizer)
-    return emnapi.napi_set_last_error(env, emnapi.napi_status.napi_generic_failure)
+): napi_status {
   return emnapi.preamble(env, (envObject) => {
-    return emnapi.checkArgs(env, [result], () => {
-      const externalHandle = emnapi.ExternalHandle.createExternal(env, data)
+    if (!emnapi.supportFinalizer) return envObject.setLastError(napi_status.napi_generic_failure)
+    return emnapi.checkArgs(envObject, [result], () => {
+      const externalHandle = emnapi.ExternalHandle.createExternal(envObject, data)
       envObject.getCurrentScope().addHandle(externalHandle)
-      emnapi.Reference.create(envObject, externalHandle.id, 0, true,
-        finalize_cb, data, finalize_hint)
+      emnapi.Reference.create(envObject, externalHandle.id, 0, true, finalize_cb, data, finalize_hint)
       HEAP32[result >> 2] = externalHandle.id
-      return emnapi.napi_clear_last_error(env)
+      return envObject.clearLastError()
     })
   })
 }
@@ -456,30 +459,59 @@ let emnapiExports: any
 function moduleRegister (): any {
   if (registered) return emnapiExports
   registered = true
-  let env: Env | undefined
+  env = emnapi.Env.create(
+    malloc!,
+    free!,
+    dynCalls.call_iii,
+    dynCalls.call_viii,
+    Module
+  )
+  const scope = env.openScope(emnapi.HandleScope)
   try {
-    env = Env.create()
-    emnapiExports = env.callIntoModule((envObject, scope) => {
-      // 打开了新的 HandleScope
+    emnapiExports = env.callIntoModule((envObject) => {
       const exports = {}
       const exportsHandle = scope.add(exports)
       const napiValue = _napi_register_wasm_v1!(envObject.id, exportsHandle.id)
       return (!napiValue) ? undefined : envObject.handleStore.get(napiValue)!.value
     })
-    return emnapiExports
   } catch (err) {
+    env.closeScope(scope)
     registered = false
     throw err
   }
+  env.closeScope(scope)
+  return emnapiExports
 }
 
 addOnInit(function (Module) {
+  __EMNAPI_RUNTIME_INIT__ // 构建时被替换
+
   _napi_register_wasm_v1 = Module._napi_register_wasm_v1
   delete Module._napi_register_wasm_v1
   const _emnapi_runtime_init = Module._emnapi_runtime_init
   delete Module._emnapi_runtime_init
-  // 中间省略 ...
-  Module.emnapiModuleRegister = moduleRegister
+
+  callInStack(() => {
+    const malloc_pp = stackAlloc(4)
+    const free_pp = stackAlloc(4)
+    const key_pp = stackAlloc(4)
+    const errormessages_pp = stackAlloc(4)
+    _emnapi_runtime_init(malloc_pp, free_pp, key_pp, errormessages_pp)
+    const malloc_p = HEAP32[malloc_pp >> 2]
+    const free_p = HEAP32[free_pp >> 2]
+    const key_p = HEAP32[key_pp >> 2]
+    malloc = function (size: number) {
+      return dynCalls.call_ii(malloc_p, size)
+    }
+    free = function (ptr: number) {
+      return dynCalls.call_vi(free_p, ptr)
+    }
+    exportsKey = (key_p ? UTF8ToString(key_p) : 'emnapiExports') || 'emnapiExports'
+    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+    errorMessagesPtr = HEAP32[errormessages_pp >> 2] || 0
+  })
+
+  // Module.emnapiModuleRegister = moduleRegister
   let exports: any
   try {
     exports = moduleRegister()
@@ -500,45 +532,89 @@ addOnInit(function (Module) {
 
 ## 函数绑定
 
-在 JS 中创建函数，打开新的 HandleScope，把 callbackInfo 加进 HandleStore 中，利用 Emscripten 的 dynCall 调用 C 的函数指针，传入 callbackInfo 的 id。
+在 JS 中创建函数，打开新的 HandleScope，利用 Emscripten 的 dynCall 调用 C 的函数指针，传入 callbackInfo 的 id。
 
 ```ts
 function $emnapiCreateFunction<F extends (...args: any[]) => any> (
-  env: napi_env,
+  envObject: emnapi.Env,
   utf8name: Pointer<const_char>,
   length: size_t,
   cb: napi_callback,
   data: void_p
-): F {
-  const envObject = emnapi.envStore.get(env)!
-  const f = (() => function (this: any): any {
-    'use strict'
-    const callbackInfo = {
-      _this: this,
-      _data: data,
-      _length: arguments.length,
-      _args: Array.prototype.slice.call(arguments),
-      _newTarget: new.target,
-      _isConstructCall: !!new.target
-    }
-    return envObject.callIntoModule((envObject, scope) => {
-      const cbinfoHandle = scope.add(callbackInfo)
-      const napiValue = emnapi.call_iii(cb, env, cbinfoHandle.id)
-      return (!napiValue) ? undefined : envObject.handleStore.get(napiValue)!.value
-    })
-  })()
+): { status: napi_status; f: F } {
+  const functionName = (utf8name === NULL || length === 0)
+    ? ''
+    : (length === -1 ? UTF8ToString(utf8name) : UTF8ToString(utf8name, length))
 
-  if (emnapi.canSetFunctionName) {
-    Object.defineProperty(f, 'name', {
-      value: (utf8name === NULL || length === 0)
-        ? ''
-        : (length === -1
-          ? UTF8ToString(utf8name)
-          : UTF8ToString(utf8name, length))
-    })
+  let f: F
+
+  const makeFunction = () => function (this: any): any {
+    'use strict'
+    const newTarget = this && this instanceof f ? this.constructor : undefined
+    const cbinfo = emnapi.CallbackInfo.create(
+      envObject,
+      this,
+      data,
+      arguments.length,
+      Array.prototype.slice.call(arguments),
+      newTarget
+    )
+    const scope = envObject.openScope(emnapi.HandleScope)
+    let r: napi_value
+    try {
+      r = envObject.callIntoModule((envObject) => {
+        const napiValue = envObject.call_iii(cb, envObject.id, cbinfo.id)
+        return (!napiValue) ? undefined : envObject.handleStore.get(napiValue)!.value
+      })
+    } catch (err) {
+      cbinfo.dispose()
+      envObject.closeScope(scope)
+      throw err
+    }
+    cbinfo.dispose()
+    envObject.closeScope(scope)
+    return r
   }
 
-  return f as F
+  if (functionName === '') {
+    f = makeFunction() as F
+  } else {
+    if (!(/^[_$a-zA-Z][_$a-zA-Z0-9]*$/.test(functionName))) {
+      return { status: napi_status.napi_invalid_arg, f: undefined! }
+    }
+    try {
+      f = (new Function('data', 'env', 'cb', 'emnapi',
+`return function ${functionName}(){` +
+  '"use strict";' +
+  `var newTarget=this&&this instanceof ${functionName}?this.constructor:undefined;` +
+  'var cbinfo=emnapi.CallbackInfo.create(env,this,data,arguments.length,Array.prototype.slice.call(arguments),newTarget);' +
+  'var scope=env.openScope(emnapi.HandleScope);' +
+  'var r;' +
+  'try{' +
+    'r=env.callIntoModule(function(env){' +
+      'var napiValue=env.call_iii(cb,env.id,cbinfo.id);' +
+      'return !napiValue?undefined:env.handleStore.get(napiValue).value;' +
+    '});' +
+  '}catch(err){' +
+    'cbinfo.dispose();' +
+    'env.closeScope(scope);' +
+    'throw err;' +
+  '}' +
+  'cbinfo.dispose();' +
+  'env.closeScope(scope);' +
+  'return r;' +
+'};'))(data, envObject, cb, emnapi)
+    } catch (_) {
+      f = makeFunction() as F
+      if (emnapi.canSetFunctionName) {
+        Object.defineProperty(f, 'name', {
+          value: functionName
+        })
+      }
+    }
+  }
+
+  return { status: napi_status.napi_ok, f }
 }
 
 function napi_create_function (
@@ -548,13 +624,15 @@ function napi_create_function (
   cb: napi_callback,
   data: void_p,
   result: Pointer<napi_value>
-): emnapi.napi_status {
+): napi_status {
   return emnapi.preamble(env, (envObject) => {
-    return emnapi.checkArgs(env, [result, cb], () => {
-      const f = emnapiCreateFunction(env, utf8name, length, cb, data)
+    return emnapi.checkArgs(envObject, [result, cb], () => {
+      const fresult = emnapiCreateFunction(envObject, utf8name, length, cb, data)
+      if (fresult.status !== napi_status.napi_ok) return envObject.setLastError(fresult.status)
+      const f = fresult.f
       const valueHandle = envObject.getCurrentScope().add(f)
       HEAP32[result >> 2] = valueHandle.id
-      return emnapi.getReturnStatus(env)
+      return envObject.getReturnStatus()
     })
   })
 }
