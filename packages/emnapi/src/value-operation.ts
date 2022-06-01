@@ -175,8 +175,23 @@ function napi_detach_arraybuffer (env: napi_env, _arraybuffer: napi_value): napi
   return _napi_set_last_error(env, napi_status.napi_generic_failure, 0, 0)
 }
 
-function napi_is_detached_arraybuffer (env: napi_env, _arraybuffer: napi_value, _result: Pointer<bool>): napi_status {
-  return _napi_set_last_error(env, napi_status.napi_generic_failure, 0, 0)
+function napi_is_detached_arraybuffer (env: napi_env, arraybuffer: napi_value, result: Pointer<bool>): napi_status {
+  return emnapi.preamble(env, (envObject) => {
+    return emnapi.checkArgs(envObject, [arraybuffer, result], () => {
+      const h: emnapi.Handle<ArrayBuffer> = envObject.handleStore.get(arraybuffer)!
+      if (h.isArrayBuffer() && h.value.byteLength === 0) {
+        try {
+          // eslint-disable-next-line no-new
+          new Uint8Array(h.value)
+        } catch (_) {
+          HEAPU8[result] = 1
+          return envObject.getReturnStatus()
+        }
+      }
+      HEAPU8[result] = 0
+      return envObject.getReturnStatus()
+    })
+  })
 }
 
 emnapiImplement('napi_typeof', napi_typeof)

@@ -52,4 +52,15 @@ module.exports = load('typedarray').then(test_typedarray => {
       console.log(`start of offset ${currentType}`)
     }, RangeError)
   })
+
+  // Test detaching
+  arrayTypes.forEach((currentType) => {
+    const buffer = Reflect.construct(currentType, [8])
+    assert.strictEqual(buffer.length, 8)
+    assert.ok(!test_typedarray.IsDetached(buffer.buffer))
+    const wasmMemory = new WebAssembly.Memory({ initial: 1 })
+    const detachedBuffer = wasmMemory.buffer
+    wasmMemory.grow(1)
+    assert.ok(test_typedarray.IsDetached(detachedBuffer))
+  })
 })
