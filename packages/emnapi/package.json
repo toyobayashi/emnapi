@@ -1,6 +1,6 @@
 {
   "name": "@tybys/emnapi",
-  "version": "0.12.1",
+  "version": "0.13.0",
   "description": "Node-API implementation for Emscripten",
   "main": "index.js",
   "devDependencies": {},

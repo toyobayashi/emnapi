@@ -1,6 +1,6 @@
 {
   "name": "@tybys/emnapi-runtime",
-  "version": "0.12.1",
+  "version": "0.13.0",
   "description": "emnapi runtime",
   "main": "index.js",
   "module": "./lib/index.js",
