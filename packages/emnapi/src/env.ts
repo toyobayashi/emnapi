@@ -1,8 +1,15 @@
 function napi_set_instance_data (env: napi_env, data: void_p, finalize_cb: napi_finalize, finalize_hint: void_p): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
-    envObject.instanceData.data = data
-    envObject.instanceData.finalize_cb = finalize_cb
-    envObject.instanceData.finalize_hint = finalize_hint
+    if (envObject.instanceData) {
+      if (envObject.instanceData.finalize_cb) {
+        envObject.call_viii(envObject.instanceData.finalize_cb, env, envObject.instanceData.data, envObject.instanceData.finalize_hint)
+      }
+    }
+    envObject.instanceData = {
+      data,
+      finalize_cb,
+      finalize_hint
+    }
     return envObject.clearLastError()
   })
 }
@@ -10,7 +17,7 @@ function napi_set_instance_data (env: napi_env, data: void_p, finalize_cb: napi_
 function napi_get_instance_data (env: napi_env, data: void_pp): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [data], () => {
-      HEAP32[data >> 2] = envObject.instanceData.data
+      HEAP32[data >> 2] = envObject.instanceData ? envObject.instanceData.data : 0
       return envObject.clearLastError()
     })
   })
