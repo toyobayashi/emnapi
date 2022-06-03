@@ -23,7 +23,8 @@
       {
         "transform": "@tybys/ts-transform-define",
         "defines": {
-          "NULL": 0
+          "NULL": 0,
+          "__VERSION__": "\"0.13.1\""
         }
       }
     ]

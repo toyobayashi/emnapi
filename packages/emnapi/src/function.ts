@@ -91,14 +91,16 @@ function napi_new_instance (
       }
       if (result === NULL) return envObject.setLastError(napi_status.napi_invalid_arg)
 
-      const Ctor = envObject.handleStore.get(constructor)!.value
+      const Ctor: new (...args: any[]) => any = envObject.handleStore.get(constructor)!.value
       if (typeof Ctor !== 'function') return envObject.setLastError(napi_status.napi_invalid_arg)
-      const args = []
+      const args = Array(argc + 1) as [undefined, ...any[]]
+      args[0] = undefined
       for (let i = 0; i < argc; i++) {
         const argPtr = argv + (i * 4)
-        args.push(envObject.handleStore.get(HEAP32[argPtr >> 2])!.value)
+        args[i + 1] = envObject.handleStore.get(HEAP32[argPtr >> 2])!.value
       }
-      const ret = new (Ctor.bind.apply(Ctor, ([undefined]).concat(args)))()
+      const BoundCtor = Ctor.bind.apply(Ctor, args) as new () => any
+      const ret = new BoundCtor()
       if (result !== NULL) {
         HEAP32[result >> 2] = envObject.ensureHandleId(ret)
       }

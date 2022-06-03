@@ -4,6 +4,7 @@ export {
   checkEnv,
   supportFinalizer,
   supportBigInt,
+  supportNewFunction,
   canSetFunctionName,
   envStore,
   TypedArray,
@@ -50,3 +51,12 @@ export {
   CallbackInfo,
   CallbackInfoStore
 } from './CallbackInfo'
+
+declare const __VERSION__: string
+
+Object.defineProperty(exports, 'version', {
+  configurable: true,
+  enumerable: true,
+  writable: false,
+  value: __VERSION__
+})

@@ -62,7 +62,8 @@ function build () {
         file: runtimeOut,
         format: 'iife',
         name: 'emnapi',
-        exports: 'named'
+        exports: 'named',
+        strict: false
       }
     },
     {
@@ -71,7 +72,8 @@ function build () {
         file: path.join(path.dirname(runtimeOut), 'emnapi.js'),
         format: 'umd',
         name: '__emnapi_runtime__',
-        exports: 'named'
+        exports: 'named',
+        strict: false
       }
     },
     {
@@ -80,7 +82,8 @@ function build () {
         file: path.join(path.dirname(runtimeOut), 'emnapi.min.js'),
         format: 'umd',
         name: '__emnapi_runtime__',
-        exports: 'named'
+        exports: 'named',
+        strict: false
       }
     }
   ]).map(conf => {

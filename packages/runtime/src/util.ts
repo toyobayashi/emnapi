@@ -1,18 +1,31 @@
+/* eslint-disable no-new-func */
+/* eslint-disable @typescript-eslint/no-implied-eval */
+
 import { Env } from './env'
 import { Store } from './Store'
 
 declare const __webpack_public_path__: any
 declare const global: typeof globalThis
 
-export const _global: typeof globalThis = (function () {
-  let g
-  g = (function (this: any) { return this })()
-
+export const supportNewFunction = (function () {
+  let f: Function
   try {
-    // eslint-disable-next-line no-new-func, @typescript-eslint/no-implied-eval
-    g = g || new Function('return this')()
+    f = new Function()
   } catch (_) {
-    if (typeof globalThis !== 'undefined') return globalThis
+    return false
+  }
+  return typeof f === 'function'
+})()
+
+export const _global: typeof globalThis = (function () {
+  if (typeof globalThis !== 'undefined') return globalThis
+
+  let g = (function (this: any) { return this })()
+  if (!g && supportNewFunction) {
+    g = new Function('return this')()
+  }
+
+  if (!g) {
     if (typeof __webpack_public_path__ === 'undefined') {
       if (typeof global !== 'undefined') return global
     }
