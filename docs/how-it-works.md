@@ -582,29 +582,14 @@ function $emnapiCreateFunction<F extends (...args: any[]) => any> (
     if (!(/^[_$a-zA-Z][_$a-zA-Z0-9]*$/.test(functionName))) {
       return { status: napi_status.napi_invalid_arg, f: undefined! }
     }
-    try {
-      f = (new Function('data', 'env', 'cb', 'emnapi',
-`return function ${functionName}(){` +
-  '"use strict";' +
-  `var newTarget=this&&this instanceof ${functionName}?this.constructor:undefined;` +
-  'var cbinfo=emnapi.CallbackInfo.create(env,this,data,arguments.length,Array.prototype.slice.call(arguments),newTarget);' +
-  'var scope=env.openScope(emnapi.HandleScope);' +
-  'var r;' +
-  'try{' +
-    'r=env.callIntoModule(function(env){' +
-      'var napiValue=env.call_iii(cb,env.id,cbinfo.id);' +
-      'return !napiValue?undefined:env.handleStore.get(napiValue).value;' +
-    '});' +
-  '}catch(err){' +
-    'cbinfo.dispose();' +
-    'env.closeScope(scope);' +
-    'throw err;' +
-  '}' +
-  'cbinfo.dispose();' +
-  'env.closeScope(scope);' +
-  'return r;' +
-'};'))(data, envObject, cb, emnapi)
-    } catch (_) {
+    if (emnapi.supportNewFunction) {
+      f = (new Function('_',
+        'return function ' + functionName + '(){' +
+          '"use strict";' +
+          'return _.apply(this,arguments);' +
+        '};'
+      ))(makeFunction())
+    } else {
       f = makeFunction() as F
       if (emnapi.canSetFunctionName) {
         Object.defineProperty(f, 'name', {
