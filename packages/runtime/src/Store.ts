@@ -62,9 +62,10 @@ export class Store<V extends IStoreValue> {
     } else {
       id = this._size
       this._size++
-    }
-    if (id >= this._values.length) {
-      this._values.length = Math.ceil(this._values.length * 1.5)
+      const capacity = this._values.length
+      if (id >= capacity) {
+        this._values.length = Math.ceil(capacity * 1.5)
+      }
     }
     value.id = id
     this._values[id] = value

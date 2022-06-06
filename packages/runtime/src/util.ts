@@ -64,9 +64,6 @@ export class TryCatch {
   }
 }
 
-// eslint-disable-next-line prefer-const
-export let nodeVersionPtr: Pointer<napi_node_version> = NULL
-
 export class EnvStore extends Store<Env> {
   public constructor () {
     super(4)
