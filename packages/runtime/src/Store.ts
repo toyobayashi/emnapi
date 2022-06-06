@@ -4,7 +4,7 @@ export interface IStoreValue {
   [x: string]: any
 }
 
-class Node<T> {
+/* class Node<T> {
   constructor (
     public value: T,
     public next: Node<any> | null = null
@@ -41,23 +41,23 @@ class Queue<T> {
   public clear (): void {
     this.head = this.tail = null
   }
-}
+} */
 
 export class Store<V extends IStoreValue> {
   protected _values: Array<V | undefined>
-  private readonly _freeList: Queue<number>
+  private _freeList: number[]
   private _size: number
 
   public constructor (capacity: number) {
     this._values = [undefined]
     this._values.length = capacity
     this._size = 1
-    this._freeList = new Queue()
+    this._freeList = []
   }
 
   public add (value: V): void {
     let id: number
-    if (this._freeList.head) {
+    if (this._freeList.length) {
       id = this._freeList.shift()!
     } else {
       id = this._size
@@ -95,6 +95,6 @@ export class Store<V extends IStoreValue> {
     }
     this._values = [undefined]
     this._size = 1
-    this._freeList.clear()
+    this._freeList = []
   }
 }
