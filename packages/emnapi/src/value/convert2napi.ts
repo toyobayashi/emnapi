@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/indent */
+
 function napi_create_int32 (env: napi_env, value: int32_t, result: Pointer<napi_value>): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [result], () => {
@@ -19,8 +21,14 @@ function napi_create_uint32 (env: napi_env, value: uint32_t, result: Pointer<nap
 function napi_create_int64 (env: napi_env, low: int32_t, high: int32_t, result: Pointer<napi_value>): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [result], () => {
-      const value = (low >>> 0) + (high * Math.pow(2, 32))
+      let value: number
+// #if WASM_BIGINT
+      value = Number(low)
+      HEAP32[high >> 2] = envObject.getCurrentScope().add(value).id
+// #else
+      value = (low >>> 0) + (high * Math.pow(2, 32))
       HEAP32[result >> 2] = envObject.getCurrentScope().add(value).id
+// #endif
       return envObject.clearLastError()
     })
   })
@@ -100,8 +108,14 @@ function napi_create_bigint_int64 (env: napi_env, low: int32_t, high: int32_t, r
   return emnapi.checkEnv(env, (envObject) => {
     if (!emnapi.supportBigInt) return envObject.setLastError(napi_status.napi_generic_failure)
     return emnapi.checkArgs(envObject, [result], () => {
-      const value = BigInt(low >>> 0) | (BigInt(high) << BigInt(32))
+      let value: BigInt
+// #if WASM_BIGINT
+      value = low as unknown as BigInt
+      HEAP32[high >> 2] = envObject.getCurrentScope().add(value).id
+// #else
+      value = BigInt(low >>> 0) | (BigInt(high) << BigInt(32))
       HEAP32[result >> 2] = envObject.getCurrentScope().add(value).id
+// #endif
       return envObject.clearLastError()
     })
   })
@@ -111,8 +125,14 @@ function napi_create_bigint_uint64 (env: napi_env, low: int32_t, high: int32_t, 
   return emnapi.checkEnv(env, (envObject) => {
     if (!emnapi.supportBigInt) return envObject.setLastError(napi_status.napi_generic_failure)
     return emnapi.checkArgs(envObject, [result], () => {
-      const value = BigInt(low >>> 0) | (BigInt(high >>> 0) << BigInt(32))
+      let value: BigInt
+// #if WASM_BIGINT
+      value = low as unknown as BigInt
+      HEAP32[high >> 2] = envObject.getCurrentScope().add(value).id
+// #else
+      value = BigInt(low >>> 0) | (BigInt(high >>> 0) << BigInt(32))
       HEAP32[result >> 2] = envObject.getCurrentScope().add(value).id
+// #endif
       return envObject.clearLastError()
     })
   })

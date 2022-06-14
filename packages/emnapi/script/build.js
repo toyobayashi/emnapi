@@ -18,6 +18,7 @@ async function build () {
 
   fs.writeFileSync(libOut,
     libCode
+      .replace(/(\r?\n)\s*\/\/\s+(#((if)|(else)|(endif)))/g, '$1$2')
       .replace('__EMNAPI_RUNTIME_REPLACE__', `'${runtimeCode.replace(/\\/g, '\\\\').replace(/\r?\n/g, '\\n').replace(/'/g, "\\'")}'`)
       .replace('__EMNAPI_RUNTIME_INIT__;', '')
       .replace(/(makeDynCall\(.*?\))/g, '{{{ $1 }}}')
@@ -27,6 +28,7 @@ async function build () {
 
   fs.writeFileSync(path.join(path.dirname(libOut), path.basename(libOut, '.js') + '_no_runtime.js'),
     libCode
+      .replace(/(\r?\n)\s*\/\/\s+(#((if)|(else)|(endif)))/g, '$1$2')
       .replace('__EMNAPI_RUNTIME_REPLACE__', '""')
       .replace('__EMNAPI_RUNTIME_INIT__;', `
             if ('emnapiRuntime' in Module) {
