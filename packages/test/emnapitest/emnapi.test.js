@@ -10,7 +10,7 @@ module.exports = load('emnapitest').then(test_typedarray => {
 
   const HEAPU8 = test_typedarray.getModuleProperty('HEAPU8')
   const mem = HEAPU8.buffer
-  assert.ok(mem instanceof ArrayBuffer)
+  assert.ok(mem instanceof ArrayBuffer || mem instanceof SharedArrayBuffer)
   assert.strictEqual(mod.HEAPU8, HEAPU8)
 
   const externalResult = test_typedarray.External()

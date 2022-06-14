@@ -259,7 +259,8 @@ let knownGlobals = [
   setImmediate,
   setInterval,
   setTimeout,
-  queueMicrotask
+  queueMicrotask,
+  require('worker_threads').Worker
 ]
 
 // TODO(@jasnell): This check can be temporary. AbortController is
