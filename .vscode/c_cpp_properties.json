@@ -50,7 +50,7 @@
       "name": "Emscripten",
       "defines": ["${defines}", "__wasm32__"],
       "compilerPath": "${env:EMSDK}/upstream/emscripten/emcc",
-      "intelliSenseMode": "clang-x64",
+      "intelliSenseMode": "clang-x86",
       "cStandard": "c99",
       "cppStandard": "c++11",
       "includePath": ["${includePath}"]
@@ -58,8 +58,8 @@
     {
       "name": "Win32 Emscripten",
       "defines": ["${defines}", "__wasm32__"],
-      "compilerPath": "${env:EMSDK}/upstream/emscripten/emcc.bat",
-      "intelliSenseMode": "clang-x64",
+      "compilerPath": "${env:EMSDK}\\upstream\\emscripten\\emcc.bat",
+      "intelliSenseMode": "clang-x86",
       "cStandard": "c99",
       "cppStandard": "c++11",
       "includePath": ["${includePath}"]
