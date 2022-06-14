@@ -4,6 +4,9 @@
 declare const __EMNAPI_RUNTIME_REPLACE__: string
 declare const __EMNAPI_RUNTIME_INIT__: string
 
+declare function _napi_register_wasm_v1 (env: napi_env, exports: napi_value): napi_value
+declare function _emnapi_runtime_init (...args: [number, number, number, number]): void
+
 mergeInto(LibraryManager.library, {
   $emnapiGetDynamicCalls: function () {
     return {
@@ -28,7 +31,7 @@ mergeInto(LibraryManager.library, {
   $errorMessagesPtr: undefined,
 
   $emnapiInit__postset: 'emnapiInit();',
-  $emnapiInit__deps: ['$emnapiGetDynamicCalls', '$emnapi', '$errorMessagesPtr'],
+  $emnapiInit__deps: ['$emnapiGetDynamicCalls', '$emnapi', '$errorMessagesPtr', 'napi_register_wasm_v1', 'emnapi_runtime_init'],
   $emnapiInit: function () {
     let registered = false
     let emnapiExports: any
@@ -39,9 +42,6 @@ mergeInto(LibraryManager.library, {
 
     let malloc: ((size: number) => number) | undefined
     let free: ((ptr: number) => void) | undefined
-
-    let _napi_register_wasm_v1: (
-      (env: napi_env, exports: napi_value) => napi_value) | undefined
 
     function callInStack<R, T extends () => R> (f: T): R {
       const stack = stackSave()
@@ -71,7 +71,7 @@ mergeInto(LibraryManager.library, {
         emnapiExports = env.callIntoModule((envObject) => {
           const exports = {}
           const exportsHandle = scope.add(exports)
-          const napiValue = _napi_register_wasm_v1!(envObject.id, exportsHandle.id)
+          const napiValue = _napi_register_wasm_v1(envObject.id, exportsHandle.id)
           return (!napiValue) ? undefined : envObject.handleStore.get(napiValue)!.value
         })
       } catch (err) {
@@ -87,9 +87,7 @@ mergeInto(LibraryManager.library, {
       // eslint-disable-next-line @typescript-eslint/no-unused-expressions
       __EMNAPI_RUNTIME_INIT__
 
-      _napi_register_wasm_v1 = Module._napi_register_wasm_v1
       delete Module._napi_register_wasm_v1
-      const _emnapi_runtime_init = Module._emnapi_runtime_init
       delete Module._emnapi_runtime_init
 
       callInStack(() => {
