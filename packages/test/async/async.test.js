@@ -49,7 +49,6 @@ async function main () {
   let x = 0
   const workDone = common.mustCall((status) => {
     assert.strictEqual(status, 0)
-    console.log(status)
     if (++x < iterations) {
       setImmediate(() => test_async.DoRepeatedWork(workDone))
     }
