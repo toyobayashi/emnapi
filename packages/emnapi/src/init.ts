@@ -5,7 +5,7 @@ declare const __EMNAPI_RUNTIME_REPLACE__: string
 declare const __EMNAPI_RUNTIME_INIT__: string
 
 declare function _napi_register_wasm_v1 (env: napi_env, exports: napi_value): napi_value
-declare function _emnapi_runtime_init (...args: [number, number, number, number]): void
+declare function __emnapi_runtime_init (...args: [number, number, number, number]): void
 
 mergeInto(LibraryManager.library, {
   $emnapiGetDynamicCalls: function () {
@@ -31,7 +31,7 @@ mergeInto(LibraryManager.library, {
   $errorMessagesPtr: undefined,
 
   $emnapiInit__postset: 'emnapiInit();',
-  $emnapiInit__deps: ['$emnapiGetDynamicCalls', '$emnapi', '$errorMessagesPtr', 'napi_register_wasm_v1', 'emnapi_runtime_init'],
+  $emnapiInit__deps: ['$emnapiGetDynamicCalls', '$emnapi', '$errorMessagesPtr', 'napi_register_wasm_v1', '_emnapi_runtime_init'],
   $emnapiInit: function () {
     let registered = false
     let emnapiExports: any
@@ -88,14 +88,14 @@ mergeInto(LibraryManager.library, {
       __EMNAPI_RUNTIME_INIT__
 
       delete Module._napi_register_wasm_v1
-      delete Module._emnapi_runtime_init
+      delete Module.__emnapi_runtime_init
 
       callInStack(() => {
         const malloc_pp = stackAlloc(4)
         const free_pp = stackAlloc(4)
         const key_pp = stackAlloc(4)
         const errormessages_pp = stackAlloc(4)
-        _emnapi_runtime_init(malloc_pp, free_pp, key_pp, errormessages_pp)
+        __emnapi_runtime_init(malloc_pp, free_pp, key_pp, errormessages_pp)
         const malloc_p = HEAP32[malloc_pp >> 2]
         const free_p = HEAP32[free_pp >> 2]
         const key_p = HEAP32[key_pp >> 2]

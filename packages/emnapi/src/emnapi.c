@@ -35,6 +35,22 @@ const char* emnapi_error_messages[] = {
   "Main thread would deadlock",
 };
 
+#define EMNAPI_MOD_NAME_X_HELPER(modname) #modname
+#define EMNAPI_MOD_NAME_X(modname) EMNAPI_MOD_NAME_X_HELPER(modname)
+
+EMSCRIPTEN_KEEPALIVE
+void _emnapi_runtime_init(int* malloc_p,
+                         int* free_p,
+                         const char** key,
+                         const char*** error_messages) {
+  if (malloc_p) *malloc_p = (int)(malloc);
+  if (free_p) *free_p = (int)(free);
+  if (key) {
+    *key = EMNAPI_MOD_NAME_X(NODE_GYP_MODULE_NAME);
+  }
+  if (error_messages) *error_messages = emnapi_error_messages;
+}
+
 napi_status
 napi_get_node_version(napi_env env,
                       const napi_node_version** version) {

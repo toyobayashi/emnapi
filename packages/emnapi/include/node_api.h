@@ -16,8 +16,6 @@ typedef napi_value (*napi_addon_register_func)(napi_env env,
 #define NODE_GYP_MODULE_NAME emnapiExports
 #endif
 
-#define EMNAPI_MOD_NAME_X(modname) #modname
-
 #define NAPI_MODULE_INITIALIZER_X(base, version)                               \
   NAPI_MODULE_INITIALIZER_X_HELPER(base, version)
 #define NAPI_MODULE_INITIALIZER_X_HELPER(base, version) base##version
@@ -26,19 +24,12 @@ typedef napi_value (*napi_addon_register_func)(napi_env env,
   NAPI_MODULE_INITIALIZER_X(napi_register_wasm_v, NAPI_MODULE_VERSION)
 #define NAPI_MODULE(modname, regfunc)                                          \
   EXTERN_C_START                                                               \
-  NAPI_MODULE_EXPORT void emnapi_runtime_init(int* malloc_p,                   \
-                                              int* free_p,                     \
-                                              const char** key,                \
-                                              const char*** error_messages) {  \
-    if (malloc_p) *malloc_p = (int)(malloc);                                   \
-    if (free_p) *free_p = (int)(free);                                         \
-    if (key) {                                                                 \
-      *key = EMNAPI_MOD_NAME_X(modname);                                       \
-    }                                                                          \
-    if (error_messages) *error_messages = emnapi_error_messages;               \
-  }                                                                            \
+  void _emnapi_keepalive(void* f) {}                                           \
+  void _emnapi_runtime_init(int* malloc_p,  int* free_p,                       \
+    const char** key, const char*** error_messages);                           \
   NAPI_MODULE_EXPORT napi_value NAPI_WASM_INITIALIZER(napi_env env,            \
                                                       napi_value exports) {    \
+    _emnapi_keepalive((void*)_emnapi_runtime_init);                            \
     return regfunc(env, exports);                                              \
   }                                                                            \
   EXTERN_C_END
@@ -66,8 +57,6 @@ typedef struct {
 } napi_node_version;
 
 EXTERN_C_START
-
-extern const char* emnapi_error_messages[22];
 
 NAPI_EXTERN NAPI_NO_RETURN void napi_fatal_error(const char* location,
                                                  size_t location_len,
