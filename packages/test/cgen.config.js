@@ -2,14 +2,17 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
   const compilerFlags = isEmscripten
     ? [
         // ...(isDebug ? ['-sDISABLE_EXCEPTION_CATCHING=0'] : [])
+        '-sUSE_PTHREADS=1'
       ]
     : []
 
   const linkerFlags = isEmscripten
     ? [
         // "-sEXPORTED_FUNCTIONS=['_malloc','_free']",
+        '-sUSE_PTHREADS=1',
+        '-sWASM_BIGINT=1',
         '-sALLOW_MEMORY_GROWTH=1',
-        '-sMIN_CHROME_VERSION=48',
+        '-sMIN_CHROME_VERSION=67',
         ...(isDebug ? ['-sSAFE_HEAP=1'/* , '-sDISABLE_EXCEPTION_CATCHING=0' */] : [])
       ]
     : []
@@ -57,7 +60,6 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
             sources: ['../emnapi/src/emnapi.c'],
             includePaths,
             compileOptions: [...compilerFlags],
-            linkOptions: [...linkerFlags],
             publicLinkOptions: [`--js-library=${require('path').join(__dirname, '../emnapi/dist/library_napi_no_runtime.js')}`]
           }]
         : []),
@@ -66,8 +68,7 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
         name: 'testcommon',
         sources: ['./common.c'],
         includePaths,
-        compileOptions: [...compilerFlags],
-        linkOptions: [...linkerFlags]
+        compileOptions: [...compilerFlags]
       },
       createTarget('env', ['./env/binding.c']),
       createTarget('hello', ['./hello/binding.c']),
