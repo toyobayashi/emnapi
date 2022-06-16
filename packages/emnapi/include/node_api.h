@@ -3,6 +3,7 @@
 
 #include <stdlib.h>
 #include "js_native_api.h"
+#include "node_api_types.h"
 
 #define NAPI_MODULE_EXPORT __attribute__((used))
 #define NAPI_NO_RETURN __attribute__((__noreturn__))
@@ -27,9 +28,11 @@ typedef napi_value (*napi_addon_register_func)(napi_env env,
   void _emnapi_keepalive(void* f) {}                                           \
   void _emnapi_runtime_init(int* malloc_p,  int* free_p,                       \
     const char** key, const char*** error_messages);                           \
+  void _emnapi_execute_async_work(napi_async_work work);                       \
   NAPI_MODULE_EXPORT napi_value NAPI_WASM_INITIALIZER(napi_env env,            \
                                                       napi_value exports) {    \
     _emnapi_keepalive((void*)_emnapi_runtime_init);                            \
+    _emnapi_keepalive((void*)_emnapi_execute_async_work);                      \
     return regfunc(env, exports);                                              \
   }                                                                            \
   EXTERN_C_END
@@ -49,14 +52,23 @@ typedef napi_value (*napi_addon_register_func)(napi_env env,
   napi_value NAPI_MODULE_INITIALIZER(napi_env env,                    \
                                      napi_value exports)
 
-typedef struct {
-  uint32_t major;
-  uint32_t minor;
-  uint32_t patch;
-  const char* release;
-} napi_node_version;
 
 EXTERN_C_START
+
+NAPI_EXTERN
+napi_status napi_create_async_work(napi_env env,
+                                   napi_value async_resource,
+                                   napi_value async_resource_name,
+                                   napi_async_execute_callback execute,
+                                   napi_async_complete_callback complete,
+                                   void* data,
+                                   napi_async_work* result);
+NAPI_EXTERN napi_status napi_delete_async_work(napi_env env,
+                                               napi_async_work work);
+NAPI_EXTERN napi_status napi_queue_async_work(napi_env env,
+                                              napi_async_work work);
+NAPI_EXTERN napi_status napi_cancel_async_work(napi_env env,
+                                               napi_async_work work);
 
 NAPI_EXTERN NAPI_NO_RETURN void napi_fatal_error(const char* location,
                                                  size_t location_len,

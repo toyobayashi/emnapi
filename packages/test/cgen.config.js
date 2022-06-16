@@ -2,14 +2,12 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
   const compilerFlags = isEmscripten
     ? [
         // ...(isDebug ? ['-sDISABLE_EXCEPTION_CATCHING=0'] : [])
-        '-sUSE_PTHREADS=1'
       ]
     : []
 
   const linkerFlags = isEmscripten
     ? [
         // "-sEXPORTED_FUNCTIONS=['_malloc','_free']",
-        '-sUSE_PTHREADS=1',
         '-sWASM_BIGINT=1',
         '-sALLOW_MEMORY_GROWTH=1',
         '-sMIN_CHROME_VERSION=67',
@@ -21,48 +19,52 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
     ? ['../emnapi/include']
     : [`${require('path').join(require('os').homedir(), 'AppData/Local/node-gyp/Cache', process.versions.node, 'include/node')}`, '../node_modules/node-addon-api']
 
-  const createTarget = (name, sources, needEntry) => ({
+  const jsLib = `--js-library=${require('path').join(__dirname, '../emnapi/dist/library_napi_no_runtime.js')}`
+
+  const createTarget = (name, sources, needEntry, pthread) => ({
     name: name,
     type: isEmscripten ? 'exe' : 'node',
-    sources: [...(needEntry ? (sources.push('./entry_point.c'), sources) : sources)],
+    sources: [
+      ...(needEntry ? (sources.push('./entry_point.c'), sources) : sources),
+      ...(isEmscripten ? ['../emnapi/src/emnapi.c'] : [])
+    ],
     emwrap: {
       exports: ['emnapi']
     },
     includePaths,
-    libs: ['testcommon', ...(isEmscripten ? ['emnapi'] : [])],
-    compileOptions: [...compilerFlags],
+    libs: ['testcommon'],
+    compileOptions: [...compilerFlags, ...(isEmscripten && pthread ? ['-sUSE_PTHREADS=1'] : [])],
     // eslint-disable-next-line no-template-curly-in-string
-    linkOptions: [...linkerFlags]
+    linkOptions: [
+      ...linkerFlags,
+      ...(isEmscripten ? [jsLib] : []),
+      ...(isEmscripten && pthread ? ['-sUSE_PTHREADS=1', '-sPTHREAD_POOL_SIZE=4'] : [])
+    ]
   })
 
   const createNodeAddonApiTarget = (name, sources) => ({
     name: name,
     type: isEmscripten ? 'exe' : 'node',
-    sources: [...sources],
+    sources: [
+      ...sources,
+      ...(isEmscripten ? ['../emnapi/src/emnapi.c'] : [])
+    ],
     emwrap: {
       exports: ['emnapi']
     },
     includePaths,
-    libs: [...(isEmscripten ? ['emnapi'] : [])],
     defines: ['NAPI_DISABLE_CPP_EXCEPTIONS', 'NODE_ADDON_API_ENABLE_MAYBE'],
     compileOptions: [...compilerFlags],
     // eslint-disable-next-line no-template-curly-in-string
-    linkOptions: [...linkerFlags]
+    linkOptions: [
+      ...linkerFlags,
+      ...(isEmscripten ? [jsLib] : [])
+    ]
   })
 
   return {
     project: 'emnapitest',
     targets: [
-      ...(isEmscripten
-        ? [{
-            type: 'lib',
-            name: 'emnapi',
-            sources: ['../emnapi/src/emnapi.c'],
-            includePaths,
-            compileOptions: [...compilerFlags],
-            publicLinkOptions: [`--js-library=${require('path').join(__dirname, '../emnapi/dist/library_napi_no_runtime.js')}`]
-          }]
-        : []),
       {
         type: 'lib',
         name: 'testcommon',
@@ -72,6 +74,7 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
       },
       createTarget('env', ['./env/binding.c']),
       createTarget('hello', ['./hello/binding.c']),
+      createTarget('async', ['./async/binding.c'], false, true),
       createTarget('arg', ['./arg/binding.c'], true),
       createTarget('callback', ['./callback/binding.c'], true),
       createTarget('objfac', ['./objfac/binding.c'], true),

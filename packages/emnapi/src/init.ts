@@ -8,20 +8,18 @@ declare function _napi_register_wasm_v1 (env: napi_env, exports: napi_value): na
 declare function __emnapi_runtime_init (...args: [number, number, number, number]): void
 
 mergeInto(LibraryManager.library, {
-  $emnapiGetDynamicCalls: function () {
-    return {
-      call_vi (_ptr: number, a: int32_t): void {
-        return makeDynCall('vi', '_ptr')(a)
-      },
-      call_ii (_ptr: number, a: int32_t): int32_t {
-        return makeDynCall('ii', '_ptr')(a)
-      },
-      call_iii (_ptr: number, a: int32_t, b: int32_t): int32_t {
-        return makeDynCall('iii', '_ptr')(a, b)
-      },
-      call_viii (_ptr: number, a: int32_t, b: int32_t, c: int32_t): void {
-        return makeDynCall('viii', '_ptr')(a, b, c)
-      }
+  $emnapiGetDynamicCalls: {
+    call_vi: function (_ptr: number, a: int32_t): void {
+      return makeDynCall('vi', '_ptr')(a)
+    },
+    call_ii: function (_ptr: number, a: int32_t): int32_t {
+      return makeDynCall('ii', '_ptr')(a)
+    },
+    call_iii: function (_ptr: number, a: int32_t, b: int32_t): int32_t {
+      return makeDynCall('iii', '_ptr')(a, b)
+    },
+    call_viii: function (_ptr: number, a: int32_t, b: int32_t, c: int32_t): void {
+      return makeDynCall('viii', '_ptr')(a, b, c)
     }
   },
 
@@ -38,7 +36,7 @@ mergeInto(LibraryManager.library, {
     let exportsKey: string
     let env: emnapi.Env | undefined
 
-    const dynCalls = emnapiGetDynamicCalls()
+    const dynCalls = emnapiGetDynamicCalls
 
     let malloc: ((size: number) => number) | undefined
     let free: ((ptr: number) => void) | undefined
