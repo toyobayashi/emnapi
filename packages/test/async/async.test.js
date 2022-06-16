@@ -45,6 +45,17 @@ async function main () {
     }))
   })
 
+  const iterations = 500
+  let x = 0
+  const workDone = common.mustCall((status) => {
+    assert.strictEqual(status, 0)
+    console.log(status)
+    if (++x < iterations) {
+      setImmediate(() => test_async.DoRepeatedWork(workDone))
+    }
+  }, iterations)
+  test_async.DoRepeatedWork(workDone)
+
   await new Promise((resolve) => {
     setTimeout(resolve, 4000)
   })
