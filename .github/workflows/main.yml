@@ -15,7 +15,7 @@ jobs:
     - uses: actions/checkout@v2
     - uses: mymindstorm/setup-emsdk@v10
       with:
-        version: '3.0.0'
+        version: '3.1.13'
         # no-cache: true
         actions-cache-folder: 'emsdk-cache'
     - uses: actions/setup-node@v2
