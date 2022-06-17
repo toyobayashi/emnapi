@@ -34,11 +34,11 @@ async function main () {
   await new Promise((resolve) => {
     // Successful async execution and completion callback.
     test_async.Test(5, {}, common.mustCall(function (err, val) {
-      console.log(11111)
+      console.log('test_async.Test(5, {}, callback)')
       assert.strictEqual(err, null)
       assert.strictEqual(val, 10)
       process.nextTick(common.mustCall(() => {
-        console.log(22222)
+        console.log('process.nextTick(callback)')
         resolve()
       }))
     }))
@@ -47,7 +47,7 @@ async function main () {
   await new Promise((resolve) => {
     // Async work item cancellation with callback.
     test_async.TestCancel(common.mustCall(() => {
-      console.log(33333)
+      console.log('test_async.TestCancel(callback)')
       resolve()
     }))
   })
@@ -70,6 +70,7 @@ async function main () {
         assert.strictEqual(err.message, 'should not fail')
       }
       assert.strictEqual(err.message, 'uncaught')
+      console.log('process.once("uncaughtException", callback): ' + err.message)
       resolve()
     }))
 

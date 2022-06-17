@@ -25,19 +25,17 @@ mergeInto(LibraryManager.library, {
     HEAP32[address + 1] = PThread.runningWorkers.length
   },
 
+  // _emnapi_delete_async_work_js: function (_work: number) {}
+
   _emnapi_on_execute_async_work_js: function (work: number) {
     if (ENVIRONMENT_IS_PTHREAD) {
       postMessage({ emnapiAsyncWorkPtr: work })
     }
-  },
-
-  _emnapi_delete_async_work_js: function (_work: number) {
-    // TODO
   }
 })
 
 function _emnapi_queue_async_work_js (work: number): void {
-  const tid = HEAP32[(work + 20) >> 2]
+  const tid = HEAP32[(work + 16) >> 2]
   if (tid === 0) {
     emnapiAsyncWorkerQueue.push(work)
     return
@@ -45,32 +43,30 @@ function _emnapi_queue_async_work_js (work: number): void {
   const env = HEAP32[work >> 2]
   const worker: Worker = PThread.pthreads[tid].worker
   const listener: (this: Worker, ev: MessageEvent<any>) => any = (e) => {
-    const removeListener = (): void => {
+    const data = ENVIRONMENT_IS_NODE ? e : e.data
+    if (data.emnapiAsyncWorkPtr === work) {
+      // remove listener
       if (ENVIRONMENT_IS_NODE) {
         (worker as any).off('message', listener)
       } else {
         worker.removeEventListener('message', listener, false)
       }
-    }
-    const data = ENVIRONMENT_IS_NODE ? e : e.data
-    if (data.emnapiAsyncWorkPtr === work) {
-      HEAP32[(work + 20) >> 2] = 0 // tid
+
+      HEAP32[(work + 16) >> 2] = 0 // tid
       const complete = HEAP32[(work + 8) >> 2]
       if (complete !== NULL) {
         const envObject = emnapi.envStore.get(env)!
         const scope = envObject.openScope(emnapi.HandleScope)
         try {
           envObject.callIntoModule((envObject) => {
-            envObject.call_viii(complete, env, HEAP32[(work + 16) >> 2], HEAP32[(work + 12) >> 2])
+            envObject.call_viii(complete, env, napi_status.napi_ok, HEAP32[(work + 12) >> 2])
           })
         } catch (err) {
           envObject.closeScope(scope)
-          removeListener()
           throw err
         }
         envObject.closeScope(scope)
       }
-      removeListener()
     }
   }
   if (ENVIRONMENT_IS_NODE) {
@@ -84,13 +80,12 @@ function napi_cancel_async_work (env: napi_env, work: number): napi_status {
 // #if USE_PTHREADS
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [work], () => {
-      const tid = HEAP32[(work + 20) >> 2]
+      const tid = HEAP32[(work + 16) >> 2]
       if (tid !== 0) {
         return envObject.setLastError(napi_status.napi_generic_failure)
       }
 
       emnapiAsyncWorkerQueue.splice(emnapiAsyncWorkerQueue.indexOf(work), 1)
-      HEAP32[(work + 16) >> 2] = napi_status.napi_cancelled
       const complete = HEAP32[(work + 8) >> 2]
       if (complete !== NULL) {
         const envObject = emnapi.envStore.get(env)!

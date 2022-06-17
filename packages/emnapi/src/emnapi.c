@@ -129,7 +129,6 @@ struct napi_async_work__ {
   napi_async_execute_callback execute;
   napi_async_complete_callback complete;
   void* data;
-  napi_status status;
   pthread_t tid;
 };
 
@@ -139,7 +138,7 @@ typedef struct worker_count {
 } worker_count;
 
 // extern void _emnapi_create_async_work_js(napi_async_work work);
-extern void _emnapi_delete_async_work_js(napi_async_work work);
+// extern void _emnapi_delete_async_work_js(napi_async_work work);
 extern void _emnapi_queue_async_work_js(napi_async_work work);
 extern void _emnapi_on_execute_async_work_js(napi_async_work work);
 extern int _emnapi_get_worker_count(worker_count* count);
@@ -155,7 +154,6 @@ napi_async_work _emnapi_async_work_init(
   work->execute = execute;
   work->complete = complete;
   work->data = data;
-  work->status = napi_ok;
   work->tid = NULL;
   return work;
 }
@@ -167,7 +165,6 @@ void _emnapi_async_work_destroy(napi_async_work work) {
 void* _emnapi_on_execute_async_work(void* arg) {
   napi_async_work work = (napi_async_work) arg;
   work->execute(work->env, work->data);
-  work->status = napi_ok;
   _emnapi_on_execute_async_work_js(work); // postMessage to main thread
   return NULL;
 }
@@ -211,7 +208,7 @@ napi_status napi_delete_async_work(napi_env env, napi_async_work work) {
   CHECK_ENV(env);
   CHECK_ARG(env, work);
 
-  _emnapi_delete_async_work_js(work);  // clean listeners
+  // _emnapi_delete_async_work_js(work);  // clean listeners
   _emnapi_async_work_destroy(work);
   return napi_clear_last_error(env);
 #else
