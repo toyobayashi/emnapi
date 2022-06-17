@@ -5,6 +5,7 @@
 #endif
 
 #include <emscripten.h>
+#include <emscripten/heap.h>
 #include "emnapi.h"
 #include "node_api.h"
 
@@ -72,6 +73,24 @@ void _emnapi_runtime_init(int* malloc_p,
     *key = EMNAPI_MOD_NAME_X(NODE_GYP_MODULE_NAME);
   }
   if (error_messages) *error_messages = emnapi_error_messages;
+}
+
+napi_status napi_adjust_external_memory(napi_env env,
+                                        int64_t change_in_bytes,
+                                        int64_t* adjusted_value) {
+  CHECK_ENV(env);
+  CHECK_ARG(env, adjusted_value);
+
+  if (change_in_bytes < 0) {
+    return napi_set_last_error(env, napi_invalid_arg, 0, NULL);
+  }
+
+  size_t old_size = emscripten_get_heap_size();
+  int r = emscripten_resize_heap(old_size + (size_t) change_in_bytes);
+
+  *adjusted_value = (int64_t) emscripten_get_heap_size();
+
+  return napi_clear_last_error(env);
 }
 
 napi_status

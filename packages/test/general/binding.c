@@ -204,6 +204,16 @@ static napi_value finalize_was_called(napi_env env, napi_callback_info info) {
   return it_was_called;
 }
 
+static napi_value testAdjustExternalMemory(napi_env env, napi_callback_info info) {
+  napi_value result;
+  int64_t adjustedValue;
+
+  NAPI_CALL(env, napi_adjust_external_memory(env, 1, &adjustedValue));
+  NAPI_CALL(env, napi_create_double(env, (double)adjustedValue, &result));
+
+  return result;
+}
+
 static napi_value testNapiRun(napi_env env, napi_callback_info info) {
   napi_value script, result;
   size_t argc = 1;
@@ -290,7 +300,8 @@ napi_value Init(napi_env env, napi_value exports) {
     DECLARE_NAPI_PROPERTY("addFinalizerOnly", add_finalizer_only),
     DECLARE_NAPI_PROPERTY("testFinalizeWrap", test_finalize_wrap),
     DECLARE_NAPI_PROPERTY("finalizeWasCalled", finalize_was_called),
-    DECLARE_NAPI_PROPERTY("derefItemWasCalled", deref_item_was_called)
+    DECLARE_NAPI_PROPERTY("derefItemWasCalled", deref_item_was_called),
+    DECLARE_NAPI_PROPERTY("testAdjustExternalMemory", testAdjustExternalMemory)
   };
 
   NAPI_CALL(env, napi_define_properties(

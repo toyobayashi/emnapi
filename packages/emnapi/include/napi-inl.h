@@ -6135,12 +6135,12 @@ inline void AsyncProgressQueueWorker<T>::ExecutionProgress::Send(const T* data, 
 // Memory Management class
 ////////////////////////////////////////////////////////////////////////////////
 
-// inline int64_t MemoryManagement::AdjustExternalMemory(Env env, int64_t change_in_bytes) {
-//   int64_t result;
-//   napi_status status = napi_adjust_external_memory(env, change_in_bytes, &result);
-//   NAPI_THROW_IF_FAILED(env, status, 0);
-//   return result;
-// }
+inline int64_t MemoryManagement::AdjustExternalMemory(Env env, int64_t change_in_bytes) {
+  int64_t result;
+  napi_status status = napi_adjust_external_memory(env, change_in_bytes, &result);
+  NAPI_THROW_IF_FAILED(env, status, 0);
+  return result;
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 // Version Management class

@@ -2960,10 +2960,10 @@ namespace NAPI_CPP_CUSTOM_NAMESPACE {
   #endif  // NAPI_VERSION > 3 && !defined(__wasm32__)
 
   // Memory management.
-  // class MemoryManagement {
-  //   public:
-  //     static int64_t AdjustExternalMemory(Env env, int64_t change_in_bytes);
-  // };
+  class MemoryManagement {
+    public:
+      static int64_t AdjustExternalMemory(Env env, int64_t change_in_bytes);
+  };
 
   // Version management
   class VersionManagement {

@@ -70,6 +70,11 @@ module.exports = load('general').then(async test_general => {
   // Clean up here, otherwise derefItemWasCalled() will be polluted.
   test_general.removeWrap(y)
 
+  // Test napi_adjust_external_memory
+  const adjustedValue = test_general.testAdjustExternalMemory()
+  assert.strictEqual(typeof adjustedValue, 'number')
+  assert(adjustedValue > 0)
+
   async function runGCTests () {
   // Ensure that garbage collecting an object with a wrapped native item results
   // in the finalize callback being called.
