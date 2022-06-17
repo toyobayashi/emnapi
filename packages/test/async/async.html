@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>async</title>
+</head>
+<body>
+  <script src="../../runtime/dist/emnapi.min.js"></script>
+  <script src="../.cgenbuild/Debug/async.js"></script>
+  <script>
+    (async function main () {
+      const loadPromise = window['async'].default()
+      const test_async = (await loadPromise).Module.emnapiExports
+
+      const testException = 'test_async_cb_exception'
+
+      const assert = {
+        strictEqual (a, b) {
+          if (a !== b) {
+            throw new Error('')
+          }
+        }
+      }
+
+      await new Promise((resolve) => {
+        // Successful async execution and completion callback.
+        test_async.Test(5, {}, function (err, val) {
+          console.log('test_async.Test(5, {}, callback)')
+          assert.strictEqual(err, null)
+          assert.strictEqual(val, 10)
+          resolve()
+        })
+      })
+
+      await new Promise((resolve) => {
+        // Async work item cancellation with callback.
+        test_async.TestCancel(() => {
+          console.log('test_async.TestCancel(callback)')
+          resolve()
+        })
+      })
+
+      const iterations = 500
+      let x = 0
+      const workDone = (status) => {
+        assert.strictEqual(status, 0)
+        if (++x < iterations) {
+          setTimeout(() => test_async.DoRepeatedWork(workDone))
+        } else {
+          console.log(x)
+        }
+      }
+      test_async.DoRepeatedWork(workDone)
+
+      await new Promise((resolve) => {
+        setTimeout(resolve, 3000)
+      })
+    })()
+  </script>
+</body>
+</html>
