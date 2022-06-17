@@ -1,12 +1,12 @@
-#include <emscripten.h>
 #include <stdlib.h>
-#include "emnapi.h"
-#include "node_api.h"
 
 #ifdef __EMSCRIPTEN_PTHREADS__
-// #include <emscripten/proxying.h>
 #include <pthread.h>
 #endif
+
+#include <emscripten.h>
+#include "emnapi.h"
+#include "node_api.h"
 
 #define CHECK_ENV(env)          \
   do {                          \
@@ -61,26 +61,11 @@ const char* emnapi_error_messages[] = {
 #define EMNAPI_MOD_NAME_X_HELPER(modname) #modname
 #define EMNAPI_MOD_NAME_X(modname) EMNAPI_MOD_NAME_X_HELPER(modname)
 
-// #ifdef __EMSCRIPTEN_PTHREADS__
-// void* returner_main(void* queue) {
-//   emscripten_exit_with_live_runtime();
-// }
-
-// static pthread_t worker_thread = NULL;
-// static em_proxying_queue* proxy_queue = NULL;
-// #endif
-
 EMSCRIPTEN_KEEPALIVE
 void _emnapi_runtime_init(int* malloc_p,
                          int* free_p,
                          const char** key,
                          const char*** error_messages) {
-// #ifdef __EMSCRIPTEN_PTHREADS__
-  // proxy_queue = em_proxying_queue_create();
-  // pthread_create(&worker_thread, NULL, returner_main, proxy_queue);
-  // pthread_detach(worker_thread);
-// #endif
-
   if (malloc_p) *malloc_p = (int)(malloc);
   if (free_p) *free_p = (int)(free);
   if (key) {
@@ -92,10 +77,8 @@ void _emnapi_runtime_init(int* malloc_p,
 napi_status
 napi_get_node_version(napi_env env,
                       const napi_node_version** version) {
-  if (env == NULL) return napi_invalid_arg;
-  if (version == NULL) {
-    return napi_set_last_error(env, napi_invalid_arg, 0, NULL);
-  }
+  CHECK_ENV(env);
+  CHECK_ARG(env, version);
   static napi_node_version node_version = {
     16,
     15,
@@ -109,10 +92,8 @@ napi_get_node_version(napi_env env,
 napi_status
 emnapi_get_emscripten_version(napi_env env,
                               const emnapi_emscripten_version** version) {
-  if (env == NULL) return napi_invalid_arg;
-  if (version == NULL) {
-    return napi_set_last_error(env, napi_invalid_arg, 0, NULL);
-  }
+  CHECK_ENV(env);
+  CHECK_ARG(env, version);
   static emnapi_emscripten_version emscripten_version = {
     __EMSCRIPTEN_major__,
     __EMSCRIPTEN_minor__,
@@ -141,7 +122,7 @@ typedef struct worker_count {
 // extern void _emnapi_delete_async_work_js(napi_async_work work);
 extern void _emnapi_queue_async_work_js(napi_async_work work);
 extern void _emnapi_on_execute_async_work_js(napi_async_work work);
-extern int _emnapi_get_worker_count(worker_count* count);
+extern int _emnapi_get_worker_count_js(worker_count* count);
 
 napi_async_work _emnapi_async_work_init(
   napi_env env,
@@ -165,7 +146,7 @@ void _emnapi_async_work_destroy(napi_async_work work) {
 void* _emnapi_on_execute_async_work(void* arg) {
   napi_async_work work = (napi_async_work) arg;
   work->execute(work->env, work->data);
-  _emnapi_on_execute_async_work_js(work); // postMessage to main thread
+  _emnapi_on_execute_async_work_js(work);  // postMessage to main thread
   return NULL;
 }
 #endif
@@ -222,17 +203,12 @@ napi_status napi_queue_async_work(napi_env env, napi_async_work work) {
   CHECK_ARG(env, work);
 
   worker_count count;
-  _emnapi_get_worker_count(&count);
+  _emnapi_get_worker_count_js(&count);
   if (count.unused > 0 || count.running == 0) {
     _emnapi_execute_async_work(work);
   } else {
     _emnapi_queue_async_work_js(work);  // queue work
   }
-
-  // work->tid = worker_thread;
-  // _emnapi_queue_async_work_js(work);  // listen complete event
-  // emscripten_proxy_async(proxy_queue, worker_thread,
-  //   _emnapi_on_execute_async_work, work);
 
   return napi_clear_last_error(env);
 #else

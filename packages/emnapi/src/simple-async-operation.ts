@@ -18,8 +18,8 @@ mergeInto(LibraryManager.library, {
     'return r;' +
   '};',
 
-  _emnapi_get_worker_count__deps: ['$PThread'],
-  _emnapi_get_worker_count: function (struct: number) {
+  _emnapi_get_worker_count_js__deps: ['$PThread'],
+  _emnapi_get_worker_count_js: function (struct: number) {
     const address = struct >> 2
     HEAP32[address] = PThread.unusedWorkers.length
     HEAP32[address + 1] = PThread.runningWorkers.length
