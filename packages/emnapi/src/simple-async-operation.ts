@@ -35,45 +35,40 @@ mergeInto(LibraryManager.library, {
 })
 
 function _emnapi_queue_async_work_js (work: number): void {
-  const tidAddr = (work + 16) >> 2
-  const tid = HEAP32[tidAddr]
+  const tid = HEAP32[(work + 16) >> 2]
   if (tid === 0) {
     emnapiAsyncWorkerQueue.push(work)
     return
   }
-  const env = HEAP32[work >> 2]
-  const worker: Worker = PThread.pthreads[tid].worker
-  const listener: (this: Worker, ev: MessageEvent<any>) => any = (e) => {
-    const data = ENVIRONMENT_IS_NODE ? e : e.data
-    if (data.emnapiAsyncWorkPtr === work) {
-      // remove listener
-      if (ENVIRONMENT_IS_NODE) {
-        (worker as any).off('message', listener)
-      } else {
-        worker.removeEventListener('message', listener, false)
-      }
-
-      HEAP32[tidAddr] = 0 // tid
-      const complete = HEAP32[(work + 8) >> 2]
-      if (complete !== NULL) {
-        const envObject = emnapi.envStore.get(env)!
-        const scope = envObject.openScope(emnapi.HandleScope)
-        try {
-          envObject.callIntoModule((envObject) => {
-            envObject.call_viii(complete, env, napi_status.napi_ok, HEAP32[(work + 12) >> 2])
-          })
-        } catch (err) {
+  const worker = PThread.pthreads[tid].worker
+  if (!worker._emnapiAsyncWorkListener) {
+    worker._emnapiAsyncWorkListener = function (this: Worker, e: MessageEvent<any>): any {
+      const data = ENVIRONMENT_IS_NODE ? e : e.data
+      const w: number = data.emnapiAsyncWorkPtr
+      if (w) {
+        const env = HEAP32[w >> 2]
+        HEAP32[(w + 16) >> 2] = 0 // tid
+        const complete = HEAP32[(w + 8) >> 2]
+        if (complete !== NULL) {
+          const envObject = emnapi.envStore.get(env)!
+          const scope = envObject.openScope(emnapi.HandleScope)
+          try {
+            envObject.callIntoModule((envObject) => {
+              envObject.call_viii(complete, env, napi_status.napi_ok, HEAP32[(w + 12) >> 2])
+            })
+          } catch (err) {
+            envObject.closeScope(scope)
+            throw err
+          }
           envObject.closeScope(scope)
-          throw err
         }
-        envObject.closeScope(scope)
       }
     }
-  }
-  if (ENVIRONMENT_IS_NODE) {
-    (worker as any).on('message', listener)
-  } else {
-    worker.addEventListener('message', listener, false)
+    if (ENVIRONMENT_IS_NODE) {
+      worker.on('message', worker._emnapiAsyncWorkListener)
+    } else {
+      worker.addEventListener('message', worker._emnapiAsyncWorkListener, false)
+    }
   }
 }
 
