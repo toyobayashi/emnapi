@@ -133,11 +133,16 @@ struct napi_async_work__ {
   pthread_t tid;
 };
 
+typedef struct worker_count {
+  int unused;
+  int running;
+} worker_count;
+
 // extern void _emnapi_create_async_work_js(napi_async_work work);
 extern void _emnapi_delete_async_work_js(napi_async_work work);
 extern void _emnapi_queue_async_work_js(napi_async_work work);
 extern void _emnapi_on_execute_async_work_js(napi_async_work work);
-extern int _emnapi_get_unused_worker_size();
+extern int _emnapi_get_worker_count(worker_count* count);
 
 napi_async_work _emnapi_async_work_init(
   napi_env env,
@@ -219,8 +224,9 @@ napi_status napi_queue_async_work(napi_env env, napi_async_work work) {
   CHECK_ENV(env);
   CHECK_ARG(env, work);
 
-  int unused_worker_size = _emnapi_get_unused_worker_size();
-  if (unused_worker_size > 0) {
+  worker_count count;
+  _emnapi_get_worker_count(&count);
+  if (count.unused > 0 || count.running == 0) {
     _emnapi_execute_async_work(work);
   } else {
     _emnapi_queue_async_work_js(work);  // queue work
