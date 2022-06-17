@@ -35,7 +35,8 @@ mergeInto(LibraryManager.library, {
 })
 
 function _emnapi_queue_async_work_js (work: number): void {
-  const tid = HEAP32[(work + 16) >> 2]
+  const tidAddr = (work + 16) >> 2
+  const tid = HEAP32[tidAddr]
   if (tid === 0) {
     emnapiAsyncWorkerQueue.push(work)
     return
@@ -52,7 +53,7 @@ function _emnapi_queue_async_work_js (work: number): void {
         worker.removeEventListener('message', listener, false)
       }
 
-      HEAP32[(work + 16) >> 2] = 0 // tid
+      HEAP32[tidAddr] = 0 // tid
       const complete = HEAP32[(work + 8) >> 2]
       if (complete !== NULL) {
         const envObject = emnapi.envStore.get(env)!
@@ -81,11 +82,12 @@ function napi_cancel_async_work (env: napi_env, work: number): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [work], () => {
       const tid = HEAP32[(work + 16) >> 2]
-      if (tid !== 0) {
+      const workQueueIndex = emnapiAsyncWorkerQueue.indexOf(work)
+      if (tid !== 0 || workQueueIndex === -1) {
         return envObject.setLastError(napi_status.napi_generic_failure)
       }
 
-      emnapiAsyncWorkerQueue.splice(emnapiAsyncWorkerQueue.indexOf(work), 1)
+      emnapiAsyncWorkerQueue.splice(workQueueIndex, 1)
       const complete = HEAP32[(work + 8) >> 2]
       if (complete !== NULL) {
         const envObject = emnapi.envStore.get(env)!
