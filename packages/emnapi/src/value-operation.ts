@@ -171,8 +171,27 @@ function napi_strict_equals (env: napi_env, lhs: napi_value, rhs: napi_value, re
   })
 }
 
-function napi_detach_arraybuffer (env: napi_env, _arraybuffer: napi_value): napi_status {
-  return _napi_set_last_error(env, napi_status.napi_generic_failure, 0, 0)
+function napi_detach_arraybuffer (env: napi_env, arraybuffer: napi_value): napi_status {
+  return emnapi.checkEnv(env, (envObject) => {
+    return emnapi.checkArgs(envObject, [arraybuffer], () => {
+      const value = envObject.handleStore.get(arraybuffer)!.value
+      if (!(value instanceof ArrayBuffer)) {
+        if (typeof SharedArrayBuffer === 'function' && (value instanceof SharedArrayBuffer)) {
+          return envObject.setLastError(napi_status.napi_detachable_arraybuffer_expected)
+        }
+        return envObject.setLastError(napi_status.napi_arraybuffer_expected)
+      }
+
+      try {
+        const messageChannel = new MessageChannel()
+        messageChannel.port1.postMessage(value, [value])
+      } catch (err) {
+        envObject.tryCatch.setError(err)
+        return envObject.setLastError(napi_status.napi_pending_exception)
+      }
+      return envObject.clearLastError()
+    })
+  })
 }
 
 function napi_is_detached_arraybuffer (env: napi_env, arraybuffer: napi_value, result: Pointer<bool>): napi_status {
