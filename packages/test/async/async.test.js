@@ -6,13 +6,20 @@ const assert = require('assert')
 const child_process = require('child_process')
 
 async function main () {
-  const test_async = await load('async')
+  const loadPromise = load('async')
+  const test_async = await loadPromise
 
   const testException = 'test_async_cb_exception'
 
   // Exception thrown from async completion callback.
   // (Tested in a spawned process because the exception is fatal.)
   if (process.argv[2] === 'child') {
+    process.on('uncaughtException', function (ex) {
+      // suppress ExitStatus exceptions from showing an error
+      if (!(ex instanceof loadPromise.Module.ExitStatus)) {
+        throw ex
+      }
+    })
     test_async.Test(1, {}, common.mustCall(function () {
       throw new Error(testException)
     }))
@@ -56,7 +63,24 @@ async function main () {
   test_async.DoRepeatedWork(workDone)
 
   await new Promise((resolve) => {
-    setTimeout(resolve, 4000)
+    process.once('uncaughtException', common.mustCall(function (err) {
+      try {
+        throw new Error('should not fail')
+      } catch (err) {
+        assert.strictEqual(err.message, 'should not fail')
+      }
+      assert.strictEqual(err.message, 'uncaught')
+      resolve()
+    }))
+
+    // Successful async execution and completion callback.
+    test_async.Test(5, {}, common.mustCall(function () {
+      throw new Error('uncaught')
+    }))
+  })
+
+  await new Promise((resolve) => {
+    setTimeout(resolve, 3000)
   })
 }
 
