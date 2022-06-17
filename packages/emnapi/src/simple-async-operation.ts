@@ -90,17 +90,19 @@ function napi_cancel_async_work (env: napi_env, work: number): napi_status {
       emnapiAsyncWorkerQueue.splice(workQueueIndex, 1)
       const complete = HEAP32[(work + 8) >> 2]
       if (complete !== NULL) {
-        const envObject = emnapi.envStore.get(env)!
-        const scope = envObject.openScope(emnapi.HandleScope)
-        try {
-          envObject.callIntoModule((envObject) => {
-            envObject.call_viii(complete, env, napi_status.napi_cancelled, HEAP32[(work + 12) >> 2])
-          })
-        } catch (err) {
+        setTimeout(() => {
+          const envObject = emnapi.envStore.get(env)!
+          const scope = envObject.openScope(emnapi.HandleScope)
+          try {
+            envObject.callIntoModule((envObject) => {
+              envObject.call_viii(complete, env, napi_status.napi_cancelled, HEAP32[(work + 12) >> 2])
+            })
+          } catch (err) {
+            envObject.closeScope(scope)
+            throw err
+          }
           envObject.closeScope(scope)
-          throw err
-        }
-        envObject.closeScope(scope)
+        })
       }
 
       return envObject.clearLastError()
