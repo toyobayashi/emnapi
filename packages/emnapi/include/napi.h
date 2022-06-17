@@ -1119,7 +1119,7 @@ namespace NAPI_CPP_CUSTOM_NAMESPACE {
 
 #if NAPI_VERSION >= 7
     bool IsDetached() const;
-    // void Detach();
+    void Detach();
 #endif  // NAPI_VERSION >= 7
   };
 

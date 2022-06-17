@@ -1837,10 +1837,10 @@ inline bool ArrayBuffer::IsDetached() const {
   return detached;
 }
 
-// inline void ArrayBuffer::Detach() {
-//   napi_status status = napi_detach_arraybuffer(_env, _value);
-//   NAPI_THROW_IF_FAILED_VOID(_env, status);
-// }
+inline void ArrayBuffer::Detach() {
+  napi_status status = napi_detach_arraybuffer(_env, _value);
+  NAPI_THROW_IF_FAILED_VOID(_env, status);
+}
 #endif  // NAPI_VERSION >= 7
 
 ////////////////////////////////////////////////////////////////////////////////
