@@ -4759,212 +4759,212 @@ inline Value EscapableHandleScope::Escape(napi_value escapee) {
 // // AsyncWorker class
 // ////////////////////////////////////////////////////////////////////////////////
 
-// inline AsyncWorker::AsyncWorker(const Function& callback)
-//   : AsyncWorker(callback, "generic") {
-// }
+inline AsyncWorker::AsyncWorker(const Function& callback)
+  : AsyncWorker(callback, "generic") {
+}
 
-// inline AsyncWorker::AsyncWorker(const Function& callback,
-//                                 const char* resource_name)
-//   : AsyncWorker(callback, resource_name, Object::New(callback.Env())) {
-// }
+inline AsyncWorker::AsyncWorker(const Function& callback,
+                                const char* resource_name)
+  : AsyncWorker(callback, resource_name, Object::New(callback.Env())) {
+}
 
-// inline AsyncWorker::AsyncWorker(const Function& callback,
-//                                 const char* resource_name,
-//                                 const Object& resource)
-//   : AsyncWorker(Object::New(callback.Env()),
-//                 callback,
-//                 resource_name,
-//                 resource) {
-// }
+inline AsyncWorker::AsyncWorker(const Function& callback,
+                                const char* resource_name,
+                                const Object& resource)
+  : AsyncWorker(Object::New(callback.Env()),
+                callback,
+                resource_name,
+                resource) {
+}
 
-// inline AsyncWorker::AsyncWorker(const Object& receiver,
-//                                 const Function& callback)
-//   : AsyncWorker(receiver, callback, "generic") {
-// }
+inline AsyncWorker::AsyncWorker(const Object& receiver,
+                                const Function& callback)
+  : AsyncWorker(receiver, callback, "generic") {
+}
 
-// inline AsyncWorker::AsyncWorker(const Object& receiver,
-//                                 const Function& callback,
-//                                 const char* resource_name)
-//   : AsyncWorker(receiver,
-//                 callback,
-//                 resource_name,
-//                 Object::New(callback.Env())) {
-// }
+inline AsyncWorker::AsyncWorker(const Object& receiver,
+                                const Function& callback,
+                                const char* resource_name)
+  : AsyncWorker(receiver,
+                callback,
+                resource_name,
+                Object::New(callback.Env())) {
+}
 
-// inline AsyncWorker::AsyncWorker(const Object& receiver,
-//                                 const Function& callback,
-//                                 const char* resource_name,
-//                                 const Object& resource)
-//   : _env(callback.Env()),
-//     _receiver(Napi::Persistent(receiver)),
-//     _callback(Napi::Persistent(callback)),
-//     _suppress_destruct(false) {
-//   napi_value resource_id;
-//   napi_status status = napi_create_string_latin1(
-//       _env, resource_name, NAPI_AUTO_LENGTH, &resource_id);
-//   NAPI_THROW_IF_FAILED_VOID(_env, status);
+inline AsyncWorker::AsyncWorker(const Object& receiver,
+                                const Function& callback,
+                                const char* resource_name,
+                                const Object& resource)
+  : _env(callback.Env()),
+    _receiver(Napi::Persistent(receiver)),
+    _callback(Napi::Persistent(callback)),
+    _suppress_destruct(false) {
+  napi_value resource_id;
+  napi_status status = napi_create_string_latin1(
+      _env, resource_name, NAPI_AUTO_LENGTH, &resource_id);
+  NAPI_THROW_IF_FAILED_VOID(_env, status);
 
-//   status = napi_create_async_work(_env, resource, resource_id, OnAsyncWorkExecute,
-//                                   OnAsyncWorkComplete, this, &_work);
-//   NAPI_THROW_IF_FAILED_VOID(_env, status);
-// }
+  status = napi_create_async_work(_env, resource, resource_id, OnAsyncWorkExecute,
+                                  OnAsyncWorkComplete, this, &_work);
+  NAPI_THROW_IF_FAILED_VOID(_env, status);
+}
 
-// inline AsyncWorker::AsyncWorker(Napi::Env env)
-//   : AsyncWorker(env, "generic") {
-// }
+inline AsyncWorker::AsyncWorker(Napi::Env env)
+  : AsyncWorker(env, "generic") {
+}
 
-// inline AsyncWorker::AsyncWorker(Napi::Env env,
-//                                 const char* resource_name)
-//   : AsyncWorker(env, resource_name, Object::New(env)) {
-// }
+inline AsyncWorker::AsyncWorker(Napi::Env env,
+                                const char* resource_name)
+  : AsyncWorker(env, resource_name, Object::New(env)) {
+}
 
-// inline AsyncWorker::AsyncWorker(Napi::Env env,
-//                                 const char* resource_name,
-//                                 const Object& resource)
-//   : _env(env),
-//     _receiver(),
-//     _callback(),
-//     _suppress_destruct(false) {
-//   napi_value resource_id;
-//   napi_status status = napi_create_string_latin1(
-//       _env, resource_name, NAPI_AUTO_LENGTH, &resource_id);
-//   NAPI_THROW_IF_FAILED_VOID(_env, status);
+inline AsyncWorker::AsyncWorker(Napi::Env env,
+                                const char* resource_name,
+                                const Object& resource)
+  : _env(env),
+    _receiver(),
+    _callback(),
+    _suppress_destruct(false) {
+  napi_value resource_id;
+  napi_status status = napi_create_string_latin1(
+      _env, resource_name, NAPI_AUTO_LENGTH, &resource_id);
+  NAPI_THROW_IF_FAILED_VOID(_env, status);
 
-//   status = napi_create_async_work(_env, resource, resource_id, OnAsyncWorkExecute,
-//                                   OnAsyncWorkComplete, this, &_work);
-//   NAPI_THROW_IF_FAILED_VOID(_env, status);
-// }
+  status = napi_create_async_work(_env, resource, resource_id, OnAsyncWorkExecute,
+                                  OnAsyncWorkComplete, this, &_work);
+  NAPI_THROW_IF_FAILED_VOID(_env, status);
+}
 
-// inline AsyncWorker::~AsyncWorker() {
-//   if (_work != nullptr) {
-//     napi_delete_async_work(_env, _work);
-//     _work = nullptr;
-//   }
-// }
+inline AsyncWorker::~AsyncWorker() {
+  if (_work != nullptr) {
+    napi_delete_async_work(_env, _work);
+    _work = nullptr;
+  }
+}
 
-// inline void AsyncWorker::Destroy() {
-//   delete this;
-// }
+inline void AsyncWorker::Destroy() {
+  delete this;
+}
 
-// inline AsyncWorker::AsyncWorker(AsyncWorker&& other) {
-//   _env = other._env;
-//   other._env = nullptr;
-//   _work = other._work;
-//   other._work = nullptr;
-//   _receiver = std::move(other._receiver);
-//   _callback = std::move(other._callback);
-//   _error = std::move(other._error);
-//   _suppress_destruct = other._suppress_destruct;
-// }
+inline AsyncWorker::AsyncWorker(AsyncWorker&& other) {
+  _env = other._env;
+  other._env = nullptr;
+  _work = other._work;
+  other._work = nullptr;
+  _receiver = std::move(other._receiver);
+  _callback = std::move(other._callback);
+  _error = std::move(other._error);
+  _suppress_destruct = other._suppress_destruct;
+}
 
-// inline AsyncWorker& AsyncWorker::operator =(AsyncWorker&& other) {
-//   _env = other._env;
-//   other._env = nullptr;
-//   _work = other._work;
-//   other._work = nullptr;
-//   _receiver = std::move(other._receiver);
-//   _callback = std::move(other._callback);
-//   _error = std::move(other._error);
-//   _suppress_destruct = other._suppress_destruct;
-//   return *this;
-// }
+inline AsyncWorker& AsyncWorker::operator =(AsyncWorker&& other) {
+  _env = other._env;
+  other._env = nullptr;
+  _work = other._work;
+  other._work = nullptr;
+  _receiver = std::move(other._receiver);
+  _callback = std::move(other._callback);
+  _error = std::move(other._error);
+  _suppress_destruct = other._suppress_destruct;
+  return *this;
+}
 
-// inline AsyncWorker::operator napi_async_work() const {
-//   return _work;
-// }
+inline AsyncWorker::operator napi_async_work() const {
+  return _work;
+}
 
-// inline Napi::Env AsyncWorker::Env() const {
-//   return Napi::Env(_env);
-// }
+inline Napi::Env AsyncWorker::Env() const {
+  return Napi::Env(_env);
+}
 
-// inline void AsyncWorker::Queue() {
-//   napi_status status = napi_queue_async_work(_env, _work);
-//   NAPI_THROW_IF_FAILED_VOID(_env, status);
-// }
+inline void AsyncWorker::Queue() {
+  napi_status status = napi_queue_async_work(_env, _work);
+  NAPI_THROW_IF_FAILED_VOID(_env, status);
+}
 
-// inline void AsyncWorker::Cancel() {
-//   napi_status status = napi_cancel_async_work(_env, _work);
-//   NAPI_THROW_IF_FAILED_VOID(_env, status);
-// }
+inline void AsyncWorker::Cancel() {
+  napi_status status = napi_cancel_async_work(_env, _work);
+  NAPI_THROW_IF_FAILED_VOID(_env, status);
+}
 
-// inline ObjectReference& AsyncWorker::Receiver() {
-//   return _receiver;
-// }
+inline ObjectReference& AsyncWorker::Receiver() {
+  return _receiver;
+}
 
-// inline FunctionReference& AsyncWorker::Callback() {
-//   return _callback;
-// }
+inline FunctionReference& AsyncWorker::Callback() {
+  return _callback;
+}
 
-// inline void AsyncWorker::SuppressDestruct() {
-//   _suppress_destruct = true;
-// }
+inline void AsyncWorker::SuppressDestruct() {
+  _suppress_destruct = true;
+}
 
-// inline void AsyncWorker::OnOK() {
-//   if (!_callback.IsEmpty()) {
-//     _callback.Call(_receiver.Value(), GetResult(_callback.Env()));
-//   }
-// }
+inline void AsyncWorker::OnOK() {
+  if (!_callback.IsEmpty()) {
+    _callback.Call(_receiver.Value(), GetResult(_callback.Env()));
+  }
+}
 
-// inline void AsyncWorker::OnError(const Error& e) {
-//   if (!_callback.IsEmpty()) {
-//     _callback.Call(_receiver.Value(), std::initializer_list<napi_value>{ e.Value() });
-//   }
-// }
+inline void AsyncWorker::OnError(const Error& e) {
+  if (!_callback.IsEmpty()) {
+    _callback.Call(_receiver.Value(), std::initializer_list<napi_value>{ e.Value() });
+  }
+}
 
-// inline void AsyncWorker::SetError(const std::string& error) {
-//   _error = error;
-// }
+inline void AsyncWorker::SetError(const std::string& error) {
+  _error = error;
+}
 
-// inline std::vector<napi_value> AsyncWorker::GetResult(Napi::Env /*env*/) {
-//   return {};
-// }
-// // The OnAsyncWorkExecute method receives an napi_env argument. However, do NOT
-// // use it within this method, as it does not run on the JavaScript thread and
-// // must not run any method that would cause JavaScript to run. In practice,
-// // this means that almost any use of napi_env will be incorrect.
-// inline void AsyncWorker::OnAsyncWorkExecute(napi_env env, void* asyncworker) {
-//   AsyncWorker* self = static_cast<AsyncWorker*>(asyncworker);
-//   self->OnExecute(env);
-// }
-// // The OnExecute method receives an napi_env argument. However, do NOT
-// // use it within this method, as it does not run on the JavaScript thread and
-// // must not run any method that would cause JavaScript to run. In practice,
-// // this means that almost any use of napi_env will be incorrect.
-// inline void AsyncWorker::OnExecute(Napi::Env /*DO_NOT_USE*/) {
-// #ifdef NAPI_CPP_EXCEPTIONS
-//   try {
-//     Execute();
-//   } catch (const std::exception& e) {
-//     SetError(e.what());
-//   }
-// #else // NAPI_CPP_EXCEPTIONS
-//   Execute();
-// #endif // NAPI_CPP_EXCEPTIONS
-// }
+inline std::vector<napi_value> AsyncWorker::GetResult(Napi::Env /*env*/) {
+  return {};
+}
+// The OnAsyncWorkExecute method receives an napi_env argument. However, do NOT
+// use it within this method, as it does not run on the JavaScript thread and
+// must not run any method that would cause JavaScript to run. In practice,
+// this means that almost any use of napi_env will be incorrect.
+inline void AsyncWorker::OnAsyncWorkExecute(napi_env env, void* asyncworker) {
+  AsyncWorker* self = static_cast<AsyncWorker*>(asyncworker);
+  self->OnExecute(env);
+}
+// The OnExecute method receives an napi_env argument. However, do NOT
+// use it within this method, as it does not run on the JavaScript thread and
+// must not run any method that would cause JavaScript to run. In practice,
+// this means that almost any use of napi_env will be incorrect.
+inline void AsyncWorker::OnExecute(Napi::Env /*DO_NOT_USE*/) {
+#ifdef NAPI_CPP_EXCEPTIONS
+  try {
+    Execute();
+  } catch (const std::exception& e) {
+    SetError(e.what());
+  }
+#else // NAPI_CPP_EXCEPTIONS
+  Execute();
+#endif // NAPI_CPP_EXCEPTIONS
+}
 
-// inline void AsyncWorker::OnAsyncWorkComplete(napi_env env,
-//                                              napi_status status,
-//                                              void* asyncworker) {
-//   AsyncWorker* self = static_cast<AsyncWorker*>(asyncworker);
-//   self->OnWorkComplete(env, status);
-// }
-// inline void AsyncWorker::OnWorkComplete(Napi::Env /*env*/, napi_status status) {
-//   if (status != napi_cancelled) {
-//     HandleScope scope(_env);
-//     details::WrapCallback([&] {
-//       if (_error.size() == 0) {
-//         OnOK();
-//       }
-//       else {
-//         OnError(Error::New(_env, _error));
-//       }
-//       return nullptr;
-//     });
-//   }
-//   if (!_suppress_destruct) {
-//     Destroy();
-//   }
-// }
+inline void AsyncWorker::OnAsyncWorkComplete(napi_env env,
+                                             napi_status status,
+                                             void* asyncworker) {
+  AsyncWorker* self = static_cast<AsyncWorker*>(asyncworker);
+  self->OnWorkComplete(env, status);
+}
+inline void AsyncWorker::OnWorkComplete(Napi::Env /*env*/, napi_status status) {
+  if (status != napi_cancelled) {
+    HandleScope scope(_env);
+    details::WrapCallback([&] {
+      if (_error.size() == 0) {
+        OnOK();
+      }
+      else {
+        OnError(Error::New(_env, _error));
+      }
+      return nullptr;
+    });
+  }
+  if (!_suppress_destruct) {
+    Destroy();
+  }
+}
 
 #if (NAPI_VERSION > 3 && !defined(__wasm32__))
 ////////////////////////////////////////////////////////////////////////////////

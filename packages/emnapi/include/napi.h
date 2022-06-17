@@ -2335,75 +2335,75 @@ namespace NAPI_CPP_CUSTOM_NAMESPACE {
   //   napi_async_context _context;
   // };
 
-  // class AsyncWorker {
-  // public:
-  //   virtual ~AsyncWorker();
+  class AsyncWorker {
+  public:
+    virtual ~AsyncWorker();
 
-  //   // An async worker can be moved but cannot be copied.
-  //   AsyncWorker(AsyncWorker&& other);
-  //   AsyncWorker& operator =(AsyncWorker&& other);
-  //   NAPI_DISALLOW_ASSIGN_COPY(AsyncWorker)
+    // An async worker can be moved but cannot be copied.
+    AsyncWorker(AsyncWorker&& other);
+    AsyncWorker& operator =(AsyncWorker&& other);
+    NAPI_DISALLOW_ASSIGN_COPY(AsyncWorker)
 
-  //   operator napi_async_work() const;
+    operator napi_async_work() const;
 
-  //   Napi::Env Env() const;
+    Napi::Env Env() const;
 
-  //   void Queue();
-  //   void Cancel();
-  //   void SuppressDestruct();
+    void Queue();
+    void Cancel();
+    void SuppressDestruct();
 
-  //   ObjectReference& Receiver();
-  //   FunctionReference& Callback();
+    ObjectReference& Receiver();
+    FunctionReference& Callback();
 
-  //   virtual void OnExecute(Napi::Env env);
-  //   virtual void OnWorkComplete(Napi::Env env,
-  //                               napi_status status);
+    virtual void OnExecute(Napi::Env env);
+    virtual void OnWorkComplete(Napi::Env env,
+                                napi_status status);
 
-  // protected:
-  //   explicit AsyncWorker(const Function& callback);
-  //   explicit AsyncWorker(const Function& callback,
-  //                        const char* resource_name);
-  //   explicit AsyncWorker(const Function& callback,
-  //                        const char* resource_name,
-  //                        const Object& resource);
-  //   explicit AsyncWorker(const Object& receiver,
-  //                        const Function& callback);
-  //   explicit AsyncWorker(const Object& receiver,
-  //                        const Function& callback,
-  //                        const char* resource_name);
-  //   explicit AsyncWorker(const Object& receiver,
-  //                        const Function& callback,
-  //                        const char* resource_name,
-  //                        const Object& resource);
+  protected:
+    explicit AsyncWorker(const Function& callback);
+    explicit AsyncWorker(const Function& callback,
+                         const char* resource_name);
+    explicit AsyncWorker(const Function& callback,
+                         const char* resource_name,
+                         const Object& resource);
+    explicit AsyncWorker(const Object& receiver,
+                         const Function& callback);
+    explicit AsyncWorker(const Object& receiver,
+                         const Function& callback,
+                         const char* resource_name);
+    explicit AsyncWorker(const Object& receiver,
+                         const Function& callback,
+                         const char* resource_name,
+                         const Object& resource);
 
-  //   explicit AsyncWorker(Napi::Env env);
-  //   explicit AsyncWorker(Napi::Env env,
-  //                        const char* resource_name);
-  //   explicit AsyncWorker(Napi::Env env,
-  //                        const char* resource_name,
-  //                        const Object& resource);
+    explicit AsyncWorker(Napi::Env env);
+    explicit AsyncWorker(Napi::Env env,
+                         const char* resource_name);
+    explicit AsyncWorker(Napi::Env env,
+                         const char* resource_name,
+                         const Object& resource);
 
-  //   virtual void Execute() = 0;
-  //   virtual void OnOK();
-  //   virtual void OnError(const Error& e);
-  //   virtual void Destroy();
-  //   virtual std::vector<napi_value> GetResult(Napi::Env env);
+    virtual void Execute() = 0;
+    virtual void OnOK();
+    virtual void OnError(const Error& e);
+    virtual void Destroy();
+    virtual std::vector<napi_value> GetResult(Napi::Env env);
 
-  //   void SetError(const std::string& error);
+    void SetError(const std::string& error);
 
-  // private:
-  //   static inline void OnAsyncWorkExecute(napi_env env, void* asyncworker);
-  //   static inline void OnAsyncWorkComplete(napi_env env,
-  //                                          napi_status status,
-  //                                          void* asyncworker);
+  private:
+    static inline void OnAsyncWorkExecute(napi_env env, void* asyncworker);
+    static inline void OnAsyncWorkComplete(napi_env env,
+                                           napi_status status,
+                                           void* asyncworker);
 
-  //   napi_env _env;
-  //   napi_async_work _work;
-  //   ObjectReference _receiver;
-  //   FunctionReference _callback;
-  //   std::string _error;
-  //   bool _suppress_destruct;
-  // };
+    napi_env _env;
+    napi_async_work _work;
+    ObjectReference _receiver;
+    FunctionReference _callback;
+    std::string _error;
+    bool _suppress_destruct;
+  };
 
   #if (NAPI_VERSION > 3 && !defined(__wasm32__))
   class ThreadSafeFunction {
