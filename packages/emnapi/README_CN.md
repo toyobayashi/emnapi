@@ -4,7 +4,9 @@
 
 适用于 [Emscripten](https://emscripten.org/index.html) 的 [Node-API (version 8)](https://nodejs.org/dist/latest-v16.x/docs/api/n-api.html) 实现，基于 Node.js v16.15.0
 
-[查看文档](https://emnapi-docs.vercel.app/)
+[查看文档](https://emnapi-docs.vercel.app/zh/guide/)
+
+[完整的 API 列表](https://emnapi-docs.vercel.app/zh/reference/list.html)
 
 ## 快速开始
 

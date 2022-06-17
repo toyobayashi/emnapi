@@ -4,9 +4,11 @@
 
 [Node-API (version 8)](https://nodejs.org/docs/v16.15.0/api/n-api.html) implementation for [Emscripten](https://emscripten.org/index.html), based on Node.js v16.15.0.
 
-[中文 README](https://github.com/toyobayashi/emnapi/tree/main/README_CN.md).
+[中文 README](https://github.com/toyobayashi/emnapi/tree/main/packages/emnapi/README_CN.md).
 
-[See documentation for more details](https://emnapi-docs.vercel.app/)
+[See documentation for more details](https://emnapi-docs.vercel.app/guide/)
+
+[Full API List](https://emnapi-docs.vercel.app/reference/list.html)
 
 ## Quick Start
 

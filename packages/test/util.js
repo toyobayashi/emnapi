@@ -22,6 +22,7 @@ exports.load = function (targetName) {
             }
           }
         }).then(({ Module, emnapi }) => {
+          p.Module = Module
           p.emnapi = emnapi
           resolve(Module.emnapiExports)
         })
