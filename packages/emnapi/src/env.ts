@@ -2,7 +2,7 @@ function napi_set_instance_data (env: napi_env, data: void_p, finalize_cb: napi_
   return emnapi.checkEnv(env, (envObject) => {
     if (envObject.instanceData) {
       if (envObject.instanceData.finalize_cb) {
-        envObject.call_viii(envObject.instanceData.finalize_cb, env, envObject.instanceData.data, envObject.instanceData.finalize_hint)
+        emnapiGetDynamicCalls.call_viii(envObject.instanceData.finalize_cb, env, envObject.instanceData.data, envObject.instanceData.finalize_hint)
       }
     }
     envObject.instanceData = {
@@ -23,5 +23,5 @@ function napi_get_instance_data (env: napi_env, data: void_pp): napi_status {
   })
 }
 
-emnapiImplement('napi_set_instance_data', napi_set_instance_data)
+emnapiImplement('napi_set_instance_data', napi_set_instance_data, ['$emnapiGetDynamicCalls'])
 emnapiImplement('napi_get_instance_data', napi_get_instance_data)

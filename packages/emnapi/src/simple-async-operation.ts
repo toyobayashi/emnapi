@@ -53,8 +53,8 @@ function _emnapi_queue_async_work_js (work: number): void {
           const envObject = emnapi.envStore.get(env)!
           const scope = envObject.openScope(emnapi.HandleScope)
           try {
-            envObject.callIntoModule((envObject) => {
-              envObject.call_viii(complete, env, napi_status.napi_ok, HEAP32[(w + 12) >> 2])
+            envObject.callIntoModule((_envObject) => {
+              emnapiGetDynamicCalls.call_viii(complete, env, napi_status.napi_ok, HEAP32[(w + 12) >> 2])
             })
           } catch (err) {
             envObject.closeScope(scope)
@@ -89,8 +89,8 @@ function napi_cancel_async_work (env: napi_env, work: number): napi_status {
           const envObject = emnapi.envStore.get(env)!
           const scope = envObject.openScope(emnapi.HandleScope)
           try {
-            envObject.callIntoModule((envObject) => {
-              envObject.call_viii(complete, env, napi_status.napi_cancelled, HEAP32[(work + 12) >> 2])
+            envObject.callIntoModule((_envObject) => {
+              emnapiGetDynamicCalls.call_viii(complete, env, napi_status.napi_cancelled, HEAP32[(work + 12) >> 2])
             })
           } catch (err) {
             envObject.closeScope(scope)
@@ -108,5 +108,5 @@ function napi_cancel_async_work (env: napi_env, work: number): napi_status {
 // #endif
 }
 
-emnapiImplement('_emnapi_queue_async_work_js', _emnapi_queue_async_work_js, ['$PThread', '$emnapiAsyncWorkerQueue'])
-emnapiImplement('napi_cancel_async_work', napi_cancel_async_work, ['$emnapiAsyncWorkerQueue'])
+emnapiImplement('_emnapi_queue_async_work_js', _emnapi_queue_async_work_js, ['$PThread', '$emnapiAsyncWorkerQueue', '$emnapiGetDynamicCalls'])
+emnapiImplement('napi_cancel_async_work', napi_cancel_async_work, ['$emnapiAsyncWorkerQueue', '$emnapiGetDynamicCalls'])

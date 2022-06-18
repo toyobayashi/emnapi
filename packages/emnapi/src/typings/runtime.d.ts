@@ -1,10 +1,3 @@
-declare interface IDynamicCalls {
-  call_vi (_ptr: number, a: int32_t): void
-  call_ii (_ptr: number, a: int32_t): int32_t
-  call_iii (_ptr: number, a: int32_t, b: int32_t): int32_t
-  call_viii (_ptr: number, a: int32_t, b: int32_t, c: int32_t): void
-  // call_malloc (_size: size_t): void_p
-}
 declare const emnapiGetDynamicCalls: IDynamicCalls
 
 declare const HEAPU32: Uint32Array

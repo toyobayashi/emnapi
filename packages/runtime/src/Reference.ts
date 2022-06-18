@@ -19,7 +19,7 @@ export class Reference implements IStoreValue {
           const scope = ref.envObject.openScope()
           try {
             ref.envObject.callIntoModule((envObject) => {
-              envObject.call_viii(ref.finalize_callback, envObject.id, ref.finalize_data, ref.finalize_hint)
+              envObject.emnapiGetDynamicCalls.call_viii(ref.finalize_callback, envObject.id, ref.finalize_data, ref.finalize_hint)
               ref.finalize_callback = NULL
             })
           } catch (err) {

@@ -22,7 +22,7 @@ async function build () {
       .replace('__EMNAPI_RUNTIME_REPLACE__', `'${runtimeCode.replace(/\\/g, '\\\\').replace(/\r?\n/g, '\\n').replace(/'/g, "\\'")}'`)
       .replace('__EMNAPI_RUNTIME_INIT__;', '')
       .replace(/(makeDynCall\(.*?\))/g, '{{{ $1 }}}')
-      /* .replace(/(makeMalloc\(.*?\))/g, '{{{ $1 }}}') */,
+      .replace(/(makeMalloc\(.*?\))/g, '{{{ $1 }}}'),
     'utf8'
   )
 
@@ -80,7 +80,7 @@ async function build () {
             }
       `)
       .replace(/(makeDynCall\(.*?\))/g, '{{{ $1 }}}')
-      /* .replace(/(makeMalloc\(.*?\))/g, '{{{ $1 }}}') */,
+      .replace(/(makeMalloc\(.*?\))/g, '{{{ $1 }}}'),
     'utf8'
   )
 }

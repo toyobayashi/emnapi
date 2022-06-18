@@ -4,10 +4,14 @@
 declare const __EMNAPI_RUNTIME_REPLACE__: string
 declare const __EMNAPI_RUNTIME_INIT__: string
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+declare let napiExtendedErrorInfoPtr: number | undefined
 declare function _napi_register_wasm_v1 (env: napi_env, exports: napi_value): napi_value
-declare function __emnapi_runtime_init (...args: [number, number, number, number]): void
+declare function __emnapi_runtime_init (...args: [number, number]): void
+declare function _free (ptr: void_p): void
 
 mergeInto(LibraryManager.library, {
+  $emnapiGetDynamicCalls__deps: ['malloc'],
   $emnapiGetDynamicCalls: {
     call_vi: function (_ptr: number, a: int32_t): void {
       return makeDynCall('vi', '_ptr')(a)
@@ -20,8 +24,13 @@ mergeInto(LibraryManager.library, {
     },
     call_viii: function (_ptr: number, a: int32_t, b: int32_t, c: int32_t): void {
       return makeDynCall('viii', '_ptr')(a, b, c)
+    },
+    call_malloc: function (_source: string, _size: string | number): void_p {
+      return makeMalloc('_source', '_size')
     }
   },
+
+  $napiExtendedErrorInfoPtr: undefined,
 
   $emnapi: undefined,
   $emnapi__postset: __EMNAPI_RUNTIME_REPLACE__,
@@ -29,17 +38,12 @@ mergeInto(LibraryManager.library, {
   $errorMessagesPtr: undefined,
 
   $emnapiInit__postset: 'emnapiInit();',
-  $emnapiInit__deps: ['$emnapiGetDynamicCalls', '$emnapi', '$errorMessagesPtr', 'napi_register_wasm_v1', '_emnapi_runtime_init'],
+  $emnapiInit__deps: ['$emnapiGetDynamicCalls', '$emnapi', '$errorMessagesPtr', 'napi_register_wasm_v1', '_emnapi_runtime_init', '$napiExtendedErrorInfoPtr', 'free'],
   $emnapiInit: function () {
     let registered = false
     let emnapiExports: any
     let exportsKey: string
     let env: emnapi.Env | undefined
-
-    const dynCalls = emnapiGetDynamicCalls
-
-    let malloc: ((size: number) => number) | undefined
-    let free: ((ptr: number) => void) | undefined
 
     function callInStack<R, T extends () => R> (f: T): R {
       const stack = stackSave()
@@ -57,13 +61,25 @@ mergeInto(LibraryManager.library, {
     function moduleRegister (): any {
       if (registered) return emnapiExports
       registered = true
-      env = emnapi.Env.create(
-        malloc!,
-        free!,
-        dynCalls.call_iii,
-        dynCalls.call_viii,
-        Module
-      )
+
+      napiExtendedErrorInfoPtr = emnapiGetDynamicCalls.call_malloc('$emnapiInit', 16)
+
+      const lastError = {
+        data: napiExtendedErrorInfoPtr,
+        getErrorCode: () => HEAP32[(napiExtendedErrorInfoPtr! >> 2) + 3],
+        setErrorCode: (code: napi_status) => {
+          HEAP32[(napiExtendedErrorInfoPtr! >> 2) + 3] = code
+        },
+        setErrorMessage: (ptr: const_char_p) => {
+          HEAP32[napiExtendedErrorInfoPtr! >> 2] = ptr
+        },
+        dispose () {
+          _free(napiExtendedErrorInfoPtr!)
+          napiExtendedErrorInfoPtr = NULL
+        }
+      }
+
+      env = emnapi.Env.create(emnapiGetDynamicCalls, lastError)
       const scope = env.openScope(emnapi.HandleScope)
       try {
         emnapiExports = env.callIntoModule((envObject) => {
@@ -87,22 +103,15 @@ mergeInto(LibraryManager.library, {
 
       delete Module._napi_register_wasm_v1
       delete Module.__emnapi_runtime_init
+      delete Module.__emnapi_execute_async_work
 
       callInStack(() => {
-        const malloc_pp = stackAlloc(4)
-        const free_pp = stackAlloc(4)
         const key_pp = stackAlloc(4)
         const errormessages_pp = stackAlloc(4)
-        __emnapi_runtime_init(malloc_pp, free_pp, key_pp, errormessages_pp)
-        const malloc_p = HEAP32[malloc_pp >> 2]
-        const free_p = HEAP32[free_pp >> 2]
+        __emnapi_runtime_init(key_pp, errormessages_pp)
+        // const malloc_p = HEAP32[malloc_pp >> 2]
+        // const free_p = HEAP32[free_pp >> 2]
         const key_p = HEAP32[key_pp >> 2]
-        malloc = function (size: number) {
-          return dynCalls.call_ii(malloc_p, size)
-        }
-        free = function (ptr: number) {
-          return dynCalls.call_vi(free_p, ptr)
-        }
         exportsKey = (key_p ? UTF8ToString(key_p) : 'emnapiExports') || 'emnapiExports'
         // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
         errorMessagesPtr = HEAP32[errormessages_pp >> 2] || 0

@@ -63,12 +63,7 @@ const char* emnapi_error_messages[] = {
 #define EMNAPI_MOD_NAME_X(modname) EMNAPI_MOD_NAME_X_HELPER(modname)
 
 EMSCRIPTEN_KEEPALIVE
-void _emnapi_runtime_init(int* malloc_p,
-                         int* free_p,
-                         const char** key,
-                         const char*** error_messages) {
-  if (malloc_p) *malloc_p = (int)(malloc);
-  if (free_p) *free_p = (int)(free);
+void _emnapi_runtime_init(const char** key, const char*** error_messages) {
   if (key) {
     *key = EMNAPI_MOD_NAME_X(NODE_GYP_MODULE_NAME);
   }
@@ -172,6 +167,7 @@ void* _emnapi_on_execute_async_work(void* arg) {
 
 EMSCRIPTEN_KEEPALIVE
 void _emnapi_execute_async_work(napi_async_work work) {
+  if (!work) return;
 #ifdef __EMSCRIPTEN_PTHREADS__
   pthread_t t;
   pthread_create(&t, NULL, _emnapi_on_execute_async_work, work);

@@ -22,7 +22,7 @@ function $emnapiCreateFunction<F extends (...args: any[]) => any> (envObject: em
     let r: napi_value
     try {
       r = envObject.callIntoModule((envObject) => {
-        const napiValue = envObject.call_iii(cb, envObject.id, cbinfo.id)
+        const napiValue = emnapiGetDynamicCalls.call_iii(cb, envObject.id, cbinfo.id)
         return (!napiValue) ? undefined : envObject.handleStore.get(napiValue)!.value
       })
     } catch (err) {
@@ -284,66 +284,67 @@ function $emnapiSetErrorCode (envObject: emnapi.Env, error: Error & { code?: str
   return napi_status.napi_ok
 }
 
-declare function malloc (size: number): number
-
 declare const arrayBufferMemoryMap: WeakMap<ArrayBuffer, number>
 declare const typedArrayMemoryMap: WeakMap<TypedArray | DataView, number>
 declare const memoryPointerDeleter: FinalizationRegistry<number>
 
 mergeInto(LibraryManager.library, {
-  $memoryPointerDeleter: 'typeof FinalizationRegistry === "function" ? new FinalizationRegistry(function (pointer) { free(pointer); }) : undefined',
+  $memoryPointerDeleter__deps: ['free'],
+  $memoryPointerDeleter: 'typeof FinalizationRegistry === "function" ? new FinalizationRegistry(function (pointer) { _free(pointer); }) : undefined',
   $arrayBufferMemoryMap: 'new WeakMap()',
-  $typedArrayMemoryMap: 'new WeakMap()'
+  $typedArrayMemoryMap: 'new WeakMap()',
+
+  $getArrayBufferPointer__deps: ['$arrayBufferMemoryMap', '$memoryPointerDeleter'],
+  $getArrayBufferPointer: function (arrayBuffer: ArrayBuffer): void_p {
+    if ((!memoryPointerDeleter) || (arrayBuffer === HEAPU8.buffer)) {
+      return NULL
+    }
+
+    let pointer: void_p
+    if (arrayBufferMemoryMap.has(arrayBuffer)) {
+      pointer = arrayBufferMemoryMap.get(arrayBuffer)!
+      HEAPU8.set(new Uint8Array(arrayBuffer), pointer)
+      return pointer
+    }
+
+    pointer = emnapiGetDynamicCalls.call_malloc('$getArrayBufferPointer', arrayBuffer.byteLength)
+    HEAPU8.set(new Uint8Array(arrayBuffer), pointer)
+    arrayBufferMemoryMap.set(arrayBuffer, pointer)
+    memoryPointerDeleter.register(arrayBuffer, pointer)
+    return pointer
+  },
+
+  $getViewPointer__deps: ['$typedArrayMemoryMap', '$memoryPointerDeleter'],
+  $getViewPointer: function (view: TypedArray | DataView): void_p {
+    if (!memoryPointerDeleter) {
+      return NULL
+    }
+    if (view.buffer === HEAPU8.buffer) {
+      return view.byteOffset
+    }
+
+    let pointer: void_p
+    if (typedArrayMemoryMap.has(view)) {
+      pointer = typedArrayMemoryMap.get(view)!
+      HEAPU8.set(new Uint8Array(view.buffer, view.byteOffset, view.byteLength), pointer)
+      return pointer
+    }
+
+    pointer = emnapiGetDynamicCalls.call_malloc('$getViewPointer', view.byteLength)
+    HEAPU8.set(new Uint8Array(view.buffer, view.byteOffset, view.byteLength), pointer)
+    typedArrayMemoryMap.set(view, pointer)
+    memoryPointerDeleter.register(view, pointer)
+    return pointer
+  }
 })
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 declare function getArrayBufferPointer (arrayBuffer: ArrayBuffer): void_p
-function $getArrayBufferPointer (arrayBuffer: ArrayBuffer): void_p {
-  if ((!emnapi.supportFinalizer) || (arrayBuffer === HEAPU8.buffer)) {
-    return NULL
-  }
-
-  let pointer: void_p
-  if (arrayBufferMemoryMap.has(arrayBuffer)) {
-    pointer = arrayBufferMemoryMap.get(arrayBuffer)!
-    HEAPU8.set(new Uint8Array(arrayBuffer), pointer)
-    return pointer
-  }
-
-  pointer = malloc(arrayBuffer.byteLength)
-  HEAPU8.set(new Uint8Array(arrayBuffer), pointer)
-  arrayBufferMemoryMap.set(arrayBuffer, pointer)
-  memoryPointerDeleter.register(arrayBuffer, pointer)
-  return pointer
-}
-
-declare type TypedArray = Int8Array | Uint8Array | Int16Array | Uint16Array | Int32Array | Uint32Array | Uint8ClampedArray | Float32Array | Float64Array
-
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 declare function getViewPointer (arrayBuffer: TypedArray | DataView): void_p
-function $getViewPointer (view: TypedArray | DataView): void_p {
-  if (!emnapi.supportFinalizer) {
-    return NULL
-  }
-  if (view.buffer === HEAPU8.buffer) {
-    return view.byteOffset
-  }
+declare type TypedArray = Int8Array | Uint8Array | Int16Array | Uint16Array | Int32Array | Uint32Array | Uint8ClampedArray | Float32Array | Float64Array
 
-  let pointer: void_p
-  if (typedArrayMemoryMap.has(view)) {
-    pointer = typedArrayMemoryMap.get(view)!
-    HEAPU8.set(new Uint8Array(view.buffer, view.byteOffset, view.byteLength), pointer)
-    return pointer
-  }
-
-  pointer = malloc(view.byteLength)
-  HEAPU8.set(new Uint8Array(view.buffer, view.byteOffset, view.byteLength), pointer)
-  typedArrayMemoryMap.set(view, pointer)
-  memoryPointerDeleter.register(view, pointer)
-  return pointer
-}
-
-emnapiImplement('$emnapiCreateFunction', $emnapiCreateFunction)
+emnapiImplement('$emnapiCreateFunction', $emnapiCreateFunction, ['$emnapiGetDynamicCalls'])
 emnapiImplement('$emnapiDefineProperty', $emnapiDefineProperty, ['$emnapiCreateFunction'])
 emnapiImplement('$emnapiCreateTypedArray', $emnapiCreateTypedArray)
 emnapiImplement('$emnapiWrap', $emnapiWrap)
@@ -351,5 +352,3 @@ emnapiImplement('$emnapiUnwrap', $emnapiUnwrap)
 emnapiImplement('$emnapiAddName', $emnapiAddName)
 emnapiImplement('$emnapiGetPropertyNames', $emnapiGetPropertyNames, ['$emnapiAddName'])
 emnapiImplement('$emnapiSetErrorCode', $emnapiSetErrorCode)
-emnapiImplement('$getArrayBufferPointer', $getArrayBufferPointer, ['$arrayBufferMemoryMap', '$memoryPointerDeleter', 'malloc'])
-emnapiImplement('$getViewPointer', $getViewPointer, ['$typedArrayMemoryMap', '$memoryPointerDeleter', 'malloc'])

@@ -11,6 +11,7 @@ add_executable(hello
 target_link_libraries(hello emnapi)
 # target_link_libraries(hello emnapi_noruntime)
 target_link_options(hello PRIVATE
+  "-sEXPORTED_FUNCTIONS=['_malloc','_free']"
   "-sALLOW_MEMORY_GROWTH=1"
   "-sNODEJS_CATCH_EXIT=0"
 )

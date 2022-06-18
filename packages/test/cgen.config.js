@@ -7,7 +7,7 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
 
   const linkerFlags = isEmscripten
     ? [
-        // "-sEXPORTED_FUNCTIONS=['_malloc','_free']",
+        "-sEXPORTED_FUNCTIONS=['_malloc','_free']",
         '-sNODEJS_CATCH_EXIT=0',
         '-sWASM_BIGINT=1',
         '-sALLOW_MEMORY_GROWTH=1',

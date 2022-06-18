@@ -11,6 +11,7 @@ export interface ILastError {
   getErrorCode: () => number
   setErrorCode: (code: number) => void
   data: Pointer<napi_extended_error_info>
+  dispose (): void
 }
 
 export interface IInstanceData {
@@ -35,18 +36,13 @@ export class Env implements IStoreValue {
   private _rootScope!: HandleScope
   private currentScope: IHandleScope | null = null
 
-  public lastError: ILastError
-
   public tryCatch = new TryCatch()
 
   public static create (
-    malloc: (size: number) => number,
-    free: (ptr: number) => void,
-    call_iii: (ptr: number, ...args: [number, number]) => number,
-    call_viii: (ptr: number, ...args: [number, number, number]) => void,
-    Module: any
+    emnapiGetDynamicCalls: IDynamicCalls,
+    lastError: ILastError
   ): Env {
-    const env = new Env(malloc, free, call_iii, call_viii, Module)
+    const env = new Env(emnapiGetDynamicCalls, lastError)
     envStore.add(env)
     env.refStore = new RefStore()
     env.handleStore = new HandleStore(env)
@@ -59,24 +55,10 @@ export class Env implements IStoreValue {
   }
 
   private constructor (
-    public malloc: (size: number) => number,
-    public free: (ptr: number) => void,
-    public call_iii: (ptr: number, ...args: [number, number]) => number,
-    public call_viii: (ptr: number, ...args: [number, number, number]) => void,
-    public Module: any
+    public emnapiGetDynamicCalls: IDynamicCalls,
+    public lastError: ILastError
   ) {
     this.id = 0
-    const napiExtendedErrorInfoPtr = malloc(16)
-    this.lastError = {
-      data: napiExtendedErrorInfoPtr,
-      getErrorCode: () => Module.HEAP32[(napiExtendedErrorInfoPtr >> 2) + 3],
-      setErrorCode: (code) => {
-        Module.HEAP32[(napiExtendedErrorInfoPtr >> 2) + 3] = code
-      },
-      setErrorMessage: (ptr) => {
-        Module.HEAP32[napiExtendedErrorInfoPtr >> 2] = ptr
-      }
-    }
   }
 
   public openScope<Scope extends HandleScope> (ScopeConstructor = HandleScope): Scope {
@@ -172,8 +154,7 @@ export class Env implements IStoreValue {
     this.handleStore.dispose()
     this.tryCatch.extractException()
     try {
-      this.free(this.lastError.data)
-      this.lastError.data = NULL
+      this.lastError.dispose()
     } catch (_) {}
     this.lastError = null!
     envStore.remove(this.id)

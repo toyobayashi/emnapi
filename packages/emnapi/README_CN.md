@@ -85,6 +85,7 @@ NAPI_MODULE_INIT() {
 emcc -O3 \
      -I./node_modules/@tybys/emnapi/include \
      --js-library=./node_modules/@tybys/emnapi/dist/library_napi.js \
+     -sEXPORTED_FUNCTIONS=['_malloc','_free'] \
      -sALLOW_MEMORY_GROWTH=1 \
      -o hello.js \
      ./node_modules/@tybys/emnapi/src/emnapi.c \
@@ -167,6 +168,7 @@ em++ -O3 \
      -DNODE_ADDON_API_ENABLE_MAYBE \
      -I./node_modules/@tybys/emnapi/include \
      --js-library=./node_modules/@tybys/emnapi/dist/library_napi.js \
+     -sEXPORTED_FUNCTIONS=['_malloc','_free'] \
      -sALLOW_MEMORY_GROWTH=1 \
      -o hello.js \
      ./node_modules/@tybys/emnapi/src/emnapi.c \
@@ -191,6 +193,7 @@ add_executable(hello hello.c)
 
 target_link_libraries(hello emnapi)
 target_link_options(hello PRIVATE
+  "-sEXPORTED_FUNCTIONS=['_malloc','_free']"
   "-sALLOW_MEMORY_GROWTH=1"
   "-sNODEJS_CATCH_EXIT=0"
 )
