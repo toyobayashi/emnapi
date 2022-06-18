@@ -19,7 +19,7 @@ function napi_get_arraybuffer_info (env: napi_env, arraybuffer: napi_value, data
         return envObject.setLastError(napi_status.napi_invalid_arg)
       }
       if (data !== NULL) {
-        HEAP32[data >> 2] = envObject.getArrayBufferPointer(handle.value)
+        HEAP32[data >> 2] = getArrayBufferPointer(handle.value)
       }
       if (byte_length !== NULL) {
         HEAPU32[byte_length >> 2] = (handle.value as ArrayBuffer).byteLength
@@ -90,7 +90,7 @@ function napi_get_typedarray_info (
       if (data !== NULL || arraybuffer !== NULL) {
         buffer = v.buffer
         if (data !== NULL) {
-          HEAP32[data >> 2] = envObject.getViewPointer(v)
+          HEAP32[data >> 2] = getViewPointer(v)
         }
         if (arraybuffer !== NULL) {
           HEAP32[arraybuffer >> 2] = envObject.ensureHandleId(buffer)
@@ -126,7 +126,7 @@ function napi_get_dataview_info (
       if (data !== NULL || arraybuffer !== NULL) {
         buffer = v.buffer
         if (data !== NULL) {
-          HEAP32[data >> 2] = envObject.getViewPointer(v)
+          HEAP32[data >> 2] = getViewPointer(v)
         }
         if (arraybuffer !== NULL) {
           HEAP32[arraybuffer >> 2] = envObject.ensureHandleId(buffer)
@@ -428,10 +428,10 @@ function napi_get_value_uint32 (env: napi_env, value: napi_value, result: Pointe
 }
 
 emnapiImplement('napi_get_array_length', napi_get_array_length)
-emnapiImplement('napi_get_arraybuffer_info', napi_get_arraybuffer_info)
+emnapiImplement('napi_get_arraybuffer_info', napi_get_arraybuffer_info, ['$getArrayBufferPointer'])
 emnapiImplement('napi_get_prototype', napi_get_prototype)
-emnapiImplement('napi_get_typedarray_info', napi_get_typedarray_info)
-emnapiImplement('napi_get_dataview_info', napi_get_dataview_info)
+emnapiImplement('napi_get_typedarray_info', napi_get_typedarray_info, ['$getViewPointer'])
+emnapiImplement('napi_get_dataview_info', napi_get_dataview_info, ['$getViewPointer'])
 emnapiImplement('napi_get_date_value', napi_get_date_value)
 emnapiImplement('napi_get_value_bool', napi_get_value_bool)
 emnapiImplement('napi_get_value_double', napi_get_value_double)

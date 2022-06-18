@@ -4,7 +4,7 @@ import { HandleStore } from './Handle'
 import { ScopeStore, IHandleScope, HandleScope } from './HandleScope'
 import { RefStore } from './Reference'
 import { IStoreValue, Store } from './Store'
-import { TypedArray, supportFinalizer, TryCatch, envStore, isReferenceType } from './util'
+import { TryCatch, envStore, isReferenceType } from './util'
 
 export interface ILastError {
   setErrorMessage: (ptr: number) => void
@@ -21,14 +21,6 @@ export interface IInstanceData {
 
 export class Env implements IStoreValue {
   public id: number
-
-  typedArrayMemoryMap = new WeakMap<TypedArray | DataView, void_p>()
-  arrayBufferMemoryMap = new WeakMap<ArrayBuffer, void_p>()
-  memoryPointerDeleter: FinalizationRegistry<void_p> = supportFinalizer
-    ? new FinalizationRegistry<void_p>((heldValue) => {
-      this.free(heldValue)
-    })
-    : null!
 
   public openHandleScopes: number = 0
 
@@ -169,47 +161,6 @@ export class Env implements IStoreValue {
       throw err
     }
     return r
-  }
-
-  public getViewPointer (view: TypedArray | DataView): void_p {
-    if (!supportFinalizer) {
-      return NULL
-    }
-    if (view.buffer === this.Module.HEAPU8.buffer) {
-      return view.byteOffset
-    }
-
-    let pointer: void_p
-    if (this.typedArrayMemoryMap.has(view)) {
-      pointer = this.typedArrayMemoryMap.get(view)!
-      this.Module.HEAPU8.set(new Uint8Array(view.buffer, view.byteOffset, view.byteLength), pointer)
-      return pointer
-    }
-
-    pointer = this.malloc(view.byteLength)
-    this.Module.HEAPU8.set(new Uint8Array(view.buffer, view.byteOffset, view.byteLength), pointer)
-    this.typedArrayMemoryMap.set(view, pointer)
-    this.memoryPointerDeleter.register(view, pointer)
-    return pointer
-  }
-
-  public getArrayBufferPointer (arrayBuffer: ArrayBuffer): void_p {
-    if ((!supportFinalizer) || (arrayBuffer === this.Module.HEAPU8.buffer)) {
-      return NULL
-    }
-
-    let pointer: void_p
-    if (this.arrayBufferMemoryMap.has(arrayBuffer)) {
-      pointer = this.arrayBufferMemoryMap.get(arrayBuffer)!
-      this.Module.HEAPU8.set(new Uint8Array(arrayBuffer), pointer)
-      return pointer
-    }
-
-    pointer = this.malloc(arrayBuffer.byteLength)
-    this.Module.HEAPU8.set(new Uint8Array(arrayBuffer), pointer)
-    this.arrayBufferMemoryMap.set(arrayBuffer, pointer)
-    this.memoryPointerDeleter.register(arrayBuffer, pointer)
-    return pointer
   }
 
   public dispose (): void {
