@@ -1,5 +1,6 @@
+import { cbInfoStore } from './CallbackInfoStore'
 import type { Env } from './env'
-import { IStoreValue, Store } from './Store'
+import type { IStoreValue } from './Store'
 
 export class CallbackInfo implements IStoreValue {
   public id: number
@@ -14,7 +15,7 @@ export class CallbackInfo implements IStoreValue {
     _newTarget: Function | undefined
   ): CallbackInfo {
     const cbInfo = new CallbackInfo(envObject, _this, _data, _length, _args, _newTarget)
-    envObject.cbInfoStore.add(cbInfo)
+    cbInfoStore.add(cbInfo)
     return cbInfo
   }
 
@@ -31,7 +32,7 @@ export class CallbackInfo implements IStoreValue {
   }
 
   public dispose (): void {
-    this.envObject.cbInfoStore.remove(this.id)
+    cbInfoStore.remove(this.id)
     this.id = 0
     this._this = undefined
     this._data = 0
@@ -39,11 +40,5 @@ export class CallbackInfo implements IStoreValue {
     this._args = undefined!
     this._newTarget = undefined
     this._isConstructCall = false
-  }
-}
-
-export class CallbackInfoStore extends Store<CallbackInfo> {
-  public constructor () {
-    super(16)
   }
 }

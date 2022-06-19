@@ -9,6 +9,7 @@
     "declaration": true,
     "outDir": "./lib",
     "removeComments": true,
+    "importsNotUsedAsValues": "error",
     "paths": {
       "tslib" : ["../../node_modules/tslib/tslib.d.ts"]
     },

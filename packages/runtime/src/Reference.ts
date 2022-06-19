@@ -1,6 +1,8 @@
-import { IStoreValue, Store } from './Store'
+import type { IStoreValue } from './Store'
 import { supportFinalizer, isReferenceType } from './util'
 import type { Env } from './env'
+import { refStore } from './RefStore'
+import { handleStore } from './Handle'
 
 export class Reference implements IStoreValue {
   public id: number
@@ -52,8 +54,8 @@ export class Reference implements IStoreValue {
     finalize_hint: void_p = 0
   ): Reference {
     const ref = new Reference(envObject, handle_id, initialRefcount, deleteSelf, finalize_callback, finalize_data, finalize_hint)
-    envObject.refStore.add(ref)
-    const handle = envObject.handleStore.get(handle_id)!
+    refStore.add(ref)
+    const handle = handleStore.get(handle_id)!
     handle.addRef(ref)
     if (supportFinalizer && isReferenceType(handle.value)) {
       ref.objWeakRef = new WeakRef<object>(handle.value)
@@ -88,7 +90,7 @@ export class Reference implements IStoreValue {
     }
     this.refcount--
     if (this.refcount === 0) {
-      const handle = this.envObject.handleStore.get(this.handle_id)
+      const handle = handleStore.get(this.handle_id)
       if (handle) {
         handle.tryDispose()
       }
@@ -101,7 +103,7 @@ export class Reference implements IStoreValue {
   }
 
   public get (): napi_value {
-    if (this.envObject.handleStore.has(this.handle_id)) {
+    if (handleStore.has(this.handle_id)) {
       return this.handle_id
     } else {
       if (this.objWeakRef) {
@@ -117,8 +119,8 @@ export class Reference implements IStoreValue {
 
   public static doDelete (ref: Reference): void {
     if ((ref.refcount !== 0) || (ref.deleteSelf) || (ref.finalizeRan)) {
-      ref.envObject.refStore.remove(ref.id)
-      ref.envObject.handleStore.get(ref.handle_id)?.removeRef(ref)
+      refStore.remove(ref.id)
+      handleStore.get(ref.handle_id)?.removeRef(ref)
       Reference.finalizationGroup?.unregister(this)
     } else {
       ref.deleteSelf = true
@@ -129,7 +131,7 @@ export class Reference implements IStoreValue {
     if (!Reference.finalizationGroup) return
     if (this.finalizerRegistered) return
     if (!value) {
-      value = this.envObject.handleStore.get(this.handle_id)!.value as object
+      value = handleStore.get(this.handle_id)!.value as object
     }
     Reference.finalizationGroup.register(value, this, this)
     this.finalizerRegistered = true
@@ -138,11 +140,5 @@ export class Reference implements IStoreValue {
   public dispose (): void {
     this.deleteSelf = true
     Reference.doDelete(this)
-  }
-}
-
-export class RefStore extends Store<Reference> {
-  public constructor () {
-    super(8)
   }
 }

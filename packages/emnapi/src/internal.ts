@@ -23,7 +23,7 @@ function $emnapiCreateFunction<F extends (...args: any[]) => any> (envObject: em
     try {
       r = envObject.callIntoModule((envObject) => {
         const napiValue = emnapiGetDynamicCalls.call_iii(cb, envObject.id, cbinfo.id)
-        return (!napiValue) ? undefined : envObject.handleStore.get(napiValue)!.value
+        return (!napiValue) ? undefined : emnapi.handleStore.get(napiValue)!.value
       })
     } catch (err) {
       cbinfo.dispose()
@@ -94,7 +94,7 @@ function $emnapiDefineProperty (envObject: emnapi.Env, obj: object, propertyName
       configurable: (attributes & napi_property_attributes.napi_configurable) !== 0,
       enumerable: (attributes & napi_property_attributes.napi_enumerable) !== 0,
       writable: (attributes & napi_property_attributes.napi_writable) !== 0,
-      value: envObject.handleStore.get(value)!.value
+      value: emnapi.handleStore.get(value)!.value
     }
     Object.defineProperty(obj, propertyName, desc)
   }
@@ -129,7 +129,7 @@ declare const emnapiWrap: typeof $emnapiWrap
 function $emnapiWrap (type: WrapType, env: napi_env, js_object: napi_value, native_object: void_p, finalize_cb: napi_finalize, finalize_hint: void_p, result: Pointer<napi_ref>): napi_status {
   return emnapi.preamble(env, (envObject) => {
     return emnapi.checkArgs(envObject, [js_object], () => {
-      const value = envObject.handleStore.get(js_object)!
+      const value = emnapi.handleStore.get(js_object)!
       if (!(value.isObject() || value.isFunction())) {
         return envObject.setLastError(napi_status.napi_invalid_arg)
       }
@@ -167,12 +167,12 @@ function $emnapiUnwrap (env: napi_env, js_object: napi_value, result: void_pp, a
       if (action === UnwrapAction.KeepWrap) {
         if (result === NULL) return envObject.setLastError(napi_status.napi_invalid_arg)
       }
-      const value = envObject.handleStore.get(js_object)!
+      const value = emnapi.handleStore.get(js_object)!
       if (!(value.isObject() || value.isFunction())) {
         return envObject.setLastError(napi_status.napi_invalid_arg)
       }
       const referenceId = value.wrapped
-      const ref = envObject.refStore.get(referenceId)
+      const ref = emnapi.refStore.get(referenceId)
       if (!ref) return envObject.setLastError(napi_status.napi_invalid_arg)
       if (result !== NULL) {
         HEAP32[result >> 2] = ref.data()
@@ -272,7 +272,7 @@ function $emnapiSetErrorCode (envObject: emnapi.Env, error: Error & { code?: str
   if (code !== NULL || code_string !== NULL) {
     let codeValue: string
     if (code !== NULL) {
-      codeValue = envObject.handleStore.get(code)!.value
+      codeValue = emnapi.handleStore.get(code)!.value
       if (typeof codeValue !== 'string') {
         return envObject.setLastError(napi_status.napi_string_expected)
       }

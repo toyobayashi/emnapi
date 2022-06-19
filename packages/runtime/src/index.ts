@@ -6,11 +6,34 @@ export {
   supportBigInt,
   supportNewFunction,
   canSetFunctionName,
-  envStore,
   TypedArray,
-  TryCatch,
-  EnvStore
+  TryCatch
 } from './util'
+
+export {
+  envStore,
+  EnvStore
+} from './EnvStore'
+
+export {
+  scopeStore,
+  ScopeStore
+} from './ScopeStore'
+
+export {
+  refStore,
+  RefStore
+} from './RefStore'
+
+export {
+  deferredStore,
+  DeferredStore
+} from './DeferredStore'
+
+export {
+  cbInfoStore,
+  CallbackInfoStore
+} from './CallbackInfoStore'
 
 export {
   Store,
@@ -20,14 +43,14 @@ export {
 export {
   Handle,
   ExternalHandle,
+  handleStore,
   HandleStore
 } from './Handle'
 
 export {
   HandleScope,
   EscapableHandleScope,
-  IHandleScope,
-  ScopeStore
+  IHandleScope
 } from './HandleScope'
 
 export {
@@ -37,19 +60,16 @@ export {
 } from './env'
 
 export {
-  Reference,
-  RefStore
+  Reference
 } from './Reference'
 
 export {
   Deferred,
-  DeferredStore,
   IDeferrdValue
 } from './Deferred'
 
 export {
-  CallbackInfo,
-  CallbackInfoStore
+  CallbackInfo
 } from './CallbackInfo'
 
 declare const __VERSION__: string

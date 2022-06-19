@@ -86,7 +86,7 @@ mergeInto(LibraryManager.library, {
           const exports = {}
           const exportsHandle = scope.add(exports)
           const napiValue = _napi_register_wasm_v1(envObject.id, exportsHandle.id)
-          return (!napiValue) ? undefined : envObject.handleStore.get(napiValue)!.value
+          return (!napiValue) ? undefined : emnapi.handleStore.get(napiValue)!.value
         })
       } catch (err) {
         env.closeScope(scope)

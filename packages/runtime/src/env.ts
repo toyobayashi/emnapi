@@ -1,10 +1,8 @@
-import { CallbackInfoStore } from './CallbackInfo'
-import { DeferredStore } from './Deferred'
-import { HandleStore } from './Handle'
-import { ScopeStore, IHandleScope, HandleScope } from './HandleScope'
-import { RefStore } from './Reference'
+import { IHandleScope, HandleScope } from './HandleScope'
+import { handleStore } from './Handle'
+import { envStore } from './EnvStore'
 import { IStoreValue, Store } from './Store'
-import { TryCatch, envStore, isReferenceType } from './util'
+import { TryCatch, isReferenceType } from './util'
 
 export interface ILastError {
   setErrorMessage: (ptr: number) => void
@@ -27,12 +25,6 @@ export class Env implements IStoreValue {
 
   public instanceData: IInstanceData | null = null
 
-  public handleStore!: HandleStore
-  public scopeStore!: ScopeStore
-  public cbInfoStore!: CallbackInfoStore
-  public refStore!: RefStore
-  public deferredStore!: DeferredStore
-
   private _rootScope!: HandleScope
   private currentScope: IHandleScope | null = null
 
@@ -44,11 +36,6 @@ export class Env implements IStoreValue {
   ): Env {
     const env = new Env(emnapiGetDynamicCalls, lastError)
     envStore.add(env)
-    env.refStore = new RefStore()
-    env.handleStore = new HandleStore(env)
-    env.deferredStore = new DeferredStore()
-    env.scopeStore = new ScopeStore()
-    env.cbInfoStore = new CallbackInfoStore()
 
     env._rootScope = HandleScope.create(env, null)
     return env
@@ -100,7 +87,7 @@ export class Env implements IStoreValue {
 
   public ensureHandleId (value: any): napi_value {
     if (isReferenceType(value)) {
-      const handle = this.handleStore.getObjectHandle(value)
+      const handle = handleStore.getObjectHandle(value)
       if (!handle) {
         // not exist in handle store
         return this.currentScope!.add(value).id
@@ -111,7 +98,7 @@ export class Env implements IStoreValue {
       }
       // alive, go back to handle store
       handle.value = value
-      Store.prototype.add.call(this.handleStore, handle)
+      Store.prototype.add.call(handleStore, handle)
       this.currentScope!.addHandle(handle)
       return handle.id
     }
@@ -148,10 +135,6 @@ export class Env implements IStoreValue {
   public dispose (): void {
     // this.scopeList.clear()
     this.currentScope = null
-    this.deferredStore.dispose()
-    this.refStore.dispose()
-    this.scopeStore.dispose()
-    this.handleStore.dispose()
     this.tryCatch.extractException()
     try {
       this.lastError.dispose()

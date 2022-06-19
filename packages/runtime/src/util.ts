@@ -1,8 +1,8 @@
 /* eslint-disable no-new-func */
 /* eslint-disable @typescript-eslint/no-implied-eval */
 
-import { Env } from './env'
-import { Store } from './Store'
+import type { Env } from './env'
+import { envStore } from './EnvStore'
 
 declare const __webpack_public_path__: any
 declare const global: typeof globalThis
@@ -63,14 +63,6 @@ export class TryCatch {
     return e
   }
 }
-
-export class EnvStore extends Store<Env> {
-  public constructor () {
-    super(4)
-  }
-}
-
-export const envStore = new EnvStore()
 
 /* export function gc (): void {
   envStore.forEach(envObject => {

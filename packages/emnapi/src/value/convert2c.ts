@@ -1,7 +1,7 @@
 function napi_get_array_length (env: napi_env, value: napi_value, result: Pointer<uint32_t>): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [value, result], () => {
-      const handle = envObject.handleStore.get(value)!
+      const handle = emnapi.handleStore.get(value)!
       if (!handle.isArray()) {
         return envObject.setLastError(napi_status.napi_array_expected)
       }
@@ -14,7 +14,7 @@ function napi_get_array_length (env: napi_env, value: napi_value, result: Pointe
 function napi_get_arraybuffer_info (env: napi_env, arraybuffer: napi_value, data: void_pp, byte_length: Pointer<size_t>): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [arraybuffer], () => {
-      const handle = envObject.handleStore.get(arraybuffer)!
+      const handle = emnapi.handleStore.get(arraybuffer)!
       if (!handle.isArrayBuffer()) {
         return envObject.setLastError(napi_status.napi_invalid_arg)
       }
@@ -32,7 +32,7 @@ function napi_get_arraybuffer_info (env: napi_env, arraybuffer: napi_value, data
 function napi_get_prototype (env: napi_env, value: napi_value, result: Pointer<napi_value>): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [value, result], () => {
-      const handle = envObject.handleStore.get(value)!
+      const handle = emnapi.handleStore.get(value)!
       if (!(handle.isObject() || handle.isFunction())) {
         return envObject.setLastError(napi_status.napi_object_expected)
       }
@@ -53,7 +53,7 @@ function napi_get_typedarray_info (
 ): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [typedarray], () => {
-      const handle = envObject.handleStore.get(typedarray)!
+      const handle = emnapi.handleStore.get(typedarray)!
       if (!handle.isTypedArray()) {
         return envObject.setLastError(napi_status.napi_invalid_arg)
       }
@@ -114,7 +114,7 @@ function napi_get_dataview_info (
 ): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [dataview], () => {
-      const handle = envObject.handleStore.get(dataview)!
+      const handle = emnapi.handleStore.get(dataview)!
       if (!handle.isDataView()) {
         return envObject.setLastError(napi_status.napi_invalid_arg)
       }
@@ -143,7 +143,7 @@ function napi_get_dataview_info (
 function napi_get_date_value (env: napi_env, value: napi_value, result: Pointer<double>): napi_status {
   return emnapi.preamble(env, (envObject) => {
     return emnapi.checkArgs(envObject, [value, result], () => {
-      const handle = envObject.handleStore.get(value)!
+      const handle = emnapi.handleStore.get(value)!
       if (!handle.isDate()) {
         return envObject.setLastError(napi_status.napi_invalid_arg)
       }
@@ -156,7 +156,7 @@ function napi_get_date_value (env: napi_env, value: napi_value, result: Pointer<
 function napi_get_value_bool (env: napi_env, value: napi_value, result: Pointer<bool>): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [value, result], () => {
-      const handle = envObject.handleStore.get(value)!
+      const handle = emnapi.handleStore.get(value)!
       if (typeof handle.value !== 'boolean') {
         return envObject.setLastError(napi_status.napi_boolean_expected)
       }
@@ -169,7 +169,7 @@ function napi_get_value_bool (env: napi_env, value: napi_value, result: Pointer<
 function napi_get_value_double (env: napi_env, value: napi_value, result: Pointer<double>): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [value, result], () => {
-      const handle = envObject.handleStore.get(value)!
+      const handle = emnapi.handleStore.get(value)!
       if (typeof handle.value !== 'number') {
         return envObject.setLastError(napi_status.napi_number_expected)
       }
@@ -183,7 +183,7 @@ function napi_get_value_bigint_int64 (env: napi_env, value: napi_value, result: 
   return emnapi.checkEnv(env, (envObject) => {
     if (!emnapi.supportBigInt) return envObject.setLastError(napi_status.napi_generic_failure)
     return emnapi.checkArgs(envObject, [value, result, lossless], () => {
-      const handle = envObject.handleStore.get(value)!
+      const handle = emnapi.handleStore.get(value)!
       let numberValue = handle.value
       if (typeof numberValue !== 'bigint') {
         return envObject.setLastError(napi_status.napi_number_expected)
@@ -210,7 +210,7 @@ function napi_get_value_bigint_uint64 (env: napi_env, value: napi_value, result:
   return emnapi.checkEnv(env, (envObject) => {
     if (!emnapi.supportBigInt) return envObject.setLastError(napi_status.napi_generic_failure)
     return emnapi.checkArgs(envObject, [value, result, lossless], () => {
-      const handle = envObject.handleStore.get(value)!
+      const handle = emnapi.handleStore.get(value)!
       let numberValue = handle.value
       if (typeof numberValue !== 'bigint') {
         return envObject.setLastError(napi_status.napi_number_expected)
@@ -240,7 +240,7 @@ function napi_get_value_bigint_words (
   return emnapi.checkEnv(env, (envObject) => {
     if (!emnapi.supportBigInt) return envObject.setLastError(napi_status.napi_generic_failure)
     return emnapi.checkArgs(envObject, [value, word_count], () => {
-      const handle = envObject.handleStore.get(value)!
+      const handle = emnapi.handleStore.get(value)!
       if (!handle.isBigInt()) {
         return envObject.setLastError(napi_status.napi_bigint_expected)
       }
@@ -284,7 +284,7 @@ function napi_get_value_external (env: napi_env, value: napi_value, result: void
   return emnapi.checkEnv(env, (envObject) => {
     if (!emnapi.supportFinalizer) return envObject.setLastError(napi_status.napi_generic_failure)
     return emnapi.checkArgs(envObject, [value, result], () => {
-      const handle = envObject.handleStore.get(value)!
+      const handle = emnapi.handleStore.get(value)!
       if (!handle.isExternal()) {
         return envObject.setLastError(napi_status.napi_invalid_arg)
       }
@@ -297,7 +297,7 @@ function napi_get_value_external (env: napi_env, value: napi_value, result: void
 function napi_get_value_int32 (env: napi_env, value: napi_value, result: Pointer<int32_t>): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [value, result], () => {
-      const handle = envObject.handleStore.get(value)!
+      const handle = emnapi.handleStore.get(value)!
       if (typeof handle.value !== 'number') {
         return envObject.setLastError(napi_status.napi_number_expected)
       }
@@ -312,7 +312,7 @@ declare const INT64_RANGE_NEGATIVE: number
 function napi_get_value_int64 (env: napi_env, value: napi_value, result: Pointer<int64_t>): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [value, result], () => {
-      const handle = envObject.handleStore.get(value)!
+      const handle = emnapi.handleStore.get(value)!
       if (typeof handle.value !== 'number') {
         return envObject.setLastError(napi_status.napi_number_expected)
       }
@@ -341,7 +341,7 @@ function napi_get_value_string_latin1 (env: napi_env, value: napi_value, buf: ch
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [value], () => {
       buf_size = buf_size >>> 0
-      const handle = envObject.handleStore.get(value)!
+      const handle = emnapi.handleStore.get(value)!
       if (typeof handle.value !== 'string') {
         return envObject.setLastError(napi_status.napi_string_expected)
       }
@@ -370,7 +370,7 @@ function napi_get_value_string_utf8 (env: napi_env, value: napi_value, buf: char
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [value], () => {
       buf_size = buf_size >>> 0
-      const handle = envObject.handleStore.get(value)!
+      const handle = emnapi.handleStore.get(value)!
       if (typeof handle.value !== 'string') {
         return envObject.setLastError(napi_status.napi_string_expected)
       }
@@ -394,7 +394,7 @@ function napi_get_value_string_utf16 (env: napi_env, value: napi_value, buf: cha
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [value], () => {
       buf_size = buf_size >>> 0
-      const handle = envObject.handleStore.get(value)!
+      const handle = emnapi.handleStore.get(value)!
       if (typeof handle.value !== 'string') {
         return envObject.setLastError(napi_status.napi_string_expected)
       }
@@ -417,7 +417,7 @@ function napi_get_value_string_utf16 (env: napi_env, value: napi_value, buf: cha
 function napi_get_value_uint32 (env: napi_env, value: napi_value, result: Pointer<uint32_t>): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [value, result], () => {
-      const handle = envObject.handleStore.get(value)!
+      const handle = emnapi.handleStore.get(value)!
       if (typeof handle.value !== 'number') {
         return envObject.setLastError(napi_status.napi_number_expected)
       }

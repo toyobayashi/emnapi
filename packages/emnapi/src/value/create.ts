@@ -75,7 +75,7 @@ function napi_create_symbol (env: napi_env, description: napi_value, result: Poi
         // eslint-disable-next-line symbol-description
         HEAP32[result >> 2] = envObject.getCurrentScope().add(Symbol()).id
       } else {
-        const handle = envObject.handleStore.get(description)!
+        const handle = emnapi.handleStore.get(description)!
         const desc = handle.value
         if (typeof desc !== 'string') {
           return envObject.setLastError(napi_status.napi_string_expected)
@@ -99,7 +99,7 @@ function napi_create_typedarray (
     return emnapi.checkArgs(envObject, [arraybuffer, result], () => {
       length = length >>> 0
       byte_offset = byte_offset >>> 0
-      const handle = envObject.handleStore.get(arraybuffer)!
+      const handle = emnapi.handleStore.get(arraybuffer)!
       const buffer = handle.value
       if (!(buffer instanceof ArrayBuffer)) {
         return envObject.setLastError(napi_status.napi_invalid_arg)
@@ -151,7 +151,7 @@ function napi_create_dataview (
     return emnapi.checkArgs(envObject, [arraybuffer, result], () => {
       byte_length = byte_length >>> 0
       byte_offset = byte_offset >>> 0
-      const handle = envObject.handleStore.get(arraybuffer)!
+      const handle = emnapi.handleStore.get(arraybuffer)!
       const buffer = handle.value
       if (!(buffer instanceof ArrayBuffer)) {
         return envObject.setLastError(napi_status.napi_invalid_arg)

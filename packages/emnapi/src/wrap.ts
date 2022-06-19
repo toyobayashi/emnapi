@@ -40,7 +40,7 @@ function napi_define_class (
           if (name === NULL) {
             return envObject.setLastError(napi_status.napi_name_expected)
           }
-          propertyName = envObject.handleStore.get(name)!.value
+          propertyName = emnapi.handleStore.get(name)!.value
           if (typeof propertyName !== 'string' && typeof propertyName !== 'symbol') {
             return envObject.setLastError(napi_status.napi_name_expected)
           }
@@ -80,7 +80,7 @@ function napi_type_tag_object (env: napi_env, object: napi_value, type_tag: Cons
     if (object === NULL) {
       return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_invalid_arg)
     }
-    const value = envObject.handleStore.get(object)!
+    const value = emnapi.handleStore.get(object)!
     if (!(value.isObject() || value.isFunction())) {
       return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_object_expected)
     }
@@ -106,7 +106,7 @@ function napi_check_object_type_tag (env: napi_env, object: napi_value, type_tag
     if (object === NULL) {
       return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_invalid_arg)
     }
-    const value = envObject.handleStore.get(object)!
+    const value = emnapi.handleStore.get(object)!
     if (!(value.isObject() || value.isFunction())) {
       return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_object_expected)
     }

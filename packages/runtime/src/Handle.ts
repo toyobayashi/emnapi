@@ -1,77 +1,18 @@
-import { IHandleScope } from './HandleScope'
-import { Reference } from './Reference'
-import { Store, IStoreValue } from './Store'
-import { _global, isReferenceType } from './util'
+import type { IHandleScope } from './HandleScope'
+import type { Reference } from './Reference'
+import { IStoreValue, Store } from './Store'
 import type { Env } from './env'
-
-export class HandleStore extends Store<Handle<any>> {
-  public static ID_UNDEFINED: 1 = 1
-  public static ID_NULL: 2 = 2
-  public static ID_FALSE: 3 = 3
-  public static ID_TRUE: 4 = 4
-  public static ID_GLOBAL: 5 = 5
-
-  public static get getMinId (): number {
-    return 6
-  }
-
-  public static globalConstants = {
-    [HandleStore.ID_UNDEFINED]: undefined,
-    [HandleStore.ID_NULL]: null,
-    [HandleStore.ID_FALSE]: false,
-    [HandleStore.ID_TRUE]: true,
-    [HandleStore.ID_GLOBAL]: _global
-  }
-
-  // js object -> Handle
-  private _objWeakMap: WeakMap<object, Handle<object>>
-
-  public constructor (envObject: Env) {
-    super(16)
-    this._objWeakMap = new WeakMap()
-    super.add(new Handle(envObject, 1, undefined))
-    super.add(new Handle(envObject, 2, null))
-    super.add(new Handle(envObject, 3, false))
-    super.add(new Handle(envObject, 4, true))
-    super.add(new Handle(envObject, 5, _global))
-  }
-
-  public override add (h: Handle<any>): void {
-    super.add(h)
-    const isRefType = isReferenceType(h.value)
-    if (isRefType) {
-      if (this._objWeakMap.has(h.value)) {
-        const old = this._objWeakMap.get(h.value)!
-        old.moveTo(h)
-      }
-      this._objWeakMap.set(h.value, h)
-    }
-  }
-
-  public override remove (id: number): void {
-    if (!this.has(id) || id < HandleStore.getMinId) return
-    super.remove(id)
-  }
-
-  public getObjectHandle<T extends object> (value: T): Handle<T> | undefined {
-    return this._objWeakMap.get(value) as Handle<T>
-  }
-
-  public dispose (): void {
-    this._objWeakMap = null!
-    super.dispose()
-  }
-}
+import { _global, isReferenceType } from './util'
 
 export class Handle<S> implements IStoreValue {
   public static create<S> (envObject: Env, value: S): Handle<S> {
     const handle = new Handle(envObject, 0, value)
-    envObject.handleStore.add(handle)
+    handleStore.add(handle)
     return handle
   }
 
   public id: number
-  protected _envObject: Env
+  protected _envObject: Env | undefined
   public value: S
   public inScope: IHandleScope | null
   public wrapped: number = 0 // wrapped Reference id
@@ -82,7 +23,7 @@ export class Handle<S> implements IStoreValue {
     return this._envObject?.id ?? 0
   }
 
-  public constructor (envObject: Env, id: number, value: S) {
+  public constructor (envObject: Env | undefined, id: number, value: S) {
     this._envObject = envObject
     this.id = id
     this.value = value
@@ -210,7 +151,7 @@ export class Handle<S> implements IStoreValue {
       }
     }
     const id = this.id
-    this._envObject.handleStore.remove(id)
+    handleStore.remove(id)
     this.refs = []
     this.id = 0
     this.value = undefined!
@@ -225,7 +166,7 @@ External.prototype = null as any
 export class ExternalHandle extends Handle<{}> {
   public static createExternal (envObject: Env, data: void_p = 0): ExternalHandle {
     const h = new ExternalHandle(envObject, data)
-    envObject.handleStore.add(h)
+    handleStore.add(h)
     return h
   }
 
@@ -240,3 +181,64 @@ export class ExternalHandle extends Handle<{}> {
     return this._data
   }
 }
+
+export class HandleStore extends Store<Handle<any>> {
+  public static ID_UNDEFINED: 1 = 1
+  public static ID_NULL: 2 = 2
+  public static ID_FALSE: 3 = 3
+  public static ID_TRUE: 4 = 4
+  public static ID_GLOBAL: 5 = 5
+
+  public static get getMinId (): number {
+    return 6
+  }
+
+  public static globalConstants = {
+    [HandleStore.ID_UNDEFINED]: undefined,
+    [HandleStore.ID_NULL]: null,
+    [HandleStore.ID_FALSE]: false,
+    [HandleStore.ID_TRUE]: true,
+    [HandleStore.ID_GLOBAL]: _global
+  }
+
+  // js object -> Handle
+  private _objWeakMap: WeakMap<object, Handle<object>>
+
+  public constructor () {
+    super(16)
+    this._objWeakMap = new WeakMap()
+    super.add(new Handle(undefined, 1, undefined))
+    super.add(new Handle(undefined, 2, null))
+    super.add(new Handle(undefined, 3, false))
+    super.add(new Handle(undefined, 4, true))
+    super.add(new Handle(undefined, 5, _global))
+  }
+
+  public override add (h: Handle<any>): void {
+    super.add(h)
+    const isRefType = isReferenceType(h.value)
+    if (isRefType) {
+      if (this._objWeakMap.has(h.value)) {
+        const old = this._objWeakMap.get(h.value)!
+        old.moveTo(h)
+      }
+      this._objWeakMap.set(h.value, h)
+    }
+  }
+
+  public override remove (id: number): void {
+    if (!this.has(id) || id < HandleStore.getMinId) return
+    super.remove(id)
+  }
+
+  public getObjectHandle<T extends object> (value: T): Handle<T> | undefined {
+    return this._objWeakMap.get(value) as Handle<T>
+  }
+
+  public dispose (): void {
+    this._objWeakMap = null!
+    super.dispose()
+  }
+}
+
+export const handleStore = new HandleStore()

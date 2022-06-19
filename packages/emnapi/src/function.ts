@@ -16,7 +16,7 @@ function napi_get_cb_info (env: napi_env, cbinfo: napi_callback_info, argc: Poin
   const envObject = emnapi.envStore.get(env)!
   if (cbinfo === NULL) return envObject.setLastError(napi_status.napi_invalid_arg)
 
-  const cbinfoValue: emnapi.CallbackInfo = envObject.cbInfoStore.get(cbinfo)!
+  const cbinfoValue: emnapi.CallbackInfo = emnapi.cbInfoStore.get(cbinfo)!
   if (argv !== NULL) {
     if (argc === NULL) return envObject.setLastError(napi_status.napi_invalid_arg)
     const argcValue = HEAPU32[argc >> 2]
@@ -58,14 +58,14 @@ function napi_call_function (
       if (argc > 0) {
         if (argv === NULL) return envObject.setLastError(napi_status.napi_invalid_arg)
       }
-      const v8recv = envObject.handleStore.get(recv)!.value
+      const v8recv = emnapi.handleStore.get(recv)!.value
       if (func === NULL) return envObject.setLastError(napi_status.napi_invalid_arg)
-      const v8func = envObject.handleStore.get(func)!.value as Function
+      const v8func = emnapi.handleStore.get(func)!.value as Function
       if (typeof v8func !== 'function') return envObject.setLastError(napi_status.napi_invalid_arg)
       const args = []
       for (let i = 0; i < argc; i++) {
         const argPtr = argv + (i * 4)
-        args.push(envObject.handleStore.get(HEAP32[argPtr >> 2])!.value)
+        args.push(emnapi.handleStore.get(HEAP32[argPtr >> 2])!.value)
       }
       const ret = v8func.apply(v8recv, args)
       if (result !== NULL) {
@@ -91,13 +91,13 @@ function napi_new_instance (
       }
       if (result === NULL) return envObject.setLastError(napi_status.napi_invalid_arg)
 
-      const Ctor: new (...args: any[]) => any = envObject.handleStore.get(constructor)!.value
+      const Ctor: new (...args: any[]) => any = emnapi.handleStore.get(constructor)!.value
       if (typeof Ctor !== 'function') return envObject.setLastError(napi_status.napi_invalid_arg)
       const args = Array(argc + 1) as [undefined, ...any[]]
       args[0] = undefined
       for (let i = 0; i < argc; i++) {
         const argPtr = argv + (i * 4)
-        args[i + 1] = envObject.handleStore.get(HEAP32[argPtr >> 2])!.value
+        args[i + 1] = emnapi.handleStore.get(HEAP32[argPtr >> 2])!.value
       }
       const BoundCtor = Ctor.bind.apply(Ctor, args) as new () => any
       const ret = new BoundCtor()
@@ -119,7 +119,7 @@ function napi_get_new_target (
   if (cbinfo === NULL) return envObject.setLastError(napi_status.napi_invalid_arg)
   if (result === NULL) return envObject.setLastError(napi_status.napi_invalid_arg)
 
-  const cbinfoValue: emnapi.CallbackInfo = envObject.cbInfoStore.get(cbinfo)!
+  const cbinfoValue: emnapi.CallbackInfo = emnapi.cbInfoStore.get(cbinfo)!
   if (cbinfoValue._newTarget) {
     HEAP32[result >> 2] = envObject.ensureHandleId(cbinfoValue._newTarget)
   } else {

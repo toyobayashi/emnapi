@@ -11,12 +11,12 @@ function napi_open_handle_scope (env: napi_env, result: Pointer<napi_handle_scop
 function napi_close_handle_scope (env: napi_env, scope: napi_handle_scope): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [scope], () => {
-      const scopeObject = envObject.scopeStore.get(scope)!
+      const scopeObject = emnapi.scopeStore.get(scope)!
       if ((envObject.openHandleScopes === 0) || (scopeObject !== envObject.getCurrentScope())) {
         return napi_status.napi_handle_scope_mismatch
       }
 
-      envObject.closeScope(envObject.scopeStore.get(scope)!)
+      envObject.closeScope(emnapi.scopeStore.get(scope)!)
       return envObject.clearLastError()
     })
   })
@@ -35,12 +35,12 @@ function napi_open_escapable_handle_scope (env: napi_env, result: Pointer<napi_e
 function napi_close_escapable_handle_scope (env: napi_env, scope: napi_escapable_handle_scope): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [scope], () => {
-      const scopeObject = envObject.scopeStore.get(scope)!
+      const scopeObject = emnapi.scopeStore.get(scope)!
       if ((envObject.openHandleScopes === 0) || (scopeObject !== envObject.getCurrentScope())) {
         return napi_status.napi_handle_scope_mismatch
       }
 
-      envObject.closeScope(envObject.scopeStore.get(scope)!)
+      envObject.closeScope(emnapi.scopeStore.get(scope)!)
       return envObject.clearLastError()
     })
   })
@@ -49,7 +49,7 @@ function napi_close_escapable_handle_scope (env: napi_env, scope: napi_escapable
 function napi_escape_handle (env: napi_env, scope: napi_escapable_handle_scope, escapee: napi_value, result: Pointer<napi_value>): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [scope, escapee, result], () => {
-      const scopeObject = envObject.scopeStore.get(scope) as emnapi.EscapableHandleScope
+      const scopeObject = emnapi.scopeStore.get(scope) as emnapi.EscapableHandleScope
       if (!scopeObject.escapeCalled()) {
         const newHandle = scopeObject.escape(escapee)
         HEAP32[result >> 2] = newHandle ? newHandle.id : 0
@@ -69,7 +69,7 @@ function napi_create_reference (
   return emnapi.checkEnv(env, (envObject) => {
     if (!emnapi.supportFinalizer) return envObject.setLastError(napi_status.napi_generic_failure)
     return emnapi.checkArgs(envObject, [value, result], () => {
-      const handle = envObject.handleStore.get(value)!
+      const handle = emnapi.handleStore.get(value)!
       if (!(handle.isObject() || handle.isFunction())) {
         return envObject.setLastError(napi_status.napi_object_expected)
       }
@@ -87,7 +87,7 @@ function napi_delete_reference (
   return emnapi.checkEnv(env, (envObject) => {
     if (!emnapi.supportFinalizer) return envObject.setLastError(napi_status.napi_generic_failure)
     return emnapi.checkArgs(envObject, [ref], () => {
-      emnapi.Reference.doDelete(envObject.refStore.get(ref)!)
+      emnapi.Reference.doDelete(emnapi.refStore.get(ref)!)
       return envObject.clearLastError()
     })
   })
@@ -101,7 +101,7 @@ function napi_reference_ref (
   return emnapi.checkEnv(env, (envObject) => {
     if (!emnapi.supportFinalizer) return envObject.setLastError(napi_status.napi_generic_failure)
     return emnapi.checkArgs(envObject, [ref], () => {
-      const count = envObject.refStore.get(ref)!.ref()
+      const count = emnapi.refStore.get(ref)!.ref()
       if (result !== NULL) {
         HEAPU32[result >> 2] = count
       }
@@ -118,7 +118,7 @@ function napi_reference_unref (
   return emnapi.checkEnv(env, (envObject) => {
     if (!emnapi.supportFinalizer) return envObject.setLastError(napi_status.napi_generic_failure)
     return emnapi.checkArgs(envObject, [ref], () => {
-      const reference = envObject.refStore.get(ref)!
+      const reference = emnapi.refStore.get(ref)!
       if (reference.refcount === 0) {
         return envObject.setLastError(napi_status.napi_generic_failure)
       }
@@ -139,10 +139,10 @@ function napi_get_reference_value (
   return emnapi.checkEnv(env, (envObject) => {
     if (!emnapi.supportFinalizer) return envObject.setLastError(napi_status.napi_generic_failure)
     return emnapi.checkArgs(envObject, [ref, result], () => {
-      const reference = envObject.refStore.get(ref)!
+      const reference = emnapi.refStore.get(ref)!
       const handleId = reference.get()
       if (handleId !== NULL) {
-        const handle = envObject.handleStore.get(handleId)!
+        const handle = emnapi.handleStore.get(handleId)!
         handle.addRef(reference)
         envObject.getCurrentScope()?.addHandle(handle)
       }

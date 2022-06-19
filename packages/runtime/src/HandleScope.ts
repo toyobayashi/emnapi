@@ -1,7 +1,8 @@
-import { Handle, HandleStore } from './Handle'
-import { IStoreValue, Store } from './Store'
+import { Handle, handleStore, HandleStore } from './Handle'
+import type { IStoreValue } from './Store'
 import { _global } from './util'
 import type { Env } from './env'
+import { scopeStore } from './ScopeStore'
 
 export interface IHandleScope extends IStoreValue {
   readonly env: napi_env
@@ -31,7 +32,7 @@ export class HandleScope implements IHandleScope {
     if (parentScope) {
       parentScope.child = scope
     }
-    envObject.scopeStore.add(scope)
+    scopeStore.add(scope)
     return scope as InstanceType<T>
   }
 
@@ -53,16 +54,16 @@ export class HandleScope implements IHandleScope {
     }
 
     if (value === undefined) {
-      return this._envObject.handleStore.get(HandleStore.ID_UNDEFINED)!
+      return handleStore.get(HandleStore.ID_UNDEFINED)!
     }
     if (value === null) {
-      return this._envObject.handleStore.get(HandleStore.ID_NULL)!
+      return handleStore.get(HandleStore.ID_NULL)!
     }
     if (typeof value === 'boolean') {
-      return this._envObject.handleStore.get(value ? HandleStore.ID_TRUE : HandleStore.ID_FALSE)!
+      return handleStore.get(value ? HandleStore.ID_TRUE : HandleStore.ID_FALSE)!
     }
     if (value === _global) {
-      return this._envObject.handleStore.get(HandleStore.ID_GLOBAL)!
+      return handleStore.get(HandleStore.ID_GLOBAL)!
     }
 
     const h = Handle.create(this._envObject, value)
@@ -98,7 +99,7 @@ export class HandleScope implements IHandleScope {
     this.clearHandles()
     this.parent = null
     this.child = null
-    this._envObject.scopeStore.remove(this.id)
+    scopeStore.remove(this.id)
     this._envObject = undefined!
   }
 }
@@ -136,10 +137,10 @@ export class EscapableHandleScope extends HandleScope {
       exists = index !== -1
     }
     if (exists) {
-      const h = this._envObject.handleStore.get(handleId)
+      const h = handleStore.get(handleId)
       if (h && this.parent !== null) {
         this.handles.splice(index, 1)
-        this._envObject.handleStore.remove(handleId)
+        handleStore.remove(handleId)
         const newHandle = this.parent.add(h.value)
         return newHandle
       } else {
@@ -152,11 +153,5 @@ export class EscapableHandleScope extends HandleScope {
 
   public escapeCalled (): boolean {
     return this._escapeCalled
-  }
-}
-
-export class ScopeStore extends Store<IHandleScope> {
-  public constructor () {
-    super(8)
   }
 }

@@ -16,7 +16,7 @@ function napi_get_last_error_info (env: napi_env, result: Pointer<Pointer<napi_e
 function napi_throw (env: napi_env, error: napi_value): napi_status {
   return emnapi.preamble(env, (envObject) => {
     return emnapi.checkArgs(envObject, [error], () => {
-      envObject.tryCatch.setError(envObject.handleStore.get(error)!.value)
+      envObject.tryCatch.setError(emnapi.handleStore.get(error)!.value)
       return envObject.clearLastError()
     })
   })
@@ -83,7 +83,7 @@ function napi_is_exception_pending (env: napi_env, result: Pointer<bool>): napi_
 function napi_create_error (env: napi_env, code: napi_value, msg: napi_value, result: Pointer<napi_value>): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [msg, result], () => {
-      const msgValue = envObject.handleStore.get(msg)!.value
+      const msgValue = emnapi.handleStore.get(msg)!.value
       if (typeof msgValue !== 'string') {
         return envObject.setLastError(napi_status.napi_string_expected)
       }
@@ -100,7 +100,7 @@ function napi_create_error (env: napi_env, code: napi_value, msg: napi_value, re
 function napi_create_type_error (env: napi_env, code: napi_value, msg: napi_value, result: Pointer<napi_value>): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [msg, result], () => {
-      const msgValue = envObject.handleStore.get(msg)!.value
+      const msgValue = emnapi.handleStore.get(msg)!.value
       if (typeof msgValue !== 'string') {
         return envObject.setLastError(napi_status.napi_string_expected)
       }
@@ -116,7 +116,7 @@ function napi_create_type_error (env: napi_env, code: napi_value, msg: napi_valu
 function napi_create_range_error (env: napi_env, code: napi_value, msg: napi_value, result: Pointer<napi_value>): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [msg, result], () => {
-      const msgValue = envObject.handleStore.get(msg)!.value
+      const msgValue = emnapi.handleStore.get(msg)!.value
       if (typeof msgValue !== 'string') {
         return envObject.setLastError(napi_status.napi_string_expected)
       }
@@ -132,7 +132,7 @@ function napi_create_range_error (env: napi_env, code: napi_value, msg: napi_val
 function node_api_create_syntax_error (env: napi_env, code: napi_value, msg: napi_value, result: Pointer<napi_value>): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [msg, result], () => {
-      const msgValue = envObject.handleStore.get(msg)!.value
+      const msgValue = emnapi.handleStore.get(msg)!.value
       if (typeof msgValue !== 'string') {
         return envObject.setLastError(napi_status.napi_string_expected)
       }
