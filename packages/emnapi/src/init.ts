@@ -45,7 +45,7 @@ mergeInto(LibraryManager.library, {
     let exportsKey: string
     let env: emnapi.Env | undefined
 
-    function callInStack<R, T extends () => R> (f: T): R {
+    function callInStack<T extends () => any> (f: T): ReturnType<T> {
       const stack = stackSave()
       let r: any
       try {
