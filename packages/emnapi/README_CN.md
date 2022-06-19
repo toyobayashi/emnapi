@@ -223,7 +223,7 @@ cmake --build build
 
 ## Emnapi 运行时
 
-大多数 API 都是用 JavaScript 实现的，它们依赖于 `library_napi.js` 库文件中提供的运行时代码。因此，如果要构建多个 wasm 目标，则相同的运行时代码将链接到每个 wasm 胶水 js 文件中。如果想要“动态链接”运行时代码，即在多个 wasm 之间共享运行时代码，可以这样做：
+大多数 API 都是用 JavaScript 实现的，它们依赖于 `library_napi.js` 库文件中提供的运行时代码。因此，如果要构建多个 wasm 目标，则相同的运行时代码将链接到每个 wasm 胶水 js 文件中，在同一个页面下跨 wasm binding 传递 JavaScript 对象时会出现问题，我们需要在多个 wasm 之间共享 emnapi 的运行时代码，要像下面这样做：
 
 1. 安装 emnapi 运行时
 

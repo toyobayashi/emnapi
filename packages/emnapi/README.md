@@ -227,7 +227,7 @@ If a JS error is thrown on runtime initialization, Node.js process will exit. Yo
 
 ## Emnapi Runtime
 
-Most APIs are implemented in JavaScript and they are depend on runtime code shipped in `library_napi.js` library file. So if you are building multiple wasm target, the same runtime code will be linked into each wasm glue js file. To "dynamic linking" the runtime code, that is, to share the runtime code among multiple wasm, you could do:
+Most APIs are implemented in JavaScript and they are depend on runtime code shipped in `library_napi.js` library file. So if you are building multiple wasm target, the same runtime code will be linked into each wasm glue js file. This is problematic when passing JavaScript objects across wasm bindings in same web page, we need to share emnapi's runtime code between multiple wasms like this:
 
 1. Installing emnapi runtime
 
