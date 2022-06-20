@@ -560,15 +560,25 @@ napi_create_threadsafe_function(napi_env env,
                                 napi_threadsafe_function* result) {
 #ifdef __EMSCRIPTEN_PTHREADS__
   CHECK_ENV(env);
-  CHECK_ARG(env, async_resource_name);
+  // CHECK_ARG(env, async_resource_name);
   RETURN_STATUS_IF_FALSE(env, initial_thread_count > 0, napi_invalid_arg);
   CHECK_ARG(env, result);
 
   napi_status status = napi_ok;
+  napi_ref ref = NULL;
 
-  napi_ref ref;
-  napi_status r = napi_create_reference(env, func, 1, &ref);
-  if (r != napi_ok) return napi_set_last_error(env, r, 0, NULL);
+  if (func == NULL) {
+    CHECK_ARG(env, call_js_cb);
+  } else {
+    napi_valuetype type;
+    status = napi_typeof(env, func, &type);
+    if (status != napi_ok) return napi_set_last_error(env, status, 0, NULL);
+    if (type != napi_function) {
+      return napi_set_last_error(env, napi_invalid_arg, 0, NULL);
+    }
+    status = napi_create_reference(env, func, 1, &ref);
+    if (status != napi_ok) return napi_set_last_error(env, status, 0, NULL);
+  }
 
   napi_threadsafe_function ts_fn = _emnapi_tsfn_create(
     env,

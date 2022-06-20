@@ -76,6 +76,7 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
       createTarget('env', ['./env/binding.c']),
       createTarget('hello', ['./hello/binding.c']),
       createTarget('async', ['./async/binding.c'], false, true),
+      ...(isEmscripten ? [createTarget('tsfn', ['./tsfn/binding.c'], false, true)] : []),
       createTarget('arg', ['./arg/binding.c'], true),
       createTarget('callback', ['./callback/binding.c'], true),
       createTarget('objfac', ['./objfac/binding.c'], true),
