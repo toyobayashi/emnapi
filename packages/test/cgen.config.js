@@ -12,6 +12,7 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
         '-sWASM_BIGINT=1',
         '-sALLOW_MEMORY_GROWTH=1',
         '-sMIN_CHROME_VERSION=67',
+        // '-sEXIT_RUNTIME=1',
         ...(isDebug ? ['-sSAFE_HEAP=1'/* , '-sDISABLE_EXCEPTION_CATCHING=0' */] : [])
       ]
     : []
