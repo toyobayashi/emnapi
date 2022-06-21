@@ -38,7 +38,14 @@ mergeInto(LibraryManager.library, {
       'var r = Array.prototype.pop.apply(this, arguments);' +
       'emnapiAddTSFNListener(r);' +
       'return r;' +
-    '};'
+    '};',
+
+  _emnapi_set_timeout__deps: ['$emnapiGetDynamicCalls'],
+  _emnapi_set_timeout: function (callback: number, data: number, delay: number): number {
+    return setTimeout(() => {
+      emnapiGetDynamicCalls.call_vi(callback, data)
+    }, delay)
+  }
 })
 
 function _emnapi_call_into_module (env: napi_env, callback: number, data: number): void {

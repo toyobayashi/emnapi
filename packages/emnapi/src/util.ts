@@ -29,6 +29,9 @@ declare const arrayBufferMemoryMap: WeakMap<ArrayBuffer, number>
 declare const typedArrayMemoryMap: WeakMap<TypedArray | DataView, number>
 declare const memoryPointerDeleter: FinalizationRegistry<number>
 
+declare function runtimeKeepalivePush (): void
+declare function runtimeKeepalivePop (): void
+
 mergeInto(LibraryManager.library, {
   $memoryPointerDeleter: 'typeof FinalizationRegistry === "function" ? new FinalizationRegistry(function (pointer) { _free(pointer); }) : undefined',
   $arrayBufferMemoryMap: 'new WeakMap()',
@@ -75,6 +78,15 @@ mergeInto(LibraryManager.library, {
     typedArrayMemoryMap.set(view, pointer)
     memoryPointerDeleter.register(view, pointer)
     return pointer
+  },
+
+  _emnapi_runtime_keepalive_push__deps: ['$runtimeKeepalivePush'],
+  _emnapi_runtime_keepalive_push: function () {
+    if (typeof runtimeKeepalivePush === 'function') runtimeKeepalivePush()
+  },
+  _emnapi_runtime_keepalive_pop__deps: ['$runtimeKeepalivePop'],
+  _emnapi_runtime_keepalive_pop: function () {
+    if (typeof runtimeKeepalivePop === 'function') runtimeKeepalivePop()
   }
 })
 

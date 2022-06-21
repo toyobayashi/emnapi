@@ -48,6 +48,9 @@ extern napi_status napi_set_last_error(napi_env env,
                                        void* engine_reserved);
 extern napi_status napi_clear_last_error(napi_env env);
 
+extern void _emnapi_runtime_keepalive_push();
+extern void _emnapi_runtime_keepalive_pop();
+
 const char* emnapi_error_messages[] = {
   NULL,
   "Invalid argument",
@@ -163,16 +166,21 @@ static napi_async_work _emnapi_async_work_init(
   void* data
 ) {
   napi_async_work work = (napi_async_work)malloc(sizeof(struct napi_async_work__));
+  if (work == NULL) return NULL;
   work->env = env;
   work->execute = execute;
   work->complete = complete;
   work->data = data;
   work->tid = NULL;
+  _emnapi_runtime_keepalive_push();
   return work;
 }
 
 static void _emnapi_async_work_destroy(napi_async_work work) {
-  free(work);
+  if (work != NULL) {
+    free(work);
+    _emnapi_runtime_keepalive_pop();
+  }
 }
 
 static void* _emnapi_on_execute_async_work(void* arg) {
@@ -208,6 +216,9 @@ napi_status napi_create_async_work(napi_env env,
   CHECK_ARG(env, result);
 
   napi_async_work work = _emnapi_async_work_init(env, execute, complete, data);
+  if (work == NULL) {
+    return napi_set_last_error(env, napi_generic_failure, 0, NULL);
+  }
   // _emnapi_create_async_work_js(work); // listen complete event
   *result = work;
 
@@ -292,9 +303,10 @@ struct napi_threadsafe_function__ {
 
 typedef void (*_emnapi_call_into_module_callback)(napi_env env, void* args);
 
-extern void _emnapi_tsfn_send_js(void (*callback)(void*), void* data);  // TODO
-extern void _emnapi_tsfn_dispatch_one_js(napi_env env, napi_ref ref, napi_threadsafe_function_call_js call_js_cb, void* context, void* data);  // TODO
-extern void _emnapi_call_into_module(napi_env env, _emnapi_call_into_module_callback callback, void* args);  // TODO
+extern void _emnapi_tsfn_send_js(void (*callback)(void*), void* data);
+extern void _emnapi_tsfn_dispatch_one_js(napi_env env, napi_ref ref, napi_threadsafe_function_call_js call_js_cb, void* context, void* data);
+extern void _emnapi_call_into_module(napi_env env, _emnapi_call_into_module_callback callback, void* args);
+extern void _emnapi_set_timeout(void (*callback)(void*), void* data, int delay);
 
 static void _emnapi_tsfn_default_call_js(napi_env env, napi_value cb, void* context, void* data) {
   if (!(env == NULL || cb == NULL)) {
@@ -348,10 +360,12 @@ _emnapi_tsfn_create(napi_env env,
   ts_fn->call_js_cb = call_js_cb;
   ts_fn->handles_closing = false;
 
+  _emnapi_runtime_keepalive_push();
   return ts_fn;
 }
 
 static void _emnapi_tsfn_destroy(napi_threadsafe_function func) {
+  if (func == NULL) return;
   pthread_mutex_destroy(&func->mutex);
   if (func->cond) {
     pthread_cond_destroy(func->cond);
@@ -369,6 +383,7 @@ static void _emnapi_tsfn_destroy(napi_threadsafe_function func) {
 
   napi_delete_reference(func->env, func->ref);
   free(func);
+  _emnapi_runtime_keepalive_pop();
 }
 
 static void _emnapi_tsfn_do_destroy(void* data) {
@@ -381,16 +396,18 @@ static napi_status _emnapi_tsfn_init(napi_threadsafe_function func) {
   int r;
   if (func->max_queue_size > 0) {
     func->cond = (pthread_cond_t*) malloc(sizeof(pthread_cond_t));
-    r = pthread_cond_init(func->cond, NULL);
-    if (r != 0) {
-      free(func->cond);
-      func->cond = NULL;
+    if (func->cond != NULL) {
+      r = pthread_cond_init(func->cond, NULL);
+      if (r != 0) {
+        free(func->cond);
+        func->cond = NULL;
+      }
     }
   }
   if (func->max_queue_size == 0 || func->cond) {
     return napi_ok;
   }
-  emscripten_async_call(_emnapi_tsfn_do_destroy, func, 0);
+  _emnapi_set_timeout(_emnapi_tsfn_do_destroy, func, 0);
   return napi_generic_failure;
 }
 
@@ -447,7 +464,7 @@ static void _emnapi_tsfn_close_handles_and_maybe_delete(
   }
   func->handles_closing = true;
 
-  emscripten_async_call(_emnapi_tsfn_do_finalize, func, 0);
+  _emnapi_set_timeout(_emnapi_tsfn_do_finalize, func, 0);
 
   napi_close_handle_scope(func->env, scope);
 }
@@ -650,6 +667,10 @@ napi_call_threadsafe_function(napi_threadsafe_function func,
     }
   } else {
     struct data_queue_node* queue_node = (struct data_queue_node*) malloc(sizeof(struct data_queue_node));
+    if (queue_node == NULL) {
+      pthread_mutex_unlock(&func->mutex);
+      return napi_generic_failure;
+    }
     queue_node->data = data;
     QUEUE_INSERT_TAIL(&func->queue, &queue_node->q);
     func->queue_size++;
@@ -716,6 +737,7 @@ napi_release_threadsafe_function(napi_threadsafe_function func,
 napi_status
 napi_unref_threadsafe_function(napi_env env, napi_threadsafe_function func) {
 #ifdef __EMSCRIPTEN_PTHREADS__
+  _emnapi_runtime_keepalive_pop();
   return napi_ok;
 #else
   return napi_generic_failure;
@@ -725,6 +747,7 @@ napi_unref_threadsafe_function(napi_env env, napi_threadsafe_function func) {
 napi_status
 napi_ref_threadsafe_function(napi_env env, napi_threadsafe_function func) {
 #ifdef __EMSCRIPTEN_PTHREADS__
+  _emnapi_runtime_keepalive_push();
   return napi_ok;
 #else
   return napi_generic_failure;
