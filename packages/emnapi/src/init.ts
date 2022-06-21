@@ -19,11 +19,17 @@ mergeInto(LibraryManager.library, {
     call_ii: function (_ptr: number, a: int32_t): int32_t {
       return makeDynCall('ii', '_ptr')(a)
     },
+    call_vii (_ptr: number, a: int32_t, b: int32_t): void {
+      return makeDynCall('vii', '_ptr')(a, b)
+    },
     call_iii: function (_ptr: number, a: int32_t, b: int32_t): int32_t {
       return makeDynCall('iii', '_ptr')(a, b)
     },
     call_viii: function (_ptr: number, a: int32_t, b: int32_t, c: int32_t): void {
       return makeDynCall('viii', '_ptr')(a, b, c)
+    },
+    call_viiii: function (_ptr: number, a: int32_t, b: int32_t, c: int32_t, d: int32_t): void {
+      return makeDynCall('viiii', '_ptr')(a, b, c, d)
     },
     call_malloc: function (_source: string, _size: string | number): void_p {
       return makeMalloc('_source', '_size')

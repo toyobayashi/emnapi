@@ -30,7 +30,6 @@ declare const typedArrayMemoryMap: WeakMap<TypedArray | DataView, number>
 declare const memoryPointerDeleter: FinalizationRegistry<number>
 
 mergeInto(LibraryManager.library, {
-  $memoryPointerDeleter__deps: ['free'],
   $memoryPointerDeleter: 'typeof FinalizationRegistry === "function" ? new FinalizationRegistry(function (pointer) { _free(pointer); }) : undefined',
   $arrayBufferMemoryMap: 'new WeakMap()',
   $typedArrayMemoryMap: 'new WeakMap()',

@@ -16,6 +16,7 @@ fs.copyFileSync(path.join(__dirname, '../packages/runtime/dist/emnapi.js'), path
 fs.copyFileSync(path.join(__dirname, '../packages/runtime/dist/emnapi.min.js'), path.join(root, 'lib', 'emnapi.min.js'))
 // fs.copyFileSync(path.join(__dirname, '../packages/runtime/dist/emnapi.d.ts'), path.join(root, 'lib', 'emnapi.d.ts'))
 fs.copyFileSync(path.join(__dirname, '../packages/emnapi/src/emnapi.c'), path.join(root, 'src', 'emnapi.c'))
+fs.copyFileSync(path.join(__dirname, '../packages/emnapi/src/queue.h'), path.join(root, 'src', 'queue.h'))
 fs.readdirSync(path.join(__dirname, '../packages/emnapi/include')).forEach(item => {
   if (item !== '.' && item !== '..') {
     fs.copyFileSync(path.join(__dirname, '../packages/emnapi/include', item), path.join(root, 'include/emnapi', item))
