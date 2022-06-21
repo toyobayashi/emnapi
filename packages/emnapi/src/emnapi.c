@@ -6,6 +6,11 @@
 
 #include <emscripten.h>
 #include <emscripten/heap.h>
+
+#if __EMSCRIPTEN_major__ * 10000 + __EMSCRIPTEN_minor__ * 100 + __EMSCRIPTEN_tiny__ >= 30114  // NOLINT
+#include <emscripten/eventloop.h>
+#endif
+
 #include "emnapi.h"
 #include "node_api.h"
 
@@ -48,8 +53,17 @@ extern napi_status napi_set_last_error(napi_env env,
                                        void* engine_reserved);
 extern napi_status napi_clear_last_error(napi_env env);
 
+#if __EMSCRIPTEN_major__ * 10000 + __EMSCRIPTEN_minor__ * 100 + __EMSCRIPTEN_tiny__ >= 30114  // NOLINT
+#define EMNAPI_KEEPALIVE_PUSH emscripten_runtime_keepalive_push
+#define EMNAPI_KEEPALIVE_POP emscripten_runtime_keepalive_pop
+#else
+
 extern void _emnapi_runtime_keepalive_push();
 extern void _emnapi_runtime_keepalive_pop();
+
+#define EMNAPI_KEEPALIVE_PUSH _emnapi_runtime_keepalive_push
+#define EMNAPI_KEEPALIVE_POP _emnapi_runtime_keepalive_pop
+#endif
 
 const char* emnapi_error_messages[] = {
   NULL,
@@ -172,14 +186,14 @@ static napi_async_work _emnapi_async_work_init(
   work->complete = complete;
   work->data = data;
   work->tid = NULL;
-  _emnapi_runtime_keepalive_push();
+  EMNAPI_KEEPALIVE_PUSH();
   return work;
 }
 
 static void _emnapi_async_work_destroy(napi_async_work work) {
   if (work != NULL) {
     free(work);
-    _emnapi_runtime_keepalive_pop();
+    EMNAPI_KEEPALIVE_POP();
   }
 }
 
@@ -361,7 +375,7 @@ _emnapi_tsfn_create(napi_env env,
   ts_fn->call_js_cb = call_js_cb;
   ts_fn->handles_closing = false;
 
-  _emnapi_runtime_keepalive_push();
+  EMNAPI_KEEPALIVE_PUSH();
   ts_fn->async_ref = true;
   return ts_fn;
 }
@@ -386,7 +400,7 @@ static void _emnapi_tsfn_destroy(napi_threadsafe_function func) {
   napi_delete_reference(func->env, func->ref);
   free(func);
   if (func->async_ref) {
-    _emnapi_runtime_keepalive_pop();
+    EMNAPI_KEEPALIVE_POP();
     func->async_ref = false;
   }
 }
@@ -743,7 +757,7 @@ napi_status
 napi_unref_threadsafe_function(napi_env env, napi_threadsafe_function func) {
 #ifdef __EMSCRIPTEN_PTHREADS__
   if (func->async_ref) {
-    _emnapi_runtime_keepalive_pop();
+    EMNAPI_KEEPALIVE_POP();
     func->async_ref = false;
   }
   return napi_ok;
@@ -756,7 +770,7 @@ napi_status
 napi_ref_threadsafe_function(napi_env env, napi_threadsafe_function func) {
 #ifdef __EMSCRIPTEN_PTHREADS__
   if (!func->async_ref) {
-    _emnapi_runtime_keepalive_push();
+    EMNAPI_KEEPALIVE_PUSH();
     func->async_ref = true;
   }
   return napi_ok;
