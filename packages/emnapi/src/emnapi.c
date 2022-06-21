@@ -299,6 +299,7 @@ struct napi_threadsafe_function__ {
   napi_finalize finalize_cb;
   napi_threadsafe_function_call_js call_js_cb;
   bool handles_closing;
+  bool async_ref;
 };
 
 typedef void (*_emnapi_call_into_module_callback)(napi_env env, void* args);
@@ -361,6 +362,7 @@ _emnapi_tsfn_create(napi_env env,
   ts_fn->handles_closing = false;
 
   _emnapi_runtime_keepalive_push();
+  ts_fn->async_ref = true;
   return ts_fn;
 }
 
@@ -383,7 +385,10 @@ static void _emnapi_tsfn_destroy(napi_threadsafe_function func) {
 
   napi_delete_reference(func->env, func->ref);
   free(func);
-  _emnapi_runtime_keepalive_pop();
+  if (func->async_ref) {
+    _emnapi_runtime_keepalive_pop();
+    func->async_ref = false;
+  }
 }
 
 static void _emnapi_tsfn_do_destroy(void* data) {
@@ -737,7 +742,10 @@ napi_release_threadsafe_function(napi_threadsafe_function func,
 napi_status
 napi_unref_threadsafe_function(napi_env env, napi_threadsafe_function func) {
 #ifdef __EMSCRIPTEN_PTHREADS__
-  _emnapi_runtime_keepalive_pop();
+  if (func->async_ref) {
+    _emnapi_runtime_keepalive_pop();
+    func->async_ref = false;
+  }
   return napi_ok;
 #else
   return napi_generic_failure;
@@ -747,7 +755,10 @@ napi_unref_threadsafe_function(napi_env env, napi_threadsafe_function func) {
 napi_status
 napi_ref_threadsafe_function(napi_env env, napi_threadsafe_function func) {
 #ifdef __EMSCRIPTEN_PTHREADS__
-  _emnapi_runtime_keepalive_push();
+  if (!func->async_ref) {
+    _emnapi_runtime_keepalive_push();
+    func->async_ref = true;
+  }
   return napi_ok;
 #else
   return napi_generic_failure;
