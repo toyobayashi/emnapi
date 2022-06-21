@@ -12,7 +12,9 @@
 
 #include <algorithm>
 #include <cstring>
-// #include <mutex>
+#if !defined(__wasm32__) || (defined(__EMSCRIPTEN__) && defined(__EMSCRIPTEN_PTHREADS__))
+#include <mutex>
+#endif
 #include <type_traits>
 #include <utility>
 
@@ -209,7 +211,7 @@ struct FinalizeData {
   Hint* hint;
 };
 
-#if (NAPI_VERSION > 3 && !defined(__wasm32__))
+#if (NAPI_VERSION > 3 && (!defined(__wasm32__) || defined(__EMSCRIPTEN__)))
 template <typename ContextType=void,
           typename Finalizer=std::function<void(Env, void*, ContextType*)>,
           typename FinalizerDataType=void>
@@ -4966,7 +4968,7 @@ inline void AsyncWorker::OnWorkComplete(Napi::Env /*env*/, napi_status status) {
   }
 }
 
-#if (NAPI_VERSION > 3 && !defined(__wasm32__))
+#if (NAPI_VERSION > 3 && (!defined(__wasm32__) || defined(__EMSCRIPTEN__)))
 ////////////////////////////////////////////////////////////////////////////////
 // TypedThreadSafeFunction<ContextType,DataType,CallJs> class
 ////////////////////////////////////////////////////////////////////////////////
@@ -5869,6 +5871,7 @@ inline void AsyncProgressWorkerBase<DataType>::OnThreadSafeFunctionFinalize(Napi
 ////////////////////////////////////////////////////////////////////////////////
 // Async Progress Worker class
 ////////////////////////////////////////////////////////////////////////////////
+#if !defined(__wasm32__) || (defined(__EMSCRIPTEN__) && defined(__EMSCRIPTEN_PTHREADS__))
 template<class T>
 inline AsyncProgressWorker<T>::AsyncProgressWorker(const Function& callback)
   : AsyncProgressWorker(callback, "generic") {
@@ -6011,6 +6014,8 @@ template<class T>
 inline void AsyncProgressWorker<T>::ExecutionProgress::Send(const T* data, size_t count) const {
   _worker->SendProgress_(data, count);
 }
+
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////
 // Async Progress Queue Worker class

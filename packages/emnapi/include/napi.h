@@ -5,7 +5,10 @@
 #include <functional>
 #include <initializer_list>
 #include <memory>
-// #include <mutex>
+#if !defined(__wasm32__) || (defined(__EMSCRIPTEN__) && defined(__EMSCRIPTEN_PTHREADS__))
+#include <mutex>
+#endif
+
 #include <string>
 #include <vector>
 
@@ -2405,7 +2408,7 @@ namespace NAPI_CPP_CUSTOM_NAMESPACE {
     bool _suppress_destruct;
   };
 
-  #if (NAPI_VERSION > 3 && !defined(__wasm32__))
+  #if (NAPI_VERSION > 3 && (!defined(__wasm32__) || defined(__EMSCRIPTEN__)))
   class ThreadSafeFunction {
   public:
     // This API may only be called from the main thread.
@@ -2847,6 +2850,7 @@ namespace NAPI_CPP_CUSTOM_NAMESPACE {
      static inline void OnThreadSafeFunctionFinalize(Napi::Env env, void* data, AsyncProgressWorkerBase* context);
   };
 
+  #if !defined(__wasm32__) || (defined(__EMSCRIPTEN__) && defined(__EMSCRIPTEN_PTHREADS__))
   template<class T>
   class AsyncProgressWorker : public AsyncProgressWorkerBase<void> {
     public:
@@ -2903,6 +2907,7 @@ namespace NAPI_CPP_CUSTOM_NAMESPACE {
      T* _asyncdata;
      size_t _asyncsize;
   };
+  #endif
 
   template<class T>
   class AsyncProgressQueueWorker : public AsyncProgressWorkerBase<std::pair<T*, size_t>> {
