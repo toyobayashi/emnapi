@@ -43,7 +43,9 @@ function emnapi_create_external_uint8array (
       if (finalize_cb !== NULL) {
         const status = emnapiWrap(WrapType.anonymous, env, handle.id, external_data, finalize_cb, finalize_hint, NULL)
         if (status === napi_status.napi_pending_exception) {
-          throw envObject.tryCatch.extractException()
+          const err = envObject.tryCatch.extractException()
+          envObject.clearLastError()
+          throw err
         } else if (status !== napi_status.napi_ok) {
           return envObject.setLastError(status)
         }
