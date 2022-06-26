@@ -384,13 +384,13 @@ NAPI_EXTERN napi_status napi_create_arraybuffer(napi_env env,
                                                 size_t byte_length,
                                                 void** data,
                                                 napi_value* result);
-NAPI_EXTERN napi_status
-napi_create_external_arraybuffer(napi_env env,
-                                 void* external_data,
-                                 size_t byte_length,
-                                 napi_finalize finalize_cb,
-                                 void* finalize_hint,
-                                 napi_value* result);
+// NAPI_EXTERN napi_status
+// napi_create_external_arraybuffer(napi_env env,
+//                                  void* external_data,
+//                                  size_t byte_length,
+//                                  napi_finalize finalize_cb,
+//                                  void* finalize_hint,
+//                                  napi_value* result);
 NAPI_EXTERN napi_status napi_get_arraybuffer_info(napi_env env,
                                                   napi_value arraybuffer,
                                                   void** data,

@@ -48,7 +48,7 @@ function napi_create_external (env: napi_env, data: void_p, finalize_cb: napi_fi
   })
 }
 
-function napi_create_external_arraybuffer (
+/* function napi_create_external_arraybuffer (
   env: napi_env,
   _external_data: void_p,
   _byte_length: size_t,
@@ -57,7 +57,7 @@ function napi_create_external_arraybuffer (
   _result: Pointer<napi_value>
 ): napi_status {
   return _napi_set_last_error(env, napi_status.napi_generic_failure, 0, 0)
-}
+} */
 
 function napi_create_object (env: napi_env, result: Pointer<napi_value>): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
@@ -186,7 +186,7 @@ emnapiImplement('napi_create_array_with_length', napi_create_array_with_length)
 emnapiImplement('napi_create_arraybuffer', napi_create_arraybuffer)
 emnapiImplement('napi_create_date', napi_create_date)
 emnapiImplement('napi_create_external', napi_create_external)
-emnapiImplement('napi_create_external_arraybuffer', napi_create_external_arraybuffer, ['napi_set_last_error'])
+// emnapiImplement('napi_create_external_arraybuffer', napi_create_external_arraybuffer, ['napi_set_last_error'])
 emnapiImplement('napi_create_object', napi_create_object)
 emnapiImplement('napi_create_symbol', napi_create_symbol)
 emnapiImplement('napi_create_typedarray', napi_create_typedarray, ['$emnapiCreateTypedArray'])
