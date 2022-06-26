@@ -10,6 +10,8 @@
 
 [Full API List](https://emnapi-docs.vercel.app/reference/list.html)
 
+[How to build Node-API official examples](https://github.com/toyobayashi/node-addon-examples)
+
 ## Quick Start
 
 You will need to install:
@@ -141,7 +143,7 @@ Module.onRuntimeInitialized = function () {
 
 ### Using C++
 
-Alternatively, you can also use [`node-addon-api`](https://github.com/nodejs/node-addon-api) which is official Node-API C++ wrapper, already shipped (v5.0.0) in this package but without Node.js specific API such as `ThreadSafeFunction`, `AsyncWorker`, etc.
+Alternatively, you can also use [`node-addon-api`](https://github.com/nodejs/node-addon-api) which is official Node-API C++ wrapper, already shipped (v5.0.0) in this package but without Node.js specific API such as `AsyncContext`, `Function::MakeCallback`, etc.
 
 **Note: C++ wrapper can only be used to target Node.js v14.6.0+ and modern browsers those support `FinalizationRegistry` and `WeakRef` ([v8 engine v8.4+](https://v8.dev/blog/v8-release-84))!**
 
