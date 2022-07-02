@@ -1,4 +1,5 @@
 import { handleStore } from './Handle'
+import type { Handle } from './Handle'
 import { envStore } from './EnvStore'
 import { IStoreValue, Store } from './Store'
 import { TryCatch, isReferenceType } from './util'
@@ -43,25 +44,29 @@ export class Env implements IStoreValue {
     this.id = 0
   }
 
-  public ensureHandleId (value: any): napi_value {
+  public ensureHandle (value: any): Handle<any> {
     if (isReferenceType(value)) {
       const handle = handleStore.getObjectHandle(value)
       if (!handle) {
         // not exist in handle store
-        return currentScope!.add(this, value).id
+        return currentScope!.add(this, value)
       }
       if (handle.value === value) {
         // exist in handle store
-        return handle.id
+        return handle
       }
       // alive, go back to handle store
       handle.value = value
       Store.prototype.add.call(handleStore, handle)
       currentScope!.addHandle(handle)
-      return handle.id
+      return handle
     }
 
-    return currentScope!.add(this, value).id
+    return currentScope!.add(this, value)
+  }
+
+  public ensureHandleId (value: any): napi_value {
+    return this.ensureHandle(value).id
   }
 
   public clearLastError (): napi_status {

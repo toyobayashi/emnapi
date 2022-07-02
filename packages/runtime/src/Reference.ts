@@ -3,6 +3,7 @@ import { supportFinalizer, isReferenceType } from './util'
 import type { Env } from './env'
 import { refStore } from './RefStore'
 import { handleStore } from './Handle'
+import type { Handle } from './Handle'
 import { HandleScope } from './HandleScope'
 import { closeScope, openScope } from './scope'
 
@@ -55,9 +56,9 @@ export class Reference implements IStoreValue {
     finalize_data: void_p = 0,
     finalize_hint: void_p = 0
   ): Reference {
-    const ref = new Reference(envObject, handle_id, initialRefcount, deleteSelf, finalize_callback, finalize_data, finalize_hint)
-    refStore.add(ref)
     const handle = handleStore.get(handle_id)!
+    const ref = new Reference(envObject, supportFinalizer ? new WeakRef(handle) : null, initialRefcount, deleteSelf, finalize_callback, finalize_data, finalize_hint)
+    refStore.add(ref)
     handle.addRef(ref)
     if (supportFinalizer && isReferenceType(handle.value)) {
       ref.objWeakRef = new WeakRef<object>(handle.value)
@@ -71,7 +72,7 @@ export class Reference implements IStoreValue {
 
   private constructor (
     public envObject: Env,
-    public handle_id: napi_value,
+    public handleWeakRef: WeakRef<Handle<any>> | null,
     initialRefcount: uint32_t,
     public deleteSelf: boolean,
     public finalize_callback: napi_finalize = 0,
@@ -91,8 +92,8 @@ export class Reference implements IStoreValue {
       return 0
     }
     this.refcount--
-    if (this.refcount === 0) {
-      const handle = handleStore.get(this.handle_id)
+    if (this.refcount === 0 && this.handleWeakRef) {
+      const handle = this.handleWeakRef.deref()
       if (handle) {
         handle.tryDispose()
       }
@@ -105,24 +106,21 @@ export class Reference implements IStoreValue {
   }
 
   public get (): napi_value {
-    if (handleStore.has(this.handle_id)) {
-      return this.handle_id
-    } else {
-      if (this.objWeakRef) {
-        const obj = this.objWeakRef.deref()
-        if (obj) {
-          this.handle_id = this.envObject.ensureHandleId(obj)
-          return this.handle_id
-        }
+    if (this.objWeakRef) {
+      const obj = this.objWeakRef.deref()
+      if (obj) {
+        const handle = this.envObject.ensureHandle(obj)
+        if (supportFinalizer) this.handleWeakRef = new WeakRef(handle)
+        return handle.id
       }
-      return NULL
     }
+    return NULL
   }
 
   public static doDelete (ref: Reference): void {
     if ((ref.refcount !== 0) || (ref.deleteSelf) || (ref.finalizeRan)) {
       refStore.remove(ref.id)
-      handleStore.get(ref.handle_id)?.removeRef(ref)
+      ref.handleWeakRef?.deref()?.removeRef(ref)
       Reference.finalizationGroup?.unregister(this)
     } else {
       ref.deleteSelf = true
@@ -133,7 +131,7 @@ export class Reference implements IStoreValue {
     if (!Reference.finalizationGroup) return
     if (this.finalizerRegistered) return
     if (!value) {
-      value = handleStore.get(this.handle_id)!.value as object
+      value = this.objWeakRef!.deref()!
     }
     Reference.finalizationGroup.register(value, this, this)
     this.finalizerRegistered = true
