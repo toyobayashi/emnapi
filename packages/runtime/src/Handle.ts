@@ -130,29 +130,31 @@ export class Handle<S> implements IStoreValue {
     if (index !== -1) {
       this.refs.splice(index, 1)
     }
-    this.tryDispose()
+    setTimeout(() => {
+      this.tryDispose()
+    })
   }
 
   public tryDispose (): void {
     if (
       this.id < HandleStore.getMinId ||
       this.inScope !== null ||
-      this.refs.some(ref => ref.refcount > 0)
+      this.refs.some(ref => ref.refCount() > 0)
     ) return
     this.dispose()
   }
 
   public dispose (): void {
     if (this.id === 0) return
-    if (this.refs.length > 0) {
+    /* if (this.refs.length > 0) {
       const refs = this.refs
       for (let i = 0; i < refs.length; i++) {
         refs[i].queueFinalizer(this.value as unknown as object)
       }
-    }
+    } */
     const id = this.id
     handleStore.remove(id)
-    this.refs = []
+    // this.refs = []
     this.id = 0
     this.value = undefined!
   }

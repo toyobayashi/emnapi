@@ -52,15 +52,19 @@ async function main () {
     }))
   })
 
-  const iterations = 500
-  let x = 0
-  const workDone = common.mustCall((status) => {
-    assert.strictEqual(status, 0)
-    if (++x < iterations) {
-      setImmediate(() => test_async.DoRepeatedWork(workDone))
-    }
-  }, iterations)
-  test_async.DoRepeatedWork(workDone)
+  await new Promise((resolve) => {
+    const iterations = 500
+    let x = 0
+    const workDone = common.mustCall((status) => {
+      assert.strictEqual(status, 0)
+      if (++x < iterations) {
+        setImmediate(() => test_async.DoRepeatedWork(workDone))
+      } else {
+        resolve()
+      }
+    }, iterations)
+    test_async.DoRepeatedWork(workDone)
+  })
 
   await new Promise((resolve) => {
     process.once('uncaughtException', common.mustCall(function (err) {

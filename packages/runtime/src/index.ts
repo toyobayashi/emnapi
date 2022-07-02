@@ -60,6 +60,19 @@ export {
 } from './env'
 
 export {
+  RefTracker
+} from './RefTracker'
+
+export {
+  Finalizer,
+  EnvReferenceMode
+} from './Finalizer'
+
+export {
+  RefBase
+} from './RefBase'
+
+export {
   Reference
 } from './Reference'
 

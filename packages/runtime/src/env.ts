@@ -3,7 +3,9 @@ import type { Handle } from './Handle'
 import { envStore } from './EnvStore'
 import { IStoreValue, Store } from './Store'
 import { TryCatch, isReferenceType } from './util'
-import { currentScope } from './scope'
+import { closeScope, currentScope, openScope } from './scope'
+import { RefTracker } from './RefTracker'
+import { HandleScope } from './HandleScope'
 
 export interface ILastError {
   setErrorMessage: (ptr: number) => void
@@ -28,6 +30,11 @@ export class Env implements IStoreValue {
 
   public tryCatch = new TryCatch()
 
+  public refs = 1
+
+  public reflist = new RefTracker()
+  public finalizing_reflist = new RefTracker()
+
   public static create (
     emnapiGetDynamicCalls: IDynamicCalls,
     lastError: ILastError
@@ -42,6 +49,17 @@ export class Env implements IStoreValue {
     public lastError: ILastError
   ) {
     this.id = 0
+  }
+
+  public ref (): void {
+    this.refs++
+  }
+
+  public unref (): void {
+    this.refs--
+    if (this.refs === 0) {
+      this.dispose()
+    }
   }
 
   public ensureHandle (value: any): Handle<any> {
@@ -96,6 +114,19 @@ export class Env implements IStoreValue {
       throw err
     }
     return r
+  }
+
+  public callFinalizer (cb: napi_finalize, data: void_p, hint: void_p): void {
+    const scope = openScope(this, HandleScope)
+    try {
+      this.callIntoModule((envObject) => {
+        this.emnapiGetDynamicCalls.call_viii(cb, envObject.id, data, hint)
+      })
+    } catch (err) {
+      closeScope(this, scope)
+      throw err
+    }
+    closeScope(this, scope)
   }
 
   public dispose (): void {

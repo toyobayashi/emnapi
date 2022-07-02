@@ -119,7 +119,7 @@ function napi_reference_unref (
     if (!emnapi.supportFinalizer) return envObject.setLastError(napi_status.napi_generic_failure)
     return emnapi.checkArgs(envObject, [ref], () => {
       const reference = emnapi.refStore.get(ref)!
-      if (reference.refcount === 0) {
+      if (reference.refCount() === 0) {
         return envObject.setLastError(napi_status.napi_generic_failure)
       }
       const count = reference.unref()
@@ -141,11 +141,6 @@ function napi_get_reference_value (
     return emnapi.checkArgs(envObject, [ref, result], () => {
       const reference = emnapi.refStore.get(ref)!
       const handleId = reference.get()
-      if (handleId !== NULL) {
-        const handle = emnapi.handleStore.get(handleId)!
-        handle.addRef(reference)
-        emnapi.getCurrentScope()?.addHandle(handle)
-      }
       HEAP32[result >> 2] = handleId
       return envObject.clearLastError()
     })
