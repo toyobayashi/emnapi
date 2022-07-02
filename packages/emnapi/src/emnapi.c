@@ -398,11 +398,13 @@ static void _emnapi_tsfn_destroy(napi_threadsafe_function func) {
   QUEUE_INIT(&func->queue);
 
   napi_delete_reference(func->env, func->ref);
-  free(func);
+
   if (func->async_ref) {
     EMNAPI_KEEPALIVE_POP();
     func->async_ref = false;
   }
+
+  free(func);
 }
 
 static void _emnapi_tsfn_do_destroy(void* data) {
