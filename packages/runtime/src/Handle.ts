@@ -19,8 +19,8 @@ export class Handle<S> implements IStoreValue {
   public tag: [number, number, number, number] | null
   public refs: Reference[]
 
-  public get env (): napi_env {
-    return this._envObject?.id ?? 0
+  public getEnv (): Env | undefined {
+    return this._envObject
   }
 
   public constructor (envObject: Env | undefined, id: number, value: S) {

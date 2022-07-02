@@ -20,7 +20,7 @@ function napi_get_all_property_names (
         return envObject.setLastError(napi_status.napi_invalid_arg)
       }
       const names = emnapiGetPropertyNames(h.value, key_mode, key_filter, key_conversion)
-      HEAP32[result >> 2] = envObject.getCurrentScope().add(names).id
+      HEAP32[result >> 2] = emnapi.addToCurrentScope(envObject, names).id
       return envObject.getReturnStatus()
     })
   })

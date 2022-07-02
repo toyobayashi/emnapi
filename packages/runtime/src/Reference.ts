@@ -3,6 +3,8 @@ import { supportFinalizer, isReferenceType } from './util'
 import type { Env } from './env'
 import { refStore } from './RefStore'
 import { handleStore } from './Handle'
+import { HandleScope } from './HandleScope'
+import { closeScope, openScope } from './scope'
 
 export class Reference implements IStoreValue {
   public id: number
@@ -18,7 +20,7 @@ export class Reference implements IStoreValue {
         let error: any
         let caught = false
         if (ref.finalize_callback !== NULL) {
-          const scope = ref.envObject.openScope()
+          const scope = openScope(ref.envObject, HandleScope)
           try {
             ref.envObject.callIntoModule((envObject) => {
               envObject.emnapiGetDynamicCalls.call_viii(ref.finalize_callback, envObject.id, ref.finalize_data, ref.finalize_hint)
@@ -28,7 +30,7 @@ export class Reference implements IStoreValue {
             caught = true
             error = err
           }
-          ref.envObject.closeScope(scope)
+          closeScope(ref.envObject, scope)
         }
         if (ref.deleteSelf) {
           Reference.doDelete(ref)

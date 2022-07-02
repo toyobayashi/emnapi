@@ -86,20 +86,20 @@ mergeInto(LibraryManager.library, {
       }
 
       env = emnapi.Env.create(emnapiGetDynamicCalls, lastError)
-      const scope = env.openScope(emnapi.HandleScope)
+      const scope = emnapi.openScope(env, emnapi.HandleScope)
       try {
         emnapiExports = env.callIntoModule((envObject) => {
           const exports = {}
-          const exportsHandle = scope.add(exports)
+          const exportsHandle = scope.add(envObject, exports)
           const napiValue = _napi_register_wasm_v1(envObject.id, exportsHandle.id)
           return (!napiValue) ? undefined : emnapi.handleStore.get(napiValue)!.value
         })
       } catch (err) {
-        env.closeScope(scope)
+        emnapi.closeScope(env, scope)
         registered = false
         throw err
       }
-      env.closeScope(scope)
+      emnapi.closeScope(env, scope)
       return emnapiExports
     }
 

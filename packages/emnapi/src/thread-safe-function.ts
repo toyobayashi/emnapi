@@ -50,16 +50,16 @@ mergeInto(LibraryManager.library, {
 
 function _emnapi_call_into_module (env: napi_env, callback: number, data: number): void {
   const envObject = emnapi.envStore.get(env)!
-  const scope = envObject.openScope(emnapi.HandleScope)
+  const scope = emnapi.openScope(envObject, emnapi.HandleScope)
   try {
     envObject.callIntoModule((_envObject) => {
       emnapiGetDynamicCalls.call_vii(callback, env, data)
     })
   } catch (err) {
-    envObject.closeScope(scope)
+    emnapi.closeScope(envObject, scope)
     throw err
   }
-  envObject.closeScope(scope)
+  emnapi.closeScope(envObject, scope)
 }
 
 function _emnapi_tsfn_dispatch_one_js (env: number, ref: number, call_js_cb: number, context: number, data: number): void {
@@ -67,16 +67,16 @@ function _emnapi_tsfn_dispatch_one_js (env: number, ref: number, call_js_cb: num
   const reference = emnapi.refStore.get(ref)
   // eslint-disable-next-line @typescript-eslint/prefer-optional-chain, @typescript-eslint/prefer-nullish-coalescing
   const jsCallback = (reference && reference.get()) || 0
-  const scope = envObject.openScope(emnapi.HandleScope)
+  const scope = emnapi.openScope(envObject, emnapi.HandleScope)
   try {
     envObject.callIntoModule((_envObject) => {
       emnapiGetDynamicCalls.call_viiii(call_js_cb, env, jsCallback, context, data)
     })
   } catch (err) {
-    envObject.closeScope(scope)
+    emnapi.closeScope(envObject, scope)
     throw err
   }
-  envObject.closeScope(scope)
+  emnapi.closeScope(envObject, scope)
 }
 
 emnapiImplement('_emnapi_call_into_module', _emnapi_call_into_module, ['$emnapiGetDynamicCalls'])

@@ -39,7 +39,7 @@ function emnapi_create_external_uint8array (
         throw new RangeError('Memory out of range')
       }
       const u8arr = new Uint8Array(HEAPU8.buffer, external_data, byte_length)
-      const handle = envObject.getCurrentScope().add(u8arr)
+      const handle = emnapi.addToCurrentScope(envObject, u8arr)
       if (finalize_cb !== NULL) {
         const status = emnapiWrap(WrapType.anonymous, env, handle.id, external_data, finalize_cb, finalize_hint, NULL)
         if (status === napi_status.napi_pending_exception) {

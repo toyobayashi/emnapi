@@ -1,7 +1,7 @@
 function napi_open_handle_scope (env: napi_env, result: Pointer<napi_handle_scope>): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [result], () => {
-      const scope = envObject.openScope(emnapi.HandleScope)
+      const scope = emnapi.openScope(envObject, emnapi.HandleScope)
       HEAP32[result >> 2] = scope.id
       return envObject.clearLastError()
     })
@@ -12,11 +12,11 @@ function napi_close_handle_scope (env: napi_env, scope: napi_handle_scope): napi
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [scope], () => {
       const scopeObject = emnapi.scopeStore.get(scope)!
-      if ((envObject.openHandleScopes === 0) || (scopeObject !== envObject.getCurrentScope())) {
+      if ((envObject.openHandleScopes === 0) || (scopeObject !== emnapi.getCurrentScope()!)) {
         return napi_status.napi_handle_scope_mismatch
       }
 
-      envObject.closeScope(emnapi.scopeStore.get(scope)!)
+      emnapi.closeScope(envObject, emnapi.scopeStore.get(scope)!)
       return envObject.clearLastError()
     })
   })
@@ -25,7 +25,7 @@ function napi_close_handle_scope (env: napi_env, scope: napi_handle_scope): napi
 function napi_open_escapable_handle_scope (env: napi_env, result: Pointer<napi_escapable_handle_scope>): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [result], () => {
-      const scope = envObject.openScope(emnapi.EscapableHandleScope)
+      const scope = emnapi.openScope(envObject, emnapi.EscapableHandleScope)
       HEAP32[result >> 2] = scope.id
       return envObject.clearLastError()
     })
@@ -36,11 +36,11 @@ function napi_close_escapable_handle_scope (env: napi_env, scope: napi_escapable
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [scope], () => {
       const scopeObject = emnapi.scopeStore.get(scope)!
-      if ((envObject.openHandleScopes === 0) || (scopeObject !== envObject.getCurrentScope())) {
+      if ((envObject.openHandleScopes === 0) || (scopeObject !== emnapi.getCurrentScope()!)) {
         return napi_status.napi_handle_scope_mismatch
       }
 
-      envObject.closeScope(emnapi.scopeStore.get(scope)!)
+      emnapi.closeScope(envObject, emnapi.scopeStore.get(scope)!)
       return envObject.clearLastError()
     })
   })
@@ -144,7 +144,7 @@ function napi_get_reference_value (
       if (handleId !== NULL) {
         const handle = emnapi.handleStore.get(handleId)!
         handle.addRef(reference)
-        envObject.getCurrentScope()?.addHandle(handle)
+        emnapi.getCurrentScope()?.addHandle(handle)
       }
       HEAP32[result >> 2] = handleId
       return envObject.clearLastError()

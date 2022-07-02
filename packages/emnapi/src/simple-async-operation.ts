@@ -51,16 +51,16 @@ function _emnapi_queue_async_work_js (work: number): void {
         const complete = HEAP32[(w + 8) >> 2]
         if (complete !== NULL) {
           const envObject = emnapi.envStore.get(env)!
-          const scope = envObject.openScope(emnapi.HandleScope)
+          const scope = emnapi.openScope(envObject, emnapi.HandleScope)
           try {
             envObject.callIntoModule((_envObject) => {
               emnapiGetDynamicCalls.call_viii(complete, env, napi_status.napi_ok, HEAP32[(w + 12) >> 2])
             })
           } catch (err) {
-            envObject.closeScope(scope)
+            emnapi.closeScope(envObject, scope)
             throw err
           }
-          envObject.closeScope(scope)
+          emnapi.closeScope(envObject, scope)
         }
       }
     }
@@ -87,16 +87,16 @@ function napi_cancel_async_work (env: napi_env, work: number): napi_status {
       if (complete !== NULL) {
         setTimeout(() => {
           const envObject = emnapi.envStore.get(env)!
-          const scope = envObject.openScope(emnapi.HandleScope)
+          const scope = emnapi.openScope(envObject, emnapi.HandleScope)
           try {
             envObject.callIntoModule((_envObject) => {
               emnapiGetDynamicCalls.call_viii(complete, env, napi_status.napi_cancelled, HEAP32[(work + 12) >> 2])
             })
           } catch (err) {
-            envObject.closeScope(scope)
+            emnapi.closeScope(envObject, scope)
             throw err
           }
-          envObject.closeScope(scope)
+          emnapi.closeScope(envObject, scope)
         })
       }
 

@@ -18,7 +18,7 @@ function $emnapiCreateFunction<F extends (...args: any[]) => any> (envObject: em
       Array.prototype.slice.call(arguments),
       newTarget
     )
-    const scope = envObject.openScope(emnapi.HandleScope)
+    const scope = emnapi.openScope(envObject, emnapi.HandleScope)
     let r: napi_value
     try {
       r = envObject.callIntoModule((envObject) => {
@@ -27,11 +27,11 @@ function $emnapiCreateFunction<F extends (...args: any[]) => any> (envObject: em
       })
     } catch (err) {
       cbinfo.dispose()
-      envObject.closeScope(scope)
+      emnapi.closeScope(envObject, scope)
       throw err
     }
     cbinfo.dispose()
-    envObject.closeScope(scope)
+    emnapi.closeScope(envObject, scope)
     return r
   }
 

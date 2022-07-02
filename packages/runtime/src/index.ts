@@ -72,6 +72,13 @@ export {
   CallbackInfo
 } from './CallbackInfo'
 
+export {
+  getCurrentScope,
+  addToCurrentScope,
+  openScope,
+  closeScope
+} from './scope'
+
 declare const __VERSION__: string
 
 Object.defineProperty(exports, 'version', {

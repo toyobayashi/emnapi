@@ -1,7 +1,7 @@
 function napi_create_array (env: napi_env, result: Pointer<napi_value>): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [result], () => {
-      HEAP32[result >> 2] = envObject.getCurrentScope().add([]).id
+      HEAP32[result >> 2] = emnapi.addToCurrentScope(envObject, []).id
       return envObject.clearLastError()
     })
   })
@@ -10,7 +10,7 @@ function napi_create_array (env: napi_env, result: Pointer<napi_value>): napi_st
 function napi_create_array_with_length (env: napi_env, length: size_t, result: Pointer<napi_value>): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [result], () => {
-      HEAP32[result >> 2] = envObject.getCurrentScope().add(new Array(length >>> 0)).id
+      HEAP32[result >> 2] = emnapi.addToCurrentScope(envObject, new Array(length >>> 0)).id
       return envObject.clearLastError()
     })
   })
@@ -20,7 +20,7 @@ function napi_create_arraybuffer (env: napi_env, byte_length: size_t, _data: voi
   return emnapi.preamble(env, (envObject) => {
     return emnapi.checkArgs(envObject, [result], () => {
       byte_length = byte_length >>> 0
-      HEAP32[result >> 2] = envObject.getCurrentScope().add(new ArrayBuffer(byte_length)).id
+      HEAP32[result >> 2] = emnapi.addToCurrentScope(envObject, new ArrayBuffer(byte_length)).id
       return envObject.getReturnStatus()
     })
   })
@@ -29,7 +29,7 @@ function napi_create_arraybuffer (env: napi_env, byte_length: size_t, _data: voi
 function napi_create_date (env: napi_env, time: double, result: Pointer<napi_value>): napi_status {
   return emnapi.preamble(env, (envObject) => {
     return emnapi.checkArgs(envObject, [result], () => {
-      HEAP32[result >> 2] = envObject.getCurrentScope().add(new Date(time)).id
+      HEAP32[result >> 2] = emnapi.addToCurrentScope(envObject, new Date(time)).id
       return envObject.getReturnStatus()
     })
   })
@@ -40,7 +40,7 @@ function napi_create_external (env: napi_env, data: void_p, finalize_cb: napi_fi
     if (!emnapi.supportFinalizer) return envObject.setLastError(napi_status.napi_generic_failure)
     return emnapi.checkArgs(envObject, [result], () => {
       const externalHandle = emnapi.ExternalHandle.createExternal(envObject, data)
-      envObject.getCurrentScope().addHandle(externalHandle)
+      emnapi.getCurrentScope()!.addHandle(externalHandle)
       emnapi.Reference.create(envObject, externalHandle.id, 0, true, finalize_cb, data, finalize_hint)
       HEAP32[result >> 2] = externalHandle.id
       return envObject.clearLastError()
@@ -62,7 +62,7 @@ function napi_create_external (env: napi_env, data: void_p, finalize_cb: napi_fi
 function napi_create_object (env: napi_env, result: Pointer<napi_value>): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [result], () => {
-      HEAP32[result >> 2] = envObject.getCurrentScope().add({}).id
+      HEAP32[result >> 2] = emnapi.addToCurrentScope(envObject, {}).id
       return envObject.clearLastError()
     })
   })
@@ -73,14 +73,14 @@ function napi_create_symbol (env: napi_env, description: napi_value, result: Poi
     return emnapi.checkArgs(envObject, [result], () => {
       if (description === NULL) {
         // eslint-disable-next-line symbol-description
-        HEAP32[result >> 2] = envObject.getCurrentScope().add(Symbol()).id
+        HEAP32[result >> 2] = emnapi.addToCurrentScope(envObject, Symbol()).id
       } else {
         const handle = emnapi.handleStore.get(description)!
         const desc = handle.value
         if (typeof desc !== 'string') {
           return envObject.setLastError(napi_status.napi_string_expected)
         }
-        HEAP32[result >> 2] = envObject.getCurrentScope().add(Symbol(desc)).id
+        HEAP32[result >> 2] = emnapi.addToCurrentScope(envObject, Symbol(desc)).id
       }
       return envObject.clearLastError()
     })
@@ -106,7 +106,7 @@ function napi_create_typedarray (
       }
 
       const retCallback = (out: ArrayBufferView): napi_status => {
-        HEAP32[result >> 2] = envObject.getCurrentScope().add(out).id
+        HEAP32[result >> 2] = emnapi.addToCurrentScope(envObject, out).id
         return envObject.getReturnStatus()
       }
 
@@ -165,7 +165,7 @@ function napi_create_dataview (
       }
 
       const dataview = new DataView(buffer, byte_offset, byte_length)
-      HEAP32[result >> 2] = envObject.getCurrentScope().add(dataview).id
+      HEAP32[result >> 2] = emnapi.addToCurrentScope(envObject, dataview).id
       return envObject.getReturnStatus()
     })
   })
@@ -175,7 +175,7 @@ function node_api_symbol_for (env: napi_env, utf8description: const_char_p, leng
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [result], () => {
       const descriptionString = length === -1 ? UTF8ToString(utf8description) : UTF8ToString(utf8description, length)
-      HEAP32[result >> 2] = envObject.getCurrentScope().add(Symbol.for(descriptionString)).id
+      HEAP32[result >> 2] = emnapi.addToCurrentScope(envObject, Symbol.for(descriptionString)).id
       return envObject.clearLastError()
     })
   })

@@ -91,7 +91,7 @@ function napi_create_error (env: napi_env, code: napi_value, msg: napi_value, re
       const error = new Error(msgValue)
       const status = emnapiSetErrorCode(envObject, error, code, NULL)
       if (status !== napi_status.napi_ok) return status
-      HEAP32[result >> 2] = envObject.getCurrentScope().add(error).id
+      HEAP32[result >> 2] = emnapi.addToCurrentScope(envObject, error).id
       return envObject.clearLastError()
     })
   })
@@ -107,7 +107,7 @@ function napi_create_type_error (env: napi_env, code: napi_value, msg: napi_valu
       const error = new TypeError(msgValue)
       const status = emnapiSetErrorCode(envObject, error, code, NULL)
       if (status !== napi_status.napi_ok) return status
-      HEAP32[result >> 2] = envObject.getCurrentScope().add(error).id
+      HEAP32[result >> 2] = emnapi.addToCurrentScope(envObject, error).id
       return envObject.clearLastError()
     })
   })
@@ -123,7 +123,7 @@ function napi_create_range_error (env: napi_env, code: napi_value, msg: napi_val
       const error = new RangeError(msgValue)
       const status = emnapiSetErrorCode(envObject, error, code, NULL)
       if (status !== napi_status.napi_ok) return status
-      HEAP32[result >> 2] = envObject.getCurrentScope().add(error).id
+      HEAP32[result >> 2] = emnapi.addToCurrentScope(envObject, error).id
       return envObject.clearLastError()
     })
   })
@@ -139,7 +139,7 @@ function node_api_create_syntax_error (env: napi_env, code: napi_value, msg: nap
       const error = new SyntaxError(msgValue)
       const status = emnapiSetErrorCode(envObject, error, code, NULL)
       if (status !== napi_status.napi_ok) return status
-      HEAP32[result >> 2] = envObject.getCurrentScope().add(error).id
+      HEAP32[result >> 2] = emnapi.addToCurrentScope(envObject, error).id
       return envObject.clearLastError()
     })
   })

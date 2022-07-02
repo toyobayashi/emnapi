@@ -53,7 +53,7 @@ function napi_define_class (
         emnapiDefineProperty(envObject, F.prototype, propertyName, method, getter, setter, value, attributes, data)
       }
 
-      const valueHandle = envObject.getCurrentScope().add(F)
+      const valueHandle = emnapi.addToCurrentScope(envObject, F)
       HEAP32[result >> 2] = valueHandle.id
       return envObject.getReturnStatus()
     })

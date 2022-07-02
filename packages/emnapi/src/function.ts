@@ -4,7 +4,7 @@ function napi_create_function (env: napi_env, utf8name: Pointer<const_char>, len
       const fresult = emnapiCreateFunction(envObject, utf8name, length, cb, data)
       if (fresult.status !== napi_status.napi_ok) return envObject.setLastError(fresult.status)
       const f = fresult.f
-      const valueHandle = envObject.getCurrentScope().add(f)
+      const valueHandle = emnapi.addToCurrentScope(envObject, f)
       HEAP32[result >> 2] = valueHandle.id
       return envObject.getReturnStatus()
     })
