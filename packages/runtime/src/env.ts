@@ -16,18 +16,12 @@ export interface ILastError {
   dispose (): void
 }
 
-export interface IInstanceData {
-  data: number
-  finalize_cb: number
-  finalize_hint: number
-}
-
 export class Env implements IStoreValue {
   public id: number
 
   public openHandleScopes: number = 0
 
-  public instanceData: IInstanceData | null = null
+  public instanceData: RefBase | null = null
 
   public tryCatch = new TryCatch()
 
