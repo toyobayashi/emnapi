@@ -6,6 +6,7 @@ import { TryCatch, isReferenceType } from './util'
 import { closeScope, currentScope, openScope } from './scope'
 import { RefTracker } from './RefTracker'
 import { HandleScope } from './HandleScope'
+import { RefBase } from './RefBase'
 
 export interface ILastError {
   setErrorMessage: (ptr: number) => void
@@ -131,6 +132,9 @@ export class Env implements IStoreValue {
 
   public dispose (): void {
     // this.scopeList.clear()
+    RefBase.finalizeAll(this.finalizing_reflist)
+    RefBase.finalizeAll(this.reflist)
+
     this.tryCatch.extractException()
     try {
       this.lastError.dispose()

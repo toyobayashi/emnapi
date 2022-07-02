@@ -140,5 +140,10 @@ mergeInto(LibraryManager.library, {
         Module.onEmnapiInitialized(null, exports)
       }
     })
+
+    addOnExit(function (_Module) {
+      env?.unref()
+      env = undefined
+    })
   }
 })
