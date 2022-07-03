@@ -14,12 +14,14 @@ async function main () {
   // Exception thrown from async completion callback.
   // (Tested in a spawned process because the exception is fatal.)
   if (process.argv[2] === 'child') {
-    process.on('uncaughtException', function (ex) {
-      // suppress ExitStatus exceptions from showing an error
-      if (!(ex instanceof loadPromise.Module.ExitStatus)) {
-        throw ex
-      }
-    })
+    if (!process.env.EMNAPI_TEST_NATIVE) {
+      process.on('uncaughtException', function (ex) {
+        // suppress ExitStatus exceptions from showing an error
+        if (!(ex instanceof loadPromise.Module.ExitStatus)) {
+          throw ex
+        }
+      })
+    }
     test_async.Test(1, {}, common.mustCall(function () {
       throw new Error(testException)
     }))
