@@ -44,7 +44,7 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
     ]
   })
 
-  const createNodeAddonApiTarget = (name, sources) => ({
+  const createNodeAddonApiTarget = ({ name, sources, defines, enableException }) => ({
     name: name,
     type: isEmscripten ? 'exe' : 'node',
     sources: [
@@ -55,14 +55,27 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
       exports: ['emnapi']
     },
     includePaths,
-    defines: ['NAPI_DISABLE_CPP_EXCEPTIONS', 'NODE_ADDON_API_ENABLE_MAYBE'],
-    compileOptions: [...compilerFlags],
+    defines: [
+      ...defines,
+      ...(enableException ? [] : ['NAPI_DISABLE_CPP_EXCEPTIONS']),
+      'NAPI_VERSION=8'
+    ],
+    compileOptions: [...new Set([
+      ...compilerFlags,
+      ...(enableException && isEmscripten ? ['-sDISABLE_EXCEPTION_CATCHING=0'] : [])
+    ])],
     // eslint-disable-next-line no-template-curly-in-string
-    linkOptions: [
+    linkOptions: [...new Set([
       ...linkerFlags,
+      ...(enableException && isEmscripten ? ['-sDISABLE_EXCEPTION_CATCHING=0'] : []),
       ...(isEmscripten ? [jsLib] : [])
-    ]
+    ])]
   })
+
+  const buildSources = [
+    'addon.cc',
+    'binding.cc'
+  ].map(p => `./node-addon-api/${p}`)
 
   return {
     project: 'emnapitest',
@@ -109,7 +122,34 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
       ...(isEmscripten ? [createTarget('emnapitest', ['./emnapitest/binding.c'], true)] : []),
       createTarget('version', ['./version/binding.c']),
 
-      createNodeAddonApiTarget('n_hello', ['./node-addon-api/hello/binding.cc'])
+      ...(isEmscripten
+        ? [
+            createNodeAddonApiTarget({
+              name: 'naa_binding',
+              sources: buildSources,
+              defines: [],
+              enableException: true
+            }),
+            createNodeAddonApiTarget({
+              name: 'naa_binding_noexcept',
+              sources: buildSources,
+              defines: [],
+              enableException: false
+            }),
+            createNodeAddonApiTarget({
+              name: 'naa_binding_noexcept_maybe',
+              sources: buildSources,
+              defines: ['NODE_ADDON_API_ENABLE_MAYBE'],
+              enableException: false
+            }),
+            createNodeAddonApiTarget({
+              name: 'naa_binding_custom_namespace',
+              sources: buildSources,
+              defines: ['NAPI_CPP_CUSTOM_NAMESPACE=cstm'],
+              enableException: false
+            })
+          ]
+        : [])
     ]
   }
 }
