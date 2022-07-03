@@ -32,7 +32,7 @@ Object InitAddon(Env env);
 // Object InitDataViewReadWrite(Env env);
 // Object InitEnvCleanup(Env env);
 // Object InitErrorHandlingPrim(Env env);
-// Object InitError(Env env);
+Object InitError(Env env);
 // Object InitExternal(Env env);
 // Object InitFunction(Env env);
 // Object InitFunctionReference(Env env);
@@ -114,7 +114,7 @@ Object Init(Env env, Object exports) {
 // #if (NAPI_VERSION > 2)
 //   exports.Set("env_cleanup", InitEnvCleanup(env));
 // #endif
-//   exports.Set("error", InitError(env));
+  exports.Set("error", InitError(env));
 //   exports.Set("errorHandlingPrim", InitErrorHandlingPrim(env));
 //   exports.Set("external", InitExternal(env));
 //   exports.Set("function", InitFunction(env));

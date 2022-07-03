@@ -10,7 +10,14 @@ function napi_get_all_property_names (
   return emnapi.preamble(env, (envObject) => {
     return emnapi.checkArgs(envObject, [result, object], () => {
       const h = emnapi.handleStore.get(object)!
-      if (!(h.isObject() || h.isFunction())) {
+      if (h.value == null) {
+        envObject.tryCatch.setError(new TypeError('Cannot convert undefined or null to object'))
+        return envObject.setLastError(napi_status.napi_pending_exception)
+      }
+      let v: any
+      try {
+        v = h.isObject() || h.isFunction() ? h.value : Object(h.value)
+      } catch (_) {
         return envObject.setLastError(napi_status.napi_object_expected)
       }
       if (key_mode !== napi_key_collection_mode.napi_key_include_prototypes && key_mode !== napi_key_collection_mode.napi_key_own_only) {
@@ -19,7 +26,7 @@ function napi_get_all_property_names (
       if (key_conversion !== napi_key_conversion.napi_key_keep_numbers && key_conversion !== napi_key_conversion.napi_key_numbers_to_strings) {
         return envObject.setLastError(napi_status.napi_invalid_arg)
       }
-      const names = emnapiGetPropertyNames(h.value, key_mode, key_filter, key_conversion)
+      const names = emnapiGetPropertyNames(v, key_mode, key_filter, key_conversion)
       HEAP32[result >> 2] = emnapi.addToCurrentScope(envObject, names).id
       return envObject.getReturnStatus()
     })
@@ -54,10 +61,17 @@ function napi_has_property (env: napi_env, object: napi_value, key: napi_value, 
   return emnapi.preamble(env, (envObject) => {
     return emnapi.checkArgs(envObject, [key, result, object], () => {
       const h = emnapi.handleStore.get(object)!
-      if (!(h.isObject() || h.isFunction())) {
+      if (h.value == null) {
+        envObject.tryCatch.setError(new TypeError('Cannot convert undefined or null to object'))
+        return envObject.setLastError(napi_status.napi_pending_exception)
+      }
+      let v: any
+      try {
+        v = h.isObject() || h.isFunction() ? h.value : Object(h.value)
+      } catch (_) {
         return envObject.setLastError(napi_status.napi_object_expected)
       }
-      HEAPU8[result] = (emnapi.handleStore.get(key)!.value in h.value) ? 1 : 0
+      HEAPU8[result] = (emnapi.handleStore.get(key)!.value in v) ? 1 : 0
       return envObject.getReturnStatus()
     })
   })
@@ -67,10 +81,17 @@ function napi_get_property (env: napi_env, object: napi_value, key: napi_value, 
   return emnapi.preamble(env, (envObject) => {
     return emnapi.checkArgs(envObject, [key, result, object], () => {
       const h = emnapi.handleStore.get(object)!
-      if (!(h.isObject() || h.isFunction())) {
+      if (h.value == null) {
+        envObject.tryCatch.setError(new TypeError('Cannot convert undefined or null to object'))
+        return envObject.setLastError(napi_status.napi_pending_exception)
+      }
+      let v: any
+      try {
+        v = h.isObject() || h.isFunction() ? h.value : Object(h.value)
+      } catch (_) {
         return envObject.setLastError(napi_status.napi_object_expected)
       }
-      HEAP32[result >> 2] = envObject.ensureHandleId(h.value[emnapi.handleStore.get(key)!.value])
+      HEAP32[result >> 2] = envObject.ensureHandleId(v[emnapi.handleStore.get(key)!.value])
       return envObject.getReturnStatus()
     })
   })
@@ -96,14 +117,21 @@ function napi_has_own_property (env: napi_env, object: napi_value, key: napi_val
   return emnapi.preamble(env, (envObject) => {
     return emnapi.checkArgs(envObject, [key, result, object], () => {
       const h = emnapi.handleStore.get(object)!
-      if (!(h.isObject() || h.isFunction())) {
+      if (h.value == null) {
+        envObject.tryCatch.setError(new TypeError('Cannot convert undefined or null to object'))
+        return envObject.setLastError(napi_status.napi_pending_exception)
+      }
+      let v: any
+      try {
+        v = h.isObject() || h.isFunction() ? h.value : Object(h.value)
+      } catch (_) {
         return envObject.setLastError(napi_status.napi_object_expected)
       }
       const prop = emnapi.handleStore.get(key)!.value
       if (typeof prop !== 'string' && typeof prop !== 'symbol') {
         return envObject.setLastError(napi_status.napi_name_expected)
       }
-      const r = Object.prototype.hasOwnProperty.call(h.value, emnapi.handleStore.get(key)!.value)
+      const r = Object.prototype.hasOwnProperty.call(v, emnapi.handleStore.get(key)!.value)
       HEAPU8[result] = r ? 1 : 0
       return envObject.getReturnStatus()
     })
@@ -133,10 +161,17 @@ function napi_has_named_property (env: napi_env, object: napi_value, utf8name: c
         return envObject.setLastError(napi_status.napi_invalid_arg)
       }
       const h = emnapi.handleStore.get(object)!
-      if (!(h.isObject() || h.isFunction())) {
+      if (h.value == null) {
+        envObject.tryCatch.setError(new TypeError('Cannot convert undefined or null to object'))
+        return envObject.setLastError(napi_status.napi_pending_exception)
+      }
+      let v: any
+      try {
+        v = h.isObject() || h.isFunction() ? h.value : Object(h.value)
+      } catch (_) {
         return envObject.setLastError(napi_status.napi_object_expected)
       }
-      const r = UTF8ToString(utf8name) in h.value
+      const r = UTF8ToString(utf8name) in v
       HEAPU8[result] = r ? 1 : 0
       return envObject.getReturnStatus()
     })
@@ -150,10 +185,17 @@ function napi_get_named_property (env: napi_env, object: napi_value, utf8name: c
         return envObject.setLastError(napi_status.napi_invalid_arg)
       }
       const h = emnapi.handleStore.get(object)!
-      if (!(h.isObject() || h.isFunction())) {
+      if (h.value == null) {
+        envObject.tryCatch.setError(new TypeError('Cannot convert undefined or null to object'))
+        return envObject.setLastError(napi_status.napi_pending_exception)
+      }
+      let v: any
+      try {
+        v = h.isObject() || h.isFunction() ? h.value : Object(h.value)
+      } catch (_) {
         return envObject.setLastError(napi_status.napi_object_expected)
       }
-      HEAP32[result >> 2] = envObject.ensureHandleId(h.value[UTF8ToString(utf8name)])
+      HEAP32[result >> 2] = envObject.ensureHandleId(v[UTF8ToString(utf8name)])
       return envObject.getReturnStatus()
     })
   })
@@ -176,10 +218,17 @@ function napi_has_element (env: napi_env, object: napi_value, index: uint32_t, r
   return emnapi.preamble(env, (envObject) => {
     return emnapi.checkArgs(envObject, [result, object], () => {
       const h = emnapi.handleStore.get(object)!
-      if (!(h.isObject() || h.isFunction())) {
+      if (h.value == null) {
+        envObject.tryCatch.setError(new TypeError('Cannot convert undefined or null to object'))
+        return envObject.setLastError(napi_status.napi_pending_exception)
+      }
+      let v: any
+      try {
+        v = h.isObject() || h.isFunction() ? h.value : Object(h.value)
+      } catch (_) {
         return envObject.setLastError(napi_status.napi_object_expected)
       }
-      HEAPU8[result] = ((index >>> 0) in h.value) ? 1 : 0
+      HEAPU8[result] = ((index >>> 0) in v) ? 1 : 0
       return envObject.getReturnStatus()
     })
   })
@@ -189,10 +238,17 @@ function napi_get_element (env: napi_env, object: napi_value, index: uint32_t, r
   return emnapi.preamble(env, (envObject) => {
     return emnapi.checkArgs(envObject, [result, object], () => {
       const h = emnapi.handleStore.get(object)!
-      if (!(h.isObject() || h.isFunction())) {
+      if (h.value == null) {
+        envObject.tryCatch.setError(new TypeError('Cannot convert undefined or null to object'))
+        return envObject.setLastError(napi_status.napi_pending_exception)
+      }
+      let v: any
+      try {
+        v = h.isObject() || h.isFunction() ? h.value : Object(h.value)
+      } catch (_) {
         return envObject.setLastError(napi_status.napi_object_expected)
       }
-      HEAP32[result >> 2] = envObject.ensureHandleId(h.value[index >>> 0])
+      HEAP32[result >> 2] = envObject.ensureHandleId(v[index >>> 0])
       return envObject.getReturnStatus()
     })
   })

@@ -33,10 +33,17 @@ function napi_get_prototype (env: napi_env, value: napi_value, result: Pointer<n
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [value, result], () => {
       const handle = emnapi.handleStore.get(value)!
-      if (!(handle.isObject() || handle.isFunction())) {
+      if (handle.value == null) {
+        envObject.tryCatch.setError(new TypeError('Cannot convert undefined or null to object'))
+        return envObject.setLastError(napi_status.napi_pending_exception)
+      }
+      let v: any
+      try {
+        v = handle.isObject() || handle.isFunction() ? handle.value : Object(handle.value)
+      } catch (_) {
         return envObject.setLastError(napi_status.napi_object_expected)
       }
-      HEAP32[result >> 2] = envObject.ensureHandleId(Object.getPrototypeOf(handle.value))
+      HEAP32[result >> 2] = envObject.ensureHandleId(Object.getPrototypeOf(v))
       return envObject.clearLastError()
     })
   })

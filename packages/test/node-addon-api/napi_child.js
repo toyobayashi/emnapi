@@ -1,0 +1,8 @@
+// Makes sure that child processes are spawned appropriately.
+exports.spawnSync = function (command, args, options) {
+  return require('child_process').spawnSync(command, args, options)
+}
+
+exports.spawn = function (command, args, options) {
+  return require('child_process').spawn(command, args, options)
+}

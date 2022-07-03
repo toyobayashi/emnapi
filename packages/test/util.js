@@ -7,9 +7,8 @@ function getEntry (targetName) {
 
 exports.getEntry = getEntry
 
-exports.load = function (targetName) {
+function loadPath (request) {
   try {
-    const request = getEntry(targetName)
     const mod = require(request)
 
     if (typeof mod.default === 'function') {
@@ -34,4 +33,11 @@ exports.load = function (targetName) {
   } catch (err) {
     return Promise.reject(err)
   }
+}
+
+exports.loadPath = loadPath
+
+exports.load = function (targetName) {
+  const request = getEntry(targetName)
+  return loadPath(request)
 }

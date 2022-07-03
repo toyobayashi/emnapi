@@ -74,6 +74,7 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
 
   const buildSources = [
     'addon.cc',
+    'error.cc',
     'binding.cc'
   ].map(p => `./node-addon-api/${p}`)
 
