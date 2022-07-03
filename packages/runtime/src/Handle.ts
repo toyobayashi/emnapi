@@ -130,9 +130,7 @@ export class Handle<S> implements IStoreValue {
     if (index !== -1) {
       this.refs.splice(index, 1)
     }
-    setTimeout(() => {
-      this.tryDispose()
-    })
+    this.tryDispose()
   }
 
   public tryDispose (): void {

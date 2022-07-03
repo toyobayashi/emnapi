@@ -87,9 +87,7 @@ export class Reference extends RefBase implements IStoreValue {
       if (this.handleWeakRef) {
         const handle = this.handleWeakRef.deref()
         if (handle) {
-          setTimeout(() => {
-            handle.tryDispose()
-          })
+          handle.tryDispose()
         }
       }
     }
