@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/indent */
 /* eslint-disable no-new-func */
 /* eslint-disable @typescript-eslint/no-implied-eval */
 
@@ -41,6 +42,7 @@ function $emnapiCreateFunction<F extends (...args: any[]) => any> (envObject: em
     if (!(/^[_$a-zA-Z][_$a-zA-Z0-9]*$/.test(functionName))) {
       return { status: napi_status.napi_invalid_arg, f: undefined! }
     }
+// #if DYNAMIC_EXECUTION
     if (emnapi.supportNewFunction) {
       f = (new Function('_',
         'return function ' + functionName + '(){' +
@@ -49,13 +51,16 @@ function $emnapiCreateFunction<F extends (...args: any[]) => any> (envObject: em
         '};'
       ))(makeFunction())
     } else {
+// #endif
       f = makeFunction() as F
       if (emnapi.canSetFunctionName) {
         Object.defineProperty(f, 'name', {
           value: functionName
         })
       }
+// #if DYNAMIC_EXECUTION
     }
+// #endif
   }
 
   return { status: napi_status.napi_ok, f }
