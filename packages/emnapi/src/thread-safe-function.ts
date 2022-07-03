@@ -65,10 +65,10 @@ function _emnapi_call_into_module (env: napi_env, callback: number, data: number
 function _emnapi_tsfn_dispatch_one_js (env: number, ref: number, call_js_cb: number, context: number, data: number): void {
   const envObject = emnapi.envStore.get(env)!
   const reference = emnapi.refStore.get(ref)
-  // eslint-disable-next-line @typescript-eslint/prefer-optional-chain, @typescript-eslint/prefer-nullish-coalescing
-  const jsCallback = (reference && reference.get()) || 0
   const scope = emnapi.openScope(envObject, emnapi.HandleScope)
   try {
+    // eslint-disable-next-line @typescript-eslint/prefer-optional-chain, @typescript-eslint/prefer-nullish-coalescing
+    const jsCallback = (reference && reference.get()) || 0
     envObject.callIntoModule((_envObject) => {
       emnapiGetDynamicCalls.call_viiii(call_js_cb, env, jsCallback, context, data)
     })
