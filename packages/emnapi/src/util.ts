@@ -22,7 +22,17 @@ mergeInto(LibraryManager.library, {
     const envObject = emnapi.envStore.get(env)!
     return envObject.clearLastError()
   },
-  napi_clear_last_error__deps: ['$emnapi']
+  napi_clear_last_error__deps: ['$emnapi'],
+
+  emnapi_is_support_weakref: function () {
+    return emnapi.supportFinalizer ? 1 : 0
+  },
+  emnapi_is_support_weakref__deps: ['$emnapi'],
+
+  emnapi_is_support_bigint: function () {
+    return emnapi.supportBigInt ? 1 : 0
+  },
+  emnapi_is_support_bigint__deps: ['$emnapi']
 })
 
 declare const arrayBufferMemoryMap: WeakMap<ArrayBuffer, number>

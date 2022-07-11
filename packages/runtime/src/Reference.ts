@@ -12,7 +12,7 @@ export class Reference extends RefBase implements IStoreValue {
   private finalizerRegistered: boolean = false
 
   public static finalizationGroup: FinalizationRegistry<any> | null =
-    typeof FinalizationRegistry !== 'undefined'
+    supportFinalizer
       ? new FinalizationRegistry((ref: Reference) => {
         ref.finalize(false)
       })
@@ -28,7 +28,7 @@ export class Reference extends RefBase implements IStoreValue {
     finalize_hint: void_p = 0
   ): Reference {
     const handle = handleStore.get(handle_id)!
-    const ref = new Reference(envObject, supportFinalizer ? new WeakRef(handle) : null, initialRefcount, deleteSelf, finalize_callback, finalize_data, finalize_hint)
+    const ref = new Reference(envObject, handle, initialRefcount, deleteSelf, finalize_callback, finalize_data, finalize_hint)
     refStore.add(ref)
     handle.addRef(ref)
     if (supportFinalizer && isReferenceType(handle.value)) {
@@ -47,7 +47,7 @@ export class Reference extends RefBase implements IStoreValue {
 
   private constructor (
     public envObject: Env,
-    public handleWeakRef: WeakRef<Handle<any>> | null,
+    public handle: Handle<any>,
     initialRefcount: uint32_t,
     deleteSelf: boolean,
     finalize_callback: napi_finalize = 0,
@@ -67,7 +67,10 @@ export class Reference extends RefBase implements IStoreValue {
         const handle = this.envObject.ensureHandle(obj)
         handle.addRef(this)
         this._clearWeak()
-        if (supportFinalizer) this.handleWeakRef = new WeakRef(handle)
+        if (handle !== this.handle) {
+          this.handle.removeRef(this)
+          this.handle = handle
+        }
       }
     }
 
@@ -84,12 +87,7 @@ export class Reference extends RefBase implements IStoreValue {
           this._setWeak(obj)
         }
       }
-      if (this.handleWeakRef) {
-        const handle = this.handleWeakRef.deref()
-        if (handle) {
-          handle.tryDispose()
-        }
-      }
+      this.handle.tryDispose()
     }
     return refcount
   }
@@ -100,24 +98,31 @@ export class Reference extends RefBase implements IStoreValue {
       if (obj) {
         const handle = this.envObject.ensureHandle(obj)
         handle.addRef(this)
-        if (supportFinalizer) this.handleWeakRef = new WeakRef(handle)
+        if (handle !== this.handle) {
+          this.handle.removeRef(this)
+          this.handle = handle
+        }
         return handle.id
+      }
+    } else {
+      if (this.handle?.value) {
+        return this.handle.id
       }
     }
     return NULL
   }
 
   private _setWeak (value: object): void {
-    if (this.finalizerRegistered) return
-    Reference.finalizationGroup?.register(value, this, this)
+    if (!supportFinalizer || this.finalizerRegistered) return
+    Reference.finalizationGroup!.register(value, this, this)
     this.finalizerRegistered = true
   }
 
   private _clearWeak (): void {
-    if (!this.finalizerRegistered) return
+    if (!supportFinalizer || !this.finalizerRegistered) return
     try {
       this.finalizerRegistered = false
-      Reference.finalizationGroup?.unregister(this)
+      Reference.finalizationGroup!.unregister(this)
     } catch (_) {}
   }
 
@@ -141,8 +146,9 @@ export class Reference extends RefBase implements IStoreValue {
 
   public override dispose (): void {
     refStore.remove(this.id)
-    this.handleWeakRef?.deref()?.removeRef(this)
+    this.handle.removeRef(this)
     this._clearWeak()
+    this.handle = undefined!
     super.dispose()
   }
 }

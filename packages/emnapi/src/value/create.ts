@@ -37,8 +37,10 @@ function napi_create_date (env: napi_env, time: double, result: Pointer<napi_val
 
 function napi_create_external (env: napi_env, data: void_p, finalize_cb: napi_finalize, finalize_hint: void_p, result: Pointer<napi_value>): napi_status {
   return emnapi.preamble(env, (envObject) => {
-    if (!emnapi.supportFinalizer) return envObject.setLastError(napi_status.napi_generic_failure)
     return emnapi.checkArgs(envObject, [result], () => {
+      if (!emnapi.supportFinalizer && finalize_cb) {
+        throw new emnapi.NotSupportWeakRefError('napi_create_external', 'Parameter "finalize_cb" must be 0(NULL)')
+      }
       const externalHandle = emnapi.ExternalHandle.createExternal(envObject, data)
       emnapi.getCurrentScope()!.addHandle(externalHandle)
       emnapi.Reference.create(envObject, externalHandle.id, 0, true, finalize_cb, data, finalize_hint)

@@ -61,17 +61,19 @@ function napi_define_class (
 }
 
 function napi_wrap (env: napi_env, js_object: napi_value, native_object: void_p, finalize_cb: napi_finalize, finalize_hint: void_p, result: Pointer<napi_ref>): napi_status {
-  if (!emnapi.supportFinalizer) return _napi_set_last_error(env, napi_status.napi_generic_failure, 0, 0)
+  if (!emnapi.supportFinalizer) {
+    return emnapi.preamble(env, () => {
+      throw new emnapi.NotSupportWeakRefError('napi_wrap', 'This API is unavailable')
+    })
+  }
   return emnapiWrap(WrapType.retrievable, env, js_object, native_object, finalize_cb, finalize_hint, result)
 }
 
 function napi_unwrap (env: napi_env, js_object: napi_value, result: void_pp): napi_status {
-  if (!emnapi.supportFinalizer) return _napi_set_last_error(env, napi_status.napi_generic_failure, 0, 0)
   return emnapiUnwrap(env, js_object, result, UnwrapAction.KeepWrap)
 }
 
 function napi_remove_wrap (env: napi_env, js_object: napi_value, result: void_pp): napi_status {
-  if (!emnapi.supportFinalizer) return _napi_set_last_error(env, napi_status.napi_generic_failure, 0, 0)
   return emnapiUnwrap(env, js_object, result, UnwrapAction.RemoveWrap)
 }
 
@@ -135,14 +137,18 @@ function napi_check_object_type_tag (env: napi_env, object: napi_value, type_tag
 }
 
 function napi_add_finalizer (env: napi_env, js_object: napi_value, native_object: void_p, finalize_cb: napi_finalize, finalize_hint: void_p, result: Pointer<napi_ref>): napi_status {
-  if (!emnapi.supportFinalizer) return _napi_set_last_error(env, napi_status.napi_generic_failure, 0, 0)
+  if (!emnapi.supportFinalizer) {
+    return emnapi.preamble(env, () => {
+      throw new emnapi.NotSupportWeakRefError('napi_add_finalizer', 'This API is unavailable')
+    })
+  }
   return emnapiWrap(WrapType.anonymous, env, js_object, native_object, finalize_cb, finalize_hint, result)
 }
 
 emnapiImplement('napi_define_class', napi_define_class, ['$emnapiCreateFunction', '$emnapiDefineProperty'])
-emnapiImplement('napi_wrap', napi_wrap, ['$emnapiWrap', 'napi_set_last_error'])
-emnapiImplement('napi_unwrap', napi_unwrap, ['$emnapiUnwrap', 'napi_set_last_error'])
-emnapiImplement('napi_remove_wrap', napi_remove_wrap, ['$emnapiUnwrap', 'napi_set_last_error'])
+emnapiImplement('napi_wrap', napi_wrap, ['$emnapiWrap'])
+emnapiImplement('napi_unwrap', napi_unwrap, ['$emnapiUnwrap'])
+emnapiImplement('napi_remove_wrap', napi_remove_wrap, ['$emnapiUnwrap'])
 emnapiImplement('napi_type_tag_object', napi_type_tag_object)
 emnapiImplement('napi_check_object_type_tag', napi_check_object_type_tag)
-emnapiImplement('napi_add_finalizer', napi_add_finalizer, ['$emnapiWrap', 'napi_set_last_error'])
+emnapiImplement('napi_add_finalizer', napi_add_finalizer, ['$emnapiWrap'])

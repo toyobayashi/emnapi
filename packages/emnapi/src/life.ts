@@ -67,8 +67,11 @@ function napi_create_reference (
   result: Pointer<napi_ref>
 ): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
-    if (!emnapi.supportFinalizer) return envObject.setLastError(napi_status.napi_generic_failure)
     return emnapi.checkArgs(envObject, [value, result], () => {
+      if (!emnapi.supportFinalizer && initial_refcount === 0) {
+        envObject.tryCatch.setError(new emnapi.NotSupportWeakRefError('napi_create_reference', 'Parameter "initial_refcount" must be a positive integer'))
+        return envObject.setLastError(napi_status.napi_pending_exception)
+      }
       const handle = emnapi.handleStore.get(value)!
       if (!(handle.isObject() || handle.isFunction())) {
         return envObject.setLastError(napi_status.napi_object_expected)
@@ -85,7 +88,6 @@ function napi_delete_reference (
   ref: napi_ref
 ): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
-    if (!emnapi.supportFinalizer) return envObject.setLastError(napi_status.napi_generic_failure)
     return emnapi.checkArgs(envObject, [ref], () => {
       emnapi.Reference.doDelete(emnapi.refStore.get(ref)!)
       return envObject.clearLastError()
@@ -99,7 +101,6 @@ function napi_reference_ref (
   result: Pointer<uint32_t>
 ): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
-    if (!emnapi.supportFinalizer) return envObject.setLastError(napi_status.napi_generic_failure)
     return emnapi.checkArgs(envObject, [ref], () => {
       const count = emnapi.refStore.get(ref)!.ref()
       if (result !== NULL) {
@@ -116,10 +117,14 @@ function napi_reference_unref (
   result: Pointer<uint32_t>
 ): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
-    if (!emnapi.supportFinalizer) return envObject.setLastError(napi_status.napi_generic_failure)
     return emnapi.checkArgs(envObject, [ref], () => {
       const reference = emnapi.refStore.get(ref)!
-      if (reference.refCount() === 0) {
+      const refcount = reference.refCount()
+      if (!emnapi.supportFinalizer && refcount === 1) {
+        envObject.tryCatch.setError(new emnapi.NotSupportWeakRefError('napi_reference_unref', 'Can not unref a ref which count is 1'))
+        return envObject.setLastError(napi_status.napi_pending_exception)
+      }
+      if (refcount === 0) {
         return envObject.setLastError(napi_status.napi_generic_failure)
       }
       const count = reference.unref()
@@ -137,7 +142,6 @@ function napi_get_reference_value (
   result: Pointer<napi_value>
 ): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
-    if (!emnapi.supportFinalizer) return envObject.setLastError(napi_status.napi_generic_failure)
     return emnapi.checkArgs(envObject, [ref, result], () => {
       const reference = emnapi.refStore.get(ref)!
       const handleId = reference.get()

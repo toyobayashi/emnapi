@@ -11,6 +11,12 @@ export {
 } from './util'
 
 export {
+  EmnapiError,
+  NotSupportWeakRefError,
+  NotSupportBigIntError
+} from './errors'
+
+export {
   envStore,
   EnvStore
 } from './EnvStore'

@@ -106,7 +106,10 @@ function napi_create_string_utf8 (env: napi_env, str: const_char_p, length: size
 
 function napi_create_bigint_int64 (env: napi_env, low: int32_t, high: int32_t, result: Pointer<napi_value>): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
-    if (!emnapi.supportBigInt) return envObject.setLastError(napi_status.napi_generic_failure)
+    if (!emnapi.supportBigInt) {
+      envObject.tryCatch.setError(new emnapi.NotSupportBigIntError('napi_create_bigint_int64', 'This API is unavailable'))
+      return envObject.setLastError(napi_status.napi_pending_exception)
+    }
     return emnapi.checkArgs(envObject, [result], () => {
       let value: BigInt
 // #if WASM_BIGINT
@@ -123,7 +126,10 @@ function napi_create_bigint_int64 (env: napi_env, low: int32_t, high: int32_t, r
 
 function napi_create_bigint_uint64 (env: napi_env, low: int32_t, high: int32_t, result: Pointer<napi_value>): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
-    if (!emnapi.supportBigInt) return envObject.setLastError(napi_status.napi_generic_failure)
+    if (!emnapi.supportBigInt) {
+      envObject.tryCatch.setError(new emnapi.NotSupportBigIntError('napi_create_bigint_uint64', 'This API is unavailable'))
+      return envObject.setLastError(napi_status.napi_pending_exception)
+    }
     return emnapi.checkArgs(envObject, [result], () => {
       let value: BigInt
 // #if WASM_BIGINT
@@ -140,7 +146,9 @@ function napi_create_bigint_uint64 (env: napi_env, low: int32_t, high: int32_t, 
 
 function napi_create_bigint_words (env: napi_env, sign_bit: int, word_count: size_t, words: Const<Pointer<uint64_t>>, result: Pointer<napi_value>): napi_status {
   return emnapi.preamble(env, (envObject) => {
-    if (!emnapi.supportBigInt) return envObject.setLastError(napi_status.napi_generic_failure)
+    if (!emnapi.supportBigInt) {
+      throw new emnapi.NotSupportBigIntError('napi_create_bigint_words', 'This API is unavailable')
+    }
     return emnapi.checkArgs(envObject, [result], () => {
       word_count = word_count >>> 0
       if (word_count > 2147483647) {

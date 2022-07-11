@@ -188,7 +188,10 @@ function napi_get_value_double (env: napi_env, value: napi_value, result: Pointe
 
 function napi_get_value_bigint_int64 (env: napi_env, value: napi_value, result: Pointer<int64_t>, lossless: Pointer<bool>): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
-    if (!emnapi.supportBigInt) return envObject.setLastError(napi_status.napi_generic_failure)
+    if (!emnapi.supportBigInt) {
+      envObject.tryCatch.setError(new emnapi.NotSupportBigIntError('napi_get_value_bigint_int64', 'This API is unavailable'))
+      return envObject.setLastError(napi_status.napi_pending_exception)
+    }
     return emnapi.checkArgs(envObject, [value, result, lossless], () => {
       const handle = emnapi.handleStore.get(value)!
       let numberValue = handle.value
@@ -215,7 +218,10 @@ function napi_get_value_bigint_int64 (env: napi_env, value: napi_value, result: 
 
 function napi_get_value_bigint_uint64 (env: napi_env, value: napi_value, result: Pointer<uint64_t>, lossless: Pointer<bool>): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
-    if (!emnapi.supportBigInt) return envObject.setLastError(napi_status.napi_generic_failure)
+    if (!emnapi.supportBigInt) {
+      envObject.tryCatch.setError(new emnapi.NotSupportBigIntError('napi_get_value_bigint_uint64', 'This API is unavailable'))
+      return envObject.setLastError(napi_status.napi_pending_exception)
+    }
     return emnapi.checkArgs(envObject, [value, result, lossless], () => {
       const handle = emnapi.handleStore.get(value)!
       let numberValue = handle.value
@@ -245,7 +251,10 @@ function napi_get_value_bigint_words (
   words: Pointer<uint64_t>
 ): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
-    if (!emnapi.supportBigInt) return envObject.setLastError(napi_status.napi_generic_failure)
+    if (!emnapi.supportBigInt) {
+      envObject.tryCatch.setError(new emnapi.NotSupportBigIntError('napi_get_value_bigint_words', 'This API is unavailable'))
+      return envObject.setLastError(napi_status.napi_pending_exception)
+    }
     return emnapi.checkArgs(envObject, [value, word_count], () => {
       const handle = emnapi.handleStore.get(value)!
       if (!handle.isBigInt()) {
@@ -289,7 +298,6 @@ function napi_get_value_bigint_words (
 
 function napi_get_value_external (env: napi_env, value: napi_value, result: void_pp): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
-    if (!emnapi.supportFinalizer) return envObject.setLastError(napi_status.napi_generic_failure)
     return emnapi.checkArgs(envObject, [value, result], () => {
       const handle = emnapi.handleStore.get(value)!
       if (!handle.isExternal()) {

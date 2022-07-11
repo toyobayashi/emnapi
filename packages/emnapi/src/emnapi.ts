@@ -25,7 +25,6 @@ function emnapi_create_external_uint8array (
   result: Pointer<napi_value>
 ): napi_status {
   return emnapi.preamble(env, (envObject) => {
-    if (!emnapi.supportFinalizer) return envObject.setLastError(napi_status.napi_generic_failure)
     return emnapi.checkArgs(envObject, [result], () => {
       byte_length = byte_length >>> 0
       if (external_data === NULL) {
@@ -37,6 +36,9 @@ function emnapi_create_external_uint8array (
       }
       if ((external_data + byte_length) > HEAPU8.buffer.byteLength) {
         throw new RangeError('Memory out of range')
+      }
+      if (!emnapi.supportFinalizer && finalize_cb) {
+        throw new emnapi.NotSupportWeakRefError('emnapi_create_external_uint8array', 'Parameter "finalize_cb" must be 0(NULL)')
       }
       const u8arr = new Uint8Array(HEAPU8.buffer, external_data, byte_length)
       const handle = emnapi.addToCurrentScope(envObject, u8arr)
