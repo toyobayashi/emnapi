@@ -51,8 +51,7 @@ function napi_coerce_to_number (env: napi_env, value: napi_value, result: Pointe
     return emnapi.checkArgs(envObject, [value, result], () => {
       const handle = emnapi.handleStore.get(value)!
       if (handle.isBigInt()) {
-        envObject.tryCatch.setError(new TypeError('Cannot convert a BigInt value to a number'))
-        return envObject.setLastError(napi_status.napi_pending_exception)
+        throw new TypeError('Cannot convert a BigInt value to a number')
       }
       HEAP32[result >> 2] = emnapi.addToCurrentScope(envObject, Number(handle.value)).id
       return envObject.getReturnStatus()
@@ -75,8 +74,7 @@ function napi_coerce_to_string (env: napi_env, value: napi_value, result: Pointe
     return emnapi.checkArgs(envObject, [value, result], () => {
       const handle = emnapi.handleStore.get(value)!
       if (handle.isSymbol()) {
-        envObject.tryCatch.setError(new TypeError('Cannot convert a Symbol value to a string'))
-        return envObject.setLastError(napi_status.napi_pending_exception)
+        throw new TypeError('Cannot convert a Symbol value to a string')
       }
       HEAP32[result >> 2] = emnapi.addToCurrentScope(envObject, String(handle.value)).id
       return envObject.getReturnStatus()

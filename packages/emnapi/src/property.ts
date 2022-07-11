@@ -11,8 +11,7 @@ function napi_get_all_property_names (
     return emnapi.checkArgs(envObject, [result, object], () => {
       const h = emnapi.handleStore.get(object)!
       if (h.value == null) {
-        envObject.tryCatch.setError(new TypeError('Cannot convert undefined or null to object'))
-        return envObject.setLastError(napi_status.napi_pending_exception)
+        throw new TypeError('Cannot convert undefined or null to object')
       }
       let v: any
       try {
@@ -62,8 +61,7 @@ function napi_has_property (env: napi_env, object: napi_value, key: napi_value, 
     return emnapi.checkArgs(envObject, [key, result, object], () => {
       const h = emnapi.handleStore.get(object)!
       if (h.value == null) {
-        envObject.tryCatch.setError(new TypeError('Cannot convert undefined or null to object'))
-        return envObject.setLastError(napi_status.napi_pending_exception)
+        throw new TypeError('Cannot convert undefined or null to object')
       }
       let v: any
       try {
@@ -82,8 +80,7 @@ function napi_get_property (env: napi_env, object: napi_value, key: napi_value, 
     return emnapi.checkArgs(envObject, [key, result, object], () => {
       const h = emnapi.handleStore.get(object)!
       if (h.value == null) {
-        envObject.tryCatch.setError(new TypeError('Cannot convert undefined or null to object'))
-        return envObject.setLastError(napi_status.napi_pending_exception)
+        throw new TypeError('Cannot convert undefined or null to object')
       }
       let v: any
       try {
@@ -118,8 +115,7 @@ function napi_has_own_property (env: napi_env, object: napi_value, key: napi_val
     return emnapi.checkArgs(envObject, [key, result, object], () => {
       const h = emnapi.handleStore.get(object)!
       if (h.value == null) {
-        envObject.tryCatch.setError(new TypeError('Cannot convert undefined or null to object'))
-        return envObject.setLastError(napi_status.napi_pending_exception)
+        throw new TypeError('Cannot convert undefined or null to object')
       }
       let v: any
       try {
@@ -162,8 +158,7 @@ function napi_has_named_property (env: napi_env, object: napi_value, utf8name: c
       }
       const h = emnapi.handleStore.get(object)!
       if (h.value == null) {
-        envObject.tryCatch.setError(new TypeError('Cannot convert undefined or null to object'))
-        return envObject.setLastError(napi_status.napi_pending_exception)
+        throw new TypeError('Cannot convert undefined or null to object')
       }
       let v: any
       try {
@@ -186,8 +181,7 @@ function napi_get_named_property (env: napi_env, object: napi_value, utf8name: c
       }
       const h = emnapi.handleStore.get(object)!
       if (h.value == null) {
-        envObject.tryCatch.setError(new TypeError('Cannot convert undefined or null to object'))
-        return envObject.setLastError(napi_status.napi_pending_exception)
+        throw new TypeError('Cannot convert undefined or null to object')
       }
       let v: any
       try {
@@ -219,8 +213,7 @@ function napi_has_element (env: napi_env, object: napi_value, index: uint32_t, r
     return emnapi.checkArgs(envObject, [result, object], () => {
       const h = emnapi.handleStore.get(object)!
       if (h.value == null) {
-        envObject.tryCatch.setError(new TypeError('Cannot convert undefined or null to object'))
-        return envObject.setLastError(napi_status.napi_pending_exception)
+        throw new TypeError('Cannot convert undefined or null to object')
       }
       let v: any
       try {
@@ -239,8 +232,7 @@ function napi_get_element (env: napi_env, object: napi_value, index: uint32_t, r
     return emnapi.checkArgs(envObject, [result, object], () => {
       const h = emnapi.handleStore.get(object)!
       if (h.value == null) {
-        envObject.tryCatch.setError(new TypeError('Cannot convert undefined or null to object'))
-        return envObject.setLastError(napi_status.napi_pending_exception)
+        throw new TypeError('Cannot convert undefined or null to object')
       }
       let v: any
       try {
