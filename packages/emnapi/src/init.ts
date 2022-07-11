@@ -141,9 +141,9 @@ mergeInto(LibraryManager.library, {
       }
     })
 
-    addOnExit(function (_Module) {
+    /* addOnExit(function (_Module) {
       env?.unref()
       env = undefined
-    })
+    }) */
   }
 })
