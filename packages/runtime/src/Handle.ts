@@ -2,7 +2,7 @@ import type { IHandleScope } from './HandleScope'
 import type { Reference } from './Reference'
 import { IStoreValue, Store } from './Store'
 import type { Env } from './env'
-import { _global, isReferenceType } from './util'
+import { _global, isReferenceType, supportFinalizer } from './util'
 
 export class Handle<S> implements IStoreValue {
   public static create<S> (envObject: Env, value: S): Handle<S> {
@@ -137,7 +137,7 @@ export class Handle<S> implements IStoreValue {
     if (
       this.id < HandleStore.getMinId ||
       this.inScope !== null ||
-      this.refs.some(ref => ref.refCount() > 0)
+      (supportFinalizer ? this.refs.some(ref => ref.refCount() > 0) : (this.refs.length > 0))
     ) return
     this.dispose()
   }

@@ -62,9 +62,16 @@ function napi_define_class (
 
 function napi_wrap (env: napi_env, js_object: napi_value, native_object: void_p, finalize_cb: napi_finalize, finalize_hint: void_p, result: Pointer<napi_ref>): napi_status {
   if (!emnapi.supportFinalizer) {
-    return emnapi.preamble(env, () => {
-      throw new emnapi.NotSupportWeakRefError('napi_wrap', 'This API is unavailable')
-    })
+    if (finalize_cb) {
+      return emnapi.preamble(env, () => {
+        throw new emnapi.NotSupportWeakRefError('napi_wrap', 'Parameter "finalize_cb" must be 0(NULL)')
+      })
+    }
+    if (result) {
+      return emnapi.preamble(env, () => {
+        throw new emnapi.NotSupportWeakRefError('napi_wrap', 'Parameter "result" must be 0(NULL)')
+      })
+    }
   }
   return emnapiWrap(WrapType.retrievable, env, js_object, native_object, finalize_cb, finalize_hint, result)
 }

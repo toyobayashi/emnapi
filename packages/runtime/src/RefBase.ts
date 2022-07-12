@@ -1,6 +1,7 @@
 import type { Env } from './env'
 import { Finalizer } from './Finalizer'
 import { RefTracker } from './RefTracker'
+import { supportFinalizer } from './util'
 
 export interface RefBase extends Finalizer, RefTracker {}
 
@@ -63,7 +64,7 @@ export class RefBase extends Finalizer {
 
   public static doDelete (reference: RefBase): void {
     if ((reference.refCount() !== 0) || (reference._deleteSelf) ||
-        (reference._finalizeRan)) {
+        (reference._finalizeRan) || !supportFinalizer) {
       reference.dispose()
     } else {
       // defer until finalizer runs as
