@@ -1,3 +1,4 @@
+#include <emnapi.h>
 #include "myobject.h"
 #include "../common.h"
 
@@ -5,7 +6,7 @@ static int finalize_count = 0;
 
 MyObject::MyObject() : env_(nullptr), wrapper_(nullptr) {}
 
-MyObject::~MyObject() { napi_delete_reference(env_, wrapper_); }
+MyObject::~MyObject() { if (wrapper_) napi_delete_reference(env_, wrapper_); }
 
 void MyObject::Destructor(napi_env env,
                           void* nativeObject,
@@ -21,17 +22,28 @@ napi_value MyObject::GetFinalizeCount(napi_env env, napi_callback_info info) {
   return result;
 }
 
+napi_value MyObject::Dispose(napi_env env, napi_callback_info info) {
+  napi_value _this;
+  NAPI_CALL(env, napi_get_cb_info(env, info, nullptr, nullptr, &_this, nullptr));
+
+  void* nativeObject = nullptr;
+  NAPI_CALL(env, napi_remove_wrap(env, _this, &nativeObject));
+  MyObject::Destructor(env, nativeObject, nullptr);
+  return nullptr;
+}
+
 napi_ref MyObject::constructor;
 
 napi_status MyObject::Init(napi_env env) {
   napi_status status;
   napi_property_descriptor properties[] = {
     DECLARE_NAPI_PROPERTY("plusOne", PlusOne),
+    DECLARE_NAPI_PROPERTY("dispose", Dispose)
   };
 
   napi_value cons;
   status = napi_define_class(
-      env, "MyObject", -1, New, nullptr, 1, properties, &cons);
+      env, "MyObject", -1, New, nullptr, 2, properties, &cons);
   if (status != napi_ok) return status;
 
   status = napi_create_reference(env, cons, 1, &constructor);
@@ -58,12 +70,21 @@ napi_value MyObject::New(napi_env env, napi_callback_info info) {
   }
 
   obj->env_ = env;
-  NAPI_CALL(env, napi_wrap(env,
-                           _this,
-                           obj,
-                           MyObject::Destructor,
-                           nullptr, /* finalize_hint */
-                           &obj->wrapper_));
+  if (emnapi_is_support_weakref()) {
+    NAPI_CALL(env, napi_wrap(env,
+                            _this,
+                            obj,
+                            MyObject::Destructor,
+                            nullptr, /* finalize_hint */
+                            &obj->wrapper_));
+  } else {
+    NAPI_CALL(env, napi_wrap(env,
+                            _this,
+                            obj,
+                            nullptr,
+                            nullptr, /* finalize_hint */
+                            nullptr));
+  }
 
   return _this;
 }
