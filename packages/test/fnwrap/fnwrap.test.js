@@ -27,7 +27,7 @@ module.exports = p.then(test => {
     })()
     await common.gcUntil('test 2', () => (test.finalizeCount === 2))
   }
-  runGCTests().catch(err => {
+  return runGCTests().catch(err => {
     console.error(err)
     process.exit(1)
   })
