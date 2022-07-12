@@ -67,11 +67,11 @@ function napi_wrap (env: napi_env, js_object: napi_value, native_object: void_p,
         throw new emnapi.NotSupportWeakRefError('napi_wrap', 'Parameter "finalize_cb" must be 0(NULL)')
       })
     }
-    if (result) {
+    /* if (result) {
       return emnapi.preamble(env, () => {
         throw new emnapi.NotSupportWeakRefError('napi_wrap', 'Parameter "result" must be 0(NULL)')
       })
-    }
+    } */
   }
   return emnapiWrap(WrapType.retrievable, env, js_object, native_object, finalize_cb, finalize_hint, result)
 }

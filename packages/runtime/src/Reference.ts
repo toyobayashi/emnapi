@@ -145,10 +145,12 @@ export class Reference extends RefBase implements IStoreValue {
   }
 
   public override dispose (): void {
+    if (this.id === 0) return
     refStore.remove(this.id)
     this.handle.removeRef(this)
     this._clearWeak()
     this.handle = undefined!
     super.dispose()
+    this.id = 0
   }
 }
