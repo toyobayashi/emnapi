@@ -2,40 +2,72 @@ const fs = require('fs')
 const path = require('path')
 const crossZip = require('@tybys/cross-zip')
 
-const root = path.join(__dirname, './out')
+/**
+ * @param {string} command 
+ * @param {string[]} args 
+ * @param {string=} cwdPath 
+ * @param {'inherit' | 'pipe' | 'ignore'=} stdin 
+ * @returns {Promise<void> & { cp: import('child_process').ChildProcess }}
+ */
+function spawn (command, args, cwdPath, stdin) {
+  const argsString = args.map(a => a.indexOf(' ') !== -1 ? ('"' + a + '"') : a).join(' ')
+  const cwd = cwdPath || process.cwd()
+  console.log(`[spawn] ${cwd}${process.platform === 'win32' ? '>' : '$'} ${command} ${argsString}`)
+  const cp = require('child_process').spawn(command, args, {
+    env: process.env,
+    cwd: cwd,
+    stdio: stdin ? [stdin, 'inherit', 'inherit'] : 'inherit'
+  })
+  const p = new Promise((resolve, reject) => {
+    cp.once('exit', (code, reason) => {
+      if (code === 0) {
+        resolve()
+      } else {
+        reject(new Error(`Child process exit: ${code}. Reason: ${reason}\n\n${command} ${argsString}\n`))
+      }
+    })
+  })
+  p.cp = cp
+  return p
+}
 
-fs.rmSync(root, { force: true, recursive: true })
+async function main () {
+  const sysroot = path.join(__dirname, './out')
 
-fs.mkdirSync(path.join(root, 'lib'), { recursive: true })
-fs.mkdirSync(path.join(root, 'include/emnapi'), { recursive: true })
-fs.mkdirSync(path.join(root, 'src'), { recursive: true })
+  fs.rmSync(sysroot, { force: true, recursive: true })
+  fs.mkdirSync(sysroot, { recursive: true })
 
-fs.copyFileSync(path.join(__dirname, '../packages/emnapi/dist/library_napi.js'), path.join(root, 'lib', 'library_napi.js'))
-fs.copyFileSync(path.join(__dirname, '../packages/emnapi/dist/library_napi_no_runtime.js'), path.join(root, 'lib', 'library_napi_no_runtime.js'))
-fs.copyFileSync(path.join(__dirname, '../packages/runtime/dist/emnapi.js'), path.join(root, 'lib', 'emnapi.js'))
-fs.copyFileSync(path.join(__dirname, '../packages/runtime/dist/emnapi.min.js'), path.join(root, 'lib', 'emnapi.min.js'))
-// fs.copyFileSync(path.join(__dirname, '../packages/runtime/dist/emnapi.d.ts'), path.join(root, 'lib', 'emnapi.d.ts'))
-fs.copyFileSync(path.join(__dirname, '../packages/emnapi/src/emnapi.c'), path.join(root, 'src', 'emnapi.c'))
-fs.copyFileSync(path.join(__dirname, '../packages/emnapi/src/queue.h'), path.join(root, 'src', 'queue.h'))
-fs.readdirSync(path.join(__dirname, '../packages/emnapi/include')).forEach(item => {
-  if (item !== '.' && item !== '..') {
-    fs.copyFileSync(path.join(__dirname, '../packages/emnapi/include', item), path.join(root, 'include/emnapi', item))
-  }
-})
+  const cwd = path.join(__dirname, '../packages/emnapi')
 
-fs.writeFileSync(path.join(root, 'CMakeLists.txt'), `cmake_minimum_required(VERSION 3.9)
+  const emcmake = process.platform === 'win32' ? 'emcmake.bat' : 'emcmake'
 
-project(emnapi)
+  await spawn(emcmake, [
+    'cmake',
+    ...(process.platform === 'win32' ? ['-G', 'MinGW Makefiles', '-DCMAKE_MAKE_PROGRAM=make'] : []),
+    '-DCMAKE_BUILD_TYPE=Release',
+    '-DCMAKE_VERBOSE_MAKEFILE=1',
+    '-DEMNAPI_INSTALL_SRC=1',
+    '-H.',
+    '-Bbuild'
+  ], cwd)
 
-add_library(emnapi STATIC "\${CMAKE_CURRENT_SOURCE_DIR}/src/emnapi.c")
-target_include_directories(emnapi PUBLIC "\${CMAKE_CURRENT_SOURCE_DIR}/include/emnapi")
-target_link_options(emnapi INTERFACE "--js-library=\${CMAKE_CURRENT_SOURCE_DIR}/lib/library_napi.js")
+  await spawn('cmake', [
+    '--build',
+    'build'
+  ], cwd)
 
-add_library(emnapi_noruntime STATIC "\${CMAKE_CURRENT_SOURCE_DIR}/src/emnapi.c")
-target_include_directories(emnapi_noruntime PUBLIC "\${CMAKE_CURRENT_SOURCE_DIR}/include/emnapi")
-target_link_options(emnapi_noruntime INTERFACE "--js-library=\${CMAKE_CURRENT_SOURCE_DIR}/lib/library_napi_no_runtime.js")
+  await spawn('cmake', [
+    '--install',
+    'build',
+    '--prefix',
+    sysroot
+  ], cwd)
 
-`, 'utf8')
+  fs.copyFileSync(path.join(__dirname, '../packages/runtime/dist/emnapi.js'), path.join(sysroot, 'lib/emnapi', 'emnapi.js'))
+  fs.copyFileSync(path.join(__dirname, '../packages/runtime/dist/emnapi.min.js'), path.join(sysroot, 'lib/emnapi', 'emnapi.min.js'))
 
-crossZip.zipSync(root, path.join(__dirname, 'emnapi.zip'))
-fs.rmSync(root, { force: true, recursive: true })
+  crossZip.zipSync(sysroot, path.join(__dirname, 'emnapi.zip'))
+  // fs.rmSync(sysroot, { force: true, recursive: true })
+}
+
+main()

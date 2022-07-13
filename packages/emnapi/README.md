@@ -17,8 +17,8 @@
 You will need to install:
 
 * Node.js latest LTS (recommend v14.6.0+)
-* Emscripten tool chain v2.0.2+
-* CMake v3.9+
+* Emscripten tool chain v3+
+* CMake v3.13+
 * make / nmake (Windows only)
 
 Set `$EMSDK` environment variable to the emsdk root path.
@@ -188,7 +188,7 @@ Then use the output js.
 Create `CMakeLists.txt`.
 
 ```cmake
-cmake_minimum_required(VERSION 3.9)
+cmake_minimum_required(VERSION 3.13)
 
 project(emnapiexample)
 
@@ -197,7 +197,7 @@ add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/node_modules/@tybys/emnapi")
 add_executable(hello hello.c)
 # or add_executable(hello hello.cpp)
 
-target_link_libraries(hello emnapi)
+target_link_libraries(hello emnapi_full)
 target_link_options(hello PRIVATE
   "-sEXPORTED_FUNCTIONS=['_malloc','_free']"
   "-sALLOW_MEMORY_GROWTH=1"

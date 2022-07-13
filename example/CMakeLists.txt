@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.9)
+cmake_minimum_required(VERSION 3.13)
 
 project(emnapiexample)
 
@@ -8,7 +8,7 @@ add_executable(hello
   hello.c
 )
 
-target_link_libraries(hello emnapi)
+target_link_libraries(hello emnapi_full)
 # target_link_libraries(hello emnapi_noruntime)
 target_link_options(hello PRIVATE
   "-sEXPORTED_FUNCTIONS=['_malloc','_free']"

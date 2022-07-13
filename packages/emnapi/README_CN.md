@@ -15,8 +15,8 @@
 环境准备：
 
 * Node.js 最新 LTS (建议 v14.6.0 以上)
-* Emscripten 工具链 v2.0.2+
-* CMake v3.9+
+* Emscripten 工具链 v3+
+* CMake v3.13+
 * make / nmake (仅Windows)
 
 设置 `$EMSDK` 环境变量为 emsdk 根目录，并确保 Emscripten 工具链二进制目录（`$EMSDK/upstream/emscripten`）和 CMake 在 `$PATH` 里
@@ -184,7 +184,7 @@ em++ -O3 \
 创建 `CMakeLists.txt`。
 
 ```cmake
-cmake_minimum_required(VERSION 3.9)
+cmake_minimum_required(VERSION 3.13)
 
 project(emnapiexample)
 
@@ -193,7 +193,7 @@ add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/node_modules/@tybys/emnapi")
 add_executable(hello hello.c)
 # or add_executable(hello hello.cpp)
 
-target_link_libraries(hello emnapi)
+target_link_libraries(hello emnapi_full)
 target_link_options(hello PRIVATE
   "-sEXPORTED_FUNCTIONS=['_malloc','_free']"
   "-sALLOW_MEMORY_GROWTH=1"
