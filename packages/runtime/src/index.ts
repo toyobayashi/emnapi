@@ -2,6 +2,7 @@ export {
   preamble,
   checkArgs,
   checkEnv,
+  supportReflect,
   supportFinalizer,
   supportBigInt,
   supportNewFunction,

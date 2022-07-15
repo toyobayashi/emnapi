@@ -110,6 +110,7 @@ try {
   canSetFunctionName = !!Object.getOwnPropertyDescriptor(Function.prototype, 'name')?.configurable
 } catch (_) {}
 
+export const supportReflect = typeof Reflect === 'object'
 export const supportFinalizer = (typeof FinalizationRegistry !== 'undefined') && (typeof WeakRef !== 'undefined')
 export const supportBigInt = typeof BigInt !== 'undefined'
 

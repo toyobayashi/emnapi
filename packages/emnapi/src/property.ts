@@ -101,7 +101,17 @@ function napi_delete_property (env: napi_env, object: napi_value, key: napi_valu
       if (!(h.isObject() || h.isFunction())) {
         return envObject.setLastError(napi_status.napi_object_expected)
       }
-      const r = delete h.value[emnapi.handleStore.get(key)!.value]
+      let r: boolean
+      const propertyKey = emnapi.handleStore.get(key)!.value
+      if (emnapi.supportReflect) {
+        r = Reflect.deleteProperty(h.value, propertyKey)
+      } else {
+        try {
+          r = delete h.value[propertyKey]
+        } catch (_) {
+          r = false
+        }
+      }
       if (result !== NULL) {
         HEAPU8[result] = r ? 1 : 0
       }
