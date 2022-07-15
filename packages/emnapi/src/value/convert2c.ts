@@ -458,5 +458,11 @@ emnapiImplement('napi_get_value_int32', napi_get_value_int32)
 emnapiImplement('napi_get_value_int64', napi_get_value_int64)
 emnapiImplement('napi_get_value_string_latin1', napi_get_value_string_latin1)
 emnapiImplement('napi_get_value_string_utf8', napi_get_value_string_utf8)
+
+// #if typeof LEGACY_RUNTIME !== 'undefined' && !LEGACY_RUNTIME
 emnapiImplement('napi_get_value_string_utf16', napi_get_value_string_utf16, ['$stringToUTF16'])
+// #else
+emnapiImplement('napi_get_value_string_utf16', napi_get_value_string_utf16)
+// #endif
+
 emnapiImplement('napi_get_value_uint32', napi_get_value_uint32)

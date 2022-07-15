@@ -179,5 +179,11 @@ emnapiImplement('napi_create_bigint_int64', napi_create_bigint_int64)
 emnapiImplement('napi_create_bigint_uint64', napi_create_bigint_uint64)
 emnapiImplement('napi_create_bigint_words', napi_create_bigint_words)
 emnapiImplement('napi_create_string_latin1', napi_create_string_latin1)
+
+// #if typeof LEGACY_RUNTIME !== 'undefined' && !LEGACY_RUNTIME
 emnapiImplement('napi_create_string_utf16', napi_create_string_utf16, ['$UTF16ToString'])
+// #else
+emnapiImplement('napi_create_string_utf16', napi_create_string_utf16)
+// #endif
+
 emnapiImplement('napi_create_string_utf8', napi_create_string_utf8)
