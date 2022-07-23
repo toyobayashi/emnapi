@@ -1,1 +1,0 @@
-./packages/emnapi/README_CN.md

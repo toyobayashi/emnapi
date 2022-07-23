@@ -1,12 +1,16 @@
 # emnapi
 
+<p align="center">
+  <img src="https://emnapi-docs.vercel.app/emnapi.svg" alt="emnapi logo" width="256" />
+</p>
+
 [![Build](https://github.com/toyobayashi/emnapi/actions/workflows/main.yml/badge.svg?branch=main)](https://github.com/toyobayashi/emnapi/actions/workflows/main.yml)
 
 [Node-API (version 8)](https://nodejs.org/docs/v16.15.0/api/n-api.html) implementation for [Emscripten](https://emscripten.org/index.html), based on Node.js v16.15.0.
 
-[中文 README](https://github.com/toyobayashi/emnapi/tree/main/packages/emnapi/README_CN.md).
-
 [See documentation for more details](https://emnapi-docs.vercel.app/guide/)
+
+[中文文档](https://emnapi-docs.vercel.app/zh/guide/)
 
 [Full API List](https://emnapi-docs.vercel.app/reference/list.html)
 
@@ -16,16 +20,16 @@
 
 You will need to install:
 
-* Node.js latest LTS (recommend v14.6.0+)
-* Emscripten tool chain v3+
-* CMake v3.13+
-* make / nmake (Windows only)
+- Node.js `>= v14.6.0`
+- Emscripten `>= v3.0.0` (`v2.x` may also works, not tested)
 
-Set `$EMSDK` environment variable to the emsdk root path.
+Verify your environment:
 
-Make sure `emcc` / `em++` / `cmake` / `make` can be found in `$PATH`.
-
-If you have not installed [make](https://github.com/toyobayashi/make-win-build/releases) on Windows, you can also execute build commands in [Visual Studio Developer Command Prompt](https://visualstudio.microsoft.com/visual-cpp-build-tools/) where `nmake` is available.
+```bash
+node -v
+npm -v
+emcc -v
+```
 
 ### NPM Install
 
@@ -41,36 +45,25 @@ Create `hello.c`.
 #include <node_api.h>
 #include <string.h>
 
-#define GET_AND_THROW_LAST_ERROR(env)                                    \
-  do {                                                                   \
-    const napi_extended_error_info *error_info;                          \
-    napi_get_last_error_info((env), &error_info);                        \
-    bool is_pending;                                                     \
-    const char* err_message = error_info->error_message;                 \
-    napi_is_exception_pending((env), &is_pending);                       \
-    if (!is_pending) {                                                   \
-      const char* error_message = err_message != NULL ?                  \
-        err_message :                                                    \
-        "empty error message";                                           \
-      napi_throw_error((env), NULL, error_message);                      \
-    }                                                                    \
+#define NAPI_CALL(env, the_call)                                \
+  do {                                                          \
+    if ((the_call) != napi_ok) {                                \
+      const napi_extended_error_info *error_info;               \
+      napi_get_last_error_info((env), &error_info);             \
+      bool is_pending;                                          \
+      const char* err_message = error_info->error_message;      \
+      napi_is_exception_pending((env), &is_pending);            \
+      if (!is_pending) {                                        \
+        const char* error_message = err_message != NULL ?       \
+          err_message :                                         \
+          "empty error message";                                \
+        napi_throw_error((env), NULL, error_message);           \
+      }                                                         \
+      return NULL;                                              \
+    }                                                           \
   } while (0)
 
-#define NAPI_CALL_BASE(env, the_call, ret_val)                           \
-  do {                                                                   \
-    if ((the_call) != napi_ok) {                                         \
-      GET_AND_THROW_LAST_ERROR((env));                                   \
-      return ret_val;                                                    \
-    }                                                                    \
-  } while (0)
-
-#define NAPI_CALL(env, the_call)                                         \
-  NAPI_CALL_BASE(env, the_call, NULL)
-
-#define DECLARE_NAPI_PROPERTY(name, func)                                \
-  { (name), NULL, (func), NULL, NULL, NULL, napi_default, NULL }
-
-static napi_value Method(napi_env env, napi_callback_info info) {
+static napi_value js_hello(napi_env env, napi_callback_info info) {
   napi_value world;
   const char* str = "world";
   size_t str_len = strlen(str);
@@ -79,20 +72,36 @@ static napi_value Method(napi_env env, napi_callback_info info) {
 }
 
 NAPI_MODULE_INIT() {
-  napi_property_descriptor desc = DECLARE_NAPI_PROPERTY("hello", Method);
-  NAPI_CALL(env, napi_define_properties(env, exports, 1, &desc));
+  napi_value hello;
+  NAPI_CALL(env, napi_create_function(env, "hello", NAPI_AUTO_LENGTH,
+                                      js_hello, NULL, &hello));
+  NAPI_CALL(env, napi_set_named_property(env, exports, "hello", hello));
   return exports;
 }
 ```
 
-Compile `hello.c` using `emcc`, set include directory, link napi js implementation with `--js-library`.
+The C code is equivalant to the following JavaScript:
+
+```js
+module.exports = (function (exports) {
+  const hello = function hello () {
+    // native code in js_hello
+    const world = 'world'
+    return world
+  }
+
+  exports.hello = hello
+  return exports
+})(module.exports)
+```
+
+Compile `hello.c` using `emcc`, set include directory by `-I`, export `_malloc` and `_free`, link emnapi JavaScript library by `--js-library`.
 
 ```bash
 emcc -O3 \
      -I./node_modules/@tybys/emnapi/include \
      --js-library=./node_modules/@tybys/emnapi/dist/library_napi.js \
      -sEXPORTED_FUNCTIONS=['_malloc','_free'] \
-     -sALLOW_MEMORY_GROWTH=1 \
      -o hello.js \
      ./node_modules/@tybys/emnapi/src/emnapi.c \
      hello.c
@@ -124,7 +133,9 @@ Module.onRuntimeInitialized = function () {
 </script>
 ```
 
-Or in Node.js.
+If you are using `Visual Studio Code` and have `Live Server` extension installed, you can right click the HTML file in Visual Studio Code source tree and click `Open With Live Server`, then you can see the hello world alert!
+
+Running on Node.js:
 
 ```js
 const Module = require('./hello.js')
@@ -166,7 +177,7 @@ Napi::Object Init(Napi::Env env, Napi::Object exports) {
 NODE_API_MODULE(NODE_GYP_MODULE_NAME, Init)
 ```
 
-Compile `hello.cpp` using `em++`. C++ exception is disabled by Emscripten default, so predefine `-DNAPI_DISABLE_CPP_EXCEPTIONS` and `-DNODE_ADDON_API_ENABLE_MAYBE` here. If you would like to enable C++ exception, use `-sDISABLE_EXCEPTION_CATCHING=0` instead and remove `.Check()` call.
+Compile `hello.cpp` using `em++`. C++ exception is disabled by Emscripten default, so predefine `-DNAPI_DISABLE_CPP_EXCEPTIONS` and `-DNODE_ADDON_API_ENABLE_MAYBE` here. If you would like to enable C++ exception, use `-sDISABLE_EXCEPTION_CATCHING=0` instead and remove `.Check()` call. See official documentation [here](https://github.com/nodejs/node-addon-api/blob/main/doc/error_handling.md).
 
 ```bash
 em++ -O3 \
@@ -175,15 +186,37 @@ em++ -O3 \
      -I./node_modules/@tybys/emnapi/include \
      --js-library=./node_modules/@tybys/emnapi/dist/library_napi.js \
      -sEXPORTED_FUNCTIONS=['_malloc','_free'] \
-     -sALLOW_MEMORY_GROWTH=1 \
      -o hello.js \
      ./node_modules/@tybys/emnapi/src/emnapi.c \
      hello.cpp
 ```
 
-Then use the output js.
-
 ### Using CMake
+
+You will need to install:
+
+- CMake `>= 3.13`
+- make
+
+There are several choices to get `make` for Windows user
+
+- Install [mingw-w64](https://www.mingw-w64.org/downloads/), then use `mingw32-make`
+- Download [MSVC prebuilt binary of GNU make](https://github.com/toyobayashi/make-win-build/releases), add to `%Path%` then rename it to `mingw32-make`
+- Install [Visual Studio 2022](https://visualstudio.microsoft.com/) C++ desktop workload, use `nmake` in `Visual Studio Developer Command Prompt`
+- Install [Visual C++ Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/), use `nmake` in `Visual Studio Developer Command Prompt`
+
+Verify your environment:
+
+```bash
+cmake --version
+make -v
+
+# Windows cmd
+# mingw32-make -v
+
+# Visual Studio Developer Command Prompt
+# nmake /?
+```
 
 Create `CMakeLists.txt`.
 
@@ -200,8 +233,6 @@ add_executable(hello hello.c)
 target_link_libraries(hello emnapi_full)
 target_link_options(hello PRIVATE
   "-sEXPORTED_FUNCTIONS=['_malloc','_free']"
-  "-sALLOW_MEMORY_GROWTH=1"
-  "-sNODEJS_CATCH_EXIT=0"
 )
 ```
 
@@ -210,18 +241,20 @@ Building with `emcmake`, output `build/hello.js` and `build/hello.wasm`.
 ```bash
 mkdir build
 emcmake cmake -DCMAKE_BUILD_TYPE=Release -H. -Bbuild
+
+# Windows
+# emcmake cmake -DCMAKE_BUILD_TYPE=Release -G "MinGW Makefiles" -H. -Bbuild
+
 cmake --build build
 ```
 
-If you have not installed `make` on Windows, execute commands below in `Visual Studio Developer Command Prompt`.
+If you have not installed `make` or `mingw32-make` on Windows, execute the following commands in `Visual Studio Developer Command Prompt`.
 
-```bat
+```bash
 mkdir build
 emcmake cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_MAKE_PROGRAM=nmake -G "NMake Makefiles" -H. -Bbuild
 cmake --build build
 ```
-
-Full example codes can be found [here](https://github.com/toyobayashi/emnapi/tree/main/example).
 
 Output code can run in recent version modern browsers and Node.js latest LTS. IE is not supported.
 
@@ -294,4 +327,18 @@ npm run build # output ./packages/*/dist
 # test
 npm run rebuild:test
 npm test
+
+# CMake install
+cd ./packages/emnapi
+
+emcmake cmake -DCMAKE_BUILD_TYPE=Release -H. -Bbuild
+
+# Windows have mingw32-make installed
+# emcmake cmake -DCMAKE_BUILD_TYPE=Release -G "MinGW Makefiles" -H. -Bbuild
+
+# Windows Visual Studio Developer Command Prompt
+# emcmake cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_MAKE_PROGRAM=nmake -G "NMake Makefiles"  -H. -Bbuild
+
+cmake --build build
+cmake --install build [--prefix <sysroot>]
 ```
