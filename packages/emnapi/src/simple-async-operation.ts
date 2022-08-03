@@ -40,7 +40,8 @@ function _emnapi_queue_async_work_js (work: number): void {
     emnapiAsyncWorkerQueue.push(work)
     return
   }
-  const worker = PThread.pthreads[tid].worker
+  const pthreadValue = PThread.pthreads[tid]
+  const worker = (('worker' in pthreadValue) && ('threadInfoStruct' in pthreadValue)) ? pthreadValue.worker : pthreadValue
   if (!worker._emnapiAsyncWorkListener) {
     worker._emnapiAsyncWorkListener = function (this: Worker, e: MessageEvent<any>): any {
       const data = ENVIRONMENT_IS_NODE ? e : e.data
