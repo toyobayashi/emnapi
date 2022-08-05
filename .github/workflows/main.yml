@@ -37,6 +37,13 @@ jobs:
         npm run rebuild -w packages/test
         npm run test -w packages/test
 
+    - name: Test MEMORY64
+      env:
+        MEMORY64: '1'
+      run: |
+        npm run rebuild -w packages/test
+        npm run test -w packages/test
+
     - name: Publish
       if: ${{ startsWith(github.event.ref, 'refs/tags') && matrix.os == 'ubuntu-latest' }}
       run: |
