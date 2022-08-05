@@ -35,7 +35,7 @@ export class RefBase extends Finalizer {
     this._refcount = initial_refcount
     this._deleteSelf = delete_self
 
-    this.link(finalize_callback === NULL ? envObject.reflist : envObject.finalizing_reflist)
+    this.link(!finalize_callback ? envObject.reflist : envObject.finalizing_reflist)
   }
 
   public dispose (): void {
@@ -78,10 +78,13 @@ export class RefBase extends Finalizer {
 
     let error: any
     let caught = false
-    if (this._finalizeCallback !== NULL) {
-      const fini = this._finalizeCallback
-      this._finalizeCallback = NULL
+    if (this._finalizeCallback) {
+      let fini = this._finalizeCallback
+      this._finalizeCallback = 0
       try {
+        // #if MEMORY64
+        fini = Number(fini)
+        // #endif
         this.envObject.callFinalizer(fini, this._finalizeData, this._finalizeHint)
       } catch (err) {
         caught = true

@@ -9,12 +9,12 @@ function napi_define_class (
   result: Pointer<napi_value>): napi_status {
   return emnapi.preamble(env, (envObject) => {
     return emnapi.checkArgs(envObject, [result, constructor], () => {
-      property_count = property_count >>> 0
-      length = length >>> 0
+      property_count = Number(property_count) >>> 0
       if (property_count > 0) {
-        if (properties === NULL) return envObject.setLastError(napi_status.napi_invalid_arg)
+        if (!properties) return envObject.setLastError(napi_status.napi_invalid_arg)
       }
-      if (!((length === 0xffffffff) || (length <= 2147483647)) || (utf8name === NULL)) {
+      const len = Number(length) >>> 0
+      if (!((len === 0xffffffff) || (len <= 2147483647)) || (!utf8name)) {
         return envObject.setLastError(napi_status.napi_invalid_arg)
       }
       const fresult = emnapiCreateFunction(envObject, utf8name, length, constructor, callback_data)
@@ -22,22 +22,44 @@ function napi_define_class (
       const F = fresult.f
 
       for (let i = 0; i < property_count; i++) {
-        const propPtr = properties + (i * 32)
-
-        const utf8Name = HEAP32[propPtr >> 2]
-        const name = HEAP32[propPtr + 4 >> 2]
-        const method = HEAP32[propPtr + 8 >> 2]
-        const getter = HEAP32[propPtr + 12 >> 2]
-        const setter = HEAP32[propPtr + 16 >> 2]
-        const value = HEAP32[propPtr + 20 >> 2]
-        const attributes = HEAP32[propPtr + 24 >> 2]
-        const data = HEAP32[propPtr + 28 >> 2]
+        let propPtr: number
+        let utf8Name: number
+        let name: number
+        let method: number
+        let getter: number
+        let setter: number
+        let value: number
+        let attributes: number
+        let data: number
+        // #if MEMORY64
+        // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
+        propPtr = Number(properties) + (i * 64)
+        utf8Name = getValue(propPtr, '*')
+        name = getValue(propPtr + 8, '*')
+        method = getValue(propPtr + 16, '*')
+        getter = getValue(propPtr + 24, '*')
+        setter = getValue(propPtr + 32, '*')
+        value = getValue(propPtr + 40, '*')
+        attributes = Number(getValue(propPtr + 48, 'i64'))
+        data = getValue(propPtr + 56, '*')
+        // #else
+        // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
+        propPtr = properties + (i * 32)
+        utf8Name = getValue(propPtr, '*')
+        name = getValue(propPtr + 4, '*')
+        method = getValue(propPtr + 8, '*')
+        getter = getValue(propPtr + 12, '*')
+        setter = getValue(propPtr + 16, '*')
+        value = getValue(propPtr + 20, '*')
+        attributes = HEAP32[(propPtr + 24) >> 2]
+        data = getValue(propPtr + 28, '*')
+        // #endif
 
         let propertyName: string | symbol
-        if (utf8Name !== NULL) {
+        if (utf8Name) {
           propertyName = UTF8ToString(utf8Name)
         } else {
-          if (name === NULL) {
+          if (!name) {
             return envObject.setLastError(napi_status.napi_name_expected)
           }
           propertyName = emnapi.handleStore.get(name)!.value
@@ -54,7 +76,7 @@ function napi_define_class (
       }
 
       const valueHandle = emnapi.addToCurrentScope(envObject, F)
-      HEAP32[result >> 2] = valueHandle.id
+      setValue(Number(result), valueHandle.id, '*')
       return envObject.getReturnStatus()
     })
   })
@@ -86,14 +108,15 @@ function napi_remove_wrap (env: napi_env, js_object: napi_value, result: void_pp
 
 function napi_type_tag_object (env: napi_env, object: napi_value, type_tag: Const<Pointer<unknown>>): napi_status {
   return emnapi.preamble(env, (envObject) => {
-    if (object === NULL) {
+    if (!object) {
       return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_invalid_arg)
     }
     const value = emnapi.handleStore.get(object)!
     if (!(value.isObject() || value.isFunction())) {
       return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_object_expected)
     }
-    if (type_tag === NULL) {
+    type_tag = Number(type_tag)
+    if (!type_tag) {
       return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_invalid_arg)
     }
     if (value.tag !== null) {
@@ -112,21 +135,22 @@ function napi_type_tag_object (env: napi_env, object: napi_value, type_tag: Cons
 
 function napi_check_object_type_tag (env: napi_env, object: napi_value, type_tag: Const<Pointer<unknown>>, result: Pointer<bool>): napi_status {
   return emnapi.preamble(env, (envObject) => {
-    if (object === NULL) {
+    if (!object) {
       return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_invalid_arg)
     }
     const value = emnapi.handleStore.get(object)!
     if (!(value.isObject() || value.isFunction())) {
       return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_object_expected)
     }
-    if (type_tag === NULL) {
+    if (!type_tag) {
       return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_invalid_arg)
     }
-    if (result === NULL) {
+    if (!result) {
       return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_invalid_arg)
     }
     let ret = true
     if (value.tag !== null) {
+      type_tag = Number(type_tag)
       for (let i = 0; i < 4; i++) {
         if (HEAPU32[(type_tag + (i * 4)) >> 2] !== value.tag[i]) {
           ret = false
@@ -137,7 +161,7 @@ function napi_check_object_type_tag (env: napi_env, object: napi_value, type_tag
       ret = false
     }
 
-    HEAPU8[result] = ret ? 1 : 0
+    HEAPU8[Number(result)] = ret ? 1 : 0
 
     return envObject.getReturnStatus()
   })

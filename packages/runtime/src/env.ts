@@ -87,7 +87,7 @@ export class Env implements IStoreValue {
 
   public clearLastError (): napi_status {
     this.lastError.setErrorCode(napi_status.napi_ok)
-    this.lastError.setErrorMessage(NULL)
+    this.lastError.setErrorMessage(0)
 
     return napi_status.napi_ok
   }
@@ -118,7 +118,7 @@ export class Env implements IStoreValue {
     const scope = openScope(this, HandleScope)
     try {
       this.callIntoModule((envObject) => {
-        this.emnapiGetDynamicCalls.call_viii(cb, envObject.id, data, hint)
+        this.emnapiGetDynamicCalls.call_vppp(cb, envObject.id, data, hint)
       })
     } catch (err) {
       closeScope(this, scope)

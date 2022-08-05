@@ -5,7 +5,7 @@ mergeInto(LibraryManager.library, {
       worker._emnapiTSFNListener = function _emnapiTSFNListener (e: any) {
         const data = ENVIRONMENT_IS_NODE ? e : e.data
         if (data.emnapiTSFNSend) {
-          emnapiGetDynamicCalls.call_vi(data.emnapiTSFNSend.callback, data.emnapiTSFNSend.data)
+          emnapiGetDynamicCalls.call_vp(Number(data.emnapiTSFNSend.callback), data.emnapiTSFNSend.data)
         }
       }
       if (ENVIRONMENT_IS_NODE) {
@@ -27,7 +27,7 @@ mergeInto(LibraryManager.library, {
       })
     } else {
       setTimeout(() => {
-        emnapiGetDynamicCalls.call_vi(callback, data)
+        emnapiGetDynamicCalls.call_vp(Number(callback), data)
       })
     }
   },
@@ -43,7 +43,7 @@ mergeInto(LibraryManager.library, {
   _emnapi_set_timeout__deps: ['$emnapiGetDynamicCalls'],
   _emnapi_set_timeout: function (callback: number, data: number, delay: number): number {
     return setTimeout(() => {
-      emnapiGetDynamicCalls.call_vi(callback, data)
+      emnapiGetDynamicCalls.call_vp(Number(callback), data)
     }, delay)
   }
 })
@@ -53,7 +53,7 @@ function _emnapi_call_into_module (env: napi_env, callback: number, data: number
   const scope = emnapi.openScope(envObject, emnapi.HandleScope)
   try {
     envObject.callIntoModule((_envObject) => {
-      emnapiGetDynamicCalls.call_vii(callback, env, data)
+      emnapiGetDynamicCalls.call_vpp(Number(callback), env, data)
     })
   } catch (err) {
     emnapi.closeScope(envObject, scope)
@@ -70,7 +70,7 @@ function _emnapi_tsfn_dispatch_one_js (env: number, ref: number, call_js_cb: num
     // eslint-disable-next-line @typescript-eslint/prefer-optional-chain, @typescript-eslint/prefer-nullish-coalescing
     const jsCallback = (reference && reference.get()) || 0
     envObject.callIntoModule((_envObject) => {
-      emnapiGetDynamicCalls.call_viiii(call_js_cb, env, jsCallback, context, data)
+      emnapiGetDynamicCalls.call_vpppp(Number(call_js_cb), env, jsCallback, context, data)
     })
   } catch (err) {
     emnapi.closeScope(envObject, scope)

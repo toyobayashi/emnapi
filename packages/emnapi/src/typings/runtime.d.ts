@@ -4,6 +4,8 @@ declare const HEAPU32: Uint32Array
 declare const HEAP32: Int32Array
 declare const HEAPF64: Float64Array
 declare const HEAPU8: Uint8Array
+declare const HEAP64: BigInt64Array
+declare const HEAPU64: BigUint64Array
 declare const ENVIRONMENT_IS_NODE: boolean
 declare const ENVIRONMENT_IS_PTHREAD: boolean
 declare const wasmTable: WebAssembly.Table
@@ -13,6 +15,18 @@ declare function UTF16ToString (ptr: const_char16_t_p, maxRead?: number): string
 declare function stringToUTF8 (ptr: string, outPtr: char_p, maxBytesToWrite?: number): number
 declare function stringToUTF16 (ptr: string, outPtr: char16_t_p, maxBytesToWrite?: number): number
 declare function lengthBytesUTF8 (str: string): number
+
+declare const POINTER_SIZE: number
+
+declare type I64Type = 'i64'
+declare type I32Type = 'i1' | 'i8' | 'i16' | 'i32' | 'float' | 'double'
+declare type ValueType = I32Type | I64Type
+declare type PointerType = '*' | `${ValueType}*`
+
+declare function getValue (ptr: number): number
+declare function getValue (ptr: number, type: I64Type): bigint
+declare function getValue (ptr: number, type: I32Type | PointerType): number
+declare function setValue (ptr: number, value: number | bigint, type: ValueType | PointerType): void
 
 declare const Module: any
 

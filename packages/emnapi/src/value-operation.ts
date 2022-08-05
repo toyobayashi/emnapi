@@ -2,30 +2,33 @@ function napi_typeof (env: napi_env, value: napi_value, result: Pointer<napi_val
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [value, result], () => {
       const v = emnapi.handleStore.get(value)!
+      // #if MEMORY64
+      result = Number(result)
+      // #endif
       if (v.isNumber()) {
-        HEAP32[result >> 2] = napi_valuetype.napi_number
+        setValue(result, napi_valuetype.napi_number, 'i32')
       } else if (v.isBigInt()) {
-        HEAP32[result >> 2] = napi_valuetype.napi_bigint
+        setValue(result, napi_valuetype.napi_bigint, 'i32')
       } else if (v.isString()) {
-        HEAP32[result >> 2] = napi_valuetype.napi_string
+        setValue(result, napi_valuetype.napi_string, 'i32')
       } else if (v.isFunction()) {
       // This test has to come before IsObject because IsFunction
       // implies IsObject
-        HEAP32[result >> 2] = napi_valuetype.napi_function
+        setValue(result, napi_valuetype.napi_function, 'i32')
       } else if (v.isExternal()) {
       // This test has to come before IsObject because IsExternal
       // implies IsObject
-        HEAP32[result >> 2] = napi_valuetype.napi_external
+        setValue(result, napi_valuetype.napi_external, 'i32')
       } else if (v.isObject()) {
-        HEAP32[result >> 2] = napi_valuetype.napi_object
+        setValue(result, napi_valuetype.napi_object, 'i32')
       } else if (v.isBoolean()) {
-        HEAP32[result >> 2] = napi_valuetype.napi_boolean
+        setValue(result, napi_valuetype.napi_boolean, 'i32')
       } else if (v.isUndefined()) {
-        HEAP32[result >> 2] = napi_valuetype.napi_undefined
+        setValue(result, napi_valuetype.napi_undefined, 'i32')
       } else if (v.isSymbol()) {
-        HEAP32[result >> 2] = napi_valuetype.napi_symbol
+        setValue(result, napi_valuetype.napi_symbol, 'i32')
       } else if (v.isNull()) {
-        HEAP32[result >> 2] = napi_valuetype.napi_null
+        setValue(result, napi_valuetype.napi_null, 'i32')
       } else {
       // Should not get here unless V8 has added some new kind of value.
         return envObject.setLastError(napi_status.napi_invalid_arg)
@@ -40,7 +43,10 @@ function napi_coerce_to_bool (env: napi_env, value: napi_value, result: Pointer<
   return emnapi.preamble(env, (envObject) => {
     return emnapi.checkArgs(envObject, [value, result], () => {
       const handle = emnapi.handleStore.get(value)!
-      HEAP32[result >> 2] = handle.value ? emnapi.HandleStore.ID_TRUE : emnapi.HandleStore.ID_FALSE
+      // #if MEMORY64
+      result = Number(result)
+      // #endif
+      setValue(result, handle.value ? emnapi.HandleStore.ID_TRUE : emnapi.HandleStore.ID_FALSE, '*')
       return envObject.getReturnStatus()
     })
   })
@@ -53,7 +59,10 @@ function napi_coerce_to_number (env: napi_env, value: napi_value, result: Pointe
       if (handle.isBigInt()) {
         throw new TypeError('Cannot convert a BigInt value to a number')
       }
-      HEAP32[result >> 2] = emnapi.addToCurrentScope(envObject, Number(handle.value)).id
+      // #if MEMORY64
+      result = Number(result)
+      // #endif
+      setValue(result, emnapi.addToCurrentScope(envObject, Number(handle.value)).id, '*')
       return envObject.getReturnStatus()
     })
   })
@@ -63,7 +72,10 @@ function napi_coerce_to_object (env: napi_env, value: napi_value, result: Pointe
   return emnapi.preamble(env, (envObject) => {
     return emnapi.checkArgs(envObject, [value, result], () => {
       const handle = emnapi.handleStore.get(value)!
-      HEAP32[result >> 2] = envObject.ensureHandleId(Object(handle.value))
+      // #if MEMORY64
+      result = Number(result)
+      // #endif
+      setValue(result, envObject.ensureHandleId(Object(handle.value)), '*')
       return envObject.getReturnStatus()
     })
   })
@@ -76,7 +88,10 @@ function napi_coerce_to_string (env: napi_env, value: napi_value, result: Pointe
       if (handle.isSymbol()) {
         throw new TypeError('Cannot convert a Symbol value to a string')
       }
-      HEAP32[result >> 2] = emnapi.addToCurrentScope(envObject, String(handle.value)).id
+      // #if MEMORY64
+      result = Number(result)
+      // #endif
+      setValue(result, emnapi.addToCurrentScope(envObject, String(handle.value)).id, '*')
       return envObject.getReturnStatus()
     })
   })
@@ -85,6 +100,9 @@ function napi_coerce_to_string (env: napi_env, value: napi_value, result: Pointe
 function napi_instanceof (env: napi_env, object: napi_value, constructor: napi_value, result: Pointer<bool>): napi_status {
   return emnapi.preamble(env, (envObject) => {
     return emnapi.checkArgs(envObject, [object, result, constructor], () => {
+      // #if MEMORY64
+      result = Number(result)
+      // #endif
       HEAPU8[result] = 0
       const ctor = emnapi.handleStore.get(constructor)!
       if (!ctor.isFunction()) {
@@ -102,6 +120,9 @@ function napi_is_array (env: napi_env, value: napi_value, result: Pointer<bool>)
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [value, result], () => {
       const h = emnapi.handleStore.get(value)!
+      // #if MEMORY64
+      result = Number(result)
+      // #endif
       HEAPU8[result] = h.isArray() ? 1 : 0
       return envObject.clearLastError()
     })
@@ -112,6 +133,9 @@ function napi_is_arraybuffer (env: napi_env, value: napi_value, result: Pointer<
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [value, result], () => {
       const h = emnapi.handleStore.get(value)!
+      // #if MEMORY64
+      result = Number(result)
+      // #endif
       HEAPU8[result] = h.isArrayBuffer() ? 1 : 0
       return envObject.clearLastError()
     })
@@ -122,6 +146,9 @@ function napi_is_date (env: napi_env, value: napi_value, result: Pointer<bool>):
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [value, result], () => {
       const h = emnapi.handleStore.get(value)!
+      // #if MEMORY64
+      result = Number(result)
+      // #endif
       HEAPU8[result] = h.isDate() ? 1 : 0
       return envObject.clearLastError()
     })
@@ -132,6 +159,9 @@ function napi_is_error (env: napi_env, value: napi_value, result: Pointer<bool>)
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [value, result], () => {
       const val = emnapi.handleStore.get(value)!.value
+      // #if MEMORY64
+      result = Number(result)
+      // #endif
       HEAPU8[result] = val instanceof Error ? 1 : 0
       return envObject.clearLastError()
     })
@@ -142,6 +172,9 @@ function napi_is_typedarray (env: napi_env, value: napi_value, result: Pointer<b
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [value, result], () => {
       const h = emnapi.handleStore.get(value)!
+      // #if MEMORY64
+      result = Number(result)
+      // #endif
       HEAPU8[result] = h.isTypedArray() ? 1 : 0
       return envObject.clearLastError()
     })
@@ -152,6 +185,9 @@ function napi_is_dataview (env: napi_env, value: napi_value, result: Pointer<boo
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [value, result], () => {
       const h = emnapi.handleStore.get(value)!
+      // #if MEMORY64
+      result = Number(result)
+      // #endif
       HEAPU8[result] = h.isDataView() ? 1 : 0
       return envObject.clearLastError()
     })
@@ -163,6 +199,9 @@ function napi_strict_equals (env: napi_env, lhs: napi_value, rhs: napi_value, re
     return emnapi.checkArgs(envObject, [lhs, rhs, result], () => {
       const lv = emnapi.handleStore.get(lhs)!.value
       const rv = emnapi.handleStore.get(rhs)!.value
+      // #if MEMORY64
+      result = Number(result)
+      // #endif
       HEAPU8[result] = (lv === rv) ? 1 : 0
       return envObject.getReturnStatus()
     })
@@ -196,6 +235,9 @@ function napi_is_detached_arraybuffer (env: napi_env, arraybuffer: napi_value, r
   return emnapi.preamble(env, (envObject) => {
     return emnapi.checkArgs(envObject, [arraybuffer, result], () => {
       const h: emnapi.Handle<ArrayBuffer> = emnapi.handleStore.get(arraybuffer)!
+      // #if MEMORY64
+      result = Number(result)
+      // #endif
       if (h.isArrayBuffer() && h.value.byteLength === 0) {
         try {
           // eslint-disable-next-line no-new

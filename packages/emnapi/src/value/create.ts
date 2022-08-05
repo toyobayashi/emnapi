@@ -1,7 +1,10 @@
 function napi_create_array (env: napi_env, result: Pointer<napi_value>): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [result], () => {
-      HEAP32[result >> 2] = emnapi.addToCurrentScope(envObject, []).id
+      // #if MEMORY64
+      result = Number(result)
+      // #endif
+      setValue(result, emnapi.addToCurrentScope(envObject, []).id, '*')
       return envObject.clearLastError()
     })
   })
@@ -10,7 +13,10 @@ function napi_create_array (env: napi_env, result: Pointer<napi_value>): napi_st
 function napi_create_array_with_length (env: napi_env, length: size_t, result: Pointer<napi_value>): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [result], () => {
-      HEAP32[result >> 2] = emnapi.addToCurrentScope(envObject, new Array(length >>> 0)).id
+      // #if MEMORY64
+      result = Number(result)
+      // #endif
+      setValue(result, emnapi.addToCurrentScope(envObject, new Array(Number(length) >>> 0)).id, '*')
       return envObject.clearLastError()
     })
   })
@@ -19,8 +25,11 @@ function napi_create_array_with_length (env: napi_env, length: size_t, result: P
 function napi_create_arraybuffer (env: napi_env, byte_length: size_t, _data: void_pp, result: Pointer<napi_value>): napi_status {
   return emnapi.preamble(env, (envObject) => {
     return emnapi.checkArgs(envObject, [result], () => {
-      byte_length = byte_length >>> 0
-      HEAP32[result >> 2] = emnapi.addToCurrentScope(envObject, new ArrayBuffer(byte_length)).id
+      byte_length = Number(byte_length) >>> 0
+      // #if MEMORY64
+      result = Number(result)
+      // #endif
+      setValue(result, emnapi.addToCurrentScope(envObject, new ArrayBuffer(byte_length)).id, '*')
       return envObject.getReturnStatus()
     })
   })
@@ -29,7 +38,10 @@ function napi_create_arraybuffer (env: napi_env, byte_length: size_t, _data: voi
 function napi_create_date (env: napi_env, time: double, result: Pointer<napi_value>): napi_status {
   return emnapi.preamble(env, (envObject) => {
     return emnapi.checkArgs(envObject, [result], () => {
-      HEAP32[result >> 2] = emnapi.addToCurrentScope(envObject, new Date(time)).id
+      // #if MEMORY64
+      result = Number(result)
+      // #endif
+      setValue(result, emnapi.addToCurrentScope(envObject, new Date(time)).id, '*')
       return envObject.getReturnStatus()
     })
   })
@@ -46,7 +58,10 @@ function napi_create_external (env: napi_env, data: void_p, finalize_cb: napi_fi
       if (finalize_cb) {
         emnapi.Reference.create(envObject, externalHandle.id, 0, true, finalize_cb, data, finalize_hint)
       }
-      HEAP32[result >> 2] = externalHandle.id
+      // #if MEMORY64
+      result = Number(result)
+      // #endif
+      setValue(result, externalHandle.id, '*')
       return envObject.clearLastError()
     })
   })
@@ -66,7 +81,10 @@ function napi_create_external (env: napi_env, data: void_p, finalize_cb: napi_fi
 function napi_create_object (env: napi_env, result: Pointer<napi_value>): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [result], () => {
-      HEAP32[result >> 2] = emnapi.addToCurrentScope(envObject, {}).id
+      // #if MEMORY64
+      result = Number(result)
+      // #endif
+      setValue(result, emnapi.addToCurrentScope(envObject, {}).id, '*')
       return envObject.clearLastError()
     })
   })
@@ -75,16 +93,19 @@ function napi_create_object (env: napi_env, result: Pointer<napi_value>): napi_s
 function napi_create_symbol (env: napi_env, description: napi_value, result: Pointer<napi_value>): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [result], () => {
-      if (description === NULL) {
+      // #if MEMORY64
+      result = Number(result)
+      // #endif
+      if (!description) {
         // eslint-disable-next-line symbol-description
-        HEAP32[result >> 2] = emnapi.addToCurrentScope(envObject, Symbol()).id
+        setValue(result, emnapi.addToCurrentScope(envObject, Symbol()).id, '*')
       } else {
         const handle = emnapi.handleStore.get(description)!
         const desc = handle.value
         if (typeof desc !== 'string') {
           return envObject.setLastError(napi_status.napi_string_expected)
         }
-        HEAP32[result >> 2] = emnapi.addToCurrentScope(envObject, Symbol(desc)).id
+        setValue(result, emnapi.addToCurrentScope(envObject, Symbol(desc)).id, '*')
       }
       return envObject.clearLastError()
     })
@@ -101,8 +122,6 @@ function napi_create_typedarray (
 ): napi_status {
   return emnapi.preamble(env, (envObject) => {
     return emnapi.checkArgs(envObject, [arraybuffer, result], () => {
-      length = length >>> 0
-      byte_offset = byte_offset >>> 0
       const handle = emnapi.handleStore.get(arraybuffer)!
       const buffer = handle.value
       if (!(buffer instanceof ArrayBuffer)) {
@@ -110,7 +129,10 @@ function napi_create_typedarray (
       }
 
       const retCallback = (out: ArrayBufferView): napi_status => {
-        HEAP32[result >> 2] = emnapi.addToCurrentScope(envObject, out).id
+        // #if MEMORY64
+        result = Number(result)
+        // #endif
+        setValue(result, emnapi.addToCurrentScope(envObject, out).id, '*')
         return envObject.getReturnStatus()
       }
 
@@ -153,8 +175,13 @@ function napi_create_dataview (
 ): napi_status {
   return emnapi.preamble(env, (envObject) => {
     return emnapi.checkArgs(envObject, [arraybuffer, result], () => {
+      // #if MEMORY64
+      byte_length = Number(byte_length) >>> 0
+      byte_offset = Number(byte_offset) >>> 0
+      // #else
       byte_length = byte_length >>> 0
       byte_offset = byte_offset >>> 0
+      // #endif
       const handle = emnapi.handleStore.get(arraybuffer)!
       const buffer = handle.value
       if (!(buffer instanceof ArrayBuffer)) {
@@ -169,7 +196,10 @@ function napi_create_dataview (
       }
 
       const dataview = new DataView(buffer, byte_offset, byte_length)
-      HEAP32[result >> 2] = emnapi.addToCurrentScope(envObject, dataview).id
+      // #if MEMORY64
+      result = Number(result)
+      // #endif
+      setValue(result, emnapi.addToCurrentScope(envObject, dataview).id, '*')
       return envObject.getReturnStatus()
     })
   })
@@ -178,8 +208,13 @@ function napi_create_dataview (
 function node_api_symbol_for (env: napi_env, utf8description: const_char_p, length: size_t, result: Pointer<napi_value>): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [result], () => {
+      // #if MEMORY64
+      length = Number(length)
+      utf8description = Number(utf8description)
+      result = Number(result)
+      // #endif
       const descriptionString = length === -1 ? UTF8ToString(utf8description) : UTF8ToString(utf8description, length)
-      HEAP32[result >> 2] = emnapi.addToCurrentScope(envObject, Symbol.for(descriptionString)).id
+      setValue(result, emnapi.addToCurrentScope(envObject, Symbol.for(descriptionString)).id, '*')
       return envObject.clearLastError()
     })
   })

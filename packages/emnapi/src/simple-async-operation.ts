@@ -20,7 +20,7 @@ mergeInto(LibraryManager.library, {
 
   _emnapi_get_worker_count_js__deps: ['$PThread'],
   _emnapi_get_worker_count_js: function (struct: number) {
-    const address = struct >> 2
+    const address = Number(struct) >> 2
     HEAP32[address] = PThread.unusedWorkers.length
     HEAP32[address + 1] = PThread.runningWorkers.length
   },
@@ -35,7 +35,7 @@ mergeInto(LibraryManager.library, {
 })
 
 function _emnapi_queue_async_work_js (work: number): void {
-  const tid = HEAP32[(work + 16) >> 2]
+  const tid = getValue(Number(work) + POINTER_SIZE * 4, '*')
   if (tid === 0) {
     emnapiAsyncWorkerQueue.push(work)
     return
@@ -45,17 +45,17 @@ function _emnapi_queue_async_work_js (work: number): void {
   if (!worker._emnapiAsyncWorkListener) {
     worker._emnapiAsyncWorkListener = function (this: Worker, e: MessageEvent<any>): any {
       const data = ENVIRONMENT_IS_NODE ? e : e.data
-      const w: number = data.emnapiAsyncWorkPtr
+      const w = Number(data.emnapiAsyncWorkPtr)
       if (w) {
-        const env = HEAP32[w >> 2]
-        HEAP32[(w + 16) >> 2] = 0 // tid
-        const complete = HEAP32[(w + 8) >> 2]
-        if (complete !== NULL) {
+        const env = getValue(w, '*')
+        setValue(w + POINTER_SIZE * 4, 0, '*') // tid
+        const complete = getValue(w + POINTER_SIZE * 2, '*')
+        if (complete) {
           const envObject = emnapi.envStore.get(env)!
           const scope = emnapi.openScope(envObject, emnapi.HandleScope)
           try {
             envObject.callIntoModule((_envObject) => {
-              emnapiGetDynamicCalls.call_viii(complete, env, napi_status.napi_ok, HEAP32[(w + 12) >> 2])
+              emnapiGetDynamicCalls.call_vpip(complete, env, napi_status.napi_ok, getValue(w + POINTER_SIZE * 3, '*'))
             })
           } catch (err) {
             emnapi.closeScope(envObject, scope)
@@ -77,21 +77,21 @@ function napi_cancel_async_work (env: napi_env, work: number): napi_status {
 // #if USE_PTHREADS
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [work], () => {
-      const tid = HEAP32[(work + 16) >> 2]
+      const tid = getValue(Number(work) + POINTER_SIZE * 4, '*')
       const workQueueIndex = emnapiAsyncWorkerQueue.indexOf(work)
       if (tid !== 0 || workQueueIndex === -1) {
         return envObject.setLastError(napi_status.napi_generic_failure)
       }
 
       emnapiAsyncWorkerQueue.splice(workQueueIndex, 1)
-      const complete = HEAP32[(work + 8) >> 2]
-      if (complete !== NULL) {
+      const complete = getValue(Number(work) + POINTER_SIZE * 2, '*')
+      if (complete) {
         setTimeout(() => {
           const envObject = emnapi.envStore.get(env)!
           const scope = emnapi.openScope(envObject, emnapi.HandleScope)
           try {
             envObject.callIntoModule((_envObject) => {
-              emnapiGetDynamicCalls.call_viii(complete, env, napi_status.napi_cancelled, HEAP32[(work + 12) >> 2])
+              emnapiGetDynamicCalls.call_vpip(complete, env, napi_status.napi_cancelled, getValue(Number(work) + POINTER_SIZE * 3, '*'))
             })
           } catch (err) {
             emnapi.closeScope(envObject, scope)

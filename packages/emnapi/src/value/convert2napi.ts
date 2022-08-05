@@ -3,7 +3,10 @@
 function napi_create_int32 (env: napi_env, value: int32_t, result: Pointer<napi_value>): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [result], () => {
-      HEAP32[result >> 2] = emnapi.addToCurrentScope(envObject, value).id
+      // #if MEMORY64
+      result = Number(result)
+      // #endif
+      setValue(result, emnapi.addToCurrentScope(envObject, value).id, '*')
       return envObject.clearLastError()
     })
   })
@@ -12,7 +15,10 @@ function napi_create_int32 (env: napi_env, value: int32_t, result: Pointer<napi_
 function napi_create_uint32 (env: napi_env, value: uint32_t, result: Pointer<napi_value>): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [result], () => {
-      HEAP32[result >> 2] = emnapi.addToCurrentScope(envObject, value >>> 0).id
+      // #if MEMORY64
+      result = Number(result)
+      // #endif
+      setValue(result, emnapi.addToCurrentScope(envObject, value >>> 0).id, '*')
       return envObject.clearLastError()
     })
   })
@@ -20,14 +26,20 @@ function napi_create_uint32 (env: napi_env, value: uint32_t, result: Pointer<nap
 
 function napi_create_int64 (env: napi_env, low: int32_t, high: int32_t, result: Pointer<napi_value>): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
-    return emnapi.checkArgs(envObject, [result], () => {
+    let checkList: number[]
+// #if WASM_BIGINT
+    checkList = [high]
+// #else
+    checkList = [result]
+// #endif
+    return emnapi.checkArgs(envObject, checkList, () => {
       let value: number
 // #if WASM_BIGINT
       value = Number(low)
-      HEAP32[high >> 2] = emnapi.addToCurrentScope(envObject, value).id
+      setValue(Number(high), emnapi.addToCurrentScope(envObject, value).id, '*')
 // #else
       value = (low >>> 0) + (high * Math.pow(2, 32))
-      HEAP32[result >> 2] = emnapi.addToCurrentScope(envObject, value).id
+      setValue(result, emnapi.addToCurrentScope(envObject, value).id, '*')
 // #endif
       return envObject.clearLastError()
     })
@@ -37,7 +49,10 @@ function napi_create_int64 (env: napi_env, low: int32_t, high: int32_t, result: 
 function napi_create_double (env: napi_env, value: double, result: Pointer<napi_value>): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [result], () => {
-      HEAP32[result >> 2] = emnapi.addToCurrentScope(envObject, value).id
+      // #if MEMORY64
+      result = Number(result)
+      // #endif
+      setValue(result, emnapi.addToCurrentScope(envObject, value).id, '*')
       return envObject.clearLastError()
     })
   })
@@ -46,8 +61,13 @@ function napi_create_double (env: napi_env, value: double, result: Pointer<napi_
 function napi_create_string_latin1 (env: napi_env, str: const_char_p, length: size_t, result: Pointer<napi_value>): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [result], () => {
+      // #if MEMORY64
+      str = Number(str)
+      length = Number(length) >>> 0
+      // #else
       length = length >>> 0
-      if (!((length === 0xffffffff) || (length <= 2147483647)) || (str === NULL)) {
+      // #endif
+      if (!((length === 0xffffffff) || (length <= 2147483647)) || (!str)) {
         return envObject.setLastError(napi_status.napi_invalid_arg)
       }
 
@@ -69,7 +89,10 @@ function napi_create_string_latin1 (env: napi_env, str: const_char_p, length: si
           str++
         }
       }
-      HEAP32[result >> 2] = emnapi.addToCurrentScope(envObject, latin1String).id
+      // #if MEMORY64
+      result = Number(result)
+      // #endif
+      setValue(result, emnapi.addToCurrentScope(envObject, latin1String).id, '*')
       return envObject.clearLastError()
     })
   })
@@ -78,13 +101,21 @@ function napi_create_string_latin1 (env: napi_env, str: const_char_p, length: si
 function napi_create_string_utf16 (env: napi_env, str: const_char16_t_p, length: size_t, result: Pointer<napi_value>): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [result], () => {
+      // #if MEMORY64
+      str = Number(str)
+      length = Number(length) >>> 0
+      // #else
       length = length >>> 0
-      if (!((length === 0xffffffff) || (length <= 2147483647)) || (str === NULL)) {
+      // #endif
+      if (!((length === 0xffffffff) || (length <= 2147483647)) || (!str)) {
         return envObject.setLastError(napi_status.napi_invalid_arg)
       }
 
       const utf16String = length === -1 ? UTF16ToString(str) : UTF16ToString(str, length * 2)
-      HEAP32[result >> 2] = emnapi.addToCurrentScope(envObject, utf16String).id
+      // #if MEMORY64
+      result = Number(result)
+      // #endif
+      setValue(result, emnapi.addToCurrentScope(envObject, utf16String).id, '*')
       return envObject.clearLastError()
     })
   })
@@ -93,12 +124,20 @@ function napi_create_string_utf16 (env: napi_env, str: const_char16_t_p, length:
 function napi_create_string_utf8 (env: napi_env, str: const_char_p, length: size_t, result: Pointer<napi_value>): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [result], () => {
+      // #if MEMORY64
+      str = Number(str)
+      length = Number(length) >>> 0
+      // #else
       length = length >>> 0
-      if (!((length === 0xffffffff) || (length <= 2147483647)) || (str === NULL)) {
+      // #endif
+      if (!((length === 0xffffffff) || (length <= 2147483647)) || (!str)) {
         return envObject.setLastError(napi_status.napi_invalid_arg)
       }
       const utf8String = length === -1 ? UTF8ToString(str) : UTF8ToString(str, length)
-      HEAP32[result >> 2] = emnapi.addToCurrentScope(envObject, utf8String).id
+      // #if MEMORY64
+      result = Number(result)
+      // #endif
+      setValue(result, emnapi.addToCurrentScope(envObject, utf8String).id, '*')
       return envObject.clearLastError()
     })
   })
@@ -110,14 +149,20 @@ function napi_create_bigint_int64 (env: napi_env, low: int32_t, high: int32_t, r
       envObject.tryCatch.setError(new emnapi.NotSupportBigIntError('napi_create_bigint_int64', 'This API is unavailable'))
       return envObject.setLastError(napi_status.napi_pending_exception)
     }
-    return emnapi.checkArgs(envObject, [result], () => {
+    let checkList: number[]
+    // #if WASM_BIGINT
+    checkList = [high]
+    // #else
+    checkList = [result]
+    // #endif
+    return emnapi.checkArgs(envObject, checkList, () => {
       let value: BigInt
 // #if WASM_BIGINT
       value = low as unknown as BigInt
-      HEAP32[high >> 2] = emnapi.addToCurrentScope(envObject, value).id
+      setValue(Number(high), emnapi.addToCurrentScope(envObject, value).id, '*')
 // #else
       value = BigInt(low >>> 0) | (BigInt(high) << BigInt(32))
-      HEAP32[result >> 2] = emnapi.addToCurrentScope(envObject, value).id
+      setValue(result, emnapi.addToCurrentScope(envObject, value).id, '*')
 // #endif
       return envObject.clearLastError()
     })
@@ -130,14 +175,20 @@ function napi_create_bigint_uint64 (env: napi_env, low: int32_t, high: int32_t, 
       envObject.tryCatch.setError(new emnapi.NotSupportBigIntError('napi_create_bigint_uint64', 'This API is unavailable'))
       return envObject.setLastError(napi_status.napi_pending_exception)
     }
-    return emnapi.checkArgs(envObject, [result], () => {
+    let checkList: number[]
+    // #if WASM_BIGINT
+    checkList = [high]
+    // #else
+    checkList = [result]
+    // #endif
+    return emnapi.checkArgs(envObject, checkList, () => {
       let value: BigInt
 // #if WASM_BIGINT
       value = low as unknown as BigInt
-      HEAP32[high >> 2] = emnapi.addToCurrentScope(envObject, value).id
+      setValue(Number(high), emnapi.addToCurrentScope(envObject, value).id, '*')
 // #else
       value = BigInt(low >>> 0) | (BigInt(high >>> 0) << BigInt(32))
-      HEAP32[result >> 2] = emnapi.addToCurrentScope(envObject, value).id
+      setValue(result, emnapi.addToCurrentScope(envObject, value).id, '*')
 // #endif
       return envObject.clearLastError()
     })
@@ -150,7 +201,12 @@ function napi_create_bigint_words (env: napi_env, sign_bit: int, word_count: siz
       throw new emnapi.NotSupportBigIntError('napi_create_bigint_words', 'This API is unavailable')
     }
     return emnapi.checkArgs(envObject, [result], () => {
+      // #if MEMORY64
+      words = Number(words)
+      word_count = Number(word_count) >>> 0
+      // #else
       word_count = word_count >>> 0
+      // #endif
       if (word_count > 2147483647) {
         return envObject.setLastError(napi_status.napi_invalid_arg)
       }
@@ -165,7 +221,10 @@ function napi_create_bigint_words (env: napi_env, sign_bit: int, word_count: siz
         value += wordi << BigInt(64 * i)
       }
       value *= ((BigInt(sign_bit) % BigInt(2) === BigInt(0)) ? BigInt(1) : BigInt(-1))
-      HEAP32[result >> 2] = emnapi.addToCurrentScope(envObject, value).id
+      // #if MEMORY64
+      result = Number(result)
+      // #endif
+      setValue(result, emnapi.addToCurrentScope(envObject, value).id, '*')
       return envObject.clearLastError()
     })
   })

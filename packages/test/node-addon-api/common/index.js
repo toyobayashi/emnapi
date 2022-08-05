@@ -105,7 +105,7 @@ exports.runTestWithBindingPath = async function (test, buildType, buildPathRoot 
     // path.join(buildPathRoot, `../build/${buildType}/binding_noexcept.node`),
     // path.join(buildPathRoot, `../build/${buildType}/binding_noexcept_maybe.node`),
     // path.join(buildPathRoot, `../build/${buildType}/binding_custom_namespace.node`)
-    getEntry('naa_binding'),
+    ...(!process.env.MEMORY64 ? [getEntry('naa_binding')] : []),
     getEntry('naa_binding_noexcept'),
     getEntry('naa_binding_noexcept_maybe'),
     getEntry('naa_binding_custom_namespace')
