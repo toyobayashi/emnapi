@@ -26,7 +26,10 @@ function napi_get_all_property_names (
         return envObject.setLastError(napi_status.napi_invalid_arg)
       }
       const names = emnapiGetPropertyNames(v, key_mode, key_filter, key_conversion)
-      HEAP32[result >> 2] = emnapi.addToCurrentScope(envObject, names).id
+      // #if MEMORY64
+      result = Number(result)
+      // #endif
+      setValue(result, emnapi.addToCurrentScope(envObject, names).id, '*')
       return envObject.getReturnStatus()
     })
   })
@@ -69,6 +72,9 @@ function napi_has_property (env: napi_env, object: napi_value, key: napi_value, 
       } catch (_) {
         return envObject.setLastError(napi_status.napi_object_expected)
       }
+      // #if MEMORY64
+      result = Number(result)
+      // #endif
       HEAPU8[result] = (emnapi.handleStore.get(key)!.value in v) ? 1 : 0
       return envObject.getReturnStatus()
     })
@@ -88,7 +94,10 @@ function napi_get_property (env: napi_env, object: napi_value, key: napi_value, 
       } catch (_) {
         return envObject.setLastError(napi_status.napi_object_expected)
       }
-      HEAP32[result >> 2] = envObject.ensureHandleId(v[emnapi.handleStore.get(key)!.value])
+      // #if MEMORY64
+      result = Number(result)
+      // #endif
+      setValue(result, envObject.ensureHandleId(v[emnapi.handleStore.get(key)!.value]), '*')
       return envObject.getReturnStatus()
     })
   })
@@ -112,7 +121,10 @@ function napi_delete_property (env: napi_env, object: napi_value, key: napi_valu
           r = false
         }
       }
-      if (result !== NULL) {
+      if (result) {
+        // #if MEMORY64
+        result = Number(result)
+        // #endif
         HEAPU8[result] = r ? 1 : 0
       }
       return envObject.getReturnStatus()
@@ -138,6 +150,9 @@ function napi_has_own_property (env: napi_env, object: napi_value, key: napi_val
         return envObject.setLastError(napi_status.napi_name_expected)
       }
       const r = Object.prototype.hasOwnProperty.call(v, emnapi.handleStore.get(key)!.value)
+      // #if MEMORY64
+      result = Number(result)
+      // #endif
       HEAPU8[result] = r ? 1 : 0
       return envObject.getReturnStatus()
     })
@@ -151,9 +166,12 @@ function napi_set_named_property (env: napi_env, object: napi_value, name: const
       if (!(h.isObject() || h.isFunction())) {
         return envObject.setLastError(napi_status.napi_object_expected)
       }
-      if (name === NULL) {
+      if (!name) {
         return envObject.setLastError(napi_status.napi_invalid_arg)
       }
+      // #if MEMORY64
+      name = Number(name)
+      // #endif
       emnapi.handleStore.get(object)!.value[UTF8ToString(name)] = emnapi.handleStore.get(value)!.value
       return napi_status.napi_ok
     })
@@ -163,7 +181,7 @@ function napi_set_named_property (env: napi_env, object: napi_value, name: const
 function napi_has_named_property (env: napi_env, object: napi_value, utf8name: const_char_p, result: Pointer<bool>): napi_status {
   return emnapi.preamble(env, (envObject) => {
     return emnapi.checkArgs(envObject, [result, object], () => {
-      if (utf8name === NULL) {
+      if (!utf8name) {
         return envObject.setLastError(napi_status.napi_invalid_arg)
       }
       const h = emnapi.handleStore.get(object)!
@@ -176,6 +194,10 @@ function napi_has_named_property (env: napi_env, object: napi_value, utf8name: c
       } catch (_) {
         return envObject.setLastError(napi_status.napi_object_expected)
       }
+      // #if MEMORY64
+      utf8name = Number(utf8name)
+      result = Number(result)
+      // #endif
       const r = UTF8ToString(utf8name) in v
       HEAPU8[result] = r ? 1 : 0
       return envObject.getReturnStatus()
@@ -186,7 +208,7 @@ function napi_has_named_property (env: napi_env, object: napi_value, utf8name: c
 function napi_get_named_property (env: napi_env, object: napi_value, utf8name: const_char_p, result: Pointer<napi_value>): napi_status {
   return emnapi.preamble(env, (envObject) => {
     return emnapi.checkArgs(envObject, [result, object], () => {
-      if (utf8name === NULL) {
+      if (!utf8name) {
         return envObject.setLastError(napi_status.napi_invalid_arg)
       }
       const h = emnapi.handleStore.get(object)!
@@ -199,7 +221,11 @@ function napi_get_named_property (env: napi_env, object: napi_value, utf8name: c
       } catch (_) {
         return envObject.setLastError(napi_status.napi_object_expected)
       }
-      HEAP32[result >> 2] = envObject.ensureHandleId(v[UTF8ToString(utf8name)])
+      // #if MEMORY64
+      utf8name = Number(utf8name)
+      result = Number(result)
+      // #endif
+      setValue(result, envObject.ensureHandleId(v[UTF8ToString(utf8name)]), '*')
       return envObject.getReturnStatus()
     })
   })
@@ -231,6 +257,9 @@ function napi_has_element (env: napi_env, object: napi_value, index: uint32_t, r
       } catch (_) {
         return envObject.setLastError(napi_status.napi_object_expected)
       }
+      // #if MEMORY64
+      result = Number(result)
+      // #endif
       HEAPU8[result] = ((index >>> 0) in v) ? 1 : 0
       return envObject.getReturnStatus()
     })
@@ -250,7 +279,10 @@ function napi_get_element (env: napi_env, object: napi_value, index: uint32_t, r
       } catch (_) {
         return envObject.setLastError(napi_status.napi_object_expected)
       }
-      HEAP32[result >> 2] = envObject.ensureHandleId(v[index >>> 0])
+      // #if MEMORY64
+      result = Number(result)
+      // #endif
+      setValue(result, envObject.ensureHandleId(v[index >>> 0]), '*')
       return envObject.getReturnStatus()
     })
   })
@@ -263,8 +295,20 @@ function napi_delete_element (env: napi_env, object: napi_value, index: uint32_t
       if (!(h.isObject() || h.isFunction())) {
         return envObject.setLastError(napi_status.napi_object_expected)
       }
-      const r = delete h.value[index >>> 0]
-      if (result !== NULL) {
+      let r: boolean
+      if (emnapi.supportReflect) {
+        r = Reflect.deleteProperty(h.value, index >>> 0)
+      } else {
+        try {
+          r = delete h.value[index >>> 0]
+        } catch (_) {
+          r = false
+        }
+      }
+      if (result) {
+        // #if MEMORY64
+        result = Number(result)
+        // #endif
         HEAPU8[result] = r ? 1 : 0
       }
       return envObject.getReturnStatus()
@@ -279,31 +323,59 @@ function napi_define_properties (
   properties: Const<Pointer<napi_property_descriptor>>
 ): napi_status {
   return emnapi.preamble(env, (envObject) => {
+    // #if MEMORY64
+    properties = Number(properties)
+    property_count = Number(property_count) >>> 0
+    // #else
+    property_count = property_count >>> 0
+    // #endif
     if (property_count > 0) {
-      if (properties === NULL) return envObject.setLastError(napi_status.napi_invalid_arg)
+      if (!properties) return envObject.setLastError(napi_status.napi_invalid_arg)
     }
-    if (object === NULL) return envObject.setLastError(napi_status.napi_invalid_arg)
+    if (!object) return envObject.setLastError(napi_status.napi_invalid_arg)
     const h = emnapi.handleStore.get(object)!
     const maybeObject = h.value
     if (!(h.isObject() || h.isFunction())) {
       return envObject.setLastError(napi_status.napi_object_expected)
     }
-    for (let i = 0; i < property_count; i++) {
-      const propPtr = properties + (i * 32)
+    let propPtr: number
+    let utf8Name: number
+    let name: number
+    let method: number
+    let getter: number
+    let setter: number
+    let value: number
+    let attributes: number
+    let data: number
+    let propertyName: string | symbol
 
-      const utf8Name = HEAP32[propPtr >> 2]
-      const name = HEAP32[propPtr + 4 >> 2]
-      const method = HEAP32[propPtr + 8 >> 2]
-      const getter = HEAP32[propPtr + 12 >> 2]
-      const setter = HEAP32[propPtr + 16 >> 2]
-      const value = HEAP32[propPtr + 20 >> 2]
-      const attributes = HEAP32[propPtr + 24 >> 2]
-      const data = HEAP32[propPtr + 28 >> 2]
-      let propertyName: string | symbol
-      if (utf8Name !== NULL) {
+    for (let i = 0; i < property_count; i++) {
+      // #if MEMORY64
+      propPtr = properties + (i * 64)
+      utf8Name = getValue(propPtr, '*')
+      name = getValue(propPtr + 8, '*')
+      method = getValue(propPtr + 16, '*')
+      getter = getValue(propPtr + 24, '*')
+      setter = getValue(propPtr + 32, '*')
+      value = getValue(propPtr + 40, '*')
+      attributes = Number(HEAP64[(propPtr + 48) >> 3])
+      data = getValue(propPtr + 56, '*')
+      // #else
+      propPtr = properties + (i * 32)
+      utf8Name = getValue(propPtr, '*')
+      name = getValue(propPtr + 4, '*')
+      method = getValue(propPtr + 8, '*')
+      getter = getValue(propPtr + 12, '*')
+      setter = getValue(propPtr + 16, '*')
+      value = getValue(propPtr + 20, '*')
+      attributes = HEAP32[(propPtr + 24) >> 2]
+      data = getValue(propPtr + 28, '*')
+      // #endif
+
+      if (utf8Name) {
         propertyName = UTF8ToString(utf8Name)
       } else {
-        if (name === NULL) {
+        if (!name) {
           return envObject.setLastError(napi_status.napi_name_expected)
         }
         propertyName = emnapi.handleStore.get(name)!.value
@@ -319,7 +391,7 @@ function napi_define_properties (
 
 function napi_object_freeze (env: napi_env, object: napi_value): napi_status {
   return emnapi.preamble(env, (envObject) => {
-    if (object === NULL) return envObject.setLastError(napi_status.napi_invalid_arg)
+    if (!object) return envObject.setLastError(napi_status.napi_invalid_arg)
     const h = emnapi.handleStore.get(object)!
     const maybeObject = h.value
     if (!(h.isObject() || h.isFunction())) {
@@ -332,7 +404,7 @@ function napi_object_freeze (env: napi_env, object: napi_value): napi_status {
 
 function napi_object_seal (env: napi_env, object: napi_value): napi_status {
   return emnapi.preamble(env, (envObject) => {
-    if (object === NULL) return envObject.setLastError(napi_status.napi_invalid_arg)
+    if (!object) return envObject.setLastError(napi_status.napi_invalid_arg)
     const h = emnapi.handleStore.get(object)!
     const maybeObject = h.value
     if (!(h.isObject() || h.isFunction())) {

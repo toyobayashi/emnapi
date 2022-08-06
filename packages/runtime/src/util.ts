@@ -76,16 +76,16 @@ export class TryCatch {
 } */
 
 export function checkEnv (env: napi_env, fn: (envObject: Env) => napi_status): napi_status {
-  if (env === NULL) return napi_status.napi_invalid_arg
+  if (!env) return napi_status.napi_invalid_arg
   const envObject = envStore.get(env)
   if (envObject === undefined) return napi_status.napi_invalid_arg
   return fn(envObject)
 }
 
-export function checkArgs (envObject: Env, args: any[], fn: () => napi_status): napi_status {
+export function checkArgs (envObject: Env, args: Ptr[], fn: () => napi_status): napi_status {
   for (let i = 0; i < args.length; i++) {
     const arg = args[i]
-    if (arg === NULL) {
+    if (!arg) {
       return envObject.setLastError(napi_status.napi_invalid_arg)
     }
   }

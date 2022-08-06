@@ -15,7 +15,7 @@ jobs:
     - uses: actions/checkout@v2
     - uses: mymindstorm/setup-emsdk@v10
       with:
-        version: '3.1.14'
+        version: '3.1.18'
         # no-cache: true
         actions-cache-folder: 'emsdk-cache'
     - uses: actions/setup-node@v2
@@ -33,6 +33,13 @@ jobs:
         npm run build --workspaces --if-present
 
     - name: Test
+      run: |
+        npm run rebuild -w packages/test
+        npm run test -w packages/test
+
+    - name: Test MEMORY64
+      env:
+        MEMORY64: '1'
       run: |
         npm run rebuild -w packages/test
         npm run test -w packages/test

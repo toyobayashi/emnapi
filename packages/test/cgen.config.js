@@ -2,6 +2,7 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
   const compilerFlags = isEmscripten
     ? [
         // ...(isDebug ? ['-sDISABLE_EXCEPTION_CATCHING=0'] : [])
+        ...(process.env.MEMORY64 ? ['-sMEMORY64=1'] : [])
       ]
     : []
 
@@ -12,6 +13,7 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
         '-sWASM_BIGINT=1',
         '-sALLOW_MEMORY_GROWTH=1',
         '-sMIN_CHROME_VERSION=67',
+        ...(process.env.MEMORY64 ? ['-sMEMORY64=1'] : []),
         // '-sEXIT_RUNTIME=1',
         ...(isDebug ? ['-sSAFE_HEAP=1'/* , '-sDISABLE_EXCEPTION_CATCHING=0' */] : [])
       ]
@@ -62,12 +64,12 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
     ],
     compileOptions: [...new Set([
       ...compilerFlags,
-      ...(enableException && isEmscripten ? ['-sDISABLE_EXCEPTION_CATCHING=0'] : [])
+      ...(enableException && isEmscripten && !process.env.MEMORY64 ? ['-sDISABLE_EXCEPTION_CATCHING=0'] : [])
     ])],
     // eslint-disable-next-line no-template-curly-in-string
     linkOptions: [...new Set([
       ...linkerFlags,
-      ...(enableException && isEmscripten ? ['-sDISABLE_EXCEPTION_CATCHING=0'] : []),
+      ...(enableException && isEmscripten && !process.env.MEMORY64 ? ['-sDISABLE_EXCEPTION_CATCHING=0'] : []),
       ...(isEmscripten ? [jsLib] : [])
     ])]
   })
@@ -90,8 +92,9 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
       },
       createTarget('env', ['./env/binding.c']),
       createTarget('hello', ['./hello/binding.c']),
-      createTarget('async', ['./async/binding.c'], false, true),
-      ...(isEmscripten ? [createTarget('tsfn', ['./tsfn/binding.c'], false, true)] : []),
+      ...(!(isEmscripten && process.env.MEMORY64) ? [createTarget('async', ['./async/binding.c'], false, true)] : []),
+      ...(isEmscripten && !process.env.MEMORY64 ? [createTarget('tsfn', ['./tsfn/binding.c'], false, true)] : []),
+      // ...(isEmscripten ? [createTarget('tsfn', ['./tsfn/binding.c'], false, true)] : []),
       createTarget('arg', ['./arg/binding.c'], true),
       createTarget('callback', ['./callback/binding.c'], true),
       createTarget('objfac', ['./objfac/binding.c'], true),

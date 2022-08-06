@@ -2,12 +2,15 @@ function napi_get_last_error_info (env: napi_env, result: Pointer<Pointer<napi_e
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [result], () => {
       const error_code = envObject.lastError.getErrorCode()
-      envObject.lastError.setErrorMessage(HEAP32[(errorMessagesPtr! >> 2) + error_code])
+      envObject.lastError.setErrorMessage(getValue(errorMessagesPtr! + error_code * POINTER_SIZE, '*'))
 
       if (error_code === napi_status.napi_ok) {
         envObject.clearLastError()
       }
-      HEAP32[result >> 2] = envObject.lastError.data
+      // #if MEMORY64
+      result = Number(result)
+      // #endif
+      setValue(result, envObject.lastError.data, '*')
       return napi_status.napi_ok
     })
   })
@@ -24,9 +27,13 @@ function napi_throw (env: napi_env, error: napi_value): napi_status {
 
 function napi_throw_error (env: napi_env, code: const_char_p, msg: const_char_p): napi_status {
   return emnapi.preamble(env, (envObject) => {
-    if (msg === NULL) return envObject.setLastError(napi_status.napi_invalid_arg)
+    if (!msg) return envObject.setLastError(napi_status.napi_invalid_arg)
+    // #if MEMORY64
+    code = Number(code)
+    msg = Number(msg)
+    // #endif
     const error: Error & { code?: string } = new Error(UTF8ToString(msg))
-    if (code !== NULL) {
+    if (code) {
       error.code = UTF8ToString(code)
     }
     envObject.tryCatch.setError(error)
@@ -36,9 +43,13 @@ function napi_throw_error (env: napi_env, code: const_char_p, msg: const_char_p)
 
 function napi_throw_type_error (env: napi_env, code: const_char_p, msg: const_char_p): napi_status {
   return emnapi.preamble(env, (envObject) => {
-    if (msg === NULL) return envObject.setLastError(napi_status.napi_invalid_arg)
+    if (!msg) return envObject.setLastError(napi_status.napi_invalid_arg)
+    // #if MEMORY64
+    code = Number(code)
+    msg = Number(msg)
+    // #endif
     const error: TypeError & { code?: string } = new TypeError(UTF8ToString(msg))
-    if (code !== NULL) {
+    if (code) {
       error.code = UTF8ToString(code)
     }
     envObject.tryCatch.setError(error)
@@ -48,9 +59,13 @@ function napi_throw_type_error (env: napi_env, code: const_char_p, msg: const_ch
 
 function napi_throw_range_error (env: napi_env, code: const_char_p, msg: const_char_p): napi_status {
   return emnapi.preamble(env, (envObject) => {
-    if (msg === NULL) return envObject.setLastError(napi_status.napi_invalid_arg)
+    if (!msg) return envObject.setLastError(napi_status.napi_invalid_arg)
+    // #if MEMORY64
+    code = Number(code)
+    msg = Number(msg)
+    // #endif
     const error: RangeError & { code?: string } = new RangeError(UTF8ToString(msg))
-    if (code !== NULL) {
+    if (code) {
       error.code = UTF8ToString(code)
     }
     envObject.tryCatch.setError(error)
@@ -60,9 +75,13 @@ function napi_throw_range_error (env: napi_env, code: const_char_p, msg: const_c
 
 function node_api_throw_syntax_error (env: napi_env, code: const_char_p, msg: const_char_p): napi_status {
   return emnapi.preamble(env, (envObject) => {
-    if (msg === NULL) return envObject.setLastError(napi_status.napi_invalid_arg)
+    if (!msg) return envObject.setLastError(napi_status.napi_invalid_arg)
+    // #if MEMORY64
+    code = Number(code)
+    msg = Number(msg)
+    // #endif
     const error: SyntaxError & { code?: string } = new SyntaxError(UTF8ToString(msg))
-    if (code !== NULL) {
+    if (code) {
       error.code = UTF8ToString(code)
     }
     envObject.tryCatch.setError(error)
@@ -74,6 +93,9 @@ function napi_is_exception_pending (env: napi_env, result: Pointer<bool>): napi_
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [result], () => {
       const r = envObject.tryCatch.hasCaught()
+      // #if MEMORY64
+      result = Number(result)
+      // #endif
       HEAPU8[result] = r ? 1 : 0
       return envObject.clearLastError()
     })
@@ -91,7 +113,10 @@ function napi_create_error (env: napi_env, code: napi_value, msg: napi_value, re
       const error = new Error(msgValue)
       const status = emnapiSetErrorCode(envObject, error, code, NULL)
       if (status !== napi_status.napi_ok) return status
-      HEAP32[result >> 2] = emnapi.addToCurrentScope(envObject, error).id
+      // #if MEMORY64
+      result = Number(result)
+      // #endif
+      setValue(result, emnapi.addToCurrentScope(envObject, error).id, '*')
       return envObject.clearLastError()
     })
   })
@@ -107,7 +132,10 @@ function napi_create_type_error (env: napi_env, code: napi_value, msg: napi_valu
       const error = new TypeError(msgValue)
       const status = emnapiSetErrorCode(envObject, error, code, NULL)
       if (status !== napi_status.napi_ok) return status
-      HEAP32[result >> 2] = emnapi.addToCurrentScope(envObject, error).id
+      // #if MEMORY64
+      result = Number(result)
+      // #endif
+      setValue(result, emnapi.addToCurrentScope(envObject, error).id, '*')
       return envObject.clearLastError()
     })
   })
@@ -123,7 +151,10 @@ function napi_create_range_error (env: napi_env, code: napi_value, msg: napi_val
       const error = new RangeError(msgValue)
       const status = emnapiSetErrorCode(envObject, error, code, NULL)
       if (status !== napi_status.napi_ok) return status
-      HEAP32[result >> 2] = emnapi.addToCurrentScope(envObject, error).id
+      // #if MEMORY64
+      result = Number(result)
+      // #endif
+      setValue(result, emnapi.addToCurrentScope(envObject, error).id, '*')
       return envObject.clearLastError()
     })
   })
@@ -139,7 +170,10 @@ function node_api_create_syntax_error (env: napi_env, code: napi_value, msg: nap
       const error = new SyntaxError(msgValue)
       const status = emnapiSetErrorCode(envObject, error, code, NULL)
       if (status !== napi_status.napi_ok) return status
-      HEAP32[result >> 2] = emnapi.addToCurrentScope(envObject, error).id
+      // #if MEMORY64
+      result = Number(result)
+      // #endif
+      setValue(result, emnapi.addToCurrentScope(envObject, error).id, '*')
       return envObject.clearLastError()
     })
   })
@@ -148,12 +182,15 @@ function node_api_create_syntax_error (env: napi_env, code: napi_value, msg: nap
 function napi_get_and_clear_last_exception (env: napi_env, result: Pointer<napi_value>): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [result], () => {
+      // #if MEMORY64
+      result = Number(result)
+      // #endif
       if (!envObject.tryCatch.hasCaught()) {
-        HEAP32[result >> 2] = emnapi.HandleStore.ID_UNDEFINED
+        setValue(result, emnapi.HandleStore.ID_UNDEFINED, '*')
         return envObject.clearLastError()
       } else {
         const err = envObject.tryCatch.exception()!
-        HEAP32[result >> 2] = envObject.ensureHandleId(err)
+        setValue(result, envObject.ensureHandleId(err), '*')
         envObject.tryCatch.reset()
       }
       return envObject.clearLastError()
@@ -162,10 +199,16 @@ function napi_get_and_clear_last_exception (env: napi_env, result: Pointer<napi_
 }
 
 function napi_fatal_error (location: const_char_p, location_len: size_t, message: const_char_p, message_len: size_t): void {
+  // #if MEMORY64
+  location = Number(location)
+  location_len = Number(location_len)
+  message = Number(message)
+  message_len = Number(message_len)
+  // #endif
   abort('FATAL ERROR: ' + (location_len === -1 ? UTF8ToString(location) : UTF8ToString(location, location_len)) + ' ' + (message_len === -1 ? UTF8ToString(message) : UTF8ToString(message, message_len)))
 }
 
-emnapiImplement('napi_get_last_error_info', napi_get_last_error_info, ['$errorMessagesPtr'])
+emnapiImplement('napi_get_last_error_info', napi_get_last_error_info, ['$errorMessagesPtr', '$POINTER_SIZE'])
 emnapiImplement('napi_get_and_clear_last_exception', napi_get_and_clear_last_exception)
 emnapiImplement('napi_throw', napi_throw)
 emnapiImplement('napi_throw_error', napi_throw_error)

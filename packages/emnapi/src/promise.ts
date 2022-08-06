@@ -3,9 +3,15 @@ function napi_create_promise (env: napi_env, deferred: Pointer<napi_deferred>, p
     return emnapi.checkArgs(envObject, [deferred, promise], () => {
       const p = new Promise<any>((resolve, reject) => {
         const deferredObject = emnapi.Deferred.create<any>(envObject, { resolve, reject })
-        HEAP32[deferred >> 2] = deferredObject.id
+        // #if MEMORY64
+        deferred = Number(deferred)
+        // #endif
+        setValue(deferred, deferredObject.id, '*')
       })
-      HEAP32[promise >> 2] = emnapi.addToCurrentScope(envObject, p).id
+      // #if MEMORY64
+      promise = Number(promise)
+      // #endif
+      setValue(promise, emnapi.addToCurrentScope(envObject, p).id, '*')
       return envObject.getReturnStatus()
     })
   })
@@ -35,6 +41,9 @@ function napi_is_promise (env: napi_env, value: napi_value, is_promise: Pointer<
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [value, is_promise], () => {
       const h = emnapi.handleStore.get(value)!
+      // #if MEMORY64
+      is_promise = Number(is_promise)
+      // #endif
       HEAPU8[is_promise] = h.isPromise() ? 1 : 0
       return envObject.clearLastError()
     })

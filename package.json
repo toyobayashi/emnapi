@@ -27,15 +27,15 @@
     "@tybys/tsapi": "^0.2.0",
     "@types/fs-extra": "^9.0.13",
     "@types/node": "^16.11.21",
-    "@typescript-eslint/eslint-plugin": "^5.30.6",
-    "@typescript-eslint/parser": "^5.30.6",
-    "eslint": "^8.19.0",
+    "@typescript-eslint/eslint-plugin": "^5.32.0",
+    "@typescript-eslint/parser": "^5.32.0",
+    "eslint": "^8.21.0",
     "eslint-config-standard-with-typescript": "^22.0.0",
     "eslint-plugin-import": "^2.26.0",
     "eslint-plugin-n": "^15.2.4",
     "eslint-plugin-promise": "^6.0.0",
     "fs-extra": "^10.1.0",
-    "typescript": "~4.6.4"
+    "typescript": "~4.7.4"
   },
   "workspaces": [
     "packages/runtime",

@@ -71,20 +71,20 @@ export class Store<V extends IStoreValue> {
     this._values[id] = value
   }
 
-  public get (id: number): V | undefined {
-    return this._values[id]
+  public get (id: Ptr): V | undefined {
+    return this._values[id as any]
   }
 
-  public has (id: number): boolean {
-    return this._values[id] !== undefined
+  public has (id: Ptr): boolean {
+    return this._values[id as any] !== undefined
   }
 
-  public remove (id: number): void {
-    const value = this._values[id]
+  public remove (id: Ptr): void {
+    const value = this._values[id as any]
     if (value) {
       value.id = 0
-      this._values[id] = undefined
-      this._freeList.push(id)
+      this._values[id as any] = undefined
+      this._freeList.push(Number(id))
     }
   }
 

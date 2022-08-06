@@ -12,9 +12,9 @@ declare type char = number
 declare type char_p = Pointer<char>
 declare type unsigned_char = number
 declare type const_char = Const<char>
-declare type const_char_p= Pointer<const_char>
-declare type char16_t_p= number
-declare type const_char16_t_p= number
+declare type const_char_p = Pointer<const_char>
+declare type char16_t_p = number
+declare type const_char16_t_p = number
 
 declare type short = number
 declare type unsigned_short = number

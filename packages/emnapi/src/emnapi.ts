@@ -1,7 +1,10 @@
 function emnapi_get_module_object (env: napi_env, result: Pointer<napi_value>): napi_status {
   return emnapi.preamble(env, (envObject) => {
     return emnapi.checkArgs(envObject, [result], () => {
-      HEAP32[result >> 2] = envObject.ensureHandleId(Module)
+      // #if MEMORY64
+      result = Number(result)
+      // #endif
+      setValue(result, envObject.ensureHandleId(Module), '*')
       return envObject.getReturnStatus()
     })
   })
@@ -10,7 +13,11 @@ function emnapi_get_module_object (env: napi_env, result: Pointer<napi_value>): 
 function emnapi_get_module_property (env: napi_env, utf8name: const_char_p, result: Pointer<napi_value>): napi_status {
   return emnapi.preamble(env, (envObject) => {
     return emnapi.checkArgs(envObject, [utf8name, result], () => {
-      HEAP32[result >> 2] = envObject.ensureHandleId(Module[UTF8ToString(utf8name)])
+      // #if MEMORY64
+      utf8name = Number(utf8name)
+      result = Number(result)
+      // #endif
+      setValue(result, envObject.ensureHandleId(Module[UTF8ToString(utf8name)]), '*')
       return envObject.getReturnStatus()
     })
   })
@@ -26,8 +33,14 @@ function emnapi_create_external_uint8array (
 ): napi_status {
   return emnapi.preamble(env, (envObject) => {
     return emnapi.checkArgs(envObject, [result], () => {
+      // #if MEMORY64
+      byte_length = Number(byte_length) >>> 0
+      external_data = Number(external_data)
+      result = Number(result)
+      // #else
       byte_length = byte_length >>> 0
-      if (external_data === NULL) {
+      // #endif
+      if (!external_data) {
         byte_length = 0
       }
 
@@ -42,7 +55,7 @@ function emnapi_create_external_uint8array (
       }
       const u8arr = new Uint8Array(HEAPU8.buffer, external_data, byte_length)
       const handle = emnapi.addToCurrentScope(envObject, u8arr)
-      if (finalize_cb !== NULL) {
+      if (finalize_cb) {
         const status = emnapiWrap(WrapType.anonymous, env, handle.id, external_data, finalize_cb, finalize_hint, NULL)
         if (status === napi_status.napi_pending_exception) {
           const err = envObject.tryCatch.extractException()
@@ -52,7 +65,7 @@ function emnapi_create_external_uint8array (
           return envObject.setLastError(status)
         }
       }
-      HEAP32[result >> 2] = handle.id
+      setValue(result, handle.id, '*')
       return envObject.getReturnStatus()
     })
   })
