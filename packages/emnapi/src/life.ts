@@ -2,7 +2,10 @@ function napi_open_handle_scope (env: napi_env, result: Pointer<napi_handle_scop
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [result], () => {
       const scope = emnapi.openScope(envObject, emnapi.HandleScope)
-      setValue(Number(result), scope.id, '*')
+      // #if MEMORY64
+      result = Number(result)
+      // #endif
+      setValue(result, scope.id, '*')
       return envObject.clearLastError()
     })
   })
@@ -26,7 +29,10 @@ function napi_open_escapable_handle_scope (env: napi_env, result: Pointer<napi_e
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [result], () => {
       const scope = emnapi.openScope(envObject, emnapi.EscapableHandleScope)
-      setValue(Number(result), scope.id, '*')
+      // #if MEMORY64
+      result = Number(result)
+      // #endif
+      setValue(result, scope.id, '*')
       return envObject.clearLastError()
     })
   })
@@ -51,8 +57,12 @@ function napi_escape_handle (env: napi_env, scope: napi_escapable_handle_scope, 
     return emnapi.checkArgs(envObject, [scope, escapee, result], () => {
       const scopeObject = emnapi.scopeStore.get(scope) as emnapi.EscapableHandleScope
       if (!scopeObject.escapeCalled()) {
-        const newHandle = scopeObject.escape(Number(escapee))
-        setValue(Number(result), newHandle ? newHandle.id : 0, '*')
+        // #if MEMORY64
+        escapee = Number(escapee)
+        result = Number(result)
+        // #endif
+        const newHandle = scopeObject.escape(escapee)
+        setValue(result, newHandle ? newHandle.id : 0, '*')
         return envObject.clearLastError()
       }
       return envObject.setLastError(napi_status.napi_escape_called_twice)
@@ -77,7 +87,10 @@ function napi_create_reference (
         return envObject.setLastError(napi_status.napi_object_expected)
       }
       const ref = emnapi.Reference.create(envObject, handle.id, initial_refcount >>> 0, false)
-      setValue(Number(result), ref.id, '*')
+      // #if MEMORY64
+      result = Number(result)
+      // #endif
+      setValue(result, ref.id, '*')
       return envObject.clearLastError()
     })
   })
@@ -104,7 +117,10 @@ function napi_reference_ref (
     return emnapi.checkArgs(envObject, [ref], () => {
       const count = emnapi.refStore.get(ref)!.ref()
       if (result) {
-        HEAPU32[Number(result) >> 2] = count
+        // #if MEMORY64
+        result = Number(result)
+        // #endif
+        HEAPU32[result >> 2] = count
       }
       return envObject.clearLastError()
     })
@@ -129,7 +145,10 @@ function napi_reference_unref (
       }
       const count = reference.unref()
       if (result) {
-        HEAPU32[Number(result) >> 2] = count
+        // #if MEMORY64
+        result = Number(result)
+        // #endif
+        HEAPU32[result >> 2] = count
       }
       return envObject.clearLastError()
     })
@@ -145,7 +164,10 @@ function napi_get_reference_value (
     return emnapi.checkArgs(envObject, [ref, result], () => {
       const reference = emnapi.refStore.get(ref)!
       const handleId = reference.get()
-      setValue(Number(result), handleId, '*')
+      // #if MEMORY64
+      result = Number(result)
+      // #endif
+      setValue(result, handleId, '*')
       return envObject.clearLastError()
     })
   })

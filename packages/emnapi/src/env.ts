@@ -11,7 +11,10 @@ function napi_set_instance_data (env: napi_env, data: void_p, finalize_cb: napi_
 function napi_get_instance_data (env: napi_env, data: void_pp): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [data], () => {
-      setValue(Number(data), envObject.instanceData ? envObject.instanceData.data() : 0, '*')
+      // #if MEMORY64
+      data = Number(data)
+      // #endif
+      setValue(data, envObject.instanceData ? envObject.instanceData.data() : 0, '*')
       return envObject.clearLastError()
     })
   })

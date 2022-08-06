@@ -14,9 +14,12 @@ function napi_create_array_with_length (env: napi_env, length: size_t, result: P
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [result], () => {
       // #if MEMORY64
+      length = Number(length) >>> 0
       result = Number(result)
+      // #else
+      length = length >>> 0
       // #endif
-      setValue(result, emnapi.addToCurrentScope(envObject, new Array(Number(length) >>> 0)).id, '*')
+      setValue(result, emnapi.addToCurrentScope(envObject, new Array(length)).id, '*')
       return envObject.clearLastError()
     })
   })
@@ -25,9 +28,11 @@ function napi_create_array_with_length (env: napi_env, length: size_t, result: P
 function napi_create_arraybuffer (env: napi_env, byte_length: size_t, _data: void_pp, result: Pointer<napi_value>): napi_status {
   return emnapi.preamble(env, (envObject) => {
     return emnapi.checkArgs(envObject, [result], () => {
-      byte_length = Number(byte_length) >>> 0
       // #if MEMORY64
+      byte_length = Number(byte_length) >>> 0
       result = Number(result)
+      // #else
+      byte_length = byte_length >>> 0
       // #endif
       setValue(result, emnapi.addToCurrentScope(envObject, new ArrayBuffer(byte_length)).id, '*')
       return envObject.getReturnStatus()

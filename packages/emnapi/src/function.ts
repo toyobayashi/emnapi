@@ -25,7 +25,7 @@ function napi_get_cb_info (env: napi_env, cbinfo: napi_callback_info, argc: Poin
     if (!argc) return envObject.setLastError(napi_status.napi_invalid_arg)
     let argcValue: number
     // #if MEMORY64
-    argcValue = Number(getValue(Number(argc), 'i64'))
+    argcValue = Number(HEAPU64[Number(argc) >> 3])
     // #else
     argcValue = HEAPU32[argc >> 2]
     // #endif

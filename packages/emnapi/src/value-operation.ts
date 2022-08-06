@@ -6,29 +6,29 @@ function napi_typeof (env: napi_env, value: napi_value, result: Pointer<napi_val
       result = Number(result)
       // #endif
       if (v.isNumber()) {
-        setValue(result, napi_valuetype.napi_number, 'i32')
+        HEAP32[result >> 2] = napi_valuetype.napi_number
       } else if (v.isBigInt()) {
-        setValue(result, napi_valuetype.napi_bigint, 'i32')
+        HEAP32[result >> 2] = napi_valuetype.napi_bigint
       } else if (v.isString()) {
-        setValue(result, napi_valuetype.napi_string, 'i32')
+        HEAP32[result >> 2] = napi_valuetype.napi_string
       } else if (v.isFunction()) {
       // This test has to come before IsObject because IsFunction
       // implies IsObject
-        setValue(result, napi_valuetype.napi_function, 'i32')
+        HEAP32[result >> 2] = napi_valuetype.napi_function
       } else if (v.isExternal()) {
       // This test has to come before IsObject because IsExternal
       // implies IsObject
-        setValue(result, napi_valuetype.napi_external, 'i32')
+        HEAP32[result >> 2] = napi_valuetype.napi_external
       } else if (v.isObject()) {
-        setValue(result, napi_valuetype.napi_object, 'i32')
+        HEAP32[result >> 2] = napi_valuetype.napi_object
       } else if (v.isBoolean()) {
-        setValue(result, napi_valuetype.napi_boolean, 'i32')
+        HEAP32[result >> 2] = napi_valuetype.napi_boolean
       } else if (v.isUndefined()) {
-        setValue(result, napi_valuetype.napi_undefined, 'i32')
+        HEAP32[result >> 2] = napi_valuetype.napi_undefined
       } else if (v.isSymbol()) {
-        setValue(result, napi_valuetype.napi_symbol, 'i32')
+        HEAP32[result >> 2] = napi_valuetype.napi_symbol
       } else if (v.isNull()) {
-        setValue(result, napi_valuetype.napi_null, 'i32')
+        HEAP32[result >> 2] = napi_valuetype.napi_null
       } else {
       // Should not get here unless V8 has added some new kind of value.
         return envObject.setLastError(napi_status.napi_invalid_arg)

@@ -9,12 +9,18 @@ function napi_define_class (
   result: Pointer<napi_value>): napi_status {
   return emnapi.preamble(env, (envObject) => {
     return emnapi.checkArgs(envObject, [result, constructor], () => {
+      // #if MEMORY64
+      length = Number(length) >>> 0
+      properties = Number(properties)
       property_count = Number(property_count) >>> 0
+      // #else
+      length = length >>> 0
+      property_count = property_count >>> 0
+      // #endif
       if (property_count > 0) {
         if (!properties) return envObject.setLastError(napi_status.napi_invalid_arg)
       }
-      const len = Number(length) >>> 0
-      if (!((len === 0xffffffff) || (len <= 2147483647)) || (!utf8name)) {
+      if (!((length === 0xffffffff) || (length <= 2147483647)) || (!utf8name)) {
         return envObject.setLastError(napi_status.napi_invalid_arg)
       }
       const fresult = emnapiCreateFunction(envObject, utf8name, length, constructor, callback_data)
@@ -33,14 +39,14 @@ function napi_define_class (
         let data: number
         // #if MEMORY64
         // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
-        propPtr = Number(properties) + (i * 64)
+        propPtr = properties + (i * 64)
         utf8Name = getValue(propPtr, '*')
         name = getValue(propPtr + 8, '*')
         method = getValue(propPtr + 16, '*')
         getter = getValue(propPtr + 24, '*')
         setter = getValue(propPtr + 32, '*')
         value = getValue(propPtr + 40, '*')
-        attributes = Number(getValue(propPtr + 48, 'i64'))
+        attributes = Number(HEAP64[(propPtr + 48) >> 3])
         data = getValue(propPtr + 56, '*')
         // #else
         // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
@@ -76,7 +82,10 @@ function napi_define_class (
       }
 
       const valueHandle = emnapi.addToCurrentScope(envObject, F)
-      setValue(Number(result), valueHandle.id, '*')
+      // #if MEMORY64
+      result = Number(result)
+      // #endif
+      setValue(result, valueHandle.id, '*')
       return envObject.getReturnStatus()
     })
   })
@@ -115,7 +124,9 @@ function napi_type_tag_object (env: napi_env, object: napi_value, type_tag: Cons
     if (!(value.isObject() || value.isFunction())) {
       return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_object_expected)
     }
+    // #if MEMORY64
     type_tag = Number(type_tag)
+    // #endif
     if (!type_tag) {
       return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_invalid_arg)
     }
@@ -150,7 +161,9 @@ function napi_check_object_type_tag (env: napi_env, object: napi_value, type_tag
     }
     let ret = true
     if (value.tag !== null) {
+      // #if MEMORY64
       type_tag = Number(type_tag)
+      // #endif
       for (let i = 0; i < 4; i++) {
         if (HEAPU32[(type_tag + (i * 4)) >> 2] !== value.tag[i]) {
           ret = false
@@ -161,7 +174,10 @@ function napi_check_object_type_tag (env: napi_env, object: napi_value, type_tag
       ret = false
     }
 
-    HEAPU8[Number(result)] = ret ? 1 : 0
+    // #if MEMORY64
+    result = Number(result)
+    // #endif
+    HEAPU8[result] = ret ? 1 : 0
 
     return envObject.getReturnStatus()
   })

@@ -11,7 +11,10 @@ function napi_run_script (env: napi_env, script: napi_value, result: Pointer<nap
       }
       const g: typeof globalThis = emnapi.handleStore.get(emnapi.HandleStore.ID_GLOBAL)!.value
       const ret = g.eval(v8Script.value)
-      setValue(Number(result), envObject.ensureHandleId(ret), '*')
+// #if MEMORY64
+      result = Number(result)
+// #endif
+      setValue(result, envObject.ensureHandleId(ret), '*')
       return envObject.getReturnStatus()
     })
   })

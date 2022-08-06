@@ -82,27 +82,27 @@ function napi_get_typedarray_info (
         type = Number(type)
         // #endif
         if (v instanceof Int8Array) {
-          setValue(type, napi_typedarray_type.napi_int8_array, 'i32')
+          HEAP32[type >> 2] = napi_typedarray_type.napi_int8_array
         } else if (v instanceof Uint8Array) {
-          setValue(type, napi_typedarray_type.napi_uint8_array, 'i32')
+          HEAP32[type >> 2] = napi_typedarray_type.napi_uint8_array
         } else if (v instanceof Uint8ClampedArray) {
-          setValue(type, napi_typedarray_type.napi_uint8_clamped_array, 'i32')
+          HEAP32[type >> 2] = napi_typedarray_type.napi_uint8_clamped_array
         } else if (v instanceof Int16Array) {
-          setValue(type, napi_typedarray_type.napi_int16_array, 'i32')
+          HEAP32[type >> 2] = napi_typedarray_type.napi_int16_array
         } else if (v instanceof Uint16Array) {
-          setValue(type, napi_typedarray_type.napi_uint16_array, 'i32')
+          HEAP32[type >> 2] = napi_typedarray_type.napi_uint16_array
         } else if (v instanceof Int32Array) {
-          setValue(type, napi_typedarray_type.napi_int32_array, 'i32')
+          HEAP32[type >> 2] = napi_typedarray_type.napi_int32_array
         } else if (v instanceof Uint32Array) {
-          setValue(type, napi_typedarray_type.napi_uint32_array, 'i32')
+          HEAP32[type >> 2] = napi_typedarray_type.napi_uint32_array
         } else if (v instanceof Float32Array) {
-          setValue(type, napi_typedarray_type.napi_float32_array, 'i32')
+          HEAP32[type >> 2] = napi_typedarray_type.napi_float32_array
         } else if (v instanceof Float64Array) {
-          setValue(type, napi_typedarray_type.napi_float64_array, 'i32')
+          HEAP32[type >> 2] = napi_typedarray_type.napi_float64_array
         } else if (v instanceof BigInt64Array) {
-          setValue(type, napi_typedarray_type.napi_bigint64_array, 'i32')
+          HEAP32[type >> 2] = napi_typedarray_type.napi_bigint64_array
         } else if (v instanceof BigUint64Array) {
-          setValue(type, napi_typedarray_type.napi_biguint64_array, 'i32')
+          HEAP32[type >> 2] = napi_typedarray_type.napi_biguint64_array
         }
       }
       if (length) {

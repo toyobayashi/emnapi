@@ -96,16 +96,16 @@ mergeInto(LibraryManager.library, {
         data: napiExtendedErrorInfoPtr,
         getErrorCode: () => {
           // #if MEMORY64
-          return Number(getValue(napiExtendedErrorInfoPtr! + 20, 'i32'))
+          return HEAP32[(napiExtendedErrorInfoPtr! + 20) >> 2]
           // #else
-          return getValue(napiExtendedErrorInfoPtr! + 12, 'i32')
+          return HEAP32[(napiExtendedErrorInfoPtr! + 12) >> 2]
           // #endif
         },
         setErrorCode: (code: napi_status) => {
           // #if MEMORY64
-          setValue(napiExtendedErrorInfoPtr! + 20, code, 'i32')
+          HEAP32[(napiExtendedErrorInfoPtr! + 20) >> 2] = code
           // #else
-          setValue(napiExtendedErrorInfoPtr! + 12, code, 'i32')
+          HEAP32[(napiExtendedErrorInfoPtr! + 12) >> 2] = code
           // #endif
         },
         setErrorMessage: (ptr: const_char_p) => {
