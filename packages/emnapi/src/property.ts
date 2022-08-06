@@ -338,18 +338,19 @@ function napi_define_properties (
     if (!(h.isObject() || h.isFunction())) {
       return envObject.setLastError(napi_status.napi_object_expected)
     }
+    let propPtr: number
+    let utf8Name: number
+    let name: number
+    let method: number
+    let getter: number
+    let setter: number
+    let value: number
+    let attributes: number
+    let data: number
+    let propertyName: string | symbol
+
     for (let i = 0; i < property_count; i++) {
-      let propPtr: number
-      let utf8Name: number
-      let name: number
-      let method: number
-      let getter: number
-      let setter: number
-      let value: number
-      let attributes: number
-      let data: number
       // #if MEMORY64
-      // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
       propPtr = properties + (i * 64)
       utf8Name = getValue(propPtr, '*')
       name = getValue(propPtr + 8, '*')
@@ -360,7 +361,6 @@ function napi_define_properties (
       attributes = Number(HEAP64[(propPtr + 48) >> 3])
       data = getValue(propPtr + 56, '*')
       // #else
-      // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
       propPtr = properties + (i * 32)
       utf8Name = getValue(propPtr, '*')
       name = getValue(propPtr + 4, '*')
@@ -372,7 +372,6 @@ function napi_define_properties (
       data = getValue(propPtr + 28, '*')
       // #endif
 
-      let propertyName: string | symbol
       if (utf8Name) {
         propertyName = UTF8ToString(utf8Name)
       } else {

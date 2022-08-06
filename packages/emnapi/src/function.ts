@@ -23,7 +23,7 @@ function napi_get_cb_info (env: napi_env, cbinfo: napi_callback_info, argc: Poin
   const cbinfoValue: emnapi.CallbackInfo = emnapi.cbInfoStore.get(cbinfo)!
   if (argv) {
     if (!argc) return envObject.setLastError(napi_status.napi_invalid_arg)
-    let argcValue: number
+    let argcValue = 0
     // #if MEMORY64
     argcValue = Number(HEAPU64[Number(argc) >> 3])
     // #else
