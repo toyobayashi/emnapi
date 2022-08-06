@@ -29,9 +29,10 @@ function napi_get_arraybuffer_info (env: napi_env, arraybuffer: napi_value, data
       }
       if (byte_length) {
         // #if MEMORY64
-        byte_length = Number(byte_length)
+        HEAPU64[Number(byte_length) >> 3] = BigInt((handle.value as ArrayBuffer).byteLength)
+        // #else
+        HEAPU32[byte_length >> 2] = (handle.value as ArrayBuffer).byteLength
         // #endif
-        setValue(byte_length, (handle.value as ArrayBuffer).byteLength, '*')
       }
       return envObject.clearLastError()
     })
@@ -321,12 +322,16 @@ function napi_get_value_bigint_words (
         return envObject.setLastError(napi_status.napi_bigint_expected)
       }
       const isMinus = handle.value < BigInt(0)
+      let word_count_int: number
       // #if MEMORY64
       sign_bit = Number(sign_bit)
       words = Number(words)
       word_count = Number(word_count)
+      word_count_int = Number(HEAPU64[word_count >> 3])
+      // #else
+      word_count_int = HEAPU32[word_count >> 2]
       // #endif
-      let word_count_int = getValue(word_count, '*')
+
       let wordCount = 0
       let bigintValue: bigint = isMinus ? (handle.value * BigInt(-1)) : handle.value
       while (bigintValue !== BigInt(0)) {
@@ -334,8 +339,8 @@ function napi_get_value_bigint_words (
         bigintValue = bigintValue >> BigInt(64)
       }
       bigintValue = isMinus ? (handle.value * BigInt(-1)) : handle.value
-      word_count_int = wordCount
       if (!sign_bit && !words) {
+        word_count_int = wordCount
         // #if MEMORY64
         HEAPU64[word_count >> 3] = BigInt(word_count_int)
         // #else
