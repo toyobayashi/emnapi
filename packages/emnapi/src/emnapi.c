@@ -711,6 +711,7 @@ napi_acquire_threadsafe_function(napi_threadsafe_function func) {
   pthread_mutex_lock(&func->mutex);
 
   if (func->is_closing) {
+    pthread_mutex_unlock(&func->mutex);
     return napi_closing;
   }
 
@@ -731,6 +732,7 @@ napi_release_threadsafe_function(napi_threadsafe_function func,
   pthread_mutex_lock(&func->mutex);
 
   if (func->thread_count == 0) {
+    pthread_mutex_unlock(&func->mutex);
     return napi_invalid_arg;
   }
 
