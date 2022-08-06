@@ -37,6 +37,14 @@ mergeInto(LibraryManager.library, {
     }
   },
 
+  // #if MEMORY64
+  $POINTER_SIZE: 'typeof POINTER_SIZE === "number" ? POINTER_SIZE : 8',
+  // #else
+  // @ts-expect-error
+  // eslint-disable-next-line no-dupe-keys
+  $POINTER_SIZE: 'typeof POINTER_SIZE === "number" ? POINTER_SIZE : 4',
+  // #endif
+
   $napiExtendedErrorInfoPtr: undefined,
 
   $emnapi: undefined,
@@ -45,7 +53,16 @@ mergeInto(LibraryManager.library, {
   $errorMessagesPtr: undefined,
 
   $emnapiInit__postset: 'emnapiInit();',
-  $emnapiInit__deps: ['$emnapiGetDynamicCalls', '$emnapi', '$errorMessagesPtr', 'napi_register_wasm_v1', '_emnapi_runtime_init', '$napiExtendedErrorInfoPtr', 'free'],
+  $emnapiInit__deps: [
+    '$emnapiGetDynamicCalls',
+    '$emnapi',
+    '$errorMessagesPtr',
+    'napi_register_wasm_v1',
+    '_emnapi_runtime_init',
+    '$napiExtendedErrorInfoPtr',
+    'free',
+    '$POINTER_SIZE'
+  ],
   $emnapiInit: function () {
     let registered = false
     let emnapiExports: any
