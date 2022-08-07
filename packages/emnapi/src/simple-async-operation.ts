@@ -44,7 +44,7 @@ function _emnapi_queue_async_work_js (work: number): void {
   // #if MEMORY64
   work = Number(work)
   // #endif
-  const tid = getValue(work + POINTER_SIZE * 4, '*')
+  const tid = makeGetValue('work', POINTER_SIZE * 4, '*')
   if (tid === 0) {
     emnapiAsyncWorkerQueue.push(work)
     return
@@ -56,15 +56,16 @@ function _emnapi_queue_async_work_js (work: number): void {
       const data = ENVIRONMENT_IS_NODE ? e : e.data
       const w: number = data.emnapiAsyncWorkPtr
       if (w) {
-        const env = getValue(w, '*')
-        setValue(w + POINTER_SIZE * 4, 0, '*') // tid
-        const complete = getValue(w + POINTER_SIZE * 2, '*')
+        const env = makeGetValue('w', 0, '*')
+        makeSetValue('w', POINTER_SIZE * 4, '0', '*') // tid
+        const complete = makeGetValue('w', POINTER_SIZE * 2, '*')
         if (complete) {
           const envObject = emnapi.envStore.get(env)!
           const scope = emnapi.openScope(envObject, emnapi.HandleScope)
           try {
             envObject.callIntoModule((_envObject) => {
-              emnapiGetDynamicCalls.call_vpip(complete, env, napi_status.napi_ok, getValue(w + POINTER_SIZE * 3, '*'))
+              const hint = makeGetValue('w', POINTER_SIZE * 3, '*')
+              emnapiGetDynamicCalls.call_vpip(complete, env, napi_status.napi_ok, hint)
             })
           } catch (err) {
             emnapi.closeScope(envObject, scope)
@@ -89,21 +90,22 @@ function napi_cancel_async_work (env: napi_env, work: number): napi_status {
       // #if MEMORY64
       work = Number(work)
       // #endif
-      const tid = getValue(work + POINTER_SIZE * 4, '*')
+      const tid = makeGetValue('work', POINTER_SIZE * 4, '*')
       const workQueueIndex = emnapiAsyncWorkerQueue.indexOf(work)
       if (tid !== 0 || workQueueIndex === -1) {
         return envObject.setLastError(napi_status.napi_generic_failure)
       }
 
       emnapiAsyncWorkerQueue.splice(workQueueIndex, 1)
-      const complete = getValue(work + POINTER_SIZE * 2, '*')
+      const complete = makeGetValue('work', POINTER_SIZE * 2, '*')
       if (complete) {
         setTimeout(() => {
           const envObject = emnapi.envStore.get(env)!
           const scope = emnapi.openScope(envObject, emnapi.HandleScope)
           try {
             envObject.callIntoModule((_envObject) => {
-              emnapiGetDynamicCalls.call_vpip(complete, env, napi_status.napi_cancelled, getValue(work + POINTER_SIZE * 3, '*'))
+              const hint = makeGetValue('work', POINTER_SIZE * 3, '*')
+              emnapiGetDynamicCalls.call_vpip(complete, env, napi_status.napi_cancelled, hint)
             })
           } catch (err) {
             emnapi.closeScope(envObject, scope)
@@ -121,5 +123,5 @@ function napi_cancel_async_work (env: napi_env, work: number): napi_status {
 // #endif
 }
 
-emnapiImplement('_emnapi_queue_async_work_js', _emnapi_queue_async_work_js, ['$PThread', '$emnapiAsyncWorkerQueue', '$emnapiGetDynamicCalls', '$POINTER_SIZE'])
-emnapiImplement('napi_cancel_async_work', napi_cancel_async_work, ['$emnapiAsyncWorkerQueue', '$emnapiGetDynamicCalls', 'napi_set_last_error', '$POINTER_SIZE'])
+emnapiImplement('_emnapi_queue_async_work_js', _emnapi_queue_async_work_js, ['$PThread', '$emnapiAsyncWorkerQueue', '$emnapiGetDynamicCalls'])
+emnapiImplement('napi_cancel_async_work', napi_cancel_async_work, ['$emnapiAsyncWorkerQueue', '$emnapiGetDynamicCalls', 'napi_set_last_error'])

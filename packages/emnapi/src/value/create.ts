@@ -4,7 +4,11 @@ function napi_create_array (env: napi_env, result: Pointer<napi_value>): napi_st
       // #if MEMORY64
       result = Number(result)
       // #endif
-      setValue(result, emnapi.addToCurrentScope(envObject, []).id, '*')
+
+      // @ts-expect-error
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const value = emnapi.addToCurrentScope(envObject, []).id
+      makeSetValue('result', 0, 'value', '*')
       return envObject.clearLastError()
     })
   })
@@ -19,7 +23,11 @@ function napi_create_array_with_length (env: napi_env, length: size_t, result: P
       // #else
       length = length >>> 0
       // #endif
-      setValue(result, emnapi.addToCurrentScope(envObject, new Array(length)).id, '*')
+
+      // @ts-expect-error
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const value = emnapi.addToCurrentScope(envObject, new Array(length)).id
+      makeSetValue('result', 0, 'value', '*')
       return envObject.clearLastError()
     })
   })
@@ -34,7 +42,11 @@ function napi_create_arraybuffer (env: napi_env, byte_length: size_t, _data: voi
       // #else
       byte_length = byte_length >>> 0
       // #endif
-      setValue(result, emnapi.addToCurrentScope(envObject, new ArrayBuffer(byte_length)).id, '*')
+
+      // @ts-expect-error
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const value = emnapi.addToCurrentScope(envObject, new ArrayBuffer(byte_length)).id
+      makeSetValue('result', 0, 'value', '*')
       return envObject.getReturnStatus()
     })
   })
@@ -46,7 +58,11 @@ function napi_create_date (env: napi_env, time: double, result: Pointer<napi_val
       // #if MEMORY64
       result = Number(result)
       // #endif
-      setValue(result, emnapi.addToCurrentScope(envObject, new Date(time)).id, '*')
+
+      // @ts-expect-error
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const value = emnapi.addToCurrentScope(envObject, new Date(time)).id
+      makeSetValue('result', 0, 'value', '*')
       return envObject.getReturnStatus()
     })
   })
@@ -66,7 +82,7 @@ function napi_create_external (env: napi_env, data: void_p, finalize_cb: napi_fi
       // #if MEMORY64
       result = Number(result)
       // #endif
-      setValue(result, externalHandle.id, '*')
+      makeSetValue('result', 0, 'externalHandle.id', '*')
       return envObject.clearLastError()
     })
   })
@@ -89,7 +105,11 @@ function napi_create_object (env: napi_env, result: Pointer<napi_value>): napi_s
       // #if MEMORY64
       result = Number(result)
       // #endif
-      setValue(result, emnapi.addToCurrentScope(envObject, {}).id, '*')
+
+      // @ts-expect-error
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const value = emnapi.addToCurrentScope(envObject, {}).id
+      makeSetValue('result', 0, 'value', '*')
       return envObject.clearLastError()
     })
   })
@@ -101,16 +121,22 @@ function napi_create_symbol (env: napi_env, description: napi_value, result: Poi
       // #if MEMORY64
       result = Number(result)
       // #endif
+
       if (!description) {
-        // eslint-disable-next-line symbol-description
-        setValue(result, emnapi.addToCurrentScope(envObject, Symbol()).id, '*')
+        // @ts-expect-error
+        // eslint-disable-next-line symbol-description, @typescript-eslint/no-unused-vars
+        const value = emnapi.addToCurrentScope(envObject, Symbol()).id
+        makeSetValue('result', 0, 'value', '*')
       } else {
         const handle = emnapi.handleStore.get(description)!
         const desc = handle.value
         if (typeof desc !== 'string') {
           return envObject.setLastError(napi_status.napi_string_expected)
         }
-        setValue(result, emnapi.addToCurrentScope(envObject, Symbol(desc)).id, '*')
+        // @ts-expect-error
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const v = emnapi.addToCurrentScope(envObject, Symbol(desc)).id
+        makeSetValue('result', 0, 'v', '*')
       }
       return envObject.clearLastError()
     })
@@ -137,7 +163,11 @@ function napi_create_typedarray (
         // #if MEMORY64
         result = Number(result)
         // #endif
-        setValue(result, emnapi.addToCurrentScope(envObject, out).id, '*')
+
+        // @ts-expect-error
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const value = emnapi.addToCurrentScope(envObject, out).id
+        makeSetValue('result', 0, 'value', '*')
         return envObject.getReturnStatus()
       }
 
@@ -204,7 +234,11 @@ function napi_create_dataview (
       // #if MEMORY64
       result = Number(result)
       // #endif
-      setValue(result, emnapi.addToCurrentScope(envObject, dataview).id, '*')
+
+      // @ts-expect-error
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const value = emnapi.addToCurrentScope(envObject, dataview).id
+      makeSetValue('result', 0, 'value', '*')
       return envObject.getReturnStatus()
     })
   })
@@ -219,7 +253,11 @@ function node_api_symbol_for (env: napi_env, utf8description: const_char_p, leng
       result = Number(result)
       // #endif
       const descriptionString = length === -1 ? UTF8ToString(utf8description) : UTF8ToString(utf8description, length)
-      setValue(result, emnapi.addToCurrentScope(envObject, Symbol.for(descriptionString)).id, '*')
+
+      // @ts-expect-error
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const value = emnapi.addToCurrentScope(envObject, Symbol.for(descriptionString)).id
+      makeSetValue('result', 0, 'value', '*')
       return envObject.clearLastError()
     })
   })

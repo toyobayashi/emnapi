@@ -4,11 +4,11 @@ function napi_get_boolean (env: napi_env, value: bool, result: Pointer<napi_valu
       // #if MEMORY64
       result = Number(result)
       // #endif
-      if (value === 0) {
-        setValue(result, emnapi.HandleStore.ID_FALSE, '*')
-      } else {
-        setValue(result, emnapi.HandleStore.ID_TRUE, '*')
-      }
+
+      // @ts-expect-error
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const v = value === 0 ? emnapi.HandleStore.ID_FALSE : emnapi.HandleStore.ID_TRUE
+      makeSetValue('result', 0, 'v', '*')
       return envObject.clearLastError()
     })
   })
@@ -20,7 +20,11 @@ function napi_get_global (env: napi_env, result: Pointer<napi_value>): napi_stat
       // #if MEMORY64
       result = Number(result)
       // #endif
-      setValue(result, emnapi.HandleStore.ID_GLOBAL, '*')
+
+      // @ts-expect-error
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const value = emnapi.HandleStore.ID_GLOBAL
+      makeSetValue('result', 0, 'value', '*')
       return envObject.clearLastError()
     })
   })
@@ -32,7 +36,11 @@ function napi_get_null (env: napi_env, result: Pointer<napi_value>): napi_status
       // #if MEMORY64
       result = Number(result)
       // #endif
-      setValue(result, emnapi.HandleStore.ID_NULL, '*')
+
+      // @ts-expect-error
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const value = emnapi.HandleStore.ID_NULL
+      makeSetValue('result', 0, 'value', '*')
       return envObject.clearLastError()
     })
   })
@@ -44,7 +52,11 @@ function napi_get_undefined (env: napi_env, result: Pointer<napi_value>): napi_s
       // #if MEMORY64
       result = Number(result)
       // #endif
-      setValue(result, emnapi.HandleStore.ID_UNDEFINED, '*')
+
+      // @ts-expect-error
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const value = emnapi.HandleStore.ID_UNDEFINED
+      makeSetValue('result', 0, 'value', '*')
       return envObject.clearLastError()
     })
   })

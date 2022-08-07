@@ -37,14 +37,6 @@ mergeInto(LibraryManager.library, {
     }
   },
 
-  // #if MEMORY64
-  $POINTER_SIZE: 'typeof POINTER_SIZE === "number" ? POINTER_SIZE : 8',
-  // #else
-  // @ts-expect-error
-  // eslint-disable-next-line no-dupe-keys
-  $POINTER_SIZE: 'typeof POINTER_SIZE === "number" ? POINTER_SIZE : 4',
-  // #endif
-
   $napiExtendedErrorInfoPtr: undefined,
 
   $emnapi: undefined,
@@ -60,8 +52,7 @@ mergeInto(LibraryManager.library, {
     'napi_register_wasm_v1',
     '_emnapi_runtime_init',
     '$napiExtendedErrorInfoPtr',
-    'free',
-    '$POINTER_SIZE'
+    'free'
   ],
   $emnapiInit: function () {
     let registered = false
@@ -108,8 +99,8 @@ mergeInto(LibraryManager.library, {
           HEAP32[(napiExtendedErrorInfoPtr! + 12) >> 2] = code
           // #endif
         },
-        setErrorMessage: (ptr: const_char_p) => {
-          setValue(napiExtendedErrorInfoPtr!, ptr, '*')
+        setErrorMessage: (_ptr: const_char_p) => {
+          makeSetValue('napiExtendedErrorInfoPtr', 0, '_ptr', '*')
         },
         dispose () {
           // #if MEMORY64
@@ -154,17 +145,17 @@ mergeInto(LibraryManager.library, {
 
       callInStack(() => {
         // HEAP.*?\[.*?\]
-        const key_pp = stackAlloc(POINTER_SIZE)
-        const errormessages_pp = stackAlloc(POINTER_SIZE)
+        const key_pp = stackAlloc($POINTER_SIZE)
+        const errormessages_pp = stackAlloc($POINTER_SIZE)
         // #if MEMORY64
         __emnapi_runtime_init(BigInt(key_pp), BigInt(errormessages_pp))
         // #else
         __emnapi_runtime_init(key_pp, errormessages_pp)
         // #endif
-        const key_p = getValue(key_pp, '*')
+        const key_p = makeGetValue('key_pp', 0, '*')
         exportsKey = (key_p ? UTF8ToString(key_p) : 'emnapiExports') || 'emnapiExports'
         // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
-        errorMessagesPtr = getValue(errormessages_pp, '*') || 0
+        errorMessagesPtr = makeGetValue('errormessages_pp', 0, '*') || 0
       })
 
       // Module.emnapiModuleRegister = moduleRegister

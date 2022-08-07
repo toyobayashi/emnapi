@@ -165,7 +165,7 @@ function $emnapiWrap (type: WrapType, env: napi_env, js_object: napi_value, nati
         // #if MEMORY64
         result = Number(result)
         // #endif
-        setValue(result, reference.id, '*')
+        makeSetValue('result', 0, 'reference.id', '*')
       } else {
         reference = emnapi.Reference.create(envObject, value.id, 0, true, finalize_cb, native_object, !finalize_cb ? finalize_cb : finalize_hint)
       }
@@ -197,7 +197,11 @@ function $emnapiUnwrap (env: napi_env, js_object: napi_value, result: void_pp, a
         // #if MEMORY64
         result = Number(result)
         // #endif
-        setValue(result, ref.data(), '*')
+
+        // @ts-expect-error
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const data = ref.data()
+        makeSetValue('result', 0, 'data', '*')
       }
       if (action === UnwrapAction.RemoveWrap) {
         value.wrapped = 0

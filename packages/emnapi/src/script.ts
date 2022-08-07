@@ -14,7 +14,11 @@ function napi_run_script (env: napi_env, script: napi_value, result: Pointer<nap
 // #if MEMORY64
       result = Number(result)
 // #endif
-      setValue(result, envObject.ensureHandleId(ret), '*')
+
+      // @ts-expect-error
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const value = envObject.ensureHandleId(ret)
+      makeSetValue('result', 0, 'value', '*')
       return envObject.getReturnStatus()
     })
   })

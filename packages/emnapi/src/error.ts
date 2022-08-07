@@ -2,7 +2,9 @@ function napi_get_last_error_info (env: napi_env, result: Pointer<Pointer<napi_e
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [result], () => {
       const error_code = envObject.lastError.getErrorCode()
-      envObject.lastError.setErrorMessage(getValue(errorMessagesPtr! + error_code * POINTER_SIZE, '*'))
+      // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
+      const messagePointer = makeGetValue('errorMessagesPtr', 'error_code * ' + POINTER_SIZE, '*')
+      envObject.lastError.setErrorMessage(messagePointer)
 
       if (error_code === napi_status.napi_ok) {
         envObject.clearLastError()
@@ -10,7 +12,11 @@ function napi_get_last_error_info (env: napi_env, result: Pointer<Pointer<napi_e
       // #if MEMORY64
       result = Number(result)
       // #endif
-      setValue(result, envObject.lastError.data, '*')
+
+      // @ts-expect-error
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const value = envObject.lastError.data
+      makeSetValue('result', 0, 'value', '*')
       return napi_status.napi_ok
     })
   })
@@ -116,7 +122,11 @@ function napi_create_error (env: napi_env, code: napi_value, msg: napi_value, re
       // #if MEMORY64
       result = Number(result)
       // #endif
-      setValue(result, emnapi.addToCurrentScope(envObject, error).id, '*')
+
+      // @ts-expect-error
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const value = emnapi.addToCurrentScope(envObject, error).id
+      makeSetValue('result', 0, 'value', '*')
       return envObject.clearLastError()
     })
   })
@@ -135,7 +145,11 @@ function napi_create_type_error (env: napi_env, code: napi_value, msg: napi_valu
       // #if MEMORY64
       result = Number(result)
       // #endif
-      setValue(result, emnapi.addToCurrentScope(envObject, error).id, '*')
+
+      // @ts-expect-error
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const value = emnapi.addToCurrentScope(envObject, error).id
+      makeSetValue('result', 0, 'value', '*')
       return envObject.clearLastError()
     })
   })
@@ -154,7 +168,11 @@ function napi_create_range_error (env: napi_env, code: napi_value, msg: napi_val
       // #if MEMORY64
       result = Number(result)
       // #endif
-      setValue(result, emnapi.addToCurrentScope(envObject, error).id, '*')
+
+      // @ts-expect-error
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const value = emnapi.addToCurrentScope(envObject, error).id
+      makeSetValue('result', 0, 'value', '*')
       return envObject.clearLastError()
     })
   })
@@ -173,7 +191,11 @@ function node_api_create_syntax_error (env: napi_env, code: napi_value, msg: nap
       // #if MEMORY64
       result = Number(result)
       // #endif
-      setValue(result, emnapi.addToCurrentScope(envObject, error).id, '*')
+
+      // @ts-expect-error
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const value = emnapi.addToCurrentScope(envObject, error).id
+      makeSetValue('result', 0, 'value', '*')
       return envObject.clearLastError()
     })
   })
@@ -185,12 +207,16 @@ function napi_get_and_clear_last_exception (env: napi_env, result: Pointer<napi_
       // #if MEMORY64
       result = Number(result)
       // #endif
+
       if (!envObject.tryCatch.hasCaught()) {
-        setValue(result, emnapi.HandleStore.ID_UNDEFINED, '*')
+        makeSetValue('result', 0, '1', '*') // ID_UNDEFINED
         return envObject.clearLastError()
       } else {
         const err = envObject.tryCatch.exception()!
-        setValue(result, envObject.ensureHandleId(err), '*')
+        // @ts-expect-error
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const value = envObject.ensureHandleId(err)
+        makeSetValue('result', 0, 'value', '*')
         envObject.tryCatch.reset()
       }
       return envObject.clearLastError()
@@ -208,7 +234,7 @@ function napi_fatal_error (location: const_char_p, location_len: size_t, message
   abort('FATAL ERROR: ' + (location_len === -1 ? UTF8ToString(location) : UTF8ToString(location, location_len)) + ' ' + (message_len === -1 ? UTF8ToString(message) : UTF8ToString(message, message_len)))
 }
 
-emnapiImplement('napi_get_last_error_info', napi_get_last_error_info, ['$errorMessagesPtr', '$POINTER_SIZE'])
+emnapiImplement('napi_get_last_error_info', napi_get_last_error_info, ['$errorMessagesPtr'])
 emnapiImplement('napi_get_and_clear_last_exception', napi_get_and_clear_last_exception)
 emnapiImplement('napi_throw', napi_throw)
 emnapiImplement('napi_throw_error', napi_throw_error)

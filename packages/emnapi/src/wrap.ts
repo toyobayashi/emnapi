@@ -27,39 +27,25 @@ function napi_define_class (
       if (fresult.status !== napi_status.napi_ok) return envObject.setLastError(fresult.status)
       const F = fresult.f
 
-      let propPtr: number
-      let utf8Name: number
-      let name: number
-      let method: number
-      let getter: number
-      let setter: number
-      let value: number
       let attributes: number
-      let data: number
       let propertyName: string | symbol
 
       for (let i = 0; i < property_count; i++) {
+        // @ts-expect-error
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const propPtr = properties + (i * ($POINTER_SIZE * 8))
+        const utf8Name = makeGetValue('propPtr', 0, '*')
+        const name = makeGetValue('propPtr', POINTER_SIZE, '*')
+        const method = makeGetValue('propPtr', POINTER_SIZE * 2, '*')
+        const getter = makeGetValue('propPtr', POINTER_SIZE * 3, '*')
+        const setter = makeGetValue('propPtr', POINTER_SIZE * 4, '*')
+        const value = makeGetValue('propPtr', POINTER_SIZE * 5, '*')
         // #if MEMORY64
-        propPtr = properties + (i * 64)
-        utf8Name = getValue(propPtr, '*')
-        name = getValue(propPtr + 8, '*')
-        method = getValue(propPtr + 16, '*')
-        getter = getValue(propPtr + 24, '*')
-        setter = getValue(propPtr + 32, '*')
-        value = getValue(propPtr + 40, '*')
-        attributes = Number(HEAP64[(propPtr + 48) >> 3])
-        data = getValue(propPtr + 56, '*')
+        attributes = Number(makeGetValue('propPtr', POINTER_SIZE * 6, POINTER_WASM_TYPE))
         // #else
-        propPtr = properties + (i * 32)
-        utf8Name = getValue(propPtr, '*')
-        name = getValue(propPtr + 4, '*')
-        method = getValue(propPtr + 8, '*')
-        getter = getValue(propPtr + 12, '*')
-        setter = getValue(propPtr + 16, '*')
-        value = getValue(propPtr + 20, '*')
-        attributes = HEAP32[(propPtr + 24) >> 2]
-        data = getValue(propPtr + 28, '*')
+        attributes = makeGetValue('propPtr', POINTER_SIZE * 6, POINTER_WASM_TYPE) as number
         // #endif
+        const data = makeGetValue('propPtr', POINTER_SIZE * 7, '*')
 
         if (utf8Name) {
           propertyName = UTF8ToString(utf8Name)
@@ -80,11 +66,13 @@ function napi_define_class (
         emnapiDefineProperty(envObject, F.prototype, propertyName, method, getter, setter, value, attributes, data)
       }
 
+      // @ts-expect-error
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const valueHandle = emnapi.addToCurrentScope(envObject, F)
       // #if MEMORY64
       result = Number(result)
       // #endif
-      setValue(result, valueHandle.id, '*')
+      makeSetValue('result', 0, 'valueHandle.id', '*')
       return envObject.getReturnStatus()
     })
   })

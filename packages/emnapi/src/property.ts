@@ -29,7 +29,11 @@ function napi_get_all_property_names (
       // #if MEMORY64
       result = Number(result)
       // #endif
-      setValue(result, emnapi.addToCurrentScope(envObject, names).id, '*')
+
+      // @ts-expect-error
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const value = emnapi.addToCurrentScope(envObject, names).id
+      makeSetValue('result', 0, 'value', '*')
       return envObject.getReturnStatus()
     })
   })
@@ -97,7 +101,11 @@ function napi_get_property (env: napi_env, object: napi_value, key: napi_value, 
       // #if MEMORY64
       result = Number(result)
       // #endif
-      setValue(result, envObject.ensureHandleId(v[emnapi.handleStore.get(key)!.value]), '*')
+
+      // @ts-expect-error
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const value = envObject.ensureHandleId(v[emnapi.handleStore.get(key)!.value])
+      makeSetValue('result', 0, 'value', '*')
       return envObject.getReturnStatus()
     })
   })
@@ -225,7 +233,11 @@ function napi_get_named_property (env: napi_env, object: napi_value, utf8name: c
       utf8name = Number(utf8name)
       result = Number(result)
       // #endif
-      setValue(result, envObject.ensureHandleId(v[UTF8ToString(utf8name)]), '*')
+
+      // @ts-expect-error
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const value = envObject.ensureHandleId(v[UTF8ToString(utf8name)])
+      makeSetValue('result', 0, 'value', '*')
       return envObject.getReturnStatus()
     })
   })
@@ -282,7 +294,11 @@ function napi_get_element (env: napi_env, object: napi_value, index: uint32_t, r
       // #if MEMORY64
       result = Number(result)
       // #endif
-      setValue(result, envObject.ensureHandleId(v[index >>> 0]), '*')
+
+      // @ts-expect-error
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const value = envObject.ensureHandleId(v[index >>> 0])
+      makeSetValue('result', 0, 'value', '*')
       return envObject.getReturnStatus()
     })
   })
@@ -338,39 +354,26 @@ function napi_define_properties (
     if (!(h.isObject() || h.isFunction())) {
       return envObject.setLastError(napi_status.napi_object_expected)
     }
-    let propPtr: number
-    let utf8Name: number
-    let name: number
-    let method: number
-    let getter: number
-    let setter: number
-    let value: number
+
     let attributes: number
-    let data: number
     let propertyName: string | symbol
 
     for (let i = 0; i < property_count; i++) {
+      // @ts-expect-error
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const propPtr = properties + (i * ($POINTER_SIZE * 8))
+      const utf8Name = makeGetValue('propPtr', 0, '*')
+      const name = makeGetValue('propPtr', POINTER_SIZE, '*')
+      const method = makeGetValue('propPtr', POINTER_SIZE * 2, '*')
+      const getter = makeGetValue('propPtr', POINTER_SIZE * 3, '*')
+      const setter = makeGetValue('propPtr', POINTER_SIZE * 4, '*')
+      const value = makeGetValue('propPtr', POINTER_SIZE * 5, '*')
       // #if MEMORY64
-      propPtr = properties + (i * 64)
-      utf8Name = getValue(propPtr, '*')
-      name = getValue(propPtr + 8, '*')
-      method = getValue(propPtr + 16, '*')
-      getter = getValue(propPtr + 24, '*')
-      setter = getValue(propPtr + 32, '*')
-      value = getValue(propPtr + 40, '*')
-      attributes = Number(HEAP64[(propPtr + 48) >> 3])
-      data = getValue(propPtr + 56, '*')
+      attributes = Number(makeGetValue('propPtr', POINTER_SIZE * 6, POINTER_WASM_TYPE))
       // #else
-      propPtr = properties + (i * 32)
-      utf8Name = getValue(propPtr, '*')
-      name = getValue(propPtr + 4, '*')
-      method = getValue(propPtr + 8, '*')
-      getter = getValue(propPtr + 12, '*')
-      setter = getValue(propPtr + 16, '*')
-      value = getValue(propPtr + 20, '*')
-      attributes = HEAP32[(propPtr + 24) >> 2]
-      data = getValue(propPtr + 28, '*')
+      attributes = makeGetValue('propPtr', POINTER_SIZE * 6, POINTER_WASM_TYPE) as number
       // #endif
+      const data = makeGetValue('propPtr', POINTER_SIZE * 7, '*')
 
       if (utf8Name) {
         propertyName = UTF8ToString(utf8Name)

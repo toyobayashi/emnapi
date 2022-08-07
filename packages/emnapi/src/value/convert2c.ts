@@ -25,7 +25,11 @@ function napi_get_arraybuffer_info (env: napi_env, arraybuffer: napi_value, data
         // #if MEMORY64
         data = Number(data)
         // #endif
-        setValue(data, getArrayBufferPointer(handle.value), '*')
+
+        // @ts-expect-error
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const p = getArrayBufferPointer(handle.value)
+        makeSetValue('data', 0, 'p', '*')
       }
       if (byte_length) {
         // #if MEMORY64
@@ -56,7 +60,11 @@ function napi_get_prototype (env: napi_env, value: napi_value, result: Pointer<n
       // #if MEMORY64
       result = Number(result)
       // #endif
-      setValue(result, envObject.ensureHandleId(Object.getPrototypeOf(v)), '*')
+
+      // @ts-expect-error
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const p = envObject.ensureHandleId(Object.getPrototypeOf(v))
+      makeSetValue('result', 0, 'p', '*')
       return envObject.clearLastError()
     })
   })
@@ -120,13 +128,21 @@ function napi_get_typedarray_info (
           // #if MEMORY64
           data = Number(data)
           // #endif
-          setValue(data, getViewPointer(v), '*')
+
+          // @ts-expect-error
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const p = getViewPointer(v)
+          makeSetValue('data', 0, 'p', '*')
         }
         if (arraybuffer) {
           // #if MEMORY64
           arraybuffer = Number(arraybuffer)
           // #endif
-          setValue(arraybuffer, envObject.ensureHandleId(buffer), '*')
+
+          // @ts-expect-error
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const ab = envObject.ensureHandleId(buffer)
+          makeSetValue('arraybuffer', 0, 'ab', '*')
         }
       }
       if (byte_offset) {
@@ -170,13 +186,21 @@ function napi_get_dataview_info (
           // #if MEMORY64
           data = Number(data)
           // #endif
-          setValue(data, getViewPointer(v), '*')
+
+          // @ts-expect-error
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const p = getViewPointer(v)
+          makeSetValue('data', 0, 'p', '*')
         }
         if (arraybuffer) {
           // #if MEMORY64
           arraybuffer = Number(arraybuffer)
           // #endif
-          setValue(arraybuffer, envObject.ensureHandleId(buffer), '*')
+
+          // @ts-expect-error
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const ab = envObject.ensureHandleId(buffer)
+          makeSetValue('arraybuffer', 0, 'ab', '*')
         }
       }
       if (byte_offset) {
@@ -384,7 +408,11 @@ function napi_get_value_external (env: napi_env, value: napi_value, result: void
       // #if MEMORY64
       result = Number(result)
       // #endif
-      setValue(result, (handle as emnapi.ExternalHandle).data(), '*')
+
+      // @ts-expect-error
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const p = (handle as emnapi.ExternalHandle).data()
+      makeSetValue('result', 0, 'p', '*')
       return envObject.clearLastError()
     })
   })

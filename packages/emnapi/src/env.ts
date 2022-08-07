@@ -14,7 +14,11 @@ function napi_get_instance_data (env: napi_env, data: void_pp): napi_status {
       // #if MEMORY64
       data = Number(data)
       // #endif
-      setValue(data, envObject.instanceData ? envObject.instanceData.data() : 0, '*')
+
+      // @ts-expect-error
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const value = envObject.instanceData ? envObject.instanceData.data() : 0
+      makeSetValue('data', 0, 'value', '*')
       return envObject.clearLastError()
     })
   })

@@ -16,17 +16,15 @@ declare function stringToUTF8 (ptr: string, outPtr: char_p, maxBytesToWrite?: nu
 declare function stringToUTF16 (ptr: string, outPtr: char16_t_p, maxBytesToWrite?: number): number
 declare function lengthBytesUTF8 (str: string): number
 
-declare const POINTER_SIZE: number
+// declare type I64Type = 'i64'
+// declare type I32Type = 'i1' | 'i8' | 'i16' | 'i32' | 'float' | 'double'
+// declare type ValueType = I32Type | I64Type
+// declare type PointerType = '*' | `${ValueType}*`
 
-declare type I64Type = 'i64'
-declare type I32Type = 'i1' | 'i8' | 'i16' | 'i32' | 'float' | 'double'
-declare type ValueType = I32Type | I64Type
-declare type PointerType = '*' | `${ValueType}*`
-
-declare function getValue (ptr: number): number
-declare function getValue (ptr: number, type: I64Type): bigint
-declare function getValue (ptr: number, type: I32Type | PointerType): number
-declare function setValue (ptr: number, value: number | bigint, type: ValueType | PointerType): void
+// declare function getValue (ptr: number): number
+// declare function getValue (ptr: number, type: I64Type): bigint
+// declare function getValue (ptr: number, type: I32Type | PointerType): number
+// declare function setValue (ptr: number, value: number | bigint, type: ValueType | PointerType): void
 
 declare const Module: any
 

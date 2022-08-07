@@ -46,7 +46,11 @@ function napi_coerce_to_bool (env: napi_env, value: napi_value, result: Pointer<
       // #if MEMORY64
       result = Number(result)
       // #endif
-      setValue(result, handle.value ? emnapi.HandleStore.ID_TRUE : emnapi.HandleStore.ID_FALSE, '*')
+
+      // @ts-expect-error
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const v = handle.value ? emnapi.HandleStore.ID_TRUE : emnapi.HandleStore.ID_FALSE
+      makeSetValue('result', 0, 'v', '*')
       return envObject.getReturnStatus()
     })
   })
@@ -62,7 +66,11 @@ function napi_coerce_to_number (env: napi_env, value: napi_value, result: Pointe
       // #if MEMORY64
       result = Number(result)
       // #endif
-      setValue(result, emnapi.addToCurrentScope(envObject, Number(handle.value)).id, '*')
+
+      // @ts-expect-error
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const v = emnapi.addToCurrentScope(envObject, Number(handle.value)).id
+      makeSetValue('result', 0, 'v', '*')
       return envObject.getReturnStatus()
     })
   })
@@ -75,7 +83,11 @@ function napi_coerce_to_object (env: napi_env, value: napi_value, result: Pointe
       // #if MEMORY64
       result = Number(result)
       // #endif
-      setValue(result, envObject.ensureHandleId(Object(handle.value)), '*')
+
+      // @ts-expect-error
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const v = envObject.ensureHandleId(Object(handle.value))
+      makeSetValue('result', 0, 'v', '*')
       return envObject.getReturnStatus()
     })
   })
@@ -91,7 +103,11 @@ function napi_coerce_to_string (env: napi_env, value: napi_value, result: Pointe
       // #if MEMORY64
       result = Number(result)
       // #endif
-      setValue(result, emnapi.addToCurrentScope(envObject, String(handle.value)).id, '*')
+
+      // @ts-expect-error
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const v = emnapi.addToCurrentScope(envObject, String(handle.value)).id
+      makeSetValue('result', 0, 'v', '*')
       return envObject.getReturnStatus()
     })
   })
