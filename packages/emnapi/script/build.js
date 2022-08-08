@@ -24,7 +24,7 @@ async function build () {
       .replace(/\$POINTER_SIZE/g, '{{{ POINTER_SIZE }}}')
       .replace(/(makeGetValue\(.*?\))/g, '{{{ $1 }}}')
       .replace(/(makeSetValue\(.*?\))/g, '{{{ $1 }}}')
-      .replace(/(makeDynCall\(.*?\))/g, '{{{ $1 }}}')
+      .replace(/(\$(makeDynCall\(.*?\)))/g, '{{{ $2 }}}')
       .replace(/(\$(makeMalloc\(.*?\)))/g, '{{{ $2 }}}'),
     'utf8'
   )
@@ -85,7 +85,7 @@ async function build () {
       .replace(/\$POINTER_SIZE/g, '{{{ POINTER_SIZE }}}')
       .replace(/(makeGetValue\(.*?\))/g, '{{{ $1 }}}')
       .replace(/(makeSetValue\(.*?\))/g, '{{{ $1 }}}')
-      .replace(/(makeDynCall\(.*?\))/g, '{{{ $1 }}}')
+      .replace(/(\$(makeDynCall\(.*?\)))/g, '{{{ $2 }}}')
       .replace(/(\$(makeMalloc\(.*?\)))/g, '{{{ $2 }}}'),
     'utf8'
   )

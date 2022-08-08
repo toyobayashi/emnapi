@@ -15,22 +15,22 @@ mergeInto(LibraryManager.library, {
   $emnapiGetDynamicCalls__deps: ['malloc'],
   $emnapiGetDynamicCalls: {
     call_vp: function (_ptr: Ptr, a: Ptr): void {
-      return makeDynCall('vp', '_ptr')(a)
+      return $makeDynCall('vp', '_ptr')(a)
     },
     call_vpp (_ptr: Ptr, a: Ptr, b: Ptr): void {
-      return makeDynCall('vpp', '_ptr')(a, b)
+      return $makeDynCall('vpp', '_ptr')(a, b)
     },
     call_ppp: function (_ptr: Ptr, a: Ptr, b: Ptr): int32_t {
-      return makeDynCall('ppp', '_ptr')(a, b)
+      return $makeDynCall('ppp', '_ptr')(a, b)
     },
     call_vpip: function (_ptr: Ptr, a: Ptr, b: number, c: Ptr): void {
-      return makeDynCall('vpip', '_ptr')(a, b, c)
+      return $makeDynCall('vpip', '_ptr')(a, b, c)
     },
     call_vppp: function (_ptr: Ptr, a: Ptr, b: Ptr, c: Ptr): void {
-      return makeDynCall('vppp', '_ptr')(a, b, c)
+      return $makeDynCall('vppp', '_ptr')(a, b, c)
     },
     call_vpppp: function (_ptr: Ptr, a: Ptr, b: Ptr, c: Ptr, d: Ptr): void {
-      return makeDynCall('vpppp', '_ptr')(a, b, c, d)
+      return $makeDynCall('vpppp', '_ptr')(a, b, c, d)
     }
   },
 
