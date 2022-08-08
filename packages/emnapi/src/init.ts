@@ -31,9 +31,6 @@ mergeInto(LibraryManager.library, {
     },
     call_vpppp: function (_ptr: Ptr, a: Ptr, b: Ptr, c: Ptr, d: Ptr): void {
       return makeDynCall('vpppp', '_ptr')(a, b, c, d)
-    },
-    call_malloc: function (_source: string, _size: string | number): void_p {
-      return makeMalloc('_source', '_size')
     }
   },
 
@@ -78,9 +75,9 @@ mergeInto(LibraryManager.library, {
       registered = true
 
       // #if MEMORY64
-      napiExtendedErrorInfoPtr = emnapiGetDynamicCalls.call_malloc('$emnapiInit', 24)
+      napiExtendedErrorInfoPtr = $makeMalloc('$emnapiInit', 24)
       // #else
-      napiExtendedErrorInfoPtr = emnapiGetDynamicCalls.call_malloc('$emnapiInit', 16)
+      napiExtendedErrorInfoPtr = $makeMalloc('$emnapiInit', 16)
       // #endif
 
       const lastError = {

@@ -60,7 +60,7 @@ mergeInto(LibraryManager.library, {
       return pointer
     }
 
-    pointer = emnapiGetDynamicCalls.call_malloc('$getArrayBufferPointer', arrayBuffer.byteLength)
+    pointer = $makeMalloc('$getArrayBufferPointer', 'arrayBuffer.byteLength')
     HEAPU8.set(new Uint8Array(arrayBuffer), pointer)
     arrayBufferMemoryMap.set(arrayBuffer, pointer)
     memoryPointerDeleter.register(arrayBuffer, pointer)
@@ -83,7 +83,7 @@ mergeInto(LibraryManager.library, {
       return pointer
     }
 
-    pointer = emnapiGetDynamicCalls.call_malloc('$getViewPointer', view.byteLength)
+    pointer = $makeMalloc('$getViewPointer', 'view.byteLength')
     HEAPU8.set(new Uint8Array(view.buffer, view.byteOffset, view.byteLength), pointer)
     typedArrayMemoryMap.set(view, pointer)
     memoryPointerDeleter.register(view, pointer)

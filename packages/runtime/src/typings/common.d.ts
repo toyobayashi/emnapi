@@ -7,5 +7,4 @@ declare interface IDynamicCalls {
   call_vpip (_ptr: Ptr, a: Ptr, b: number, c: Ptr): void
   call_vppp (_ptr: Ptr, a: Ptr, b: Ptr, c: Ptr): void
   call_vpppp (_ptr: Ptr, a: Ptr, b: Ptr, c: Ptr, d: Ptr): void
-  call_malloc (_source: string, _size: string | number): void_p
 }

@@ -25,7 +25,7 @@ async function build () {
       .replace(/(makeGetValue\(.*?\))/g, '{{{ $1 }}}')
       .replace(/(makeSetValue\(.*?\))/g, '{{{ $1 }}}')
       .replace(/(makeDynCall\(.*?\))/g, '{{{ $1 }}}')
-      .replace(/(makeMalloc\(.*?\))/g, '{{{ $1 }}}'),
+      .replace(/(\$(makeMalloc\(.*?\)))/g, '{{{ $2 }}}'),
     'utf8'
   )
 
@@ -86,7 +86,7 @@ async function build () {
       .replace(/(makeGetValue\(.*?\))/g, '{{{ $1 }}}')
       .replace(/(makeSetValue\(.*?\))/g, '{{{ $1 }}}')
       .replace(/(makeDynCall\(.*?\))/g, '{{{ $1 }}}')
-      .replace(/(makeMalloc\(.*?\))/g, '{{{ $1 }}}'),
+      .replace(/(\$(makeMalloc\(.*?\)))/g, '{{{ $2 }}}'),
     'utf8'
   )
 }
