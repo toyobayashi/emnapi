@@ -10,7 +10,7 @@ function napi_create_int32 (env: napi_env, value: int32_t, result: Pointer<napi_
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const v = emnapi.addToCurrentScope(envObject, value).id
-      makeSetValue('result', 0, 'v', '*')
+      $makeSetValue('result', 0, 'v', '*')
       return envObject.clearLastError()
     })
   })
@@ -26,7 +26,7 @@ function napi_create_uint32 (env: napi_env, value: uint32_t, result: Pointer<nap
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const v = emnapi.addToCurrentScope(envObject, value >>> 0).id
-      makeSetValue('result', 0, 'v', '*')
+      $makeSetValue('result', 0, 'v', '*')
       return envObject.clearLastError()
     })
   })
@@ -51,13 +51,13 @@ function napi_create_int64 (env: napi_env, low: int32_t, high: int32_t, result: 
   // #if MEMORY64
       high = Number(high)
   // #endif
-      makeSetValue('high', 0, 'v1', '*')
+      $makeSetValue('high', 0, 'v1', '*')
 // #else
       value = (low >>> 0) + (high * Math.pow(2, 32))
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const v2 = emnapi.addToCurrentScope(envObject, value).id
-      makeSetValue('result', 0, 'v2', '*')
+      $makeSetValue('result', 0, 'v2', '*')
 // #endif
       return envObject.clearLastError()
     })
@@ -74,7 +74,7 @@ function napi_create_double (env: napi_env, value: double, result: Pointer<napi_
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const v = emnapi.addToCurrentScope(envObject, value).id
-      makeSetValue('result', 0, 'v', '*')
+      $makeSetValue('result', 0, 'v', '*')
       return envObject.clearLastError()
     })
   })
@@ -118,7 +118,7 @@ function napi_create_string_latin1 (env: napi_env, str: const_char_p, length: si
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const value = emnapi.addToCurrentScope(envObject, latin1String).id
-      makeSetValue('result', 0, 'value', '*')
+      $makeSetValue('result', 0, 'value', '*')
       return envObject.clearLastError()
     })
   })
@@ -145,7 +145,7 @@ function napi_create_string_utf16 (env: napi_env, str: const_char16_t_p, length:
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const value = emnapi.addToCurrentScope(envObject, utf16String).id
-      makeSetValue('result', 0, 'value', '*')
+      $makeSetValue('result', 0, 'value', '*')
       return envObject.clearLastError()
     })
   })
@@ -171,7 +171,7 @@ function napi_create_string_utf8 (env: napi_env, str: const_char_p, length: size
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const value = emnapi.addToCurrentScope(envObject, utf8String).id
-      makeSetValue('result', 0, 'value', '*')
+      $makeSetValue('result', 0, 'value', '*')
       return envObject.clearLastError()
     })
   })
@@ -200,13 +200,13 @@ function napi_create_bigint_int64 (env: napi_env, low: int32_t, high: int32_t, r
   // #if MEMORY64
       high = Number(high)
   // #endif
-      makeSetValue('high', 0, 'v1', '*')
+      $makeSetValue('high', 0, 'v1', '*')
 // #else
       value = BigInt(low >>> 0) | (BigInt(high) << BigInt(32))
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const v2 = emnapi.addToCurrentScope(envObject, value).id
-      makeSetValue('result', 0, 'v2', '*')
+      $makeSetValue('result', 0, 'v2', '*')
 // #endif
       return envObject.clearLastError()
     })
@@ -236,13 +236,13 @@ function napi_create_bigint_uint64 (env: napi_env, low: int32_t, high: int32_t, 
   // #if MEMORY64
       high = Number(high)
   // #endif
-      makeSetValue('high', 0, 'v1', '*')
+      $makeSetValue('high', 0, 'v1', '*')
 // #else
       value = BigInt(low >>> 0) | (BigInt(high >>> 0) << BigInt(32))
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const v2 = emnapi.addToCurrentScope(envObject, value).id
-      makeSetValue('result', 0, 'v2', '*')
+      $makeSetValue('result', 0, 'v2', '*')
 // #endif
       return envObject.clearLastError()
     })
@@ -282,7 +282,7 @@ function napi_create_bigint_words (env: napi_env, sign_bit: int, word_count: siz
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const v = emnapi.addToCurrentScope(envObject, value).id
-      makeSetValue('result', 0, 'v', '*')
+      $makeSetValue('result', 0, 'v', '*')
       return envObject.clearLastError()
     })
   })

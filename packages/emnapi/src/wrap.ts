@@ -34,18 +34,18 @@ function napi_define_class (
         // @ts-expect-error
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const propPtr = properties + (i * ($POINTER_SIZE * 8))
-        const utf8Name = makeGetValue('propPtr', 0, '*')
-        const name = makeGetValue('propPtr', POINTER_SIZE, '*')
-        const method = makeGetValue('propPtr', POINTER_SIZE * 2, '*')
-        const getter = makeGetValue('propPtr', POINTER_SIZE * 3, '*')
-        const setter = makeGetValue('propPtr', POINTER_SIZE * 4, '*')
-        const value = makeGetValue('propPtr', POINTER_SIZE * 5, '*')
+        const utf8Name = $makeGetValue('propPtr', 0, '*')
+        const name = $makeGetValue('propPtr', POINTER_SIZE, '*')
+        const method = $makeGetValue('propPtr', POINTER_SIZE * 2, '*')
+        const getter = $makeGetValue('propPtr', POINTER_SIZE * 3, '*')
+        const setter = $makeGetValue('propPtr', POINTER_SIZE * 4, '*')
+        const value = $makeGetValue('propPtr', POINTER_SIZE * 5, '*')
         // #if MEMORY64
-        attributes = Number(makeGetValue('propPtr', POINTER_SIZE * 6, POINTER_WASM_TYPE))
+        attributes = Number($makeGetValue('propPtr', POINTER_SIZE * 6, POINTER_WASM_TYPE))
         // #else
-        attributes = makeGetValue('propPtr', POINTER_SIZE * 6, POINTER_WASM_TYPE) as number
+        attributes = $makeGetValue('propPtr', POINTER_SIZE * 6, POINTER_WASM_TYPE) as number
         // #endif
-        const data = makeGetValue('propPtr', POINTER_SIZE * 7, '*')
+        const data = $makeGetValue('propPtr', POINTER_SIZE * 7, '*')
 
         if (utf8Name) {
           propertyName = UTF8ToString(utf8Name)
@@ -72,7 +72,7 @@ function napi_define_class (
       // #if MEMORY64
       result = Number(result)
       // #endif
-      makeSetValue('result', 0, 'valueHandle.id', '*')
+      $makeSetValue('result', 0, 'valueHandle.id', '*')
       return envObject.getReturnStatus()
     })
   })

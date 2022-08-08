@@ -15,9 +15,9 @@ declare type Float = 'float' | 'double'
 declare type PtrType = '*' | `${Integer | Float}*`
 declare type ValType = Integer | Float | PtrType
 
-declare function makeGetValue (ptrVar: string, pos: number | string, type: PtrType): number
-declare function makeGetValue (ptrVar: string, pos: number | string, type: ValType): number | bigint
-declare function makeSetValue (ptrVar: string, pos: number | string, valueVar: string, type: ValType): void
+declare function $makeGetValue (ptrVar: string, pos: number | string, type: PtrType): number
+declare function $makeGetValue (ptrVar: string, pos: number | string, type: ValType): number | bigint
+declare function $makeSetValue (ptrVar: string, pos: number | string, valueVar: string, type: ValType): void
 
 declare const $POINTER_SIZE: number
 declare const POINTER_SIZE: number

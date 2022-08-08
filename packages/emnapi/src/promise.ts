@@ -8,7 +8,7 @@ function napi_create_promise (env: napi_env, deferred: Pointer<napi_deferred>, p
         // #if MEMORY64
         deferred = Number(deferred)
         // #endif
-        makeSetValue('deferred', 0, 'deferredObject.id', '*')
+        $makeSetValue('deferred', 0, 'deferredObject.id', '*')
       })
       // #if MEMORY64
       promise = Number(promise)
@@ -17,7 +17,7 @@ function napi_create_promise (env: napi_env, deferred: Pointer<napi_deferred>, p
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const value = emnapi.addToCurrentScope(envObject, p).id
-      makeSetValue('promise', 0, 'value', '*')
+      $makeSetValue('promise', 0, 'value', '*')
       return envObject.getReturnStatus()
     })
   })

@@ -18,7 +18,7 @@ function napi_get_instance_data (env: napi_env, data: void_pp): napi_status {
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const value = envObject.instanceData ? envObject.instanceData.data() : 0
-      makeSetValue('data', 0, 'value', '*')
+      $makeSetValue('data', 0, 'value', '*')
       return envObject.clearLastError()
     })
   })

@@ -8,7 +8,7 @@ function napi_create_array (env: napi_env, result: Pointer<napi_value>): napi_st
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const value = emnapi.addToCurrentScope(envObject, []).id
-      makeSetValue('result', 0, 'value', '*')
+      $makeSetValue('result', 0, 'value', '*')
       return envObject.clearLastError()
     })
   })
@@ -27,7 +27,7 @@ function napi_create_array_with_length (env: napi_env, length: size_t, result: P
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const value = emnapi.addToCurrentScope(envObject, new Array(length)).id
-      makeSetValue('result', 0, 'value', '*')
+      $makeSetValue('result', 0, 'value', '*')
       return envObject.clearLastError()
     })
   })
@@ -46,7 +46,7 @@ function napi_create_arraybuffer (env: napi_env, byte_length: size_t, _data: voi
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const value = emnapi.addToCurrentScope(envObject, new ArrayBuffer(byte_length)).id
-      makeSetValue('result', 0, 'value', '*')
+      $makeSetValue('result', 0, 'value', '*')
       return envObject.getReturnStatus()
     })
   })
@@ -62,7 +62,7 @@ function napi_create_date (env: napi_env, time: double, result: Pointer<napi_val
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const value = emnapi.addToCurrentScope(envObject, new Date(time)).id
-      makeSetValue('result', 0, 'value', '*')
+      $makeSetValue('result', 0, 'value', '*')
       return envObject.getReturnStatus()
     })
   })
@@ -82,7 +82,7 @@ function napi_create_external (env: napi_env, data: void_p, finalize_cb: napi_fi
       // #if MEMORY64
       result = Number(result)
       // #endif
-      makeSetValue('result', 0, 'externalHandle.id', '*')
+      $makeSetValue('result', 0, 'externalHandle.id', '*')
       return envObject.clearLastError()
     })
   })
@@ -109,7 +109,7 @@ function napi_create_object (env: napi_env, result: Pointer<napi_value>): napi_s
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const value = emnapi.addToCurrentScope(envObject, {}).id
-      makeSetValue('result', 0, 'value', '*')
+      $makeSetValue('result', 0, 'value', '*')
       return envObject.clearLastError()
     })
   })
@@ -126,7 +126,7 @@ function napi_create_symbol (env: napi_env, description: napi_value, result: Poi
         // @ts-expect-error
         // eslint-disable-next-line symbol-description, @typescript-eslint/no-unused-vars
         const value = emnapi.addToCurrentScope(envObject, Symbol()).id
-        makeSetValue('result', 0, 'value', '*')
+        $makeSetValue('result', 0, 'value', '*')
       } else {
         const handle = emnapi.handleStore.get(description)!
         const desc = handle.value
@@ -136,7 +136,7 @@ function napi_create_symbol (env: napi_env, description: napi_value, result: Poi
         // @ts-expect-error
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const v = emnapi.addToCurrentScope(envObject, Symbol(desc)).id
-        makeSetValue('result', 0, 'v', '*')
+        $makeSetValue('result', 0, 'v', '*')
       }
       return envObject.clearLastError()
     })
@@ -167,7 +167,7 @@ function napi_create_typedarray (
         // @ts-expect-error
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const value = emnapi.addToCurrentScope(envObject, out).id
-        makeSetValue('result', 0, 'value', '*')
+        $makeSetValue('result', 0, 'value', '*')
         return envObject.getReturnStatus()
       }
 
@@ -238,7 +238,7 @@ function napi_create_dataview (
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const value = emnapi.addToCurrentScope(envObject, dataview).id
-      makeSetValue('result', 0, 'value', '*')
+      $makeSetValue('result', 0, 'value', '*')
       return envObject.getReturnStatus()
     })
   })
@@ -257,7 +257,7 @@ function node_api_symbol_for (env: napi_env, utf8description: const_char_p, leng
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const value = emnapi.addToCurrentScope(envObject, Symbol.for(descriptionString)).id
-      makeSetValue('result', 0, 'value', '*')
+      $makeSetValue('result', 0, 'value', '*')
       return envObject.clearLastError()
     })
   })

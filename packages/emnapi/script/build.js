@@ -22,10 +22,10 @@ async function build () {
       .replace('__EMNAPI_RUNTIME_REPLACE__', `'${runtimeCode.replace(/\\/g, '\\\\').replace(/\r?\n/g, '\\n').replace(/'/g, "\\'")}'`)
       .replace('__EMNAPI_RUNTIME_INIT__;', '')
       .replace(/\$POINTER_SIZE/g, '{{{ POINTER_SIZE }}}')
-      .replace(/(makeGetValue\(.*?\))/g, '{{{ $1 }}}')
-      .replace(/(makeSetValue\(.*?\))/g, '{{{ $1 }}}')
-      .replace(/(\$(makeDynCall\(.*?\)))/g, '{{{ $2 }}}')
-      .replace(/(\$(makeMalloc\(.*?\)))/g, '{{{ $2 }}}'),
+      .replace(/\$(makeGetValue\(.*?\))/g, '{{{ $1 }}}')
+      .replace(/\$(makeSetValue\(.*?\))/g, '{{{ $1 }}}')
+      .replace(/\$(makeDynCall\(.*?\))/g, '{{{ $1 }}}')
+      .replace(/\$(makeMalloc\(.*?\))/g, '{{{ $1 }}}'),
     'utf8'
   )
 
@@ -83,10 +83,10 @@ async function build () {
             }
       `)
       .replace(/\$POINTER_SIZE/g, '{{{ POINTER_SIZE }}}')
-      .replace(/(makeGetValue\(.*?\))/g, '{{{ $1 }}}')
-      .replace(/(makeSetValue\(.*?\))/g, '{{{ $1 }}}')
-      .replace(/(\$(makeDynCall\(.*?\)))/g, '{{{ $2 }}}')
-      .replace(/(\$(makeMalloc\(.*?\)))/g, '{{{ $2 }}}'),
+      .replace(/\$(makeGetValue\(.*?\))/g, '{{{ $1 }}}')
+      .replace(/\$(makeSetValue\(.*?\))/g, '{{{ $1 }}}')
+      .replace(/\$(makeDynCall\(.*?\))/g, '{{{ $1 }}}')
+      .replace(/\$(makeMalloc\(.*?\))/g, '{{{ $1 }}}'),
     'utf8'
   )
 }

@@ -7,7 +7,7 @@ function napi_open_handle_scope (env: napi_env, result: Pointer<napi_handle_scop
       // #if MEMORY64
       result = Number(result)
       // #endif
-      makeSetValue('result', 0, 'scope.id', '*')
+      $makeSetValue('result', 0, 'scope.id', '*')
       return envObject.clearLastError()
     })
   })
@@ -36,7 +36,7 @@ function napi_open_escapable_handle_scope (env: napi_env, result: Pointer<napi_e
       // #if MEMORY64
       result = Number(result)
       // #endif
-      makeSetValue('result', 0, 'scope.id', '*')
+      $makeSetValue('result', 0, 'scope.id', '*')
       return envObject.clearLastError()
     })
   })
@@ -69,7 +69,7 @@ function napi_escape_handle (env: napi_env, scope: napi_escapable_handle_scope, 
         // @ts-expect-error
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const value = newHandle ? newHandle.id : 0
-        makeSetValue('result', 0, 'value', '*')
+        $makeSetValue('result', 0, 'value', '*')
         return envObject.clearLastError()
       }
       return envObject.setLastError(napi_status.napi_escape_called_twice)
@@ -99,7 +99,7 @@ function napi_create_reference (
       // #if MEMORY64
       result = Number(result)
       // #endif
-      makeSetValue('result', 0, 'ref.id', '*')
+      $makeSetValue('result', 0, 'ref.id', '*')
       return envObject.clearLastError()
     })
   })
@@ -178,7 +178,7 @@ function napi_get_reference_value (
       // #if MEMORY64
       result = Number(result)
       // #endif
-      makeSetValue('result', 0, 'handleId', '*')
+      $makeSetValue('result', 0, 'handleId', '*')
       return envObject.clearLastError()
     })
   })

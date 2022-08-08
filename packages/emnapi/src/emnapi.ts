@@ -8,7 +8,7 @@ function emnapi_get_module_object (env: napi_env, result: Pointer<napi_value>): 
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const value = envObject.ensureHandleId(Module)
-      makeSetValue('result', 0, 'value', '*')
+      $makeSetValue('result', 0, 'value', '*')
       return envObject.getReturnStatus()
     })
   })
@@ -25,7 +25,7 @@ function emnapi_get_module_property (env: napi_env, utf8name: const_char_p, resu
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const value = envObject.ensureHandleId(Module[UTF8ToString(utf8name)])
-      makeSetValue('result', 0, 'value', '*')
+      $makeSetValue('result', 0, 'value', '*')
       return envObject.getReturnStatus()
     })
   })
@@ -73,7 +73,7 @@ function emnapi_create_external_uint8array (
           return envObject.setLastError(status)
         }
       }
-      makeSetValue('result', 0, 'handle.id', '*')
+      $makeSetValue('result', 0, 'handle.id', '*')
       return envObject.getReturnStatus()
     })
   })

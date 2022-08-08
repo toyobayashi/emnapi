@@ -33,7 +33,7 @@ function napi_get_all_property_names (
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const value = emnapi.addToCurrentScope(envObject, names).id
-      makeSetValue('result', 0, 'value', '*')
+      $makeSetValue('result', 0, 'value', '*')
       return envObject.getReturnStatus()
     })
   })
@@ -105,7 +105,7 @@ function napi_get_property (env: napi_env, object: napi_value, key: napi_value, 
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const value = envObject.ensureHandleId(v[emnapi.handleStore.get(key)!.value])
-      makeSetValue('result', 0, 'value', '*')
+      $makeSetValue('result', 0, 'value', '*')
       return envObject.getReturnStatus()
     })
   })
@@ -237,7 +237,7 @@ function napi_get_named_property (env: napi_env, object: napi_value, utf8name: c
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const value = envObject.ensureHandleId(v[UTF8ToString(utf8name)])
-      makeSetValue('result', 0, 'value', '*')
+      $makeSetValue('result', 0, 'value', '*')
       return envObject.getReturnStatus()
     })
   })
@@ -298,7 +298,7 @@ function napi_get_element (env: napi_env, object: napi_value, index: uint32_t, r
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const value = envObject.ensureHandleId(v[index >>> 0])
-      makeSetValue('result', 0, 'value', '*')
+      $makeSetValue('result', 0, 'value', '*')
       return envObject.getReturnStatus()
     })
   })
@@ -362,18 +362,18 @@ function napi_define_properties (
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const propPtr = properties + (i * ($POINTER_SIZE * 8))
-      const utf8Name = makeGetValue('propPtr', 0, '*')
-      const name = makeGetValue('propPtr', POINTER_SIZE, '*')
-      const method = makeGetValue('propPtr', POINTER_SIZE * 2, '*')
-      const getter = makeGetValue('propPtr', POINTER_SIZE * 3, '*')
-      const setter = makeGetValue('propPtr', POINTER_SIZE * 4, '*')
-      const value = makeGetValue('propPtr', POINTER_SIZE * 5, '*')
+      const utf8Name = $makeGetValue('propPtr', 0, '*')
+      const name = $makeGetValue('propPtr', POINTER_SIZE, '*')
+      const method = $makeGetValue('propPtr', POINTER_SIZE * 2, '*')
+      const getter = $makeGetValue('propPtr', POINTER_SIZE * 3, '*')
+      const setter = $makeGetValue('propPtr', POINTER_SIZE * 4, '*')
+      const value = $makeGetValue('propPtr', POINTER_SIZE * 5, '*')
       // #if MEMORY64
-      attributes = Number(makeGetValue('propPtr', POINTER_SIZE * 6, POINTER_WASM_TYPE))
+      attributes = Number($makeGetValue('propPtr', POINTER_SIZE * 6, POINTER_WASM_TYPE))
       // #else
-      attributes = makeGetValue('propPtr', POINTER_SIZE * 6, POINTER_WASM_TYPE) as number
+      attributes = $makeGetValue('propPtr', POINTER_SIZE * 6, POINTER_WASM_TYPE) as number
       // #endif
-      const data = makeGetValue('propPtr', POINTER_SIZE * 7, '*')
+      const data = $makeGetValue('propPtr', POINTER_SIZE * 7, '*')
 
       if (utf8Name) {
         propertyName = UTF8ToString(utf8Name)

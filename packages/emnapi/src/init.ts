@@ -97,7 +97,7 @@ mergeInto(LibraryManager.library, {
           // #endif
         },
         setErrorMessage: (_ptr: const_char_p) => {
-          makeSetValue('napiExtendedErrorInfoPtr', 0, '_ptr', '*')
+          $makeSetValue('napiExtendedErrorInfoPtr', 0, '_ptr', '*')
         },
         dispose () {
           // #if MEMORY64
@@ -149,10 +149,10 @@ mergeInto(LibraryManager.library, {
         // #else
         __emnapi_runtime_init(key_pp, errormessages_pp)
         // #endif
-        const key_p = makeGetValue('key_pp', 0, '*')
+        const key_p = $makeGetValue('key_pp', 0, '*')
         exportsKey = (key_p ? UTF8ToString(key_p) : 'emnapiExports') || 'emnapiExports'
         // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
-        errorMessagesPtr = makeGetValue('errormessages_pp', 0, '*') || 0
+        errorMessagesPtr = $makeGetValue('errormessages_pp', 0, '*') || 0
       })
 
       // Module.emnapiModuleRegister = moduleRegister

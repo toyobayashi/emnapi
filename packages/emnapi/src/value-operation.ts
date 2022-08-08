@@ -50,7 +50,7 @@ function napi_coerce_to_bool (env: napi_env, value: napi_value, result: Pointer<
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const v = handle.value ? emnapi.HandleStore.ID_TRUE : emnapi.HandleStore.ID_FALSE
-      makeSetValue('result', 0, 'v', '*')
+      $makeSetValue('result', 0, 'v', '*')
       return envObject.getReturnStatus()
     })
   })
@@ -70,7 +70,7 @@ function napi_coerce_to_number (env: napi_env, value: napi_value, result: Pointe
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const v = emnapi.addToCurrentScope(envObject, Number(handle.value)).id
-      makeSetValue('result', 0, 'v', '*')
+      $makeSetValue('result', 0, 'v', '*')
       return envObject.getReturnStatus()
     })
   })
@@ -87,7 +87,7 @@ function napi_coerce_to_object (env: napi_env, value: napi_value, result: Pointe
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const v = envObject.ensureHandleId(Object(handle.value))
-      makeSetValue('result', 0, 'v', '*')
+      $makeSetValue('result', 0, 'v', '*')
       return envObject.getReturnStatus()
     })
   })
@@ -107,7 +107,7 @@ function napi_coerce_to_string (env: napi_env, value: napi_value, result: Pointe
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const v = emnapi.addToCurrentScope(envObject, String(handle.value)).id
-      makeSetValue('result', 0, 'v', '*')
+      $makeSetValue('result', 0, 'v', '*')
       return envObject.getReturnStatus()
     })
   })
