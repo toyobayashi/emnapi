@@ -246,14 +246,14 @@ function $emnapiGetPropertyNames (obj: object, collection_mode: napi_key_collect
       props.push({
         name: integerIndiceRegex.test(names[i]) ? Number(names[i]) : names[i],
         desc: Object.getOwnPropertyDescriptor(obj, names[i])!,
-        own: own
+        own
       })
     }
     for (i = 0; i < symbols.length; i++) {
       props.push({
         name: symbols[i],
         desc: Object.getOwnPropertyDescriptor(obj, symbols[i])!,
-        own: own
+        own
       })
     }
     if (collection_mode === napi_key_collection_mode.napi_key_own_only) {
@@ -264,29 +264,52 @@ function $emnapiGetPropertyNames (obj: object, collection_mode: napi_key_collect
   } while (obj)
   const ret: Array<string | number | symbol> = []
   for (i = 0; i < props.length; i++) {
-    const name = props[i].name
+    const prop = props[i]
+    const name = prop.name
+    const desc = prop.desc
     if (key_filter === napi_key_filter.napi_key_all_properties) {
       emnapiAddName(ret, name, key_filter, conversion_mode)
     } else {
-      if (key_filter & napi_key_filter.napi_key_skip_strings) {
-        if (typeof name === 'string') continue
-      }
-      if (key_filter & napi_key_filter.napi_key_skip_symbols) {
-        if (typeof name === 'symbol') continue
-      }
-      if (key_filter & napi_key_filter.napi_key_writable) {
-        if (props[i].desc.writable) emnapiAddName(ret, name, key_filter, conversion_mode)
+      if (key_filter & napi_key_filter.napi_key_skip_strings && typeof name === 'string') {
         continue
       }
-      if (key_filter & napi_key_filter.napi_key_enumerable) {
-        if (props[i].desc.enumerable) emnapiAddName(ret, name, key_filter, conversion_mode)
+      if (key_filter & napi_key_filter.napi_key_skip_symbols && typeof name === 'symbol') {
         continue
       }
-      if (key_filter & napi_key_filter.napi_key_configurable) {
-        if (props[i].desc.configurable) emnapiAddName(ret, name, key_filter, conversion_mode)
-        continue
+      let shouldAdd = true
+      switch (key_filter & 7) {
+        case napi_key_filter.napi_key_writable: {
+          shouldAdd = Boolean(desc.writable)
+          break
+        }
+        case napi_key_filter.napi_key_enumerable: {
+          shouldAdd = Boolean(desc.enumerable)
+          break
+        }
+        case (napi_key_filter.napi_key_writable | napi_key_filter.napi_key_enumerable): {
+          shouldAdd = Boolean(desc.writable && desc.enumerable)
+          break
+        }
+        case napi_key_filter.napi_key_configurable: {
+          shouldAdd = Boolean(desc.configurable)
+          break
+        }
+        case (napi_key_filter.napi_key_configurable | napi_key_filter.napi_key_writable): {
+          shouldAdd = Boolean(desc.configurable && desc.writable)
+          break
+        }
+        case (napi_key_filter.napi_key_configurable | napi_key_filter.napi_key_enumerable): {
+          shouldAdd = Boolean(desc.configurable && desc.enumerable)
+          break
+        }
+        case (napi_key_filter.napi_key_configurable | napi_key_filter.napi_key_enumerable | napi_key_filter.napi_key_writable): {
+          shouldAdd = Boolean(desc.configurable && desc.enumerable && desc.writable)
+          break
+        }
       }
-      emnapiAddName(ret, name, key_filter, conversion_mode)
+      if (shouldAdd) {
+        emnapiAddName(ret, name, key_filter, conversion_mode)
+      }
     }
   }
   return ret
