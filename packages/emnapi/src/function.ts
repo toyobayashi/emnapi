@@ -6,9 +6,7 @@ function napi_create_function (env: napi_env, utf8name: Pointer<const_char>, len
       if (fresult.status !== napi_status.napi_ok) return envObject.setLastError(fresult.status)
       const f = fresult.f
       const valueHandle = emnapi.addToCurrentScope(envObject, f)
-      // #if MEMORY64
-      result = Number(result)
-      // #endif
+      $from64('result')
 
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -26,19 +24,14 @@ function napi_get_cb_info (env: napi_env, cbinfo: napi_callback_info, argc: Poin
 
   const cbinfoValue: emnapi.CallbackInfo = emnapi.cbInfoStore.get(cbinfo)!
 
-  // #if MEMORY64
-  argc = Number(argc)
-  argv = Number(argv)
-  // #endif
+  $from64('argc')
+  $from64('argv')
 
   if (argv) {
     if (!argc) return envObject.setLastError(napi_status.napi_invalid_arg)
-    let argcValue = 0
-    // #if MEMORY64
-    argcValue = Number(HEAPU64[Number(argc) >> 3])
-    // #else
-    argcValue = HEAPU32[argc >> 2]
-    // #endif
+    const argcValue = $makeGetValue('argc', 0, SIZE_TYPE)
+    $from64('argcValue')
+
     const arrlen = argcValue < cbinfoValue._length ? argcValue : cbinfoValue._length
     let i = 0
 
@@ -58,9 +51,7 @@ function napi_get_cb_info (env: napi_env, cbinfo: napi_callback_info, argc: Poin
     $makeSetValue('argc', 0, 'cbinfoValue._length', SIZE_TYPE)
   }
   if (this_arg) {
-    // #if MEMORY64
-    this_arg = Number(this_arg)
-    // #endif
+    $from64('this_arg')
 
     // @ts-expect-error
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -68,9 +59,7 @@ function napi_get_cb_info (env: napi_env, cbinfo: napi_callback_info, argc: Poin
     $makeSetValue('this_arg', 0, 'v', '*')
   }
   if (data) {
-    // #if MEMORY64
-    data = Number(data)
-    // #endif
+    $from64('data')
     $makeSetValue('data', 0, 'cbinfoValue._data', '*')
   }
   return envObject.clearLastError()
@@ -86,13 +75,11 @@ function napi_call_function (
 ): napi_status {
   return emnapi.preamble(env, (envObject) => {
     return emnapi.checkArgs(envObject, [recv], () => {
-      // #if MEMORY64
-      argc = Number(argc) >>> 0
-      argv = Number(argv)
-      result = Number(result)
-      // #else
+      $from64('argc')
+      $from64('argv')
+      $from64('result')
+
       argc = argc >>> 0
-      // #endif
       if (argc > 0) {
         if (!argv) return envObject.setLastError(napi_status.napi_invalid_arg)
       }
@@ -126,13 +113,11 @@ function napi_new_instance (
 ): napi_status {
   return emnapi.preamble(env, (envObject) => {
     return emnapi.checkArgs(envObject, [constructor], () => {
-      // #if MEMORY64
-      argc = Number(argc) >>> 0
-      argv = Number(argv)
-      result = Number(result)
-      // #else
+      $from64('argc')
+      $from64('argv')
+      $from64('result')
+
       argc = argc >>> 0
-      // #endif
       if (argc > 0) {
         if (!argv) return envObject.setLastError(napi_status.napi_invalid_arg)
       }
@@ -169,9 +154,7 @@ function napi_get_new_target (
   if (!cbinfo) return envObject.setLastError(napi_status.napi_invalid_arg)
   if (!result) return envObject.setLastError(napi_status.napi_invalid_arg)
 
-  // #if MEMORY64
-  result = Number(result)
-  // #endif
+  $from64('result')
 
   const cbinfoValue: emnapi.CallbackInfo = emnapi.cbInfoStore.get(cbinfo)!
   // @ts-expect-error

@@ -18,10 +18,8 @@ mergeInto(LibraryManager.library, {
 
   _emnapi_tsfn_send_js__deps: ['$PThread', '$emnapiGetDynamicCalls', '$emnapiAddTSFNListener'],
   _emnapi_tsfn_send_js: function (callback: number, data: number): void {
-    // #if MEMORY64
-    callback = Number(callback)
-    data = Number(data)
-    // #endif
+    $from64('callback')
+    $from64('data')
     if (ENVIRONMENT_IS_PTHREAD) {
       postMessage({
         emnapiTSFNSend: {
@@ -47,9 +45,7 @@ mergeInto(LibraryManager.library, {
   _emnapi_set_timeout__deps: ['$emnapiGetDynamicCalls'],
   _emnapi_set_timeout: function (callback: number, data: number, delay: number): number {
     return setTimeout(() => {
-      // #if MEMORY64
-      callback = Number(callback)
-      // #endif
+      $from64('callback')
       emnapiGetDynamicCalls.call_vp(callback, data)
     }, delay)
   }
@@ -60,9 +56,7 @@ function _emnapi_call_into_module (env: napi_env, callback: number, data: number
   const scope = emnapi.openScope(envObject, emnapi.HandleScope)
   try {
     envObject.callIntoModule((_envObject) => {
-      // #if MEMORY64
-      callback = Number(callback)
-      // #endif
+      $from64('callback')
       emnapiGetDynamicCalls.call_vpp(callback, env, data)
     })
   } catch (err) {
@@ -80,9 +74,7 @@ function _emnapi_tsfn_dispatch_one_js (env: number, ref: number, call_js_cb: num
     // eslint-disable-next-line @typescript-eslint/prefer-optional-chain, @typescript-eslint/prefer-nullish-coalescing
     const jsCallback = (reference && reference.get()) || 0
     envObject.callIntoModule((_envObject) => {
-      // #if MEMORY64
-      call_js_cb = Number(call_js_cb)
-      // #endif
+      $from64('call_js_cb')
       emnapiGetDynamicCalls.call_vpppp(call_js_cb, env, jsCallback, context, data)
     })
   } catch (err) {

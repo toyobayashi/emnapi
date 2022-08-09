@@ -11,9 +11,7 @@ function napi_run_script (env: napi_env, script: napi_value, result: Pointer<nap
       }
       const g: typeof globalThis = emnapi.handleStore.get(emnapi.HandleStore.ID_GLOBAL)!.value
       const ret = g.eval(v8Script.value)
-// #if MEMORY64
-      result = Number(result)
-// #endif
+      $from64('result')
 
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars

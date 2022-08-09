@@ -1,9 +1,7 @@
 function napi_get_boolean (env: napi_env, value: bool, result: Pointer<napi_value>): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [result], () => {
-      // #if MEMORY64
-      result = Number(result)
-      // #endif
+      $from64('result')
 
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -17,9 +15,7 @@ function napi_get_boolean (env: napi_env, value: bool, result: Pointer<napi_valu
 function napi_get_global (env: napi_env, result: Pointer<napi_value>): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [result], () => {
-      // #if MEMORY64
-      result = Number(result)
-      // #endif
+      $from64('result')
 
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -33,9 +29,7 @@ function napi_get_global (env: napi_env, result: Pointer<napi_value>): napi_stat
 function napi_get_null (env: napi_env, result: Pointer<napi_value>): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [result], () => {
-      // #if MEMORY64
-      result = Number(result)
-      // #endif
+      $from64('result')
 
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -49,9 +43,7 @@ function napi_get_null (env: napi_env, result: Pointer<napi_value>): napi_status
 function napi_get_undefined (env: napi_env, result: Pointer<napi_value>): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [result], () => {
-      // #if MEMORY64
-      result = Number(result)
-      // #endif
+      $from64('result')
 
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars

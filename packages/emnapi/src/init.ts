@@ -74,37 +74,21 @@ mergeInto(LibraryManager.library, {
       if (registered) return emnapiExports
       registered = true
 
-      // #if MEMORY64
-      napiExtendedErrorInfoPtr = $makeMalloc('$emnapiInit', 24)
-      // #else
-      napiExtendedErrorInfoPtr = $makeMalloc('$emnapiInit', 16)
-      // #endif
+      napiExtendedErrorInfoPtr = $makeMalloc('$emnapiInit', POINTER_SIZE * 2 + 8)
 
       const lastError = {
         data: napiExtendedErrorInfoPtr,
         getErrorCode: () => {
-          // #if MEMORY64
-          return HEAP32[(napiExtendedErrorInfoPtr! + 20) >> 2]
-          // #else
-          return HEAP32[(napiExtendedErrorInfoPtr! + 12) >> 2]
-          // #endif
+          return $makeGetValue('napiExtendedErrorInfoPtr', POINTER_SIZE * 2 + 4, 'i32') as number
         },
-        setErrorCode: (code: napi_status) => {
-          // #if MEMORY64
-          HEAP32[(napiExtendedErrorInfoPtr! + 20) >> 2] = code
-          // #else
-          HEAP32[(napiExtendedErrorInfoPtr! + 12) >> 2] = code
-          // #endif
+        setErrorCode: (_code: napi_status) => {
+          $makeSetValue('napiExtendedErrorInfoPtr', POINTER_SIZE * 2 + 4, '_code', 'i32')
         },
         setErrorMessage: (_ptr: const_char_p) => {
           $makeSetValue('napiExtendedErrorInfoPtr', 0, '_ptr', '*')
         },
         dispose () {
-          // #if MEMORY64
-          _free(BigInt(napiExtendedErrorInfoPtr!))
-          // #else
-          _free(napiExtendedErrorInfoPtr!)
-          // #endif
+          _free($to64('napiExtendedErrorInfoPtr'))
           napiExtendedErrorInfoPtr = 0
         }
       }
@@ -114,13 +98,11 @@ mergeInto(LibraryManager.library, {
       try {
         emnapiExports = env.callIntoModule((envObject) => {
           const exports = {}
+          // @ts-expect-error
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           const exportsHandle = scope.add(envObject, exports)
-          let napiValue: number
-          // #if MEMORY64
-          napiValue = Number(_napi_register_wasm_v1(BigInt(envObject.id), BigInt(exportsHandle.id)))
-          // #else
-          napiValue = _napi_register_wasm_v1(envObject.id, exportsHandle.id)
-          // #endif
+          const napiValue = _napi_register_wasm_v1($to64('envObject.id'), $to64('exportsHandle.id'))
+          $from64('napiValue')
           return (!napiValue) ? exports : emnapi.handleStore.get(napiValue)!.value
         })
       } catch (err) {
@@ -142,13 +124,10 @@ mergeInto(LibraryManager.library, {
 
       callInStack(() => {
         // HEAP.*?\[.*?\]
-        const key_pp = stackAlloc($POINTER_SIZE)
-        const errormessages_pp = stackAlloc($POINTER_SIZE)
-        // #if MEMORY64
-        __emnapi_runtime_init(BigInt(key_pp), BigInt(errormessages_pp))
-        // #else
-        __emnapi_runtime_init(key_pp, errormessages_pp)
-        // #endif
+        // @ts-expect-error
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const key_pp = stackAlloc($POINTER_SIZE); const errormessages_pp = stackAlloc($POINTER_SIZE)
+        __emnapi_runtime_init($to64('key_pp'), $to64('errormessages_pp'))
         const key_p = $makeGetValue('key_pp', 0, '*')
         exportsKey = (key_p ? UTF8ToString(key_p) : 'emnapiExports') || 'emnapiExports'
         // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing

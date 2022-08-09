@@ -4,9 +4,7 @@ function napi_open_handle_scope (env: napi_env, result: Pointer<napi_handle_scop
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const scope = emnapi.openScope(envObject, emnapi.HandleScope)
-      // #if MEMORY64
-      result = Number(result)
-      // #endif
+      $from64('result')
       $makeSetValue('result', 0, 'scope.id', '*')
       return envObject.clearLastError()
     })
@@ -33,9 +31,7 @@ function napi_open_escapable_handle_scope (env: napi_env, result: Pointer<napi_e
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const scope = emnapi.openScope(envObject, emnapi.EscapableHandleScope)
-      // #if MEMORY64
-      result = Number(result)
-      // #endif
+      $from64('result')
       $makeSetValue('result', 0, 'scope.id', '*')
       return envObject.clearLastError()
     })
@@ -61,10 +57,9 @@ function napi_escape_handle (env: napi_env, scope: napi_escapable_handle_scope, 
     return emnapi.checkArgs(envObject, [scope, escapee, result], () => {
       const scopeObject = emnapi.scopeStore.get(scope) as emnapi.EscapableHandleScope
       if (!scopeObject.escapeCalled()) {
-        // #if MEMORY64
-        escapee = Number(escapee)
-        result = Number(result)
-        // #endif
+        $from64('escapee')
+        $from64('result')
+
         const newHandle = scopeObject.escape(escapee)
         // @ts-expect-error
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -96,9 +91,7 @@ function napi_create_reference (
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const ref = emnapi.Reference.create(envObject, handle.id, initial_refcount >>> 0, false)
-      // #if MEMORY64
-      result = Number(result)
-      // #endif
+      $from64('result')
       $makeSetValue('result', 0, 'ref.id', '*')
       return envObject.clearLastError()
     })
@@ -126,9 +119,7 @@ function napi_reference_ref (
     return emnapi.checkArgs(envObject, [ref], () => {
       const count = emnapi.refStore.get(ref)!.ref()
       if (result) {
-        // #if MEMORY64
-        result = Number(result)
-        // #endif
+        $from64('result')
         HEAPU32[result >> 2] = count
       }
       return envObject.clearLastError()
@@ -154,9 +145,7 @@ function napi_reference_unref (
       }
       const count = reference.unref()
       if (result) {
-        // #if MEMORY64
-        result = Number(result)
-        // #endif
+        $from64('result')
         HEAPU32[result >> 2] = count
       }
       return envObject.clearLastError()
@@ -175,9 +164,7 @@ function napi_get_reference_value (
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const handleId = reference.get()
-      // #if MEMORY64
-      result = Number(result)
-      // #endif
+      $from64('result')
       $makeSetValue('result', 0, 'handleId', '*')
       return envObject.clearLastError()
     })

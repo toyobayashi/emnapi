@@ -1,9 +1,7 @@
 function emnapi_get_module_object (env: napi_env, result: Pointer<napi_value>): napi_status {
   return emnapi.preamble(env, (envObject) => {
     return emnapi.checkArgs(envObject, [result], () => {
-      // #if MEMORY64
-      result = Number(result)
-      // #endif
+      $from64('result')
 
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -17,10 +15,8 @@ function emnapi_get_module_object (env: napi_env, result: Pointer<napi_value>): 
 function emnapi_get_module_property (env: napi_env, utf8name: const_char_p, result: Pointer<napi_value>): napi_status {
   return emnapi.preamble(env, (envObject) => {
     return emnapi.checkArgs(envObject, [utf8name, result], () => {
-      // #if MEMORY64
-      utf8name = Number(utf8name)
-      result = Number(result)
-      // #endif
+      $from64('utf8name')
+      $from64('result')
 
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -41,13 +37,12 @@ function emnapi_create_external_uint8array (
 ): napi_status {
   return emnapi.preamble(env, (envObject) => {
     return emnapi.checkArgs(envObject, [result], () => {
-      // #if MEMORY64
-      byte_length = Number(byte_length) >>> 0
-      external_data = Number(external_data)
-      result = Number(result)
-      // #else
+      $from64('byte_length')
+      $from64('external_data')
+      $from64('result')
+
       byte_length = byte_length >>> 0
-      // #endif
+
       if (!external_data) {
         byte_length = 0
       }

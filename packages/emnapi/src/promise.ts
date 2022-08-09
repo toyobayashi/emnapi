@@ -5,14 +5,10 @@ function napi_create_promise (env: napi_env, deferred: Pointer<napi_deferred>, p
         // @ts-expect-error
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const deferredObject = emnapi.Deferred.create<any>(envObject, { resolve, reject })
-        // #if MEMORY64
-        deferred = Number(deferred)
-        // #endif
+        $from64('deferred')
         $makeSetValue('deferred', 0, 'deferredObject.id', '*')
       })
-      // #if MEMORY64
-      promise = Number(promise)
-      // #endif
+      $from64('promise')
 
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -47,9 +43,7 @@ function napi_is_promise (env: napi_env, value: napi_value, is_promise: Pointer<
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [value, is_promise], () => {
       const h = emnapi.handleStore.get(value)!
-      // #if MEMORY64
-      is_promise = Number(is_promise)
-      // #endif
+      $from64('is_promise')
       HEAPU8[is_promise] = h.isPromise() ? 1 : 0
       return envObject.clearLastError()
     })

@@ -4,11 +4,10 @@
 
 declare const emnapiCreateFunction: typeof $emnapiCreateFunction
 function $emnapiCreateFunction<F extends (...args: any[]) => any> (envObject: emnapi.Env, utf8name: Pointer<const_char>, length: size_t, cb: napi_callback, data: void_p): { status: napi_status; f: F } {
-  // #if MEMORY64
-  length = Number(length)
-  utf8name = Number(utf8name)
-  cb = Number(cb)
-  // #endif
+  $from64('length')
+  $from64('utf8name')
+  $from64('cb')
+
   const functionName = (!utf8name || !length) ? '' : (length === -1 ? UTF8ToString(utf8name) : UTF8ToString(utf8name, length))
 
   let f: F
@@ -113,14 +112,12 @@ function $emnapiDefineProperty (envObject: emnapi.Env, obj: object, propertyName
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 declare const emnapiCreateTypedArray: typeof $emnapiCreateTypedArray
 function $emnapiCreateTypedArray (envObject: emnapi.Env, Type: { new (...args: any[]): ArrayBufferView; name?: string }, size_of_element: number, buffer: ArrayBuffer, byte_offset: size_t, length: size_t, callback: (out: ArrayBufferView) => napi_status): napi_status {
-  // #if MEMORY64
-  byte_offset = Number(byte_offset) >>> 0
-  length = Number(length) >>> 0
-  size_of_element = Number(size_of_element)
-  // #else
+  $from64('byte_offset')
+  $from64('length')
+  $from64('size_of_element')
+
   byte_offset = byte_offset >>> 0
   length = length >>> 0
-  // #endif
   if (size_of_element > 1) {
     if ((byte_offset) % (size_of_element) !== 0) {
       const err: RangeError & { code?: string } = new RangeError(`start offset of ${Type.name ?? ''} should be a multiple of ${size_of_element}`)
@@ -162,9 +159,8 @@ function $emnapiWrap (type: WrapType, env: napi_env, js_object: napi_value, nati
       if (result) {
         if (!finalize_cb) return envObject.setLastError(napi_status.napi_invalid_arg)
         reference = emnapi.Reference.create(envObject, value.id, 0, false, finalize_cb, native_object, finalize_hint)
-        // #if MEMORY64
-        result = Number(result)
-        // #endif
+        $from64('result')
+
         $makeSetValue('result', 0, 'reference.id', '*')
       } else {
         reference = emnapi.Reference.create(envObject, value.id, 0, true, finalize_cb, native_object, !finalize_cb ? finalize_cb : finalize_hint)
@@ -194,9 +190,7 @@ function $emnapiUnwrap (env: napi_env, js_object: napi_value, result: void_pp, a
       const ref = emnapi.refStore.get(referenceId)
       if (!ref) return envObject.setLastError(napi_status.napi_invalid_arg)
       if (result) {
-        // #if MEMORY64
-        result = Number(result)
-        // #endif
+        $from64('result')
 
         // @ts-expect-error
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -326,7 +320,8 @@ function $emnapiSetErrorCode (envObject: emnapi.Env, error: Error & { code?: str
         return envObject.setLastError(napi_status.napi_string_expected)
       }
     } else {
-      codeValue = UTF8ToString(Number(code_string))
+      $from64('code_string')
+      codeValue = UTF8ToString(code_string)
     }
     error.code = codeValue
   }

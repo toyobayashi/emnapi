@@ -11,9 +11,7 @@ function napi_set_instance_data (env: napi_env, data: void_p, finalize_cb: napi_
 function napi_get_instance_data (env: napi_env, data: void_pp): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [data], () => {
-      // #if MEMORY64
-      data = Number(data)
-      // #endif
+      $from64('data')
 
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars

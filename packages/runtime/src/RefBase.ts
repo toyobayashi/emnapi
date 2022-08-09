@@ -79,12 +79,9 @@ export class RefBase extends Finalizer {
     let error: any
     let caught = false
     if (this._finalizeCallback) {
-      let fini = this._finalizeCallback
+      const fini = Number(this._finalizeCallback)
       this._finalizeCallback = 0
       try {
-        // #if MEMORY64
-        fini = Number(fini)
-        // #endif
         this.envObject.callFinalizer(fini, this._finalizeData, this._finalizeHint)
       } catch (err) {
         caught = true

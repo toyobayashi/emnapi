@@ -3,9 +3,7 @@
 function napi_create_int32 (env: napi_env, value: int32_t, result: Pointer<napi_value>): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [result], () => {
-      // #if MEMORY64
-      result = Number(result)
-      // #endif
+      $from64('result')
 
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -19,9 +17,7 @@ function napi_create_int32 (env: napi_env, value: int32_t, result: Pointer<napi_
 function napi_create_uint32 (env: napi_env, value: uint32_t, result: Pointer<napi_value>): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [result], () => {
-      // #if MEMORY64
-      result = Number(result)
-      // #endif
+      $from64('result')
 
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -48,9 +44,7 @@ function napi_create_int64 (env: napi_env, low: int32_t, high: int32_t, result: 
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const v1 = emnapi.addToCurrentScope(envObject, value).id
-  // #if MEMORY64
-      high = Number(high)
-  // #endif
+      $from64('high')
       $makeSetValue('high', 0, 'v1', '*')
 // #else
       value = (low >>> 0) + (high * Math.pow(2, 32))
@@ -67,9 +61,7 @@ function napi_create_int64 (env: napi_env, low: int32_t, high: int32_t, result: 
 function napi_create_double (env: napi_env, value: double, result: Pointer<napi_value>): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [result], () => {
-      // #if MEMORY64
-      result = Number(result)
-      // #endif
+      $from64('result')
 
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -83,12 +75,9 @@ function napi_create_double (env: napi_env, value: double, result: Pointer<napi_
 function napi_create_string_latin1 (env: napi_env, str: const_char_p, length: size_t, result: Pointer<napi_value>): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [result], () => {
-      // #if MEMORY64
-      str = Number(str)
-      length = Number(length) >>> 0
-      // #else
+      $from64('str')
+      $from64('length')
       length = length >>> 0
-      // #endif
       if (!((length === 0xffffffff) || (length <= 2147483647)) || (!str)) {
         return envObject.setLastError(napi_status.napi_invalid_arg)
       }
@@ -111,9 +100,7 @@ function napi_create_string_latin1 (env: napi_env, str: const_char_p, length: si
           str++
         }
       }
-      // #if MEMORY64
-      result = Number(result)
-      // #endif
+      $from64('result')
 
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -127,20 +114,16 @@ function napi_create_string_latin1 (env: napi_env, str: const_char_p, length: si
 function napi_create_string_utf16 (env: napi_env, str: const_char16_t_p, length: size_t, result: Pointer<napi_value>): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [result], () => {
-      // #if MEMORY64
-      str = Number(str)
-      length = Number(length) >>> 0
-      // #else
+      $from64('str')
+      $from64('length')
+
       length = length >>> 0
-      // #endif
       if (!((length === 0xffffffff) || (length <= 2147483647)) || (!str)) {
         return envObject.setLastError(napi_status.napi_invalid_arg)
       }
 
       const utf16String = length === -1 ? UTF16ToString(str) : UTF16ToString(str, length * 2)
-      // #if MEMORY64
-      result = Number(result)
-      // #endif
+      $from64('result')
 
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -154,19 +137,15 @@ function napi_create_string_utf16 (env: napi_env, str: const_char16_t_p, length:
 function napi_create_string_utf8 (env: napi_env, str: const_char_p, length: size_t, result: Pointer<napi_value>): napi_status {
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [result], () => {
-      // #if MEMORY64
-      str = Number(str)
-      length = Number(length) >>> 0
-      // #else
+      $from64('str')
+      $from64('length')
+
       length = length >>> 0
-      // #endif
       if (!((length === 0xffffffff) || (length <= 2147483647)) || (!str)) {
         return envObject.setLastError(napi_status.napi_invalid_arg)
       }
       const utf8String = length === -1 ? UTF8ToString(str) : UTF8ToString(str, length)
-      // #if MEMORY64
-      result = Number(result)
-      // #endif
+      $from64('result')
 
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -197,9 +176,7 @@ function napi_create_bigint_int64 (env: napi_env, low: int32_t, high: int32_t, r
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const v1 = emnapi.addToCurrentScope(envObject, value).id
-  // #if MEMORY64
-      high = Number(high)
-  // #endif
+      $from64('high')
       $makeSetValue('high', 0, 'v1', '*')
 // #else
       value = BigInt(low >>> 0) | (BigInt(high) << BigInt(32))
@@ -233,9 +210,7 @@ function napi_create_bigint_uint64 (env: napi_env, low: int32_t, high: int32_t, 
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const v1 = emnapi.addToCurrentScope(envObject, value).id
-  // #if MEMORY64
-      high = Number(high)
-  // #endif
+      $from64('high')
       $makeSetValue('high', 0, 'v1', '*')
 // #else
       value = BigInt(low >>> 0) | (BigInt(high >>> 0) << BigInt(32))
@@ -255,12 +230,9 @@ function napi_create_bigint_words (env: napi_env, sign_bit: int, word_count: siz
       throw new emnapi.NotSupportBigIntError('napi_create_bigint_words', 'This API is unavailable')
     }
     return emnapi.checkArgs(envObject, [result], () => {
-      // #if MEMORY64
-      words = Number(words)
-      word_count = Number(word_count) >>> 0
-      // #else
+      $from64('words')
+      $from64('word_count')
       word_count = word_count >>> 0
-      // #endif
       if (word_count > 2147483647) {
         return envObject.setLastError(napi_status.napi_invalid_arg)
       }
@@ -275,9 +247,7 @@ function napi_create_bigint_words (env: napi_env, sign_bit: int, word_count: siz
         value += wordi << BigInt(64 * i)
       }
       value *= ((BigInt(sign_bit) % BigInt(2) === BigInt(0)) ? BigInt(1) : BigInt(-1))
-      // #if MEMORY64
-      result = Number(result)
-      // #endif
+      $from64('result')
 
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars

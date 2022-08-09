@@ -20,9 +20,7 @@ mergeInto(LibraryManager.library, {
 
   _emnapi_get_worker_count_js__deps: ['$PThread'],
   _emnapi_get_worker_count_js: function (struct: number) {
-    // #if MEMORY64
-    struct = Number(struct)
-    // #endif
+    $from64('struct')
     const address = struct >> 2
     HEAP32[address] = PThread.unusedWorkers.length
     HEAP32[address + 1] = PThread.runningWorkers.length
@@ -32,18 +30,14 @@ mergeInto(LibraryManager.library, {
 
   _emnapi_on_execute_async_work_js: function (work: number) {
     if (ENVIRONMENT_IS_PTHREAD) {
-      // #if MEMORY64
-      work = Number(work)
-      // #endif
+      $from64('work')
       postMessage({ emnapiAsyncWorkPtr: work })
     }
   }
 })
 
 function _emnapi_queue_async_work_js (work: number): void {
-  // #if MEMORY64
-  work = Number(work)
-  // #endif
+  $from64('work')
   const tid = $makeGetValue('work', POINTER_SIZE * 4, '*')
   if (tid === 0) {
     emnapiAsyncWorkerQueue.push(work)
@@ -87,9 +81,7 @@ function napi_cancel_async_work (env: napi_env, work: number): napi_status {
 // #if USE_PTHREADS
   return emnapi.checkEnv(env, (envObject) => {
     return emnapi.checkArgs(envObject, [work], () => {
-      // #if MEMORY64
-      work = Number(work)
-      // #endif
+      $from64('work')
       const tid = $makeGetValue('work', POINTER_SIZE * 4, '*')
       const workQueueIndex = emnapiAsyncWorkerQueue.indexOf(work)
       if (tid !== 0 || workQueueIndex === -1) {

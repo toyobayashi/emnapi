@@ -9,14 +9,13 @@ function napi_define_class (
   result: Pointer<napi_value>): napi_status {
   return emnapi.preamble(env, (envObject) => {
     return emnapi.checkArgs(envObject, [result, constructor], () => {
-      // #if MEMORY64
-      length = Number(length) >>> 0
-      properties = Number(properties)
-      property_count = Number(property_count) >>> 0
-      // #else
+      $from64('length')
+      $from64('properties')
+      $from64('property_count')
+
       length = length >>> 0
       property_count = property_count >>> 0
-      // #endif
+
       if (property_count > 0) {
         if (!properties) return envObject.setLastError(napi_status.napi_invalid_arg)
       }
@@ -27,7 +26,6 @@ function napi_define_class (
       if (fresult.status !== napi_status.napi_ok) return envObject.setLastError(fresult.status)
       const F = fresult.f
 
-      let attributes: number
       let propertyName: string | symbol
 
       for (let i = 0; i < property_count; i++) {
@@ -40,11 +38,8 @@ function napi_define_class (
         const getter = $makeGetValue('propPtr', POINTER_SIZE * 3, '*')
         const setter = $makeGetValue('propPtr', POINTER_SIZE * 4, '*')
         const value = $makeGetValue('propPtr', POINTER_SIZE * 5, '*')
-        // #if MEMORY64
-        attributes = Number($makeGetValue('propPtr', POINTER_SIZE * 6, POINTER_WASM_TYPE))
-        // #else
-        attributes = $makeGetValue('propPtr', POINTER_SIZE * 6, POINTER_WASM_TYPE) as number
-        // #endif
+        const attributes = $makeGetValue('propPtr', POINTER_SIZE * 6, POINTER_WASM_TYPE) as number
+        $from64('attributes')
         const data = $makeGetValue('propPtr', POINTER_SIZE * 7, '*')
 
         if (utf8Name) {
@@ -69,9 +64,7 @@ function napi_define_class (
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const valueHandle = emnapi.addToCurrentScope(envObject, F)
-      // #if MEMORY64
-      result = Number(result)
-      // #endif
+      $from64('result')
       $makeSetValue('result', 0, 'valueHandle.id', '*')
       return envObject.getReturnStatus()
     })
@@ -111,9 +104,7 @@ function napi_type_tag_object (env: napi_env, object: napi_value, type_tag: Cons
     if (!(value.isObject() || value.isFunction())) {
       return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_object_expected)
     }
-    // #if MEMORY64
-    type_tag = Number(type_tag)
-    // #endif
+    $from64('type_tag')
     if (!type_tag) {
       return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_invalid_arg)
     }
@@ -148,9 +139,7 @@ function napi_check_object_type_tag (env: napi_env, object: napi_value, type_tag
     }
     let ret = true
     if (value.tag !== null) {
-      // #if MEMORY64
-      type_tag = Number(type_tag)
-      // #endif
+      $from64('type_tag')
       for (let i = 0; i < 4; i++) {
         if (HEAPU32[(type_tag + (i * 4)) >> 2] !== value.tag[i]) {
           ret = false
@@ -161,9 +150,7 @@ function napi_check_object_type_tag (env: napi_env, object: napi_value, type_tag
       ret = false
     }
 
-    // #if MEMORY64
-    result = Number(result)
-    // #endif
+    $from64('result')
     HEAPU8[result] = ret ? 1 : 0
 
     return envObject.getReturnStatus()

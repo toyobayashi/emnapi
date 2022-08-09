@@ -19,6 +19,9 @@ declare function $makeGetValue (ptrVar: string, pos: number | string, type: PtrT
 declare function $makeGetValue (ptrVar: string, pos: number | string, type: ValType): number | bigint
 declare function $makeSetValue (ptrVar: string, pos: number | string, valueVar: string, type: ValType): void
 
+declare function $from64 (x: string | string[]): void
+declare function $to64 (x: string): number | bigint
+
 declare const $POINTER_SIZE: number
 declare const POINTER_SIZE: number
 declare const SIZE_TYPE: 'u32' | 'u64'
