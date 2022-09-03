@@ -1,18 +1,22 @@
 # emnapi
 
 <p align="center">
-  <img src="https://emnapi-docs.vercel.app/emnapi.svg" alt="emnapi logo" width="256" />
+  <img src="https://toyobayashi.github.io/emnapi-docs/emnapi.svg" alt="emnapi logo" width="256" />
 </p>
 
 [![Build](https://github.com/toyobayashi/emnapi/actions/workflows/main.yml/badge.svg?branch=main)](https://github.com/toyobayashi/emnapi/actions/workflows/main.yml)
 
 [Node-API (version 8)](https://nodejs.org/docs/v16.15.0/api/n-api.html) implementation for [Emscripten](https://emscripten.org/index.html), based on Node.js v16.15.0.
 
-[See documentation for more details](https://emnapi-docs.vercel.app/guide/)
+See documentation for more details:
+- [https://toyobayashi.github.io/emnapi-docs/guide/](https://toyobayashi.github.io/emnapi-docs/guide/)
+- [https://emnapi-docs.vercel.app/guide/](https://emnapi-docs.vercel.app/guide/)
 
-[中文文档](https://emnapi-docs.vercel.app/zh/guide/)
+中文文档：
+- [https://toyobayashi.github.io/emnapi-docs/zh/guide/](https://toyobayashi.github.io/emnapi-docs/zh/guide/)
+- [https://emnapi-docs.vercel.app/zh/guide/](https://emnapi-docs.vercel.app/zh/guide/)
 
-[Full API List](https://emnapi-docs.vercel.app/reference/list.html)
+[Full API List](https://toyobayashi.github.io/emnapi-docs/reference/list.html)
 
 [How to build Node-API official examples](https://github.com/toyobayashi/node-addon-examples)
 
