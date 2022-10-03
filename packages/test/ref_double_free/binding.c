@@ -42,6 +42,26 @@ static napi_value New(napi_env env, napi_callback_info info) {
   return js_this;
 }
 
+static void NoopDeleter(napi_env env, void* data, void* hint) {}
+
+static napi_value DeleteImmediately(napi_env env, napi_callback_info info) {
+  size_t argc = 1;
+  napi_value js_obj;
+  napi_ref ref;
+
+  NAPI_CALL(env,
+      napi_get_cb_info(env, info, &argc, &js_obj, NULL, NULL));
+
+  napi_valuetype type;
+  NAPI_CALL(env, napi_typeof(env, js_obj, &type));
+
+  NAPI_CALL(env,
+      napi_wrap(env, js_obj, NULL, NoopDeleter, NULL, &ref));
+  NAPI_CALL(env, napi_delete_reference(env, ref));
+  NAPI_CALL(env, napi_remove_wrap(env, js_obj, NULL));
+  return NULL;
+}
+
 EXTERN_C_START
 napi_value Init(napi_env env, napi_value exports) {
   napi_value myobj_ctor;
@@ -50,6 +70,13 @@ napi_value Init(napi_env env, napi_value exports) {
           env, "MyObject", NAPI_AUTO_LENGTH, New, NULL, 0, NULL, &myobj_ctor));
   NAPI_CALL(env,
       napi_set_named_property(env, exports, "MyObject", myobj_ctor));
+
+  napi_property_descriptor descriptors[] = {
+    DECLARE_NAPI_PROPERTY("deleteImmediately", DeleteImmediately),
+  };
+  NAPI_CALL(env, napi_define_properties(
+      env, exports, sizeof(descriptors) / sizeof(*descriptors), descriptors));
+
   return exports;
 }
 EXTERN_C_END
