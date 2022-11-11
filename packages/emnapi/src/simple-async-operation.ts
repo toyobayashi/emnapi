@@ -2,28 +2,40 @@
 /* eslint-disable no-unreachable */
 
 declare const PThread: any
+declare let emnapiWorkerPoolSize: number
 declare const emnapiAsyncWorkerQueue: number[]
+declare const emnapiRunningWorkers: Worker[]
 // declare function __emnapi_execute_async_work (work: number): void
 
 mergeInto(LibraryManager.library, {
+  $emnapiWorkerPoolSize: undefined,
+  $emnapiRunningWorkers: [],
+
   $emnapiAsyncWorkerQueue: [],
-  $emnapiAsyncWorkerQueue__deps: ['$PThread', '_emnapi_execute_async_work'],
-  $emnapiAsyncWorkerQueue__postset: 'PThread.unusedWorkers.push=function(){' +
-    'var r=Array.prototype.push.apply(this,arguments);' +
-    'setTimeout(function(){' +
-      'if(PThread.unusedWorkers.length>0&&emnapiAsyncWorkerQueue.length>0){' +
+  $emnapiAsyncWorkerQueue__deps: ['$PThread', '_emnapi_execute_async_work', '$emnapiRunningWorkers', '$emnapiWorkerPoolSize'],
+  $emnapiAsyncWorkerQueue__postset: 'PThread.unusedWorkers.push = function () {' +
+    'var r = Array.prototype.push.apply(this, arguments);' +
+    'var worker = arguments[0]; var index;' +
+    'if ((index = emnapiRunningWorkers.indexOf(worker)) !== -1) emnapiRunningWorkers.splice(index, 1);' +
+    'setTimeout(function () {' +
+      'var canExecute = PThread.unusedWorkers.length > 0 && emnapiAsyncWorkerQueue.length > 0;' +
+      'if (emnapiWorkerPoolSize > 0) {' +
+        'canExecute = canExecute && (emnapiWorkerPoolSize - emnapiRunningWorkers.length > 0);' +
+      '}' +
+      'if (canExecute) {' +
         '__emnapi_execute_async_work(emnapiAsyncWorkerQueue.shift());' +
       '}' +
     '});' +
     'return r;' +
   '};',
 
-  _emnapi_get_worker_count_js__deps: ['$PThread'],
+  _emnapi_get_worker_count_js__deps: ['$PThread', '$emnapiWorkerPoolSize', '$emnapiRunningWorkers'],
   _emnapi_get_worker_count_js: function (struct: number) {
     $from64('struct')
     const address = struct >> 2
     HEAP32[address] = PThread.unusedWorkers.length
     HEAP32[address + 1] = PThread.runningWorkers.length
+    HEAP32[address + 2] = emnapiWorkerPoolSize - emnapiRunningWorkers.length
   },
 
   // _emnapi_delete_async_work_js: function (_work: number) {}
@@ -45,6 +57,7 @@ function _emnapi_queue_async_work_js (work: number): void {
   }
   const pthreadValue = PThread.pthreads[tid]
   const worker = (('worker' in pthreadValue) && ('threadInfoStruct' in pthreadValue)) ? pthreadValue.worker : pthreadValue
+  emnapiRunningWorkers.push(worker)
   if (!worker._emnapiAsyncWorkListener) {
     worker._emnapiAsyncWorkListener = function (this: Worker, e: MessageEvent<any>): any {
       const data = ENVIRONMENT_IS_NODE ? e : e.data
@@ -115,5 +128,5 @@ function napi_cancel_async_work (env: napi_env, work: number): napi_status {
 // #endif
 }
 
-emnapiImplement('_emnapi_queue_async_work_js', _emnapi_queue_async_work_js, ['$PThread', '$emnapiAsyncWorkerQueue', '$emnapiGetDynamicCalls'])
+emnapiImplement('_emnapi_queue_async_work_js', _emnapi_queue_async_work_js, ['$PThread', '$emnapiAsyncWorkerQueue', '$emnapiGetDynamicCalls', '$emnapiRunningWorkers'])
 emnapiImplement('napi_cancel_async_work', napi_cancel_async_work, ['$emnapiAsyncWorkerQueue', '$emnapiGetDynamicCalls', 'napi_set_last_error'])

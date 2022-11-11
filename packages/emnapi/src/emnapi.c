@@ -94,11 +94,16 @@ const char* emnapi_error_messages[] = {
 #define EMNAPI_MOD_NAME_X(modname) EMNAPI_MOD_NAME_X_HELPER(modname)
 
 EMSCRIPTEN_KEEPALIVE
-void _emnapi_runtime_init(const char** key, const char*** error_messages) {
+void _emnapi_runtime_init(const char** key, const char*** error_messages, int* size) {
   if (key) {
     *key = EMNAPI_MOD_NAME_X(NODE_GYP_MODULE_NAME);
   }
   if (error_messages) *error_messages = emnapi_error_messages;
+#if defined(EMNAPI_WORKER_POOL_SIZE) && EMNAPI_WORKER_POOL_SIZE > 0
+  if (size) *size = EMNAPI_WORKER_POOL_SIZE;
+#else
+  if (size) *size = 0;
+#endif
 }
 
 napi_status napi_adjust_external_memory(napi_env env,
@@ -165,6 +170,7 @@ struct napi_async_work__ {
 typedef struct worker_count {
   int unused;
   int running;
+  int async_work_unused;
 } worker_count;
 
 // extern void _emnapi_create_async_work_js(napi_async_work work);
@@ -262,7 +268,11 @@ napi_status napi_queue_async_work(napi_env env, napi_async_work work) {
 
   worker_count count;
   _emnapi_get_worker_count_js(&count);
+#if defined(EMNAPI_WORKER_POOL_SIZE) && EMNAPI_WORKER_POOL_SIZE > 0
+  if ((count.unused > 0 || count.running == 0) && count.async_work_unused > 0) {
+#else
   if (count.unused > 0 || count.running == 0) {
+#endif
     _emnapi_execute_async_work(work);
   } else {
     _emnapi_queue_async_work_js(work);  // queue work

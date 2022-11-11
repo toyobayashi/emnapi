@@ -10,6 +10,7 @@ const files = glob.sync('**/*.test.js', {
     : process.env.MEMORY64
       ? [
           'async/**/*',
+          'pool/**/*',
           'tsfn/**/*'
         ]
       : []

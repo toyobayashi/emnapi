@@ -8,7 +8,7 @@ declare const __EMNAPI_RUNTIME_INIT__: string
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 declare let napiExtendedErrorInfoPtr: number | undefined
 declare function _napi_register_wasm_v1 (env: Ptr, exports: Ptr): napi_value
-declare function __emnapi_runtime_init (...args: [Ptr, Ptr]): void
+declare function __emnapi_runtime_init (...args: [Ptr, Ptr, Ptr]): void
 declare function _free (ptr: Ptr): void
 
 mergeInto(LibraryManager.library, {
@@ -49,6 +49,7 @@ mergeInto(LibraryManager.library, {
     'napi_register_wasm_v1',
     '_emnapi_runtime_init',
     '$napiExtendedErrorInfoPtr',
+    '$emnapiWorkerPoolSize',
     'free'
   ],
   $emnapiInit: function () {
@@ -126,12 +127,13 @@ mergeInto(LibraryManager.library, {
         // HEAP.*?\[.*?\]
         // @ts-expect-error
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const key_pp = stackAlloc($POINTER_SIZE); const errormessages_pp = stackAlloc($POINTER_SIZE)
-        __emnapi_runtime_init($to64('key_pp'), $to64('errormessages_pp'))
+        const key_pp = stackAlloc($POINTER_SIZE); const errormessages_pp = stackAlloc($POINTER_SIZE); const poolSize_p = stackAlloc(4)
+        __emnapi_runtime_init($to64('key_pp'), $to64('errormessages_pp'), $to64('poolSize_p'))
         const key_p = $makeGetValue('key_pp', 0, '*')
         exportsKey = (key_p ? UTF8ToString(key_p) : 'emnapiExports') || 'emnapiExports'
         // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
         errorMessagesPtr = $makeGetValue('errormessages_pp', 0, '*') || 0
+        emnapiWorkerPoolSize = $makeGetValue('poolSize_p', 0, 'i32') as number || 0
       })
 
       // Module.emnapiModuleRegister = moduleRegister
