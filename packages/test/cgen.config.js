@@ -37,7 +37,7 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
     },
     includePaths,
     defines: [
-      ...(isEmscripten && pthread ? ['EMNAPI_WORKER_POOL_SIZE=1'] : [])
+      ...(isEmscripten && pthread ? ['EMNAPI_WORKER_POOL_SIZE=2'] : [])
     ],
     libs: ['testcommon'],
     compileOptions: [...compilerFlags, ...(isEmscripten && pthread ? ['-sUSE_PTHREADS=1'] : [])],
@@ -45,7 +45,7 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
     linkOptions: [
       ...linkerFlags,
       ...(isEmscripten ? [jsLib] : []),
-      ...(isEmscripten && pthread ? ['-sUSE_PTHREADS=1', '-sPTHREAD_POOL_SIZE=4', '-sPTHREAD_POOL_SIZE_STRICT=2'] : [])
+      ...(isEmscripten && pthread ? ['-sUSE_PTHREADS=1', '-sPTHREAD_POOL_SIZE=8', '-sPTHREAD_POOL_SIZE_STRICT=2'] : [])
     ]
   })
 

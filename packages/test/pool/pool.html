@@ -14,7 +14,7 @@
       const loadPromise = window.pool.default()
       const A = (await loadPromise).Module.emnapiExports
 
-      await Promise.all([undefined, undefined].map(() => A.async_method()))
+      await Promise.all(Array.from({ length: 4 }, () => A.async_method()))
       console.log('done')
     })()
   </script>

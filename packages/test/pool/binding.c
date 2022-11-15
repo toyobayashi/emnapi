@@ -1,6 +1,7 @@
 #include <pthread.h>
 #include <unistd.h>
 #include <node_api.h>
+#include <stdio.h>
 #include "../common.h"
 
 typedef struct {
@@ -15,6 +16,7 @@ static void* F(void* data) {
 
 static void some_method() {
   pthread_t pid[3];
+  printf("some_method()\n");
   for (int i = 0; i < 3; ++i) {
     pthread_create(pid + i, NULL, F, NULL);
   }
@@ -41,6 +43,7 @@ static void Complete(napi_env env, napi_status status, void* data) {
   NAPI_CALL_RETURN_VOID(env, napi_resolve_deferred(env, c->_deferred, argv));
   NAPI_CALL_RETURN_VOID(env, napi_delete_async_work(env, c->_request));
   free(c);
+  printf("Complete\n");
 }
 
 static napi_value async_method(napi_env env, napi_callback_info info) {
