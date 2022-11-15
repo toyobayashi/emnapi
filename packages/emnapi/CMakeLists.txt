@@ -58,5 +58,6 @@ if(EMNAPI_INSTALL_SRC)
   install(FILES
       ${EMNAPI_SRC}
       ${CMAKE_CURRENT_SOURCE_DIR}/src/queue.h
+      ${CMAKE_CURRENT_SOURCE_DIR}/src/threadpool.c
     DESTINATION "src/${PROJECT_NAME}")
 endif()

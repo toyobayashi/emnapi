@@ -25,12 +25,10 @@ typedef napi_value (*napi_addon_register_func)(napi_env env,
   NAPI_MODULE_INITIALIZER_X(napi_register_wasm_v, NAPI_MODULE_VERSION)
 #define NAPI_MODULE(modname, regfunc)                                          \
   EXTERN_C_START                                                               \
-  void _emnapi_runtime_init(const char** k, const char*** msg, int* size);     \
-  void _emnapi_execute_async_work(napi_async_work work);                       \
+  void _emnapi_runtime_init(const char** k, const char*** msg);                \
   NAPI_MODULE_EXPORT napi_value NAPI_WASM_INITIALIZER(napi_env env,            \
                                                       napi_value exports) {    \
-    _emnapi_runtime_init(NULL, NULL, NULL);                                    \
-    _emnapi_execute_async_work(NULL);                                          \
+    _emnapi_runtime_init(NULL, NULL);                                          \
     return regfunc(env, exports);                                              \
   }                                                                            \
   EXTERN_C_END

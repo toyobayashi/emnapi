@@ -1,47 +1,4 @@
 mergeInto(LibraryManager.library, {
-  $emnapiAddTSFNListener__deps: ['$emnapiGetDynamicCalls'],
-  $emnapiAddTSFNListener: function (worker: any) {
-    if (worker && !worker._emnapiTSFNListener) {
-      worker._emnapiTSFNListener = function _emnapiTSFNListener (e: any) {
-        const data = ENVIRONMENT_IS_NODE ? e : e.data
-        if (data.emnapiTSFNSend) {
-          emnapiGetDynamicCalls.call_vp(data.emnapiTSFNSend.callback, data.emnapiTSFNSend.data)
-        }
-      }
-      if (ENVIRONMENT_IS_NODE) {
-        worker.on('message', worker._emnapiTSFNListener)
-      } else {
-        worker.addEventListener('message', worker._emnapiTSFNListener, false)
-      }
-    }
-  },
-
-  _emnapi_tsfn_send_js__deps: ['$PThread', '$emnapiGetDynamicCalls', '$emnapiAddTSFNListener'],
-  _emnapi_tsfn_send_js: function (callback: number, data: number): void {
-    $from64('callback')
-    $from64('data')
-    if (ENVIRONMENT_IS_PTHREAD) {
-      postMessage({
-        emnapiTSFNSend: {
-          callback,
-          data
-        }
-      })
-    } else {
-      setTimeout(() => {
-        emnapiGetDynamicCalls.call_vp(callback, data)
-      })
-    }
-  },
-  _emnapi_tsfn_send_js__postset:
-    'PThread.unusedWorkers.forEach(emnapiAddTSFNListener);' +
-    'PThread.runningWorkers.forEach(emnapiAddTSFNListener);' +
-    'var __original_getNewWorker = PThread.getNewWorker; PThread.getNewWorker = function () {' +
-      'var r = __original_getNewWorker.apply(this, arguments);' +
-      'emnapiAddTSFNListener(r);' +
-      'return r;' +
-    '};',
-
   _emnapi_set_timeout__deps: ['$emnapiGetDynamicCalls'],
   _emnapi_set_timeout: function (callback: number, data: number, delay: number): number {
     return setTimeout(() => {
