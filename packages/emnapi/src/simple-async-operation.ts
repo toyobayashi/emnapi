@@ -5,27 +5,32 @@ declare const PThread: any
 declare let emnapiWorkerPoolSize: number
 declare const emnapiAsyncWorkerQueue: number[]
 declare const emnapiRunningWorkers: Worker[]
-// declare function __emnapi_execute_async_work (work: number): void
+declare function __emnapi_execute_async_work (work: number): void
 
 mergeInto(LibraryManager.library, {
   $emnapiWorkerPoolSize: undefined,
   $emnapiRunningWorkers: [],
 
+  $emnapiOnReturnWorkerToPool__deps: ['$PThread', '_emnapi_execute_async_work', '$emnapiRunningWorkers', '$emnapiWorkerPoolSize'],
+  $emnapiOnReturnWorkerToPool: function (worker: Worker) {
+    const index = emnapiRunningWorkers.indexOf(worker)
+    if (index !== -1) emnapiRunningWorkers.splice(index, 1)
+    setTimeout(function () {
+      let canExecute = PThread.unusedWorkers.length > 0 && emnapiAsyncWorkerQueue.length > 0
+      if (emnapiWorkerPoolSize > 0) {
+        canExecute = canExecute && (emnapiWorkerPoolSize - emnapiRunningWorkers.length > 0)
+      }
+      if (canExecute) {
+        __emnapi_execute_async_work(emnapiAsyncWorkerQueue.shift()!)
+      }
+    })
+  },
+
   $emnapiAsyncWorkerQueue: [],
-  $emnapiAsyncWorkerQueue__deps: ['$PThread', '_emnapi_execute_async_work', '$emnapiRunningWorkers', '$emnapiWorkerPoolSize'],
-  $emnapiAsyncWorkerQueue__postset: 'PThread.unusedWorkers.push = function () {' +
-    'var r = Array.prototype.push.apply(this, arguments);' +
-    'var worker = arguments[0]; var index;' +
-    'if ((index = emnapiRunningWorkers.indexOf(worker)) !== -1) emnapiRunningWorkers.splice(index, 1);' +
-    'setTimeout(function () {' +
-      'var canExecute = PThread.unusedWorkers.length > 0 && emnapiAsyncWorkerQueue.length > 0;' +
-      'if (emnapiWorkerPoolSize > 0) {' +
-        'canExecute = canExecute && (emnapiWorkerPoolSize - emnapiRunningWorkers.length > 0);' +
-      '}' +
-      'if (canExecute) {' +
-        '__emnapi_execute_async_work(emnapiAsyncWorkerQueue.shift());' +
-      '}' +
-    '});' +
+  $emnapiAsyncWorkerQueue__deps: ['$PThread', '$emnapiOnReturnWorkerToPool'],
+  $emnapiAsyncWorkerQueue__postset: 'var __original_returnWorkerToPool = PThread.returnWorkerToPool; PThread.returnWorkerToPool = function (worker) {' +
+    'var r = __original_returnWorkerToPool.apply(this, arguments);' +
+    'emnapiOnReturnWorkerToPool(worker);' +
     'return r;' +
   '};',
 

@@ -1,7 +1,7 @@
 mergeInto(LibraryManager.library, {
   $emnapiAddTSFNListener__deps: ['$emnapiGetDynamicCalls'],
   $emnapiAddTSFNListener: function (worker: any) {
-    if (!worker._emnapiTSFNListener) {
+    if (worker && !worker._emnapiTSFNListener) {
       worker._emnapiTSFNListener = function _emnapiTSFNListener (e: any) {
         const data = ENVIRONMENT_IS_NODE ? e : e.data
         if (data.emnapiTSFNSend) {
@@ -36,8 +36,8 @@ mergeInto(LibraryManager.library, {
   _emnapi_tsfn_send_js__postset:
     'PThread.unusedWorkers.forEach(emnapiAddTSFNListener);' +
     'PThread.runningWorkers.forEach(emnapiAddTSFNListener);' +
-    'PThread.unusedWorkers.pop = function () {' +
-      'var r = Array.prototype.pop.apply(this, arguments);' +
+    'var __original_getNewWorker = PThread.getNewWorker; PThread.getNewWorker = function () {' +
+      'var r = __original_getNewWorker.apply(this, arguments);' +
       'emnapiAddTSFNListener(r);' +
       'return r;' +
     '};',
