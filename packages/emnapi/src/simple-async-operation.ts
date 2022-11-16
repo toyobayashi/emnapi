@@ -12,7 +12,16 @@ mergeInto(LibraryManager.library, {
       worker._emnapiSendListener = function _emnapiSendListener (e: any) {
         const data = ENVIRONMENT_IS_NODE ? e : e.data
         if (data.emnapiAsyncSend) {
-          emnapiGetDynamicCalls.call_vp(data.emnapiAsyncSend.callback, data.emnapiAsyncSend.data)
+          if (ENVIRONMENT_IS_PTHREAD) {
+            postMessage({
+              emnapiAsyncSend: data.emnapiAsyncSend
+            })
+          } else {
+            // eslint-disable-next-line prefer-const
+            let callback = data.emnapiAsyncSend.callback
+            $from64('callback')
+            emnapiGetDynamicCalls.call_vp(callback, data.emnapiAsyncSend.data)
+          }
         }
       }
       if (ENVIRONMENT_IS_NODE) {
@@ -25,8 +34,6 @@ mergeInto(LibraryManager.library, {
 
   _emnapi_async_send__deps: ['$emnapiGetDynamicCalls', '$PThread', '$emnapiAddSendListener'],
   _emnapi_async_send: function (callback: number, data: number): void {
-    $from64('callback')
-    $from64('data')
     if (ENVIRONMENT_IS_PTHREAD) {
       postMessage({
         emnapiAsyncSend: {
@@ -36,6 +43,7 @@ mergeInto(LibraryManager.library, {
       })
     } else {
       setTimeout(() => {
+        $from64('callback')
         emnapiGetDynamicCalls.call_vp(callback, data)
       })
     }
