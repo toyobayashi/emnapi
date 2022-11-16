@@ -156,7 +156,6 @@ emnapi_get_emscripten_version(napi_env env,
 
 #ifdef __EMSCRIPTEN_PTHREADS__
 
-#include <string.h>
 #include "threadpool.c"
 
 typedef void (*_emnapi_call_into_module_callback)(napi_env env, void* args);
@@ -176,9 +175,8 @@ static napi_async_work async_work_init(
   napi_async_complete_callback complete,
   void* data
 ) {
-  napi_async_work work = (napi_async_work)malloc(sizeof(struct napi_async_work__));
+  napi_async_work work = (napi_async_work)calloc(1, sizeof(struct napi_async_work__));
   if (work == NULL) return NULL;
-  memset(work, 0, sizeof(struct napi_async_work__));
   work->env = env;
   work->execute = execute;
   work->complete = complete;
@@ -253,7 +251,7 @@ static void async_work_schedule_work(napi_async_work work) {
 }
 
 static int async_work_cancel_work(napi_async_work work) {
-  return uv_cancel(&work->work_req_);
+  return uv_cancel((uv_req_t*)&work->work_req_);
 }
 
 #endif

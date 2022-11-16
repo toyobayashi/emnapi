@@ -26,7 +26,7 @@
 #include <pthread.h>
 #include <semaphore.h>
 #include <errno.h>
-#include <stdio.h>
+#include <string.h>
 #include "queue.h"
 
 void uv__work_done(void* handle);
@@ -77,6 +77,12 @@ struct uv_loop_s {
 struct uv_work_s;
 typedef struct uv_work_s uv_work_t;
 
+struct uv_req_s {
+  int type;
+};
+
+typedef struct uv_req_s uv_req_t;
+
 struct uv__work {
   void (*work)(struct uv__work *w);
   void (*done)(struct uv__work *w, int status);
@@ -88,8 +94,8 @@ typedef void (*uv_work_cb)(uv_work_t* req);
 typedef void (*uv_after_work_cb)(uv_work_t* req, int status);
 
 struct uv_work_s {
-  uv_loop_t* loop;
   int type;
+  uv_loop_t* loop;
   uv_work_cb work_cb;
   uv_after_work_cb after_work_cb;
   struct uv__work work_req;
@@ -458,7 +464,7 @@ int uv_queue_work(uv_loop_t* loop,
   if (work_cb == NULL)
     return EINVAL;
 
-  uv__req_init(loop, req, 7);
+  uv__req_init(loop, req, 7 /* UV_WORK */);
   req->loop = loop;
   req->work_cb = work_cb;
   req->after_work_cb = after_work_cb;
@@ -471,12 +477,18 @@ int uv_queue_work(uv_loop_t* loop,
 }
 
 
-int uv_cancel(void* req) {
+int uv_cancel(uv_req_t* req) {
   struct uv__work* wreq;
   void* loop;
 
-  loop =  ((uv_work_t*) req)->loop;
-  wreq = &((uv_work_t*) req)->work_req;
+  switch (req->type) {
+    case 7 /* UV_WORK */:
+      loop =  ((uv_work_t*) req)->loop;
+      wreq = &((uv_work_t*) req)->work_req;
+      break;
+    default:
+      return EINVAL;
+  }
 
   return uv__work_cancel(loop, req, wreq);
 }
