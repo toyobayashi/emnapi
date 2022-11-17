@@ -185,10 +185,15 @@ extern void _emnapi_async_send_js(int type,
                                   void* data);
 
 static void _emnapi_async_send(void (*callback)(void*), void* data) {
-  // Not sure what happens that cause the test failed,
-  // randomly never invoke async complete callback?
+  // TODO(?): need help
+  // Neither emscripten_dispatch_to_thread_async nor MAIN_THREAD_ASYNC_EM_ASM
+  // invoke the async complete callback if there is a printf() in worker thread.
+  // This breaks "packages/test/pool" tests.
+  // Not sure what happens, maybe has deadlock,
+  // and not sure whether this is Emscripten bug or my incorrect usage.
+  // BTW emscripten_dispatch_to_thread_async seems
+  // not support __wasm64__ V_I64 signature yet
 
-  // and it seems not support __wasm64__ V_I64 signature yet
   // pthread_t main_thread = emscripten_main_browser_thread_id();
   // if (pthread_equal(main_thread, pthread_self())) {
   //   NEXT_TICK(callback, data);
@@ -198,7 +203,10 @@ static void _emnapi_async_send(void (*callback)(void*), void* data) {
   //                                       callback,
   //                                       NULL,
   //                                       data);
-
+  //   // or
+  //   // MAIN_THREAD_ASYNC_EM_ASM({
+  //   //   emnapiGetDynamicCalls.call_vp($0, $1);
+  //   // }, callback, data);
   // }
 
   // Currently still use JavaScript to send work
