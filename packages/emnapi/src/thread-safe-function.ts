@@ -1,13 +1,3 @@
-mergeInto(LibraryManager.library, {
-  _emnapi_set_timeout__deps: ['$emnapiGetDynamicCalls'],
-  _emnapi_set_timeout: function (callback: number, data: number, delay: number): number {
-    return setTimeout(() => {
-      $from64('callback')
-      emnapiGetDynamicCalls.call_vp(callback, data)
-    }, delay)
-  }
-})
-
 function _emnapi_call_into_module (env: napi_env, callback: number, data: number): void {
   const envObject = emnapi.envStore.get(env)!
   const scope = emnapi.openScope(envObject, emnapi.HandleScope)

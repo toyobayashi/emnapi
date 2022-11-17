@@ -31,7 +31,7 @@
 
 void uv__work_done(void* handle);
 
-extern void _emnapi_async_send(void (*callback)(void*), void* data);
+void _emnapi_async_send(void (*callback)(void*), void* data);
 
 struct uv_loop_s;
 typedef struct uv_loop_s uv_loop_t;

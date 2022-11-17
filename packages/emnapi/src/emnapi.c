@@ -2,6 +2,7 @@
 
 #ifdef __EMSCRIPTEN_PTHREADS__
 #include <pthread.h>
+// #include <emscripten/threading.h>
 #endif
 
 #include <emscripten.h>
@@ -155,6 +156,55 @@ emnapi_get_emscripten_version(napi_env env,
 ////////////////////////////////////////////////////////////////////////////////
 
 #ifdef __EMSCRIPTEN_PTHREADS__
+
+// #ifdef __wasm64__
+// #define __EMNAPI_ASYNC_SEND_CALLBACK_SIG \
+//   (EM_FUNC_SIG_RETURN_VALUE_V | \
+//   EM_FUNC_SIG_WITH_N_PARAMETERS(1) | \
+//   EM_FUNC_SIG_SET_PARAM(0, EM_FUNC_SIG_PARAM_I64))
+// #else
+// #define __EMNAPI_ASYNC_SEND_CALLBACK_SIG EM_FUNC_SIG_VI
+// #endif
+
+#ifndef EMNAPI_ASYNC_SEND_TYPE
+#define EMNAPI_ASYNC_SEND_TYPE 0
+#endif
+
+#if EMNAPI_ASYNC_SEND_TYPE == 0
+extern void _emnapi_set_immediate(void (*callback)(void*), void* data);
+#define NEXT_TICK(callback, data) _emnapi_set_immediate((callback), (data))
+#elif EMNAPI_ASYNC_SEND_TYPE == 1
+extern void _emnapi_next_tick(void (*callback)(void*), void* data);
+#define NEXT_TICK(callback, data) _emnapi_next_tick((callback), (data))
+#else
+#error "Invalid EMNAPI_ASYNC_SEND_TYPE"
+#endif
+
+extern void _emnapi_async_send_js(int type,
+                                  void (*callback)(void*),
+                                  void* data);
+
+static void _emnapi_async_send(void (*callback)(void*), void* data) {
+  // Not sure what happens that cause the test failed,
+  // randomly never invoke async complete callback?
+
+  // and it seems not support __wasm64__ V_I64 signature yet
+  // pthread_t main_thread = emscripten_main_browser_thread_id();
+  // if (pthread_equal(main_thread, pthread_self())) {
+  //   NEXT_TICK(callback, data);
+  // } else {
+  //   emscripten_dispatch_to_thread_async(main_thread,
+  //                                       __EMNAPI_ASYNC_SEND_CALLBACK_SIG,
+  //                                       callback,
+  //                                       NULL,
+  //                                       data);
+
+  // }
+
+  // Currently still use JavaScript to send work
+  // it's simple and clear
+  _emnapi_async_send_js(EMNAPI_ASYNC_SEND_TYPE, callback, data);
+}
 
 #include "threadpool.c"
 
@@ -379,7 +429,6 @@ struct napi_threadsafe_function__ {
 };
 
 extern void _emnapi_tsfn_dispatch_one_js(napi_env env, napi_ref ref, napi_threadsafe_function_call_js call_js_cb, void* context, void* data);
-extern void _emnapi_set_timeout(void (*callback)(void*), void* data, int delay);
 
 static void _emnapi_tsfn_default_call_js(napi_env env, napi_value cb, void* context, void* data) {
   if (!(env == NULL || cb == NULL)) {
@@ -486,7 +535,7 @@ static napi_status _emnapi_tsfn_init(napi_threadsafe_function func) {
   if (func->max_queue_size == 0 || func->cond) {
     return napi_ok;
   }
-  _emnapi_set_timeout(_emnapi_tsfn_do_destroy, func, 0);
+  NEXT_TICK(_emnapi_tsfn_do_destroy, func);
   return napi_generic_failure;
 }
 
@@ -543,7 +592,7 @@ static void _emnapi_tsfn_close_handles_and_maybe_delete(
   }
   func->handles_closing = true;
 
-  _emnapi_set_timeout(_emnapi_tsfn_do_finalize, func, 0);
+  NEXT_TICK(_emnapi_tsfn_do_finalize, func);
 
   napi_close_handle_scope(func->env, scope);
 }
