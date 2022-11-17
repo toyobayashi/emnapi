@@ -1,119 +1,87 @@
 /* eslint-disable @typescript-eslint/indent */
 /* eslint-disable no-unreachable */
 
-declare const PThread: any
-declare const emnapiAsyncWorkerQueue: number[]
-// declare function __emnapi_execute_async_work (work: number): void
+// declare const PThread: any
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+// declare function __emnapi_async_send_js (callback: number, data: number): void
+declare function __emnapi_set_immediate (callback: number, data: number): void
+declare function __emnapi_next_tick (callback: number, data: number): void
 
 mergeInto(LibraryManager.library, {
-  $emnapiAsyncWorkerQueue: [],
-  $emnapiAsyncWorkerQueue__deps: ['$PThread', '_emnapi_execute_async_work'],
-  $emnapiAsyncWorkerQueue__postset: 'PThread.unusedWorkers.push=function(){' +
-    'var r=Array.prototype.push.apply(this,arguments);' +
-    'setTimeout(function(){' +
-      'if(PThread.unusedWorkers.length>0&&emnapiAsyncWorkerQueue.length>0){' +
-        '__emnapi_execute_async_work(emnapiAsyncWorkerQueue.shift());' +
-      '}' +
-    '});' +
-    'return r;' +
-  '};',
-
-  _emnapi_get_worker_count_js__deps: ['$PThread'],
-  _emnapi_get_worker_count_js: function (struct: number) {
-    $from64('struct')
-    const address = struct >> 2
-    HEAP32[address] = PThread.unusedWorkers.length
-    HEAP32[address + 1] = PThread.runningWorkers.length
+  _emnapi_set_immediate__deps: ['$emnapiGetDynamicCalls'],
+  _emnapi_set_immediate: function (callback: number, data: number): void {
+    const channel = new MessageChannel()
+    channel.port1.onmessage = function () {
+      $from64('callback')
+      emnapiGetDynamicCalls.call_vp(callback, data)
+    }
+    channel.port2.postMessage(null)
   },
 
-  // _emnapi_delete_async_work_js: function (_work: number) {}
+  _emnapi_next_tick__deps: ['$emnapiGetDynamicCalls'],
+  _emnapi_next_tick: function (callback: number, data: number): void {
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
+    Promise.resolve().then(() => {
+      $from64('callback')
+      emnapiGetDynamicCalls.call_vp(callback, data)
+    })
+  },
 
-  _emnapi_on_execute_async_work_js: function (work: number) {
-    if (ENVIRONMENT_IS_PTHREAD) {
-      $from64('work')
-      postMessage({ emnapiAsyncWorkPtr: work })
-    }
-  }
-})
-
-function _emnapi_queue_async_work_js (work: number): void {
-  $from64('work')
-  const tid = $makeGetValue('work', POINTER_SIZE * 4, '*')
-  if (tid === 0) {
-    emnapiAsyncWorkerQueue.push(work)
-    return
-  }
-  const pthreadValue = PThread.pthreads[tid]
-  const worker = (('worker' in pthreadValue) && ('threadInfoStruct' in pthreadValue)) ? pthreadValue.worker : pthreadValue
-  if (!worker._emnapiAsyncWorkListener) {
-    worker._emnapiAsyncWorkListener = function (this: Worker, e: MessageEvent<any>): any {
-      const data = ENVIRONMENT_IS_NODE ? e : e.data
-      const w: number = data.emnapiAsyncWorkPtr
-      if (w) {
-        const env = $makeGetValue('w', 0, '*')
-        $makeSetValue('w', POINTER_SIZE * 4, '0', '*') // tid
-        const complete = $makeGetValue('w', POINTER_SIZE * 2, '*')
-        if (complete) {
-          const envObject = emnapi.envStore.get(env)!
-          const scope = emnapi.openScope(envObject, emnapi.HandleScope)
-          try {
-            envObject.callIntoModule((_envObject) => {
-              const hint = $makeGetValue('w', POINTER_SIZE * 3, '*')
-              emnapiGetDynamicCalls.call_vpip(complete, env, napi_status.napi_ok, hint)
+  $emnapiAddSendListener__deps: ['$emnapiGetDynamicCalls'],
+  $emnapiAddSendListener: function (worker: any) {
+    if (worker && !worker._emnapiSendListener) {
+      worker._emnapiSendListener = function _emnapiSendListener (e: any) {
+        const data = ENVIRONMENT_IS_NODE ? e : e.data
+        if (data.emnapiAsyncSend) {
+          if (ENVIRONMENT_IS_PTHREAD) {
+            postMessage({
+              emnapiAsyncSend: data.emnapiAsyncSend
             })
-          } catch (err) {
-            emnapi.closeScope(envObject, scope)
-            throw err
+          } else {
+            // eslint-disable-next-line prefer-const
+            let callback = data.emnapiAsyncSend.callback
+            $from64('callback')
+            emnapiGetDynamicCalls.call_vp(callback, data.emnapiAsyncSend.data)
           }
-          emnapi.closeScope(envObject, scope)
         }
       }
+      if (ENVIRONMENT_IS_NODE) {
+        worker.on('message', worker._emnapiSendListener)
+      } else {
+        worker.addEventListener('message', worker._emnapiSendListener, false)
+      }
     }
-    if (ENVIRONMENT_IS_NODE) {
-      worker.on('message', worker._emnapiAsyncWorkListener)
+  },
+
+  _emnapi_async_send_js__deps: [
+    '$emnapiGetDynamicCalls',
+    '$PThread',
+    '$emnapiAddSendListener',
+    '_emnapi_set_immediate',
+    '_emnapi_next_tick'
+  ],
+  _emnapi_async_send_js: function (type: number, callback: number, data: number): void {
+    if (ENVIRONMENT_IS_PTHREAD) {
+      postMessage({
+        emnapiAsyncSend: {
+          callback,
+          data
+        }
+      })
     } else {
-      worker.addEventListener('message', worker._emnapiAsyncWorkListener, false)
+      switch (type) {
+        case 0: __emnapi_set_immediate(callback, data); break
+        case 1: __emnapi_next_tick(callback, data); break
+        default: break
+      }
     }
-  }
-}
-
-function napi_cancel_async_work (env: napi_env, work: number): napi_status {
-// #if USE_PTHREADS
-  return emnapi.checkEnv(env, (envObject) => {
-    return emnapi.checkArgs(envObject, [work], () => {
-      $from64('work')
-      const tid = $makeGetValue('work', POINTER_SIZE * 4, '*')
-      const workQueueIndex = emnapiAsyncWorkerQueue.indexOf(work)
-      if (tid !== 0 || workQueueIndex === -1) {
-        return envObject.setLastError(napi_status.napi_generic_failure)
-      }
-
-      emnapiAsyncWorkerQueue.splice(workQueueIndex, 1)
-      const complete = $makeGetValue('work', POINTER_SIZE * 2, '*')
-      if (complete) {
-        setTimeout(() => {
-          const envObject = emnapi.envStore.get(env)!
-          const scope = emnapi.openScope(envObject, emnapi.HandleScope)
-          try {
-            envObject.callIntoModule((_envObject) => {
-              const hint = $makeGetValue('work', POINTER_SIZE * 3, '*')
-              emnapiGetDynamicCalls.call_vpip(complete, env, napi_status.napi_cancelled, hint)
-            })
-          } catch (err) {
-            emnapi.closeScope(envObject, scope)
-            throw err
-          }
-          emnapi.closeScope(envObject, scope)
-        })
-      }
-
-      return envObject.clearLastError()
-    })
-  })
-// #else
-  return _napi_set_last_error(env, napi_status.napi_generic_failure, 0, 0)
-// #endif
-}
-
-emnapiImplement('_emnapi_queue_async_work_js', _emnapi_queue_async_work_js, ['$PThread', '$emnapiAsyncWorkerQueue', '$emnapiGetDynamicCalls'])
-emnapiImplement('napi_cancel_async_work', napi_cancel_async_work, ['$emnapiAsyncWorkerQueue', '$emnapiGetDynamicCalls', 'napi_set_last_error'])
+  },
+  _emnapi_async_send_js__postset:
+    'PThread.unusedWorkers.forEach(emnapiAddSendListener);' +
+    'PThread.runningWorkers.forEach(emnapiAddSendListener);' +
+    'var __original_getNewWorker = PThread.getNewWorker; PThread.getNewWorker = function () {' +
+      'var r = __original_getNewWorker.apply(this, arguments);' +
+      'emnapiAddSendListener(r);' +
+      'return r;' +
+    '};'
+})

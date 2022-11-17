@@ -120,7 +120,6 @@ mergeInto(LibraryManager.library, {
 
       delete Module._napi_register_wasm_v1
       delete Module.__emnapi_runtime_init
-      delete Module.__emnapi_execute_async_work
 
       callInStack(() => {
         // HEAP.*?\[.*?\]

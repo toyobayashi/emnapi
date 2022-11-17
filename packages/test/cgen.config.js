@@ -36,13 +36,16 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
       exports: ['emnapi']
     },
     includePaths,
+    defines: [
+      ...(isEmscripten && pthread ? ['EMNAPI_WORKER_POOL_SIZE=2'] : [])
+    ],
     libs: ['testcommon'],
     compileOptions: [...compilerFlags, ...(isEmscripten && pthread ? ['-sUSE_PTHREADS=1'] : [])],
     // eslint-disable-next-line no-template-curly-in-string
     linkOptions: [
       ...linkerFlags,
       ...(isEmscripten ? [jsLib] : []),
-      ...(isEmscripten && pthread ? ['-sUSE_PTHREADS=1', '-sPTHREAD_POOL_SIZE=4'] : [])
+      ...(isEmscripten && pthread ? ['-sUSE_PTHREADS=1', '-sPTHREAD_POOL_SIZE=8', '-sPTHREAD_POOL_SIZE_STRICT=2'] : [])
     ]
   })
 
@@ -93,6 +96,7 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
       createTarget('env', ['./env/binding.c']),
       createTarget('hello', ['./hello/binding.c']),
       ...(!(isEmscripten && process.env.MEMORY64) ? [createTarget('async', ['./async/binding.c'], false, true)] : []),
+      ...(!(isEmscripten && process.env.MEMORY64) ? [createTarget('pool', ['./pool/binding.c'], false, true)] : []),
       ...(isEmscripten && !process.env.MEMORY64 ? [createTarget('tsfn', ['./tsfn/binding.c'], false, true)] : []),
       // ...(isEmscripten ? [createTarget('tsfn', ['./tsfn/binding.c'], false, true)] : []),
       createTarget('arg', ['./arg/binding.c'], true),

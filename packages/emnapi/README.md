@@ -264,6 +264,30 @@ Output code can run in recent version modern browsers and Node.js latest LTS. IE
 
 If a JS error is thrown on runtime initialization, Node.js process will exit. You can use `-sNODEJS_CATCH_EXIT=0` and add `ununcaughtException` handler yourself to avoid this. Alternatively, you can use `Module.onEmnapiInitialized` callback to catch error.
 
+## Preprocess Macro Options
+
+### `-DEMNAPI_WORKER_POOL_SIZE=4`
+
+This is equivalent to [`UV_THREADPOOL_SIZE`](http://docs.libuv.org/en/v1.x/threadpool.html?highlight=UV_THREADPOOL_SIZE), default is `4`.
+It represent max of `EMNAPI_WORKER_POOL_SIZE` async work (`napi_queue_async_work`) can be executed in parallel.
+
+You can set both `PTHREAD_POOL_SIZE` and `EMNAPI_WORKER_POOL` to `number of CPU cores` in general.
+If you use another library function which may create `N` child threads in async work,
+then you need to set `PTHREAD_POOL_SIZE` to `EMNAPI_WORKER_POOL_SIZE * (N + 1)`.
+
+This option only has effect if you use `-sUSE_PTHREADS`.
+Emnapi will create `EMNAPI_WORKER_POOL_SIZE` threads when initializing,
+it will throw error if `PTHREAD_POOL_SIZE < EMNAPI_WORKER_POOL_SIZE && PTHREAD_POOL_SIZE_STRICT == 2`.
+
+See [Issue #8](https://github.com/toyobayashi/emnapi/issues/8) and [PR #9](https://github.com/toyobayashi/emnapi/pull/9) for more detail.
+
+### `-DEMNAPI_ASYNC_SEND_TYPE=0`
+
+This option only has effect if you use `-sUSE_PTHREADS`, Default is `0`.
+
+- `0`: Use `setImmediate()` (`MessageChannel` and `postMessage`) to send async work.
+- `1`: Use `Promise.resolve().then()` to send async work.
+
 ## Emnapi Runtime
 
 Most APIs are implemented in JavaScript and they are depend on runtime code shipped in `library_napi.js` library file. So if you are building multiple wasm target, the same runtime code will be linked into each wasm glue js file. This is problematic when passing JavaScript objects across wasm bindings in same web page, we need to share emnapi's runtime code between multiple wasms like this:
