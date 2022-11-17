@@ -3,6 +3,9 @@
 #ifdef __EMSCRIPTEN_PTHREADS__
 #include <pthread.h>
 // #include <emscripten/threading.h>
+
+#include <errno.h>
+#include "uv.h"
 #endif
 
 #include <emscripten.h>
@@ -17,7 +20,7 @@
 
 #if NAPI_VERSION >= 4 && defined(__EMSCRIPTEN_PTHREADS__)
 #include <stdatomic.h>
-#include "queue.h"
+#include "uv/queue.h"
 #endif
 
 #define CHECK_ENV(env)          \
@@ -151,11 +154,27 @@ emnapi_get_emscripten_version(napi_env env,
   return napi_clear_last_error(env);
 }
 
+napi_status napi_get_uv_event_loop(napi_env env,
+                                   struct uv_loop_s** loop) {
+#ifdef __EMSCRIPTEN_PTHREADS__
+  CHECK_ENV(env);
+  CHECK_ARG(env, loop);
+  // Though this is fake libuv loop
+  *loop = uv_default_loop();
+  return napi_clear_last_error(env);
+#else
+  return napi_set_last_error(env, napi_generic_failure, 0, NULL);
+#endif
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // Async work implementation
 ////////////////////////////////////////////////////////////////////////////////
 
 #ifdef __EMSCRIPTEN_PTHREADS__
+
+#define container_of(ptr, type, member) \
+  ((type *) ((char *) (ptr) - offsetof(type, member)))
 
 // #ifdef __wasm64__
 // #define __EMNAPI_ASYNC_SEND_CALLBACK_SIG \
@@ -184,7 +203,7 @@ extern void _emnapi_async_send_js(int type,
                                   void (*callback)(void*),
                                   void* data);
 
-static void _emnapi_async_send(void (*callback)(void*), void* data) {
+void _emnapi_async_send(void (*callback)(void*), void* data) {
   // TODO(?): need help
   // Neither emscripten_dispatch_to_thread_async nor MAIN_THREAD_ASYNC_EM_ASM
   // invoke the async complete callback if there is a printf() in worker thread.
@@ -213,8 +232,6 @@ static void _emnapi_async_send(void (*callback)(void*), void* data) {
   // it's simple and clear
   _emnapi_async_send_js(EMNAPI_ASYNC_SEND_TYPE, callback, data);
 }
-
-#include "threadpool.c"
 
 typedef void (*_emnapi_call_into_module_callback)(napi_env env, void* args);
 extern void _emnapi_call_into_module(napi_env env, _emnapi_call_into_module_callback callback, void* args);
@@ -301,7 +318,7 @@ static void async_work_schedule_work_on_complete(uv_work_t* req, int status) {
 
 static void async_work_schedule_work(napi_async_work work) {
   EMNAPI_KEEPALIVE_PUSH();
-  int status = uv_queue_work(&loop,
+  int status = uv_queue_work(uv_default_loop(),
                              &work->work_req_,
                              async_work_schedule_work_on_execute,
                              async_work_schedule_work_on_complete);

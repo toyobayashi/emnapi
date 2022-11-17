@@ -25,21 +25,36 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
 
   const jsLib = `--js-library=${require('path').join(__dirname, '../emnapi/dist/library_napi_no_runtime.js')}`
 
+  const emnapiTarget = (pthread) => ({
+    name: pthread ? 'emnapimt' : 'emnapist',
+    type: 'lib',
+    sources: [
+      '../emnapi/src/emnapi.c',
+      ...(pthread
+        ? [
+            '../emnapi/src/uv/uv-common.c',
+            '../emnapi/src/uv/threadpool.c',
+            '../emnapi/src/uv/unix/loop.c',
+            '../emnapi/src/uv/unix/thread.c'
+          ]
+        : [])
+    ],
+    includePaths,
+    defines: ['NAPI_VERSION=8', ...(pthread ? ['EMNAPI_WORKER_POOL_SIZE=2'] : [])],
+    compileOptions: [...compilerFlags, ...(pthread ? ['-sUSE_PTHREADS=1'] : [])]
+  })
+
   const createTarget = (name, sources, needEntry, pthread) => ({
-    name: name,
+    name,
     type: isEmscripten ? 'exe' : 'node',
     sources: [
-      ...(needEntry ? (sources.push('./entry_point.c'), sources) : sources),
-      ...(isEmscripten ? ['../emnapi/src/emnapi.c'] : [])
+      ...(needEntry ? (sources.push('./entry_point.c'), sources) : sources)
     ],
     emwrap: {
       exports: ['emnapi']
     },
     includePaths,
-    defines: [
-      ...(isEmscripten && pthread ? ['EMNAPI_WORKER_POOL_SIZE=2'] : [])
-    ],
-    libs: ['testcommon'],
+    libs: ['testcommon', ...(isEmscripten ? [pthread ? 'emnapimt' : 'emnapist'] : [])],
     compileOptions: [...compilerFlags, ...(isEmscripten && pthread ? ['-sUSE_PTHREADS=1'] : [])],
     // eslint-disable-next-line no-template-curly-in-string
     linkOptions: [
@@ -50,15 +65,15 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
   })
 
   const createNodeAddonApiTarget = ({ name, sources, defines, enableException }) => ({
-    name: name,
+    name,
     type: isEmscripten ? 'exe' : 'node',
     sources: [
-      ...sources,
-      ...(isEmscripten ? ['../emnapi/src/emnapi.c'] : [])
+      ...sources
     ],
     emwrap: {
       exports: ['emnapi']
     },
+    libs: [...(isEmscripten ? ['emnapist'] : [])],
     includePaths,
     defines: [
       ...defines,
@@ -93,6 +108,7 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
         includePaths,
         compileOptions: [...compilerFlags]
       },
+      ...(isEmscripten ? [emnapiTarget(false), emnapiTarget(true)] : []),
       createTarget('env', ['./env/binding.c']),
       createTarget('hello', ['./hello/binding.c']),
       ...(!(isEmscripten && process.env.MEMORY64) ? [createTarget('async', ['./async/binding.c'], false, true)] : []),

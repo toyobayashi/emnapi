@@ -1,0 +1,17 @@
+#ifndef UV_UNIX_H
+#define UV_UNIX_H
+
+#include <semaphore.h>
+#include <pthread.h>
+
+#include "threadpool.h"
+
+#define UV_ONCE_INIT PTHREAD_ONCE_INIT
+
+typedef pthread_once_t uv_once_t;
+typedef pthread_t uv_thread_t;
+typedef pthread_mutex_t uv_mutex_t;
+typedef sem_t uv_sem_t;
+typedef pthread_cond_t uv_cond_t;
+
+#endif /* UV_UNIX_H */

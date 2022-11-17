@@ -5,6 +5,8 @@
 #include "js_native_api.h"
 #include "node_api_types.h"
 
+struct uv_loop_s;
+
 #define NAPI_MODULE_EXPORT __attribute__((used))
 #define NAPI_NO_RETURN __attribute__((__noreturn__))
 
@@ -74,6 +76,13 @@ NAPI_EXTERN NAPI_NO_RETURN void napi_fatal_error(const char* location,
 NAPI_EXTERN
 napi_status napi_get_node_version(napi_env env,
                                   const napi_node_version** version);
+
+#if NAPI_VERSION >= 2
+
+NAPI_EXTERN napi_status napi_get_uv_event_loop(napi_env env,
+                                               struct uv_loop_s** loop);
+
+#endif  // NAPI_VERSION >= 2
 
 #if NAPI_VERSION >= 4
 

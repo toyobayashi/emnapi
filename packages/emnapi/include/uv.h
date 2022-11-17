@@ -1,0 +1,94 @@
+#ifndef UV_H
+#define UV_H
+
+#ifdef __EMSCRIPTEN_PTHREADS__
+
+#include <stddef.h>
+#include "uv/unix.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#define UV_EXTERN /* nothing */
+
+typedef enum {
+  UV_UNKNOWN_REQ = 0,
+  UV_WORK = 7,
+  UV_REQ_TYPE_MAX = 19
+} uv_req_type;
+
+typedef struct uv_loop_s uv_loop_t;
+typedef struct uv_req_s uv_req_t;
+typedef struct uv_work_s uv_work_t;
+typedef struct uv_async_s uv_async_t;
+
+typedef void (*uv_work_cb)(uv_work_t* req);
+typedef void (*uv_after_work_cb)(uv_work_t* req, int status);
+
+#define UV_REQ_FIELDS                                                         \
+  void* data;                                                                 \
+  uv_req_type type;                                                           \
+
+struct uv_req_s {
+  UV_REQ_FIELDS
+};
+
+UV_EXTERN uv_loop_t* uv_default_loop(void);
+UV_EXTERN int uv_loop_init(uv_loop_t* loop);
+UV_EXTERN int uv_loop_close(uv_loop_t* loop);
+
+UV_EXTERN int uv_sem_init(uv_sem_t* sem, unsigned int value);
+UV_EXTERN void uv_sem_destroy(uv_sem_t* sem);
+UV_EXTERN void uv_sem_post(uv_sem_t* sem);
+UV_EXTERN void uv_sem_wait(uv_sem_t* sem);
+
+UV_EXTERN int uv_cond_init(uv_cond_t* cond);
+UV_EXTERN void uv_cond_signal(uv_cond_t* cond);
+UV_EXTERN void uv_cond_wait(uv_cond_t* cond, uv_mutex_t* mutex);
+
+UV_EXTERN void uv_once(uv_once_t* guard, void (*callback)(void));
+
+struct uv_work_s {
+  UV_REQ_FIELDS
+  uv_loop_t* loop;
+  uv_work_cb work_cb;
+  uv_after_work_cb after_work_cb;
+  struct uv__work work_req;
+};
+
+UV_EXTERN int uv_queue_work(uv_loop_t* loop,
+                            uv_work_t* req,
+                            uv_work_cb work_cb,
+                            uv_after_work_cb after_work_cb);
+
+UV_EXTERN int uv_cancel(uv_req_t* req);
+
+UV_EXTERN int uv_mutex_init(uv_mutex_t* mutex);
+UV_EXTERN void uv_mutex_destroy(uv_mutex_t* handle);
+UV_EXTERN void uv_mutex_lock(uv_mutex_t* handle);
+UV_EXTERN void uv_mutex_unlock(uv_mutex_t* handle);
+
+typedef void (*uv_thread_cb)(void* arg);
+
+UV_EXTERN int uv_thread_create(uv_thread_t* tid, uv_thread_cb entry, void* arg);
+UV_EXTERN int uv_thread_join(uv_thread_t *tid);
+
+struct uv_loop_s {
+  void* data;
+  union {
+    void* unused;
+    unsigned int count;
+  } active_reqs;
+  void* wq[2];
+  uv_mutex_t wq_mutex;
+};
+
+#undef UV_REQ_FIELDS
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif
+#endif /* UV_H */
