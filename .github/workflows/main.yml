@@ -22,13 +22,18 @@ jobs:
         os: [ubuntu-latest]
 
     steps:
-    - uses: actions/checkout@v2
-    - uses: mymindstorm/setup-emsdk@v10
+    - uses: actions/checkout@v3
+    - name: Install Ninja
+      if: ${{ matrix.os == 'ubuntu-latest' }}
+      run: |
+        sudo apt-get update
+        sudo apt-get install ninja-build
+    - uses: mymindstorm/setup-emsdk@v11
       with:
         version: '3.1.26'
         # no-cache: true
         actions-cache-folder: 'emsdk-cache'
-    - uses: actions/setup-node@v2
+    - uses: actions/setup-node@v3
       with:
         node-version: '16.15.0'
         registry-url: 'https://registry.npmjs.org'

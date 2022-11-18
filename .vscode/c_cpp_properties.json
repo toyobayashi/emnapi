@@ -2,6 +2,7 @@
   "env": {
     "includePath": [
       "${default}",
+      // "${env:USERPROFILE}/AppData/Local/node-gyp/Cache/16.15.0/include/node"
       "${workspaceFolder}/packages/emnapi/include"
     ],
     "defines": ["NAPI_DISABLE_CPP_EXCEPTIONS", "NODE_ADDON_API_ENABLE_MAYBE"],
@@ -52,7 +53,7 @@
       "compilerPath": "${env:EMSDK}/upstream/emscripten/emcc",
       "intelliSenseMode": "linux-clang-x86",
       "cStandard": "c11",
-      "cppStandard": "c++14",
+      "cppStandard": "c++17",
       "includePath": ["${includePath}"]
     },
     {
@@ -61,7 +62,7 @@
       "compilerPath": "${env:EMSDK}\\upstream\\emscripten\\emcc.bat",
       "intelliSenseMode": "linux-clang-x86",
       "cStandard": "c11",
-      "cppStandard": "c++14",
+      "cppStandard": "c++17",
       "includePath": ["${includePath}"]
     }
   ],
