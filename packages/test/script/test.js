@@ -6,7 +6,7 @@ const cwd = require('path').join(__dirname, '..')
 const files = glob.sync('**/*.test.js', {
   cwd,
   ignore: process.env.EMNAPI_TEST_NATIVE
-    ? ['**/{emnapitest,tsfn,node-addon-api}/**/*']
+    ? ['**/{emnapitest,node-addon-api}/**/*']
     : process.env.MEMORY64
       ? [
           'async/**/*',

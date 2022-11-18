@@ -260,6 +260,8 @@ let knownGlobals = [
   setInterval,
   setTimeout,
   queueMicrotask,
+  ...(typeof structuredClone === 'function' ? [structuredClone] : []),
+  ...(typeof fetch === 'function' ? [fetch] : []),
   require('worker_threads').Worker
 ]
 

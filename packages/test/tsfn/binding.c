@@ -3,15 +3,18 @@
 // future libuv may introduce API changes which may render it non-ABI-stable,
 // which, in turn, may affect the ABI stability of the project despite its use
 // of N-API.
+#ifdef __EMSCRIPTEN__
 #include <emscripten.h>
-#include <pthread.h>
+#endif
+#include <uv.h>
 #include <node_api.h>
+#include <stdio.h>
 #include "../common.h"
 
 #define ARRAY_LENGTH 10000
 #define MAX_QUEUE_SIZE 2
 
-static pthread_t uv_threads[2];
+static uv_thread_t uv_threads[2];
 static napi_threadsafe_function ts_fn;
 
 typedef struct {
@@ -27,19 +30,17 @@ static ts_fn_hint ts_info;
 // Thread data to transmit to JS
 static int ints[ARRAY_LENGTH];
 
-static void* secondary_thread(void* data) {
+static void secondary_thread(void* data) {
   napi_threadsafe_function ts_fn = data;
 
   if (napi_release_threadsafe_function(ts_fn, napi_tsfn_release) != napi_ok) {
     napi_fatal_error("secondary_thread", NAPI_AUTO_LENGTH,
         "napi_release_threadsafe_function failed", NAPI_AUTO_LENGTH);
   }
-
-  return NULL;
 }
 
 // Source thread producing the data
-static void* data_source_thread(void* data) {
+static void data_source_thread(void* data) {
   napi_threadsafe_function ts_fn = data;
   int index;
   void* hint;
@@ -66,7 +67,7 @@ static void* data_source_thread(void* data) {
         "napi_acquire_threadsafe_function failed", NAPI_AUTO_LENGTH);
     }
 
-    if (pthread_create(&uv_threads[1], NULL, secondary_thread, ts_fn) != 0) {
+    if (uv_thread_create(&uv_threads[1], secondary_thread, ts_fn) != 0) {
       napi_fatal_error("data_source_thread", NAPI_AUTO_LENGTH,
         "failed to start secondary thread", NAPI_AUTO_LENGTH);
     }
@@ -78,8 +79,13 @@ static void* data_source_thread(void* data) {
     if (ts_fn_info->max_queue_size == 0 && (index % 1000 == 0)) {
       // Let's make this thread really busy for 200 ms to give the main thread a
       // chance to abort.
+#ifdef __EMSCRIPTEN__
       double start = emscripten_get_now();
-      for (; emscripten_get_now() - start < (double)200;);
+      for (; emscripten_get_now() - start < 200.0;);
+#else
+      uint64_t start = uv_hrtime();
+      for (; uv_hrtime() - start < 200000000;);
+#endif
     }
     switch (status) {
       case napi_queue_full:
@@ -109,6 +115,7 @@ static void* data_source_thread(void* data) {
 
   // Assert that the queue was marked as closing at least once, if this is an
   // aborting test run.
+  if (ts_fn_info->abort == napi_tsfn_abort) printf("queue_was_closing: %d\n", queue_was_closing);
   if (ts_fn_info->abort == napi_tsfn_abort && !queue_was_closing) {
     napi_fatal_error("data_source_thread", NAPI_AUTO_LENGTH,
       "queue was never closing", NAPI_AUTO_LENGTH);
@@ -119,8 +126,6 @@ static void* data_source_thread(void* data) {
     napi_fatal_error("data_source_thread", NAPI_AUTO_LENGTH,
         "napi_release_threadsafe_function failed", NAPI_AUTO_LENGTH);
   }
-
-  return NULL;
 }
 
 // Getting the data into JS
@@ -170,13 +175,13 @@ static napi_value StopThread(napi_env env, napi_callback_info info) {
 
 // Join the thread and inform JS that we're done.
 static void join_the_threads(napi_env env, void *data, void *hint) {
-  pthread_t *the_threads = data;
+  uv_thread_t *the_threads = data;
   ts_fn_hint *the_hint = hint;
   napi_value js_cb, undefined;
 
-  pthread_join(the_threads[0], NULL);
+  uv_thread_join(&the_threads[0]);
   if (the_hint->start_secondary) {
-    pthread_join(the_threads[1], NULL);
+    uv_thread_join(&the_threads[1]);
   }
 
   NAPI_CALL_RETURN_VOID(env,
@@ -234,7 +239,7 @@ static napi_value StartThreadInternal(napi_env env,
       napi_get_value_bool(env, argv[2], &(ts_info.start_secondary)));
 
   NAPI_ASSERT(env,
-      (pthread_create(&uv_threads[0], NULL, data_source_thread, ts_fn) == 0),
+      (uv_thread_create(&uv_threads[0], data_source_thread, ts_fn) == 0),
       "Thread creation");
 
   return NULL;

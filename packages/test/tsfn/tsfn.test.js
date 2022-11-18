@@ -44,11 +44,14 @@ async function main () {
   }) {
     return new Promise((resolve) => {
       const array = []
+      if (abort) console.log('start', { threadStarter, maxQueueSize })
       binding[threadStarter](function testCallback (value) {
         array.push(value)
         if (array.length === quitAfter) {
-          setImmediate(() => {
+          Promise.resolve().then(() => {
+            if (abort) console.log('stop', { threadStarter, maxQueueSize })
             binding.StopThread(common.mustCall(() => {
+              if (abort) console.log('stopCallback', { threadStarter, maxQueueSize }, '\n')
               resolve(array)
             }), !!abort)
           })
