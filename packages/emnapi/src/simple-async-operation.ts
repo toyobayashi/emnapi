@@ -6,36 +6,34 @@
 // declare function __emnapi_async_send_js (callback: number, data: number): void
 declare function __emnapi_set_immediate (callback: number, data: number): void
 declare function __emnapi_next_tick (callback: number, data: number): void
-declare function setImmediate (callback: () => any): any
+declare function emnapiSetImmediate (callback: () => any): any
 
 mergeInto(LibraryManager.library, {
-  _emnapi_set_immediate__deps: ['$emnapiGetDynamicCalls'],
+  $emnapiSetImmediate: 'typeof setImmediate === "function" ? setImmediate : function (f) {' +
+    'var channel = new MessageChannel();' +
+    'channel.port1.onmessage = function () {' +
+      'channel.port1.onmessage = null;' +
+      'channel = undefined;' +
+      'f();' +
+    '};' +
+    'channel.port2.postMessage(null);' +
+  '};',
+
+  _emnapi_set_immediate__deps: ['$emnapiGetDynamicCalls', '$emnapiSetImmediate'],
   _emnapi_set_immediate: function (callback: number, data: number): void {
-    const f = function (): void {
+    emnapiSetImmediate(() => {
       $from64('callback')
       emnapiGetDynamicCalls.call_vp(callback, data)
-    }
-    if (typeof setImmediate === 'function') {
-      setImmediate(f)
-    } else {
-      const channel = new MessageChannel()
-      channel.port1.onmessage = f
-      channel.port2.postMessage(null)
-    }
+    })
   },
 
   _emnapi_next_tick__deps: ['$emnapiGetDynamicCalls'],
   _emnapi_next_tick: function (callback: number, data: number): void {
-    const f = function (): void {
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
+    Promise.resolve().then(() => {
       $from64('callback')
       emnapiGetDynamicCalls.call_vp(callback, data)
-    }
-    if (typeof queueMicrotask === 'function') {
-      queueMicrotask(f)
-    } else {
-      // eslint-disable-next-line @typescript-eslint/no-floating-promises
-      Promise.resolve().then(f)
-    }
+    })
   },
 
   $emnapiAddSendListener__deps: ['$emnapiGetDynamicCalls'],
