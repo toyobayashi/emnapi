@@ -43,6 +43,7 @@ struct uv_req_s {
 UV_EXTERN uv_loop_t* uv_default_loop(void);
 UV_EXTERN int uv_loop_init(uv_loop_t* loop);
 UV_EXTERN int uv_loop_close(uv_loop_t* loop);
+UV_EXTERN void uv_sleep(unsigned int msec);
 
 UV_EXTERN int uv_sem_init(uv_sem_t* sem, unsigned int value);
 UV_EXTERN void uv_sem_destroy(uv_sem_t* sem);
