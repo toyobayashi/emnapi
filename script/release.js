@@ -38,8 +38,10 @@ async function main () {
   fs.mkdirSync(sysroot, { recursive: true })
 
   const cwd = path.join(__dirname, '../packages/emnapi')
-
-  const emcmake = process.platform === 'win32' ? 'emcmake.bat' : 'emcmake'
+  let emcmake = process.platform === 'win32' ? 'emcmake.bat' : 'emcmake'
+  if (process.env.EMSDK) {
+    emcmake = path.join(process.env.EMSDK, 'upstream/emscripten', emcmake)
+  }
 
   await spawn(emcmake, [
     'cmake',

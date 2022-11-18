@@ -62,8 +62,10 @@ install(FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/include/node_api_types.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/node_api.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/uv.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/uv/threadpool.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/uv/unix.h
+  DESTINATION "include/${PROJECT_NAME}")
+
+install(DIRECTORY
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/uv
   DESTINATION "include/${PROJECT_NAME}")
 
 install(FILES
@@ -74,8 +76,8 @@ install(FILES
 if(EMNAPI_INSTALL_SRC)
   install(FILES
       ${EMNAPI_SRC}
-      ${UV_SRC}
-      ${CMAKE_CURRENT_SOURCE_DIR}/src/uv/queue.h
-      ${CMAKE_CURRENT_SOURCE_DIR}/src/uv/uv-common.h
+    DESTINATION "src/${PROJECT_NAME}")
+  install(DIRECTORY
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/uv
     DESTINATION "src/${PROJECT_NAME}")
 endif()
