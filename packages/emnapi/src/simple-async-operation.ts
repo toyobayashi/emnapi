@@ -6,25 +6,36 @@
 // declare function __emnapi_async_send_js (callback: number, data: number): void
 declare function __emnapi_set_immediate (callback: number, data: number): void
 declare function __emnapi_next_tick (callback: number, data: number): void
+declare function setImmediate (callback: () => any): any
 
 mergeInto(LibraryManager.library, {
   _emnapi_set_immediate__deps: ['$emnapiGetDynamicCalls'],
   _emnapi_set_immediate: function (callback: number, data: number): void {
-    const channel = new MessageChannel()
-    channel.port1.onmessage = function () {
+    const f = function (): void {
       $from64('callback')
       emnapiGetDynamicCalls.call_vp(callback, data)
     }
-    channel.port2.postMessage(null)
+    if (typeof setImmediate === 'function') {
+      setImmediate(f)
+    } else {
+      const channel = new MessageChannel()
+      channel.port1.onmessage = f
+      channel.port2.postMessage(null)
+    }
   },
 
   _emnapi_next_tick__deps: ['$emnapiGetDynamicCalls'],
   _emnapi_next_tick: function (callback: number, data: number): void {
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    Promise.resolve().then(() => {
+    const f = function (): void {
       $from64('callback')
       emnapiGetDynamicCalls.call_vp(callback, data)
-    })
+    }
+    if (typeof queueMicrotask === 'function') {
+      queueMicrotask(f)
+    } else {
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
+      Promise.resolve().then(f)
+    }
   },
 
   $emnapiAddSendListener__deps: ['$emnapiGetDynamicCalls'],

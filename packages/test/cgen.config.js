@@ -35,7 +35,9 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
             '../emnapi/src/uv/uv-common.c',
             '../emnapi/src/uv/threadpool.c',
             '../emnapi/src/uv/unix/loop.c',
-            '../emnapi/src/uv/unix/thread.c'
+            '../emnapi/src/uv/unix/thread.c',
+            '../emnapi/src/uv/unix/async.c',
+            '../emnapi/src/uv/unix/core.c'
           ]
         : [])
     ],

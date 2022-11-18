@@ -41,20 +41,15 @@
   }                                                                           \
   while (0)
 
+enum uv__work_kind {
+  UV__WORK_CPU,
+  UV__WORK_FAST_IO,
+  UV__WORK_SLOW_IO
+};
 
-# define uv__handle_platform_init(h) ((h)->next_closing = NULL)
-
-#define uv__handle_init(loop_, h, type_)                                      \
-  do {                                                                        \
-    (h)->loop = (loop_);                                                      \
-    (h)->type = (type_);                                                      \
-    (h)->flags = 0x00000008;  /* Ref the loop when active. */                 \
-    QUEUE_INSERT_TAIL(&(loop_)->handle_queue, &(h)->handle_queue);            \
-    uv__handle_platform_init(h);                                              \
-  }                                                                           \
-  while (0)
-
+void uv__work_done(uv_async_t* handle);
 void uv__loop_close(uv_loop_t* loop);
+void uv__async_close(uv_async_t* handle);
 
 #endif
 

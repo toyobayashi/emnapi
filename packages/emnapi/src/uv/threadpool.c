@@ -28,10 +28,6 @@
 #include <string.h>
 #include "uv-common.h"
 
-void uv__work_done(void* handle);
-
-void _emnapi_async_send(void (*callback)(void*), void* data);
-
 #define MAX_THREADPOOL_SIZE 1024
 
 static uv_once_t once = UV_ONCE_INIT;
@@ -64,7 +60,7 @@ static void worker(void* arg) {
   QUEUE* q;
   int is_slow_work;
 
-  uv_sem_post((sem_t*) arg);
+  uv_sem_post((uv_sem_t*) arg);
   arg = NULL;
 
   uv_mutex_lock(&mutex);
@@ -130,8 +126,7 @@ static void worker(void* arg) {
     w->work = NULL;  /* Signal uv_cancel() that the work req is done
                         executing. */
     QUEUE_INSERT_TAIL(&w->loop->wq, &w->wq);
-    // uv_async_send(&w->loop->wq_async);
-    _emnapi_async_send(uv__work_done, w);
+    uv_async_send(&w->loop->wq_async);
     uv_mutex_unlock(&w->loop->wq_mutex);
 
     /* Lock `mutex` since that is expected at the start of the next
@@ -145,7 +140,7 @@ static void worker(void* arg) {
 }
 
 
-static void post(QUEUE* q, /* enum uv__work_kind */ int kind) {
+static void post(QUEUE* q, enum uv__work_kind kind) {
   uv_mutex_lock(&mutex);
   // if (kind == UV__WORK_SLOW_IO) {
   //   /* Insert into a separate queue. */
@@ -166,31 +161,40 @@ static void post(QUEUE* q, /* enum uv__work_kind */ int kind) {
 }
 
 
-/* void uv__threadpool_cleanup(void) {
-  unsigned int i;
+// #ifdef __MVS__
+// /* TODO(itodorov) - zos: revisit when Woz compiler is available. */
+// __attribute__((destructor))
+// #endif
+// void uv__threadpool_cleanup(void) {
+//   unsigned int i;
 
-  if (nthreads == 0)
-    return;
+//   if (nthreads == 0)
+//     return;
 
-  for (i = 0; i < nthreads; i++)
-    if (uv_thread_join(threads + i))
-      abort();
+// #ifndef __MVS__
+//   /* TODO(gabylb) - zos: revisit when Woz compiler is available. */
+//   post(&exit_message, UV__WORK_CPU);
+// #endif
 
-  if (threads != default_threads)
-    free(threads);
+//   for (i = 0; i < nthreads; i++)
+//     if (uv_thread_join(threads + i))
+//       abort();
 
-  uv_mutex_destroy(&mutex);
-  uv_cond_destroy(&cond);
+//   if (threads != default_threads)
+//     free(threads);
 
-  threads = NULL;
-  nthreads = 0;
-} */
+//   uv_mutex_destroy(&mutex);
+//   uv_cond_destroy(&cond);
+
+//   threads = NULL;
+//   nthreads = 0;
+// }
 
 
 static void init_threads(void) {
   unsigned int i;
   int val;
-  sem_t sem;
+  uv_sem_t sem;
 
   nthreads = ARRAY_SIZE(default_threads);
 #if defined(EMNAPI_WORKER_POOL_SIZE) && EMNAPI_WORKER_POOL_SIZE >= 0
@@ -245,6 +249,7 @@ static void reset_once(void) {
 }
 #endif
 
+
 static void init_once(void) {
 #ifndef _WIN32
   /* Re-initialize the threadpool after fork.
@@ -260,7 +265,7 @@ static void init_once(void) {
 
 void uv__work_submit(uv_loop_t* loop,
                      struct uv__work* w,
-                     int kind,
+                     enum uv__work_kind kind,
                      void (*work)(struct uv__work* w),
                      void (*done)(struct uv__work* w, int status)) {
   uv_once(&once, init_once);
@@ -271,7 +276,7 @@ void uv__work_submit(uv_loop_t* loop,
 }
 
 
-static int uv__work_cancel(uv_loop_t* loop, void* req, struct uv__work* w) {
+static int uv__work_cancel(uv_loop_t* loop, uv_req_t* req, struct uv__work* w) {
   int cancelled;
 
   uv_mutex_lock(&mutex);
@@ -290,32 +295,29 @@ static int uv__work_cancel(uv_loop_t* loop, void* req, struct uv__work* w) {
   w->work = uv__cancelled;
   uv_mutex_lock(&loop->wq_mutex);
   QUEUE_INSERT_TAIL(&loop->wq, &w->wq);
-  // uv_async_send(&loop->wq_async);
-  _emnapi_async_send(uv__work_done, w);
+  uv_async_send(&loop->wq_async);
   uv_mutex_unlock(&loop->wq_mutex);
 
   return 0;
 }
 
 
-void uv__work_done(void* handle) {
+void uv__work_done(uv_async_t* handle) {
   struct uv__work* w;
-  uv_loop_t* _loop;
+  uv_loop_t* loop;
   QUEUE* q;
   QUEUE wq;
   int err;
 
-  // w = (struct uv__work*) handle;
-
-  // loop = container_of(handle, uv_loop_t, wq_async);
-  _loop = uv_default_loop();
-  uv_mutex_lock(&_loop->wq_mutex);
-  QUEUE_MOVE(&_loop->wq, &wq);
-  uv_mutex_unlock(&_loop->wq_mutex);
+  loop = container_of(handle, uv_loop_t, wq_async);
+  uv_mutex_lock(&loop->wq_mutex);
+  QUEUE_MOVE(&loop->wq, &wq);
+  uv_mutex_unlock(&loop->wq_mutex);
 
   while (!QUEUE_EMPTY(&wq)) {
     q = QUEUE_HEAD(&wq);
     QUEUE_REMOVE(q);
+
     w = container_of(q, struct uv__work, wq);
     err = (w->work == uv__cancelled) ? ECANCELED : 0;
     w->done(w, err);
@@ -350,13 +352,13 @@ int uv_queue_work(uv_loop_t* loop,
   if (work_cb == NULL)
     return EINVAL;
 
-  uv__req_init(loop, req, 7 /* UV_WORK */);
+  uv__req_init(loop, req, UV_WORK);
   req->loop = loop;
   req->work_cb = work_cb;
   req->after_work_cb = after_work_cb;
   uv__work_submit(loop,
                   &req->work_req,
-                  0,
+                  UV__WORK_CPU,
                   uv__queue_work,
                   uv__queue_done);
   return 0;
@@ -365,15 +367,31 @@ int uv_queue_work(uv_loop_t* loop,
 
 int uv_cancel(uv_req_t* req) {
   struct uv__work* wreq;
-  void* loop;
+  uv_loop_t* loop;
 
   switch (req->type) {
-    case 7 /* UV_WORK */:
-      loop =  ((uv_work_t*) req)->loop;
-      wreq = &((uv_work_t*) req)->work_req;
-      break;
-    default:
-      return EINVAL;
+  // case UV_FS:
+  //   loop =  ((uv_fs_t*) req)->loop;
+  //   wreq = &((uv_fs_t*) req)->work_req;
+  //   break;
+  // case UV_GETADDRINFO:
+  //   loop =  ((uv_getaddrinfo_t*) req)->loop;
+  //   wreq = &((uv_getaddrinfo_t*) req)->work_req;
+  //   break;
+  // case UV_GETNAMEINFO:
+  //   loop = ((uv_getnameinfo_t*) req)->loop;
+  //   wreq = &((uv_getnameinfo_t*) req)->work_req;
+  //   break;
+  // case UV_RANDOM:
+  //   loop = ((uv_random_t*) req)->loop;
+  //   wreq = &((uv_random_t*) req)->work_req;
+  //   break;
+  case UV_WORK:
+    loop =  ((uv_work_t*) req)->loop;
+    wreq = &((uv_work_t*) req)->work_req;
+    break;
+  default:
+    return EINVAL;
   }
 
   return uv__work_cancel(loop, req, wreq);

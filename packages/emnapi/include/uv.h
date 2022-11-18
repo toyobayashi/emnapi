@@ -18,9 +18,15 @@ typedef enum {
   UV_REQ_TYPE_MAX = 19
 } uv_req_type;
 
+typedef enum {
+  UV_UNKNOWN_HANDLE = 0,
+  UV_ASYNC = 1
+} uv_handle_type;
+
 typedef struct uv_loop_s uv_loop_t;
 typedef struct uv_req_s uv_req_t;
 typedef struct uv_work_s uv_work_t;
+typedef struct uv_handle_s uv_handle_t;
 typedef struct uv_async_s uv_async_t;
 
 typedef void (*uv_work_cb)(uv_work_t* req);
@@ -74,6 +80,34 @@ typedef void (*uv_thread_cb)(void* arg);
 UV_EXTERN int uv_thread_create(uv_thread_t* tid, uv_thread_cb entry, void* arg);
 UV_EXTERN int uv_thread_join(uv_thread_t *tid);
 
+typedef void (*uv_close_cb)(uv_handle_t* handle);
+typedef void (*uv_async_cb)(uv_async_t* handle);
+
+#define UV_HANDLE_FIELDS                                                      \
+  /* public */                                                                \
+  void* data;                                                                 \
+  /* read-only */                                                             \
+  uv_loop_t* loop;                                                            \
+  uv_handle_type type;                                                        \
+  uv_close_cb close_cb;                                                       \
+
+struct uv_handle_s {
+  UV_HANDLE_FIELDS
+};
+
+struct uv_async_s {
+  UV_HANDLE_FIELDS
+  uv_async_cb async_cb;
+  void* queue[2];
+};
+
+UV_EXTERN int uv_async_init(uv_loop_t*,
+                            uv_async_t* async,
+                            uv_async_cb async_cb);
+UV_EXTERN int uv_async_send(uv_async_t* async);
+
+UV_EXTERN void uv_close(uv_handle_t* handle, uv_close_cb close_cb);
+
 struct uv_loop_s {
   void* data;
   union {
@@ -81,7 +115,10 @@ struct uv_loop_s {
     unsigned int count;
   } active_reqs;
   void* wq[2];
+
   uv_mutex_t wq_mutex;
+  uv_async_t wq_async;
+  void* async_handles[2];
 };
 
 #undef UV_REQ_FIELDS

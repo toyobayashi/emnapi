@@ -176,63 +176,6 @@ napi_status napi_get_uv_event_loop(napi_env env,
 #define container_of(ptr, type, member) \
   ((type *) ((char *) (ptr) - offsetof(type, member)))
 
-// #ifdef __wasm64__
-// #define __EMNAPI_ASYNC_SEND_CALLBACK_SIG \
-//   (EM_FUNC_SIG_RETURN_VALUE_V | \
-//   EM_FUNC_SIG_WITH_N_PARAMETERS(1) | \
-//   EM_FUNC_SIG_SET_PARAM(0, EM_FUNC_SIG_PARAM_I64))
-// #else
-// #define __EMNAPI_ASYNC_SEND_CALLBACK_SIG EM_FUNC_SIG_VI
-// #endif
-
-#ifndef EMNAPI_ASYNC_SEND_TYPE
-#define EMNAPI_ASYNC_SEND_TYPE 0
-#endif
-
-#if EMNAPI_ASYNC_SEND_TYPE == 0
-extern void _emnapi_set_immediate(void (*callback)(void*), void* data);
-#define NEXT_TICK(callback, data) _emnapi_set_immediate((callback), (data))
-#elif EMNAPI_ASYNC_SEND_TYPE == 1
-extern void _emnapi_next_tick(void (*callback)(void*), void* data);
-#define NEXT_TICK(callback, data) _emnapi_next_tick((callback), (data))
-#else
-#error "Invalid EMNAPI_ASYNC_SEND_TYPE"
-#endif
-
-extern void _emnapi_async_send_js(int type,
-                                  void (*callback)(void*),
-                                  void* data);
-
-void _emnapi_async_send(void (*callback)(void*), void* data) {
-  // TODO(?): need help
-  // Neither emscripten_dispatch_to_thread_async nor MAIN_THREAD_ASYNC_EM_ASM
-  // invoke the async complete callback if there is a printf() in worker thread.
-  // This breaks "packages/test/pool" tests.
-  // Not sure what happens, maybe has deadlock,
-  // and not sure whether this is Emscripten bug or my incorrect usage.
-  // BTW emscripten_dispatch_to_thread_async seems
-  // not support __wasm64__ V_I64 signature yet
-
-  // pthread_t main_thread = emscripten_main_browser_thread_id();
-  // if (pthread_equal(main_thread, pthread_self())) {
-  //   NEXT_TICK(callback, data);
-  // } else {
-  //   emscripten_dispatch_to_thread_async(main_thread,
-  //                                       __EMNAPI_ASYNC_SEND_CALLBACK_SIG,
-  //                                       callback,
-  //                                       NULL,
-  //                                       data);
-  //   // or
-  //   // MAIN_THREAD_ASYNC_EM_ASM({
-  //   //   emnapiGetDynamicCalls.call_vp($0, $1);
-  //   // }, callback, data);
-  // }
-
-  // Currently still use JavaScript to send work
-  // it's simple and clear
-  _emnapi_async_send_js(EMNAPI_ASYNC_SEND_TYPE, callback, data);
-}
-
 typedef void (*_emnapi_call_into_module_callback)(napi_env env, void* args);
 extern void _emnapi_call_into_module(napi_env env, _emnapi_call_into_module_callback callback, void* args);
 
@@ -434,6 +377,7 @@ struct napi_threadsafe_function__ {
   pthread_cond_t* cond;
   size_t queue_size;
   void* queue[2];
+  uv_async_t async;
   size_t thread_count;
   bool is_closing;
   atomic_uchar dispatch_state;
@@ -486,7 +430,7 @@ _emnapi_tsfn_create(napi_env env,
                     void* context,
                     napi_threadsafe_function_call_js call_js_cb) {
   napi_threadsafe_function ts_fn =
-    (napi_threadsafe_function) malloc(sizeof(struct napi_threadsafe_function__));
+    (napi_threadsafe_function) calloc(1, sizeof(struct napi_threadsafe_function__));
   if (ts_fn == NULL) return NULL;
 
   pthread_mutex_init(&ts_fn->mutex, NULL);
@@ -539,28 +483,40 @@ static void _emnapi_tsfn_destroy(napi_threadsafe_function func) {
   free(func);
 }
 
-static void _emnapi_tsfn_do_destroy(void* data) {
-  napi_threadsafe_function func = (napi_threadsafe_function) data;
+static void _emnapi_tsfn_do_destroy(uv_handle_t* data) {
+  napi_threadsafe_function func = container_of(data, struct napi_threadsafe_function__, async);
   _emnapi_tsfn_destroy(func);
+}
+
+static void _emnapi_tsfn_dispatch(napi_threadsafe_function func);
+
+// only main thread
+static void _emnapi_tsfn_async_cb(uv_async_t* data) {
+  napi_threadsafe_function tsfn = container_of(data, struct napi_threadsafe_function__, async);
+  _emnapi_tsfn_dispatch(tsfn);
 }
 
 // only main thread
 static napi_status _emnapi_tsfn_init(napi_threadsafe_function func) {
-  int r;
-  if (func->max_queue_size > 0) {
-    func->cond = (pthread_cond_t*) malloc(sizeof(pthread_cond_t));
-    if (func->cond != NULL) {
-      r = pthread_cond_init(func->cond, NULL);
-      if (r != 0) {
-        free(func->cond);
-        func->cond = NULL;
+  uv_loop_t* loop = uv_default_loop();
+  if (uv_async_init(loop, &func->async, _emnapi_tsfn_async_cb) == 0) {
+    int r;
+    if (func->max_queue_size > 0) {
+      func->cond = (pthread_cond_t*) malloc(sizeof(pthread_cond_t));
+      if (func->cond != NULL) {
+        r = pthread_cond_init(func->cond, NULL);
+        if (r != 0) {
+          free(func->cond);
+          func->cond = NULL;
+        }
       }
     }
+    if (func->max_queue_size == 0 || func->cond) {
+      return napi_ok;
+    }
+    uv_close((uv_handle_t*) &func->async, _emnapi_tsfn_do_destroy);
   }
-  if (func->max_queue_size == 0 || func->cond) {
-    return napi_ok;
-  }
-  NEXT_TICK(_emnapi_tsfn_do_destroy, func);
+  _emnapi_tsfn_destroy(func);
   return napi_generic_failure;
 }
 
@@ -594,8 +550,8 @@ static void _emnapi_tsfn_finalize(napi_threadsafe_function func) {
   napi_close_handle_scope(func->env, scope);
 }
 
-static void _emnapi_tsfn_do_finalize(void* data) {
-  napi_threadsafe_function func = (napi_threadsafe_function) data;
+static void _emnapi_tsfn_do_finalize(uv_handle_t* data) {
+  napi_threadsafe_function func = container_of(data, struct napi_threadsafe_function__, async);
   _emnapi_tsfn_finalize(func);
 }
 
@@ -616,8 +572,7 @@ static void _emnapi_tsfn_close_handles_and_maybe_delete(
     return;
   }
   func->handles_closing = true;
-
-  NEXT_TICK(_emnapi_tsfn_do_finalize, func);
+  uv_close((uv_handle_t*)&func->async, _emnapi_tsfn_do_finalize);
 
   napi_close_handle_scope(func->env, scope);
 }
@@ -672,8 +627,6 @@ static bool _emnapi_tsfn_dispatch_one(napi_threadsafe_function func) {
   return has_more;
 }
 
-static void _emnapi_tsfn_async_cb(void* data);
-
 // all threads
 static void _emnapi_tsfn_send(napi_threadsafe_function func) {
   unsigned char current_state =
@@ -681,7 +634,7 @@ static void _emnapi_tsfn_send(napi_threadsafe_function func) {
   if ((current_state & kDispatchRunning) == kDispatchRunning) {
     return;
   }
-  _emnapi_async_send(_emnapi_tsfn_async_cb, func);
+  uv_async_send(&func->async);
 }
 
 // only main thread
@@ -704,12 +657,6 @@ static void _emnapi_tsfn_dispatch(napi_threadsafe_function func) {
   if (has_more) {
     _emnapi_tsfn_send(func);
   }
-}
-
-// only main thread
-static void _emnapi_tsfn_async_cb(void* data) {
-  napi_threadsafe_function tsfn = (napi_threadsafe_function) data;
-  _emnapi_tsfn_dispatch(tsfn);
 }
 
 #endif

@@ -9,6 +9,8 @@ set(UV_SRC
   "${CMAKE_CURRENT_SOURCE_DIR}/src/uv/threadpool.c"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/uv/unix/loop.c"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/uv/unix/thread.c"
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/uv/unix/async.c"
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/uv/unix/core.c"
 )
 
 set(EMNAPI_SRC "${CMAKE_CURRENT_SOURCE_DIR}/src/emnapi.c")
