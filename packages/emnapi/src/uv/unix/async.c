@@ -24,25 +24,38 @@
 
 #ifdef __EMSCRIPTEN_PTHREADS__
 
-// #include <emscripten/threading.h>
+#include <emscripten.h> /* version.h */
 #include "../uv-common.h"
 
 #include "common.h"
 
-// #ifdef __wasm64__
-// #define __EMNAPI_ASYNC_SEND_CALLBACK_SIG \
-//   (EM_FUNC_SIG_RETURN_VALUE_V | \
-//   EM_FUNC_SIG_WITH_N_PARAMETERS(1) | \
-//   EM_FUNC_SIG_SET_PARAM(0, EM_FUNC_SIG_PARAM_I64))
-// #else
-// #define __EMNAPI_ASYNC_SEND_CALLBACK_SIG EM_FUNC_SIG_VI
-// #endif
+#ifndef EMNAPI_USE_PROXYING
+  #if __EMSCRIPTEN_major__ * 10000 + __EMSCRIPTEN_minor__ * 100 + __EMSCRIPTEN_tiny__ >= 30109
+  #define EMNAPI_USE_PROXYING 1
+  #else
+  #define EMNAPI_USE_PROXYING 0
+  #endif
+#endif
 
+#if EMNAPI_USE_PROXYING
+#include <emscripten/threading.h>
+#include <emscripten/proxying.h>
+#include <stdlib.h>
+#include <errno.h>
+#else
 extern void _emnapi_async_send_js(int type,
                                   void (*callback)(void*),
                                   void* data);
+#endif
 
 int uv_async_init(uv_loop_t* loop, uv_async_t* handle, uv_async_cb async_cb) {
+#if EMNAPI_USE_PROXYING
+  em_proxying_queue* queue = em_proxying_queue_create();
+  if (queue == NULL) return ENOMEM;
+  handle->em_queue = queue;
+#else
+  handle->em_queue = NULL;
+#endif
   handle->loop = loop;
   handle->type = UV_ASYNC;
   handle->async_cb = async_cb;
@@ -51,38 +64,38 @@ int uv_async_init(uv_loop_t* loop, uv_async_t* handle, uv_async_cb async_cb) {
 }
 
 int uv_async_send(uv_async_t* handle) {
-  // TODO(?): need help
-  // Neither emscripten_dispatch_to_thread_async nor MAIN_THREAD_ASYNC_EM_ASM
-  // invoke the async complete callback if there is a printf() in worker thread.
-  // This breaks "packages/test/pool" tests.
-  // Not sure what happens, maybe has deadlock,
-  // and not sure whether this is Emscripten bug or my incorrect usage.
-  // BTW emscripten_dispatch_to_thread_async seems
-  // not support __wasm64__ V_I64 signature yet
-
-  // pthread_t main_thread = emscripten_main_browser_thread_id();
-  // if (pthread_equal(main_thread, pthread_self())) {
-  //   NEXT_TICK(handle->async_cb, handle);
-  // } else {
-  //   emscripten_dispatch_to_thread_async(main_thread,
-  //                                       __EMNAPI_ASYNC_SEND_CALLBACK_SIG,
-  //                                       handle->async_cb,
-  //                                       NULL,
-  //                                       handle);
-  //   // or
-  //   // MAIN_THREAD_ASYNC_EM_ASM({
-  //   //   emnapiGetDynamicCalls.call_vp($0, $1);
-  //   // }, handle->async_cb, handle);
-  // }
-
-  // Currently still use JavaScript to send work
-  // it's simple and clear
-  _emnapi_async_send_js(EMNAPI_ASYNC_SEND_TYPE, (void (*)(void *))handle->async_cb, handle);
+#if EMNAPI_USE_PROXYING
+  pthread_t main_thread = emscripten_main_browser_thread_id();
+  if (pthread_equal(main_thread, pthread_self())) {
+    NEXT_TICK((void (*)(void *))handle->async_cb, handle);
+  } else {
+    // Neither emscripten_dispatch_to_thread_async nor MAIN_THREAD_ASYNC_EM_ASM
+    // invoke the async_cb callback if there is a printf() in worker thread.
+    // Using emscripten_proxy_async(emscripten_proxy_get_system_queue(), ...)
+    // also has the same problem. Not sure what happens.
+    // But creating a new queue is all ok.
+    if (!emscripten_proxy_async(handle->em_queue,
+                                main_thread,
+                                (void (*)(void *))handle->async_cb,
+                                handle)) {
+      abort();
+    }
+  }
+#else
+  _emnapi_async_send_js(EMNAPI_ASYNC_SEND_TYPE,
+                        (void (*)(void *))handle->async_cb,
+                        handle);
+#endif
   return 0;
 }
 
 void uv__async_close(uv_async_t* handle) {
   QUEUE_REMOVE(&handle->queue);
+#if EMNAPI_USE_PROXYING
+  if (handle->em_queue != NULL) {
+    em_proxying_queue_destroy(handle->em_queue);
+  }
+#endif
   NEXT_TICK(((void (*)(void *))handle->close_cb), handle);
 }
 

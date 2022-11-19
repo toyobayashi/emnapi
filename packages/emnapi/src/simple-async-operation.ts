@@ -85,6 +85,8 @@ mergeInto(LibraryManager.library, {
       }
     }
   },
+  // if EMNAPI_USE_PROXYING=1 (default is 1 if emscripten version >= 3.1.9),
+  // _emnapi_async_send_js and $emnapiAddSendListener won't be linked into runtime code
   _emnapi_async_send_js__postset:
     'PThread.unusedWorkers.forEach(emnapiAddSendListener);' +
     'PThread.runningWorkers.forEach(emnapiAddSendListener);' +

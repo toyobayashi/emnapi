@@ -100,6 +100,7 @@ struct uv_async_s {
   UV_HANDLE_FIELDS
   uv_async_cb async_cb;
   void* queue[2];
+  void* em_queue;
 };
 
 UV_EXTERN int uv_async_init(uv_loop_t*,
