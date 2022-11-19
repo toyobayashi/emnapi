@@ -230,11 +230,12 @@ static napi_status convert_error_code(int code) {
 
 static void async_work_on_complete(napi_env env, void* args) {
   complete_wrap_t* wrap = (complete_wrap_t*) args;
-  napi_env _env = wrap->work->env;
   napi_status status = convert_error_code(wrap->status);
-  void* data = wrap->work->data;
+  napi_async_work work = wrap->work;
   free(wrap);
-  wrap->work->complete(_env, status, data);
+  napi_env _env = work->env;
+  void* data = work->data;
+  work->complete(_env, status, data);
 }
 
 static void async_work_after_thread_pool_work(napi_async_work work, int status) {
