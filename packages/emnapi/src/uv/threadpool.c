@@ -193,17 +193,19 @@ static void post(QUEUE* q, enum uv__work_kind kind) {
 
 static void init_threads(void) {
   unsigned int i;
-  int val;
+#if !defined(EMNAPI_WORKER_POOL_SIZE) || !(EMNAPI_WORKER_POOL_SIZE > 0)
+  const char* val;
+#endif
   uv_sem_t sem;
 
-  nthreads = ARRAY_SIZE(default_threads);
-#if defined(EMNAPI_WORKER_POOL_SIZE) && EMNAPI_WORKER_POOL_SIZE >= 0
-  val = EMNAPI_WORKER_POOL_SIZE;
+#if defined(EMNAPI_WORKER_POOL_SIZE) && EMNAPI_WORKER_POOL_SIZE > 0
+  nthreads = EMNAPI_WORKER_POOL_SIZE;
 #else
-  val = -1;
+  nthreads = ARRAY_SIZE(default_threads);
+  val = getenv("UV_THREADPOOL_SIZE");
+  if (val != NULL)
+    nthreads = atoi(val);
 #endif
-  if (val != -1)
-    nthreads = val;
   if (nthreads == 0)
     nthreads = 1;
   if (nthreads > MAX_THREADPOOL_SIZE)

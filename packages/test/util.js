@@ -7,7 +7,7 @@ function getEntry (targetName) {
 
 exports.getEntry = getEntry
 
-function loadPath (request) {
+function loadPath (request, options) {
   try {
     const mod = require(request)
 
@@ -19,7 +19,8 @@ function loadPath (request) {
             if (err) {
               reject(err)
             }
-          }
+          },
+          ...(options || {})
         }).then(({ Module, emnapi }) => {
           p.Module = Module
           p.emnapi = emnapi
@@ -37,7 +38,7 @@ function loadPath (request) {
 
 exports.loadPath = loadPath
 
-exports.load = function (targetName) {
+exports.load = function (targetName, options) {
   const request = getEntry(targetName)
-  return loadPath(request)
+  return loadPath(request, options)
 }

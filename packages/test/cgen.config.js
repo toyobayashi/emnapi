@@ -42,11 +42,11 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
         : [])
     ],
     includePaths,
-    defines: ['NAPI_VERSION=8', ...(pthread ? ['EMNAPI_WORKER_POOL_SIZE=2'] : [])],
+    defines: ['NAPI_VERSION=8', ...(pthread ? [/* 'EMNAPI_WORKER_POOL_SIZE=2' */] : [])],
     compileOptions: [...compilerFlags, ...(pthread ? ['-sUSE_PTHREADS=1'] : [])]
   })
 
-  const createTarget = (name, sources, needEntry, pthread) => ({
+  const createTarget = (name, sources, needEntry, pthread, linkOptions) => ({
     name,
     type: isEmscripten ? 'exe' : 'node',
     sources: [
@@ -62,7 +62,8 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
     linkOptions: [
       ...linkerFlags,
       ...(isEmscripten ? [jsLib] : []),
-      ...(isEmscripten && pthread ? ['-sUSE_PTHREADS=1', '-sPTHREAD_POOL_SIZE=8', '-sPTHREAD_POOL_SIZE_STRICT=2'] : [])
+      ...(isEmscripten && pthread ? ['-sUSE_PTHREADS=1', '-sPTHREAD_POOL_SIZE=8', '-sPTHREAD_POOL_SIZE_STRICT=2'] : []),
+      ...(linkOptions || [])
     ]
   })
 
@@ -114,7 +115,7 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
       createTarget('env', ['./env/binding.c']),
       createTarget('hello', ['./hello/binding.c']),
       ...(!(isEmscripten && process.env.MEMORY64) ? [createTarget('async', ['./async/binding.c'], false, true)] : []),
-      ...(!(isEmscripten && process.env.MEMORY64) ? [createTarget('pool', ['./pool/binding.c'], false, true)] : []),
+      ...(!(isEmscripten && process.env.MEMORY64) ? [createTarget('pool', ['./pool/binding.c'], false, true, ['--pre-js=../pool/pre.js'])] : []),
       ...(!(isEmscripten && process.env.MEMORY64) ? [createTarget('tsfn', ['./tsfn/binding.c'], false, true)] : []),
       // ...(isEmscripten ? [createTarget('tsfn', ['./tsfn/binding.c'], false, true)] : []),
       createTarget('arg', ['./arg/binding.c'], true),

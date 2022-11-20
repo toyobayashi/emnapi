@@ -289,10 +289,20 @@ cmake --build build
 
 ### `-DEMNAPI_WORKER_POOL_SIZE=4`
 
-This is equivalent to [`UV_THREADPOOL_SIZE`](http://docs.libuv.org/en/v1.x/threadpool.html?highlight=UV_THREADPOOL_SIZE), default is `4`.
-It represent max of `EMNAPI_WORKER_POOL_SIZE` async work (`napi_queue_async_work`) can be executed in parallel.
+This is [`UV_THREADPOOL_SIZE`](http://docs.libuv.org/en/v1.x/threadpool.html?highlight=UV_THREADPOOL_SIZE) equivalent at compile time, if not predefined, emnapi will read `UV_THREADPOOL_SIZE` from Emscripten [environment variable](https://emscripten.org/docs/porting/connecting_cpp_and_javascript/Interacting-with-code.html#interacting-with-code-environment-variables) at runtime, you can set `UV_THREADPOOL_SIZE` like this:
 
-You can set both `PTHREAD_POOL_SIZE` and `EMNAPI_WORKER_POOL` to `number of CPU cores` in general.
+```js
+Module.preRun = Module.preRun || [];
+Module.preRun.push(function () {
+  if (typeof ENV !== 'undefined') {
+    ENV.UV_THREADPOOL_SIZE = '2';
+  }
+});
+```
+
+It represent max of `EMNAPI_WORKER_POOL_SIZE` async work (`napi_queue_async_work`) can be executed in parallel. Default is not defined, read `UV_THREADPOOL_SIZE` at runtime.
+
+You can set both `PTHREAD_POOL_SIZE` and `EMNAPI_WORKER_POOL_SIZE` to `number of CPU cores` in general.
 If you use another library function which may create `N` child threads in async work,
 then you need to set `PTHREAD_POOL_SIZE` to `EMNAPI_WORKER_POOL_SIZE * (N + 1)`.
 
@@ -300,7 +310,7 @@ This option only has effect if you use `-sUSE_PTHREADS`.
 Emnapi will create `EMNAPI_WORKER_POOL_SIZE` threads when initializing,
 it will throw error if `PTHREAD_POOL_SIZE < EMNAPI_WORKER_POOL_SIZE && PTHREAD_POOL_SIZE_STRICT == 2`.
 
-See [Issue #8](https://github.com/toyobayashi/emnapi/issues/8) and [PR #9](https://github.com/toyobayashi/emnapi/pull/9) for more detail.
+See [Issue #8](https://github.com/toyobayashi/emnapi/issues/8) for more detail.
 
 ### `-DEMNAPI_NEXTTICK_TYPE=0`
 
@@ -309,6 +319,18 @@ Tell emnapi how to delay async work in `uv_async_send` / `uv__async_close`.
 
 - `0`: Use `setImmediate()` (Node.js native `setImmediate` or browser `MessageChannel` and `port.postMessage`)
 - `1`: Use `Promise.resolve().then()`
+
+### `-DEMNAPI_USE_PROXYING=1`
+
+This option only has effect if you use `-sUSE_PTHREADS`. Default is `1` if emscripten version `>= 3.1.9`, else `0`.
+
+- `0`
+
+    Use JavaScript implementation to send async work from worker threads, runtime code will access the Emscripten internal `PThread` object to add custom worker message listener.
+
+- `1`:
+
+    Use Emscripten [proxying API](https://emscripten.org/docs/api_reference/proxying.h.html) to send async work from worker threads in C. If you experience something wrong, you can switch set this to `0` and feel free to create an issue.
 
 ## Emnapi Runtime
 
