@@ -27,7 +27,18 @@
 #include <emscripten.h> /* version.h */
 #include "../uv-common.h"
 
-#include "common.h"
+#ifndef EMNAPI_NEXTTICK_TYPE
+#define EMNAPI_NEXTTICK_TYPE 0
+#endif
+#if EMNAPI_NEXTTICK_TYPE == 0
+extern void _emnapi_set_immediate(void (*callback)(void*), void* data);
+#define NEXT_TICK(callback, data) _emnapi_set_immediate((callback), (data))
+#elif EMNAPI_NEXTTICK_TYPE == 1
+extern void _emnapi_next_tick(void (*callback)(void*), void* data);
+#define NEXT_TICK(callback, data) _emnapi_next_tick((callback), (data))
+#else
+#error "Invalid EMNAPI_NEXTTICK_TYPE"
+#endif
 
 #ifndef EMNAPI_USE_PROXYING
   #if __EMSCRIPTEN_major__ * 10000 + __EMSCRIPTEN_minor__ * 100 + __EMSCRIPTEN_tiny__ >= 30109
@@ -82,7 +93,7 @@ int uv_async_send(uv_async_t* handle) {
     }
   }
 #else
-  _emnapi_async_send_js(EMNAPI_ASYNC_SEND_TYPE,
+  _emnapi_async_send_js(EMNAPI_NEXTTICK_TYPE,
                         (void (*)(void *))handle->async_cb,
                         handle);
 #endif

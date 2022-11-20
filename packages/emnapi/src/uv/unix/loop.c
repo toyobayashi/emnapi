@@ -1,6 +1,6 @@
-#include "../uv-common.h"
-
 #ifdef __EMSCRIPTEN_PTHREADS__
+
+#include "../uv-common.h"
 
 int uv_loop_init(uv_loop_t* loop) {
   int err;

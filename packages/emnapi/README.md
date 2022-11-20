@@ -200,7 +200,7 @@ em++ -O3 \
 You will need to install:
 
 - CMake `>= 3.13`
-- make
+- ninja / make
 
 There are several choices to get `make` for Windows user
 
@@ -213,13 +213,15 @@ Verify your environment:
 
 ```bash
 cmake --version
+
+# if you use ninja
+ninja --version
+
+# if you use make
 make -v
 
-# Windows cmd
-# mingw32-make -v
-
-# Visual Studio Developer Command Prompt
-# nmake /?
+# if you use nmake in Visual Studio Developer Command Prompt
+nmake /?
 ```
 
 Create `CMakeLists.txt`.
@@ -244,25 +246,44 @@ Building with `emcmake`, output `build/hello.js` and `build/hello.wasm`.
 
 ```bash
 mkdir build
-emcmake cmake -DCMAKE_BUILD_TYPE=Release -H. -Bbuild
 
-# Windows
+emcmake cmake -DCMAKE_BUILD_TYPE=Release -G Ninja -H. -Bbuild
+# emcmake cmake -DCMAKE_BUILD_TYPE=Release -G "Unix Makefiles" -H. -Bbuild
 # emcmake cmake -DCMAKE_BUILD_TYPE=Release -G "MinGW Makefiles" -H. -Bbuild
+# emcmake cmake -DCMAKE_BUILD_TYPE=Release -G "NMake Makefiles" -H. -Bbuild
 
-cmake --build build
-```
-
-If you have not installed `make` or `mingw32-make` on Windows, execute the following commands in `Visual Studio Developer Command Prompt`.
-
-```bash
-mkdir build
-emcmake cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_MAKE_PROGRAM=nmake -G "NMake Makefiles" -H. -Bbuild
 cmake --build build
 ```
 
 Output code can run in recent version modern browsers and Node.js latest LTS. IE is not supported.
 
-If a JS error is thrown on runtime initialization, Node.js process will exit. You can use `-sNODEJS_CATCH_EXIT=0` and add `ununcaughtException` handler yourself to avoid this. Alternatively, you can use `Module.onEmnapiInitialized` callback to catch error.
+If a JS error is thrown on runtime initialization, Node.js process will exit. You can use `-sNODEJS_CATCH_EXIT=0` and add `uncaughtException` handler yourself to avoid this. Alternatively, you can use `Module.onEmnapiInitialized` callback to catch error.
+
+### Multithread
+
+If you want to use async work or thread safe functions,
+there are additional C source file need to be compiled and linking.
+Recommend use CMake directly.
+
+```cmake
+add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/node_modules/@tybys/emnapi")
+
+add_executable(hello hello.c)
+
+target_link_libraries(hello emnapi_full-mt)
+target_compile_options(hello PRIVATE "-sUSE_PTHREADS=1")
+target_link_options(hello PRIVATE
+  "-sALLOW_MEMORY_GROWTH=1"
+  "-sEXPORTED_FUNCTIONS=['_malloc','_free']"
+  "-sUSE_PTHREADS=1"
+  "-sPTHREAD_POOL_SIZE=4"
+)
+```
+
+```bash
+emcmake cmake -DCMAKE_BUILD_TYPE=Release -DEMNAPI_WORKER_POOL_SIZE=4 -G Ninja -H. -Bbuild
+cmake --build build
+```
 
 ## Preprocess Macro Options
 
@@ -281,12 +302,13 @@ it will throw error if `PTHREAD_POOL_SIZE < EMNAPI_WORKER_POOL_SIZE && PTHREAD_P
 
 See [Issue #8](https://github.com/toyobayashi/emnapi/issues/8) and [PR #9](https://github.com/toyobayashi/emnapi/pull/9) for more detail.
 
-### `-DEMNAPI_ASYNC_SEND_TYPE=0`
+### `-DEMNAPI_NEXTTICK_TYPE=0`
 
 This option only has effect if you use `-sUSE_PTHREADS`, Default is `0`.
+Tell emnapi how to delay async work in `uv_async_send` / `uv__async_close`.
 
-- `0`: Use `setImmediate()` (`MessageChannel` and `postMessage`) to send async work.
-- `1`: Use `Promise.resolve().then()` to send async work.
+- `0`: Use `setImmediate()` (Node.js native `setImmediate` or browser `MessageChannel` and `port.postMessage`)
+- `1`: Use `Promise.resolve().then()`
 
 ## Emnapi Runtime
 
