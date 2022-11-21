@@ -9,5 +9,5 @@ node_modules
 /dist
 package-lock.json
 /example/build
-/script/out
+out
 /script/emnapi.zip

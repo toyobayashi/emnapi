@@ -20,12 +20,22 @@ See documentation for more details:
 
 [How to build Node-API official examples](https://github.com/toyobayashi/node-addon-examples)
 
-## Quick Start
+## Prerequests
 
 You will need to install:
 
-- Node.js `>= v14.6.0`
-- Emscripten `>= v3.0.0` (`v2.x` may also works, not tested)
+- Node.js `>= v16.15.0`
+- npm `>= v8`
+- Emscripten `>= v3.1.9`
+- CMake `>= 3.13`
+- ninja / make
+
+There are several choices to get `make` for Windows user
+
+- Install [mingw-w64](https://www.mingw-w64.org/downloads/), then use `mingw32-make`
+- Download [MSVC prebuilt binary of GNU make](https://github.com/toyobayashi/make-win-build/releases), add to `%Path%` then rename it to `mingw32-make`
+- Install [Visual Studio 2022](https://visualstudio.microsoft.com/) C++ desktop workload, use `nmake` in `Visual Studio Developer Command Prompt`
+- Install [Visual C++ Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/), use `nmake` in `Visual Studio Developer Command Prompt`
 
 Verify your environment:
 
@@ -33,7 +43,33 @@ Verify your environment:
 node -v
 npm -v
 emcc -v
+cmake --version
+
+# if you use ninja
+ninja --version
+
+# if you use make
+make -v
+
+# if you use nmake in Visual Studio Developer Command Prompt
+nmake /?
 ```
+
+## Build from source
+
+```bash
+git clone https://github.com/toyobayashi/emnapi.git
+cd ./emnapi
+npm install
+npm run build             # output ./packages/*/dist
+node ./script/release.js  # output ./out
+
+# test
+npm run rebuild:test
+npm test
+```
+
+## Quick Start
 
 ### NPM Install
 
@@ -196,33 +232,6 @@ em++ -O3 \
 ```
 
 ### Using CMake
-
-You will need to install:
-
-- CMake `>= 3.13`
-- ninja / make
-
-There are several choices to get `make` for Windows user
-
-- Install [mingw-w64](https://www.mingw-w64.org/downloads/), then use `mingw32-make`
-- Download [MSVC prebuilt binary of GNU make](https://github.com/toyobayashi/make-win-build/releases), add to `%Path%` then rename it to `mingw32-make`
-- Install [Visual Studio 2022](https://visualstudio.microsoft.com/) C++ desktop workload, use `nmake` in `Visual Studio Developer Command Prompt`
-- Install [Visual C++ Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/), use `nmake` in `Visual Studio Developer Command Prompt`
-
-Verify your environment:
-
-```bash
-cmake --version
-
-# if you use ninja
-ninja --version
-
-# if you use make
-make -v
-
-# if you use nmake in Visual Studio Developer Command Prompt
-nmake /?
-```
 
 Create `CMakeLists.txt`.
 
@@ -387,30 +396,3 @@ Most APIs are implemented in JavaScript and they are depend on runtime code ship
     ```
 
 `@tybys/emnapi-runtime` version should match `@tybys/emnapi` version.
-
-## Building
-
-```bash
-git clone https://github.com/toyobayashi/emnapi.git
-cd ./emnapi
-npm install
-npm run build # output ./packages/*/dist
-
-# test
-npm run rebuild:test
-npm test
-
-# CMake install
-cd ./packages/emnapi
-
-emcmake cmake -DCMAKE_BUILD_TYPE=Release -H. -Bbuild
-
-# Windows have mingw32-make installed
-# emcmake cmake -DCMAKE_BUILD_TYPE=Release -G "MinGW Makefiles" -H. -Bbuild
-
-# Windows Visual Studio Developer Command Prompt
-# emcmake cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_MAKE_PROGRAM=nmake -G "NMake Makefiles"  -H. -Bbuild
-
-cmake --build build
-cmake --install build [--prefix <sysroot>]
-```

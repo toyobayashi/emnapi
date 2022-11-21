@@ -1,12 +1,13 @@
 const fs = require('fs')
 const path = require('path')
 const crossZip = require('@tybys/cross-zip')
+const { which } = require('./which.js')
 
 /**
- * @param {string} command 
- * @param {string[]} args 
- * @param {string=} cwdPath 
- * @param {'inherit' | 'pipe' | 'ignore'=} stdin 
+ * @param {string} command
+ * @param {string[]} args
+ * @param {string=} cwdPath
+ * @param {'inherit' | 'pipe' | 'ignore'=} stdin
  * @returns {Promise<void> & { cp: import('child_process').ChildProcess }}
  */
 function spawn (command, args, cwdPath, stdin) {
@@ -32,7 +33,7 @@ function spawn (command, args, cwdPath, stdin) {
 }
 
 async function main () {
-  const sysroot = path.join(__dirname, './out')
+  const sysroot = path.join(__dirname, '../out')
 
   fs.rmSync(sysroot, { force: true, recursive: true })
   fs.mkdirSync(sysroot, { recursive: true })
@@ -45,7 +46,11 @@ async function main () {
 
   await spawn(emcmake, [
     'cmake',
-    ...(process.platform === 'win32' ? ['-G', 'MinGW Makefiles', '-DCMAKE_MAKE_PROGRAM=make'] : []),
+    ...(
+      which('ninja')
+        ? ['-G', 'Ninja']
+        : (process.platform === 'win32' ? ['-G', 'MinGW Makefiles', '-DCMAKE_MAKE_PROGRAM=make'] : [])
+    ),
     '-DCMAKE_BUILD_TYPE=Release',
     '-DCMAKE_VERBOSE_MAKEFILE=1',
     '-DEMNAPI_INSTALL_SRC=1',
