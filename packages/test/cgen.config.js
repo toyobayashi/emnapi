@@ -13,6 +13,8 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
         '-sWASM_BIGINT=1',
         '-sALLOW_MEMORY_GROWTH=1',
         '-sMIN_CHROME_VERSION=67',
+        '-sSTACK_SIZE=2MB',
+        '-sDEFAULT_PTHREAD_STACK_SIZE=2MB',
         ...(process.env.MEMORY64 ? ['-sMEMORY64=1'] : []),
         // '-sEXIT_RUNTIME=1',
         ...(isDebug ? ['-sSAFE_HEAP=1'/* , '-sDISABLE_EXCEPTION_CATCHING=0' */] : [])

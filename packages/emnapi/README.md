@@ -286,6 +286,9 @@ target_link_options(hello PRIVATE
   "-sEXPORTED_FUNCTIONS=['_malloc','_free']"
   "-sUSE_PTHREADS=1"
   "-sPTHREAD_POOL_SIZE=4"
+  # try to specify stack size if you experience pthread errors
+  "-sSTACK_SIZE=2MB"
+  "-sDEFAULT_PTHREAD_STACK_SIZE=2MB"
 )
 ```
 
