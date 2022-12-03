@@ -55,7 +55,7 @@ static void uv__cancelled(struct uv__work* w) {
 /* To avoid deadlock with uv_cancel() it's crucial that the worker
  * never holds the global mutex and the loop-local mutex at the same time.
  */
-static void worker(void* arg) {
+static void* worker(void* arg) {
   struct uv__work* w;
   QUEUE* q;
   int is_slow_work;
@@ -137,6 +137,7 @@ static void worker(void* arg) {
       slow_io_work_running--;
     }
   }
+  return NULL;
 }
 
 
@@ -234,7 +235,7 @@ static void init_threads(void) {
     abort();
 
   for (i = 0; i < nthreads; i++)
-    if (uv_thread_create(threads + i, worker, &sem))
+    if (uv_thread_create(threads + i, (uv_thread_cb) worker, &sem))
       abort();
 
   for (i = 0; i < nthreads; i++)
