@@ -100,7 +100,7 @@ struct uv_async_s {
   UV_HANDLE_FIELDS
   uv_async_cb async_cb;
   void* queue[2];
-  void* em_queue;
+  int pending;
 };
 
 UV_EXTERN int uv_async_init(uv_loop_t*,
@@ -121,6 +121,7 @@ struct uv_loop_s {
   uv_mutex_t wq_mutex;
   uv_async_t wq_async;
   void* async_handles[2];
+  void* em_queue;
 };
 
 #undef UV_REQ_FIELDS
