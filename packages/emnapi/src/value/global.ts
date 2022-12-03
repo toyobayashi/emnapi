@@ -54,7 +54,7 @@ function napi_get_undefined (env: napi_env, result: Pointer<napi_value>): napi_s
   })
 }
 
-emnapiImplement('napi_get_boolean', napi_get_boolean)
-emnapiImplement('napi_get_global', napi_get_global)
-emnapiImplement('napi_get_null', napi_get_null)
-emnapiImplement('napi_get_undefined', napi_get_undefined)
+emnapiImplement('napi_get_boolean', 'ipip', napi_get_boolean)
+emnapiImplement('napi_get_global', 'ipp', napi_get_global)
+emnapiImplement('napi_get_null', 'ipp', napi_get_null)
+emnapiImplement('napi_get_undefined', 'ipp', napi_get_undefined)

@@ -74,6 +74,6 @@ function emnapi_create_external_uint8array (
   })
 }
 
-emnapiImplement('emnapi_get_module_object', emnapi_get_module_object)
-emnapiImplement('emnapi_get_module_property', emnapi_get_module_property)
-emnapiImplement('emnapi_create_external_uint8array', emnapi_create_external_uint8array, ['$emnapiWrap'])
+emnapiImplement('emnapi_get_module_object', 'ipp', emnapi_get_module_object)
+emnapiImplement('emnapi_get_module_property', 'ippp', emnapi_get_module_property)
+emnapiImplement('emnapi_create_external_uint8array', 'ipppppp', emnapi_create_external_uint8array, ['$emnapiWrap'])

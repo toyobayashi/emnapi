@@ -258,19 +258,19 @@ function napi_create_bigint_words (env: napi_env, sign_bit: int, word_count: siz
   })
 }
 
-emnapiImplement('napi_create_int32', napi_create_int32)
-emnapiImplement('napi_create_uint32', napi_create_uint32)
-emnapiImplement('napi_create_int64', napi_create_int64)
-emnapiImplement('napi_create_double', napi_create_double)
-emnapiImplement('napi_create_bigint_int64', napi_create_bigint_int64)
-emnapiImplement('napi_create_bigint_uint64', napi_create_bigint_uint64)
-emnapiImplement('napi_create_bigint_words', napi_create_bigint_words)
-emnapiImplement('napi_create_string_latin1', napi_create_string_latin1)
+emnapiImplement('napi_create_int32', 'ipip', napi_create_int32)
+emnapiImplement('napi_create_uint32', 'ipip', napi_create_uint32)
+emnapiImplement('napi_create_int64', 'ipjp', napi_create_int64)
+emnapiImplement('napi_create_double', 'ipdp', napi_create_double)
+emnapiImplement('napi_create_bigint_int64', 'ipjp', napi_create_bigint_int64)
+emnapiImplement('napi_create_bigint_uint64', 'ipjp', napi_create_bigint_uint64)
+emnapiImplement('napi_create_bigint_words', 'ipippp', napi_create_bigint_words)
+emnapiImplement('napi_create_string_latin1', 'ipppp', napi_create_string_latin1)
 
 // #if typeof LEGACY_RUNTIME !== 'undefined' && !LEGACY_RUNTIME
-emnapiImplement('napi_create_string_utf16', napi_create_string_utf16, ['$UTF16ToString'])
+emnapiImplement('napi_create_string_utf16', 'ipppp', napi_create_string_utf16, ['$UTF16ToString'])
 // #else
-emnapiImplement('napi_create_string_utf16', napi_create_string_utf16)
+emnapiImplement('napi_create_string_utf16', 'ipppp', napi_create_string_utf16)
 // #endif
 
-emnapiImplement('napi_create_string_utf8', napi_create_string_utf8)
+emnapiImplement('napi_create_string_utf8', 'ipppp', napi_create_string_utf8)

@@ -31,5 +31,5 @@ function _emnapi_tsfn_dispatch_one_js (env: number, ref: number, call_js_cb: num
   emnapi.closeScope(envObject, scope)
 }
 
-emnapiImplement('_emnapi_call_into_module', _emnapi_call_into_module, ['$emnapiGetDynamicCalls'])
-emnapiImplement('_emnapi_tsfn_dispatch_one_js', _emnapi_tsfn_dispatch_one_js, ['$emnapiGetDynamicCalls'])
+emnapiImplement('_emnapi_call_into_module', 'vpp', _emnapi_call_into_module, ['$emnapiGetDynamicCalls'])
+emnapiImplement('_emnapi_tsfn_dispatch_one_js', 'vppppp', _emnapi_tsfn_dispatch_one_js, ['$emnapiGetDynamicCalls'])

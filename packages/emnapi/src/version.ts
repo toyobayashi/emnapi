@@ -8,4 +8,4 @@ function napi_get_version (env: napi_env, result: Pointer<int32_t>): napi_status
   })
 }
 
-emnapiImplement('napi_get_version', napi_get_version)
+emnapiImplement('napi_get_version', 'ipp', napi_get_version)

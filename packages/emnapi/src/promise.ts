@@ -50,7 +50,7 @@ function napi_is_promise (env: napi_env, value: napi_value, is_promise: Pointer<
   })
 }
 
-emnapiImplement('napi_create_promise', napi_create_promise)
-emnapiImplement('napi_resolve_deferred', napi_resolve_deferred)
-emnapiImplement('napi_reject_deferred', napi_reject_deferred)
-emnapiImplement('napi_is_promise', napi_is_promise)
+emnapiImplement('napi_create_promise', 'ippp', napi_create_promise)
+emnapiImplement('napi_resolve_deferred', 'ippp', napi_resolve_deferred)
+emnapiImplement('napi_reject_deferred', 'ippp', napi_reject_deferred)
+emnapiImplement('napi_is_promise', 'ippp', napi_is_promise)

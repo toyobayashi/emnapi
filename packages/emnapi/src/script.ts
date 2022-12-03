@@ -25,4 +25,4 @@ function napi_run_script (env: napi_env, script: napi_value, result: Pointer<nap
 // #endif
 }
 
-emnapiImplement('napi_run_script', napi_run_script, ['napi_set_last_error'])
+emnapiImplement('napi_run_script', 'ippp', napi_run_script, ['napi_set_last_error'])

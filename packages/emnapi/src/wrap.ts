@@ -166,10 +166,10 @@ function napi_add_finalizer (env: napi_env, js_object: napi_value, native_object
   return emnapiWrap(WrapType.anonymous, env, js_object, native_object, finalize_cb, finalize_hint, result)
 }
 
-emnapiImplement('napi_define_class', napi_define_class, ['$emnapiCreateFunction', '$emnapiDefineProperty'])
-emnapiImplement('napi_wrap', napi_wrap, ['$emnapiWrap'])
-emnapiImplement('napi_unwrap', napi_unwrap, ['$emnapiUnwrap'])
-emnapiImplement('napi_remove_wrap', napi_remove_wrap, ['$emnapiUnwrap'])
-emnapiImplement('napi_type_tag_object', napi_type_tag_object)
-emnapiImplement('napi_check_object_type_tag', napi_check_object_type_tag)
-emnapiImplement('napi_add_finalizer', napi_add_finalizer, ['$emnapiWrap'])
+emnapiImplement('napi_define_class', 'ipppppppp', napi_define_class, ['$emnapiCreateFunction', '$emnapiDefineProperty'])
+emnapiImplement('napi_wrap', 'ipppppp', napi_wrap, ['$emnapiWrap'])
+emnapiImplement('napi_unwrap', 'ippp', napi_unwrap, ['$emnapiUnwrap'])
+emnapiImplement('napi_remove_wrap', 'ippp', napi_remove_wrap, ['$emnapiUnwrap'])
+emnapiImplement('napi_type_tag_object', 'ippp', napi_type_tag_object)
+emnapiImplement('napi_check_object_type_tag', 'ipppp', napi_check_object_type_tag)
+emnapiImplement('napi_add_finalizer', 'ipppppp', napi_add_finalizer, ['$emnapiWrap'])

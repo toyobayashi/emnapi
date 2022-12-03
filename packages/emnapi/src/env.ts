@@ -22,5 +22,5 @@ function napi_get_instance_data (env: napi_env, data: void_pp): napi_status {
   })
 }
 
-emnapiImplement('napi_set_instance_data', napi_set_instance_data)
-emnapiImplement('napi_get_instance_data', napi_get_instance_data)
+emnapiImplement('napi_set_instance_data', 'ipppp', napi_set_instance_data)
+emnapiImplement('napi_get_instance_data', 'ipp', napi_get_instance_data)

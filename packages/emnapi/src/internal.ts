@@ -328,11 +328,11 @@ function $emnapiSetErrorCode (envObject: emnapi.Env, error: Error & { code?: str
   return napi_status.napi_ok
 }
 
-emnapiImplement('$emnapiCreateFunction', $emnapiCreateFunction, ['$emnapiGetDynamicCalls'])
-emnapiImplement('$emnapiDefineProperty', $emnapiDefineProperty, ['$emnapiCreateFunction'])
-emnapiImplement('$emnapiCreateTypedArray', $emnapiCreateTypedArray)
-emnapiImplement('$emnapiWrap', $emnapiWrap)
-emnapiImplement('$emnapiUnwrap', $emnapiUnwrap)
-emnapiImplement('$emnapiAddName', $emnapiAddName)
-emnapiImplement('$emnapiGetPropertyNames', $emnapiGetPropertyNames, ['$emnapiAddName'])
-emnapiImplement('$emnapiSetErrorCode', $emnapiSetErrorCode)
+emnapiImplement('$emnapiCreateFunction', undefined, $emnapiCreateFunction, ['$emnapiGetDynamicCalls'])
+emnapiImplement('$emnapiDefineProperty', undefined, $emnapiDefineProperty, ['$emnapiCreateFunction'])
+emnapiImplement('$emnapiCreateTypedArray', undefined, $emnapiCreateTypedArray)
+emnapiImplement('$emnapiWrap', undefined, $emnapiWrap)
+emnapiImplement('$emnapiUnwrap', undefined, $emnapiUnwrap)
+emnapiImplement('$emnapiAddName', undefined, $emnapiAddName)
+emnapiImplement('$emnapiGetPropertyNames', undefined, $emnapiGetPropertyNames, ['$emnapiAddName'])
+emnapiImplement('$emnapiSetErrorCode', undefined, $emnapiSetErrorCode)

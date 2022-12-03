@@ -164,8 +164,8 @@ function napi_get_new_target (
   return envObject.clearLastError()
 }
 
-emnapiImplement('napi_create_function', napi_create_function, ['$emnapiCreateFunction'])
-emnapiImplement('napi_get_cb_info', napi_get_cb_info)
-emnapiImplement('napi_call_function', napi_call_function)
-emnapiImplement('napi_new_instance', napi_new_instance)
-emnapiImplement('napi_get_new_target', napi_get_new_target)
+emnapiImplement('napi_create_function', 'ipppppp', napi_create_function, ['$emnapiCreateFunction'])
+emnapiImplement('napi_get_cb_info', 'ipppppp', napi_get_cb_info)
+emnapiImplement('napi_call_function', 'ipppppp', napi_call_function)
+emnapiImplement('napi_new_instance', 'ippppp', napi_new_instance)
+emnapiImplement('napi_get_new_target', 'ippp', napi_get_new_target)

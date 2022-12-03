@@ -19,6 +19,7 @@ mergeInto(LibraryManager.library, {
     'channel.port2.postMessage(null);' +
   '};',
 
+  _emnapi_set_immediate__sig: 'vpp',
   _emnapi_set_immediate__deps: ['$emnapiGetDynamicCalls', '$emnapiSetImmediate'],
   _emnapi_set_immediate: function (callback: number, data: number): void {
     emnapiSetImmediate(() => {
@@ -27,6 +28,7 @@ mergeInto(LibraryManager.library, {
     })
   },
 
+  _emnapi_next_tick__sig: 'vpp',
   _emnapi_next_tick__deps: ['$emnapiGetDynamicCalls'],
   _emnapi_next_tick: function (callback: number, data: number): void {
     // eslint-disable-next-line @typescript-eslint/no-floating-promises
@@ -62,6 +64,7 @@ mergeInto(LibraryManager.library, {
     }
   },
 
+  _emnapi_async_send_js__sig: 'vipp',
   _emnapi_async_send_js__deps: [
     '$emnapiGetDynamicCalls',
     '$PThread',

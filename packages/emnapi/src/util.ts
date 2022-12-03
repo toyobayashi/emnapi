@@ -1,9 +1,13 @@
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-function emnapiImplement (name: string, compilerTimeFunction: Function, deps?: string[]): void {
-  mergeInto(LibraryManager.library, {
+function emnapiImplement (name: string, sig: string | undefined, compilerTimeFunction: Function, deps?: string[]): void {
+  const sym: any = {
     [name]: compilerTimeFunction,
     [name + '__deps']: (['$emnapi', '$emnapiInit']).concat(deps ?? [])
-  })
+  }
+  if (sig) {
+    sym[name + '__sig'] = sig
+  }
+  mergeInto(LibraryManager.library, sym)
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -16,22 +20,26 @@ mergeInto(LibraryManager.library, {
     const envObject = emnapi.envStore.get(env)!
     return envObject.setLastError(error_code, engine_error_code, engine_reserved)
   },
+  napi_set_last_error__sig: 'ipiip',
   napi_set_last_error__deps: ['$emnapi'],
 
   napi_clear_last_error: function (env: napi_env) {
     const envObject = emnapi.envStore.get(env)!
     return envObject.clearLastError()
   },
+  napi_clear_last_error__sig: 'ip',
   napi_clear_last_error__deps: ['$emnapi'],
 
   emnapi_is_support_weakref: function () {
     return emnapi.supportFinalizer ? 1 : 0
   },
+  emnapi_is_support_weakref__sig: 'i',
   emnapi_is_support_weakref__deps: ['$emnapi'],
 
   emnapi_is_support_bigint: function () {
     return emnapi.supportBigInt ? 1 : 0
   },
+  emnapi_is_support_bigint__sig: 'i',
   emnapi_is_support_bigint__deps: ['$emnapi']
 })
 
@@ -90,10 +98,12 @@ mergeInto(LibraryManager.library, {
     return pointer
   },
 
+  _emnapi_runtime_keepalive_push__sig: 'v',
   _emnapi_runtime_keepalive_push__deps: ['$runtimeKeepalivePush'],
   _emnapi_runtime_keepalive_push: function () {
     if (typeof runtimeKeepalivePush === 'function') runtimeKeepalivePush()
   },
+  _emnapi_runtime_keepalive_pop__sig: 'v',
   _emnapi_runtime_keepalive_pop__deps: ['$runtimeKeepalivePop'],
   _emnapi_runtime_keepalive_pop: function () {
     if (typeof runtimeKeepalivePop === 'function') runtimeKeepalivePop()
