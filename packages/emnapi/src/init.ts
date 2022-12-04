@@ -3,7 +3,7 @@
 /* eslint-disable @typescript-eslint/no-implied-eval */
 
 declare const __EMNAPI_RUNTIME_REPLACE__: string
-declare const __EMNAPI_RUNTIME_INIT__: string
+declare const __EMNAPI_RUNTIME_INIT__: (Module: any) => Promise<void>
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 declare let napiExtendedErrorInfoPtr: number | undefined
@@ -39,12 +39,27 @@ mergeInto(LibraryManager.library, {
   $emnapi: undefined,
   $emnapi__postset: __EMNAPI_RUNTIME_REPLACE__,
 
+  $emnapiRuntimeInit: __EMNAPI_RUNTIME_INIT__,
+
   $errorMessagesPtr: undefined,
 
-  $emnapiInit__postset: 'emnapiInit();',
+  $emnapiInit__postset: 'addOnPreRun(function (Module) {' +
+    'addRunDependency("emnapi-init");' +
+    'emnapiRuntimeInit(Module).then(function () {' +
+      'emnapiInit();' +
+      'removeRunDependency("emnapi-init");' +
+    '}, function (err) {' +
+      'if (typeof Module.onEmnapiInitialized === "function") {' +
+        'Module.onEmnapiInitialized(err);' +
+      '} else {' +
+        'throw err;' +
+      '}' +
+    '});' +
+  '});',
   $emnapiInit__deps: [
     '$emnapiGetDynamicCalls',
     '$emnapi',
+    '$emnapiRuntimeInit',
     '$errorMessagesPtr',
     'napi_register_wasm_v1',
     '_emnapi_runtime_init',
@@ -115,9 +130,6 @@ mergeInto(LibraryManager.library, {
     }
 
     addOnInit(function (Module) {
-      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-      __EMNAPI_RUNTIME_INIT__
-
       delete Module._napi_register_wasm_v1
       delete Module.__emnapi_runtime_init
 

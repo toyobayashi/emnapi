@@ -54,9 +54,7 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
     sources: [
       ...(needEntry ? (sources.push('./entry_point.c'), sources) : sources)
     ],
-    emwrap: {
-      exports: ['emnapi']
-    },
+    emwrap: {},
     includePaths,
     libs: ['testcommon', ...(isEmscripten ? [pthread ? 'emnapimt' : 'emnapist'] : [])],
     compileOptions: [...compilerFlags, ...(isEmscripten && pthread ? ['-sUSE_PTHREADS=1'] : [])],
@@ -75,9 +73,7 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
     sources: [
       ...sources
     ],
-    emwrap: {
-      exports: ['emnapi']
-    },
+    emwrap: {},
     libs: [...(isEmscripten ? ['emnapist'] : [])],
     includePaths,
     defines: [

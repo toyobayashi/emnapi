@@ -32,7 +32,7 @@ async function build () {
     replaceParseTool(
       libCode
         .replace('__EMNAPI_RUNTIME_REPLACE__', `'${runtimeCode.replace(/\\/g, '\\\\').replace(/\r?\n/g, '\\n').replace(/'/g, "\\'")}'`)
-        .replace('__EMNAPI_RUNTIME_INIT__;', '')
+        .replace('__EMNAPI_RUNTIME_INIT__', 'function emnapiRuntimeInit () { return { then: function (resolve, reject) { try { resolve(); } catch (err) { reject(err); } } }; }')
     ),
     'utf8'
   )
@@ -41,55 +41,7 @@ async function build () {
     replaceParseTool(
       libCode
         .replace('__EMNAPI_RUNTIME_REPLACE__', '""')
-        .replace('__EMNAPI_RUNTIME_INIT__;', `
-            if ('emnapiRuntime' in Module) {
-              emnapi = Module.emnapiRuntime;
-            }
-            if (!emnapi && typeof require === 'function') {
-              try {
-                emnapi = require('@tybys/emnapi-runtime')
-              } catch (_) {}
-            }
-            if (!emnapi) {
-              emnapi = (function () {
-                if (typeof globalThis !== 'undefined') return globalThis;
-                var g = (function () { return this })();
-                if (
-                  !g &&
-                  (function () {
-                    var f;
-                    try {
-                      f = new Function();
-                    } catch (_) {
-                      return false;
-                    }
-                    return typeof f === 'function';
-                  })()
-                ) {
-                  g = new Function('return this')();
-                }
-
-                if (!g) {
-                  if (typeof __webpack_public_path__ === 'undefined') {
-                    if (typeof global !== 'undefined') return global;
-                  }
-                  if (typeof window !== 'undefined') return window;
-                  if (typeof self !== 'undefined') return self;
-                }
-
-                return g;
-              })().__emnapi_runtime__;
-            }
-            if (!emnapi) {
-              var err = new Error('Emnapi runtime is not detected. Check if the runtime code is imported or consider using builtin runtime js library.');
-              if (typeof Module.onEmnapiInitialized === 'function') {
-                Module.onEmnapiInitialized(err);
-                return;
-              } else {
-                throw err;
-              }
-            }
-      `)
+        .replace('__EMNAPI_RUNTIME_INIT__', fs.readFileSync(path.join(__dirname, './init.js'), 'utf8'))
     ),
     'utf8'
   )

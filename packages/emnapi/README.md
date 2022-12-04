@@ -389,6 +389,9 @@ Most APIs are implemented in JavaScript and they are depend on runtime code ship
     <script>
       var Module = { /* ... */ };
       Module.emnapiRuntime = window.__emnapi_runtime__;
+      // can be function or async function
+      Module.emnapiRuntime = function () { return window.__emnapi_runtime__; }
+      Module.emnapiRuntime = function () { return Promise.resolve(window.__emnapi_runtime__); }
     </script>
     <script src="your-wasm-glue.js"></script>
     ```
@@ -396,6 +399,9 @@ Most APIs are implemented in JavaScript and they are depend on runtime code ship
     ```js
     // Node.js
     Module.emnapiRuntime = require('@tybys/emnapi-runtime')
+    // can be function or async function
+    Module.emnapiRuntime = () => require('@tybys/emnapi-runtime')
+    Module.emnapiRuntime = () => import('@tybys/emnapi-runtime')
     ```
 
 `@tybys/emnapi-runtime` version should match `@tybys/emnapi` version.

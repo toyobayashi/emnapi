@@ -14,16 +14,15 @@ function loadPath (request, options) {
     if (typeof mod.default === 'function') {
       const p = new Promise((resolve, reject) => {
         mod.default({
-          emnapiRuntime: require('../runtime'),
+          emnapiRuntime: () => Promise.resolve(require('../runtime/index.js')),
           onEmnapiInitialized: (err) => {
             if (err) {
               reject(err)
             }
           },
           ...(options || {})
-        }).then(({ Module, emnapi }) => {
+        }).then(({ Module }) => {
           p.Module = Module
-          p.emnapi = emnapi
           resolve(Module.emnapiExports)
         })
       })
