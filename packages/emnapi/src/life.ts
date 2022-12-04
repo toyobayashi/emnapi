@@ -1,9 +1,9 @@
 function napi_open_handle_scope (env: napi_env, result: Pointer<napi_handle_scope>): napi_status {
-  return emnapi.checkEnv(env, (envObject) => {
-    return emnapi.checkArgs(envObject, [result], () => {
+  return emnapiCtx.checkEnv(env, (envObject) => {
+    return emnapiCtx.checkArgs(envObject, [result], () => {
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const scope = emnapi.openScope(envObject, emnapi.HandleScope)
+      const scope = emnapiCtx.openScope(envObject, emnapiRt.HandleScope)
       $from64('result')
       $makeSetValue('result', 0, 'scope.id', '*')
       return envObject.clearLastError()
@@ -12,25 +12,25 @@ function napi_open_handle_scope (env: napi_env, result: Pointer<napi_handle_scop
 }
 
 function napi_close_handle_scope (env: napi_env, scope: napi_handle_scope): napi_status {
-  return emnapi.checkEnv(env, (envObject) => {
-    return emnapi.checkArgs(envObject, [scope], () => {
-      const scopeObject = emnapi.scopeStore.get(scope)!
-      if ((envObject.openHandleScopes === 0) || (scopeObject !== emnapi.getCurrentScope()!)) {
+  return emnapiCtx.checkEnv(env, (envObject) => {
+    return emnapiCtx.checkArgs(envObject, [scope], () => {
+      const scopeObject = emnapiCtx.scopeStore.get(scope)!
+      if ((envObject.openHandleScopes === 0) || (scopeObject !== emnapiCtx.getCurrentScope()!)) {
         return napi_status.napi_handle_scope_mismatch
       }
 
-      emnapi.closeScope(envObject, emnapi.scopeStore.get(scope)!)
+      emnapiCtx.closeScope(envObject, emnapiCtx.scopeStore.get(scope)!)
       return envObject.clearLastError()
     })
   })
 }
 
 function napi_open_escapable_handle_scope (env: napi_env, result: Pointer<napi_escapable_handle_scope>): napi_status {
-  return emnapi.checkEnv(env, (envObject) => {
-    return emnapi.checkArgs(envObject, [result], () => {
+  return emnapiCtx.checkEnv(env, (envObject) => {
+    return emnapiCtx.checkArgs(envObject, [result], () => {
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const scope = emnapi.openScope(envObject, emnapi.EscapableHandleScope)
+      const scope = emnapiCtx.openScope(envObject, emnapiRt.EscapableHandleScope)
       $from64('result')
       $makeSetValue('result', 0, 'scope.id', '*')
       return envObject.clearLastError()
@@ -39,23 +39,23 @@ function napi_open_escapable_handle_scope (env: napi_env, result: Pointer<napi_e
 }
 
 function napi_close_escapable_handle_scope (env: napi_env, scope: napi_escapable_handle_scope): napi_status {
-  return emnapi.checkEnv(env, (envObject) => {
-    return emnapi.checkArgs(envObject, [scope], () => {
-      const scopeObject = emnapi.scopeStore.get(scope)!
-      if ((envObject.openHandleScopes === 0) || (scopeObject !== emnapi.getCurrentScope()!)) {
+  return emnapiCtx.checkEnv(env, (envObject) => {
+    return emnapiCtx.checkArgs(envObject, [scope], () => {
+      const scopeObject = emnapiCtx.scopeStore.get(scope)!
+      if ((envObject.openHandleScopes === 0) || (scopeObject !== emnapiCtx.getCurrentScope()!)) {
         return napi_status.napi_handle_scope_mismatch
       }
 
-      emnapi.closeScope(envObject, emnapi.scopeStore.get(scope)!)
+      emnapiCtx.closeScope(envObject, emnapiCtx.scopeStore.get(scope)!)
       return envObject.clearLastError()
     })
   })
 }
 
 function napi_escape_handle (env: napi_env, scope: napi_escapable_handle_scope, escapee: napi_value, result: Pointer<napi_value>): napi_status {
-  return emnapi.checkEnv(env, (envObject) => {
-    return emnapi.checkArgs(envObject, [scope, escapee, result], () => {
-      const scopeObject = emnapi.scopeStore.get(scope) as emnapi.EscapableHandleScope
+  return emnapiCtx.checkEnv(env, (envObject) => {
+    return emnapiCtx.checkArgs(envObject, [scope, escapee, result], () => {
+      const scopeObject = emnapiCtx.scopeStore.get(scope) as emnapi.EscapableHandleScope
       if (!scopeObject.escapeCalled()) {
         $from64('escapee')
         $from64('result')
@@ -78,19 +78,19 @@ function napi_create_reference (
   initial_refcount: uint32_t,
   result: Pointer<napi_ref>
 ): napi_status {
-  return emnapi.checkEnv(env, (envObject) => {
-    return emnapi.checkArgs(envObject, [value, result], () => {
-      /* if (!emnapi.supportFinalizer && initial_refcount === 0) {
-        envObject.tryCatch.setError(new emnapi.NotSupportWeakRefError('napi_create_reference', 'Parameter "initial_refcount" must be a positive integer'))
+  return emnapiCtx.checkEnv(env, (envObject) => {
+    return emnapiCtx.checkArgs(envObject, [value, result], () => {
+      /* if (!emnapiRt.supportFinalizer && initial_refcount === 0) {
+        envObject.tryCatch.setError(new emnapiRt.NotSupportWeakRefError('napi_create_reference', 'Parameter "initial_refcount" must be a positive integer'))
         return envObject.setLastError(napi_status.napi_pending_exception)
       } */
-      const handle = emnapi.handleStore.get(value)!
+      const handle = emnapiCtx.handleStore.get(value)!
       if (!(handle.isObject() || handle.isFunction())) {
         return envObject.setLastError(napi_status.napi_object_expected)
       }
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const ref = emnapi.Reference.create(envObject, handle.id, initial_refcount >>> 0, false)
+      const ref = emnapiRt.Reference.create(envObject, handle.id, initial_refcount >>> 0, false)
       $from64('result')
       $makeSetValue('result', 0, 'ref.id', '*')
       return envObject.clearLastError()
@@ -102,9 +102,9 @@ function napi_delete_reference (
   env: napi_env,
   ref: napi_ref
 ): napi_status {
-  return emnapi.checkEnv(env, (envObject) => {
-    return emnapi.checkArgs(envObject, [ref], () => {
-      emnapi.Reference.doDelete(emnapi.refStore.get(ref)!)
+  return emnapiCtx.checkEnv(env, (envObject) => {
+    return emnapiCtx.checkArgs(envObject, [ref], () => {
+      emnapiRt.Reference.doDelete(emnapiCtx.refStore.get(ref)!)
       return envObject.clearLastError()
     })
   })
@@ -115,9 +115,9 @@ function napi_reference_ref (
   ref: napi_ref,
   result: Pointer<uint32_t>
 ): napi_status {
-  return emnapi.checkEnv(env, (envObject) => {
-    return emnapi.checkArgs(envObject, [ref], () => {
-      const count = emnapi.refStore.get(ref)!.ref()
+  return emnapiCtx.checkEnv(env, (envObject) => {
+    return emnapiCtx.checkArgs(envObject, [ref], () => {
+      const count = emnapiCtx.refStore.get(ref)!.ref()
       if (result) {
         $from64('result')
         HEAPU32[result >> 2] = count
@@ -132,12 +132,12 @@ function napi_reference_unref (
   ref: napi_ref,
   result: Pointer<uint32_t>
 ): napi_status {
-  return emnapi.checkEnv(env, (envObject) => {
-    return emnapi.checkArgs(envObject, [ref], () => {
-      const reference = emnapi.refStore.get(ref)!
+  return emnapiCtx.checkEnv(env, (envObject) => {
+    return emnapiCtx.checkArgs(envObject, [ref], () => {
+      const reference = emnapiCtx.refStore.get(ref)!
       const refcount = reference.refCount()
-      /* if (!emnapi.supportFinalizer && refcount === 1) {
-        envObject.tryCatch.setError(new emnapi.NotSupportWeakRefError('napi_reference_unref', 'Can not unref a ref which count is 1'))
+      /* if (!emnapiRt.supportFinalizer && refcount === 1) {
+        envObject.tryCatch.setError(new emnapiRt.NotSupportWeakRefError('napi_reference_unref', 'Can not unref a ref which count is 1'))
         return envObject.setLastError(napi_status.napi_pending_exception)
       } */
       if (refcount === 0) {
@@ -158,9 +158,9 @@ function napi_get_reference_value (
   ref: napi_ref,
   result: Pointer<napi_value>
 ): napi_status {
-  return emnapi.checkEnv(env, (envObject) => {
-    return emnapi.checkArgs(envObject, [ref, result], () => {
-      const reference = emnapi.refStore.get(ref)!
+  return emnapiCtx.checkEnv(env, (envObject) => {
+    return emnapiCtx.checkArgs(envObject, [ref, result], () => {
+      const reference = emnapiCtx.refStore.get(ref)!
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const handleId = reference.get()

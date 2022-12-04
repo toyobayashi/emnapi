@@ -1,6 +1,6 @@
 function napi_get_last_error_info (env: napi_env, result: Pointer<Pointer<napi_extended_error_info>>): napi_status {
-  return emnapi.checkEnv(env, (envObject) => {
-    return emnapi.checkArgs(envObject, [result], () => {
+  return emnapiCtx.checkEnv(env, (envObject) => {
+    return emnapiCtx.checkArgs(envObject, [result], () => {
       const error_code = envObject.lastError.getErrorCode()
       // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
       const messagePointer = $makeGetValue('errorMessagesPtr', 'error_code * ' + POINTER_SIZE, '*')
@@ -21,16 +21,16 @@ function napi_get_last_error_info (env: napi_env, result: Pointer<Pointer<napi_e
 }
 
 function napi_throw (env: napi_env, error: napi_value): napi_status {
-  return emnapi.preamble(env, (envObject) => {
-    return emnapi.checkArgs(envObject, [error], () => {
-      envObject.tryCatch.setError(emnapi.handleStore.get(error)!.value)
+  return emnapiCtx.preamble(env, (envObject) => {
+    return emnapiCtx.checkArgs(envObject, [error], () => {
+      envObject.tryCatch.setError(emnapiCtx.handleStore.get(error)!.value)
       return envObject.clearLastError()
     })
   })
 }
 
 function napi_throw_error (env: napi_env, code: const_char_p, msg: const_char_p): napi_status {
-  return emnapi.preamble(env, (envObject) => {
+  return emnapiCtx.preamble(env, (envObject) => {
     if (!msg) return envObject.setLastError(napi_status.napi_invalid_arg)
     $from64('code')
     $from64('msg')
@@ -45,7 +45,7 @@ function napi_throw_error (env: napi_env, code: const_char_p, msg: const_char_p)
 }
 
 function napi_throw_type_error (env: napi_env, code: const_char_p, msg: const_char_p): napi_status {
-  return emnapi.preamble(env, (envObject) => {
+  return emnapiCtx.preamble(env, (envObject) => {
     if (!msg) return envObject.setLastError(napi_status.napi_invalid_arg)
     $from64('code')
     $from64('msg')
@@ -60,7 +60,7 @@ function napi_throw_type_error (env: napi_env, code: const_char_p, msg: const_ch
 }
 
 function napi_throw_range_error (env: napi_env, code: const_char_p, msg: const_char_p): napi_status {
-  return emnapi.preamble(env, (envObject) => {
+  return emnapiCtx.preamble(env, (envObject) => {
     if (!msg) return envObject.setLastError(napi_status.napi_invalid_arg)
     $from64('code')
     $from64('msg')
@@ -75,7 +75,7 @@ function napi_throw_range_error (env: napi_env, code: const_char_p, msg: const_c
 }
 
 function node_api_throw_syntax_error (env: napi_env, code: const_char_p, msg: const_char_p): napi_status {
-  return emnapi.preamble(env, (envObject) => {
+  return emnapiCtx.preamble(env, (envObject) => {
     if (!msg) return envObject.setLastError(napi_status.napi_invalid_arg)
     $from64('code')
     $from64('msg')
@@ -90,8 +90,8 @@ function node_api_throw_syntax_error (env: napi_env, code: const_char_p, msg: co
 }
 
 function napi_is_exception_pending (env: napi_env, result: Pointer<bool>): napi_status {
-  return emnapi.checkEnv(env, (envObject) => {
-    return emnapi.checkArgs(envObject, [result], () => {
+  return emnapiCtx.checkEnv(env, (envObject) => {
+    return emnapiCtx.checkArgs(envObject, [result], () => {
       const r = envObject.tryCatch.hasCaught()
       $from64('result')
       HEAPU8[result] = r ? 1 : 0
@@ -101,9 +101,9 @@ function napi_is_exception_pending (env: napi_env, result: Pointer<bool>): napi_
 }
 
 function napi_create_error (env: napi_env, code: napi_value, msg: napi_value, result: Pointer<napi_value>): napi_status {
-  return emnapi.checkEnv(env, (envObject) => {
-    return emnapi.checkArgs(envObject, [msg, result], () => {
-      const msgValue = emnapi.handleStore.get(msg)!.value
+  return emnapiCtx.checkEnv(env, (envObject) => {
+    return emnapiCtx.checkArgs(envObject, [msg, result], () => {
+      const msgValue = emnapiCtx.handleStore.get(msg)!.value
       if (typeof msgValue !== 'string') {
         return envObject.setLastError(napi_status.napi_string_expected)
       }
@@ -115,7 +115,7 @@ function napi_create_error (env: napi_env, code: napi_value, msg: napi_value, re
 
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const value = emnapi.addToCurrentScope(envObject, error).id
+      const value = emnapiCtx.addToCurrentScope(envObject, error).id
       $makeSetValue('result', 0, 'value', '*')
       return envObject.clearLastError()
     })
@@ -123,9 +123,9 @@ function napi_create_error (env: napi_env, code: napi_value, msg: napi_value, re
 }
 
 function napi_create_type_error (env: napi_env, code: napi_value, msg: napi_value, result: Pointer<napi_value>): napi_status {
-  return emnapi.checkEnv(env, (envObject) => {
-    return emnapi.checkArgs(envObject, [msg, result], () => {
-      const msgValue = emnapi.handleStore.get(msg)!.value
+  return emnapiCtx.checkEnv(env, (envObject) => {
+    return emnapiCtx.checkArgs(envObject, [msg, result], () => {
+      const msgValue = emnapiCtx.handleStore.get(msg)!.value
       if (typeof msgValue !== 'string') {
         return envObject.setLastError(napi_status.napi_string_expected)
       }
@@ -136,7 +136,7 @@ function napi_create_type_error (env: napi_env, code: napi_value, msg: napi_valu
 
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const value = emnapi.addToCurrentScope(envObject, error).id
+      const value = emnapiCtx.addToCurrentScope(envObject, error).id
       $makeSetValue('result', 0, 'value', '*')
       return envObject.clearLastError()
     })
@@ -144,9 +144,9 @@ function napi_create_type_error (env: napi_env, code: napi_value, msg: napi_valu
 }
 
 function napi_create_range_error (env: napi_env, code: napi_value, msg: napi_value, result: Pointer<napi_value>): napi_status {
-  return emnapi.checkEnv(env, (envObject) => {
-    return emnapi.checkArgs(envObject, [msg, result], () => {
-      const msgValue = emnapi.handleStore.get(msg)!.value
+  return emnapiCtx.checkEnv(env, (envObject) => {
+    return emnapiCtx.checkArgs(envObject, [msg, result], () => {
+      const msgValue = emnapiCtx.handleStore.get(msg)!.value
       if (typeof msgValue !== 'string') {
         return envObject.setLastError(napi_status.napi_string_expected)
       }
@@ -157,7 +157,7 @@ function napi_create_range_error (env: napi_env, code: napi_value, msg: napi_val
 
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const value = emnapi.addToCurrentScope(envObject, error).id
+      const value = emnapiCtx.addToCurrentScope(envObject, error).id
       $makeSetValue('result', 0, 'value', '*')
       return envObject.clearLastError()
     })
@@ -165,9 +165,9 @@ function napi_create_range_error (env: napi_env, code: napi_value, msg: napi_val
 }
 
 function node_api_create_syntax_error (env: napi_env, code: napi_value, msg: napi_value, result: Pointer<napi_value>): napi_status {
-  return emnapi.checkEnv(env, (envObject) => {
-    return emnapi.checkArgs(envObject, [msg, result], () => {
-      const msgValue = emnapi.handleStore.get(msg)!.value
+  return emnapiCtx.checkEnv(env, (envObject) => {
+    return emnapiCtx.checkArgs(envObject, [msg, result], () => {
+      const msgValue = emnapiCtx.handleStore.get(msg)!.value
       if (typeof msgValue !== 'string') {
         return envObject.setLastError(napi_status.napi_string_expected)
       }
@@ -178,7 +178,7 @@ function node_api_create_syntax_error (env: napi_env, code: napi_value, msg: nap
 
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const value = emnapi.addToCurrentScope(envObject, error).id
+      const value = emnapiCtx.addToCurrentScope(envObject, error).id
       $makeSetValue('result', 0, 'value', '*')
       return envObject.clearLastError()
     })
@@ -186,8 +186,8 @@ function node_api_create_syntax_error (env: napi_env, code: napi_value, msg: nap
 }
 
 function napi_get_and_clear_last_exception (env: napi_env, result: Pointer<napi_value>): napi_status {
-  return emnapi.checkEnv(env, (envObject) => {
-    return emnapi.checkArgs(envObject, [result], () => {
+  return emnapiCtx.checkEnv(env, (envObject) => {
+    return emnapiCtx.checkArgs(envObject, [result], () => {
       $from64('result')
 
       if (!envObject.tryCatch.hasCaught()) {

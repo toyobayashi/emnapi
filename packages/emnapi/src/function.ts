@@ -1,11 +1,11 @@
 /* eslint-disable @typescript-eslint/restrict-plus-operands */
 function napi_create_function (env: napi_env, utf8name: Pointer<const_char>, length: size_t, cb: napi_callback, data: void_p, result: Pointer<napi_value>): napi_status {
-  return emnapi.preamble(env, (envObject) => {
-    return emnapi.checkArgs(envObject, [result, cb], () => {
+  return emnapiCtx.preamble(env, (envObject) => {
+    return emnapiCtx.checkArgs(envObject, [result, cb], () => {
       const fresult = emnapiCreateFunction(envObject, utf8name, length, cb, data)
       if (fresult.status !== napi_status.napi_ok) return envObject.setLastError(fresult.status)
       const f = fresult.f
-      const valueHandle = emnapi.addToCurrentScope(envObject, f)
+      const valueHandle = emnapiCtx.addToCurrentScope(envObject, f)
       $from64('result')
 
       // @ts-expect-error
@@ -19,10 +19,10 @@ function napi_create_function (env: napi_env, utf8name: Pointer<const_char>, len
 
 function napi_get_cb_info (env: napi_env, cbinfo: napi_callback_info, argc: Pointer<size_t>, argv: Pointer<napi_value>, this_arg: Pointer<napi_value>, data: void_pp): napi_status {
   if (!env) return napi_status.napi_invalid_arg
-  const envObject = emnapi.envStore.get(env)!
+  const envObject = emnapiCtx.envStore.get(env)!
   if (!cbinfo) return envObject.setLastError(napi_status.napi_invalid_arg)
 
-  const cbinfoValue: emnapi.CallbackInfo = emnapi.cbInfoStore.get(cbinfo)!
+  const cbinfoValue = emnapiCtx.cbInfoStore.get(cbinfo)!
 
   $from64('argc')
   $from64('argv')
@@ -73,8 +73,8 @@ function napi_call_function (
   argv: Const<Pointer<napi_value>>,
   result: Pointer<napi_value>
 ): napi_status {
-  return emnapi.preamble(env, (envObject) => {
-    return emnapi.checkArgs(envObject, [recv], () => {
+  return emnapiCtx.preamble(env, (envObject) => {
+    return emnapiCtx.checkArgs(envObject, [recv], () => {
       $from64('argc')
       $from64('argv')
       $from64('result')
@@ -83,14 +83,14 @@ function napi_call_function (
       if (argc > 0) {
         if (!argv) return envObject.setLastError(napi_status.napi_invalid_arg)
       }
-      const v8recv = emnapi.handleStore.get(recv)!.value
+      const v8recv = emnapiCtx.handleStore.get(recv)!.value
       if (!func) return envObject.setLastError(napi_status.napi_invalid_arg)
-      const v8func = emnapi.handleStore.get(func)!.value as Function
+      const v8func = emnapiCtx.handleStore.get(func)!.value as Function
       if (typeof v8func !== 'function') return envObject.setLastError(napi_status.napi_invalid_arg)
       const args = []
       for (let i = 0; i < argc; i++) {
         const argVal = $makeGetValue('argv', 'i * ' + POINTER_SIZE, '*')
-        args.push(emnapi.handleStore.get(argVal)!.value)
+        args.push(emnapiCtx.handleStore.get(argVal)!.value)
       }
       const ret = v8func.apply(v8recv, args)
       if (result) {
@@ -111,8 +111,8 @@ function napi_new_instance (
   argv: Pointer<napi_value>,
   result: Pointer<napi_value>
 ): napi_status {
-  return emnapi.preamble(env, (envObject) => {
-    return emnapi.checkArgs(envObject, [constructor], () => {
+  return emnapiCtx.preamble(env, (envObject) => {
+    return emnapiCtx.checkArgs(envObject, [constructor], () => {
       $from64('argc')
       $from64('argv')
       $from64('result')
@@ -123,13 +123,13 @@ function napi_new_instance (
       }
       if (!result) return envObject.setLastError(napi_status.napi_invalid_arg)
 
-      const Ctor: new (...args: any[]) => any = emnapi.handleStore.get(constructor)!.value
+      const Ctor: new (...args: any[]) => any = emnapiCtx.handleStore.get(constructor)!.value
       if (typeof Ctor !== 'function') return envObject.setLastError(napi_status.napi_invalid_arg)
       const args = Array(argc + 1) as [undefined, ...any[]]
       args[0] = undefined
       for (let i = 0; i < argc; i++) {
         const argVal = $makeGetValue('argv', 'i * ' + POINTER_SIZE, '*')
-        args[i + 1] = emnapi.handleStore.get(argVal)!.value
+        args[i + 1] = emnapiCtx.handleStore.get(argVal)!.value
       }
       const BoundCtor = Ctor.bind.apply(Ctor, args) as new () => any
       const ret = new BoundCtor()
@@ -150,13 +150,13 @@ function napi_get_new_target (
   result: Pointer<napi_value>
 ): napi_status {
   if (!env) return napi_status.napi_invalid_arg
-  const envObject = emnapi.envStore.get(env)!
+  const envObject = emnapiCtx.envStore.get(env)!
   if (!cbinfo) return envObject.setLastError(napi_status.napi_invalid_arg)
   if (!result) return envObject.setLastError(napi_status.napi_invalid_arg)
 
   $from64('result')
 
-  const cbinfoValue: emnapi.CallbackInfo = emnapi.cbInfoStore.get(cbinfo)!
+  const cbinfoValue = emnapiCtx.cbInfoStore.get(cbinfo)!
   // @ts-expect-error
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const value = cbinfoValue._newTarget ? envObject.ensureHandleId(cbinfoValue._newTarget) : 0

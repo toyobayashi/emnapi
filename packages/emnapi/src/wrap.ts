@@ -7,8 +7,8 @@ function napi_define_class (
   property_count: size_t,
   properties: Const<Pointer<napi_property_descriptor>>,
   result: Pointer<napi_value>): napi_status {
-  return emnapi.preamble(env, (envObject) => {
-    return emnapi.checkArgs(envObject, [result, constructor], () => {
+  return emnapiCtx.preamble(env, (envObject) => {
+    return emnapiCtx.checkArgs(envObject, [result, constructor], () => {
       $from64('length')
       $from64('properties')
       $from64('property_count')
@@ -48,7 +48,7 @@ function napi_define_class (
           if (!name) {
             return envObject.setLastError(napi_status.napi_name_expected)
           }
-          propertyName = emnapi.handleStore.get(name)!.value
+          propertyName = emnapiCtx.handleStore.get(name)!.value
           if (typeof propertyName !== 'string' && typeof propertyName !== 'symbol') {
             return envObject.setLastError(napi_status.napi_name_expected)
           }
@@ -63,7 +63,7 @@ function napi_define_class (
 
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const valueHandle = emnapi.addToCurrentScope(envObject, F)
+      const valueHandle = emnapiCtx.addToCurrentScope(envObject, F)
       $from64('result')
       $makeSetValue('result', 0, 'valueHandle.id', '*')
       return envObject.getReturnStatus()
@@ -72,15 +72,15 @@ function napi_define_class (
 }
 
 function napi_wrap (env: napi_env, js_object: napi_value, native_object: void_p, finalize_cb: napi_finalize, finalize_hint: void_p, result: Pointer<napi_ref>): napi_status {
-  if (!emnapi.supportFinalizer) {
+  if (!emnapiRt.supportFinalizer) {
     if (finalize_cb) {
-      return emnapi.preamble(env, () => {
-        throw new emnapi.NotSupportWeakRefError('napi_wrap', 'Parameter "finalize_cb" must be 0(NULL)')
+      return emnapiCtx.preamble(env, () => {
+        throw new emnapiRt.NotSupportWeakRefError('napi_wrap', 'Parameter "finalize_cb" must be 0(NULL)')
       })
     }
     if (result) {
-      return emnapi.preamble(env, () => {
-        throw new emnapi.NotSupportWeakRefError('napi_wrap', 'Parameter "result" must be 0(NULL)')
+      return emnapiCtx.preamble(env, () => {
+        throw new emnapiRt.NotSupportWeakRefError('napi_wrap', 'Parameter "result" must be 0(NULL)')
       })
     }
   }
@@ -96,11 +96,11 @@ function napi_remove_wrap (env: napi_env, js_object: napi_value, result: void_pp
 }
 
 function napi_type_tag_object (env: napi_env, object: napi_value, type_tag: Const<Pointer<unknown>>): napi_status {
-  return emnapi.preamble(env, (envObject) => {
+  return emnapiCtx.preamble(env, (envObject) => {
     if (!object) {
       return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_invalid_arg)
     }
-    const value = emnapi.handleStore.get(object)!
+    const value = emnapiCtx.handleStore.get(object)!
     if (!(value.isObject() || value.isFunction())) {
       return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_object_expected)
     }
@@ -123,11 +123,11 @@ function napi_type_tag_object (env: napi_env, object: napi_value, type_tag: Cons
 }
 
 function napi_check_object_type_tag (env: napi_env, object: napi_value, type_tag: Const<Pointer<unknown>>, result: Pointer<bool>): napi_status {
-  return emnapi.preamble(env, (envObject) => {
+  return emnapiCtx.preamble(env, (envObject) => {
     if (!object) {
       return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_invalid_arg)
     }
-    const value = emnapi.handleStore.get(object)!
+    const value = emnapiCtx.handleStore.get(object)!
     if (!(value.isObject() || value.isFunction())) {
       return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_object_expected)
     }
@@ -158,9 +158,9 @@ function napi_check_object_type_tag (env: napi_env, object: napi_value, type_tag
 }
 
 function napi_add_finalizer (env: napi_env, js_object: napi_value, native_object: void_p, finalize_cb: napi_finalize, finalize_hint: void_p, result: Pointer<napi_ref>): napi_status {
-  if (!emnapi.supportFinalizer) {
-    return emnapi.preamble(env, () => {
-      throw new emnapi.NotSupportWeakRefError('napi_add_finalizer', 'This API is unavailable')
+  if (!emnapiRt.supportFinalizer) {
+    return emnapiCtx.preamble(env, () => {
+      throw new emnapiRt.NotSupportWeakRefError('napi_add_finalizer', 'This API is unavailable')
     })
   }
   return emnapiWrap(WrapType.anonymous, env, js_object, native_object, finalize_cb, finalize_hint, result)

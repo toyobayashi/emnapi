@@ -1,7 +1,7 @@
-import { cbInfoStore } from './CallbackInfoStore'
 import type { Env } from './env'
 import type { IStoreValue } from './Store'
 
+/** @internal */
 export class CallbackInfo implements IStoreValue {
   public id: number
   public _isConstructCall: boolean
@@ -15,7 +15,7 @@ export class CallbackInfo implements IStoreValue {
     _newTarget: Function | undefined
   ): CallbackInfo {
     const cbInfo = new CallbackInfo(envObject, _this, _data, _length, _args, _newTarget)
-    cbInfoStore.add(cbInfo)
+    envObject.ctx.cbInfoStore.add(cbInfo)
     return cbInfo
   }
 
@@ -32,7 +32,7 @@ export class CallbackInfo implements IStoreValue {
   }
 
   public dispose (): void {
-    cbInfoStore.remove(this.id)
+    this.envObject.ctx.cbInfoStore.remove(this.id)
     this.id = 0
     this._this = undefined
     this._data = 0

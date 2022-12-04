@@ -32,7 +32,6 @@ async function build () {
     replaceParseTool(
       libCode
         .replace('__EMNAPI_RUNTIME_REPLACE__', `'${runtimeCode.replace(/\\/g, '\\\\').replace(/\r?\n/g, '\\n').replace(/'/g, "\\'")}'`)
-        .replace('__EMNAPI_RUNTIME_INIT__', 'function emnapiRuntimeInit () { return { then: function (resolve, reject) { try { resolve(); } catch (err) { reject(err); } } }; }')
     ),
     'utf8'
   )
@@ -41,7 +40,6 @@ async function build () {
     replaceParseTool(
       libCode
         .replace('__EMNAPI_RUNTIME_REPLACE__', '""')
-        .replace('__EMNAPI_RUNTIME_INIT__', fs.readFileSync(path.join(__dirname, './init.js'), 'utf8'))
     ),
     'utf8'
   )

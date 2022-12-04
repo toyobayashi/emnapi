@@ -1,9 +1,10 @@
-import { Handle, handleStore, HandleStore } from './Handle'
+import { Handle, HandleStore } from './Handle'
 import type { IStoreValue } from './Store'
 import { _global } from './util'
 import type { Env } from './env'
-import { scopeStore } from './ScopeStore'
+import type { Context } from './Context'
 
+/** @internal */
 export interface IHandleScope extends IStoreValue {
   parent: IHandleScope | null
   child: IHandleScope | null
@@ -14,6 +15,7 @@ export interface IHandleScope extends IStoreValue {
   dispose (): void
 }
 
+/** @internal */
 export class HandleScope implements IHandleScope {
   public id: number
   public parent: IHandleScope | null
@@ -21,42 +23,42 @@ export class HandleScope implements IHandleScope {
   public handles: Array<Handle<any>>
   private _disposed: boolean = false
 
-  protected static _create<T extends typeof HandleScope> (this: T, parentScope: IHandleScope | null): InstanceType<T> {
-    const scope = new this(parentScope)
+  protected static _create<T extends typeof HandleScope> (this: T, ctx: Context, parentScope: IHandleScope | null): InstanceType<T> {
+    const scope = new this(ctx, parentScope)
     if (parentScope) {
       parentScope.child = scope
     }
-    scopeStore.add(scope)
+    ctx.scopeStore.add(scope)
     return scope as InstanceType<T>
   }
 
-  public static create (parentScope: IHandleScope | null): HandleScope {
-    return HandleScope._create(parentScope)
+  public static create (ctx: Context, parentScope: IHandleScope | null): HandleScope {
+    return HandleScope._create(ctx, parentScope)
   }
 
-  public constructor (parentScope: IHandleScope | null) {
+  public constructor (protected readonly ctx: Context, parentScope: IHandleScope | null) {
     this.id = 0
     this.parent = parentScope
     this.child = null
     this.handles = []
   }
 
-  public add<V extends unknown> (envObject: Env, value: V): Handle<V> {
+  public add<V> (envObject: Env, value: V): Handle<V> {
     if (value instanceof Handle) {
       throw new TypeError('Can not add a handle to scope')
     }
 
     if (value === undefined) {
-      return handleStore.get(HandleStore.ID_UNDEFINED)!
+      return envObject.ctx.handleStore.get(HandleStore.ID_UNDEFINED)!
     }
     if (value === null) {
-      return handleStore.get(HandleStore.ID_NULL)!
+      return envObject.ctx.handleStore.get(HandleStore.ID_NULL)!
     }
     if (typeof value === 'boolean') {
-      return handleStore.get(value ? HandleStore.ID_TRUE : HandleStore.ID_FALSE)!
+      return envObject.ctx.handleStore.get(value ? HandleStore.ID_TRUE : HandleStore.ID_FALSE)!
     }
-    if (value === _global) {
-      return handleStore.get(HandleStore.ID_GLOBAL)!
+    if ((value as any) === _global) {
+      return envObject.ctx.handleStore.get(HandleStore.ID_GLOBAL)!
     }
 
     const h = Handle.create(envObject, value)
@@ -92,19 +94,20 @@ export class HandleScope implements IHandleScope {
     this.clearHandles()
     this.parent = null
     this.child = null
-    scopeStore.remove(this.id)
+    this.ctx.scopeStore.remove(this.id)
   }
 }
 
+/** @internal */
 export class EscapableHandleScope extends HandleScope {
-  public static create (parentScope: IHandleScope | null): EscapableHandleScope {
-    return EscapableHandleScope._create(parentScope)
+  public static create (ctx: Context, parentScope: IHandleScope | null): EscapableHandleScope {
+    return EscapableHandleScope._create(ctx, parentScope)
   }
 
   private _escapeCalled: boolean
 
-  public constructor (parentScope: IHandleScope | null) {
-    super(parentScope)
+  public constructor (ctx: Context, parentScope: IHandleScope | null) {
+    super(ctx, parentScope)
     this._escapeCalled = false
   }
 
@@ -129,11 +132,11 @@ export class EscapableHandleScope extends HandleScope {
       exists = index !== -1
     }
     if (exists) {
-      const h = handleStore.get(handleId)
+      const h = this.ctx.handleStore.get(handleId)
       if (h && this.parent !== null) {
         const envObject = h.getEnv()!
         this.handles.splice(index, 1)
-        handleStore.remove(handleId)
+        this.ctx.handleStore.remove(handleId)
         const newHandle = this.parent.add(envObject, h.value)
         return newHandle
       } else {

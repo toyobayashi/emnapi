@@ -1,6 +1,6 @@
 function emnapi_get_module_object (env: napi_env, result: Pointer<napi_value>): napi_status {
-  return emnapi.preamble(env, (envObject) => {
-    return emnapi.checkArgs(envObject, [result], () => {
+  return emnapiCtx.preamble(env, (envObject) => {
+    return emnapiCtx.checkArgs(envObject, [result], () => {
       $from64('result')
 
       // @ts-expect-error
@@ -13,8 +13,8 @@ function emnapi_get_module_object (env: napi_env, result: Pointer<napi_value>): 
 }
 
 function emnapi_get_module_property (env: napi_env, utf8name: const_char_p, result: Pointer<napi_value>): napi_status {
-  return emnapi.preamble(env, (envObject) => {
-    return emnapi.checkArgs(envObject, [utf8name, result], () => {
+  return emnapiCtx.preamble(env, (envObject) => {
+    return emnapiCtx.checkArgs(envObject, [utf8name, result], () => {
       $from64('utf8name')
       $from64('result')
 
@@ -35,8 +35,8 @@ function emnapi_create_external_uint8array (
   finalize_hint: void_p,
   result: Pointer<napi_value>
 ): napi_status {
-  return emnapi.preamble(env, (envObject) => {
-    return emnapi.checkArgs(envObject, [result], () => {
+  return emnapiCtx.preamble(env, (envObject) => {
+    return emnapiCtx.checkArgs(envObject, [result], () => {
       $from64('byte_length')
       $from64('external_data')
       $from64('result')
@@ -53,11 +53,11 @@ function emnapi_create_external_uint8array (
       if ((external_data + byte_length) > HEAPU8.buffer.byteLength) {
         throw new RangeError('Memory out of range')
       }
-      if (!emnapi.supportFinalizer && finalize_cb) {
-        throw new emnapi.NotSupportWeakRefError('emnapi_create_external_uint8array', 'Parameter "finalize_cb" must be 0(NULL)')
+      if (!emnapiRt.supportFinalizer && finalize_cb) {
+        throw new emnapiRt.NotSupportWeakRefError('emnapi_create_external_uint8array', 'Parameter "finalize_cb" must be 0(NULL)')
       }
       const u8arr = new Uint8Array(HEAPU8.buffer, external_data, byte_length)
-      const handle = emnapi.addToCurrentScope(envObject, u8arr)
+      const handle = emnapiCtx.addToCurrentScope(envObject, u8arr)
       if (finalize_cb) {
         const status = emnapiWrap(WrapType.anonymous, env, handle.id, external_data, finalize_cb, finalize_hint, NULL)
         if (status === napi_status.napi_pending_exception) {

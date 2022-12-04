@@ -4,10 +4,11 @@ import { IStoreValue, Store } from './Store'
 import type { Env } from './env'
 import { _global, isReferenceType, supportFinalizer } from './util'
 
+/** @internal */
 export class Handle<S> implements IStoreValue {
   public static create<S> (envObject: Env, value: S): Handle<S> {
     const handle = new Handle(envObject, 0, value)
-    handleStore.add(handle)
+    envObject.ctx.handleStore.add(handle)
     return handle
   }
 
@@ -151,7 +152,7 @@ export class Handle<S> implements IStoreValue {
       }
     } */
     const id = this.id
-    handleStore.remove(id)
+    this._envObject?.ctx.handleStore.remove(id)
     // this.refs = []
     this.id = 0
     this.value = undefined!
@@ -166,7 +167,7 @@ External.prototype = null as any
 export class ExternalHandle extends Handle<{}> {
   public static createExternal (envObject: Env, data: void_p = 0): ExternalHandle {
     const h = new ExternalHandle(envObject, data)
-    handleStore.add(h)
+    envObject.ctx.handleStore.add(h)
     return h
   }
 
@@ -182,6 +183,7 @@ export class ExternalHandle extends Handle<{}> {
   }
 }
 
+/** @internal */
 export class HandleStore extends Store<Handle<any>> {
   public static ID_UNDEFINED: 1 = 1
   public static ID_NULL: 2 = 2
@@ -240,5 +242,3 @@ export class HandleStore extends Store<Handle<any>> {
     super.dispose()
   }
 }
-
-export const handleStore = new HandleStore()

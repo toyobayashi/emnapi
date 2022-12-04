@@ -2,11 +2,16 @@
 /* eslint-disable no-new-func */
 /* eslint-disable @typescript-eslint/no-implied-eval */
 
-declare const __EMNAPI_RUNTIME_REPLACE__: string
-declare const __EMNAPI_RUNTIME_INIT__: (Module: any) => Promise<void>
+declare const global: typeof globalThis
+declare const require: any
+declare const process: any
+declare const __webpack_public_path__: any
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-declare let napiExtendedErrorInfoPtr: number | undefined
+declare const __EMNAPI_RUNTIME_REPLACE__: string
+
+declare let emnapiRt: typeof emnapi
+declare let emnapiCtx: emnapi.Context
+
 declare function _napi_register_wasm_v1 (env: Ptr, exports: Ptr): napi_value
 declare function __emnapi_runtime_init (...args: [Ptr, Ptr]): void
 declare function _free (ptr: Ptr): void
@@ -34,12 +39,103 @@ mergeInto(LibraryManager.library, {
     }
   },
 
-  $napiExtendedErrorInfoPtr: undefined,
+  $emnapiRt: undefined,
+  $emnapiRt__postset: __EMNAPI_RUNTIME_REPLACE__,
 
-  $emnapi: undefined,
-  $emnapi__postset: __EMNAPI_RUNTIME_REPLACE__,
+  $emnapiCtx: undefined,
+  $emnapiCtx__deps: ['$emnapiRt'],
 
-  $emnapiRuntimeInit: __EMNAPI_RUNTIME_INIT__,
+  $emnapiRuntimeInit__deps: ['$emnapiRt', '$emnapiCtx'],
+  $emnapiRuntimeInit: function emnapiRuntimeInit (Module: any) {
+    const _global = (function () {
+      if (typeof globalThis !== 'undefined') return globalThis
+      let g = (function (this: any) { return this })()
+      if (
+        !g &&
+        (function () {
+          let f
+          try {
+            f = new Function()
+          } catch (_) {
+            return false
+          }
+          return typeof f === 'function'
+        })()
+      ) {
+        g = new Function('return this')()
+      }
+
+      if (!g) {
+        if (typeof __webpack_public_path__ === 'undefined') {
+          if (typeof global !== 'undefined') return global
+        }
+        if (typeof window !== 'undefined') return window
+        if (typeof self !== 'undefined') return self
+      }
+
+      return g
+    })()
+    return new Promise<typeof emnapiRt>(function (resolve, reject) {
+      if ('emnapiRuntime' in Module) {
+        if (typeof Module.emnapiRuntime === 'function') {
+          resolve(Module.emnapiRuntime())
+        } else {
+          resolve(Module.emnapiRuntime)
+        }
+        return
+      }
+
+      if (typeof emnapiRt !== 'undefined') {
+        resolve(emnapiRt)
+        return
+      }
+
+      if (typeof process === 'object' && typeof process.versions === 'object' && typeof process.versions.node === 'string') {
+        const error = new Error('Emnapi runtime is not detected. Try to run "npm install @tybys/emnapi-runtime" first')
+        if (typeof require === 'function') {
+          try {
+            resolve(require('@tybys/emnapi-runtime'))
+          } catch (_) {
+            reject(error)
+          }
+        } else {
+          try {
+            // @ts-expect-error
+            import('@tybys/emnapi-runtime').then(resolve, function () {
+              reject(error)
+            })
+          } catch (_) {
+            reject(error)
+          }
+        }
+      } else {
+        resolve(_global.emnapi)
+      }
+    }).then(function (result) {
+      if (!result) {
+        throw new Error('Emnapi runtime is not detected. Check if the runtime code is imported or consider using builtin runtime js library.')
+      }
+      emnapiRt = result
+      return emnapiRt
+    }).then(function (emnapiRt) {
+      if ('emnapiContext' in Module) {
+        if (typeof Module.emnapiContext === 'function') {
+          return Module.emnapiContext(emnapiRt)
+        }
+
+        return Module.emnapiContext
+      }
+      if (!_global.__emnapi_context__) {
+        _global.__emnapi_context__ = emnapiRt.createContext()
+      }
+      return _global.__emnapi_context__
+    }).then(function (ctx) {
+      if (!ctx) {
+        throw new Error('Missing emnapi runtime context. Use "Module.emnapiContext" to specify a context.')
+      }
+      emnapiCtx = ctx
+    })
+  },
 
   $errorMessagesPtr: undefined,
 
@@ -58,12 +154,11 @@ mergeInto(LibraryManager.library, {
   '});',
   $emnapiInit__deps: [
     '$emnapiGetDynamicCalls',
-    '$emnapi',
+    '$emnapiCtx',
     '$emnapiRuntimeInit',
     '$errorMessagesPtr',
     'napi_register_wasm_v1',
     '_emnapi_runtime_init',
-    '$napiExtendedErrorInfoPtr',
     'free'
   ],
   $emnapiInit: function () {
@@ -89,7 +184,7 @@ mergeInto(LibraryManager.library, {
       if (registered) return emnapiExports
       registered = true
 
-      napiExtendedErrorInfoPtr = $makeMalloc('$emnapiInit', POINTER_SIZE * 2 + 8)
+      let napiExtendedErrorInfoPtr = $makeMalloc('$emnapiInit', POINTER_SIZE * 2 + 8)
 
       const lastError = {
         data: napiExtendedErrorInfoPtr,
@@ -99,7 +194,8 @@ mergeInto(LibraryManager.library, {
         setErrorCode: (_code: napi_status) => {
           $makeSetValue('napiExtendedErrorInfoPtr', POINTER_SIZE * 2 + 4, '_code', 'i32')
         },
-        setErrorMessage: (_ptr: const_char_p) => {
+        setErrorMessage: (_ptr: number | bigint) => {
+          $from64('_ptr')
           $makeSetValue('napiExtendedErrorInfoPtr', 0, '_ptr', '*')
         },
         dispose () {
@@ -108,8 +204,8 @@ mergeInto(LibraryManager.library, {
         }
       }
 
-      env = emnapi.Env.create(emnapiGetDynamicCalls, lastError)
-      const scope = emnapi.openScope(env, emnapi.HandleScope)
+      env = emnapiRt.Env.create(emnapiCtx, emnapiGetDynamicCalls, lastError)
+      const scope = emnapiCtx.openScope(env, emnapiRt.HandleScope)
       try {
         emnapiExports = env.callIntoModule((envObject) => {
           const exports = {}
@@ -118,14 +214,14 @@ mergeInto(LibraryManager.library, {
           const exportsHandle = scope.add(envObject, exports)
           const napiValue = _napi_register_wasm_v1($to64('envObject.id'), $to64('exportsHandle.id'))
           $from64('napiValue')
-          return (!napiValue) ? exports : emnapi.handleStore.get(napiValue)!.value
+          return (!napiValue) ? exports : emnapiCtx.handleStore.get(napiValue)!.value
         })
       } catch (err) {
-        emnapi.closeScope(env, scope)
+        emnapiCtx.closeScope(env, scope)
         registered = false
         throw err
       }
-      emnapi.closeScope(env, scope)
+      emnapiCtx.closeScope(env, scope)
       return emnapiExports
     }
 

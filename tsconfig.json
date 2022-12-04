@@ -24,5 +24,8 @@
   },
   "include": [
     "./packages/**/*.ts"
+  ],
+  "exclude": [
+    "./packages/runtime/dist/emnapi.iife.d.ts"
   ]
 }

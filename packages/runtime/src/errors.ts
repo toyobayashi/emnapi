@@ -1,3 +1,4 @@
+/** @public */
 class EmnapiError extends Error {
   constructor (message?: string) {
     super(message)
@@ -25,6 +26,7 @@ Object.defineProperty(EmnapiError.prototype, 'name', {
   value: 'EmnapiError'
 })
 
+/** @public */
 class NotSupportWeakRefError extends EmnapiError {
   constructor (api: string, message: string) {
     super(`${api}: The current runtime does not support "FinalizationRegistry" and "WeakRef".${message ? ` ${message}` : ''}`)
@@ -37,6 +39,7 @@ Object.defineProperty(NotSupportWeakRefError.prototype, 'name', {
   value: 'NotSupportWeakRefError'
 })
 
+/** @public */
 class NotSupportBigIntError extends EmnapiError {
   constructor (api: string, message: string) {
     super(`${api}: The current runtime does not support "BigInt".${message ? ` ${message}` : ''}`)

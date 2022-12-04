@@ -74,9 +74,9 @@ function testReturnObject (embind, napi, naa) {
 
 function browserMain () {
   Promise.all([
-    window.embindcpp.default({ emnapiRuntime: window.__emnapi_runtime__ }),
-    window.emnapic.default({ emnapiRuntime: window.__emnapi_runtime__ }),
-    window.emnapicpp.default({ emnapiRuntime: window.__emnapi_runtime__ })
+    window.embindcpp.default({ emnapiRuntime: window.emnapi }),
+    window.emnapic.default({ emnapiRuntime: window.emnapi }),
+    window.emnapicpp.default({ emnapiRuntime: window.emnapi })
   ]).then(([
     { Module: embind },
     { Module: { emnapiExports: napi } },

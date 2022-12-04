@@ -1,3 +1,4 @@
+/** @internal */
 export class RefTracker {
   /** @virtual */
   protected finalize (_isEnvTeardown: boolean): void {}

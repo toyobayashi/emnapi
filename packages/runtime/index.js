@@ -1,5 +1,5 @@
 if (process.env.NODE_ENV === 'production') {
-  module.exports = require('./dist/emnapi.min.js')
+  module.exports = require('./dist/emnapi.cjs.min.js')
 } else {
-  module.exports = require('./dist/emnapi.js')
+  module.exports = require('./dist/emnapi.cjs.js')
 }

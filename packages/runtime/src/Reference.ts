@@ -1,11 +1,10 @@
 import type { IStoreValue } from './Store'
 import { supportFinalizer, isReferenceType } from './util'
 import type { Env } from './env'
-import { refStore } from './RefStore'
-import { handleStore } from './Handle'
 import type { Handle } from './Handle'
 import { RefBase } from './RefBase'
 
+/** @internal */
 export class Reference extends RefBase implements IStoreValue {
   public id: number
 
@@ -27,9 +26,9 @@ export class Reference extends RefBase implements IStoreValue {
     finalize_data: void_p = 0,
     finalize_hint: void_p = 0
   ): Reference {
-    const handle = handleStore.get(handle_id)!
+    const handle = envObject.ctx.handleStore.get(handle_id)!
     const ref = new Reference(envObject, handle, initialRefcount, deleteSelf, finalize_callback, finalize_data, finalize_hint)
-    refStore.add(ref)
+    envObject.ctx.refStore.add(ref)
     handle.addRef(ref)
     if (supportFinalizer && isReferenceType(handle.value)) {
       ref.objWeakRef = new WeakRef<object>(handle.value)
@@ -109,7 +108,7 @@ export class Reference extends RefBase implements IStoreValue {
         return this.handle.id
       }
     }
-    return NULL
+    return 0
   }
 
   private _setWeak (value: object): void {
@@ -146,7 +145,7 @@ export class Reference extends RefBase implements IStoreValue {
 
   public override dispose (): void {
     if (this.id === 0) return
-    refStore.remove(this.id)
+    this.envObject.ctx.refStore.remove(this.id)
     this.handle.removeRef(this)
     this._clearWeak()
     this.handle = undefined!

@@ -15,7 +15,7 @@ function $emnapiCreateFunction<F extends (...args: any[]) => any> (envObject: em
   const makeFunction = () => function (this: any): any {
     'use strict'
     const newTarget = this && this instanceof f ? this.constructor : undefined
-    const cbinfo = emnapi.CallbackInfo.create(
+    const cbinfo = emnapiRt.CallbackInfo.create(
       envObject,
       this,
       data,
@@ -23,20 +23,20 @@ function $emnapiCreateFunction<F extends (...args: any[]) => any> (envObject: em
       Array.prototype.slice.call(arguments),
       newTarget
     )
-    const scope = emnapi.openScope(envObject, emnapi.HandleScope)
+    const scope = emnapiCtx.openScope(envObject, emnapiRt.HandleScope)
     let r: napi_value
     try {
       r = envObject.callIntoModule((envObject) => {
         const napiValue = emnapiGetDynamicCalls.call_ppp(cb, envObject.id, cbinfo.id)
-        return (!napiValue) ? undefined : emnapi.handleStore.get(napiValue)!.value
+        return (!napiValue) ? undefined : emnapiCtx.handleStore.get(napiValue)!.value
       })
     } catch (err) {
       cbinfo.dispose()
-      emnapi.closeScope(envObject, scope)
+      emnapiCtx.closeScope(envObject, scope)
       throw err
     }
     cbinfo.dispose()
-    emnapi.closeScope(envObject, scope)
+    emnapiCtx.closeScope(envObject, scope)
     return r
   }
 
@@ -47,7 +47,7 @@ function $emnapiCreateFunction<F extends (...args: any[]) => any> (envObject: em
       return { status: napi_status.napi_invalid_arg, f: undefined! }
     }
 // #if DYNAMIC_EXECUTION
-    if (emnapi.supportNewFunction) {
+    if (emnapiRt.supportNewFunction) {
       f = (new Function('_',
         'return function ' + functionName + '(){' +
           '"use strict";' +
@@ -57,7 +57,7 @@ function $emnapiCreateFunction<F extends (...args: any[]) => any> (envObject: em
     } else {
 // #endif
       f = makeFunction() as F
-      if (emnapi.canSetFunctionName) {
+      if (emnapiRt.canSetFunctionName) {
         Object.defineProperty(f, 'name', {
           value: functionName
         })
@@ -103,7 +103,7 @@ function $emnapiDefineProperty (envObject: emnapi.Env, obj: object, propertyName
       configurable: (attributes & napi_property_attributes.napi_configurable) !== 0,
       enumerable: (attributes & napi_property_attributes.napi_enumerable) !== 0,
       writable: (attributes & napi_property_attributes.napi_writable) !== 0,
-      value: emnapi.handleStore.get(value)!.value
+      value: emnapiCtx.handleStore.get(value)!.value
     }
     Object.defineProperty(obj, propertyName, desc)
   }
@@ -140,9 +140,9 @@ function $emnapiCreateTypedArray (envObject: emnapi.Env, Type: { new (...args: a
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 declare const emnapiWrap: typeof $emnapiWrap
 function $emnapiWrap (type: WrapType, env: napi_env, js_object: napi_value, native_object: void_p, finalize_cb: napi_finalize, finalize_hint: void_p, result: Pointer<napi_ref>): napi_status {
-  return emnapi.preamble(env, (envObject) => {
-    return emnapi.checkArgs(envObject, [js_object], () => {
-      const value = emnapi.handleStore.get(js_object)!
+  return emnapiCtx.preamble(env, (envObject) => {
+    return emnapiCtx.checkArgs(envObject, [js_object], () => {
+      const value = emnapiCtx.handleStore.get(js_object)!
       if (!(value.isObject() || value.isFunction())) {
         return envObject.setLastError(napi_status.napi_invalid_arg)
       }
@@ -158,12 +158,12 @@ function $emnapiWrap (type: WrapType, env: napi_env, js_object: napi_value, nati
       let reference: emnapi.Reference
       if (result) {
         if (!finalize_cb) return envObject.setLastError(napi_status.napi_invalid_arg)
-        reference = emnapi.Reference.create(envObject, value.id, 0, false, finalize_cb, native_object, finalize_hint)
+        reference = emnapiRt.Reference.create(envObject, value.id, 0, false, finalize_cb, native_object, finalize_hint)
         $from64('result')
 
         $makeSetValue('result', 0, 'reference.id', '*')
       } else {
-        reference = emnapi.Reference.create(envObject, value.id, 0, true, finalize_cb, native_object, !finalize_cb ? finalize_cb : finalize_hint)
+        reference = emnapiRt.Reference.create(envObject, value.id, 0, true, finalize_cb, native_object, !finalize_cb ? finalize_cb : finalize_hint)
       }
 
       if (type === WrapType.retrievable) {
@@ -177,17 +177,17 @@ function $emnapiWrap (type: WrapType, env: napi_env, js_object: napi_value, nati
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 declare const emnapiUnwrap: typeof $emnapiUnwrap
 function $emnapiUnwrap (env: napi_env, js_object: napi_value, result: void_pp, action: UnwrapAction): napi_status {
-  return emnapi.preamble(env, (envObject) => {
-    return emnapi.checkArgs(envObject, [js_object], () => {
+  return emnapiCtx.preamble(env, (envObject) => {
+    return emnapiCtx.checkArgs(envObject, [js_object], () => {
       if (action === UnwrapAction.KeepWrap) {
         if (!result) return envObject.setLastError(napi_status.napi_invalid_arg)
       }
-      const value = emnapi.handleStore.get(js_object)!
+      const value = emnapiCtx.handleStore.get(js_object)!
       if (!(value.isObject() || value.isFunction())) {
         return envObject.setLastError(napi_status.napi_invalid_arg)
       }
       const referenceId = value.wrapped
-      const ref = emnapi.refStore.get(referenceId)
+      const ref = emnapiCtx.refStore.get(referenceId)
       if (!ref) return envObject.setLastError(napi_status.napi_invalid_arg)
       if (result) {
         $from64('result')
@@ -199,7 +199,7 @@ function $emnapiUnwrap (env: napi_env, js_object: napi_value, result: void_pp, a
       }
       if (action === UnwrapAction.RemoveWrap) {
         value.wrapped = 0
-        emnapi.Reference.doDelete(ref)
+        emnapiRt.Reference.doDelete(ref)
       }
       return envObject.getReturnStatus()
     })
@@ -315,7 +315,7 @@ function $emnapiSetErrorCode (envObject: emnapi.Env, error: Error & { code?: str
   if (code || code_string) {
     let codeValue: string
     if (code) {
-      codeValue = emnapi.handleStore.get(code)!.value
+      codeValue = emnapiCtx.handleStore.get(code)!.value
       if (typeof codeValue !== 'string') {
         return envObject.setLastError(napi_status.napi_string_expected)
       }

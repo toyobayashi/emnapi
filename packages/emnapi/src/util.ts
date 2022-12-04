@@ -2,7 +2,7 @@
 function emnapiImplement (name: string, sig: string | undefined, compilerTimeFunction: Function, deps?: string[]): void {
   const sym: any = {
     [name]: compilerTimeFunction,
-    [name + '__deps']: (['$emnapi', '$emnapiInit']).concat(deps ?? [])
+    [name + '__deps']: (['$emnapiCtx', '$emnapiInit']).concat(deps ?? [])
   }
   if (sig) {
     sym[name + '__sig'] = sig
@@ -17,34 +17,34 @@ declare function _napi_set_last_error (env: napi_env, error_code: napi_status, e
 
 mergeInto(LibraryManager.library, {
   napi_set_last_error: function (env: napi_env, error_code: napi_status, engine_error_code: uint32_t, engine_reserved: void_p) {
-    const envObject = emnapi.envStore.get(env)!
+    const envObject = emnapiCtx.envStore.get(env)!
     return envObject.setLastError(error_code, engine_error_code, engine_reserved)
   },
   napi_set_last_error__sig: 'ipiip',
-  napi_set_last_error__deps: ['$emnapi'],
+  napi_set_last_error__deps: ['$emnapiCtx'],
 
   napi_clear_last_error: function (env: napi_env) {
-    const envObject = emnapi.envStore.get(env)!
+    const envObject = emnapiCtx.envStore.get(env)!
     return envObject.clearLastError()
   },
   napi_clear_last_error__sig: 'ip',
-  napi_clear_last_error__deps: ['$emnapi'],
+  napi_clear_last_error__deps: ['$emnapiCtx'],
 
   emnapi_is_support_weakref: function () {
-    return emnapi.supportFinalizer ? 1 : 0
+    return emnapiRt.supportFinalizer ? 1 : 0
   },
   emnapi_is_support_weakref__sig: 'i',
-  emnapi_is_support_weakref__deps: ['$emnapi'],
+  emnapi_is_support_weakref__deps: ['$emnapiCtx'],
 
   emnapi_is_support_bigint: function () {
-    return emnapi.supportBigInt ? 1 : 0
+    return emnapiRt.supportBigInt ? 1 : 0
   },
   emnapi_is_support_bigint__sig: 'i',
-  emnapi_is_support_bigint__deps: ['$emnapi']
+  emnapi_is_support_bigint__deps: ['$emnapiCtx']
 })
 
 declare const arrayBufferMemoryMap: WeakMap<ArrayBuffer, number>
-declare const typedArrayMemoryMap: WeakMap<TypedArray | DataView, number>
+declare const typedArrayMemoryMap: WeakMap<ArrayBufferView, number>
 declare const memoryPointerDeleter: FinalizationRegistry<number>
 
 declare function runtimeKeepalivePush (): void
@@ -76,7 +76,7 @@ mergeInto(LibraryManager.library, {
   },
 
   $getViewPointer__deps: ['$typedArrayMemoryMap', '$memoryPointerDeleter'],
-  $getViewPointer: function (view: TypedArray | DataView): void_p {
+  $getViewPointer: function (view: ArrayBufferView): void_p {
     if (!memoryPointerDeleter) {
       return NULL
     }
@@ -113,5 +113,4 @@ mergeInto(LibraryManager.library, {
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 declare function getArrayBufferPointer (arrayBuffer: ArrayBuffer): void_p
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-declare function getViewPointer (arrayBuffer: TypedArray | DataView): void_p
-declare type TypedArray = Int8Array | Uint8Array | Int16Array | Uint16Array | Int32Array | Uint32Array | Uint8ClampedArray | Float32Array | Float64Array
+declare function getViewPointer (arrayBuffer: ArrayBufferView): void_p

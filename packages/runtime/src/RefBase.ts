@@ -3,8 +3,10 @@ import { Finalizer } from './Finalizer'
 import { RefTracker } from './RefTracker'
 import { supportFinalizer } from './util'
 
+/** @internal */
 export interface RefBase extends Finalizer, RefTracker {}
 
+/** @internal */
 export class RefBase extends Finalizer {
   public static finalizeAll (list: RefTracker): void {
     RefTracker.finalizeAll(list)

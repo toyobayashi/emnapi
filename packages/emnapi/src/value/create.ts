@@ -1,11 +1,11 @@
 function napi_create_array (env: napi_env, result: Pointer<napi_value>): napi_status {
-  return emnapi.checkEnv(env, (envObject) => {
-    return emnapi.checkArgs(envObject, [result], () => {
+  return emnapiCtx.checkEnv(env, (envObject) => {
+    return emnapiCtx.checkArgs(envObject, [result], () => {
       $from64('result')
 
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const value = emnapi.addToCurrentScope(envObject, []).id
+      const value = emnapiCtx.addToCurrentScope(envObject, []).id
       $makeSetValue('result', 0, 'value', '*')
       return envObject.clearLastError()
     })
@@ -13,15 +13,15 @@ function napi_create_array (env: napi_env, result: Pointer<napi_value>): napi_st
 }
 
 function napi_create_array_with_length (env: napi_env, length: size_t, result: Pointer<napi_value>): napi_status {
-  return emnapi.checkEnv(env, (envObject) => {
-    return emnapi.checkArgs(envObject, [result], () => {
+  return emnapiCtx.checkEnv(env, (envObject) => {
+    return emnapiCtx.checkArgs(envObject, [result], () => {
       $from64('length')
       $from64('result')
       length = length >>> 0
 
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const value = emnapi.addToCurrentScope(envObject, new Array(length)).id
+      const value = emnapiCtx.addToCurrentScope(envObject, new Array(length)).id
       $makeSetValue('result', 0, 'value', '*')
       return envObject.clearLastError()
     })
@@ -29,15 +29,15 @@ function napi_create_array_with_length (env: napi_env, length: size_t, result: P
 }
 
 function napi_create_arraybuffer (env: napi_env, byte_length: size_t, _data: void_pp, result: Pointer<napi_value>): napi_status {
-  return emnapi.preamble(env, (envObject) => {
-    return emnapi.checkArgs(envObject, [result], () => {
+  return emnapiCtx.preamble(env, (envObject) => {
+    return emnapiCtx.checkArgs(envObject, [result], () => {
       $from64('byte_length')
       $from64('result')
       byte_length = byte_length >>> 0
 
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const value = emnapi.addToCurrentScope(envObject, new ArrayBuffer(byte_length)).id
+      const value = emnapiCtx.addToCurrentScope(envObject, new ArrayBuffer(byte_length)).id
       $makeSetValue('result', 0, 'value', '*')
       return envObject.getReturnStatus()
     })
@@ -45,13 +45,13 @@ function napi_create_arraybuffer (env: napi_env, byte_length: size_t, _data: voi
 }
 
 function napi_create_date (env: napi_env, time: double, result: Pointer<napi_value>): napi_status {
-  return emnapi.preamble(env, (envObject) => {
-    return emnapi.checkArgs(envObject, [result], () => {
+  return emnapiCtx.preamble(env, (envObject) => {
+    return emnapiCtx.checkArgs(envObject, [result], () => {
       $from64('result')
 
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const value = emnapi.addToCurrentScope(envObject, new Date(time)).id
+      const value = emnapiCtx.addToCurrentScope(envObject, new Date(time)).id
       $makeSetValue('result', 0, 'value', '*')
       return envObject.getReturnStatus()
     })
@@ -59,15 +59,15 @@ function napi_create_date (env: napi_env, time: double, result: Pointer<napi_val
 }
 
 function napi_create_external (env: napi_env, data: void_p, finalize_cb: napi_finalize, finalize_hint: void_p, result: Pointer<napi_value>): napi_status {
-  return emnapi.preamble(env, (envObject) => {
-    return emnapi.checkArgs(envObject, [result], () => {
-      if (!emnapi.supportFinalizer && finalize_cb) {
-        throw new emnapi.NotSupportWeakRefError('napi_create_external', 'Parameter "finalize_cb" must be 0(NULL)')
+  return emnapiCtx.preamble(env, (envObject) => {
+    return emnapiCtx.checkArgs(envObject, [result], () => {
+      if (!emnapiRt.supportFinalizer && finalize_cb) {
+        throw new emnapiRt.NotSupportWeakRefError('napi_create_external', 'Parameter "finalize_cb" must be 0(NULL)')
       }
-      const externalHandle = emnapi.ExternalHandle.createExternal(envObject, data)
-      emnapi.getCurrentScope()!.addHandle(externalHandle)
+      const externalHandle = emnapiRt.ExternalHandle.createExternal(envObject, data)
+      emnapiCtx.getCurrentScope()!.addHandle(externalHandle)
       if (finalize_cb) {
-        emnapi.Reference.create(envObject, externalHandle.id, 0, true, finalize_cb, data, finalize_hint)
+        emnapiRt.Reference.create(envObject, externalHandle.id, 0, true, finalize_cb, data, finalize_hint)
       }
       $from64('result')
       $makeSetValue('result', 0, 'externalHandle.id', '*')
@@ -88,13 +88,13 @@ function napi_create_external (env: napi_env, data: void_p, finalize_cb: napi_fi
 } */
 
 function napi_create_object (env: napi_env, result: Pointer<napi_value>): napi_status {
-  return emnapi.checkEnv(env, (envObject) => {
-    return emnapi.checkArgs(envObject, [result], () => {
+  return emnapiCtx.checkEnv(env, (envObject) => {
+    return emnapiCtx.checkArgs(envObject, [result], () => {
       $from64('result')
 
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const value = emnapi.addToCurrentScope(envObject, {}).id
+      const value = emnapiCtx.addToCurrentScope(envObject, {}).id
       $makeSetValue('result', 0, 'value', '*')
       return envObject.clearLastError()
     })
@@ -102,24 +102,24 @@ function napi_create_object (env: napi_env, result: Pointer<napi_value>): napi_s
 }
 
 function napi_create_symbol (env: napi_env, description: napi_value, result: Pointer<napi_value>): napi_status {
-  return emnapi.checkEnv(env, (envObject) => {
-    return emnapi.checkArgs(envObject, [result], () => {
+  return emnapiCtx.checkEnv(env, (envObject) => {
+    return emnapiCtx.checkArgs(envObject, [result], () => {
       $from64('result')
 
       if (!description) {
         // @ts-expect-error
         // eslint-disable-next-line symbol-description, @typescript-eslint/no-unused-vars
-        const value = emnapi.addToCurrentScope(envObject, Symbol()).id
+        const value = emnapiCtx.addToCurrentScope(envObject, Symbol()).id
         $makeSetValue('result', 0, 'value', '*')
       } else {
-        const handle = emnapi.handleStore.get(description)!
+        const handle = emnapiCtx.handleStore.get(description)!
         const desc = handle.value
         if (typeof desc !== 'string') {
           return envObject.setLastError(napi_status.napi_string_expected)
         }
         // @ts-expect-error
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const v = emnapi.addToCurrentScope(envObject, Symbol(desc)).id
+        const v = emnapiCtx.addToCurrentScope(envObject, Symbol(desc)).id
         $makeSetValue('result', 0, 'v', '*')
       }
       return envObject.clearLastError()
@@ -135,9 +135,9 @@ function napi_create_typedarray (
   byte_offset: size_t,
   result: Pointer<napi_value>
 ): napi_status {
-  return emnapi.preamble(env, (envObject) => {
-    return emnapi.checkArgs(envObject, [arraybuffer, result], () => {
-      const handle = emnapi.handleStore.get(arraybuffer)!
+  return emnapiCtx.preamble(env, (envObject) => {
+    return emnapiCtx.checkArgs(envObject, [arraybuffer, result], () => {
+      const handle = emnapiCtx.handleStore.get(arraybuffer)!
       const buffer = handle.value
       if (!(buffer instanceof ArrayBuffer)) {
         return envObject.setLastError(napi_status.napi_invalid_arg)
@@ -148,7 +148,7 @@ function napi_create_typedarray (
 
         // @ts-expect-error
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const value = emnapi.addToCurrentScope(envObject, out).id
+        const value = emnapiCtx.addToCurrentScope(envObject, out).id
         $makeSetValue('result', 0, 'value', '*')
         return envObject.getReturnStatus()
       }
@@ -190,13 +190,13 @@ function napi_create_dataview (
   byte_offset: size_t,
   result: Pointer<napi_value>
 ): napi_status {
-  return emnapi.preamble(env, (envObject) => {
-    return emnapi.checkArgs(envObject, [arraybuffer, result], () => {
+  return emnapiCtx.preamble(env, (envObject) => {
+    return emnapiCtx.checkArgs(envObject, [arraybuffer, result], () => {
       $from64('byte_length')
       $from64('byte_offset')
       byte_length = byte_length >>> 0
       byte_offset = byte_offset >>> 0
-      const handle = emnapi.handleStore.get(arraybuffer)!
+      const handle = emnapiCtx.handleStore.get(arraybuffer)!
       const buffer = handle.value
       if (!(buffer instanceof ArrayBuffer)) {
         return envObject.setLastError(napi_status.napi_invalid_arg)
@@ -214,7 +214,7 @@ function napi_create_dataview (
 
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const value = emnapi.addToCurrentScope(envObject, dataview).id
+      const value = emnapiCtx.addToCurrentScope(envObject, dataview).id
       $makeSetValue('result', 0, 'value', '*')
       return envObject.getReturnStatus()
     })
@@ -222,8 +222,8 @@ function napi_create_dataview (
 }
 
 function node_api_symbol_for (env: napi_env, utf8description: const_char_p, length: size_t, result: Pointer<napi_value>): napi_status {
-  return emnapi.checkEnv(env, (envObject) => {
-    return emnapi.checkArgs(envObject, [result], () => {
+  return emnapiCtx.checkEnv(env, (envObject) => {
+    return emnapiCtx.checkArgs(envObject, [result], () => {
       $from64('length')
       $from64('utf8description')
       $from64('result')
@@ -232,7 +232,7 @@ function node_api_symbol_for (env: napi_env, utf8description: const_char_p, leng
 
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const value = emnapi.addToCurrentScope(envObject, Symbol.for(descriptionString)).id
+      const value = emnapiCtx.addToCurrentScope(envObject, Symbol.for(descriptionString)).id
       $makeSetValue('result', 0, 'value', '*')
       return envObject.clearLastError()
     })

@@ -43,7 +43,7 @@
 
     // "betaTrimmedFilePath": "<projectFolder>/dist/<unscopedPackageName>-beta.d.ts",
 
-    "publicTrimmedFilePath": "<projectFolder>/dist/library_napi_runtime.d.ts"
+    "publicTrimmedFilePath": "<projectFolder>/dist/emnapi.d.ts"
 
     // "omitTrimmingComments": true
   },

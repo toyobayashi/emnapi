@@ -382,26 +382,35 @@ Most APIs are implemented in JavaScript and they are depend on runtime code ship
 
         Just npm install `@tybys/emnapi-runtime` 
 
-    You can specify `emnapiRuntime` explicitly, this step is optional:
+4. (Optional) You can specify `emnapiRuntime` and `emnapiContext` explicitly
 
     ```html
     <script src="node_modules/@tybys/emnapi-runtime/dist/emnapi.min.js"></script>
     <script>
       var Module = { /* ... */ };
-      Module.emnapiRuntime = window.__emnapi_runtime__;
+      Module.emnapiRuntime = window.emnapi;
+      var __emnapi_context__ = window.emnapi.createContext();
+      Module.emnapiContext = __emnapi_context__;
+
       // can be function or async function
-      Module.emnapiRuntime = function () { return window.__emnapi_runtime__; }
-      Module.emnapiRuntime = function () { return Promise.resolve(window.__emnapi_runtime__); }
+      Module.emnapiRuntime = function () { return window.emnapi; };
+      Module.emnapiRuntime = function () { return Promise.resolve(window.emnapi); };
+      Module.emnapiContext = function (emnapiRuntime) { /* ... */ };
+      Module.emnapiContext = async function (emnapiRuntime) { /* ... */ };
     </script>
     <script src="your-wasm-glue.js"></script>
     ```
 
     ```js
-    // Node.js
-    Module.emnapiRuntime = require('@tybys/emnapi-runtime')
-    // can be function or async function
-    Module.emnapiRuntime = () => require('@tybys/emnapi-runtime')
-    Module.emnapiRuntime = () => import('@tybys/emnapi-runtime')
+    // Node.js CJS
+    const emnapi = require('@tybys/emnapi-runtime')
+    const Module1 = require('./your-wasm-glue1.js')
+    const Module2 = require('./your-wasm-glue2.js')
+    const ctx = emnapi.createContext()
+    Module1.emnapiRuntime = emnapi
+    Module1.emnapiContext = ctx
+    Module2.emnapiRuntime = emnapi
+    Module2.emnapiContext = ctx
     ```
 
 `@tybys/emnapi-runtime` version should match `@tybys/emnapi` version.

@@ -1,21 +1,21 @@
-import { handleStore } from './Handle'
 import type { Handle } from './Handle'
-import { envStore } from './EnvStore'
+import type { Context } from './Context'
 import { IStoreValue, Store } from './Store'
 import { TryCatch, isReferenceType } from './util'
-import { closeScope, currentScope, openScope } from './scope'
 import { RefTracker } from './RefTracker'
 import { HandleScope } from './HandleScope'
 import { RefBase } from './RefBase'
 
+/** @internal */
 export interface ILastError {
-  setErrorMessage: (ptr: number) => void
+  setErrorMessage: (ptr: number | bigint) => void
   getErrorCode: () => number
   setErrorCode: (code: number) => void
-  data: Pointer<napi_extended_error_info>
+  data: number
   dispose (): void
 }
 
+/** @internal */
 export class Env implements IStoreValue {
   public id: number
 
@@ -31,15 +31,17 @@ export class Env implements IStoreValue {
   public finalizing_reflist = new RefTracker()
 
   public static create (
+    ctx: Context,
     emnapiGetDynamicCalls: IDynamicCalls,
     lastError: ILastError
   ): Env {
-    const env = new Env(emnapiGetDynamicCalls, lastError)
-    envStore.add(env)
+    const env = new Env(ctx, emnapiGetDynamicCalls, lastError)
+    ctx.envStore.add(env)
     return env
   }
 
   private constructor (
+    public readonly ctx: Context,
     public emnapiGetDynamicCalls: IDynamicCalls,
     public lastError: ILastError
   ) {
@@ -59,26 +61,26 @@ export class Env implements IStoreValue {
 
   public ensureHandle (value: any): Handle<any> {
     if (isReferenceType(value)) {
-      const handle = handleStore.getObjectHandle(value)
+      const handle = this.ctx.handleStore.getObjectHandle(value)
       if (!handle) {
         // not exist in handle store
-        return currentScope!.add(this, value)
+        return this.ctx.currentScope!.add(this, value)
       }
       if (handle.value === value) {
         // exist in handle store
         if (!handle.inScope) {
-          currentScope!.addHandle(handle)
+          this.ctx.currentScope!.addHandle(handle)
         }
         return handle
       }
       // alive, go back to handle store
       handle.value = value
-      Store.prototype.add.call(handleStore, handle)
-      currentScope!.addHandle(handle)
+      Store.prototype.add.call(this.ctx.handleStore, handle)
+      this.ctx.currentScope!.addHandle(handle)
       return handle
     }
 
-    return currentScope!.add(this, value)
+    return this.ctx.currentScope!.add(this, value)
   }
 
   public ensureHandleId (value: any): napi_value {
@@ -115,16 +117,16 @@ export class Env implements IStoreValue {
   }
 
   public callFinalizer (cb: napi_finalize, data: void_p, hint: void_p): void {
-    const scope = openScope(this, HandleScope)
+    const scope = this.ctx.openScope(this, HandleScope)
     try {
       this.callIntoModule((envObject) => {
         this.emnapiGetDynamicCalls.call_vppp(cb, envObject.id, data, hint)
       })
     } catch (err) {
-      closeScope(this, scope)
+      this.ctx.closeScope(this, scope)
       throw err
     }
-    closeScope(this, scope)
+    this.ctx.closeScope(this, scope)
   }
 
   public dispose (): void {
@@ -137,6 +139,6 @@ export class Env implements IStoreValue {
       this.lastError.dispose()
     } catch (_) {}
     this.lastError = null!
-    envStore.remove(this.id)
+    this.ctx.envStore.remove(this.id)
   }
 }

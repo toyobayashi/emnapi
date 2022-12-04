@@ -1,48 +1,11 @@
+/** @internal */
 export interface IStoreValue {
   id: number
   dispose (): void
   [x: string]: any
 }
 
-/* class Node<T> {
-  constructor (
-    public value: T,
-    public next: Node<any> | null = null
-  ) {}
-}
-
-class Queue<T> {
-  public head: Node<any> | null = null
-  public tail: Node<any> | null = null
-
-  public push (value: T): void {
-    if (this.tail === null) {
-      this.head = this.tail = new Node(value)
-    } else {
-      const node = new Node(value)
-      this.tail.next = node
-      this.tail = node
-    }
-  }
-
-  public shift (): T | undefined {
-    if (this.head === null) return undefined
-    const head = this.head
-    if (this.head === this.tail) {
-      this.head = this.tail = null
-    } else {
-      this.head = this.head.next
-    }
-    const value = head.value
-    head.next = null
-    return value
-  }
-
-  public clear (): void {
-    this.head = this.tail = null
-  }
-} */
-
+/** @internal */
 export class Store<V extends IStoreValue> {
   protected _values: Array<V | undefined>
   private _freeList: number[]

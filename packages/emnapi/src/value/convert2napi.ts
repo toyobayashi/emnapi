@@ -1,13 +1,13 @@
 /* eslint-disable @typescript-eslint/indent */
 
 function napi_create_int32 (env: napi_env, value: int32_t, result: Pointer<napi_value>): napi_status {
-  return emnapi.checkEnv(env, (envObject) => {
-    return emnapi.checkArgs(envObject, [result], () => {
+  return emnapiCtx.checkEnv(env, (envObject) => {
+    return emnapiCtx.checkArgs(envObject, [result], () => {
       $from64('result')
 
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const v = emnapi.addToCurrentScope(envObject, value).id
+      const v = emnapiCtx.addToCurrentScope(envObject, value).id
       $makeSetValue('result', 0, 'v', '*')
       return envObject.clearLastError()
     })
@@ -15,13 +15,13 @@ function napi_create_int32 (env: napi_env, value: int32_t, result: Pointer<napi_
 }
 
 function napi_create_uint32 (env: napi_env, value: uint32_t, result: Pointer<napi_value>): napi_status {
-  return emnapi.checkEnv(env, (envObject) => {
-    return emnapi.checkArgs(envObject, [result], () => {
+  return emnapiCtx.checkEnv(env, (envObject) => {
+    return emnapiCtx.checkArgs(envObject, [result], () => {
       $from64('result')
 
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const v = emnapi.addToCurrentScope(envObject, value >>> 0).id
+      const v = emnapiCtx.addToCurrentScope(envObject, value >>> 0).id
       $makeSetValue('result', 0, 'v', '*')
       return envObject.clearLastError()
     })
@@ -29,28 +29,28 @@ function napi_create_uint32 (env: napi_env, value: uint32_t, result: Pointer<nap
 }
 
 function napi_create_int64 (env: napi_env, low: int32_t, high: int32_t, result: Pointer<napi_value>): napi_status {
-  return emnapi.checkEnv(env, (envObject) => {
+  return emnapiCtx.checkEnv(env, (envObject) => {
     let checkList: number[]
 // #if WASM_BIGINT
     checkList = [high]
 // #else
     checkList = [result]
 // #endif
-    return emnapi.checkArgs(envObject, checkList, () => {
+    return emnapiCtx.checkArgs(envObject, checkList, () => {
       let value: number
 
 // #if WASM_BIGINT
       value = Number(low)
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const v1 = emnapi.addToCurrentScope(envObject, value).id
+      const v1 = emnapiCtx.addToCurrentScope(envObject, value).id
       $from64('high')
       $makeSetValue('high', 0, 'v1', '*')
 // #else
       value = (low >>> 0) + (high * Math.pow(2, 32))
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const v2 = emnapi.addToCurrentScope(envObject, value).id
+      const v2 = emnapiCtx.addToCurrentScope(envObject, value).id
       $makeSetValue('result', 0, 'v2', '*')
 // #endif
       return envObject.clearLastError()
@@ -59,13 +59,13 @@ function napi_create_int64 (env: napi_env, low: int32_t, high: int32_t, result: 
 }
 
 function napi_create_double (env: napi_env, value: double, result: Pointer<napi_value>): napi_status {
-  return emnapi.checkEnv(env, (envObject) => {
-    return emnapi.checkArgs(envObject, [result], () => {
+  return emnapiCtx.checkEnv(env, (envObject) => {
+    return emnapiCtx.checkArgs(envObject, [result], () => {
       $from64('result')
 
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const v = emnapi.addToCurrentScope(envObject, value).id
+      const v = emnapiCtx.addToCurrentScope(envObject, value).id
       $makeSetValue('result', 0, 'v', '*')
       return envObject.clearLastError()
     })
@@ -73,8 +73,8 @@ function napi_create_double (env: napi_env, value: double, result: Pointer<napi_
 }
 
 function napi_create_string_latin1 (env: napi_env, str: const_char_p, length: size_t, result: Pointer<napi_value>): napi_status {
-  return emnapi.checkEnv(env, (envObject) => {
-    return emnapi.checkArgs(envObject, [result], () => {
+  return emnapiCtx.checkEnv(env, (envObject) => {
+    return emnapiCtx.checkArgs(envObject, [result], () => {
       $from64('str')
       $from64('length')
       length = length >>> 0
@@ -104,7 +104,7 @@ function napi_create_string_latin1 (env: napi_env, str: const_char_p, length: si
 
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const value = emnapi.addToCurrentScope(envObject, latin1String).id
+      const value = emnapiCtx.addToCurrentScope(envObject, latin1String).id
       $makeSetValue('result', 0, 'value', '*')
       return envObject.clearLastError()
     })
@@ -112,8 +112,8 @@ function napi_create_string_latin1 (env: napi_env, str: const_char_p, length: si
 }
 
 function napi_create_string_utf16 (env: napi_env, str: const_char16_t_p, length: size_t, result: Pointer<napi_value>): napi_status {
-  return emnapi.checkEnv(env, (envObject) => {
-    return emnapi.checkArgs(envObject, [result], () => {
+  return emnapiCtx.checkEnv(env, (envObject) => {
+    return emnapiCtx.checkArgs(envObject, [result], () => {
       $from64('str')
       $from64('length')
 
@@ -127,7 +127,7 @@ function napi_create_string_utf16 (env: napi_env, str: const_char16_t_p, length:
 
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const value = emnapi.addToCurrentScope(envObject, utf16String).id
+      const value = emnapiCtx.addToCurrentScope(envObject, utf16String).id
       $makeSetValue('result', 0, 'value', '*')
       return envObject.clearLastError()
     })
@@ -135,8 +135,8 @@ function napi_create_string_utf16 (env: napi_env, str: const_char16_t_p, length:
 }
 
 function napi_create_string_utf8 (env: napi_env, str: const_char_p, length: size_t, result: Pointer<napi_value>): napi_status {
-  return emnapi.checkEnv(env, (envObject) => {
-    return emnapi.checkArgs(envObject, [result], () => {
+  return emnapiCtx.checkEnv(env, (envObject) => {
+    return emnapiCtx.checkArgs(envObject, [result], () => {
       $from64('str')
       $from64('length')
 
@@ -149,7 +149,7 @@ function napi_create_string_utf8 (env: napi_env, str: const_char_p, length: size
 
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const value = emnapi.addToCurrentScope(envObject, utf8String).id
+      const value = emnapiCtx.addToCurrentScope(envObject, utf8String).id
       $makeSetValue('result', 0, 'value', '*')
       return envObject.clearLastError()
     })
@@ -157,9 +157,9 @@ function napi_create_string_utf8 (env: napi_env, str: const_char_p, length: size
 }
 
 function napi_create_bigint_int64 (env: napi_env, low: int32_t, high: int32_t, result: Pointer<napi_value>): napi_status {
-  return emnapi.checkEnv(env, (envObject) => {
-    if (!emnapi.supportBigInt) {
-      envObject.tryCatch.setError(new emnapi.NotSupportBigIntError('napi_create_bigint_int64', 'This API is unavailable'))
+  return emnapiCtx.checkEnv(env, (envObject) => {
+    if (!emnapiRt.supportBigInt) {
+      envObject.tryCatch.setError(new emnapiRt.NotSupportBigIntError('napi_create_bigint_int64', 'This API is unavailable'))
       return envObject.setLastError(napi_status.napi_pending_exception)
     }
     let checkList: number[]
@@ -168,21 +168,21 @@ function napi_create_bigint_int64 (env: napi_env, low: int32_t, high: int32_t, r
     // #else
     checkList = [result]
     // #endif
-    return emnapi.checkArgs(envObject, checkList, () => {
+    return emnapiCtx.checkArgs(envObject, checkList, () => {
       let value: BigInt
 
 // #if WASM_BIGINT
       value = low as unknown as BigInt
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const v1 = emnapi.addToCurrentScope(envObject, value).id
+      const v1 = emnapiCtx.addToCurrentScope(envObject, value).id
       $from64('high')
       $makeSetValue('high', 0, 'v1', '*')
 // #else
       value = BigInt(low >>> 0) | (BigInt(high) << BigInt(32))
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const v2 = emnapi.addToCurrentScope(envObject, value).id
+      const v2 = emnapiCtx.addToCurrentScope(envObject, value).id
       $makeSetValue('result', 0, 'v2', '*')
 // #endif
       return envObject.clearLastError()
@@ -191,9 +191,9 @@ function napi_create_bigint_int64 (env: napi_env, low: int32_t, high: int32_t, r
 }
 
 function napi_create_bigint_uint64 (env: napi_env, low: int32_t, high: int32_t, result: Pointer<napi_value>): napi_status {
-  return emnapi.checkEnv(env, (envObject) => {
-    if (!emnapi.supportBigInt) {
-      envObject.tryCatch.setError(new emnapi.NotSupportBigIntError('napi_create_bigint_uint64', 'This API is unavailable'))
+  return emnapiCtx.checkEnv(env, (envObject) => {
+    if (!emnapiRt.supportBigInt) {
+      envObject.tryCatch.setError(new emnapiRt.NotSupportBigIntError('napi_create_bigint_uint64', 'This API is unavailable'))
       return envObject.setLastError(napi_status.napi_pending_exception)
     }
     let checkList: number[]
@@ -202,21 +202,21 @@ function napi_create_bigint_uint64 (env: napi_env, low: int32_t, high: int32_t, 
     // #else
     checkList = [result]
     // #endif
-    return emnapi.checkArgs(envObject, checkList, () => {
+    return emnapiCtx.checkArgs(envObject, checkList, () => {
       let value: BigInt
 
 // #if WASM_BIGINT
       value = low as unknown as BigInt
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const v1 = emnapi.addToCurrentScope(envObject, value).id
+      const v1 = emnapiCtx.addToCurrentScope(envObject, value).id
       $from64('high')
       $makeSetValue('high', 0, 'v1', '*')
 // #else
       value = BigInt(low >>> 0) | (BigInt(high >>> 0) << BigInt(32))
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const v2 = emnapi.addToCurrentScope(envObject, value).id
+      const v2 = emnapiCtx.addToCurrentScope(envObject, value).id
       $makeSetValue('result', 0, 'v2', '*')
 // #endif
       return envObject.clearLastError()
@@ -225,11 +225,11 @@ function napi_create_bigint_uint64 (env: napi_env, low: int32_t, high: int32_t, 
 }
 
 function napi_create_bigint_words (env: napi_env, sign_bit: int, word_count: size_t, words: Const<Pointer<uint64_t>>, result: Pointer<napi_value>): napi_status {
-  return emnapi.preamble(env, (envObject) => {
-    if (!emnapi.supportBigInt) {
-      throw new emnapi.NotSupportBigIntError('napi_create_bigint_words', 'This API is unavailable')
+  return emnapiCtx.preamble(env, (envObject) => {
+    if (!emnapiRt.supportBigInt) {
+      throw new emnapiRt.NotSupportBigIntError('napi_create_bigint_words', 'This API is unavailable')
     }
-    return emnapi.checkArgs(envObject, [result], () => {
+    return emnapiCtx.checkArgs(envObject, [result], () => {
       $from64('words')
       $from64('word_count')
       word_count = word_count >>> 0
@@ -251,7 +251,7 @@ function napi_create_bigint_words (env: napi_env, sign_bit: int, word_count: siz
 
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const v = emnapi.addToCurrentScope(envObject, value).id
+      const v = emnapiCtx.addToCurrentScope(envObject, value).id
       $makeSetValue('result', 0, 'v', '*')
       return envObject.clearLastError()
     })

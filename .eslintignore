@@ -7,4 +7,3 @@ node_modules
 /test/CMakeFiles
 /packages/runtime/lib
 /packages/emnapi/lib
-/packages/emnapi/script/init.js
