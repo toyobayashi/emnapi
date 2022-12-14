@@ -118,7 +118,9 @@ napi_status napi_adjust_external_memory(napi_env env,
   }
 
   size_t old_size = emscripten_get_heap_size();
-  int r = emscripten_resize_heap(old_size + (size_t) change_in_bytes);
+  if (!emscripten_resize_heap(old_size + (size_t) change_in_bytes)) {
+    return napi_set_last_error(env, napi_generic_failure, 0, NULL);
+  }
 
   *adjusted_value = (int64_t) emscripten_get_heap_size();
 

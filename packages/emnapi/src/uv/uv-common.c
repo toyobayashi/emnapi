@@ -20,7 +20,7 @@ uv_loop_t* uv_default_loop(void) {
 }
 
 int uv_loop_close(uv_loop_t* loop) {
-  QUEUE* q;
+  // QUEUE* q;
   // uv_handle_t* h;
 #ifndef NDEBUG
   void* saved_data;

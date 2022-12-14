@@ -94,7 +94,6 @@ int uv_thread_create_ex(uv_thread_t* tid,
                         void (*entry)(void *arg),
                         void *arg) {
   int err;
-  pthread_attr_t attr_storage;
 
   /* Used to squelch a -Wcast-function-type warning. */
   union {

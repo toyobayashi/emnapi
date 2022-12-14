@@ -2,6 +2,7 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
   const compilerFlags = isEmscripten
     ? [
         // ...(isDebug ? ['-sDISABLE_EXCEPTION_CATCHING=0'] : [])
+        ...(isDebug ? ['-Wall'] : []),
         ...(process.env.MEMORY64 ? ['-sMEMORY64=1'] : [])
       ]
     : []
