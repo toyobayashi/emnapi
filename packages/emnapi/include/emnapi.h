@@ -24,6 +24,7 @@ napi_status emnapi_get_module_property(napi_env env,
                                        const char* utf8name,
                                        napi_value* result);
 
+#ifndef NODE_API_NO_EXTERNAL_BUFFERS_ALLOWED
 NAPI_EXTERN
 napi_status emnapi_create_external_uint8array(napi_env env,
                                               void* external_data,
@@ -31,6 +32,7 @@ napi_status emnapi_create_external_uint8array(napi_env env,
                                               napi_finalize finalize_cb,
                                               void* finalize_hint,
                                               napi_value* result);
+#endif
 
 NAPI_EXTERN
 napi_status emnapi_get_emscripten_version(napi_env env,

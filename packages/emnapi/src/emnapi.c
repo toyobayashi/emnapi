@@ -94,6 +94,7 @@ const char* emnapi_error_messages[] = {
   "An arraybuffer was expected",
   "A detachable arraybuffer was expected",
   "Main thread would deadlock",
+  "External buffers are not allowed"
 };
 
 #define EMNAPI_MOD_NAME_X_HELPER(modname) #modname

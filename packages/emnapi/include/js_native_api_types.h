@@ -36,9 +36,7 @@ typedef enum {
   napi_default_method = napi_writable | napi_configurable,
 
   // Default for object properties, like in JS obj[prop].
-  napi_default_jsproperty = napi_writable |
-                            napi_enumerable |
-                            napi_configurable,
+  napi_default_jsproperty = napi_writable | napi_enumerable | napi_configurable,
 #endif  // NAPI_VERSION >= 8
 } napi_property_attributes;
 
@@ -92,7 +90,8 @@ typedef enum {
   napi_date_expected,
   napi_arraybuffer_expected,
   napi_detachable_arraybuffer_expected,
-  napi_would_deadlock  // unused
+  napi_would_deadlock,  // unused
+  napi_no_external_buffers_allowed
 } napi_status;
 // Note: when adding a new enum value to `napi_status`, please also update
 //   * `const int last_status` in the definition of `napi_get_last_error_info()'
