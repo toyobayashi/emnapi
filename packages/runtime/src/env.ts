@@ -1,7 +1,7 @@
 import type { Handle } from './Handle'
 import type { Context } from './Context'
 import { IStoreValue, Store } from './Store'
-import { TryCatch, isReferenceType } from './util'
+import { TryCatch, isReferenceType, _setImmediate } from './util'
 import { RefTracker } from './RefTracker'
 import { HandleScope } from './HandleScope'
 import { RefBase } from './RefBase'
@@ -29,6 +29,9 @@ export class Env implements IStoreValue {
 
   public reflist = new RefTracker()
   public finalizing_reflist = new RefTracker()
+
+  public finalizationScheduled: boolean = false
+  public pendingFinalizers: RefTracker[] = []
 
   public static create (
     ctx: Context,
@@ -129,7 +132,37 @@ export class Env implements IStoreValue {
     this.ctx.closeScope(this, scope)
   }
 
+  public enqueueFinalizer (finalizer: RefTracker): void {
+    if (this.pendingFinalizers.indexOf(finalizer) === -1) {
+      this.pendingFinalizers.push(finalizer)
+    }
+    if (!this.finalizationScheduled) {
+      this.finalizationScheduled = true
+      this.ref()
+      _setImmediate(() => {
+        this.finalizationScheduled = false
+        this.unref()
+        this.drainFinalizerQueue()
+      })
+    }
+  }
+
+  public dequeueFinalizer (finalizer: RefTracker): void {
+    const index = this.pendingFinalizers.indexOf(finalizer)
+    if (index !== -1) {
+      this.pendingFinalizers.splice(index, 1)
+    }
+  }
+
+  public drainFinalizerQueue (): void {
+    while (this.pendingFinalizers.length > 0) {
+      const refTracker = this.pendingFinalizers.shift()!
+      refTracker.finalize()
+    }
+  }
+
   public dispose (): void {
+    this.drainFinalizerQueue()
     // this.scopeList.clear()
     RefBase.finalizeAll(this.finalizing_reflist)
     RefBase.finalizeAll(this.reflist)

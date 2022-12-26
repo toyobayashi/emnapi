@@ -6,23 +6,12 @@
 // declare function __emnapi_async_send_js (callback: number, data: number): void
 declare function __emnapi_set_immediate (callback: number, data: number): void
 declare function __emnapi_next_tick (callback: number, data: number): void
-declare function emnapiSetImmediate (callback: () => any): any
 
 mergeInto(LibraryManager.library, {
-  $emnapiSetImmediate: 'typeof setImmediate === "function" ? setImmediate : function (f) {' +
-    'var channel = new MessageChannel();' +
-    'channel.port1.onmessage = function () {' +
-      'channel.port1.onmessage = null;' +
-      'channel = undefined;' +
-      'f();' +
-    '};' +
-    'channel.port2.postMessage(null);' +
-  '};',
-
   _emnapi_set_immediate__sig: 'vpp',
-  _emnapi_set_immediate__deps: ['$emnapiGetDynamicCalls', '$emnapiSetImmediate'],
+  _emnapi_set_immediate__deps: ['$emnapiGetDynamicCalls', '$emnapiInit', '$emnapiRt'],
   _emnapi_set_immediate: function (callback: number, data: number): void {
-    emnapiSetImmediate(() => {
+    emnapiRt._setImmediate(() => {
       $from64('callback')
       emnapiGetDynamicCalls.call_vp(callback, data)
     })
@@ -99,3 +88,20 @@ mergeInto(LibraryManager.library, {
       'return r;' +
     '};'
 })
+
+function _emnapi_call_into_module (env: napi_env, callback: number, data: number): void {
+  const envObject = emnapiCtx.envStore.get(env)!
+  const scope = emnapiCtx.openScope(envObject, emnapiRt.HandleScope)
+  try {
+    envObject.callIntoModule((_envObject) => {
+      $from64('callback')
+      emnapiGetDynamicCalls.call_vpp(callback, env, data)
+    })
+  } catch (err) {
+    emnapiCtx.closeScope(envObject, scope)
+    throw err
+  }
+  emnapiCtx.closeScope(envObject, scope)
+}
+
+emnapiImplement('_emnapi_call_into_module', 'vppp', _emnapi_call_into_module, ['$emnapiGetDynamicCalls'])

@@ -2,70 +2,71 @@ import type { IStoreValue } from './Store'
 import { supportFinalizer, isReferenceType } from './util'
 import type { Env } from './env'
 import type { Handle } from './Handle'
-import { RefBase } from './RefBase'
+import { Ownership, RefBase } from './RefBase'
+import { Global } from './Global'
+
+function weakCallback (ref: Reference): void {
+  ref.persistent!.reset()
+  ref.envObject.enqueueFinalizer(ref)
+}
 
 /** @internal */
 export class Reference extends RefBase implements IStoreValue {
   public id: number
 
-  private finalizerRegistered: boolean = false
-
-  public static finalizationGroup: FinalizationRegistry<any> | null =
-    supportFinalizer
-      ? new FinalizationRegistry((ref: Reference) => {
-        ref.finalize(false)
-      })
-      : null
-
   public static create (
     envObject: Env,
     handle_id: napi_value,
     initialRefcount: uint32_t,
-    deleteSelf: boolean,
+    ownership: Ownership,
     finalize_callback: napi_finalize = 0,
     finalize_data: void_p = 0,
     finalize_hint: void_p = 0
   ): Reference {
     const handle = envObject.ctx.handleStore.get(handle_id)!
-    const ref = new Reference(envObject, handle, initialRefcount, deleteSelf, finalize_callback, finalize_data, finalize_hint)
+    const ref = new Reference(envObject, handle, initialRefcount, ownership, finalize_callback, finalize_data, finalize_hint)
     envObject.ctx.refStore.add(ref)
     handle.addRef(ref)
     if (supportFinalizer && isReferenceType(handle.value)) {
-      ref.objWeakRef = new WeakRef<object>(handle.value)
+      ref.persistent = new Global<object>(handle.value)
     } else {
-      ref.objWeakRef = null
+      ref.persistent = null
     }
 
     if (initialRefcount === 0) {
-      ref._setWeak(handle.value)
+      ref._setWeak()
     }
     return ref
   }
 
-  public objWeakRef!: WeakRef<object> | null
+  public persistent!: Global<object> | null
 
   private constructor (
     public envObject: Env,
     public handle: Handle<any>,
     initialRefcount: uint32_t,
-    deleteSelf: boolean,
+    ownership: Ownership,
     finalize_callback: napi_finalize = 0,
     finalize_data: void_p = 0,
     finalize_hint: void_p = 0
   ) {
-    super(envObject, initialRefcount >>> 0, deleteSelf, finalize_callback, finalize_data, finalize_hint)
+    super(envObject, initialRefcount >>> 0, ownership, finalize_callback, finalize_data, finalize_hint)
     this.id = 0
   }
 
   public ref (): number {
+    if (this.persistent?.isEmpty()) {
+      return 0
+    }
+
     const count = super.ref()
 
-    if (count === 1 && this.objWeakRef) {
-      const obj = this.objWeakRef.deref()
+    if (count === 1 && this.persistent) {
+      const obj = this.persistent.deref()
       if (obj) {
         const handle = this.envObject.ensureHandle(obj)
         handle.addRef(this)
-        this._clearWeak()
+        this.persistent.clearWeak()
         if (handle !== this.handle) {
           this.handle.removeRef(this)
           this.handle = handle
@@ -77,13 +78,17 @@ export class Reference extends RefBase implements IStoreValue {
   }
 
   public unref (): number {
+    if (this.persistent?.isEmpty()) {
+      return 0
+    }
+
     const oldRefcount = this.refCount()
     const refcount = super.unref()
     if (oldRefcount === 1 && refcount === 0) {
-      if (this.objWeakRef) {
-        const obj = this.objWeakRef.deref()
+      if (this.persistent) {
+        const obj = this.persistent.deref()
         if (obj) {
-          this._setWeak(obj)
+          this._setWeak()
         }
       }
       this.handle.tryDispose()
@@ -92,8 +97,8 @@ export class Reference extends RefBase implements IStoreValue {
   }
 
   public get (): napi_value {
-    if (this.objWeakRef) {
-      const obj = this.objWeakRef.deref()
+    if (this.persistent) {
+      const obj = this.persistent.deref()
       if (obj) {
         const handle = this.envObject.ensureHandle(obj)
         handle.addRef(this)
@@ -111,43 +116,20 @@ export class Reference extends RefBase implements IStoreValue {
     return 0
   }
 
-  private _setWeak (value: object): void {
-    if (!supportFinalizer || this.finalizerRegistered) return
-    Reference.finalizationGroup!.register(value, this, this)
-    this.finalizerRegistered = true
+  private _setWeak (): void {
+    this.persistent?.setWeak(this, weakCallback)
   }
 
-  private _clearWeak (): void {
-    if (!supportFinalizer || !this.finalizerRegistered) return
-    try {
-      this.finalizerRegistered = false
-      Reference.finalizationGroup!.unregister(this)
-    } catch (_) {}
-  }
-
-  /* public queueFinalizer (value?: object): void {
-    if (!Reference.finalizationGroup) return
-    if (this.finalizerRegistered) return
-    if (!value) {
-      value = this.objWeakRef!.deref()!
-    }
-    Reference.finalizationGroup.register(value, this, this)
-    this.finalizerRegistered = true
-  } */
-
-  public override finalize (isEnvTeardown = false): void {
-    if (isEnvTeardown) {
-      this._clearWeak()
-    }
-
-    super.finalize(isEnvTeardown)
+  public override finalize (): void {
+    this.persistent?.reset()
+    super.finalize()
   }
 
   public override dispose (): void {
     if (this.id === 0) return
+    this.persistent?.reset()
     this.envObject.ctx.refStore.remove(this.id)
     this.handle.removeRef(this)
-    this._clearWeak()
     this.handle = undefined!
     super.dispose()
     this.id = 0

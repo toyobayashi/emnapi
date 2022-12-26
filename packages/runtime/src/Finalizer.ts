@@ -1,34 +1,25 @@
 import type { Env } from './env'
 
 /** @internal */
-export enum EnvReferenceMode {
-  kNoEnvReference,
-  kKeepEnvReference
-}
-
-/** @internal */
 export class Finalizer {
-  protected _hasEnvReference: boolean
-  protected _finalizeRan: boolean
-
   public constructor (
     protected envObject: Env,
     protected _finalizeCallback: napi_finalize = 0,
     protected _finalizeData: void_p = 0,
-    protected _finalizeHint: void_p = 0,
-    refmode: EnvReferenceMode = EnvReferenceMode.kNoEnvReference
-  ) {
-    this._finalizeRan = false
-    this._hasEnvReference = refmode === EnvReferenceMode.kKeepEnvReference
-    if (this._hasEnvReference) {
-      envObject.ref()
-    }
+    protected _finalizeHint: void_p = 0
+  ) {}
+
+  public callback (): napi_finalize { return this._finalizeCallback }
+  public data (): void_p { return this._finalizeData }
+  public hint (): void_p { return this._finalizeHint }
+
+  public resetFinalizer (): void {
+    this._finalizeCallback = 0
+    this._finalizeData = 0
+    this._finalizeHint = 0
   }
 
   public dispose (): void {
-    if (this._hasEnvReference) {
-      this.envObject.unref()
-    }
     this.envObject = undefined!
   }
 }

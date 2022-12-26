@@ -67,7 +67,7 @@ function napi_create_external (env: napi_env, data: void_p, finalize_cb: napi_fi
       const externalHandle = emnapiRt.ExternalHandle.createExternal(envObject, data)
       emnapiCtx.getCurrentScope()!.addHandle(externalHandle)
       if (finalize_cb) {
-        emnapiRt.Reference.create(envObject, externalHandle.id, 0, true, finalize_cb, data, finalize_hint)
+        emnapiRt.Reference.create(envObject, externalHandle.id, 0, emnapiRt.Ownership.kRuntime, finalize_cb, data, finalize_hint)
       }
       $from64('result')
       $makeSetValue('result', 0, 'externalHandle.id', '*')

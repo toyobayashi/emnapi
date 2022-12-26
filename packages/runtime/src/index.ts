@@ -10,10 +10,11 @@ export { DeferredStore } from './DeferredStore'
 export { ILastError, Env } from './env'
 export { EnvStore } from './EnvStore'
 export { EmnapiError, NotSupportWeakRefError, NotSupportBigIntError } from './errors'
-export { EnvReferenceMode, Finalizer } from './Finalizer'
+export { Finalizer } from './Finalizer'
 export { Handle, ExternalHandle, HandleStore } from './Handle'
 export { IHandleScope, HandleScope, EscapableHandleScope } from './HandleScope'
-export { RefBase } from './RefBase'
+export { RefBase, Ownership } from './RefBase'
+export { Global } from './Global'
 export { Reference } from './Reference'
 export { RefStore } from './RefStore'
 export { RefTracker } from './RefTracker'
@@ -27,7 +28,8 @@ export {
   supportNewFunction,
   canSetFunctionName,
   isReferenceType,
-  TryCatch
+  TryCatch,
+  _setImmediate
 } from './util'
 
 declare const __VERSION__: string

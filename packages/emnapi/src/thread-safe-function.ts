@@ -1,16 +1,7 @@
-function _emnapi_call_into_module (env: napi_env, callback: number, data: number): void {
+function _emnapi_call_finalizer (env: napi_env, callback: number, data: number, hint: number): void {
   const envObject = emnapiCtx.envStore.get(env)!
-  const scope = emnapiCtx.openScope(envObject, emnapiRt.HandleScope)
-  try {
-    envObject.callIntoModule((_envObject) => {
-      $from64('callback')
-      emnapiGetDynamicCalls.call_vpp(callback, env, data)
-    })
-  } catch (err) {
-    emnapiCtx.closeScope(envObject, scope)
-    throw err
-  }
-  emnapiCtx.closeScope(envObject, scope)
+  $from64('callback')
+  envObject.callFinalizer(callback, data, hint)
 }
 
 function _emnapi_tsfn_dispatch_one_js (env: number, ref: number, call_js_cb: number, context: number, data: number): void {
@@ -31,5 +22,5 @@ function _emnapi_tsfn_dispatch_one_js (env: number, ref: number, call_js_cb: num
   emnapiCtx.closeScope(envObject, scope)
 }
 
-emnapiImplement('_emnapi_call_into_module', 'vpp', _emnapi_call_into_module, ['$emnapiGetDynamicCalls'])
+emnapiImplement('_emnapi_call_finalizer', 'vpppp', _emnapi_call_finalizer)
 emnapiImplement('_emnapi_tsfn_dispatch_one_js', 'vppppp', _emnapi_tsfn_dispatch_one_js, ['$emnapiGetDynamicCalls'])

@@ -363,6 +363,8 @@ napi_status napi_cancel_async_work(napi_env env, napi_async_work work) {
 
 #if NAPI_VERSION >= 4 && defined(__EMSCRIPTEN_PTHREADS__)
 
+extern void _emnapi_call_finalizer(napi_env env, napi_finalize cb, void* data, void* hint);
+
 static const unsigned char kDispatchIdle = 0;
 static const unsigned char kDispatchRunning = 1 << 0;
 static const unsigned char kDispatchPending = 1 << 1;
@@ -538,16 +540,11 @@ static void _emnapi_tsfn_empty_queue_and_delete(napi_threadsafe_function func) {
   _emnapi_tsfn_destroy(func);
 }
 
-static void _emnapi_tsfn_call_finalize_cb(napi_env env, void* args) {
-  napi_threadsafe_function func = (napi_threadsafe_function) args;
-  func->finalize_cb(env, func->finalize_data, func->context);
-}
-
 static void _emnapi_tsfn_finalize(napi_threadsafe_function func) {
   napi_handle_scope scope;
   napi_open_handle_scope(func->env, &scope);
   if (func->finalize_cb) {
-    _emnapi_call_into_module(func->env, _emnapi_tsfn_call_finalize_cb, func);
+    _emnapi_call_finalizer(func->env, func->finalize_cb, func->finalize_data, func->context);
   }
   _emnapi_tsfn_empty_queue_and_delete(func);
   napi_close_handle_scope(func->env, scope);

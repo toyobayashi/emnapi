@@ -90,7 +90,7 @@ function napi_create_reference (
       }
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const ref = emnapiRt.Reference.create(envObject, handle.id, initial_refcount >>> 0, false)
+      const ref = emnapiRt.Reference.create(envObject, handle.id, initial_refcount >>> 0, emnapiRt.Ownership.kUserland)
       $from64('result')
       $makeSetValue('result', 0, 'ref.id', '*')
       return envObject.clearLastError()
@@ -104,7 +104,7 @@ function napi_delete_reference (
 ): napi_status {
   return emnapiCtx.checkEnv(env, (envObject) => {
     return emnapiCtx.checkArgs(envObject, [ref], () => {
-      emnapiRt.Reference.doDelete(emnapiCtx.refStore.get(ref)!)
+      emnapiCtx.refStore.get(ref)!.dispose()
       return envObject.clearLastError()
     })
   })

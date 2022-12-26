@@ -74,3 +74,16 @@ export const supportBigInt = typeof BigInt !== 'undefined'
 export function isReferenceType (v: any): v is object {
   return (typeof v === 'object' && v !== null) || typeof v === 'function'
 }
+
+export const _setImmediate = typeof setImmediate === 'function'
+  ? setImmediate
+  : function (f: () => void): void {
+    if (typeof f !== 'function') return
+    let channel = new MessageChannel()
+    channel.port1.onmessage = function () {
+      channel.port1.onmessage = null
+      channel = undefined!
+      f()
+    }
+    channel.port2.postMessage(null)
+  }

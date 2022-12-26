@@ -158,12 +158,12 @@ function $emnapiWrap (type: WrapType, env: napi_env, js_object: napi_value, nati
       let reference: emnapi.Reference
       if (result) {
         if (!finalize_cb) return envObject.setLastError(napi_status.napi_invalid_arg)
-        reference = emnapiRt.Reference.create(envObject, value.id, 0, false, finalize_cb, native_object, finalize_hint)
+        reference = emnapiRt.Reference.create(envObject, value.id, 0, emnapiRt.Ownership.kUserland, finalize_cb, native_object, finalize_hint)
         $from64('result')
 
         $makeSetValue('result', 0, 'reference.id', '*')
       } else {
-        reference = emnapiRt.Reference.create(envObject, value.id, 0, true, finalize_cb, native_object, !finalize_cb ? finalize_cb : finalize_hint)
+        reference = emnapiRt.Reference.create(envObject, value.id, 0, emnapiRt.Ownership.kRuntime, finalize_cb, native_object, !finalize_cb ? finalize_cb : finalize_hint)
       }
 
       if (type === WrapType.retrievable) {
@@ -199,7 +199,12 @@ function $emnapiUnwrap (env: napi_env, js_object: napi_value, result: void_pp, a
       }
       if (action === UnwrapAction.RemoveWrap) {
         value.wrapped = 0
-        emnapiRt.Reference.doDelete(ref)
+        if (ref.ownership() === emnapiRt.Ownership.kUserland) {
+          // When the wrap is been removed, the finalizer should be reset.
+          ref.resetFinalizer()
+        } else {
+          ref.dispose()
+        }
       }
       return envObject.getReturnStatus()
     })

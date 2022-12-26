@@ -1,10 +1,15 @@
 import type { Env } from './env'
 import { Finalizer } from './Finalizer'
 import { RefTracker } from './RefTracker'
-import { supportFinalizer } from './util'
 
 /** @internal */
 export interface RefBase extends Finalizer, RefTracker {}
+
+/** @public */
+export enum Ownership {
+  kRuntime,
+  kUserland
+}
 
 /** @internal */
 export class RefBase extends Finalizer {
@@ -21,12 +26,12 @@ export class RefBase extends Finalizer {
   }
 
   private _refcount: uint32_t
-  private _deleteSelf: boolean
+  private readonly _ownership: Ownership
 
   constructor (
     envObject: Env,
     initial_refcount: uint32_t,
-    delete_self: boolean,
+    ownership: Ownership,
     finalize_callback: napi_finalize,
     finalize_data: void_p,
     finalize_hint: void_p
@@ -35,13 +40,14 @@ export class RefBase extends Finalizer {
     ;(this as any)._next = null
     ;(this as any)._prev = null
     this._refcount = initial_refcount
-    this._deleteSelf = delete_self
+    this._ownership = ownership
 
     this.link(!finalize_callback ? envObject.reflist : envObject.finalizing_reflist)
   }
 
   public dispose (): void {
     this.unlink()
+    this.envObject.dequeueFinalizer(this)
     super.dispose()
   }
 
@@ -64,39 +70,34 @@ export class RefBase extends Finalizer {
     return this._refcount
   }
 
-  public static doDelete (reference: RefBase): void {
-    if ((reference.refCount() !== 0) || (reference._deleteSelf) ||
-        (reference._finalizeRan) || !supportFinalizer) {
-      reference.dispose()
-    } else {
-      // defer until finalizer runs as
-      // it may already be queued
-      reference._deleteSelf = true
-    }
+  public ownership (): Ownership {
+    return this._ownership
   }
 
-  protected finalize (isEnvTeardown = false): void {
-    if (isEnvTeardown && this.refCount() > 0) this._refcount = 0
+  public finalize (): void {
+    const ownership = this._ownership
+    // Swap out the field finalize_callback so that it can not be accidentally
+    // called more than once.
+    const finalize_callback = this._finalizeCallback
+    const finalize_data = this._finalizeData
+    const finalize_hint = this._finalizeHint
+    this.resetFinalizer()
+
+    this.unlink()
 
     let error: any
     let caught = false
-    if (this._finalizeCallback) {
-      const fini = Number(this._finalizeCallback)
-      this._finalizeCallback = 0
+    if (finalize_callback) {
+      const fini = Number(finalize_callback)
       try {
-        this.envObject.callFinalizer(fini, this._finalizeData, this._finalizeHint)
+        this.envObject.callFinalizer(fini, finalize_data, finalize_hint)
       } catch (err) {
         caught = true
         error = err
       }
     }
-    if (this._deleteSelf || isEnvTeardown) {
-      RefBase.doDelete(this)
-    } else {
-      this._finalizeRan = true
-      // leak if this is a non-self-delete weak reference
-      // should call napi_delete_referece manually
-      // Reference.doDelete(this)
+    if (ownership === Ownership.kRuntime) {
+      this.dispose()
     }
     if (caught) {
       throw error

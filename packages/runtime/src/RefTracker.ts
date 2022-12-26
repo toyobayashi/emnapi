@@ -1,7 +1,7 @@
 /** @internal */
 export class RefTracker {
   /** @virtual */
-  protected finalize (_isEnvTeardown: boolean): void {}
+  public finalize (): void {}
 
   private _next: RefTracker | null = null
   private _prev: RefTracker | null = null
@@ -28,7 +28,7 @@ export class RefTracker {
 
   public static finalizeAll (list: RefTracker): void {
     while (list._next !== null) {
-      list._next.finalize(true)
+      list._next.finalize()
     }
   }
 }
