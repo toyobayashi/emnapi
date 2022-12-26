@@ -19,7 +19,7 @@ export class Global<T extends object> {
     this._ref = value
   }
 
-  setWeak<P> (param: any, callback: (param: P) => void): void {
+  setWeak<P> (param: P, callback: (param: P) => void): void {
     if (this._ref === null) return
     if (!supportFinalizer) return
     if (this._ref instanceof WeakRef) return
