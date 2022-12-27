@@ -22,7 +22,7 @@ function napi_get_cb_info (env: napi_env, cbinfo: napi_callback_info, argc: Poin
   const envObject = emnapiCtx.envStore.get(env)!
   if (!cbinfo) return envObject.setLastError(napi_status.napi_invalid_arg)
 
-  const cbinfoValue = emnapiCtx.cbInfoStore.get(cbinfo)!
+  const cbinfoValue = emnapiRt.CallbackInfo.get(cbinfo)!
 
   $from64('argc')
   $from64('argv')
@@ -32,7 +32,8 @@ function napi_get_cb_info (env: napi_env, cbinfo: napi_callback_info, argc: Poin
     const argcValue = $makeGetValue('argc', 0, SIZE_TYPE)
     $from64('argcValue')
 
-    const arrlen = argcValue < cbinfoValue._length ? argcValue : cbinfoValue._length
+    const len = cbinfoValue._args.length
+    const arrlen = argcValue < len ? argcValue : len
     let i = 0
 
     for (; i < arrlen; i++) {
@@ -48,7 +49,7 @@ function napi_get_cb_info (env: napi_env, cbinfo: napi_callback_info, argc: Poin
     }
   }
   if (argc) {
-    $makeSetValue('argc', 0, 'cbinfoValue._length', SIZE_TYPE)
+    $makeSetValue('argc', 0, 'cbinfoValue._args.length', SIZE_TYPE)
   }
   if (this_arg) {
     $from64('this_arg')
@@ -156,7 +157,7 @@ function napi_get_new_target (
 
   $from64('result')
 
-  const cbinfoValue = emnapiCtx.cbInfoStore.get(cbinfo)!
+  const cbinfoValue = emnapiRt.CallbackInfo.get(cbinfo)!
   // @ts-expect-error
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const value = cbinfoValue._newTarget ? envObject.ensureHandleId(cbinfoValue._newTarget) : 0

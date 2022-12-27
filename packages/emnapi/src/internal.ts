@@ -16,10 +16,8 @@ function $emnapiCreateFunction<F extends (...args: any[]) => any> (envObject: em
     'use strict'
     const newTarget = this && this instanceof f ? this.constructor : undefined
     const cbinfo = emnapiRt.CallbackInfo.create(
-      envObject,
       this,
       data,
-      arguments.length,
       Array.prototype.slice.call(arguments),
       newTarget
     )

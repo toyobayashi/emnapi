@@ -2,7 +2,6 @@ import { EnvStore } from './EnvStore'
 import { ScopeStore } from './ScopeStore'
 import { RefStore } from './RefStore'
 import { DeferredStore } from './DeferredStore'
-import { CallbackInfoStore } from './CallbackInfoStore'
 import { HandleStore } from './Handle'
 import type { Handle } from './Handle'
 import { HandleScope } from './HandleScope'
@@ -15,7 +14,6 @@ export class Context {
   public scopeStore: ScopeStore
   public refStore: RefStore
   public deferredStore: DeferredStore
-  public cbInfoStore: CallbackInfoStore
   public handleStore: HandleStore
   private readonly _rootScope: HandleScope
   public currentScope: IHandleScope | null
@@ -25,7 +23,6 @@ export class Context {
     this.scopeStore = new ScopeStore()
     this.refStore = new RefStore()
     this.deferredStore = new DeferredStore()
-    this.cbInfoStore = new CallbackInfoStore()
     this.handleStore = new HandleStore()
 
     this._rootScope = HandleScope.create(this, null)

@@ -3,7 +3,6 @@
  */
 
 export { CallbackInfo } from './CallbackInfo'
-export { CallbackInfoStore } from './CallbackInfoStore'
 export { createContext, Context } from './Context'
 export { Deferred, IDeferrdValue } from './Deferred'
 export { DeferredStore } from './DeferredStore'

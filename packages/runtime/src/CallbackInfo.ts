@@ -1,44 +1,54 @@
-import type { Env } from './env'
 import type { IStoreValue } from './Store'
 
 /** @internal */
 export class CallbackInfo implements IStoreValue {
   public id: number
-  public _isConstructCall: boolean
+
+  private static readonly _stack: CallbackInfo[] = [undefined!]
+
+  private static _next: number = 1
+
+  public static get (id: number): CallbackInfo {
+    return CallbackInfo._stack[id]
+  }
 
   public static create (
-    envObject: Env,
     _this: any,
     _data: void_p,
-    _length: number,
     _args: any[],
     _newTarget: Function | undefined
   ): CallbackInfo {
-    const cbInfo = new CallbackInfo(envObject, _this, _data, _length, _args, _newTarget)
-    envObject.ctx.cbInfoStore.add(cbInfo)
+    let cbInfo: CallbackInfo
+    if (CallbackInfo._stack[CallbackInfo._next]) {
+      cbInfo = CallbackInfo._stack[CallbackInfo._next]
+      cbInfo._this = _this
+      cbInfo._data = _data
+      cbInfo._args = _args
+      cbInfo._newTarget = _newTarget
+    } else {
+      cbInfo = new CallbackInfo(_this, _data, _args, _newTarget)
+      CallbackInfo._stack.push(cbInfo)
+    }
+    cbInfo.id = CallbackInfo._next
+    CallbackInfo._next++
     return cbInfo
   }
 
   private constructor (
-    public envObject: Env,
     public _this: any,
     public _data: void_p,
-    public _length: number,
     public _args: any[],
     public _newTarget: Function | undefined
   ) {
     this.id = 0
-    this._isConstructCall = Boolean(_newTarget)
   }
 
   public dispose (): void {
-    this.envObject.ctx.cbInfoStore.remove(this.id)
     this.id = 0
     this._this = undefined
     this._data = 0
-    this._length = 0
     this._args = undefined!
     this._newTarget = undefined
-    this._isConstructCall = false
+    CallbackInfo._next--
   }
 }
