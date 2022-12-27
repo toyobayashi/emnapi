@@ -19,7 +19,7 @@ function napi_close_handle_scope (env: napi_env, scope: napi_handle_scope): napi
         return napi_status.napi_handle_scope_mismatch
       }
 
-      emnapiCtx.closeScope(envObject, emnapiCtx.scopeStore.get(scope)!)
+      emnapiCtx.closeScope(envObject, scopeObject)
       return envObject.clearLastError()
     })
   })
@@ -46,7 +46,7 @@ function napi_close_escapable_handle_scope (env: napi_env, scope: napi_escapable
         return napi_status.napi_handle_scope_mismatch
       }
 
-      emnapiCtx.closeScope(envObject, emnapiCtx.scopeStore.get(scope)!)
+      emnapiCtx.closeScope(envObject, scopeObject)
       return envObject.clearLastError()
     })
   })
