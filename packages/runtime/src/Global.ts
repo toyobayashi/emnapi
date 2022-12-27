@@ -9,8 +9,12 @@ export class Global<T extends object> {
   private static readonly _registry = supportFinalizer
     ? new FinalizationRegistry((value: Global<any>) => {
       value._ref = null
-      if (typeof value._callback === 'function') {
-        value._callback(value._param)
+      const callback = value._callback
+      const param = value._param
+      value._callback = undefined
+      value._param = undefined
+      if (typeof callback === 'function') {
+        callback(param)
       }
     })
     : undefined!
