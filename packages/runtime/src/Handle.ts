@@ -1,8 +1,6 @@
-import type { IHandleScope } from './HandleScope'
-import type { Reference } from './Reference'
 import { IStoreValue, Store } from './Store'
 import type { Env } from './env'
-import { _global, isReferenceType, supportFinalizer } from './util'
+import { _global, isReferenceType } from './util'
 
 /** @internal */
 export class Handle<S> implements IStoreValue {
@@ -15,10 +13,8 @@ export class Handle<S> implements IStoreValue {
   public id: number
   protected _envObject: Env | undefined
   public value: S
-  public inScope: IHandleScope | null
   public wrapped: number = 0 // wrapped Reference id
   public tag: [number, number, number, number] | null
-  public refs: Reference[]
 
   public getEnv (): Env | undefined {
     return this._envObject
@@ -28,10 +24,8 @@ export class Handle<S> implements IStoreValue {
     this._envObject = envObject
     this.id = id
     this.value = value
-    this.inScope = null
     this.wrapped = 0
     this.tag = null
-    this.refs = []
   }
 
   public moveTo (other: Handle<S>): void {
@@ -41,14 +35,10 @@ export class Handle<S> implements IStoreValue {
     this.id = 0
     // other.value = this.value
     this.value = undefined!
-    // other.inScope = this.inScope
-    this.inScope = null
     other.wrapped = this.wrapped
     this.wrapped = 0
     other.tag = this.tag
     this.tag = null
-    other.refs = this.refs
-    this.refs = []
   }
 
   public isEmpty (): boolean {
@@ -119,41 +109,15 @@ export class Handle<S> implements IStoreValue {
     return !this.isEmpty() && this.value === null
   }
 
-  public addRef (ref: Reference): void {
-    if (this.refs.indexOf(ref) !== -1) {
-      return
-    }
-    this.refs.push(ref)
-  }
-
-  public removeRef (ref: Reference): void {
-    const index = this.refs.indexOf(ref)
-    if (index !== -1) {
-      this.refs.splice(index, 1)
-    }
-    this.tryDispose()
-  }
-
   public tryDispose (): void {
-    if (
-      this.id < HandleStore.getMinId ||
-      this.inScope !== null ||
-      (supportFinalizer ? this.refs.some(ref => ref.refCount() > 0) : (this.refs.length > 0))
-    ) return
+    if (this.id < HandleStore.getMinId) return
     this.dispose()
   }
 
   public dispose (): void {
     if (this.id === 0) return
-    /* if (this.refs.length > 0) {
-      const refs = this.refs
-      for (let i = 0; i < refs.length; i++) {
-        refs[i].queueFinalizer(this.value as unknown as object)
-      }
-    } */
     const id = this.id
     this._envObject?.ctx.handleStore.remove(id)
-    // this.refs = []
     this.id = 0
     this.value = undefined!
   }
@@ -204,11 +168,11 @@ export class HandleStore extends Store<Handle<any>> {
   }
 
   // js object -> Handle
-  private _objWeakMap: WeakMap<object, Handle<object>>
+  private static _objWeakMap: WeakMap<object, Handle<object>>
 
   public constructor () {
     super(16)
-    this._objWeakMap = new WeakMap()
+    HandleStore._objWeakMap = new WeakMap()
     super.add(new Handle(undefined, 1, undefined))
     super.add(new Handle(undefined, 2, null))
     super.add(new Handle(undefined, 3, false))
@@ -220,11 +184,11 @@ export class HandleStore extends Store<Handle<any>> {
     super.add(h)
     const isRefType = isReferenceType(h.value)
     if (isRefType) {
-      if (this._objWeakMap.has(h.value)) {
-        const old = this._objWeakMap.get(h.value)!
+      if (HandleStore._objWeakMap.has(h.value)) {
+        const old = HandleStore._objWeakMap.get(h.value)!
         old.moveTo(h)
       }
-      this._objWeakMap.set(h.value, h)
+      HandleStore._objWeakMap.set(h.value, h)
     }
   }
 
@@ -234,11 +198,11 @@ export class HandleStore extends Store<Handle<any>> {
   }
 
   public getObjectHandle<T extends object> (value: T): Handle<T> | undefined {
-    return this._objWeakMap.get(value) as Handle<T>
+    return HandleStore._objWeakMap.get(value) as Handle<T>
   }
 
   public dispose (): void {
-    this._objWeakMap = null!
+    HandleStore._objWeakMap = null!
     super.dispose()
   }
 }

@@ -26,7 +26,6 @@ export class Reference extends RefBase implements IStoreValue {
     const handle = envObject.ctx.handleStore.get(handle_id)!
     const ref = new Reference(envObject, handle, initialRefcount, ownership, finalize_callback, finalize_data, finalize_hint)
     envObject.ctx.refStore.add(ref)
-    handle.addRef(ref)
     if (supportFinalizer && isReferenceType(handle.value)) {
       ref.persistent = new Global<object>(handle.value)
     } else {
@@ -65,10 +64,8 @@ export class Reference extends RefBase implements IStoreValue {
       const obj = this.persistent.deref()
       if (obj) {
         const handle = this.envObject.ensureHandle(obj)
-        handle.addRef(this)
         this.persistent.clearWeak()
         if (handle !== this.handle) {
-          this.handle.removeRef(this)
           this.handle = handle
         }
       }
@@ -101,9 +98,7 @@ export class Reference extends RefBase implements IStoreValue {
       const obj = this.persistent.deref()
       if (obj) {
         const handle = this.envObject.ensureHandle(obj)
-        handle.addRef(this)
         if (handle !== this.handle) {
-          this.handle.removeRef(this)
           this.handle = handle
         }
         return handle.id
@@ -129,7 +124,6 @@ export class Reference extends RefBase implements IStoreValue {
     if (this.id === 0) return
     this.persistent?.reset()
     this.envObject.ctx.refStore.remove(this.id)
-    this.handle.removeRef(this)
     this.handle = undefined!
     super.dispose()
     this.id = 0

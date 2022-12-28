@@ -71,9 +71,7 @@ export class Env implements IStoreValue {
       }
       if (handle.value === value) {
         // exist in handle store
-        if (!handle.inScope) {
-          this.ctx.currentScope!.addHandle(handle)
-        }
+        this.ctx.currentScope!.addHandle(handle)
         return handle
       }
       // alive, go back to handle store

@@ -63,7 +63,6 @@ export class HandleScope implements IHandleScope {
 
     const h = Handle.create(envObject, value)
     this.handles.push(h)
-    h.inScope = this
     return h
   }
 
@@ -72,7 +71,6 @@ export class HandleScope implements IHandleScope {
       return handle
     }
     this.handles.push(handle)
-    handle.inScope = this
     return handle
   }
 
@@ -81,7 +79,6 @@ export class HandleScope implements IHandleScope {
       const handles = this.handles
       for (let i = 0; i < handles.length; i++) {
         const handle = handles[i]
-        handle.inScope = null
         handle.tryDispose()
       }
       this.handles = []
