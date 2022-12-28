@@ -18,7 +18,7 @@ function $emnapiCreateFunction<F extends (...args: any[]) => any> (envObject: em
     const cbinfo = emnapiRt.CallbackInfo.push(
       this,
       data,
-      Array.prototype.slice.call(arguments),
+      arguments,
       newTarget
     ).id
     const scope = emnapiCtx.openScope(envObject, emnapiRt.HandleScope)

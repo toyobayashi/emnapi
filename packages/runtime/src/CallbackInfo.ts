@@ -17,7 +17,7 @@ export class CallbackInfo implements IStoreValue {
   public static push (
     _this: any,
     _data: void_p,
-    _args: any[],
+    _args: ArrayLike<any>,
     _newTarget: Function | undefined
   ): CallbackInfo {
     return CallbackInfo._stack.push(_this, _data, _args, _newTarget)
@@ -26,7 +26,7 @@ export class CallbackInfo implements IStoreValue {
   public constructor (
     public _this: any,
     public _data: void_p,
-    public _args: any[],
+    public _args: ArrayLike<any>,
     public _newTarget: Function | undefined
   ) {
     this.id = 0
