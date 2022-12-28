@@ -63,25 +63,26 @@ export class Env implements IStoreValue {
   }
 
   public ensureHandle (value: any): Handle<any> {
+    const currentScope = this.ctx.getCurrentScope()!
     if (isReferenceType(value)) {
       const handle = this.ctx.handleStore.getObjectHandle(value)
       if (!handle) {
         // not exist in handle store
-        return this.ctx.currentScope!.add(this, value)
+        return currentScope.add(this, value)
       }
       if (handle.value === value) {
         // exist in handle store
-        this.ctx.currentScope!.addHandle(handle)
+        currentScope.addHandle(handle)
         return handle
       }
       // alive, go back to handle store
       handle.value = value
       Store.prototype.add.call(this.ctx.handleStore, handle)
-      this.ctx.currentScope!.addHandle(handle)
+      currentScope.addHandle(handle)
       return handle
     }
 
-    return this.ctx.currentScope!.add(this, value)
+    return currentScope.add(this, value)
   }
 
   public ensureHandleId (value: any): napi_value {

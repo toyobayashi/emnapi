@@ -5,7 +5,6 @@ import { DeferredStore } from './DeferredStore'
 import { HandleStore } from './Handle'
 import type { Handle } from './Handle'
 import { HandleScope } from './HandleScope'
-import type { IHandleScope } from './HandleScope'
 import type { Env } from './env'
 
 /** @internal */
@@ -15,8 +14,6 @@ export class Context {
   public refStore: RefStore
   public deferredStore: DeferredStore
   public handleStore: HandleStore
-  private readonly _rootScope: HandleScope
-  public currentScope: IHandleScope | null
 
   constructor () {
     this.envStore = new EnvStore()
@@ -24,53 +21,26 @@ export class Context {
     this.refStore = new RefStore()
     this.deferredStore = new DeferredStore()
     this.handleStore = new HandleStore()
-
-    this._rootScope = HandleScope.create(this, null)
-    this.currentScope = null
   }
 
   /** @internal */
-  getCurrentScope (): IHandleScope | null {
-    return this.currentScope
+  getCurrentScope (): HandleScope | null {
+    return this.scopeStore.currentScope
   }
 
   /** @internal */
   addToCurrentScope<V> (envObject: Env, value: V): Handle<V> {
-    return this.currentScope!.add(envObject, value)
+    return this.getCurrentScope()!.add(envObject, value)
   }
 
   /** @internal */
-  openScope<Scope extends HandleScope> (envObject: Env, ScopeConstructor = HandleScope): Scope {
-    if (this.currentScope) {
-      const scope = ScopeConstructor.create(this, this.currentScope)
-      this.currentScope.child = scope
-      this.currentScope = scope
-    } else {
-      this.currentScope = this._rootScope
-    }
-
-    envObject.openHandleScopes++
-    return this.currentScope as Scope
+  openScope (envObject: Env, _ScopeConstructor = HandleScope): HandleScope {
+    return this.scopeStore.openScope(envObject)
   }
 
   /** @internal */
-  closeScope (envObject: Env, scope: IHandleScope): void {
-    if (scope === this.currentScope) {
-      this.currentScope = scope.parent
-    }
-    if (scope.parent) {
-      scope.parent.child = scope.child
-    }
-    if (scope.child) {
-      scope.child.parent = scope.parent
-    }
-    if (scope === this._rootScope) {
-      scope.clearHandles()
-      scope.child = null
-    } else {
-      scope.dispose()
-    }
-    envObject.openHandleScopes--
+  closeScope (envObject: Env, _scope: HandleScope): void {
+    return this.scopeStore.closeScope(envObject)
   }
 
   /** @internal */

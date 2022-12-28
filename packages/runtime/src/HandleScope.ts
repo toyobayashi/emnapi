@@ -1,46 +1,29 @@
 import { Handle, HandleStore } from './Handle'
-import type { IStoreValue } from './Store'
 import { _global } from './util'
 import type { Env } from './env'
 import type { Context } from './Context'
 
 /** @internal */
-export interface IHandleScope extends IStoreValue {
-  parent: IHandleScope | null
-  child: IHandleScope | null
-  handles: Array<Handle<any>>
-  add<V> (envObject: Env, value: V): Handle<V>
-  addHandle<H extends Handle<any>> (handle: H): H
-  clearHandles (): void
-  dispose (): void
-}
-
-/** @internal */
-export class HandleScope implements IHandleScope {
+export class HandleScope {
   public id: number
-  public parent: IHandleScope | null
-  public child: IHandleScope | null
+  public parent: HandleScope | null
   public handles: Array<Handle<any>>
-  private _disposed: boolean = false
+  public _escapeCalled: boolean
 
-  protected static _create<T extends typeof HandleScope> (this: T, ctx: Context, parentScope: IHandleScope | null): InstanceType<T> {
-    const scope = new this(ctx, parentScope)
-    if (parentScope) {
-      parentScope.child = scope
-    }
-    ctx.scopeStore.add(scope)
+  protected static _create<T extends typeof HandleScope> (this: T, ctx: Context, parentScope: HandleScope | null): InstanceType<T> {
+    const scope = ctx.scopeStore.push(ctx, parentScope)
     return scope as InstanceType<T>
   }
 
-  public static create (ctx: Context, parentScope: IHandleScope | null): HandleScope {
+  public static create (ctx: Context, parentScope: HandleScope | null): HandleScope {
     return HandleScope._create(ctx, parentScope)
   }
 
-  public constructor (protected readonly ctx: Context, parentScope: IHandleScope | null) {
+  public constructor (protected readonly ctx: Context, parentScope: HandleScope | null) {
     this.id = 0
     this.parent = parentScope
-    this.child = null
     this.handles = []
+    this._escapeCalled = false
   }
 
   public add<V> (envObject: Env, value: V): Handle<V> {
@@ -81,30 +64,13 @@ export class HandleScope implements IHandleScope {
         const handle = handles[i]
         handle.tryDispose()
       }
-      this.handles = []
+      this.handles.length = 0
     }
   }
 
   public dispose (): void {
-    if (this._disposed) return
-    this._disposed = true
     this.clearHandles()
     this.parent = null
-    this.child = null
-    this.ctx.scopeStore.remove(this.id)
-  }
-}
-
-/** @internal */
-export class EscapableHandleScope extends HandleScope {
-  public static create (ctx: Context, parentScope: IHandleScope | null): EscapableHandleScope {
-    return EscapableHandleScope._create(ctx, parentScope)
-  }
-
-  private _escapeCalled: boolean
-
-  public constructor (ctx: Context, parentScope: IHandleScope | null) {
-    super(ctx, parentScope)
     this._escapeCalled = false
   }
 

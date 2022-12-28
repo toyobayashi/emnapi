@@ -66,7 +66,7 @@ export class Store<V extends IStoreValue> {
 
 export class ReusableStackStore<C extends new (...args: any[]) => IStoreValue> {
   protected _values: Array<IStoreValue | undefined>
-  private _next: number
+  protected _next: number
   private readonly _Ctor: C
 
   public constructor (Ctor: C) {
