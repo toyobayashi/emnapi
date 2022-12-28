@@ -110,7 +110,7 @@ export class Handle<S> implements IStoreValue {
   }
 
   public tryDispose (): void {
-    if (this.id < HandleStore.getMinId) return
+    if (this.id < HandleStore.MIN_ID) return
     this.dispose()
   }
 
@@ -155,9 +155,7 @@ export class HandleStore extends Store<Handle<any>> {
   public static ID_TRUE: 4 = 4
   public static ID_GLOBAL: 5 = 5
 
-  public static get getMinId (): number {
-    return 6
-  }
+  public static MIN_ID = 6
 
   public static globalConstants = {
     [HandleStore.ID_UNDEFINED]: undefined,
@@ -168,11 +166,10 @@ export class HandleStore extends Store<Handle<any>> {
   }
 
   // js object -> Handle
-  private static _objWeakMap: WeakMap<object, Handle<object>>
+  private static readonly _objWeakMap: WeakMap<object, Handle<object>> = new WeakMap()
 
   public constructor () {
     super(16)
-    HandleStore._objWeakMap = new WeakMap()
     super.add(new Handle(undefined, 1, undefined))
     super.add(new Handle(undefined, 2, null))
     super.add(new Handle(undefined, 3, false))
@@ -193,16 +190,11 @@ export class HandleStore extends Store<Handle<any>> {
   }
 
   public override remove (id: number): void {
-    if (!this.has(id) || id < HandleStore.getMinId) return
+    if (!this.has(id) || id < HandleStore.MIN_ID) return
     super.remove(id)
   }
 
   public getObjectHandle<T extends object> (value: T): Handle<T> | undefined {
     return HandleStore._objWeakMap.get(value) as Handle<T>
-  }
-
-  public dispose (): void {
-    HandleStore._objWeakMap = null!
-    super.dispose()
   }
 }
