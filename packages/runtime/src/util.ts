@@ -87,3 +87,19 @@ export const _setImmediate = typeof setImmediate === 'function'
     }
     channel.port2.postMessage(null)
   }
+
+export const construct = supportReflect
+  ? Reflect.construct
+  : function<R> (target: new (...args: any[]) => R, args: ArrayLike<any>, newTarget?: Function): R {
+    const argsList = Array(args.length + 1) as [undefined, ...any[]]
+    argsList[0] = undefined
+    for (let i = 0; i < args.length; i++) {
+      argsList[i + 1] = args[i]
+    }
+    const BoundCtor = target.bind.apply(target as any, argsList) as new () => any
+    const instance = new BoundCtor()
+    if (typeof newTarget === 'function') {
+      Object.setPrototypeOf(instance, newTarget.prototype)
+    }
+    return instance
+  }

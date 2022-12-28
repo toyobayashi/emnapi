@@ -4,21 +4,21 @@
 
 export { CallbackInfo } from './CallbackInfo'
 export { createContext, Context } from './Context'
-export { Deferred, IDeferrdValue } from './Deferred'
+export { Deferred, type IDeferrdValue } from './Deferred'
 export { DeferredStore } from './DeferredStore'
-export { ILastError, Env } from './env'
+export { type ILastError, Env } from './env'
 export { EnvStore } from './EnvStore'
 export { EmnapiError, NotSupportWeakRefError, NotSupportBigIntError } from './errors'
 export { Finalizer } from './Finalizer'
 export { Handle, ExternalHandle, HandleStore } from './Handle'
-export { IHandleScope, HandleScope, EscapableHandleScope } from './HandleScope'
+export { type IHandleScope, HandleScope, EscapableHandleScope } from './HandleScope'
 export { RefBase, Ownership } from './RefBase'
 export { Global } from './Global'
 export { Reference } from './Reference'
 export { RefStore } from './RefStore'
 export { RefTracker } from './RefTracker'
 export { ScopeStore } from './ScopeStore'
-export { Store, IStoreValue } from './Store'
+export { Store, type IStoreValue, ReusableStackStore } from './Store'
 
 export {
   supportReflect,
@@ -28,7 +28,8 @@ export {
   canSetFunctionName,
   isReferenceType,
   TryCatch,
-  _setImmediate
+  _setImmediate,
+  construct
 } from './util'
 
 declare const __VERSION__: string

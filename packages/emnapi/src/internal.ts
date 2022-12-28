@@ -15,27 +15,22 @@ function $emnapiCreateFunction<F extends (...args: any[]) => any> (envObject: em
   const makeFunction = () => function (this: any): any {
     'use strict'
     const newTarget = this && this instanceof f ? this.constructor : undefined
-    const cbinfo = emnapiRt.CallbackInfo.create(
+    const cbinfo = emnapiRt.CallbackInfo.push(
       this,
       data,
       Array.prototype.slice.call(arguments),
       newTarget
-    )
+    ).id
     const scope = emnapiCtx.openScope(envObject, emnapiRt.HandleScope)
-    let r: napi_value
     try {
-      r = envObject.callIntoModule((envObject) => {
-        const napiValue = emnapiGetDynamicCalls.call_ppp(cb, envObject.id, cbinfo.id)
+      return envObject.callIntoModule((envObject) => {
+        const napiValue = emnapiGetDynamicCalls.call_ppp(cb, envObject.id, cbinfo)
         return (!napiValue) ? undefined : emnapiCtx.handleStore.get(napiValue)!.value
       })
-    } catch (err) {
-      cbinfo.dispose()
+    } finally {
+      emnapiRt.CallbackInfo.pop()
       emnapiCtx.closeScope(envObject, scope)
-      throw err
     }
-    cbinfo.dispose()
-    emnapiCtx.closeScope(envObject, scope)
-    return r
   }
 
   if (functionName === '') {

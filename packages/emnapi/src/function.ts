@@ -126,14 +126,24 @@ function napi_new_instance (
 
       const Ctor: new (...args: any[]) => any = emnapiCtx.handleStore.get(constructor)!.value
       if (typeof Ctor !== 'function') return envObject.setLastError(napi_status.napi_invalid_arg)
-      const args = Array(argc + 1) as [undefined, ...any[]]
-      args[0] = undefined
-      for (let i = 0; i < argc; i++) {
-        const argVal = $makeGetValue('argv', 'i * ' + POINTER_SIZE, '*')
-        args[i + 1] = emnapiCtx.handleStore.get(argVal)!.value
+      let ret: any
+      if (emnapiRt.supportReflect) {
+        const argList = Array(argc)
+        for (let i = 0; i < argc; i++) {
+          const argVal = $makeGetValue('argv', 'i * ' + POINTER_SIZE, '*')
+          argList[i] = emnapiCtx.handleStore.get(argVal)!.value
+        }
+        ret = Reflect.construct(Ctor, argList, Ctor)
+      } else {
+        const args = Array(argc + 1) as [undefined, ...any[]]
+        args[0] = undefined
+        for (let i = 0; i < argc; i++) {
+          const argVal = $makeGetValue('argv', 'i * ' + POINTER_SIZE, '*')
+          args[i + 1] = emnapiCtx.handleStore.get(argVal)!.value
+        }
+        const BoundCtor = Ctor.bind.apply(Ctor, args) as new () => any
+        ret = new BoundCtor()
       }
-      const BoundCtor = Ctor.bind.apply(Ctor, args) as new () => any
-      const ret = new BoundCtor()
       if (result) {
         // @ts-expect-error
         // eslint-disable-next-line @typescript-eslint/no-unused-vars

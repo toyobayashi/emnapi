@@ -1,40 +1,29 @@
-import type { IStoreValue } from './Store'
+import { type IStoreValue, ReusableStackStore } from './Store'
 
 /** @internal */
 export class CallbackInfo implements IStoreValue {
   public id: number
 
-  private static readonly _stack: CallbackInfo[] = [undefined!]
+  private static readonly _stack = new ReusableStackStore(CallbackInfo)
 
-  private static _next: number = 1
-
-  public static get (id: number): CallbackInfo {
-    return CallbackInfo._stack[id]
+  public static get (id: number): CallbackInfo | undefined {
+    return CallbackInfo._stack.get(id)
   }
 
-  public static create (
+  public static pop (): void {
+    CallbackInfo._stack.pop()
+  }
+
+  public static push (
     _this: any,
     _data: void_p,
     _args: any[],
     _newTarget: Function | undefined
   ): CallbackInfo {
-    let cbInfo: CallbackInfo
-    if (CallbackInfo._stack[CallbackInfo._next]) {
-      cbInfo = CallbackInfo._stack[CallbackInfo._next]
-      cbInfo._this = _this
-      cbInfo._data = _data
-      cbInfo._args = _args
-      cbInfo._newTarget = _newTarget
-    } else {
-      cbInfo = new CallbackInfo(_this, _data, _args, _newTarget)
-      CallbackInfo._stack.push(cbInfo)
-    }
-    cbInfo.id = CallbackInfo._next
-    CallbackInfo._next++
-    return cbInfo
+    return CallbackInfo._stack.push(_this, _data, _args, _newTarget)
   }
 
-  private constructor (
+  public constructor (
     public _this: any,
     public _data: void_p,
     public _args: any[],
@@ -49,6 +38,5 @@ export class CallbackInfo implements IStoreValue {
     this._data = 0
     this._args = undefined!
     this._newTarget = undefined
-    CallbackInfo._next--
   }
 }
