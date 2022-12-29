@@ -1,7 +1,7 @@
 import type { Handle } from './Handle'
 import type { Context } from './Context'
-import { IStoreValue, Store } from './Store'
-import { TryCatch, isReferenceType, _setImmediate } from './util'
+import type { IStoreValue } from './Store'
+import { TryCatch, _setImmediate } from './util'
 import { RefTracker } from './RefTracker'
 import { HandleScope } from './HandleScope'
 import { RefBase } from './RefBase'
@@ -64,24 +64,6 @@ export class Env implements IStoreValue {
 
   public ensureHandle (value: any): Handle<any> {
     const currentScope = this.ctx.getCurrentScope()!
-    if (isReferenceType(value)) {
-      const handle = this.ctx.handleStore.getObjectHandle(value)
-      if (!handle) {
-        // not exist in handle store
-        return currentScope.add(this, value)
-      }
-      if (handle.value === value) {
-        // exist in handle store
-        currentScope.addHandle(handle)
-        return handle
-      }
-      // alive, go back to handle store
-      handle.value = value
-      Store.prototype.add.call(this.ctx.handleStore, handle)
-      currentScope.addHandle(handle)
-      return handle
-    }
-
     return currentScope.add(this, value)
   }
 

@@ -13,8 +13,8 @@ export class ScopeStore extends ReusableStackStore<typeof HandleScope> {
   openScope (envObject: Env): HandleScope {
     const scope = this._values[this._next] as HandleScope
     if (scope) {
-      scope.parent = this.currentScope
-      scope._escapeCalled = false
+      scope.init(envObject.ctx, this.currentScope)
+      scope.id = this._next
       this.currentScope = scope
       this._next++
     } else {
@@ -26,9 +26,9 @@ export class ScopeStore extends ReusableStackStore<typeof HandleScope> {
   }
 
   closeScope (envObject: Env): void {
-    if (!this.currentScope) return
-    const scope = this.currentScope
-    this.currentScope = this.currentScope.parent
+    if (envObject.openHandleScopes === 0) return
+    const scope = this.currentScope!
+    this.currentScope = scope.parent
     scope.dispose()
     this._next--
     envObject.openHandleScopes--

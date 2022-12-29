@@ -88,7 +88,7 @@ export class Reference extends RefBase implements IStoreValue {
           this._setWeak()
         }
       }
-      this.handle.tryDispose()
+      this.handle.dispose()
     }
     return refcount
   }

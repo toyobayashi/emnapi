@@ -1,14 +1,16 @@
-import { Handle, HandleStore } from './Handle'
+import { ExternalHandle, Handle, HandleStore } from './Handle'
 import { _global } from './util'
 import type { Env } from './env'
 import type { Context } from './Context'
 
 /** @internal */
 export class HandleScope {
-  public id: number
-  public parent: HandleScope | null
-  public handles: Array<Handle<any>>
-  public _escapeCalled: boolean
+  public ctx!: Context
+  public id!: number
+  public parent!: HandleScope | null
+  public start!: number
+  public end!: number
+  public _escapeCalled!: boolean
 
   protected static _create<T extends typeof HandleScope> (this: T, ctx: Context, parentScope: HandleScope | null): InstanceType<T> {
     const scope = ctx.scopeStore.push(ctx, parentScope)
@@ -19,18 +21,20 @@ export class HandleScope {
     return HandleScope._create(ctx, parentScope)
   }
 
-  public constructor (protected readonly ctx: Context, parentScope: HandleScope | null) {
+  public constructor (ctx: Context, parentScope: HandleScope | null) {
+    this.init(ctx, parentScope)
+  }
+
+  public init (ctx: Context, parentScope: HandleScope | null): void {
+    this.ctx = ctx
     this.id = 0
     this.parent = parentScope
-    this.handles = []
+    this.start = parentScope ? parentScope.end : HandleStore.MIN_ID
+    this.end = this.start
     this._escapeCalled = false
   }
 
   public add<V> (envObject: Env, value: V): Handle<V> {
-    if (value instanceof Handle) {
-      throw new TypeError('Can not add a handle to scope')
-    }
-
     if (value === undefined) {
       return envObject.ctx.handleStore.get(HandleStore.ID_UNDEFINED)!
     }
@@ -45,69 +49,34 @@ export class HandleScope {
     }
 
     const h = Handle.create(envObject, value)
-    this.handles.push(h)
+    this.end++
     return h
   }
 
-  public addHandle<H extends Handle<any>> (handle: H): H {
-    if (this.handles.indexOf(handle) !== -1) {
-      return handle
-    }
-    this.handles.push(handle)
-    return handle
-  }
-
-  public clearHandles (): void {
-    if (this.handles.length > 0) {
-      const handles = this.handles
-      for (let i = 0; i < handles.length; i++) {
-        const handle = handles[i]
-        handle.tryDispose()
-      }
-      this.handles.length = 0
-    }
+  public addExternal (envObject: Env, data: void_p): Handle<object> {
+    const h = ExternalHandle.createExternal(envObject, data)
+    this.end++
+    return h
   }
 
   public dispose (): void {
-    this.clearHandles()
-    this.parent = null
-    this._escapeCalled = false
+    this.ctx.handleStore.pop(this.end - this.start)
+    this.init(this.ctx, null)
   }
 
-  public escape (handle: number | Handle<any>): Handle<any> | null {
+  public escape (handle: number): Handle<any> | null {
     if (this._escapeCalled) return null
     this._escapeCalled = true
-    let exists: boolean = false
-    let index: number = -1
-    let handleId: number
-    if (typeof handle === 'number') {
-      handleId = handle
-      for (let i = 0; i < this.handles.length; i++) {
-        if (this.handles[i].id === handleId) {
-          index = i
-          exists = true
-          break
-        }
-      }
-    } else {
-      handleId = handle.id
-      index = this.handles.indexOf(handle)
-      exists = index !== -1
-    }
-    if (exists) {
-      const h = this.ctx.handleStore.get(handleId)
-      if (h && this.parent !== null) {
-        const envObject = h.getEnv()!
-        this.handles.splice(index, 1)
-        this.ctx.handleStore.remove(handleId)
-        const newHandle = this.parent.add(envObject, h.value)
-        return newHandle
-      } else {
-        return null
-      }
-    } else {
+
+    if (handle < this.start || handle >= this.end) {
       return null
     }
+
+    this.ctx.handleStore.swap(handle, this.start)
+    const h = this.ctx.handleStore.get(this.start)!
+    this.start++
+    this.parent!.end++
+    return h
   }
 
   public escapeCalled (): boolean {
