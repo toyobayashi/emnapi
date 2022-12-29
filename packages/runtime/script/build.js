@@ -145,6 +145,7 @@ function build () {
     let iifeDts = fs.readFileSync(iifeDtsPath, 'utf8')
     iifeDts = iifeDts.replace(/export { }/g, '')
     iifeDts = iifeDts.replace(/export declare/g, 'export')
+    iifeDts = iifeDts.replace(/declare /g, '')
     iifeDts = 'declare namespace emnapi {\n\n' + iifeDts
     iifeDts += '\n\n}'
     fs.writeFileSync(iifeDtsPath, iifeDts, 'utf8')
