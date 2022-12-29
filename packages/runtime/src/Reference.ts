@@ -3,7 +3,7 @@ import { supportFinalizer, isReferenceType } from './util'
 import type { Env } from './env'
 import type { Handle } from './Handle'
 import { Ownership, RefBase } from './RefBase'
-import { Persistent } from './Global'
+import { Persistent } from './Persistent'
 
 function weakCallback (ref: Reference): void {
   ref.persistent!.reset()
