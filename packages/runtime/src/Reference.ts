@@ -3,7 +3,7 @@ import { supportFinalizer, isReferenceType } from './util'
 import type { Env } from './env'
 import type { Handle } from './Handle'
 import { Ownership, RefBase } from './RefBase'
-import { Global } from './Global'
+import { Persistent } from './Global'
 
 function weakCallback (ref: Reference): void {
   ref.persistent!.reset()
@@ -27,7 +27,7 @@ export class Reference extends RefBase implements IStoreValue {
     const ref = new Reference(envObject, handle, initialRefcount, ownership, finalize_callback, finalize_data, finalize_hint)
     envObject.ctx.refStore.add(ref)
     if (supportFinalizer && isReferenceType(handle.value)) {
-      ref.persistent = new Global<object>(handle.value)
+      ref.persistent = new Persistent<object>(handle.value)
     } else {
       ref.persistent = null
     }
@@ -38,7 +38,7 @@ export class Reference extends RefBase implements IStoreValue {
     return ref
   }
 
-  public persistent!: Global<object> | null
+  public persistent!: Persistent<object> | null
 
   private constructor (
     public envObject: Env,

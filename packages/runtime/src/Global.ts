@@ -1,13 +1,13 @@
 import { supportFinalizer } from './util'
 
 /** @public */
-export class Global<T extends object> {
+export class Persistent<T extends object> {
   private _ref: T | WeakRef<T> | null
   private _param: any
   private _callback: ((param: any) => void) | undefined
 
   private static readonly _registry = supportFinalizer
-    ? new FinalizationRegistry((value: Global<any>) => {
+    ? new FinalizationRegistry((value: Persistent<any>) => {
       value._ref = null
       const callback = value._callback
       const param = value._param
@@ -29,7 +29,7 @@ export class Global<T extends object> {
     if (this._ref instanceof WeakRef) return
     this._param = param
     this._callback = callback
-    Global._registry.register(this._ref, this, this)
+    Persistent._registry.register(this._ref, this, this)
     this._ref = new WeakRef<T>(this._ref)
   }
 
@@ -38,7 +38,7 @@ export class Global<T extends object> {
     if (!supportFinalizer) return
     if (this._ref instanceof WeakRef) {
       try {
-        Global._registry.unregister(this)
+        Persistent._registry.unregister(this)
       } catch (_) {}
       this._param = undefined
       this._callback = undefined
@@ -49,7 +49,7 @@ export class Global<T extends object> {
   reset (other?: T | WeakRef<T>): void {
     if (supportFinalizer) {
       try {
-        Global._registry.unregister(this)
+        Persistent._registry.unregister(this)
       } catch (_) {}
     }
     this._param = undefined
