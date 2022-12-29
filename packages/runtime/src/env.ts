@@ -1,7 +1,7 @@
-import type { Handle } from './Handle'
+import { Handle, HandleStore } from './Handle'
 import type { Context } from './Context'
 import type { IStoreValue } from './Store'
-import { TryCatch, _setImmediate } from './util'
+import { isReferenceType, TryCatch, _global, _setImmediate } from './util'
 import { RefTracker } from './RefTracker'
 import { HandleScope } from './HandleScope'
 import { RefBase } from './RefBase'
@@ -62,9 +62,35 @@ export class Env implements IStoreValue {
     }
   }
 
-  public ensureHandle (value: any): Handle<any> {
+  public ensureHandle<S> (value: S): Handle<S> {
+    if (value === undefined) {
+      return this.ctx.handleStore.get(HandleStore.ID_UNDEFINED)!
+    }
+    if (value === null) {
+      return this.ctx.handleStore.get(HandleStore.ID_NULL)!
+    }
+    if (typeof value === 'boolean') {
+      return this.ctx.handleStore.get(value ? HandleStore.ID_TRUE : HandleStore.ID_FALSE)!
+    }
+    if ((value as any) === _global) {
+      return this.ctx.handleStore.get(HandleStore.ID_GLOBAL)!
+    }
+
     const currentScope = this.ctx.getCurrentScope()!
-    return currentScope.add(this, value)
+    const isRefType = isReferenceType(value)
+    if (isRefType) {
+      const h = HandleStore.getObjectHandle(value)
+      if (!h) {
+        return currentScope.add(this, value, true)
+      }
+      if (h.value === value) {
+        return h
+      }
+      h.value = value
+      currentScope.addHandle(h)
+      return h
+    }
+    return currentScope.add(this, value, false)
   }
 
   public ensureHandleId (value: any): napi_value {

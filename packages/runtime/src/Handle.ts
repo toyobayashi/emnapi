@@ -1,11 +1,11 @@
 import type { IStoreValue } from './Store'
 import type { Env } from './env'
-import { _global, isReferenceType } from './util'
+import { _global } from './util'
 
 /** @internal */
 export class Handle<S> implements IStoreValue {
-  public static create<S> (envObject: Env, value: S): Handle<S> {
-    return envObject.ctx.handleStore.push(value)
+  public static create<S> (envObject: Env, value: S, isRefType: boolean): Handle<S> {
+    return envObject.ctx.handleStore.push(value, isRefType)
   }
 
   public id: number
@@ -147,25 +147,22 @@ export class HandleStore {
   // js object -> Handle
   private static readonly _objWeakMap: WeakMap<object, Handle<object>> = new WeakMap()
 
-  public push<S> (value: S): Handle<S> {
-    const isRefType = isReferenceType(value)
-    let h: Handle<S>
+  public static getObjectHandle<S extends object> (value: S): Handle<S> | undefined {
+    return HandleStore._objWeakMap.get(value) as Handle<S>
+  }
+
+  public push<S> (value: S, isRefType: boolean): Handle<S> {
+    const h = new Handle(this._values.length, value)
+    this._values.push(h)
     if (isRefType) {
-      if (HandleStore._objWeakMap.has(value)) {
-        h = HandleStore._objWeakMap.get(value) as any
-        h.value = value
-        h.id = this._values.length
-        this._values.push(h)
-      } else {
-        h = new Handle(this._values.length, value)
-        this._values.push(h)
-        HandleStore._objWeakMap.set(value, h as any)
-      }
-    } else {
-      h = new Handle(this._values.length, value)
-      this._values.push(h)
+      HandleStore._objWeakMap.set(value as any, h as any)
     }
     return h
+  }
+
+  public pushHandle (handle: Handle<any>): void {
+    handle.id = this._values.length
+    this._values.push(handle)
   }
 
   public pushExternal (data: void_p): ExternalHandle {

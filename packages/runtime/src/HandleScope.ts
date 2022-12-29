@@ -1,5 +1,4 @@
 import { ExternalHandle, Handle, HandleStore } from './Handle'
-import { _global } from './util'
 import type { Env } from './env'
 import type { Context } from './Context'
 import type { IReusableStoreValue } from './Store'
@@ -35,23 +34,15 @@ export class HandleScope implements IReusableStoreValue {
     this._escapeCalled = false
   }
 
-  public add<V> (envObject: Env, value: V): Handle<V> {
-    if (value === undefined) {
-      return envObject.ctx.handleStore.get(HandleStore.ID_UNDEFINED)!
-    }
-    if (value === null) {
-      return envObject.ctx.handleStore.get(HandleStore.ID_NULL)!
-    }
-    if (typeof value === 'boolean') {
-      return envObject.ctx.handleStore.get(value ? HandleStore.ID_TRUE : HandleStore.ID_FALSE)!
-    }
-    if ((value as any) === _global) {
-      return envObject.ctx.handleStore.get(HandleStore.ID_GLOBAL)!
-    }
-
-    const h = Handle.create(envObject, value)
+  public add<V> (envObject: Env, value: V, isRefType: boolean): Handle<V> {
+    const h = Handle.create(envObject, value, isRefType)
     this.end++
     return h
+  }
+
+  public addHandle (handle: Handle<any>): void {
+    this.ctx.handleStore.pushHandle(handle)
+    this.end++
   }
 
   public addExternal (envObject: Env, data: void_p): Handle<object> {

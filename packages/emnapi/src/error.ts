@@ -115,7 +115,7 @@ function napi_create_error (env: napi_env, code: napi_value, msg: napi_value, re
 
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const value = emnapiCtx.addToCurrentScope(envObject, error).id
+      const value = emnapiCtx.addToCurrentScope(envObject, error, true).id
       $makeSetValue('result', 0, 'value', '*')
       return envObject.clearLastError()
     })
@@ -136,7 +136,7 @@ function napi_create_type_error (env: napi_env, code: napi_value, msg: napi_valu
 
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const value = emnapiCtx.addToCurrentScope(envObject, error).id
+      const value = emnapiCtx.addToCurrentScope(envObject, error, true).id
       $makeSetValue('result', 0, 'value', '*')
       return envObject.clearLastError()
     })
@@ -157,7 +157,7 @@ function napi_create_range_error (env: napi_env, code: napi_value, msg: napi_val
 
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const value = emnapiCtx.addToCurrentScope(envObject, error).id
+      const value = emnapiCtx.addToCurrentScope(envObject, error, true).id
       $makeSetValue('result', 0, 'value', '*')
       return envObject.clearLastError()
     })
@@ -178,7 +178,7 @@ function node_api_create_syntax_error (env: napi_env, code: napi_value, msg: nap
 
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const value = emnapiCtx.addToCurrentScope(envObject, error).id
+      const value = emnapiCtx.addToCurrentScope(envObject, error, true).id
       $makeSetValue('result', 0, 'value', '*')
       return envObject.clearLastError()
     })

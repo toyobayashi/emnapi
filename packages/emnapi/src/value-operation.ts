@@ -63,7 +63,7 @@ function napi_coerce_to_number (env: napi_env, value: napi_value, result: Pointe
 
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const v = emnapiCtx.addToCurrentScope(envObject, Number(handle.value)).id
+      const v = emnapiCtx.addToCurrentScope(envObject, Number(handle.value), false).id
       $makeSetValue('result', 0, 'v', '*')
       return envObject.getReturnStatus()
     })
@@ -96,7 +96,7 @@ function napi_coerce_to_string (env: napi_env, value: napi_value, result: Pointe
 
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const v = emnapiCtx.addToCurrentScope(envObject, String(handle.value)).id
+      const v = emnapiCtx.addToCurrentScope(envObject, String(handle.value), false).id
       $makeSetValue('result', 0, 'v', '*')
       return envObject.getReturnStatus()
     })
