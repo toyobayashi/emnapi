@@ -109,7 +109,7 @@ function napi_create_error (env: napi_env, code: napi_value, msg: napi_value, re
       }
 
       const error = new Error(msgValue)
-      const status = emnapiSetErrorCode(envObject, error, code, NULL)
+      const status = emnapiSetErrorCode(envObject, error, code, /* NULL */ 0)
       if (status !== napi_status.napi_ok) return status
       $from64('result')
 
@@ -130,7 +130,7 @@ function napi_create_type_error (env: napi_env, code: napi_value, msg: napi_valu
         return envObject.setLastError(napi_status.napi_string_expected)
       }
       const error = new TypeError(msgValue)
-      const status = emnapiSetErrorCode(envObject, error, code, NULL)
+      const status = emnapiSetErrorCode(envObject, error, code, /* NULL */ 0)
       if (status !== napi_status.napi_ok) return status
       $from64('result')
 
@@ -151,7 +151,7 @@ function napi_create_range_error (env: napi_env, code: napi_value, msg: napi_val
         return envObject.setLastError(napi_status.napi_string_expected)
       }
       const error = new RangeError(msgValue)
-      const status = emnapiSetErrorCode(envObject, error, code, NULL)
+      const status = emnapiSetErrorCode(envObject, error, code, /* NULL */ 0)
       if (status !== napi_status.napi_ok) return status
       $from64('result')
 
@@ -172,7 +172,7 @@ function node_api_create_syntax_error (env: napi_env, code: napi_value, msg: nap
         return envObject.setLastError(napi_status.napi_string_expected)
       }
       const error = new SyntaxError(msgValue)
-      const status = emnapiSetErrorCode(envObject, error, code, NULL)
+      const status = emnapiSetErrorCode(envObject, error, code, /* NULL */ 0)
       if (status !== napi_status.napi_ok) return status
       $from64('result')
 

@@ -24,7 +24,6 @@
       {
         "transform": "@tybys/ts-transform-define",
         "defines": {
-          "NULL": 0,
           "__VERSION__": "\"0.21.1\""
         }
       }

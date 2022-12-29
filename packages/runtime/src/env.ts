@@ -63,17 +63,13 @@ export class Env implements IStoreValue {
   }
 
   public ensureHandle<S> (value: S): Handle<S> {
-    if (value === undefined) {
-      return this.ctx.handleStore.get(HandleStore.ID_UNDEFINED)!
-    }
-    if (value === null) {
-      return this.ctx.handleStore.get(HandleStore.ID_NULL)!
-    }
-    if (typeof value === 'boolean') {
-      return this.ctx.handleStore.get(value ? HandleStore.ID_TRUE : HandleStore.ID_FALSE)!
-    }
-    if ((value as any) === _global) {
-      return this.ctx.handleStore.get(HandleStore.ID_GLOBAL)!
+    switch (value as any) {
+      case undefined: return HandleStore.UNDEFINED as any
+      case null: return HandleStore.NULL as any
+      case true: return HandleStore.TRUE as any
+      case false: return HandleStore.FALSE as any
+      case _global: return HandleStore.GLOBAL as any
+      default: break
     }
 
     const currentScope = this.ctx.getCurrentScope()!

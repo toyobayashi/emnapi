@@ -379,8 +379,6 @@ function napi_get_value_int32 (env: napi_env, value: napi_value, result: Pointer
   })
 }
 
-declare const INT64_RANGE_POSITIVE: number
-declare const INT64_RANGE_NEGATIVE: number
 function napi_get_value_int64 (env: napi_env, value: napi_value, result: Pointer<int64_t>): napi_status {
   return emnapiCtx.checkEnv(env, (envObject) => {
     return emnapiCtx.checkArgs(envObject, [value, result], () => {
@@ -393,10 +391,10 @@ function napi_get_value_int64 (env: napi_env, value: napi_value, result: Pointer
       if (numberValue === Number.POSITIVE_INFINITY || numberValue === Number.NEGATIVE_INFINITY || isNaN(numberValue)) {
         HEAP32[result >> 2] = 0
         HEAP32[result + 4 >> 2] = 0
-      } else if (numberValue < INT64_RANGE_NEGATIVE) {
+      } else if (numberValue < /* INT64_RANGE_NEGATIVE */ -9223372036854776000) {
         HEAP32[result >> 2] = 0
         HEAP32[result + 4 >> 2] = 0x80000000
-      } else if (numberValue >= INT64_RANGE_POSITIVE) {
+      } else if (numberValue >= /* INT64_RANGE_POSITIVE */ 9223372036854776000) {
         HEAPU32[result >> 2] = 0xffffffff
         HEAPU32[result + 4 >> 2] = 0x7fffffff
       } else {

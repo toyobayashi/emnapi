@@ -119,29 +119,27 @@ export class ExternalHandle extends Handle<{}> {
 
 /** @internal */
 export class HandleStore {
-  public static ID_UNDEFINED: 1 = 1
-  public static ID_NULL: 2 = 2
-  public static ID_FALSE: 3 = 3
-  public static ID_TRUE: 4 = 4
-  public static ID_GLOBAL: 5 = 5
+  public static UNDEFINED = new Handle(1, undefined)
+  public static NULL = new Handle(2, null)
+  public static FALSE = new Handle(3, false)
+  public static TRUE = new Handle(4, true)
+  public static GLOBAL = new Handle(5, _global)
 
-  public static MIN_ID: 6 = 6
+  public static ID_UNDEFINED = HandleStore.UNDEFINED.id as 1
+  public static ID_NULL = HandleStore.NULL.id as 2
+  public static ID_FALSE = HandleStore.FALSE.id as 3
+  public static ID_TRUE = HandleStore.TRUE.id as 4
+  public static ID_GLOBAL = HandleStore.GLOBAL.id as 5
 
-  public static globalConstants = {
-    [HandleStore.ID_UNDEFINED]: undefined,
-    [HandleStore.ID_NULL]: null,
-    [HandleStore.ID_FALSE]: false,
-    [HandleStore.ID_TRUE]: true,
-    [HandleStore.ID_GLOBAL]: _global
-  }
+  public static MIN_ID = 6 as const
 
   private readonly _values: Array<Handle<any>> = [
     undefined!,
-    new Handle(1, undefined),
-    new Handle(2, null),
-    new Handle(3, false),
-    new Handle(4, true),
-    new Handle(5, _global)
+    HandleStore.UNDEFINED,
+    HandleStore.NULL,
+    HandleStore.FALSE,
+    HandleStore.TRUE,
+    HandleStore.GLOBAL
   ]
 
   // js object -> Handle
