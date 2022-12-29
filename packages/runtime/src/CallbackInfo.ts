@@ -1,8 +1,12 @@
-import { type IStoreValue, ReusableStackStore } from './Store'
+import { type IReusableStoreValue, ReusableStackStore } from './Store'
 
 /** @internal */
-export class CallbackInfo implements IStoreValue {
-  public id: number
+export class CallbackInfo implements IReusableStoreValue {
+  public id!: number
+  public _this!: any
+  public _data!: void_p
+  public _args!: ArrayLike<any>
+  public _newTarget!: Function | undefined
 
   private static readonly _stack = new ReusableStackStore(CallbackInfo)
 
@@ -24,19 +28,28 @@ export class CallbackInfo implements IStoreValue {
   }
 
   public constructor (
-    public _this: any,
-    public _data: void_p,
-    public _args: ArrayLike<any>,
-    public _newTarget: Function | undefined
+    _this: any,
+    _data: void_p,
+    _args: ArrayLike<any>,
+    _newTarget: Function | undefined
   ) {
+    this.init(_this, _data, _args, _newTarget)
+  }
+
+  public init (
+    _this: any,
+    _data: void_p,
+    _args: ArrayLike<any>,
+    _newTarget: Function | undefined
+  ): void {
     this.id = 0
+    this._this = _this
+    this._data = _data
+    this._args = _args
+    this._newTarget = _newTarget
   }
 
   public dispose (): void {
-    this.id = 0
-    this._this = undefined
-    this._data = 0
-    this._args = undefined!
-    this._newTarget = undefined
+    this.init(undefined, 0, undefined!, undefined)
   }
 }

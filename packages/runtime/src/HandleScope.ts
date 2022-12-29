@@ -2,9 +2,10 @@ import { ExternalHandle, Handle, HandleStore } from './Handle'
 import { _global } from './util'
 import type { Env } from './env'
 import type { Context } from './Context'
+import type { IReusableStoreValue } from './Store'
 
 /** @internal */
-export class HandleScope {
+export class HandleScope implements IReusableStoreValue {
   public ctx!: Context
   public id!: number
   public parent!: HandleScope | null

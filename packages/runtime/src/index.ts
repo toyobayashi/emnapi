@@ -18,7 +18,7 @@ export { Reference } from './Reference'
 export { RefStore } from './RefStore'
 export { RefTracker } from './RefTracker'
 export { ScopeStore } from './ScopeStore'
-export { Store, type IStoreValue, ReusableStackStore } from './Store'
+export { Store, type IStoreValue, type IReusableStoreValue, ReusableStackStore } from './Store'
 
 export {
   supportReflect,
