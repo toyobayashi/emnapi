@@ -72,6 +72,26 @@ function testReturnObject (embind, napi, naa) {
   suite.run({ async: false })
 }
 
+function testFib (embind, napi, naa) {
+  const suite = new Benchmark.Suite('fib')
+  suite.add('embind#fib', function () {
+    embind.fib(24)
+  })
+  suite.add('napi#fib', function () {
+    napi.fib(24)
+  })
+  suite.add('naa#fib', function () {
+    naa.fib(24)
+  })
+  suite.on('cycle', function (event) {
+    console.log(String(event.target))
+  })
+  suite.on('complete', function () {
+    console.log('Fastest is ' + this.filter('fastest').map('name'))
+  })
+  suite.run({ async: false })
+}
+
 function browserMain () {
   Promise.all([
     window.embindcpp.default({ emnapiRuntime: window.emnapi }),
@@ -87,6 +107,7 @@ function browserMain () {
       testEmptyFunction(embind, napi, naa)
       testReturnPrimitive(embind, napi, naa)
       testReturnObject(embind, napi, naa)
+      testFib(embind, napi, naa)
     })
   })
 }
@@ -104,5 +125,6 @@ function nodeMain () {
     testEmptyFunction(embind, napi, naa)
     testReturnPrimitive(embind, napi, naa)
     testReturnObject(embind, napi, naa)
+    testFib(embind, napi, naa)
   })
 }
