@@ -48,7 +48,7 @@ function napi_define_class (
           if (!name) {
             return envObject.setLastError(napi_status.napi_name_expected)
           }
-          propertyName = emnapiCtx.handleStore.get(name)!.value
+          propertyName = emnapiCtx.handleStore.get(name)
           if (typeof propertyName !== 'string' && typeof propertyName !== 'symbol') {
             return envObject.setLastError(napi_status.napi_name_expected)
           }
@@ -63,9 +63,9 @@ function napi_define_class (
 
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const valueHandle = emnapiCtx.addToCurrentScope(F)
+      const valueHandleId = emnapiCtx.addToCurrentScope(F)
       $from64('result')
-      $makeSetValue('result', 0, 'valueHandle.id', '*')
+      $makeSetValue('result', 0, 'valueHandleId', '*')
       return envObject.getReturnStatus()
     })
   })
@@ -101,14 +101,14 @@ function napi_type_tag_object (env: napi_env, object: napi_value, type_tag: Cons
       return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_invalid_arg)
     }
     const value = emnapiCtx.handleStore.get(object)!
-    if (!(value.isObject() || value.isFunction())) {
+    if (!(emnapiRt.isObject(value) || typeof value === 'function')) {
       return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_object_expected)
     }
     $from64('type_tag')
     if (!type_tag) {
       return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_invalid_arg)
     }
-    const binding = emnapiRt.HandleStore.getObjectBinding(value.value)
+    const binding = emnapiRt.HandleStore.getObjectBinding(value)
     if (binding.tag !== null) {
       return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_invalid_arg)
     }
@@ -128,8 +128,8 @@ function napi_check_object_type_tag (env: napi_env, object: napi_value, type_tag
     if (!object) {
       return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_invalid_arg)
     }
-    const value = emnapiCtx.handleStore.get(object)!
-    if (!(value.isObject() || value.isFunction())) {
+    const value = emnapiCtx.handleStore.get(object)
+    if (!(emnapiRt.isObject(value) || typeof value === 'function')) {
       return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_object_expected)
     }
     if (!type_tag) {
@@ -139,7 +139,7 @@ function napi_check_object_type_tag (env: napi_env, object: napi_value, type_tag
       return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_invalid_arg)
     }
     let ret = true
-    const binding = emnapiRt.HandleStore.getObjectBinding(value.value)
+    const binding = emnapiRt.HandleStore.getObjectBinding(value)
     if (binding.tag !== null) {
       $from64('type_tag')
       for (let i = 0; i < 4; i++) {

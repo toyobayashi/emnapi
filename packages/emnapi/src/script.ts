@@ -5,12 +5,12 @@ function napi_run_script (env: napi_env, script: napi_value, result: Pointer<nap
 // #if DYNAMIC_EXECUTION
   return emnapiCtx.preamble(env, (envObject) => {
     return emnapiCtx.checkArgs(envObject, [script, result], () => {
-      const v8Script = emnapiCtx.handleStore.get(script)!
-      if (!v8Script.isString()) {
+      const v8Script = emnapiCtx.handleStore.get(script)
+      if (typeof v8Script !== 'string') {
         return envObject.setLastError(napi_status.napi_string_expected)
       }
-      const g: typeof globalThis = emnapiCtx.handleStore.get(emnapiRt.HandleStore.ID_GLOBAL)!.value
-      const ret = g.eval(v8Script.value)
+      const g: typeof globalThis = emnapiCtx.handleStore.get(emnapiRt.HandleStore.ID_GLOBAL)
+      const ret = g.eval(v8Script)
       $from64('result')
 
       // @ts-expect-error

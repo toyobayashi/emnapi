@@ -12,7 +12,7 @@ function napi_create_promise (env: napi_env, deferred: Pointer<napi_deferred>, p
 
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const value = emnapiCtx.addToCurrentScope(p).id
+      const value = emnapiCtx.addToCurrentScope(p)
       $makeSetValue('promise', 0, 'value', '*')
       return envObject.getReturnStatus()
     })
@@ -23,7 +23,7 @@ function napi_resolve_deferred (env: napi_env, deferred: napi_deferred, resoluti
   return emnapiCtx.preamble(env, (envObject) => {
     return emnapiCtx.checkArgs(envObject, [deferred, resolution], () => {
       const deferredObject = emnapiCtx.deferredStore.get(deferred)!
-      deferredObject.resolve(emnapiCtx.handleStore.get(resolution)!.value)
+      deferredObject.resolve(emnapiCtx.handleStore.get(resolution))
       return envObject.getReturnStatus()
     })
   })
@@ -33,7 +33,7 @@ function napi_reject_deferred (env: napi_env, deferred: napi_deferred, resolutio
   return emnapiCtx.preamble(env, (envObject) => {
     return emnapiCtx.checkArgs(envObject, [deferred, resolution], () => {
       const deferredObject = emnapiCtx.deferredStore.get(deferred)!
-      deferredObject.reject(emnapiCtx.handleStore.get(resolution)!.value)
+      deferredObject.reject(emnapiCtx.handleStore.get(resolution))
       return envObject.getReturnStatus()
     })
   })
@@ -42,9 +42,9 @@ function napi_reject_deferred (env: napi_env, deferred: napi_deferred, resolutio
 function napi_is_promise (env: napi_env, value: napi_value, is_promise: Pointer<bool>): napi_status {
   return emnapiCtx.checkEnv(env, (envObject) => {
     return emnapiCtx.checkArgs(envObject, [value, is_promise], () => {
-      const h = emnapiCtx.handleStore.get(value)!
+      const v = emnapiCtx.handleStore.get(value) as any
       $from64('is_promise')
-      HEAPU8[is_promise] = h.isPromise() ? 1 : 0
+      HEAPU8[is_promise] = v instanceof Promise ? 1 : 0
       return envObject.clearLastError()
     })
   })

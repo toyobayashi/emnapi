@@ -22,13 +22,13 @@ export class Reference extends RefBase implements IStoreValue {
     finalize_data: void_p = 0,
     finalize_hint: void_p = 0
   ): Reference {
-    const handle = envObject.ctx.handleStore.get(handle_id)!
-    if (!isReferenceType(handle.value)) {
+    const value = envObject.ctx.handleStore.get(handle_id)!
+    if (!isReferenceType(value)) {
       throw new TypeError('Invalid reference value')
     }
     const ref = new Reference(envObject, initialRefcount, ownership, finalize_callback, finalize_data, finalize_hint)
     envObject.ctx.refStore.add(ref)
-    ref.persistent = new Persistent<object>(handle.value)
+    ref.persistent = new Persistent<object>(value)
 
     if (initialRefcount === 0) {
       ref._setWeak()
@@ -86,8 +86,7 @@ export class Reference extends RefBase implements IStoreValue {
   public get (): napi_value {
     const obj = this.persistent.deref()
     if (obj) {
-      const handle = this.envObject.ensureHandle(obj)
-      return handle.id
+      return this.envObject.ensureHandleId(obj)
     }
     return 0
   }

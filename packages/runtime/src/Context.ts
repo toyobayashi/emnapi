@@ -3,10 +3,8 @@ import { ScopeStore } from './ScopeStore'
 import { RefStore } from './RefStore'
 import { DeferredStore } from './DeferredStore'
 import { HandleStore } from './Handle'
-import type { Handle } from './Handle'
 import type { HandleScope } from './HandleScope'
 import type { Env } from './env'
-import { _global } from './util'
 
 /** @internal */
 export class Context {
@@ -30,7 +28,7 @@ export class Context {
   }
 
   /** @internal */
-  addToCurrentScope<V> (value: V): Handle<V> {
+  addToCurrentScope<V> (value: V): number {
     return this.scopeStore.currentScope!.add(value)
   }
 
@@ -78,14 +76,10 @@ export class Context {
   }
 
   /** @internal */
-  ensureHandle<S> (value: S): Handle<S> {
-    switch (value as any) {
-      case undefined: return HandleStore.UNDEFINED as any
-      case null: return HandleStore.NULL as any
-      case true: return HandleStore.TRUE as any
-      case false: return HandleStore.FALSE as any
-      case _global: return HandleStore.GLOBAL as any
-      default: break
+  ensureHandle<S> (value: S): number {
+    const i = this.handleStore.indexOf(value)
+    if (i !== -1) {
+      return i
     }
 
     const currentScope = this.scopeStore.currentScope!

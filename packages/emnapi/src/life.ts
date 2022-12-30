@@ -62,8 +62,8 @@ function napi_escape_handle (env: napi_env, scope: napi_escapable_handle_scope, 
 
         const newHandle = scopeObject.escape(escapee)
         // @ts-expect-error
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const value = newHandle ? newHandle.id : 0
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/prefer-nullish-coalescing
+        const value = newHandle || 0
         $makeSetValue('result', 0, 'value', '*')
         return envObject.clearLastError()
       }
@@ -80,17 +80,18 @@ function napi_create_reference (
 ): napi_status {
   return emnapiCtx.checkEnv(env, (envObject) => {
     return emnapiCtx.checkArgs(envObject, [value, result], () => {
+      $from64('value')
       /* if (!emnapiRt.supportFinalizer && initial_refcount === 0) {
         envObject.tryCatch.setError(new emnapiRt.NotSupportWeakRefError('napi_create_reference', 'Parameter "initial_refcount" must be a positive integer'))
         return envObject.setLastError(napi_status.napi_pending_exception)
       } */
-      const handle = emnapiCtx.handleStore.get(value)!
-      if (!(handle.isObject() || handle.isFunction())) {
+      const v = emnapiCtx.handleStore.get(value)!
+      if (!(emnapiRt.isObject(v) || typeof v === 'function')) {
         return envObject.setLastError(napi_status.napi_object_expected)
       }
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const ref = emnapiRt.Reference.create(envObject, handle.id, initial_refcount >>> 0, emnapiRt.Ownership.kUserland)
+      const ref = emnapiRt.Reference.create(envObject, value, initial_refcount >>> 0, emnapiRt.Ownership.kUserland)
       $from64('result')
       $makeSetValue('result', 0, 'ref.id', '*')
       return envObject.clearLastError()

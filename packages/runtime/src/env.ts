@@ -1,4 +1,3 @@
-import type { Handle } from './Handle'
 import type { Context } from './Context'
 import type { IStoreValue } from './Store'
 import { TryCatch, _setImmediate } from './util'
@@ -61,12 +60,8 @@ export class Env implements IStoreValue {
     }
   }
 
-  public ensureHandle<S> (value: S): Handle<S> {
-    return this.ctx.ensureHandle(value)
-  }
-
   public ensureHandleId (value: any): napi_value {
-    return this.ensureHandle(value).id
+    return this.ctx.ensureHandle(value)
   }
 
   public clearLastError (): napi_status {

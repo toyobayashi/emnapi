@@ -23,7 +23,7 @@ function napi_get_last_error_info (env: napi_env, result: Pointer<Pointer<napi_e
 function napi_throw (env: napi_env, error: napi_value): napi_status {
   return emnapiCtx.preamble(env, (envObject) => {
     return emnapiCtx.checkArgs(envObject, [error], () => {
-      envObject.tryCatch.setError(emnapiCtx.handleStore.get(error)!.value)
+      envObject.tryCatch.setError(emnapiCtx.handleStore.get(error))
       return envObject.clearLastError()
     })
   })
@@ -103,7 +103,7 @@ function napi_is_exception_pending (env: napi_env, result: Pointer<bool>): napi_
 function napi_create_error (env: napi_env, code: napi_value, msg: napi_value, result: Pointer<napi_value>): napi_status {
   return emnapiCtx.checkEnv(env, (envObject) => {
     return emnapiCtx.checkArgs(envObject, [msg, result], () => {
-      const msgValue = emnapiCtx.handleStore.get(msg)!.value
+      const msgValue = emnapiCtx.handleStore.get(msg)
       if (typeof msgValue !== 'string') {
         return envObject.setLastError(napi_status.napi_string_expected)
       }
@@ -115,7 +115,7 @@ function napi_create_error (env: napi_env, code: napi_value, msg: napi_value, re
 
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const value = emnapiCtx.addToCurrentScope(error).id
+      const value = emnapiCtx.addToCurrentScope(error)
       $makeSetValue('result', 0, 'value', '*')
       return envObject.clearLastError()
     })
@@ -125,7 +125,7 @@ function napi_create_error (env: napi_env, code: napi_value, msg: napi_value, re
 function napi_create_type_error (env: napi_env, code: napi_value, msg: napi_value, result: Pointer<napi_value>): napi_status {
   return emnapiCtx.checkEnv(env, (envObject) => {
     return emnapiCtx.checkArgs(envObject, [msg, result], () => {
-      const msgValue = emnapiCtx.handleStore.get(msg)!.value
+      const msgValue = emnapiCtx.handleStore.get(msg)
       if (typeof msgValue !== 'string') {
         return envObject.setLastError(napi_status.napi_string_expected)
       }
@@ -136,7 +136,7 @@ function napi_create_type_error (env: napi_env, code: napi_value, msg: napi_valu
 
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const value = emnapiCtx.addToCurrentScope(error).id
+      const value = emnapiCtx.addToCurrentScope(error)
       $makeSetValue('result', 0, 'value', '*')
       return envObject.clearLastError()
     })
@@ -146,7 +146,7 @@ function napi_create_type_error (env: napi_env, code: napi_value, msg: napi_valu
 function napi_create_range_error (env: napi_env, code: napi_value, msg: napi_value, result: Pointer<napi_value>): napi_status {
   return emnapiCtx.checkEnv(env, (envObject) => {
     return emnapiCtx.checkArgs(envObject, [msg, result], () => {
-      const msgValue = emnapiCtx.handleStore.get(msg)!.value
+      const msgValue = emnapiCtx.handleStore.get(msg)
       if (typeof msgValue !== 'string') {
         return envObject.setLastError(napi_status.napi_string_expected)
       }
@@ -157,7 +157,7 @@ function napi_create_range_error (env: napi_env, code: napi_value, msg: napi_val
 
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const value = emnapiCtx.addToCurrentScope(error).id
+      const value = emnapiCtx.addToCurrentScope(error)
       $makeSetValue('result', 0, 'value', '*')
       return envObject.clearLastError()
     })
@@ -167,7 +167,7 @@ function napi_create_range_error (env: napi_env, code: napi_value, msg: napi_val
 function node_api_create_syntax_error (env: napi_env, code: napi_value, msg: napi_value, result: Pointer<napi_value>): napi_status {
   return emnapiCtx.checkEnv(env, (envObject) => {
     return emnapiCtx.checkArgs(envObject, [msg, result], () => {
-      const msgValue = emnapiCtx.handleStore.get(msg)!.value
+      const msgValue = emnapiCtx.handleStore.get(msg)
       if (typeof msgValue !== 'string') {
         return envObject.setLastError(napi_status.napi_string_expected)
       }
@@ -178,7 +178,7 @@ function node_api_create_syntax_error (env: napi_env, code: napi_value, msg: nap
 
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const value = emnapiCtx.addToCurrentScope(error).id
+      const value = emnapiCtx.addToCurrentScope(error)
       $makeSetValue('result', 0, 'value', '*')
       return envObject.clearLastError()
     })

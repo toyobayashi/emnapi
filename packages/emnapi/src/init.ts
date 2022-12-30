@@ -212,9 +212,9 @@ mergeInto(LibraryManager.library, {
           // @ts-expect-error
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
           const exportsHandle = scope.add(exports)
-          const napiValue = _napi_register_wasm_v1($to64('_envObject.id'), $to64('exportsHandle.id'))
+          const napiValue = _napi_register_wasm_v1($to64('_envObject.id'), $to64('exportsHandle'))
           $from64('napiValue')
-          return (!napiValue) ? exports : emnapiCtx.handleStore.get(napiValue)!.value
+          return (!napiValue) ? exports : emnapiCtx.handleStore.get(napiValue)
         })
       } catch (err) {
         emnapiCtx.closeScope(env, scope)

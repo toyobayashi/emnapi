@@ -57,9 +57,9 @@ function emnapi_create_external_uint8array (
         throw new emnapiRt.NotSupportWeakRefError('emnapi_create_external_uint8array', 'Parameter "finalize_cb" must be 0(NULL)')
       }
       const u8arr = new Uint8Array(HEAPU8.buffer, external_data, byte_length)
-      const handle = emnapiCtx.addToCurrentScope(u8arr)
+      const id = emnapiCtx.addToCurrentScope(u8arr)
       if (finalize_cb) {
-        const status = emnapiWrap(WrapType.anonymous, env, handle.id, external_data, finalize_cb, finalize_hint, /* NULL */ 0)
+        const status = emnapiWrap(WrapType.anonymous, env, id, external_data, finalize_cb, finalize_hint, /* NULL */ 0)
         if (status === napi_status.napi_pending_exception) {
           const err = envObject.tryCatch.extractException()
           envObject.clearLastError()
@@ -68,7 +68,7 @@ function emnapi_create_external_uint8array (
           return envObject.setLastError(status)
         }
       }
-      $makeSetValue('result', 0, 'handle.id', '*')
+      $makeSetValue('result', 0, 'id', '*')
       return envObject.getReturnStatus()
     })
   })

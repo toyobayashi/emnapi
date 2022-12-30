@@ -1,4 +1,4 @@
-import type { Handle, HandleStore } from './Handle'
+import type { HandleStore } from './Handle'
 import type { IReusableStoreValue } from './Store'
 
 /** @internal */
@@ -23,13 +23,13 @@ export class HandleScope implements IReusableStoreValue {
     this._escapeCalled = false
   }
 
-  public add<V> (value: V): Handle<V> {
+  public add<V> (value: V): number {
     const h = this.handleStore.push(value)
     this.end++
     return h
   }
 
-  public addExternal (data: void_p): Handle<object> {
+  public addExternal (data: void_p): number {
     const h = this.handleStore.pushExternal(data)
     this.end++
     return h
@@ -41,7 +41,7 @@ export class HandleScope implements IReusableStoreValue {
     this.handleStore.erase(this.start, this.end)
   }
 
-  public escape (handle: number): Handle<any> | null {
+  public escape (handle: number): number | null {
     if (this._escapeCalled) return null
     this._escapeCalled = true
 
@@ -50,10 +50,10 @@ export class HandleScope implements IReusableStoreValue {
     }
 
     this.handleStore.swap(handle, this.start)
-    const h = this.handleStore.get(this.start)!
+    const id = this.start
     this.start++
     this.parent!.end++
-    return h
+    return id
   }
 
   public escapeCalled (): boolean {

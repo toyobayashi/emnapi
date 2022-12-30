@@ -5,12 +5,11 @@ function napi_create_function (env: napi_env, utf8name: Pointer<const_char>, len
       const fresult = emnapiCreateFunction(envObject, utf8name, length, cb, data)
       if (fresult.status !== napi_status.napi_ok) return envObject.setLastError(fresult.status)
       const f = fresult.f
-      const valueHandle = emnapiCtx.addToCurrentScope(f)
-      $from64('result')
-
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const value = valueHandle.id
+      const value = emnapiCtx.addToCurrentScope(f)
+      $from64('result')
+
       $makeSetValue('result', 0, 'value', '*')
       return envObject.getReturnStatus()
     })
@@ -84,14 +83,14 @@ function napi_call_function (
       if (argc > 0) {
         if (!argv) return envObject.setLastError(napi_status.napi_invalid_arg)
       }
-      const v8recv = emnapiCtx.handleStore.get(recv)!.value
+      const v8recv = emnapiCtx.handleStore.get(recv)
       if (!func) return envObject.setLastError(napi_status.napi_invalid_arg)
-      const v8func = emnapiCtx.handleStore.get(func)!.value as Function
+      const v8func = emnapiCtx.handleStore.get(func) as Function
       if (typeof v8func !== 'function') return envObject.setLastError(napi_status.napi_invalid_arg)
-      const args = []
+      const args: any[] = []
       for (let i = 0; i < argc; i++) {
         const argVal = $makeGetValue('argv', 'i * ' + POINTER_SIZE, '*')
-        args.push(emnapiCtx.handleStore.get(argVal)!.value)
+        args.push(emnapiCtx.handleStore.get(argVal))
       }
       const ret = v8func.apply(v8recv, args)
       if (result) {
@@ -124,14 +123,14 @@ function napi_new_instance (
       }
       if (!result) return envObject.setLastError(napi_status.napi_invalid_arg)
 
-      const Ctor: new (...args: any[]) => any = emnapiCtx.handleStore.get(constructor)!.value
+      const Ctor: new (...args: any[]) => any = emnapiCtx.handleStore.get(constructor)
       if (typeof Ctor !== 'function') return envObject.setLastError(napi_status.napi_invalid_arg)
       let ret: any
       if (emnapiRt.supportReflect) {
         const argList = Array(argc)
         for (let i = 0; i < argc; i++) {
           const argVal = $makeGetValue('argv', 'i * ' + POINTER_SIZE, '*')
-          argList[i] = emnapiCtx.handleStore.get(argVal)!.value
+          argList[i] = emnapiCtx.handleStore.get(argVal)
         }
         ret = Reflect.construct(Ctor, argList, Ctor)
       } else {
@@ -139,7 +138,7 @@ function napi_new_instance (
         args[0] = undefined
         for (let i = 0; i < argc; i++) {
           const argVal = $makeGetValue('argv', 'i * ' + POINTER_SIZE, '*')
-          args[i + 1] = emnapiCtx.handleStore.get(argVal)!.value
+          args[i + 1] = emnapiCtx.handleStore.get(argVal)
         }
         const BoundCtor = Ctor.bind.apply(Ctor, args) as new () => any
         ret = new BoundCtor()

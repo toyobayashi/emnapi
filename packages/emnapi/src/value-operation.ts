@@ -3,29 +3,29 @@ function napi_typeof (env: napi_env, value: napi_value, result: Pointer<napi_val
     return emnapiCtx.checkArgs(envObject, [value, result], () => {
       const v = emnapiCtx.handleStore.get(value)!
       $from64('result')
-      if (v.isNumber()) {
+      if (typeof v === 'number') {
         HEAP32[result >> 2] = napi_valuetype.napi_number
-      } else if (v.isBigInt()) {
+      } else if (typeof v === 'bigint') {
         HEAP32[result >> 2] = napi_valuetype.napi_bigint
-      } else if (v.isString()) {
+      } else if (typeof v === 'string') {
         HEAP32[result >> 2] = napi_valuetype.napi_string
-      } else if (v.isFunction()) {
+      } else if (typeof v === 'function') {
       // This test has to come before IsObject because IsFunction
       // implies IsObject
         HEAP32[result >> 2] = napi_valuetype.napi_function
-      } else if (v.isExternal()) {
+      } else if (emnapiRt.isExternal(v)) {
       // This test has to come before IsObject because IsExternal
       // implies IsObject
         HEAP32[result >> 2] = napi_valuetype.napi_external
-      } else if (v.isObject()) {
+      } else if (emnapiRt.isObject(v)) {
         HEAP32[result >> 2] = napi_valuetype.napi_object
-      } else if (v.isBoolean()) {
+      } else if (typeof v === 'boolean') {
         HEAP32[result >> 2] = napi_valuetype.napi_boolean
-      } else if (v.isUndefined()) {
+      } else if (v === undefined) {
         HEAP32[result >> 2] = napi_valuetype.napi_undefined
-      } else if (v.isSymbol()) {
+      } else if (typeof v === 'symbol') {
         HEAP32[result >> 2] = napi_valuetype.napi_symbol
-      } else if (v.isNull()) {
+      } else if (v === null) {
         HEAP32[result >> 2] = napi_valuetype.napi_null
       } else {
       // Should not get here unless V8 has added some new kind of value.
@@ -40,12 +40,12 @@ function napi_typeof (env: napi_env, value: napi_value, result: Pointer<napi_val
 function napi_coerce_to_bool (env: napi_env, value: napi_value, result: Pointer<napi_value>): napi_status {
   return emnapiCtx.preamble(env, (envObject) => {
     return emnapiCtx.checkArgs(envObject, [value, result], () => {
-      const handle = emnapiCtx.handleStore.get(value)!
+      const handle = emnapiCtx.handleStore.get(value)
       $from64('result')
 
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const v = handle.value ? emnapiRt.HandleStore.ID_TRUE : emnapiRt.HandleStore.ID_FALSE
+      const v = handle ? emnapiRt.HandleStore.ID_TRUE : emnapiRt.HandleStore.ID_FALSE
       $makeSetValue('result', 0, 'v', '*')
       return envObject.getReturnStatus()
     })
@@ -56,14 +56,14 @@ function napi_coerce_to_number (env: napi_env, value: napi_value, result: Pointe
   return emnapiCtx.preamble(env, (envObject) => {
     return emnapiCtx.checkArgs(envObject, [value, result], () => {
       const handle = emnapiCtx.handleStore.get(value)!
-      if (handle.isBigInt()) {
+      if (typeof handle === 'bigint') {
         throw new TypeError('Cannot convert a BigInt value to a number')
       }
       $from64('result')
 
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const v = emnapiCtx.addToCurrentScope(Number(handle.value)).id
+      const v = emnapiCtx.addToCurrentScope(Number(handle))
       $makeSetValue('result', 0, 'v', '*')
       return envObject.getReturnStatus()
     })
@@ -78,7 +78,7 @@ function napi_coerce_to_object (env: napi_env, value: napi_value, result: Pointe
 
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const v = envObject.ensureHandleId(Object(handle.value))
+      const v = envObject.ensureHandleId(Object(handle))
       $makeSetValue('result', 0, 'v', '*')
       return envObject.getReturnStatus()
     })
@@ -89,14 +89,14 @@ function napi_coerce_to_string (env: napi_env, value: napi_value, result: Pointe
   return emnapiCtx.preamble(env, (envObject) => {
     return emnapiCtx.checkArgs(envObject, [value, result], () => {
       const handle = emnapiCtx.handleStore.get(value)!
-      if (handle.isSymbol()) {
+      if (typeof handle === 'symbol') {
         throw new TypeError('Cannot convert a Symbol value to a string')
       }
       $from64('result')
 
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const v = emnapiCtx.addToCurrentScope(String(handle.value)).id
+      const v = emnapiCtx.addToCurrentScope(String(handle))
       $makeSetValue('result', 0, 'v', '*')
       return envObject.getReturnStatus()
     })
@@ -108,12 +108,12 @@ function napi_instanceof (env: napi_env, object: napi_value, constructor: napi_v
     return emnapiCtx.checkArgs(envObject, [object, result, constructor], () => {
       $from64('result')
       HEAPU8[result] = 0
-      const ctor = emnapiCtx.handleStore.get(constructor)!
-      if (!ctor.isFunction()) {
+      const ctor = emnapiCtx.handleStore.get(constructor)
+      if (typeof ctor !== 'function') {
         return envObject.setLastError(napi_status.napi_function_expected)
       }
-      const val = emnapiCtx.handleStore.get(object)!.value
-      const ret = val instanceof ctor.value
+      const val = emnapiCtx.handleStore.get(object) as any
+      const ret = val instanceof ctor
       HEAPU8[result] = ret ? 1 : 0
       return envObject.getReturnStatus()
     })
@@ -123,9 +123,9 @@ function napi_instanceof (env: napi_env, object: napi_value, constructor: napi_v
 function napi_is_array (env: napi_env, value: napi_value, result: Pointer<bool>): napi_status {
   return emnapiCtx.checkEnv(env, (envObject) => {
     return emnapiCtx.checkArgs(envObject, [value, result], () => {
-      const h = emnapiCtx.handleStore.get(value)!
+      const h = emnapiCtx.handleStore.get(value)
       $from64('result')
-      HEAPU8[result] = h.isArray() ? 1 : 0
+      HEAPU8[result] = Array.isArray(h) ? 1 : 0
       return envObject.clearLastError()
     })
   })
@@ -134,9 +134,9 @@ function napi_is_array (env: napi_env, value: napi_value, result: Pointer<bool>)
 function napi_is_arraybuffer (env: napi_env, value: napi_value, result: Pointer<bool>): napi_status {
   return emnapiCtx.checkEnv(env, (envObject) => {
     return emnapiCtx.checkArgs(envObject, [value, result], () => {
-      const h = emnapiCtx.handleStore.get(value)!
+      const h = emnapiCtx.handleStore.get(value) as any
       $from64('result')
-      HEAPU8[result] = h.isArrayBuffer() ? 1 : 0
+      HEAPU8[result] = h instanceof ArrayBuffer ? 1 : 0
       return envObject.clearLastError()
     })
   })
@@ -145,9 +145,9 @@ function napi_is_arraybuffer (env: napi_env, value: napi_value, result: Pointer<
 function napi_is_date (env: napi_env, value: napi_value, result: Pointer<bool>): napi_status {
   return emnapiCtx.checkEnv(env, (envObject) => {
     return emnapiCtx.checkArgs(envObject, [value, result], () => {
-      const h = emnapiCtx.handleStore.get(value)!
+      const h = emnapiCtx.handleStore.get(value) as any
       $from64('result')
-      HEAPU8[result] = h.isDate() ? 1 : 0
+      HEAPU8[result] = h instanceof Date ? 1 : 0
       return envObject.clearLastError()
     })
   })
@@ -156,7 +156,7 @@ function napi_is_date (env: napi_env, value: napi_value, result: Pointer<bool>):
 function napi_is_error (env: napi_env, value: napi_value, result: Pointer<bool>): napi_status {
   return emnapiCtx.checkEnv(env, (envObject) => {
     return emnapiCtx.checkArgs(envObject, [value, result], () => {
-      const val = emnapiCtx.handleStore.get(value)!.value
+      const val = emnapiCtx.handleStore.get(value) as any
       $from64('result')
       HEAPU8[result] = val instanceof Error ? 1 : 0
       return envObject.clearLastError()
@@ -169,7 +169,7 @@ function napi_is_typedarray (env: napi_env, value: napi_value, result: Pointer<b
     return emnapiCtx.checkArgs(envObject, [value, result], () => {
       const h = emnapiCtx.handleStore.get(value)!
       $from64('result')
-      HEAPU8[result] = h.isTypedArray() ? 1 : 0
+      HEAPU8[result] = emnapiRt.isTypedArray(h) ? 1 : 0
       return envObject.clearLastError()
     })
   })
@@ -178,9 +178,9 @@ function napi_is_typedarray (env: napi_env, value: napi_value, result: Pointer<b
 function napi_is_dataview (env: napi_env, value: napi_value, result: Pointer<bool>): napi_status {
   return emnapiCtx.checkEnv(env, (envObject) => {
     return emnapiCtx.checkArgs(envObject, [value, result], () => {
-      const h = emnapiCtx.handleStore.get(value)!
+      const h = emnapiCtx.handleStore.get(value) as any
       $from64('result')
-      HEAPU8[result] = h.isDataView() ? 1 : 0
+      HEAPU8[result] = h instanceof DataView ? 1 : 0
       return envObject.clearLastError()
     })
   })
@@ -189,8 +189,8 @@ function napi_is_dataview (env: napi_env, value: napi_value, result: Pointer<boo
 function napi_strict_equals (env: napi_env, lhs: napi_value, rhs: napi_value, result: Pointer<bool>): napi_status {
   return emnapiCtx.preamble(env, (envObject) => {
     return emnapiCtx.checkArgs(envObject, [lhs, rhs, result], () => {
-      const lv = emnapiCtx.handleStore.get(lhs)!.value
-      const rv = emnapiCtx.handleStore.get(rhs)!.value
+      const lv = emnapiCtx.handleStore.get(lhs)
+      const rv = emnapiCtx.handleStore.get(rhs)
       $from64('result')
       HEAPU8[result] = (lv === rv) ? 1 : 0
       return envObject.getReturnStatus()
@@ -201,7 +201,7 @@ function napi_strict_equals (env: napi_env, lhs: napi_value, rhs: napi_value, re
 function napi_detach_arraybuffer (env: napi_env, arraybuffer: napi_value): napi_status {
   return emnapiCtx.checkEnv(env, (envObject) => {
     return emnapiCtx.checkArgs(envObject, [arraybuffer], () => {
-      const value = emnapiCtx.handleStore.get(arraybuffer)!.value
+      const value = emnapiCtx.handleStore.get(arraybuffer) as any
       if (!(value instanceof ArrayBuffer)) {
         if (typeof SharedArrayBuffer === 'function' && (value instanceof SharedArrayBuffer)) {
           return envObject.setLastError(napi_status.napi_detachable_arraybuffer_expected)
@@ -224,12 +224,12 @@ function napi_detach_arraybuffer (env: napi_env, arraybuffer: napi_value): napi_
 function napi_is_detached_arraybuffer (env: napi_env, arraybuffer: napi_value, result: Pointer<bool>): napi_status {
   return emnapiCtx.preamble(env, (envObject) => {
     return emnapiCtx.checkArgs(envObject, [arraybuffer, result], () => {
-      const h = emnapiCtx.handleStore.get(arraybuffer)!
+      const h = emnapiCtx.handleStore.get(arraybuffer) as any
       $from64('result')
-      if (h.isArrayBuffer() && h.value.byteLength === 0) {
+      if (h instanceof ArrayBuffer && h.byteLength === 0) {
         try {
           // eslint-disable-next-line no-new
-          new Uint8Array(h.value as ArrayBuffer)
+          new Uint8Array(h)
         } catch (_) {
           HEAPU8[result] = 1
           return envObject.getReturnStatus()
