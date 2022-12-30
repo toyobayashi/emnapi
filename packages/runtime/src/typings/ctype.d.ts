@@ -37,5 +37,3 @@ declare type int32_t = number
 declare type uint32_t = number
 declare type int64_t = bigint
 declare type uint64_t = bigint
-
-declare const NULL: 0

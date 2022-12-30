@@ -3,7 +3,7 @@ function napi_open_handle_scope (env: napi_env, result: Pointer<napi_handle_scop
     return emnapiCtx.checkArgs(envObject, [result], () => {
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const scope = emnapiCtx.openScope(envObject, emnapiRt.HandleScope)
+      const scope = emnapiCtx.openScope(envObject)
       $from64('result')
       $makeSetValue('result', 0, 'scope.id', '*')
       return envObject.clearLastError()
@@ -30,7 +30,7 @@ function napi_open_escapable_handle_scope (env: napi_env, result: Pointer<napi_e
     return emnapiCtx.checkArgs(envObject, [result], () => {
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const scope = emnapiCtx.openScope(envObject, emnapiRt.EscapableHandleScope)
+      const scope = emnapiCtx.openScope(envObject)
       $from64('result')
       $makeSetValue('result', 0, 'scope.id', '*')
       return envObject.clearLastError()
@@ -55,7 +55,7 @@ function napi_close_escapable_handle_scope (env: napi_env, scope: napi_escapable
 function napi_escape_handle (env: napi_env, scope: napi_escapable_handle_scope, escapee: napi_value, result: Pointer<napi_value>): napi_status {
   return emnapiCtx.checkEnv(env, (envObject) => {
     return emnapiCtx.checkArgs(envObject, [scope, escapee, result], () => {
-      const scopeObject = emnapiCtx.scopeStore.get(scope) as emnapi.EscapableHandleScope
+      const scopeObject = emnapiCtx.scopeStore.get(scope)!
       if (!scopeObject.escapeCalled()) {
         $from64('escapee')
         $from64('result')

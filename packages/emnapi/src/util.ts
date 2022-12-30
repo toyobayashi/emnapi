@@ -58,7 +58,7 @@ mergeInto(LibraryManager.library, {
   $getArrayBufferPointer__deps: ['$arrayBufferMemoryMap', '$memoryPointerDeleter'],
   $getArrayBufferPointer: function (arrayBuffer: ArrayBuffer): void_p {
     if ((!memoryPointerDeleter) || (arrayBuffer === HEAPU8.buffer)) {
-      return NULL
+      return /* NULL */ 0
     }
 
     let pointer: void_p
@@ -78,7 +78,7 @@ mergeInto(LibraryManager.library, {
   $getViewPointer__deps: ['$typedArrayMemoryMap', '$memoryPointerDeleter'],
   $getViewPointer: function (view: ArrayBufferView): void_p {
     if (!memoryPointerDeleter) {
-      return NULL
+      return /* NULL */ 0
     }
     if (view.buffer === HEAPU8.buffer) {
       return view.byteOffset

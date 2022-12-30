@@ -1,9 +1,8 @@
 import type { Handle } from './Handle'
 import type { Context } from './Context'
-import { IStoreValue, Store } from './Store'
-import { TryCatch, isReferenceType, _setImmediate } from './util'
+import type { IStoreValue } from './Store'
+import { TryCatch, _setImmediate } from './util'
 import { RefTracker } from './RefTracker'
-import { HandleScope } from './HandleScope'
 import { RefBase } from './RefBase'
 
 /** @internal */
@@ -62,28 +61,8 @@ export class Env implements IStoreValue {
     }
   }
 
-  public ensureHandle (value: any): Handle<any> {
-    if (isReferenceType(value)) {
-      const handle = this.ctx.handleStore.getObjectHandle(value)
-      if (!handle) {
-        // not exist in handle store
-        return this.ctx.currentScope!.add(this, value)
-      }
-      if (handle.value === value) {
-        // exist in handle store
-        if (!handle.inScope) {
-          this.ctx.currentScope!.addHandle(handle)
-        }
-        return handle
-      }
-      // alive, go back to handle store
-      handle.value = value
-      Store.prototype.add.call(this.ctx.handleStore, handle)
-      this.ctx.currentScope!.addHandle(handle)
-      return handle
-    }
-
-    return this.ctx.currentScope!.add(this, value)
+  public ensureHandle<S> (value: S): Handle<S> {
+    return this.ctx.ensureHandle(value)
   }
 
   public ensureHandleId (value: any): napi_value {
@@ -120,7 +99,7 @@ export class Env implements IStoreValue {
   }
 
   public callFinalizer (cb: napi_finalize, data: void_p, hint: void_p): void {
-    const scope = this.ctx.openScope(this, HandleScope)
+    const scope = this.ctx.openScope(this)
     try {
       this.callIntoModule((envObject) => {
         this.emnapiGetDynamicCalls.call_vppp(cb, envObject.id, data, hint)

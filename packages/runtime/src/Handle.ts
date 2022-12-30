@@ -1,54 +1,27 @@
-import type { IHandleScope } from './HandleScope'
-import type { Reference } from './Reference'
-import { IStoreValue, Store } from './Store'
-import type { Env } from './env'
-import { _global, isReferenceType, supportFinalizer } from './util'
+import type { IReusableStoreValue } from './Store'
+import { isReferenceType, _global } from './util'
 
 /** @internal */
-export class Handle<S> implements IStoreValue {
-  public static create<S> (envObject: Env, value: S): Handle<S> {
-    const handle = new Handle(envObject, 0, value)
-    envObject.ctx.handleStore.add(handle)
-    return handle
-  }
+export interface IReferenceBinding {
+  wrapped: number // wrapped Reference id
+  tag: [number, number, number, number] | null
+  data: void_p
+}
 
-  public id: number
-  protected _envObject: Env | undefined
-  public value: S
-  public inScope: IHandleScope | null
-  public wrapped: number = 0 // wrapped Reference id
-  public tag: [number, number, number, number] | null
-  public refs: Reference[]
+/** @internal */
+export class Handle<S> implements IReusableStoreValue {
+  public constructor (
+    public id: number,
+    public value: S
+  ) {}
 
-  public getEnv (): Env | undefined {
-    return this._envObject
-  }
-
-  public constructor (envObject: Env | undefined, id: number, value: S) {
-    this._envObject = envObject
+  public init (id: number, value: S): void {
     this.id = id
     this.value = value
-    this.inScope = null
-    this.wrapped = 0
-    this.tag = null
-    this.refs = []
   }
 
-  public moveTo (other: Handle<S>): void {
-    // other.env = this.env
-    this._envObject = undefined!
-    // other.id = this.id
-    this.id = 0
-    // other.value = this.value
-    this.value = undefined!
-    // other.inScope = this.inScope
-    this.inScope = null
-    other.wrapped = this.wrapped
-    this.wrapped = 0
-    other.tag = this.tag
-    this.tag = null
-    other.refs = this.refs
-    this.refs = []
+  public data (): void_p {
+    return HandleStore.getObjectBinding(this.value as any).data
   }
 
   public isEmpty (): boolean {
@@ -72,7 +45,7 @@ export class Handle<S> implements IStoreValue {
   }
 
   public isExternal (): boolean {
-    return !this.isEmpty() && (this instanceof ExternalHandle)
+    return !this.isEmpty() && (isReferenceType(this.value) && Object.getPrototypeOf(this.value) === null)
   }
 
   public isObject (): boolean {
@@ -119,44 +92,20 @@ export class Handle<S> implements IStoreValue {
     return !this.isEmpty() && this.value === null
   }
 
-  public addRef (ref: Reference): void {
-    if (this.refs.indexOf(ref) !== -1) {
-      return
-    }
-    this.refs.push(ref)
-  }
-
-  public removeRef (ref: Reference): void {
-    const index = this.refs.indexOf(ref)
-    if (index !== -1) {
-      this.refs.splice(index, 1)
-    }
-    this.tryDispose()
-  }
-
-  public tryDispose (): void {
-    if (
-      this.id < HandleStore.getMinId ||
-      this.inScope !== null ||
-      (supportFinalizer ? this.refs.some(ref => ref.refCount() > 0) : (this.refs.length > 0))
-    ) return
-    this.dispose()
-  }
-
   public dispose (): void {
     if (this.id === 0) return
-    /* if (this.refs.length > 0) {
-      const refs = this.refs
-      for (let i = 0; i < refs.length; i++) {
-        refs[i].queueFinalizer(this.value as unknown as object)
-      }
-    } */
-    const id = this.id
-    this._envObject?.ctx.handleStore.remove(id)
-    // this.refs = []
     this.id = 0
     this.value = undefined!
   }
+}
+
+/** @internal */
+export class ConstHandle<S extends undefined | null | boolean | typeof globalThis> extends Handle<S> {
+  public constructor (id: number, value: S) {
+    super(id, value)
+  }
+
+  public override dispose (): void {}
 }
 
 function External (this: any): void {
@@ -164,81 +113,94 @@ function External (this: any): void {
 }
 External.prototype = null as any
 
-export class ExternalHandle extends Handle<{}> {
-  public static createExternal (envObject: Env, data: void_p = 0): ExternalHandle {
-    const h = new ExternalHandle(envObject, data)
-    envObject.ctx.handleStore.add(h)
+/** @internal */
+export class HandleStore {
+  public static UNDEFINED = new ConstHandle(1, undefined)
+  public static NULL = new ConstHandle(2, null)
+  public static FALSE = new ConstHandle(3, false)
+  public static TRUE = new ConstHandle(4, true)
+  public static GLOBAL = new ConstHandle(5, _global)
+
+  public static ID_UNDEFINED = HandleStore.UNDEFINED.id as 1
+  public static ID_NULL = HandleStore.NULL.id as 2
+  public static ID_FALSE = HandleStore.FALSE.id as 3
+  public static ID_TRUE = HandleStore.TRUE.id as 4
+  public static ID_GLOBAL = HandleStore.GLOBAL.id as 5
+
+  public static MIN_ID = 6 as const
+
+  private readonly _values: Array<Handle<any>> = [
+    undefined!,
+    HandleStore.UNDEFINED,
+    HandleStore.NULL,
+    HandleStore.FALSE,
+    HandleStore.TRUE,
+    HandleStore.GLOBAL
+  ]
+
+  private _next: number = HandleStore.MIN_ID
+
+  // js object -> IReferenceBinding
+  private static readonly _objWeakMap: WeakMap<object, IReferenceBinding> = new WeakMap()
+
+  public static initObjectBinding<S extends object> (value: S): IReferenceBinding {
+    const binding: IReferenceBinding = {
+      wrapped: 0,
+      tag: null,
+      data: 0
+    }
+    HandleStore._objWeakMap.set(value, binding)
+    return binding
+  }
+
+  public static getObjectBinding<S extends object> (value: S): IReferenceBinding {
+    if (HandleStore._objWeakMap.has(value)) {
+      return HandleStore._objWeakMap.get(value)!
+    }
+    return HandleStore.initObjectBinding(value)
+  }
+
+  public push<S> (value: S): Handle<S> {
+    let h: Handle<S>
+    const next = this._next
+    const values = this._values
+    if (next < values.length) {
+      h = values[next]
+      h.init(next, value)
+    } else {
+      h = new Handle(next, value)
+      values[next] = h
+    }
+    this._next++
     return h
   }
 
-  private readonly _data: void_p
-
-  public constructor (envObject: Env, data: void_p = 0) {
-    super(envObject, 0, new (External as any)())
-    this._data = data
+  public pushExternal (data: void_p): Handle<object> {
+    const value = new (External as any)()
+    const h = this.push(value)
+    const binding = HandleStore.initObjectBinding(value)
+    binding.data = data
+    return h
   }
 
-  public data (): void_p {
-    return this._data
-  }
-}
-
-/** @internal */
-export class HandleStore extends Store<Handle<any>> {
-  public static ID_UNDEFINED: 1 = 1
-  public static ID_NULL: 2 = 2
-  public static ID_FALSE: 3 = 3
-  public static ID_TRUE: 4 = 4
-  public static ID_GLOBAL: 5 = 5
-
-  public static get getMinId (): number {
-    return 6
-  }
-
-  public static globalConstants = {
-    [HandleStore.ID_UNDEFINED]: undefined,
-    [HandleStore.ID_NULL]: null,
-    [HandleStore.ID_FALSE]: false,
-    [HandleStore.ID_TRUE]: true,
-    [HandleStore.ID_GLOBAL]: _global
-  }
-
-  // js object -> Handle
-  private _objWeakMap: WeakMap<object, Handle<object>>
-
-  public constructor () {
-    super(16)
-    this._objWeakMap = new WeakMap()
-    super.add(new Handle(undefined, 1, undefined))
-    super.add(new Handle(undefined, 2, null))
-    super.add(new Handle(undefined, 3, false))
-    super.add(new Handle(undefined, 4, true))
-    super.add(new Handle(undefined, 5, _global))
-  }
-
-  public override add (h: Handle<any>): void {
-    super.add(h)
-    const isRefType = isReferenceType(h.value)
-    if (isRefType) {
-      if (this._objWeakMap.has(h.value)) {
-        const old = this._objWeakMap.get(h.value)!
-        old.moveTo(h)
-      }
-      this._objWeakMap.set(h.value, h)
+  public erase (start: number, end: number): void {
+    this._next = start
+    const values = this._values
+    for (let i = start; i < end; ++i) {
+      values[i].dispose()
     }
   }
 
-  public override remove (id: number): void {
-    if (!this.has(id) || id < HandleStore.getMinId) return
-    super.remove(id)
+  public get (id: Ptr): Handle<any> | undefined {
+    return this._values[id as any]
   }
 
-  public getObjectHandle<T extends object> (value: T): Handle<T> | undefined {
-    return this._objWeakMap.get(value) as Handle<T>
-  }
-
-  public dispose (): void {
-    this._objWeakMap = null!
-    super.dispose()
+  public swap (a: number, b: number): void {
+    const values = this._values
+    const h = values[a]
+    values[a] = values[b]
+    values[a]!.id = Number(a)
+    values[b] = h
+    h.id = Number(b)
   }
 }

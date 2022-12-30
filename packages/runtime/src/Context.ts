@@ -4,9 +4,9 @@ import { RefStore } from './RefStore'
 import { DeferredStore } from './DeferredStore'
 import { HandleStore } from './Handle'
 import type { Handle } from './Handle'
-import { HandleScope } from './HandleScope'
-import type { IHandleScope } from './HandleScope'
+import type { HandleScope } from './HandleScope'
 import type { Env } from './env'
+import { _global } from './util'
 
 /** @internal */
 export class Context {
@@ -15,8 +15,6 @@ export class Context {
   public refStore: RefStore
   public deferredStore: DeferredStore
   public handleStore: HandleStore
-  private readonly _rootScope: HandleScope
-  public currentScope: IHandleScope | null
 
   constructor () {
     this.envStore = new EnvStore()
@@ -24,53 +22,26 @@ export class Context {
     this.refStore = new RefStore()
     this.deferredStore = new DeferredStore()
     this.handleStore = new HandleStore()
-
-    this._rootScope = HandleScope.create(this, null)
-    this.currentScope = null
   }
 
   /** @internal */
-  getCurrentScope (): IHandleScope | null {
-    return this.currentScope
+  getCurrentScope (): HandleScope | null {
+    return this.scopeStore.currentScope
   }
 
   /** @internal */
-  addToCurrentScope<V> (envObject: Env, value: V): Handle<V> {
-    return this.currentScope!.add(envObject, value)
+  addToCurrentScope<V> (value: V): Handle<V> {
+    return this.scopeStore.currentScope!.add(value)
   }
 
   /** @internal */
-  openScope<Scope extends HandleScope> (envObject: Env, ScopeConstructor = HandleScope): Scope {
-    if (this.currentScope) {
-      const scope = ScopeConstructor.create(this, this.currentScope)
-      this.currentScope.child = scope
-      this.currentScope = scope
-    } else {
-      this.currentScope = this._rootScope
-    }
-
-    envObject.openHandleScopes++
-    return this.currentScope as Scope
+  openScope (envObject: Env): HandleScope {
+    return this.scopeStore.openScope(envObject)
   }
 
   /** @internal */
-  closeScope (envObject: Env, scope: IHandleScope): void {
-    if (scope === this.currentScope) {
-      this.currentScope = scope.parent
-    }
-    if (scope.parent) {
-      scope.parent.child = scope.child
-    }
-    if (scope.child) {
-      scope.child.parent = scope.parent
-    }
-    if (scope === this._rootScope) {
-      scope.clearHandles()
-      scope.child = null
-    } else {
-      scope.dispose()
-    }
-    envObject.openHandleScopes--
+  closeScope (envObject: Env, _scope: HandleScope): void {
+    return this.scopeStore.closeScope(envObject)
   }
 
   /** @internal */
@@ -104,6 +75,21 @@ export class Context {
         return envObject.setLastError(napi_status.napi_pending_exception)
       }
     })
+  }
+
+  /** @internal */
+  ensureHandle<S> (value: S): Handle<S> {
+    switch (value as any) {
+      case undefined: return HandleStore.UNDEFINED as any
+      case null: return HandleStore.NULL as any
+      case true: return HandleStore.TRUE as any
+      case false: return HandleStore.FALSE as any
+      case _global: return HandleStore.GLOBAL as any
+      default: break
+    }
+
+    const currentScope = this.scopeStore.currentScope!
+    return currentScope.add(value)
   }
 }
 

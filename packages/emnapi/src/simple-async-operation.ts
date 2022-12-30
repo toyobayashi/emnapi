@@ -91,7 +91,7 @@ mergeInto(LibraryManager.library, {
 
 function _emnapi_call_into_module (env: napi_env, callback: number, data: number): void {
   const envObject = emnapiCtx.envStore.get(env)!
-  const scope = emnapiCtx.openScope(envObject, emnapiRt.HandleScope)
+  const scope = emnapiCtx.openScope(envObject)
   try {
     envObject.callIntoModule((_envObject) => {
       $from64('callback')

@@ -15,22 +15,22 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
     : []
 
   const createTarget = (name, sources) => ({
-    name: name,
+    name,
     type: 'exe',
     sources: [...sources],
     emwrap: {},
-    libs: ['emnapi'],
+    libs: ['emnapi', 'fib'],
     compileOptions: [...compilerFlags],
     // eslint-disable-next-line no-template-curly-in-string
     linkOptions: [...linkerFlags]
   })
 
   const createNodeAddonApiTarget = (name, sources) => ({
-    name: name,
+    name,
     type: 'exe',
     sources: [...sources],
     emwrap: {},
-    libs: ['emnapi'],
+    libs: ['emnapi', 'fib'],
     defines: ['NAPI_DISABLE_CPP_EXCEPTIONS', 'NODE_ADDON_API_ENABLE_MAYBE'],
     compileOptions: [...compilerFlags],
     // eslint-disable-next-line no-template-curly-in-string
@@ -40,6 +40,12 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
   return {
     project: 'emnapibench',
     targets: [
+      {
+        type: 'lib',
+        name: 'fib',
+        sources: ['./src/fib.c'],
+        compileOptions: [...compilerFlags]
+      },
       {
         type: 'lib',
         name: 'emnapi',
@@ -53,7 +59,7 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
         type: 'exe',
         sources: ['./src/bind.cpp'],
         emwrap: {},
-        libs: ['embind'],
+        libs: ['embind', 'fib'],
         compileOptions: [...compilerFlags],
         // eslint-disable-next-line no-template-curly-in-string
         linkOptions: [...linkerFlags]

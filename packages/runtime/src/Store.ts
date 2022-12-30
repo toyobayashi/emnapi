@@ -8,6 +8,11 @@ export interface IStoreValue {
 }
 
 /** @internal */
+export interface IReusableStoreValue extends IStoreValue {
+  init (...args: any[]): void
+}
+
+/** @internal */
 export class Store<V extends IStoreValue> {
   protected _values: Array<V | undefined>
   private _freeList: number[]
@@ -64,9 +69,9 @@ export class Store<V extends IStoreValue> {
   }
 }
 
-export class ReusableStackStore<C extends new (...args: any[]) => IStoreValue> {
-  protected _values: Array<IStoreValue | undefined>
-  private _next: number
+export class ReusableStackStore<C extends new (...args: any[]) => IReusableStoreValue> {
+  protected _values: Array<IReusableStoreValue | undefined>
+  protected _next: number
   private readonly _Ctor: C
 
   public constructor (Ctor: C) {
@@ -82,7 +87,7 @@ export class ReusableStackStore<C extends new (...args: any[]) => IStoreValue> {
 
     let instance = this._values[id]
     if (instance != null) {
-      this._Ctor.apply(instance, arguments as any)
+      instance.init.apply(instance, arguments as any)
     } else {
       instance = construct(this._Ctor, arguments, this._Ctor)
       this._values[id] = instance
