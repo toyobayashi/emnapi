@@ -10,16 +10,16 @@ export class HandleScope implements IReusableStoreValue {
   public end!: number
   public _escapeCalled!: boolean
 
-  public constructor (handleStore: HandleStore, parentScope: HandleScope | null) {
-    this.init(handleStore, parentScope)
+  public constructor (handleStore: HandleStore, parentScope: HandleScope | null, start: number) {
+    this.init(handleStore, parentScope, start)
   }
 
-  public init (handleStore: HandleStore, parentScope: HandleScope | null): void {
+  public init (handleStore: HandleStore, parentScope: HandleScope | null, start: number): void {
     this.handleStore = handleStore
     this.id = 0
     this.parent = parentScope
-    this.start = parentScope ? parentScope.end : HandleStore.MIN_ID
-    this.end = this.start
+    this.start = start
+    this.end = start
     this._escapeCalled = false
   }
 
@@ -37,7 +37,7 @@ export class HandleScope implements IReusableStoreValue {
 
   public dispose (): void {
     this.handleStore.pop(this.end - this.start)
-    this.init(this.handleStore, null)
+    this.init(this.handleStore, null, HandleStore.MIN_ID)
   }
 
   public escape (handle: number): Handle<any> | null {

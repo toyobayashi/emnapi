@@ -1,4 +1,5 @@
 import type { Env } from './env'
+import { HandleStore } from './Handle'
 import { HandleScope } from './HandleScope'
 import { ReusableStackStore } from './Store'
 
@@ -11,18 +12,21 @@ export class ScopeStore extends ReusableStackStore<typeof HandleScope> {
   }
 
   openScope (envObject: Env): HandleScope {
+    let scope: HandleScope
+    const start = envObject.openHandleScopes === 0 ? HandleStore.MIN_ID : this.currentScope!.end
     if (this._next < this._values.length) {
-      const scope = this._values[this._next] as HandleScope
-      scope.init(envObject.ctx.handleStore, this.currentScope)
+      scope = this._values[this._next] as HandleScope
+      scope.init(envObject.ctx.handleStore, this.currentScope, start)
       scope.id = this._next
       this.currentScope = scope
       this._next++
     } else {
-      this.currentScope = this.push(envObject.ctx.handleStore, this.currentScope)
+      scope = this.push(envObject.ctx.handleStore, this.currentScope, start)
+      this.currentScope = scope
     }
 
     envObject.openHandleScopes++
-    return this.currentScope
+    return scope
   }
 
   closeScope (envObject: Env): void {
