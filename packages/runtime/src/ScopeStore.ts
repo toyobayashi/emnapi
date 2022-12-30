@@ -11,14 +11,14 @@ export class ScopeStore extends ReusableStackStore<typeof HandleScope> {
   }
 
   openScope (envObject: Env): HandleScope {
-    const scope = this._values[this._next] as HandleScope
-    if (scope) {
-      scope.init(envObject.ctx, this.currentScope)
+    if (this._next < this._values.length) {
+      const scope = this._values[this._next] as HandleScope
+      scope.init(envObject.ctx.handleStore, this.currentScope)
       scope.id = this._next
       this.currentScope = scope
       this._next++
     } else {
-      this.currentScope = this.push(envObject.ctx, this.currentScope)
+      this.currentScope = this.push(envObject.ctx.handleStore, this.currentScope)
     }
 
     envObject.openHandleScopes++

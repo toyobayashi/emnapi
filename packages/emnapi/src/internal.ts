@@ -21,7 +21,7 @@ function $emnapiCreateFunction<F extends (...args: any[]) => any> (envObject: em
       arguments,
       newTarget
     ).id
-    const scope = emnapiCtx.openScope(envObject, emnapiRt.HandleScope)
+    const scope = emnapiCtx.openScope(envObject)
     try {
       return envObject.callIntoModule((envObject) => {
         const napiValue = emnapiGetDynamicCalls.call_ppp(cb, envObject.id, cbinfo)

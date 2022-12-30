@@ -1,9 +1,8 @@
-import { Handle, HandleStore } from './Handle'
+import { type Handle, HandleStore } from './Handle'
 import type { Context } from './Context'
 import type { IStoreValue } from './Store'
 import { TryCatch, _global, _setImmediate } from './util'
 import { RefTracker } from './RefTracker'
-import { HandleScope } from './HandleScope'
 import { RefBase } from './RefBase'
 
 /** @internal */
@@ -73,7 +72,7 @@ export class Env implements IStoreValue {
     }
 
     const currentScope = this.ctx.getCurrentScope()!
-    return currentScope.add(this, value)
+    return currentScope.add(value)
   }
 
   public ensureHandleId (value: any): napi_value {
@@ -110,7 +109,7 @@ export class Env implements IStoreValue {
   }
 
   public callFinalizer (cb: napi_finalize, data: void_p, hint: void_p): void {
-    const scope = this.ctx.openScope(this, HandleScope)
+    const scope = this.ctx.openScope(this)
     try {
       this.callIntoModule((envObject) => {
         this.emnapiGetDynamicCalls.call_vppp(cb, envObject.id, data, hint)

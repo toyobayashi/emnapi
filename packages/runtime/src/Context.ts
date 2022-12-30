@@ -4,7 +4,7 @@ import { RefStore } from './RefStore'
 import { DeferredStore } from './DeferredStore'
 import { HandleStore } from './Handle'
 import type { Handle } from './Handle'
-import { HandleScope } from './HandleScope'
+import type { HandleScope } from './HandleScope'
 import type { Env } from './env'
 
 /** @internal */
@@ -29,12 +29,12 @@ export class Context {
   }
 
   /** @internal */
-  addToCurrentScope<V> (envObject: Env, value: V, _isRefType?: boolean): Handle<V> {
-    return this.scopeStore.currentScope!.add(envObject, value)
+  addToCurrentScope<V> (value: V): Handle<V> {
+    return this.scopeStore.currentScope!.add(value)
   }
 
   /** @internal */
-  openScope (envObject: Env, _ScopeConstructor = HandleScope): HandleScope {
+  openScope (envObject: Env): HandleScope {
     return this.scopeStore.openScope(envObject)
   }
 

@@ -1,32 +1,21 @@
 import { Handle, HandleStore } from './Handle'
-import type { Env } from './env'
-import type { Context } from './Context'
 import type { IReusableStoreValue } from './Store'
 
 /** @internal */
 export class HandleScope implements IReusableStoreValue {
-  public ctx!: Context
+  public handleStore!: HandleStore
   public id!: number
   public parent!: HandleScope | null
   public start!: number
   public end!: number
   public _escapeCalled!: boolean
 
-  protected static _create<T extends typeof HandleScope> (this: T, ctx: Context, parentScope: HandleScope | null): InstanceType<T> {
-    const scope = ctx.scopeStore.push(ctx, parentScope)
-    return scope as InstanceType<T>
+  public constructor (handleStore: HandleStore, parentScope: HandleScope | null) {
+    this.init(handleStore, parentScope)
   }
 
-  public static create (ctx: Context, parentScope: HandleScope | null): HandleScope {
-    return HandleScope._create(ctx, parentScope)
-  }
-
-  public constructor (ctx: Context, parentScope: HandleScope | null) {
-    this.init(ctx, parentScope)
-  }
-
-  public init (ctx: Context, parentScope: HandleScope | null): void {
-    this.ctx = ctx
+  public init (handleStore: HandleStore, parentScope: HandleScope | null): void {
+    this.handleStore = handleStore
     this.id = 0
     this.parent = parentScope
     this.start = parentScope ? parentScope.end : HandleStore.MIN_ID
@@ -34,26 +23,21 @@ export class HandleScope implements IReusableStoreValue {
     this._escapeCalled = false
   }
 
-  public add<V> (envObject: Env, value: V): Handle<V> {
-    const h = Handle.create(envObject, value)
+  public add<V> (value: V): Handle<V> {
+    const h = this.handleStore.push(value)
     this.end++
     return h
   }
 
-  public addHandle (handle: Handle<any>): void {
-    this.ctx.handleStore.pushHandle(handle)
-    this.end++
-  }
-
   public addExternal (data: void_p): Handle<object> {
-    const h = this.ctx.handleStore.pushExternal(data)
+    const h = this.handleStore.pushExternal(data)
     this.end++
     return h
   }
 
   public dispose (): void {
-    this.ctx.handleStore.pop(this.end - this.start)
-    this.init(this.ctx, null)
+    this.handleStore.pop(this.end - this.start)
+    this.init(this.handleStore, null)
   }
 
   public escape (handle: number): Handle<any> | null {
@@ -64,8 +48,8 @@ export class HandleScope implements IReusableStoreValue {
       return null
     }
 
-    this.ctx.handleStore.swap(handle, this.start)
-    const h = this.ctx.handleStore.get(this.start)!
+    this.handleStore.swap(handle, this.start)
+    const h = this.handleStore.get(this.start)!
     this.start++
     this.parent!.end++
     return h

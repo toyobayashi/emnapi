@@ -63,7 +63,7 @@ function napi_define_class (
 
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const valueHandle = emnapiCtx.addToCurrentScope(envObject, F, true)
+      const valueHandle = emnapiCtx.addToCurrentScope(F)
       $from64('result')
       $makeSetValue('result', 0, 'valueHandle.id', '*')
       return envObject.getReturnStatus()

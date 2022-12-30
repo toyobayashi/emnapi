@@ -1,5 +1,4 @@
 import type { IReusableStoreValue } from './Store'
-import type { Env } from './env'
 import { isReferenceType, _global } from './util'
 
 /** @internal */
@@ -11,10 +10,6 @@ export interface IReferenceBinding {
 
 /** @internal */
 export class Handle<S> implements IReusableStoreValue {
-  public static create<S> (envObject: Env, value: S): Handle<S> {
-    return envObject.ctx.handleStore.push(value)
-  }
-
   public constructor (
     public id: number,
     public value: S
@@ -141,6 +136,8 @@ export class HandleStore {
     HandleStore.GLOBAL
   ]
 
+  private _next: number = HandleStore.MIN_ID
+
   // js object -> IReferenceBinding
   private static readonly _objWeakMap: WeakMap<object, IReferenceBinding> = new WeakMap()
 
@@ -162,30 +159,35 @@ export class HandleStore {
   }
 
   public push<S> (value: S): Handle<S> {
-    const h = new Handle(this._values.length, value)
-    this._values.push(h)
+    let h: Handle<S>
+    const next = this._next
+    const values = this._values
+    if (next < values.length) {
+      h = values[next]
+      h.init(next, value)
+    } else {
+      h = new Handle(next, value)
+      values[next] = h
+    }
+    this._next++
     return h
-  }
-
-  public pushHandle (handle: Handle<any>): void {
-    handle.id = this._values.length
-    this._values.push(handle)
   }
 
   public pushExternal (data: void_p): Handle<object> {
     const value = new (External as any)()
-    const h = new Handle(this._values.length, value)
+    const h = this.push(value)
     const binding = HandleStore.initObjectBinding(value)
     binding.data = data
-    this._values.push(h)
     return h
   }
 
   public pop (n = 1): void {
     let i = 0
-    while (this._values.length > HandleStore.MIN_ID && i < n) {
-      const h = this._values.pop()!
+    const values = this._values
+    while (this._next > HandleStore.MIN_ID && i < n) {
+      const h = values[this._next - 1]
       h.dispose()
+      this._next--
       i++
     }
   }
@@ -195,10 +197,11 @@ export class HandleStore {
   }
 
   public swap (a: number, b: number): void {
-    const h = this._values[a]
-    this._values[a] = this._values[b]
-    this._values[a]!.id = Number(a)
-    this._values[b] = h
+    const values = this._values
+    const h = values[a]
+    values[a] = values[b]
+    values[a]!.id = Number(a)
+    values[b] = h
     h.id = Number(b)
   }
 }

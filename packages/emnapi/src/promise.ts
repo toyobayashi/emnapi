@@ -12,7 +12,7 @@ function napi_create_promise (env: napi_env, deferred: Pointer<napi_deferred>, p
 
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const value = emnapiCtx.addToCurrentScope(envObject, p, true).id
+      const value = emnapiCtx.addToCurrentScope(p).id
       $makeSetValue('promise', 0, 'value', '*')
       return envObject.getReturnStatus()
     })

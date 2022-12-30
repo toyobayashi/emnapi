@@ -30,7 +30,7 @@ function napi_get_all_property_names (
 
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const value = emnapiCtx.addToCurrentScope(envObject, names, true).id
+      const value = emnapiCtx.addToCurrentScope(names).id
       $makeSetValue('result', 0, 'value', '*')
       return envObject.getReturnStatus()
     })

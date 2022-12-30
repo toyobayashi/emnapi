@@ -205,14 +205,14 @@ mergeInto(LibraryManager.library, {
       }
 
       env = emnapiRt.Env.create(emnapiCtx, emnapiGetDynamicCalls, lastError)
-      const scope = emnapiCtx.openScope(env, emnapiRt.HandleScope)
+      const scope = emnapiCtx.openScope(env)
       try {
-        emnapiExports = env.callIntoModule((envObject) => {
+        emnapiExports = env.callIntoModule((_envObject) => {
           const exports = {}
           // @ts-expect-error
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          const exportsHandle = scope.add(envObject, exports)
-          const napiValue = _napi_register_wasm_v1($to64('envObject.id'), $to64('exportsHandle.id'))
+          const exportsHandle = scope.add(exports)
+          const napiValue = _napi_register_wasm_v1($to64('_envObject.id'), $to64('exportsHandle.id'))
           $from64('napiValue')
           return (!napiValue) ? exports : emnapiCtx.handleStore.get(napiValue)!.value
         })

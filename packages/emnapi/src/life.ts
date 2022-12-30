@@ -3,7 +3,7 @@ function napi_open_handle_scope (env: napi_env, result: Pointer<napi_handle_scop
     return emnapiCtx.checkArgs(envObject, [result], () => {
       // @ts-expect-error
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const scope = emnapiCtx.openScope(envObject, emnapiRt.HandleScope)
+      const scope = emnapiCtx.openScope(envObject)
       $from64('result')
       $makeSetValue('result', 0, 'scope.id', '*')
       return envObject.clearLastError()
