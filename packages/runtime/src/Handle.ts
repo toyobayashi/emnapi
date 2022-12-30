@@ -93,7 +93,9 @@ export class Handle<S> implements IReusableStoreValue {
   }
 
   public dispose (): void {
-    this.init(0, undefined!)
+    if (this.id === 0) return
+    this.id = 0
+    this.value = undefined!
   }
 }
 
@@ -181,14 +183,11 @@ export class HandleStore {
     return h
   }
 
-  public pop (n = 1): void {
-    let i = 0
+  public erase (start: number, end: number): void {
+    this._next = start
     const values = this._values
-    while (this._next > HandleStore.MIN_ID && i < n) {
-      const h = values[this._next - 1]
-      h.dispose()
-      this._next--
-      i++
+    for (let i = start; i < end; ++i) {
+      values[i].dispose()
     }
   }
 

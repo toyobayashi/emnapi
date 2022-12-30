@@ -1,4 +1,4 @@
-import { Handle, HandleStore } from './Handle'
+import type { Handle, HandleStore } from './Handle'
 import type { IReusableStoreValue } from './Store'
 
 /** @internal */
@@ -36,8 +36,9 @@ export class HandleScope implements IReusableStoreValue {
   }
 
   public dispose (): void {
-    this.handleStore.pop(this.end - this.start)
-    this.init(this.handleStore, null, HandleStore.MIN_ID)
+    if (this.id === 0) return
+    this.id = 0
+    this.handleStore.erase(this.start, this.end)
   }
 
   public escape (handle: number): Handle<any> | null {
