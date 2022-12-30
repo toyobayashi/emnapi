@@ -29,8 +29,8 @@ export class Context {
   }
 
   /** @internal */
-  addToCurrentScope<V> (envObject: Env, value: V, isRefType: boolean): Handle<V> {
-    return this.getCurrentScope()!.add(envObject, value, isRefType)
+  addToCurrentScope<V> (envObject: Env, value: V, _isRefType?: boolean): Handle<V> {
+    return this.scopeStore.currentScope!.add(envObject, value)
   }
 
   /** @internal */

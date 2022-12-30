@@ -108,10 +108,11 @@ function napi_type_tag_object (env: napi_env, object: napi_value, type_tag: Cons
     if (!type_tag) {
       return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_invalid_arg)
     }
-    if (value.tag !== null) {
+    const binding = emnapiRt.HandleStore.getObjectBinding(value.value)
+    if (binding.tag !== null) {
       return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_invalid_arg)
     }
-    value.tag = [
+    binding.tag = [
       HEAPU32[type_tag >> 2],
       HEAPU32[(type_tag + 4) >> 2],
       HEAPU32[(type_tag + 8) >> 2],
@@ -138,10 +139,11 @@ function napi_check_object_type_tag (env: napi_env, object: napi_value, type_tag
       return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_invalid_arg)
     }
     let ret = true
-    if (value.tag !== null) {
+    const binding = emnapiRt.HandleStore.getObjectBinding(value.value)
+    if (binding.tag !== null) {
       $from64('type_tag')
       for (let i = 0; i < 4; i++) {
-        if (HEAPU32[(type_tag + (i * 4)) >> 2] !== value.tag[i]) {
+        if (HEAPU32[(type_tag + (i * 4)) >> 2] !== binding.tag[i]) {
           ret = false
           break
         }

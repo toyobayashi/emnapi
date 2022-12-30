@@ -141,7 +141,7 @@ function $emnapiWrap (type: WrapType, env: napi_env, js_object: napi_value, nati
       }
 
       if (type === WrapType.retrievable) {
-        if (value.wrapped !== 0) {
+        if (emnapiRt.HandleStore.getObjectBinding(value.value).wrapped !== 0) {
           return envObject.setLastError(napi_status.napi_invalid_arg)
         }
       } else if (type === WrapType.anonymous) {
@@ -160,7 +160,7 @@ function $emnapiWrap (type: WrapType, env: napi_env, js_object: napi_value, nati
       }
 
       if (type === WrapType.retrievable) {
-        value.wrapped = reference.id
+        emnapiRt.HandleStore.getObjectBinding(value.value).wrapped = reference.id
       }
       return envObject.getReturnStatus()
     })
@@ -179,7 +179,8 @@ function $emnapiUnwrap (env: napi_env, js_object: napi_value, result: void_pp, a
       if (!(value.isObject() || value.isFunction())) {
         return envObject.setLastError(napi_status.napi_invalid_arg)
       }
-      const referenceId = value.wrapped
+      const binding = emnapiRt.HandleStore.getObjectBinding(value.value)
+      const referenceId = binding.wrapped
       const ref = emnapiCtx.refStore.get(referenceId)
       if (!ref) return envObject.setLastError(napi_status.napi_invalid_arg)
       if (result) {
@@ -191,7 +192,7 @@ function $emnapiUnwrap (env: napi_env, js_object: napi_value, result: void_pp, a
         $makeSetValue('result', 0, 'data', '*')
       }
       if (action === UnwrapAction.RemoveWrap) {
-        value.wrapped = 0
+        binding.wrapped = 0
         if (ref.ownership() === emnapiRt.Ownership.kUserland) {
           // When the wrap is been removed, the finalizer should be reset.
           ref.resetFinalizer()

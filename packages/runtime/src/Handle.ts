@@ -1,23 +1,32 @@
-import type { IStoreValue } from './Store'
+import type { IReusableStoreValue } from './Store'
 import type { Env } from './env'
-import { _global } from './util'
+import { isReferenceType, _global } from './util'
 
 /** @internal */
-export class Handle<S> implements IStoreValue {
-  public static create<S> (envObject: Env, value: S, isRefType: boolean): Handle<S> {
-    return envObject.ctx.handleStore.push(value, isRefType)
+export interface IReferenceBinding {
+  wrapped: number // wrapped Reference id
+  tag: [number, number, number, number] | null
+  data: void_p
+}
+
+/** @internal */
+export class Handle<S> implements IReusableStoreValue {
+  public static create<S> (envObject: Env, value: S): Handle<S> {
+    return envObject.ctx.handleStore.push(value)
   }
 
-  public id: number
-  public value: S
-  public wrapped: number = 0 // wrapped Reference id
-  public tag: [number, number, number, number] | null
+  public constructor (
+    public id: number,
+    public value: S
+  ) {}
 
-  public constructor (id: number, value: S) {
+  public init (id: number, value: S): void {
     this.id = id
     this.value = value
-    this.wrapped = 0
-    this.tag = null
+  }
+
+  public data (): void_p {
+    return HandleStore.getObjectBinding(this.value as any).data
   }
 
   public isEmpty (): boolean {
@@ -41,7 +50,7 @@ export class Handle<S> implements IStoreValue {
   }
 
   public isExternal (): boolean {
-    return !this.isEmpty() && (this instanceof ExternalHandle)
+    return !this.isEmpty() && (isReferenceType(this.value) && Object.getPrototypeOf(this.value) === null)
   }
 
   public isObject (): boolean {
@@ -89,10 +98,17 @@ export class Handle<S> implements IStoreValue {
   }
 
   public dispose (): void {
-    if (this.id < HandleStore.MIN_ID) return
-    this.id = 0
-    this.value = undefined!
+    this.init(0, undefined!)
   }
+}
+
+/** @internal */
+export class ConstHandle<S extends undefined | null | boolean | typeof globalThis> extends Handle<S> {
+  public constructor (id: number, value: S) {
+    super(id, value)
+  }
+
+  public override dispose (): void {}
 }
 
 function External (this: any): void {
@@ -100,30 +116,13 @@ function External (this: any): void {
 }
 External.prototype = null as any
 
-export class ExternalHandle extends Handle<{}> {
-  public static createExternal (envObject: Env, data: void_p = 0): ExternalHandle {
-    return envObject.ctx.handleStore.pushExternal(data)
-  }
-
-  private readonly _data: void_p
-
-  public constructor (id: number, data: void_p = 0) {
-    super(id, new (External as any)())
-    this._data = data
-  }
-
-  public data (): void_p {
-    return this._data
-  }
-}
-
 /** @internal */
 export class HandleStore {
-  public static UNDEFINED = new Handle(1, undefined)
-  public static NULL = new Handle(2, null)
-  public static FALSE = new Handle(3, false)
-  public static TRUE = new Handle(4, true)
-  public static GLOBAL = new Handle(5, _global)
+  public static UNDEFINED = new ConstHandle(1, undefined)
+  public static NULL = new ConstHandle(2, null)
+  public static FALSE = new ConstHandle(3, false)
+  public static TRUE = new ConstHandle(4, true)
+  public static GLOBAL = new ConstHandle(5, _global)
 
   public static ID_UNDEFINED = HandleStore.UNDEFINED.id as 1
   public static ID_NULL = HandleStore.NULL.id as 2
@@ -142,19 +141,29 @@ export class HandleStore {
     HandleStore.GLOBAL
   ]
 
-  // js object -> Handle
-  private static readonly _objWeakMap: WeakMap<object, Handle<object>> = new WeakMap()
+  // js object -> IReferenceBinding
+  private static readonly _objWeakMap: WeakMap<object, IReferenceBinding> = new WeakMap()
 
-  public static getObjectHandle<S extends object> (value: S): Handle<S> | undefined {
-    return HandleStore._objWeakMap.get(value) as Handle<S>
+  public static initObjectBinding<S extends object> (value: S): IReferenceBinding {
+    const binding: IReferenceBinding = {
+      wrapped: 0,
+      tag: null,
+      data: 0
+    }
+    HandleStore._objWeakMap.set(value, binding)
+    return binding
   }
 
-  public push<S> (value: S, isRefType: boolean): Handle<S> {
+  public static getObjectBinding<S extends object> (value: S): IReferenceBinding {
+    if (HandleStore._objWeakMap.has(value)) {
+      return HandleStore._objWeakMap.get(value)!
+    }
+    return HandleStore.initObjectBinding(value)
+  }
+
+  public push<S> (value: S): Handle<S> {
     const h = new Handle(this._values.length, value)
     this._values.push(h)
-    if (isRefType) {
-      HandleStore._objWeakMap.set(value as any, h as any)
-    }
     return h
   }
 
@@ -163,10 +172,12 @@ export class HandleStore {
     this._values.push(handle)
   }
 
-  public pushExternal (data: void_p): ExternalHandle {
-    const h = new ExternalHandle(this._values.length, data)
+  public pushExternal (data: void_p): Handle<object> {
+    const value = new (External as any)()
+    const h = new Handle(this._values.length, value)
+    const binding = HandleStore.initObjectBinding(value)
+    binding.data = data
     this._values.push(h)
-    HandleStore._objWeakMap.set(h.value, h)
     return h
   }
 

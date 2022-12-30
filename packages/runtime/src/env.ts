@@ -1,7 +1,7 @@
 import { Handle, HandleStore } from './Handle'
 import type { Context } from './Context'
 import type { IStoreValue } from './Store'
-import { isReferenceType, TryCatch, _global, _setImmediate } from './util'
+import { TryCatch, _global, _setImmediate } from './util'
 import { RefTracker } from './RefTracker'
 import { HandleScope } from './HandleScope'
 import { RefBase } from './RefBase'
@@ -73,20 +73,7 @@ export class Env implements IStoreValue {
     }
 
     const currentScope = this.ctx.getCurrentScope()!
-    const isRefType = isReferenceType(value)
-    if (isRefType) {
-      const h = HandleStore.getObjectHandle(value)
-      if (!h) {
-        return currentScope.add(this, value, true)
-      }
-      if (h.value === value) {
-        return h
-      }
-      h.value = value
-      currentScope.addHandle(h)
-      return h
-    }
-    return currentScope.add(this, value, false)
+    return currentScope.add(this, value)
   }
 
   public ensureHandleId (value: any): napi_value {
