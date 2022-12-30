@@ -1,7 +1,7 @@
-import { type Handle, HandleStore } from './Handle'
+import type { Handle } from './Handle'
 import type { Context } from './Context'
 import type { IStoreValue } from './Store'
-import { TryCatch, _global, _setImmediate } from './util'
+import { TryCatch, _setImmediate } from './util'
 import { RefTracker } from './RefTracker'
 import { RefBase } from './RefBase'
 
@@ -62,17 +62,7 @@ export class Env implements IStoreValue {
   }
 
   public ensureHandle<S> (value: S): Handle<S> {
-    switch (value as any) {
-      case undefined: return HandleStore.UNDEFINED as any
-      case null: return HandleStore.NULL as any
-      case true: return HandleStore.TRUE as any
-      case false: return HandleStore.FALSE as any
-      case _global: return HandleStore.GLOBAL as any
-      default: break
-    }
-
-    const currentScope = this.ctx.getCurrentScope()!
-    return currentScope.add(value)
+    return this.ctx.ensureHandle(value)
   }
 
   public ensureHandleId (value: any): napi_value {

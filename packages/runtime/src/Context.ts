@@ -6,6 +6,7 @@ import { HandleStore } from './Handle'
 import type { Handle } from './Handle'
 import type { HandleScope } from './HandleScope'
 import type { Env } from './env'
+import { _global } from './util'
 
 /** @internal */
 export class Context {
@@ -74,6 +75,21 @@ export class Context {
         return envObject.setLastError(napi_status.napi_pending_exception)
       }
     })
+  }
+
+  /** @internal */
+  ensureHandle<S> (value: S): Handle<S> {
+    switch (value as any) {
+      case undefined: return HandleStore.UNDEFINED as any
+      case null: return HandleStore.NULL as any
+      case true: return HandleStore.TRUE as any
+      case false: return HandleStore.FALSE as any
+      case _global: return HandleStore.GLOBAL as any
+      default: break
+    }
+
+    const currentScope = this.scopeStore.currentScope!
+    return currentScope.add(value)
   }
 }
 
