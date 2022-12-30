@@ -93,17 +93,17 @@ export class Reference extends RefBase implements IStoreValue {
   }
 
   private _setWeak (): void {
-    this.persistent?.setWeak(this, weakCallback)
+    this.persistent.setWeak(this, weakCallback)
   }
 
   public override finalize (): void {
-    this.persistent?.reset()
+    this.persistent.reset()
     super.finalize()
   }
 
   public override dispose (): void {
     if (this.id === 0) return
-    this.persistent?.reset()
+    this.persistent.reset()
     this.envObject.ctx.refStore.remove(this.id)
     super.dispose()
     this.id = 0
