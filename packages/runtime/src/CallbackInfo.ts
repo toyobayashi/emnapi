@@ -1,55 +1,37 @@
-import { type IReusableStoreValue, ReusableStackStore } from './Store'
+import type { Env } from './env'
 
 /** @internal */
-export class CallbackInfo implements IReusableStoreValue {
-  public id!: number
-  public _this!: any
-  public _data!: void_p
-  public _args!: ArrayLike<any>
-  public _newTarget!: Function | undefined
-
-  private static readonly _stack = new ReusableStackStore(CallbackInfo)
-
-  public static get (id: number): CallbackInfo | undefined {
-    return CallbackInfo._stack.get(id)
-  }
+export class CallbackInfo {
+  public static current: CallbackInfo | null = null
 
   public static pop (): void {
-    CallbackInfo._stack.pop()
+    const current = CallbackInfo.current
+    if (current === null) return
+    CallbackInfo.current = current.parent
   }
 
   public static push (
-    _this: any,
-    _data: void_p,
-    _args: ArrayLike<any>,
-    _newTarget: Function | undefined
+    thiz: any,
+    data: void_p,
+    args: ArrayLike<any>,
+    fn: Function
   ): CallbackInfo {
-    return CallbackInfo._stack.push(_this, _data, _args, _newTarget)
+    const info = new CallbackInfo(CallbackInfo.current, thiz, data, args, fn)
+    CallbackInfo.current = info
+    return info
   }
 
   public constructor (
-    _this: any,
-    _data: void_p,
-    _args: ArrayLike<any>,
-    _newTarget: Function | undefined
-  ) {
-    this.init(_this, _data, _args, _newTarget)
-  }
+    public parent: CallbackInfo | null,
+    public thiz: any,
+    public data: void_p,
+    public args: ArrayLike<any>,
+    public fn: Function
+  ) {}
 
-  public init (
-    _this: any,
-    _data: void_p,
-    _args: ArrayLike<any>,
-    _newTarget: Function | undefined
-  ): void {
-    this.id = 0
-    this._this = _this
-    this._data = _data
-    this._args = _args
-    this._newTarget = _newTarget
-  }
-
-  public dispose (): void {
-    this.init(undefined, 0, undefined!, undefined)
+  public getNewTarget (envObject: Env): number {
+    const thiz = this.thiz
+    if (thiz == null || thiz.constructor == null) return 0
+    return thiz instanceof this.fn ? envObject.ensureHandleId(thiz.constructor) : 0
   }
 }

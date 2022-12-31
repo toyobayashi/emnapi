@@ -1,4 +1,3 @@
-import type { IReusableStoreValue } from './Store'
 import { isReferenceType, _global } from './util'
 
 /** @internal */
@@ -9,7 +8,7 @@ export interface IReferenceBinding {
 }
 
 /** @internal */
-export class Handle<S> implements IReusableStoreValue {
+export class Handle<S> {
   public constructor (
     public id: number,
     public value: S
