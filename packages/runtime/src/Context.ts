@@ -31,7 +31,7 @@ export class Context {
 
   /** @internal */
   addToCurrentScope<V> (value: V): Handle<V> {
-    return this.scopeStore.currentScope!.add(value)
+    return this.scopeStore.currentScope.add(value)
   }
 
   /** @internal */
@@ -40,7 +40,7 @@ export class Context {
   }
 
   /** @internal */
-  closeScope (envObject: Env, _scope: HandleScope): void {
+  closeScope (envObject: Env, _scope?: HandleScope): void {
     return this.scopeStore.closeScope(envObject)
   }
 
@@ -88,7 +88,7 @@ export class Context {
       default: break
     }
 
-    const currentScope = this.scopeStore.currentScope!
+    const currentScope = this.scopeStore.currentScope
     return currentScope.add(value)
   }
 }

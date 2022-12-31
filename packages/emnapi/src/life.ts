@@ -14,12 +14,11 @@ function napi_open_handle_scope (env: napi_env, result: Pointer<napi_handle_scop
 function napi_close_handle_scope (env: napi_env, scope: napi_handle_scope): napi_status {
   return emnapiCtx.checkEnv(env, (envObject) => {
     return emnapiCtx.checkArgs(envObject, [scope], () => {
-      const scopeObject = emnapiCtx.scopeStore.get(scope)!
-      if ((envObject.openHandleScopes === 0) || (scopeObject !== emnapiCtx.getCurrentScope()!)) {
+      if ((envObject.openHandleScopes === 0)) {
         return napi_status.napi_handle_scope_mismatch
       }
 
-      emnapiCtx.closeScope(envObject, scopeObject)
+      emnapiCtx.closeScope(envObject)
       return envObject.clearLastError()
     })
   })
@@ -41,12 +40,11 @@ function napi_open_escapable_handle_scope (env: napi_env, result: Pointer<napi_e
 function napi_close_escapable_handle_scope (env: napi_env, scope: napi_escapable_handle_scope): napi_status {
   return emnapiCtx.checkEnv(env, (envObject) => {
     return emnapiCtx.checkArgs(envObject, [scope], () => {
-      const scopeObject = emnapiCtx.scopeStore.get(scope)!
-      if ((envObject.openHandleScopes === 0) || (scopeObject !== emnapiCtx.getCurrentScope()!)) {
+      if ((envObject.openHandleScopes === 0)) {
         return napi_status.napi_handle_scope_mismatch
       }
 
-      emnapiCtx.closeScope(envObject, scopeObject)
+      emnapiCtx.closeScope(envObject)
       return envObject.clearLastError()
     })
   })
