@@ -1,25 +1,23 @@
 import type { Handle, HandleStore } from './Handle'
-import type { IReusableStoreValue } from './Store'
 
 /** @internal */
-export class HandleScope implements IReusableStoreValue {
-  public handleStore!: HandleStore
-  public id!: number
-  public parent!: HandleScope | null
-  public start!: number
-  public end!: number
-  public _escapeCalled!: boolean
+export class HandleScope {
+  public handleStore: HandleStore
+  public id: number
+  public parent: HandleScope | null
+  public child: HandleScope | null
+  public start: number
+  public end: number
+  public _escapeCalled: boolean
 
-  public constructor (handleStore: HandleStore, parentScope: HandleScope | null, start: number) {
-    this.init(handleStore, parentScope, start)
-  }
-
-  public init (handleStore: HandleStore, parentScope: HandleScope | null, start: number): void {
+  public constructor (handleStore: HandleStore, id: number, parentScope: HandleScope | null, start: number, end = start) {
     this.handleStore = handleStore
-    this.id = 0
+    this.id = id
     this.parent = parentScope
+    this.child = null
+    if (parentScope !== null) parentScope.child = this
     this.start = start
-    this.end = start
+    this.end = end
     this._escapeCalled = false
   }
 
@@ -36,8 +34,9 @@ export class HandleScope implements IReusableStoreValue {
   }
 
   public dispose (): void {
-    if (this.id === 0) return
-    this.id = 0
+    // if (this.id === 0) return
+    // this.id = 0
+    if (this.start === this.end) return
     this.handleStore.erase(this.start, this.end)
   }
 
