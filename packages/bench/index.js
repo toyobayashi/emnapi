@@ -32,7 +32,7 @@ function testEmptyFunction (embind, napi, naa) {
   suite.run({ async: false })
 }
 
-function testReturnPrimitive (embind, napi, naa) {
+function testReturnParam (embind, napi, naa) {
   const suite = new Benchmark.Suite('returnPrimitive')
   suite.add('embind#returnPrimitive', function () {
     embind.returnParam(1)
@@ -52,16 +52,16 @@ function testReturnPrimitive (embind, napi, naa) {
   suite.run({ async: false })
 }
 
-function testReturnObject (embind, napi, naa) {
-  const suite = new Benchmark.Suite('returnObject')
-  suite.add('embind#returnObject', function () {
-    embind.returnParam([])
+function testConvertInteger (embind, napi, naa) {
+  const suite = new Benchmark.Suite('convertInteger')
+  suite.add('embind#convertInteger', function () {
+    embind.convertInteger(1)
   })
-  suite.add('napi#returnObject', function () {
-    napi.returnParam([])
+  suite.add('napi#convertInteger', function () {
+    napi.convertInteger(1)
   })
-  suite.add('naa#returnObject', function () {
-    naa.returnParam([])
+  suite.add('naa#convertInteger', function () {
+    naa.convertInteger(1)
   })
   suite.on('cycle', function (event) {
     console.log(String(event.target))
@@ -72,7 +72,69 @@ function testReturnObject (embind, napi, naa) {
   suite.run({ async: false })
 }
 
-function testFib (embind, napi, naa) {
+function testConvertString (embind, napi, naa) {
+  const suite = new Benchmark.Suite('convertString')
+  suite.add('embind#convertString', function () {
+    embind.convertString('node-api')
+  })
+  suite.add('napi#convertString', function () {
+    napi.convertString('node-api')
+  })
+  suite.add('naa#convertString', function () {
+    naa.convertString('node-api')
+  })
+  suite.on('cycle', function (event) {
+    console.log(String(event.target))
+  })
+  suite.on('complete', function () {
+    console.log('Fastest is ' + this.filter('fastest').map('name'))
+  })
+  suite.run({ async: false })
+}
+
+function testObjectGet (embind, napi, naa) {
+  const suite = new Benchmark.Suite('ObjectGet')
+  const obj = { length: 1 }
+  suite.add('embind#ObjectGet', function () {
+    embind.objectGet(obj)
+  })
+  suite.add('napi#ObjectGet', function () {
+    napi.objectGet(obj)
+  })
+  suite.add('naa#ObjectGet', function () {
+    naa.objectGet(obj)
+  })
+  suite.on('cycle', function (event) {
+    console.log(String(event.target))
+  })
+  suite.on('complete', function () {
+    console.log('Fastest is ' + this.filter('fastest').map('name'))
+  })
+  suite.run({ async: false })
+}
+
+function testObjectSet (embind, napi, naa) {
+  const suite = new Benchmark.Suite('ObjectSet')
+  const obj = { length: 1 }
+  suite.add('embind#ObjectSet', function () {
+    embind.objectSet(obj, 'length', obj.length + 1)
+  })
+  suite.add('napi#ObjectSet', function () {
+    napi.objectSet(obj, 'length', obj.length + 1)
+  })
+  suite.add('naa#ObjectSet', function () {
+    naa.objectSet(obj, 'length', obj.length + 1)
+  })
+  suite.on('cycle', function (event) {
+    console.log(String(event.target))
+  })
+  suite.on('complete', function () {
+    console.log('Fastest is ' + this.filter('fastest').map('name'))
+  })
+  suite.run({ async: false })
+}
+
+/* function testFib (embind, napi, naa) {
   const suite = new Benchmark.Suite('fib')
   suite.add('embind#fib', function () {
     embind.fib(24)
@@ -90,7 +152,7 @@ function testFib (embind, napi, naa) {
     console.log('Fastest is ' + this.filter('fastest').map('name'))
   })
   suite.run({ async: false })
-}
+} */
 
 function browserMain () {
   Promise.all([
@@ -105,9 +167,11 @@ function browserMain () {
     const btnNapi = document.getElementById('testNapi')
     btnNapi.addEventListener('click', () => {
       testEmptyFunction(embind, napi, naa)
-      testReturnPrimitive(embind, napi, naa)
-      testReturnObject(embind, napi, naa)
-      testFib(embind, napi, naa)
+      testReturnParam(embind, napi, naa)
+      testConvertInteger(embind, napi, naa)
+      testConvertString(embind, napi, naa)
+      testObjectGet(embind, napi, naa)
+      testObjectSet(embind, napi, naa)
     })
   })
 }
@@ -123,8 +187,10 @@ function nodeMain () {
     { Module: { emnapiExports: naa } }
   ]) => {
     testEmptyFunction(embind, napi, naa)
-    testReturnPrimitive(embind, napi, naa)
-    testReturnObject(embind, napi, naa)
-    testFib(embind, napi, naa)
+    testReturnParam(embind, napi, naa)
+    testConvertInteger(embind, napi, naa)
+    testConvertString(embind, napi, naa)
+    testObjectGet(embind, napi, naa)
+    testObjectSet(embind, napi, naa)
   })
 }
