@@ -188,6 +188,7 @@ function napi_create_bigint_uint64 (env: napi_env, low: int32_t, high: int32_t, 
   return envObject.clearLastError()
 }
 
+// @ts-expect-error
 function napi_create_bigint_words (env: napi_env, sign_bit: int, word_count: size_t, words: Const<Pointer<uint64_t>>, result: Pointer<napi_value>): napi_status {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let v: number
