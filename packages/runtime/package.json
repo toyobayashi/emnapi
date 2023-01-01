@@ -1,6 +1,6 @@
 {
   "name": "@tybys/emnapi-runtime",
-  "version": "0.21.1",
+  "version": "0.22.0",
   "description": "emnapi runtime",
   "main": "index.js",
   "module": "./dist/emnapi.esm-bundler.js",
@@ -10,6 +10,15 @@
       "module": "./dist/emnapi.esm-bundler.js",
       "import": "./dist/emnapi.mjs",
       "require": "./index.js",
+      "types": "./dist/emnapi.d.ts"
+    },
+    "./dist/emnapi.cjs.min": {
+      "default": "./dist/emnapi.cjs.min.js",
+      "types": "./dist/emnapi.d.ts"
+    },
+    "./dist/emnapi.min.mjs": {
+      "import": "./dist/emnapi.min.mjs",
+      "require": null,
       "types": "./dist/emnapi.d.ts"
     }
   },
