@@ -244,12 +244,13 @@ static void async_work_on_complete(napi_env env, void* args) {
 static void async_work_after_thread_pool_work(napi_async_work work, int status) {
   if (work->complete == NULL) return;
   napi_handle_scope scope;
-  napi_open_handle_scope(work->env, &scope);
+  napi_env env = work->env;
+  napi_open_handle_scope(env, &scope);
   complete_wrap_t* wrap = (complete_wrap_t*) malloc(sizeof(complete_wrap_t));
   wrap->status = status;
   wrap->work = work;
-  _emnapi_call_into_module(work->env, async_work_on_complete, wrap);
-  napi_close_handle_scope(work->env, scope);
+  _emnapi_call_into_module(env, async_work_on_complete, wrap);
+  napi_close_handle_scope(env, scope);
 }
 
 static void async_work_schedule_work_on_execute(uv_work_t* req) {
