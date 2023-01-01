@@ -33,12 +33,13 @@ export const _global: typeof globalThis = (function () {
   return g
 })()
 
+const emptyException = new Error()
+
 /** @internal */
 export class TryCatch {
-  private _exception: any = undefined
-  private _caught: boolean = false
+  private _exception: any = emptyException
   public hasCaught (): boolean {
-    return this._caught
+    return this._exception !== emptyException
   }
 
   public exception (): any {
@@ -47,12 +48,10 @@ export class TryCatch {
 
   public setError (err: any): void {
     this._exception = err
-    this._caught = true
   }
 
   public reset (): void {
-    this._exception = undefined
-    this._caught = false
+    this._exception = emptyException
   }
 
   public extractException (): any {

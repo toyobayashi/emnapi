@@ -71,7 +71,7 @@ export class Env implements IStoreValue {
 
   public clearLastError (): napi_status {
     this.lastError.setErrorCode(napi_status.napi_ok)
-    this.lastError.setErrorMessage(0)
+    // this.lastError.setErrorMessage(0)
 
     return napi_status.napi_ok
   }
@@ -90,9 +90,9 @@ export class Env implements IStoreValue {
     const r = fn(this)
     if (this.tryCatch.hasCaught()) {
       const err = this.tryCatch.extractException()!
-      if (this.lastError.getErrorCode() === napi_status.napi_pending_exception) {
-        this.clearLastError()
-      }
+      // if (this.lastError.getErrorCode() === napi_status.napi_pending_exception) {
+      //   this.clearLastError()
+      // }
       throw err
     }
     return r
