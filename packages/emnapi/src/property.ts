@@ -344,7 +344,7 @@ function napi_define_properties (
 // @ts-expect-error
 ): napi_status {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  let propPtr: number
+  let propPtr: number, attributes: number
 
   $PREAMBLE!(env, (envObject) => {
     $from64('properties')
@@ -373,7 +373,7 @@ function napi_define_properties (
       const getter = $makeGetValue('propPtr', POINTER_SIZE * 3, '*')
       const setter = $makeGetValue('propPtr', POINTER_SIZE * 4, '*')
       const value = $makeGetValue('propPtr', POINTER_SIZE * 5, '*')
-      const attributes = $makeGetValue('propPtr', POINTER_SIZE * 6, POINTER_WASM_TYPE) as number
+      attributes = $makeGetValue('propPtr', POINTER_SIZE * 6, POINTER_WASM_TYPE) as number
       $from64('attributes')
       const data = $makeGetValue('propPtr', POINTER_SIZE * 7, '*')
 

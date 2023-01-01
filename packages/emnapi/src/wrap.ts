@@ -10,7 +10,7 @@ function napi_define_class (
 // @ts-expect-error
 ): napi_status {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  let propPtr: number, valueHandleId: number
+  let propPtr: number, valueHandleId: number, attributes: number
 
   $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, result)
@@ -43,7 +43,7 @@ function napi_define_class (
       const getter = $makeGetValue('propPtr', POINTER_SIZE * 3, '*')
       const setter = $makeGetValue('propPtr', POINTER_SIZE * 4, '*')
       const value = $makeGetValue('propPtr', POINTER_SIZE * 5, '*')
-      const attributes = $makeGetValue('propPtr', POINTER_SIZE * 6, POINTER_WASM_TYPE) as number
+      attributes = $makeGetValue('propPtr', POINTER_SIZE * 6, POINTER_WASM_TYPE) as number
       $from64('attributes')
       const data = $makeGetValue('propPtr', POINTER_SIZE * 7, '*')
 
