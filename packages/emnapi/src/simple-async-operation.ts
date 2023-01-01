@@ -97,11 +97,9 @@ function _emnapi_call_into_module (env: napi_env, callback: number, data: number
       $from64('callback')
       emnapiGetDynamicCalls.call_vpp(callback, env, data)
     })
-  } catch (err) {
+  } finally {
     emnapiCtx.closeScope(envObject, scope)
-    throw err
   }
-  emnapiCtx.closeScope(envObject, scope)
 }
 
 emnapiImplement('_emnapi_call_into_module', 'vppp', _emnapi_call_into_module, ['$emnapiGetDynamicCalls'])

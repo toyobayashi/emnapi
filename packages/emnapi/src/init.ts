@@ -209,7 +209,6 @@ mergeInto(LibraryManager.library, {
       try {
         emnapiExports = env.callIntoModule((_envObject) => {
           const exports = {}
-          // @ts-expect-error
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
           const exportsHandle = scope.add(exports)
           const napiValue = _napi_register_wasm_v1($to64('_envObject.id'), $to64('exportsHandle.id'))
@@ -231,7 +230,6 @@ mergeInto(LibraryManager.library, {
 
       callInStack(() => {
         // HEAP.*?\[.*?\]
-        // @ts-expect-error
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const key_pp = stackAlloc($POINTER_SIZE); const errormessages_pp = stackAlloc($POINTER_SIZE)
         __emnapi_runtime_init($to64('key_pp'), $to64('errormessages_pp'))

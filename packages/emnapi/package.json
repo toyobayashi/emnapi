@@ -3,7 +3,9 @@
   "version": "0.21.1",
   "description": "Node-API implementation for Emscripten",
   "main": "index.js",
-  "devDependencies": {},
+  "devDependencies": {
+    "ts-macros": "2.0.1"
+  },
   "scripts": {
     "build": "node ./script/build.js"
   },

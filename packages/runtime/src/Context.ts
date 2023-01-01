@@ -45,39 +45,6 @@ export class Context {
   }
 
   /** @internal */
-  checkEnv (env: napi_env, fn: (envObject: Env) => napi_status): napi_status {
-    if (!env) return napi_status.napi_invalid_arg
-    const envObject = this.envStore.get(env)
-    if (envObject === undefined) return napi_status.napi_invalid_arg
-    return fn(envObject)
-  }
-
-  /** @internal */
-  checkArgs (envObject: Env, args: Ptr[], fn: () => napi_status): napi_status {
-    for (let i = 0; i < args.length; i++) {
-      const arg = args[i]
-      if (!arg) {
-        return envObject.setLastError(napi_status.napi_invalid_arg)
-      }
-    }
-    return fn()
-  }
-
-  /** @internal */
-  preamble (env: napi_env, fn: (envObject: Env) => napi_status): napi_status {
-    return this.checkEnv(env, (envObject) => {
-      if (envObject.tryCatch.hasCaught()) return envObject.setLastError(napi_status.napi_pending_exception)
-      envObject.clearLastError()
-      try {
-        return fn(envObject)
-      } catch (err) {
-        envObject.tryCatch.setError(err)
-        return envObject.setLastError(napi_status.napi_pending_exception)
-      }
-    })
-  }
-
-  /** @internal */
   ensureHandle<S> (value: S): Handle<S> {
     switch (value as any) {
       case undefined: return HandleStore.UNDEFINED as any
