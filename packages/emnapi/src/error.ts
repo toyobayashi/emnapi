@@ -1,21 +1,21 @@
-function napi_get_last_error_info (env: napi_env, result: Pointer<Pointer<napi_extended_error_info>>): napi_status {
-  $CHECK_ENV!(env)
+function _emnapi_get_last_error_info (env: napi_env, error_code: Pointer<napi_status>, engine_error_code: Pointer<uint32_t>, engine_reserved: void_pp): void {
+  $from64('error_code')
+  $from64('engine_error_code')
+  $from64('engine_reserved')
   const envObject = emnapiCtx.envStore.get(env)!
-  $CHECK_ARG!(envObject, result)
-  const error_code = envObject.lastError.getErrorCode()
-  // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
-  const messagePointer = $makeGetValue('errorMessagesPtr', 'error_code * ' + POINTER_SIZE, '*')
-  envObject.lastError.setErrorMessage(messagePointer)
 
-  if (error_code === napi_status.napi_ok) {
-    envObject.clearLastError()
-  }
-  $from64('result')
-
+  const lastError = envObject.lastError
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const value = envObject.lastError.data
-  $makeSetValue('result', 0, 'value', '*')
-  return napi_status.napi_ok
+  const errorCode = lastError.errorCode
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const engineErrorCode = lastError.engineErrorCode >>> 0
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const engineReserved = lastError.engineReserved
+  $from64('engineReserved')
+
+  $makeSetValue('error_code', 0, 'errorCode', 'i32')
+  $makeSetValue('engine_error_code', 0, 'engineErrorCode', 'u32')
+  $makeSetValue('engine_reserved', 0, 'engineReserved', '*')
 }
 
 // @ts-expect-error
@@ -210,7 +210,7 @@ function napi_fatal_error (location: const_char_p, location_len: size_t, message
   abort('FATAL ERROR: ' + (location_len === -1 ? UTF8ToString(location) : UTF8ToString(location, location_len)) + ' ' + (message_len === -1 ? UTF8ToString(message) : UTF8ToString(message, message_len)))
 }
 
-emnapiImplement('napi_get_last_error_info', 'ipp', napi_get_last_error_info, ['$errorMessagesPtr'])
+emnapiImplement('_emnapi_get_last_error_info', 'vpppp', _emnapi_get_last_error_info)
 emnapiImplement('napi_get_and_clear_last_exception', 'ipp', napi_get_and_clear_last_exception)
 emnapiImplement('napi_throw', 'ipp', napi_throw)
 emnapiImplement('napi_throw_error', 'ippp', napi_throw_error)

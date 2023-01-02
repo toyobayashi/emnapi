@@ -32,20 +32,24 @@ export class Env implements IStoreValue {
   public finalizationScheduled: boolean = false
   public pendingFinalizers: RefTracker[] = []
 
+  public lastError = {
+    errorCode: napi_status.napi_ok,
+    engineErrorCode: 0 as uint32_t,
+    engineReserved: 0 as Ptr
+  }
+
   public static create (
     ctx: Context,
-    emnapiGetDynamicCalls: IDynamicCalls,
-    lastError: ILastError
+    emnapiGetDynamicCalls: IDynamicCalls
   ): Env {
-    const env = new Env(ctx, emnapiGetDynamicCalls, lastError)
+    const env = new Env(ctx, emnapiGetDynamicCalls)
     ctx.envStore.add(env)
     return env
   }
 
   private constructor (
     public readonly ctx: Context,
-    public emnapiGetDynamicCalls: IDynamicCalls,
-    public lastError: ILastError
+    public emnapiGetDynamicCalls: IDynamicCalls
   ) {
     this.id = 0
   }
@@ -70,14 +74,23 @@ export class Env implements IStoreValue {
   }
 
   public clearLastError (): napi_status {
-    this.lastError.setErrorCode(napi_status.napi_ok)
-    // this.lastError.setErrorMessage(0)
+    // this.lastError.setErrorCode(napi_status.napi_ok)
+
+    const lastError = this.lastError
+    lastError.errorCode = napi_status.napi_ok
+    lastError.engineErrorCode = 0
+    lastError.engineReserved = 0
 
     return napi_status.napi_ok
   }
 
-  public setLastError (error_code: napi_status, _engine_error_code: uint32_t = 0, _engine_reserved: void_p = 0): napi_status {
-    this.lastError.setErrorCode(error_code)
+  public setLastError (error_code: napi_status, engine_error_code: uint32_t = 0, engine_reserved: void_p = 0): napi_status {
+    // this.lastError.setErrorCode(error_code)
+
+    const lastError = this.lastError
+    lastError.errorCode = error_code
+    lastError.engineErrorCode = engine_error_code
+    lastError.engineReserved = engine_reserved
     return error_code
   }
 
@@ -147,10 +160,6 @@ export class Env implements IStoreValue {
     RefBase.finalizeAll(this.reflist)
 
     this.tryCatch.extractException()
-    try {
-      this.lastError.dispose()
-    } catch (_) {}
-    this.lastError = null!
     this.ctx.envStore.remove(this.id)
   }
 }

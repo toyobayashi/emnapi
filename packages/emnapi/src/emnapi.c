@@ -50,6 +50,7 @@
 #define CHECK_NOT_NULL(val) CHECK((val) != NULL)
 
 #define CHECK_EQ(a, b) CHECK((a) == (b))
+#define CHECK_LE(a, b) CHECK((a) <= (b))
 
 EXTERN_C_START
 
@@ -101,11 +102,44 @@ const char* emnapi_error_messages[] = {
 #define EMNAPI_MOD_NAME_X(modname) EMNAPI_MOD_NAME_X_HELPER(modname)
 
 EMSCRIPTEN_KEEPALIVE
-void _emnapi_runtime_init(const char** key, const char*** error_messages) {
+void _emnapi_runtime_init(const char** key) {
   if (key) {
     *key = EMNAPI_MOD_NAME_X(NODE_GYP_MODULE_NAME);
   }
-  if (error_messages) *error_messages = emnapi_error_messages;
+}
+
+extern void _emnapi_get_last_error_info(napi_env env,
+                                        napi_status* error_code,
+                                        uint32_t* engine_error_code,
+                                        void** engine_reserved);
+
+napi_status napi_get_last_error_info(
+    napi_env env, const napi_extended_error_info** result) {
+  static napi_extended_error_info last_error;
+  CHECK_ENV(env);
+  CHECK_ARG(env, result);
+
+  const int last_status = napi_no_external_buffers_allowed;
+
+  _Static_assert((sizeof(emnapi_error_messages) / sizeof(const char*)) == last_status + 1,
+                "Count of error messages must match count of error values");
+  
+  _emnapi_get_last_error_info(env,
+                              &last_error.error_code,
+                              &last_error.engine_error_code,
+                              &last_error.engine_reserved);
+
+  CHECK_LE(last_error.error_code, last_status);
+
+  last_error.error_message = emnapi_error_messages[last_error.error_code];
+
+  if (last_error.error_code == napi_ok) {
+    napi_clear_last_error(env);
+    last_error.engine_error_code = 0;
+    last_error.engine_reserved = NULL;
+  }
+  *result = &last_error;
+  return napi_ok;
 }
 
 napi_status napi_adjust_external_memory(napi_env env,

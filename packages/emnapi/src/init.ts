@@ -13,11 +13,10 @@ declare let emnapiRt: typeof emnapi
 declare let emnapiCtx: emnapi.Context
 
 declare function _napi_register_wasm_v1 (env: Ptr, exports: Ptr): napi_value
-declare function __emnapi_runtime_init (...args: [Ptr, Ptr]): void
-declare function _free (ptr: Ptr): void
+declare function __emnapi_runtime_init (...args: [Ptr]): void
+// declare function _free (ptr: Ptr): void
 
 mergeInto(LibraryManager.library, {
-  $emnapiGetDynamicCalls__deps: ['malloc'],
   $emnapiGetDynamicCalls: {
     call_vp: function (_ptr: Ptr, a: Ptr): void {
       return $makeDynCall('vp', '_ptr')(a)
@@ -137,8 +136,6 @@ mergeInto(LibraryManager.library, {
     })
   },
 
-  $errorMessagesPtr: undefined,
-
   $emnapiInit__postset: 'addOnPreRun(function (Module) {' +
     'addRunDependency("emnapi-init");' +
     'emnapiRuntimeInit(Module).then(function () {' +
@@ -156,10 +153,8 @@ mergeInto(LibraryManager.library, {
     '$emnapiGetDynamicCalls',
     '$emnapiCtx',
     '$emnapiRuntimeInit',
-    '$errorMessagesPtr',
     'napi_register_wasm_v1',
-    '_emnapi_runtime_init',
-    'free'
+    '_emnapi_runtime_init'
   ],
   $emnapiInit: function () {
     let registered = false
@@ -184,7 +179,7 @@ mergeInto(LibraryManager.library, {
       if (registered) return emnapiExports
       registered = true
 
-      let napiExtendedErrorInfoPtr = $makeMalloc('$emnapiInit', POINTER_SIZE * 2 + 8)
+      /* let napiExtendedErrorInfoPtr = $makeMalloc('$emnapiInit', POINTER_SIZE * 2 + 8)
 
       const lastError = {
         data: napiExtendedErrorInfoPtr,
@@ -202,9 +197,9 @@ mergeInto(LibraryManager.library, {
           _free($to64('napiExtendedErrorInfoPtr'))
           napiExtendedErrorInfoPtr = 0
         }
-      }
+      } */
 
-      env = emnapiRt.Env.create(emnapiCtx, emnapiGetDynamicCalls, lastError)
+      env = emnapiRt.Env.create(emnapiCtx, emnapiGetDynamicCalls)
       const scope = emnapiCtx.openScope(env)
       try {
         emnapiExports = env.callIntoModule((_envObject) => {
@@ -231,12 +226,11 @@ mergeInto(LibraryManager.library, {
       callInStack(() => {
         // HEAP.*?\[.*?\]
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const key_pp = stackAlloc($POINTER_SIZE); const errormessages_pp = stackAlloc($POINTER_SIZE)
-        __emnapi_runtime_init($to64('key_pp'), $to64('errormessages_pp'))
+        const key_pp = stackAlloc($POINTER_SIZE)/* ; const errormessages_pp = stackAlloc($POINTER_SIZE) */
+        __emnapi_runtime_init($to64('key_pp'))
         const key_p = $makeGetValue('key_pp', 0, '*')
         exportsKey = (key_p ? UTF8ToString(key_p) : 'emnapiExports') || 'emnapiExports'
         // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
-        errorMessagesPtr = $makeGetValue('errormessages_pp', 0, '*') || 0
       })
 
       // Module.emnapiModuleRegister = moduleRegister
