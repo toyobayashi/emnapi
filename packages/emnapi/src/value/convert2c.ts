@@ -1,3 +1,62 @@
+declare const emnapiExternalMemory: {
+  registry: FinalizationRegistry<number> | undefined
+  table: WeakMap<ArrayBuffer | ArrayBufferView, void_p>
+  getArrayBufferPointer: (arrayBuffer: ArrayBuffer) => void_p
+  getViewPointer: (view: ArrayBufferView) => void_p
+}
+
+mergeInto(LibraryManager.library, {
+  $emnapiExternalMemory__deps: ['malloc', 'free'],
+  $emnapiExternalMemory__postset: 'emnapiExternalMemory.init();',
+  $emnapiExternalMemory: {
+    init: function () {
+      emnapiExternalMemory.registry = typeof FinalizationRegistry === 'function' ? new FinalizationRegistry(function (pointer) { _free(pointer) }) : undefined
+      emnapiExternalMemory.table = new WeakMap()
+    },
+
+    getArrayBufferPointer: function (arrayBuffer: ArrayBuffer): void_p {
+      if ((!emnapiExternalMemory.registry) || (arrayBuffer === HEAPU8.buffer)) {
+        return /* NULL */ 0
+      }
+
+      let pointer: void_p
+      if (emnapiExternalMemory.table.has(arrayBuffer)) {
+        pointer = emnapiExternalMemory.table.get(arrayBuffer)!
+        HEAPU8.set(new Uint8Array(arrayBuffer), pointer)
+        return pointer
+      }
+
+      pointer = $makeMalloc('$emnapiExternalMemory.getArrayBufferPointer', 'arrayBuffer.byteLength')
+      HEAPU8.set(new Uint8Array(arrayBuffer), pointer)
+      emnapiExternalMemory.table.set(arrayBuffer, pointer)
+      emnapiExternalMemory.registry.register(arrayBuffer, pointer)
+      return pointer
+    },
+
+    getViewPointer: function (view: ArrayBufferView): void_p {
+      if (!emnapiExternalMemory.registry) {
+        return /* NULL */ 0
+      }
+      if (view.buffer === HEAPU8.buffer) {
+        return view.byteOffset
+      }
+
+      let pointer: void_p
+      if (emnapiExternalMemory.table.has(view)) {
+        pointer = emnapiExternalMemory.table.get(view)!
+        HEAPU8.set(new Uint8Array(view.buffer, view.byteOffset, view.byteLength), pointer)
+        return pointer
+      }
+
+      pointer = $makeMalloc('$emnapiExternalMemory.getViewPointer', 'view.byteLength')
+      HEAPU8.set(new Uint8Array(view.buffer, view.byteOffset, view.byteLength), pointer)
+      emnapiExternalMemory.table.set(view, pointer)
+      emnapiExternalMemory.registry.register(view, pointer)
+      return pointer
+    }
+  }
+})
+
 function napi_get_array_length (env: napi_env, value: napi_value, result: Pointer<uint32_t>): napi_status {
   $CHECK_ENV!(env)
   const envObject = emnapiCtx.envStore.get(env)!
@@ -24,7 +83,7 @@ function napi_get_arraybuffer_info (env: napi_env, arraybuffer: napi_value, data
     $from64('data')
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const p = getArrayBufferPointer(handle.value)
+    const p = emnapiExternalMemory.getArrayBufferPointer(handle.value)
     $makeSetValue('data', 0, 'p', '*')
   }
   if (byte_length) {
@@ -112,7 +171,7 @@ function napi_get_typedarray_info (
       $from64('data')
 
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const p = getViewPointer(v)
+      const p = emnapiExternalMemory.getViewPointer(v)
       $makeSetValue('data', 0, 'p', '*')
     }
     if (arraybuffer) {
@@ -157,7 +216,7 @@ function napi_get_dataview_info (
       $from64('data')
 
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const p = getViewPointer(v)
+      const p = emnapiExternalMemory.getViewPointer(v)
       $makeSetValue('data', 0, 'p', '*')
     }
     if (arraybuffer) {
@@ -506,10 +565,10 @@ function napi_get_value_uint32 (env: napi_env, value: napi_value, result: Pointe
 }
 
 emnapiImplement('napi_get_array_length', 'ippp', napi_get_array_length)
-emnapiImplement('napi_get_arraybuffer_info', 'ipppp', napi_get_arraybuffer_info, ['$getArrayBufferPointer'])
+emnapiImplement('napi_get_arraybuffer_info', 'ipppp', napi_get_arraybuffer_info, ['$emnapiExternalMemory'])
 emnapiImplement('napi_get_prototype', 'ippp', napi_get_prototype)
-emnapiImplement('napi_get_typedarray_info', 'ippppppp', napi_get_typedarray_info, ['$getViewPointer'])
-emnapiImplement('napi_get_dataview_info', 'ipppppp', napi_get_dataview_info, ['$getViewPointer'])
+emnapiImplement('napi_get_typedarray_info', 'ippppppp', napi_get_typedarray_info, ['$emnapiExternalMemory'])
+emnapiImplement('napi_get_dataview_info', 'ipppppp', napi_get_dataview_info, ['$emnapiExternalMemory'])
 emnapiImplement('napi_get_date_value', 'ippp', napi_get_date_value)
 emnapiImplement('napi_get_value_bool', 'ippp', napi_get_value_bool)
 emnapiImplement('napi_get_value_double', 'ippp', napi_get_value_double)

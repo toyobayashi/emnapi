@@ -83,6 +83,16 @@ function emnapi_create_external_uint8array (
   })
 }
 
+function emnapi_is_support_weakref (): int {
+  return emnapiRt.supportFinalizer ? 1 : 0
+}
+
+function emnapi_is_support_bigint (): int {
+  return emnapiRt.supportBigInt ? 1 : 0
+}
+
+emnapiImplement('emnapi_is_support_weakref', 'i', emnapi_is_support_weakref)
+emnapiImplement('emnapi_is_support_bigint', 'i', emnapi_is_support_bigint)
 emnapiImplement('emnapi_get_module_object', 'ipp', emnapi_get_module_object)
 emnapiImplement('emnapi_get_module_property', 'ippp', emnapi_get_module_property)
 emnapiImplement('emnapi_create_external_uint8array', 'ipppppp', emnapi_create_external_uint8array, ['$emnapiWrap'])
