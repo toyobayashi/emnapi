@@ -1071,47 +1071,47 @@ namespace NAPI_CPP_CUSTOM_NAMESPACE {
 
    /// Creates a new ArrayBuffer instance, using an external buffer with
    /// specified byte length.
-  //  static ArrayBuffer New(
-  //      napi_env env,        ///< Node-API environment
-  //      void* externalData,  ///< Pointer to the external buffer to be used by
-  //                           ///< the array
-  //      size_t byteLength    ///< Length of the external buffer to be used by the
-  //                           ///< array, in bytes
-  //  );
+   static ArrayBuffer New(
+       napi_env env,        ///< Node-API environment
+       void* externalData,  ///< Pointer to the external buffer to be used by
+                            ///< the array
+       size_t byteLength    ///< Length of the external buffer to be used by the
+                            ///< array, in bytes
+   );
 
    /// Creates a new ArrayBuffer instance, using an external buffer with
    /// specified byte length.
-  //  template <typename Finalizer>
-  //  static ArrayBuffer New(
-  //      napi_env env,        ///< Node-API environment
-  //      void* externalData,  ///< Pointer to the external buffer to be used by
-  //                           ///< the array
-  //      size_t byteLength,   ///< Length of the external buffer to be used by the
-  //                           ///< array,
-  //                           ///  in bytes
-  //      Finalizer finalizeCallback  ///< Function to be called when the array
-  //                                  ///< buffer is destroyed;
-  //                                  ///  must implement `void operator()(Env env,
-  //                                  ///  void* externalData)`
-  //  );
+   template <typename Finalizer>
+   static ArrayBuffer New(
+       napi_env env,        ///< Node-API environment
+       void* externalData,  ///< Pointer to the external buffer to be used by
+                            ///< the array
+       size_t byteLength,   ///< Length of the external buffer to be used by the
+                            ///< array,
+                            ///  in bytes
+       Finalizer finalizeCallback  ///< Function to be called when the array
+                                   ///< buffer is destroyed;
+                                   ///  must implement `void operator()(Env env,
+                                   ///  void* externalData)`
+   );
 
    /// Creates a new ArrayBuffer instance, using an external buffer with
    /// specified byte length.
-  //  template <typename Finalizer, typename Hint>
-  //  static ArrayBuffer New(
-  //      napi_env env,        ///< Node-API environment
-  //      void* externalData,  ///< Pointer to the external buffer to be used by
-  //                           ///< the array
-  //      size_t byteLength,   ///< Length of the external buffer to be used by the
-  //                           ///< array,
-  //                           ///  in bytes
-  //      Finalizer finalizeCallback,  ///< Function to be called when the array
-  //                                   ///< buffer is destroyed;
-  //                                   ///  must implement `void operator()(Env
-  //                                   ///  env, void* externalData, Hint* hint)`
-  //      Hint* finalizeHint  ///< Hint (second parameter) to be passed to the
-  //                          ///< finalize callback
-  //  );
+   template <typename Finalizer, typename Hint>
+   static ArrayBuffer New(
+       napi_env env,        ///< Node-API environment
+       void* externalData,  ///< Pointer to the external buffer to be used by
+                            ///< the array
+       size_t byteLength,   ///< Length of the external buffer to be used by the
+                            ///< array,
+                            ///  in bytes
+       Finalizer finalizeCallback,  ///< Function to be called when the array
+                                    ///< buffer is destroyed;
+                                    ///  must implement `void operator()(Env
+                                    ///  env, void* externalData, Hint* hint)`
+       Hint* finalizeHint  ///< Hint (second parameter) to be passed to the
+                           ///< finalize callback
+   );
 
    ArrayBuffer();  ///< Creates a new _empty_ ArrayBuffer instance.
    ArrayBuffer(napi_env env,

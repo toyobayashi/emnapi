@@ -1750,65 +1750,65 @@ inline ArrayBuffer ArrayBuffer::New(napi_env env, size_t byteLength) {
   return ArrayBuffer(env, value);
 }
 
-// inline ArrayBuffer ArrayBuffer::New(napi_env env,
-//                                     void* externalData,
-//                                     size_t byteLength) {
-//   napi_value value;
-//   napi_status status = napi_create_external_arraybuffer(
-//     env, externalData, byteLength, nullptr, nullptr, &value);
-//   NAPI_THROW_IF_FAILED(env, status, ArrayBuffer());
+inline ArrayBuffer ArrayBuffer::New(napi_env env,
+                                    void* externalData,
+                                    size_t byteLength) {
+  napi_value value;
+  napi_status status = napi_create_external_arraybuffer(
+    env, externalData, byteLength, nullptr, nullptr, &value);
+  NAPI_THROW_IF_FAILED(env, status, ArrayBuffer());
 
-//   return ArrayBuffer(env, value);
-// }
+  return ArrayBuffer(env, value);
+}
 
-// template <typename Finalizer>
-// inline ArrayBuffer ArrayBuffer::New(napi_env env,
-//                                     void* externalData,
-//                                     size_t byteLength,
-//                                     Finalizer finalizeCallback) {
-//   napi_value value;
-//   details::FinalizeData<void, Finalizer>* finalizeData =
-//       new details::FinalizeData<void, Finalizer>(
-//           {std::move(finalizeCallback), nullptr});
-//   napi_status status = napi_create_external_arraybuffer(
-//     env,
-//     externalData,
-//     byteLength,
-//     details::FinalizeData<void, Finalizer>::Wrapper,
-//     finalizeData,
-//     &value);
-//   if (status != napi_ok) {
-//     delete finalizeData;
-//     NAPI_THROW_IF_FAILED(env, status, ArrayBuffer());
-//   }
+template <typename Finalizer>
+inline ArrayBuffer ArrayBuffer::New(napi_env env,
+                                    void* externalData,
+                                    size_t byteLength,
+                                    Finalizer finalizeCallback) {
+  napi_value value;
+  details::FinalizeData<void, Finalizer>* finalizeData =
+      new details::FinalizeData<void, Finalizer>(
+          {std::move(finalizeCallback), nullptr});
+  napi_status status = napi_create_external_arraybuffer(
+    env,
+    externalData,
+    byteLength,
+    details::FinalizeData<void, Finalizer>::Wrapper,
+    finalizeData,
+    &value);
+  if (status != napi_ok) {
+    delete finalizeData;
+    NAPI_THROW_IF_FAILED(env, status, ArrayBuffer());
+  }
 
-//   return ArrayBuffer(env, value);
-// }
+  return ArrayBuffer(env, value);
+}
 
-// template <typename Finalizer, typename Hint>
-// inline ArrayBuffer ArrayBuffer::New(napi_env env,
-//                                     void* externalData,
-//                                     size_t byteLength,
-//                                     Finalizer finalizeCallback,
-//                                     Hint* finalizeHint) {
-//   napi_value value;
-//   details::FinalizeData<void, Finalizer, Hint>* finalizeData =
-//       new details::FinalizeData<void, Finalizer, Hint>(
-//           {std::move(finalizeCallback), finalizeHint});
-//   napi_status status = napi_create_external_arraybuffer(
-//     env,
-//     externalData,
-//     byteLength,
-//     details::FinalizeData<void, Finalizer, Hint>::WrapperWithHint,
-//     finalizeData,
-//     &value);
-//   if (status != napi_ok) {
-//     delete finalizeData;
-//     NAPI_THROW_IF_FAILED(env, status, ArrayBuffer());
-//   }
+template <typename Finalizer, typename Hint>
+inline ArrayBuffer ArrayBuffer::New(napi_env env,
+                                    void* externalData,
+                                    size_t byteLength,
+                                    Finalizer finalizeCallback,
+                                    Hint* finalizeHint) {
+  napi_value value;
+  details::FinalizeData<void, Finalizer, Hint>* finalizeData =
+      new details::FinalizeData<void, Finalizer, Hint>(
+          {std::move(finalizeCallback), finalizeHint});
+  napi_status status = napi_create_external_arraybuffer(
+    env,
+    externalData,
+    byteLength,
+    details::FinalizeData<void, Finalizer, Hint>::WrapperWithHint,
+    finalizeData,
+    &value);
+  if (status != napi_ok) {
+    delete finalizeData;
+    NAPI_THROW_IF_FAILED(env, status, ArrayBuffer());
+  }
 
-//   return ArrayBuffer(env, value);
-// }
+  return ArrayBuffer(env, value);
+}
 
 inline ArrayBuffer::ArrayBuffer() : Object() {
 }
