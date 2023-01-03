@@ -53,6 +53,17 @@ static napi_value Multiply(napi_env env, napi_callback_info info) {
   NAPI_CALL(env, napi_create_arraybuffer(
       env, byte_length, &output_ptr, &output_buffer));
 
+#ifdef __EMSCRIPTEN__
+  void* address;
+  bool is_copied;
+  emnapi_get_buffer_address(env, input_buffer, &address, &is_copied);
+  NAPI_ASSERT(env, address == data, "input_buffer wrong address");
+  NAPI_ASSERT(env, is_copied, "input_buffer wrong is_copied");
+  emnapi_get_buffer_address(env, output_buffer, &address, &is_copied);
+  NAPI_ASSERT(env, address == output_ptr, "output_buffer wrong address");
+  NAPI_ASSERT(env, is_copied, "output_buffer wrong is_copied");
+#endif
+
   napi_value output_array;
   NAPI_CALL(env, napi_create_typedarray(
       env, type, length, output_buffer, byte_offset, &output_array));

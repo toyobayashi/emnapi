@@ -36,7 +36,7 @@ function napi_create_arraybuffer (env: napi_env, byte_length: size_t, data: void
 
     if (data) {
       $from64('data')
-      p = emnapiExternalMemory.getArrayBufferPointer(arrayBuffer)
+      p = emnapiExternalMemory.getArrayBufferPointer(arrayBuffer, true)
       $makeSetValue('data', 0, 'p', '*')
     }
 

@@ -46,6 +46,12 @@ napi_status emnapi_sync_memory(napi_env env,
                                size_t length,
                                bool js_to_wasm);
 
+NAPI_EXTERN
+napi_status emnapi_get_buffer_address(napi_env env,
+                                      napi_value arraybuffer_or_view,
+                                      void** address,
+                                      bool* is_copied);
+
 EXTERN_C_END
 
 #endif

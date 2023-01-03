@@ -91,31 +91,41 @@ function emnapi_is_support_bigint (): int {
   return emnapiRt.supportBigInt ? 1 : 0
 }
 
-declare function emnapiSyncMemory (arrayBufferOrView: ArrayBuffer | ArrayBufferView, offset: number, pointer: number, len: int, js_to_wasm: boolean): void
+declare function emnapiSyncMemory (arrayBufferOrView: ArrayBuffer | ArrayBufferView, offset?: number, pointer?: number, len?: int, js_to_wasm?: boolean): void
 
 mergeInto(LibraryManager.library, {
-  $emnapiSyncMemory: function (arrayBufferOrView: ArrayBuffer | ArrayBufferView, offset: number, pointer: number, len: int, js_to_wasm: boolean) {
+  $emnapiSyncMemory: function (arrayBufferOrView: ArrayBuffer | ArrayBufferView, offset?: number, pointer?: number, len?: int, js_to_wasm?: boolean) {
+    offset = offset ?? 0
+    offset = offset >>> 0
     let view: Uint8Array
     if (arrayBufferOrView instanceof ArrayBuffer) {
-      if (len === -1) {
-        len = arrayBufferOrView.byteLength - offset
-      } else {
-        len = len >>> 0
+      if (!pointer) {
+        pointer = emnapiExternalMemory.getArrayBufferPointer(arrayBufferOrView, false)
+        if (!pointer) throw new Error('Unknown ArrayBuffer address')
       }
+      if (typeof len !== 'number' || len === -1) {
+        len = arrayBufferOrView.byteLength - offset
+      }
+      len = len >>> 0
       view = new Uint8Array(arrayBufferOrView, offset, len)
-    } else {
-      if (len === -1) {
-        len = arrayBufferOrView.byteLength - offset
-      } else {
-        len = len >>> 0
+    } else if (ArrayBuffer.isView(arrayBufferOrView)) {
+      if (!pointer) {
+        pointer = emnapiExternalMemory.getViewPointer(arrayBufferOrView, arrayBufferOrView.byteOffset, false)
+        if (!pointer) throw new Error('Unknown ArrayBuffer address')
       }
+      if (typeof len !== 'number' || len === -1) {
+        len = arrayBufferOrView.byteLength - offset
+      }
+      len = len >>> 0
       view = new Uint8Array(arrayBufferOrView.buffer, arrayBufferOrView.byteOffset + offset, len)
+    } else {
+      throw new TypeError('emnapiSyncMemory expect ArrayBuffer or ArrayBufferView as first parameter')
     }
 
-    if (js_to_wasm) {
-      HEAPU8.set(view, pointer)
-    } else {
+    if (!js_to_wasm) {
       view.set(HEAPU8.subarray(pointer, pointer + len))
+    } else {
+      HEAPU8.set(view, pointer)
     }
   }
 })
@@ -129,10 +139,60 @@ function emnapi_sync_memory (env: napi_env, arraybuffer_or_view: napi_value, off
     $from64('offset')
     $from64('pointer')
     $from64('len')
-    offset = offset >>> 0
 
-    const bufferOrView: ArrayBuffer | ArrayBufferView = envObject.ctx.handleStore.get(arraybuffer_or_view)!.value
-    emnapiSyncMemory(bufferOrView, offset, pointer, len, Boolean(js_to_wasm))
+    const handle: emnapi.Handle<ArrayBuffer | ArrayBufferView> = envObject.ctx.handleStore.get(arraybuffer_or_view)!
+    if (!handle.isArrayBuffer() && !handle.isTypedArray() && !handle.isDataView()) {
+      return envObject.setLastError(napi_status.napi_invalid_arg)
+    }
+    emnapiSyncMemory(handle.value, offset, pointer, len, Boolean(js_to_wasm))
+
+    return envObject.getReturnStatus()
+  })
+}
+
+// @ts-expect-error
+function emnapi_get_buffer_address (env: napi_env, arraybuffer_or_view: napi_value, address: Pointer<void_pp>, is_copied: Pointer<bool>): napi_status {
+  let p: number
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  let isCopied: number
+  $PREAMBLE!(env, (envObject) => {
+    $CHECK_ARG!(envObject, arraybuffer_or_view)
+    if (!address && !is_copied) {
+      return envObject.setLastError(napi_status.napi_invalid_arg)
+    }
+
+    const handle: emnapi.Handle<ArrayBuffer | ArrayBufferView> = envObject.ctx.handleStore.get(arraybuffer_or_view)!
+    const isArrayBuffer = handle.isArrayBuffer()
+    const isTypedArray = handle.isTypedArray()
+    const isDataView = handle.isDataView()
+    if (!isArrayBuffer && !isTypedArray && !isDataView) {
+      return envObject.setLastError(napi_status.napi_invalid_arg)
+    }
+
+    if (isArrayBuffer) {
+      p = emnapiExternalMemory.getArrayBufferPointer(handle.value as ArrayBuffer, false)
+      if (address) {
+        $from64('address')
+        $makeSetValue('address', 0, 'p', '*')
+      }
+      if (is_copied) {
+        $from64('is_copied')
+        isCopied = p !== 0 ? 1 : 0
+        $makeSetValue('is_copied', 0, 'isCopied', 'i8')
+      }
+    } else {
+      const value = handle.value as ArrayBufferView
+      p = emnapiExternalMemory.getViewPointer(value as ArrayBufferView, value.byteOffset, false)
+      if (address) {
+        $from64('address')
+        $makeSetValue('address', 0, 'p', '*')
+      }
+      if (is_copied) {
+        $from64('is_copied')
+        isCopied = emnapiExternalMemory.table.has(value.buffer) ? 1 : 0
+        $makeSetValue('is_copied', 0, 'isCopied', 'i8')
+      }
+    }
 
     return envObject.getReturnStatus()
   })
@@ -144,3 +204,4 @@ emnapiImplement('emnapi_get_module_object', 'ipp', emnapi_get_module_object)
 emnapiImplement('emnapi_get_module_property', 'ippp', emnapi_get_module_property)
 emnapiImplement('emnapi_create_external_uint8array', 'ipppppp', emnapi_create_external_uint8array, ['$emnapiWrap'])
 emnapiImplement('emnapi_sync_memory', 'ipppppi', emnapi_sync_memory, ['$emnapiSyncMemory'])
+emnapiImplement('emnapi_get_buffer_address', 'ipppp', emnapi_get_buffer_address, ['$emnapiExternalMemory'])

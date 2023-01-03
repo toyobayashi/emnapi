@@ -1,8 +1,8 @@
 declare const emnapiExternalMemory: {
   registry: FinalizationRegistry<number> | undefined
-  table: WeakMap<ArrayBuffer | ArrayBufferView, void_p>
-  getArrayBufferPointer: (arrayBuffer: ArrayBuffer) => void_p
-  getViewPointer: (view: ArrayBufferView) => void_p
+  table: WeakMap<ArrayBuffer, void_p>
+  getArrayBufferPointer: (arrayBuffer: ArrayBuffer, shouldCopy: boolean) => void_p
+  getViewPointer: (view: ArrayBufferView, byteOffset: number, shouldCopy: boolean) => void_p
 }
 
 mergeInto(LibraryManager.library, {
@@ -14,7 +14,7 @@ mergeInto(LibraryManager.library, {
       emnapiExternalMemory.table = new WeakMap()
     },
 
-    getArrayBufferPointer: function (arrayBuffer: ArrayBuffer): void_p {
+    getArrayBufferPointer: function (arrayBuffer: ArrayBuffer, shouldCopy: boolean): void_p {
       if (arrayBuffer === HEAPU8.buffer) {
         return /* NULL */ 0
       }
@@ -22,34 +22,28 @@ mergeInto(LibraryManager.library, {
       let pointer: void_p
       if (emnapiExternalMemory.table.has(arrayBuffer)) {
         pointer = emnapiExternalMemory.table.get(arrayBuffer)!
-        HEAPU8.set(new Uint8Array(arrayBuffer), pointer)
         return pointer
       }
 
+      if (!shouldCopy) {
+        return /* NULL */ 0
+      }
+
       pointer = $makeMalloc('$emnapiExternalMemory.getArrayBufferPointer', 'arrayBuffer.byteLength')
+      if (!pointer) throw new Error('Out of memory')
       HEAPU8.set(new Uint8Array(arrayBuffer), pointer)
       emnapiExternalMemory.table.set(arrayBuffer, pointer)
       emnapiExternalMemory.registry?.register(arrayBuffer, pointer)
       return pointer
     },
 
-    getViewPointer: function (view: ArrayBufferView): void_p {
+    getViewPointer: function (view: ArrayBufferView, byteOffset: number, shouldCopy: boolean): void_p {
       if (view.buffer === HEAPU8.buffer) {
-        return view.byteOffset
+        return view.byteOffset + byteOffset
       }
 
-      let pointer: void_p
-      if (emnapiExternalMemory.table.has(view)) {
-        pointer = emnapiExternalMemory.table.get(view)!
-        HEAPU8.set(new Uint8Array(view.buffer, view.byteOffset, view.byteLength), pointer)
-        return pointer
-      }
-
-      pointer = $makeMalloc('$emnapiExternalMemory.getViewPointer', 'view.byteLength')
-      HEAPU8.set(new Uint8Array(view.buffer, view.byteOffset, view.byteLength), pointer)
-      emnapiExternalMemory.table.set(view, pointer)
-      emnapiExternalMemory.registry?.register(view, pointer)
-      return pointer
+      const p = emnapiExternalMemory.getArrayBufferPointer(view.buffer, shouldCopy)
+      return p === 0 ? 0 : (p + byteOffset)
     }
   }
 })
@@ -80,7 +74,7 @@ function napi_get_arraybuffer_info (env: napi_env, arraybuffer: napi_value, data
     $from64('data')
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const p = emnapiExternalMemory.getArrayBufferPointer(handle.value)
+    const p = emnapiExternalMemory.getArrayBufferPointer(handle.value, true)
     $makeSetValue('data', 0, 'p', '*')
   }
   if (byte_length) {
@@ -130,7 +124,7 @@ function napi_get_typedarray_info (
   if (!handle.isTypedArray()) {
     return envObject.setLastError(napi_status.napi_invalid_arg)
   }
-  const v = handle.value
+  const v: ArrayBufferView = handle.value
   if (type) {
     $from64('type')
     if (v instanceof Int8Array) {
@@ -168,7 +162,7 @@ function napi_get_typedarray_info (
       $from64('data')
 
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const p = emnapiExternalMemory.getViewPointer(v)
+      const p = emnapiExternalMemory.getViewPointer(v, v.byteOffset, true)
       $makeSetValue('data', 0, 'p', '*')
     }
     if (arraybuffer) {
@@ -213,7 +207,7 @@ function napi_get_dataview_info (
       $from64('data')
 
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const p = emnapiExternalMemory.getViewPointer(v)
+      const p = emnapiExternalMemory.getViewPointer(v, v.byteOffset, true)
       $makeSetValue('data', 0, 'p', '*')
     }
     if (arraybuffer) {
