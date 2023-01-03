@@ -96,48 +96,48 @@ static napi_value Multiply(napi_env env, napi_callback_info info) {
   return output_array;
 }
 
-// static void FinalizeCallback(napi_env env,
-//                              void* finalize_data,
-//                              void* finalize_hint)
-// {
-//   free(finalize_data);
-// }
+static void FinalizeCallback(napi_env env,
+                             void* finalize_data,
+                             void* finalize_hint)
+{
+  free(finalize_data);
+}
 
-// static napi_value External(napi_env env, napi_callback_info info) {
-//   const uint8_t nElem = 3;
-//   int8_t* externalData = malloc(nElem*sizeof(int8_t));
-//   externalData[0] = 0;
-//   externalData[1] = 1;
-//   externalData[2] = 2;
+static napi_value External(napi_env env, napi_callback_info info) {
+  const uint8_t nElem = 3;
+  int8_t* externalData = malloc(nElem*sizeof(int8_t));
+  externalData[0] = 0;
+  externalData[1] = 1;
+  externalData[2] = 2;
 
-//   napi_value output_buffer;
-//   NAPI_CALL(env, napi_create_external_arraybuffer(
-//       env,
-//       externalData,
-//       nElem*sizeof(int8_t),
-//       FinalizeCallback,
-//       NULL,  // finalize_hint
-//       &output_buffer));
+  napi_value output_buffer;
+  NAPI_CALL(env, napi_create_external_arraybuffer(
+      env,
+      externalData,
+      nElem*sizeof(int8_t),
+      FinalizeCallback,
+      NULL,  // finalize_hint
+      &output_buffer));
 
-//   napi_value output_array;
-//   NAPI_CALL(env, napi_create_typedarray(env,
-//       napi_int8_array,
-//       nElem,
-//       output_buffer,
-//       0,
-//       &output_array));
+  napi_value output_array;
+  NAPI_CALL(env, napi_create_typedarray(env,
+      napi_int8_array,
+      nElem,
+      output_buffer,
+      0,
+      &output_array));
 
-//   return output_array;
-// }
+  return output_array;
+}
 
 
-// static napi_value NullArrayBuffer(napi_env env, napi_callback_info info) {
-//   static void* data = NULL;
-//   napi_value arraybuffer;
-//   NAPI_CALL(env,
-//       napi_create_external_arraybuffer(env, data, 0, NULL, NULL, &arraybuffer));
-//   return arraybuffer;
-// }
+static napi_value NullArrayBuffer(napi_env env, napi_callback_info info) {
+  static void* data = NULL;
+  napi_value arraybuffer;
+  NAPI_CALL(env,
+      napi_create_external_arraybuffer(env, data, 0, NULL, NULL, &arraybuffer));
+  return arraybuffer;
+}
 
 static napi_value CreateTypedArray(napi_env env, napi_callback_info info) {
   size_t argc = 4;
@@ -255,8 +255,8 @@ EXTERN_C_START
 napi_value Init(napi_env env, napi_value exports) {
   napi_property_descriptor descriptors[] = {
     DECLARE_NAPI_PROPERTY("Multiply", Multiply),
-    // DECLARE_NAPI_PROPERTY("External", External),
-    // DECLARE_NAPI_PROPERTY("NullArrayBuffer", NullArrayBuffer),
+    DECLARE_NAPI_PROPERTY("External", External),
+    DECLARE_NAPI_PROPERTY("NullArrayBuffer", NullArrayBuffer),
     DECLARE_NAPI_PROPERTY("CreateTypedArray", CreateTypedArray),
     DECLARE_NAPI_PROPERTY("Detach", Detach),
     DECLARE_NAPI_PROPERTY("IsDetached", IsDetached),

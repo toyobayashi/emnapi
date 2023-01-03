@@ -91,6 +91,35 @@ function emnapi_is_support_bigint (): int {
   return emnapiRt.supportBigInt ? 1 : 0
 }
 
+declare function emnapiSyncMemory (arrayBufferOrView: ArrayBuffer | ArrayBufferView, offset: number, pointer: number, len: int, js_to_wasm: boolean): void
+
+mergeInto(LibraryManager.library, {
+  $emnapiSyncMemory: function (arrayBufferOrView: ArrayBuffer | ArrayBufferView, offset: number, pointer: number, len: int, js_to_wasm: boolean) {
+    let view: Uint8Array
+    if (arrayBufferOrView instanceof ArrayBuffer) {
+      if (len === -1) {
+        len = arrayBufferOrView.byteLength - offset
+      } else {
+        len = len >>> 0
+      }
+      view = new Uint8Array(arrayBufferOrView, offset, len)
+    } else {
+      if (len === -1) {
+        len = arrayBufferOrView.byteLength - offset
+      } else {
+        len = len >>> 0
+      }
+      view = new Uint8Array(arrayBufferOrView.buffer, arrayBufferOrView.byteOffset + offset, len)
+    }
+
+    if (js_to_wasm) {
+      HEAPU8.set(view, pointer)
+    } else {
+      view.set(HEAPU8.subarray(pointer, pointer + len))
+    }
+  }
+})
+
 // @ts-expect-error
 function emnapi_sync_memory (env: napi_env, arraybuffer_or_view: napi_value, offset: size_t, pointer: void_p, len: size_t, js_to_wasm: bool): napi_status {
   $PREAMBLE!(env, (envObject) => {
@@ -103,28 +132,7 @@ function emnapi_sync_memory (env: napi_env, arraybuffer_or_view: napi_value, off
     offset = offset >>> 0
 
     const bufferOrView: ArrayBuffer | ArrayBufferView = envObject.ctx.handleStore.get(arraybuffer_or_view)!.value
-    let view: Uint8Array
-    if (bufferOrView instanceof ArrayBuffer) {
-      if (len === -1) {
-        len = bufferOrView.byteLength - offset
-      } else {
-        len = len >>> 0
-      }
-      view = new Uint8Array(bufferOrView, offset, len)
-    } else {
-      if (len === -1) {
-        len = bufferOrView.byteLength - offset
-      } else {
-        len = len >>> 0
-      }
-      view = new Uint8Array(bufferOrView.buffer, bufferOrView.byteOffset + offset, len)
-    }
-
-    if (js_to_wasm) {
-      HEAPU8.set(view, pointer)
-    } else {
-      view.set(HEAPU8.subarray(pointer, pointer + len))
-    }
+    emnapiSyncMemory(bufferOrView, offset, pointer, len, Boolean(js_to_wasm))
 
     return envObject.getReturnStatus()
   })
@@ -135,4 +143,4 @@ emnapiImplement('emnapi_is_support_bigint', 'i', emnapi_is_support_bigint)
 emnapiImplement('emnapi_get_module_object', 'ipp', emnapi_get_module_object)
 emnapiImplement('emnapi_get_module_property', 'ippp', emnapi_get_module_property)
 emnapiImplement('emnapi_create_external_uint8array', 'ipppppp', emnapi_create_external_uint8array, ['$emnapiWrap'])
-emnapiImplement('emnapi_sync_memory', 'ippi', emnapi_sync_memory)
+emnapiImplement('emnapi_sync_memory', 'ipppppi', emnapi_sync_memory, ['$emnapiSyncMemory'])

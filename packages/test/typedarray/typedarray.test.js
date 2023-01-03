@@ -31,12 +31,12 @@ module.exports = load('typedarray').then(test_typedarray => {
   assert.strictEqual(Math.round(10 * doubleResult[1]) / 10, -3.3)
   assert.strictEqual(Math.round(10 * doubleResult[2]) / 10, -6.6)
 
-  // const externalResult = test_typedarray.External()
-  // assert.ok(externalResult instanceof Int8Array)
-  // assert.strictEqual(externalResult.length, 3)
-  // assert.strictEqual(externalResult[0], 0)
-  // assert.strictEqual(externalResult[1], 1)
-  // assert.strictEqual(externalResult[2], 2)
+  const externalResult = test_typedarray.External()
+  assert.ok(externalResult instanceof Int8Array)
+  assert.strictEqual(externalResult.length, 3)
+  assert.strictEqual(externalResult[0], 0)
+  assert.strictEqual(externalResult[1], 1)
+  assert.strictEqual(externalResult[2], 2)
 
   // Validate creation of all kinds of TypedArrays
   const buffer = new ArrayBuffer(128)
@@ -84,27 +84,27 @@ module.exports = load('typedarray').then(test_typedarray => {
     assert.ok(test_typedarray.IsDetached(buffer.buffer))
     assert.strictEqual(buffer.length, 0)
   })
-  // {
-  //   const buffer = test_typedarray.External()
-  //   assert.ok(externalResult instanceof Int8Array)
-  //   assert.strictEqual(externalResult.length, 3)
-  //   assert.strictEqual(externalResult.byteLength, 3)
-  //   assert.ok(!test_typedarray.IsDetached(buffer.buffer))
-  //   test_typedarray.Detach(buffer)
-  //   assert.ok(test_typedarray.IsDetached(buffer.buffer))
-  //   assert.ok(externalResult instanceof Int8Array)
-  //   assert.strictEqual(buffer.length, 0)
-  //   assert.strictEqual(buffer.byteLength, 0)
-  // }
+  {
+    const buffer = test_typedarray.External()
+    assert.ok(externalResult instanceof Int8Array)
+    assert.strictEqual(externalResult.length, 3)
+    assert.strictEqual(externalResult.byteLength, 3)
+    assert.ok(!test_typedarray.IsDetached(buffer.buffer))
+    test_typedarray.Detach(buffer)
+    assert.ok(test_typedarray.IsDetached(buffer.buffer))
+    assert.ok(externalResult instanceof Int8Array)
+    assert.strictEqual(buffer.length, 0)
+    assert.strictEqual(buffer.byteLength, 0)
+  }
 
   {
     const buffer = new ArrayBuffer(128)
     assert.ok(!test_typedarray.IsDetached(buffer))
   }
 
-  // {
-  //   const buffer = test_typedarray.NullArrayBuffer()
-  //   assert.ok(buffer instanceof ArrayBuffer)
-  //   assert.ok(test_typedarray.IsDetached(buffer))
-  // }
+  {
+    const buffer = test_typedarray.NullArrayBuffer()
+    assert.ok(buffer instanceof ArrayBuffer)
+    assert.ok(test_typedarray.IsDetached(buffer))
+  }
 })

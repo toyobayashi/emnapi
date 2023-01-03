@@ -82,16 +82,60 @@ function napi_create_external (env: napi_env, data: void_p, finalize_cb: napi_fi
   })
 }
 
-/* function napi_create_external_arraybuffer (
+function napi_create_external_arraybuffer (
   env: napi_env,
-  _external_data: void_p,
-  _byte_length: size_t,
-  _finalize_cb: napi_finalize,
-  _finalize_hint: void_p,
-  _result: Pointer<napi_value>
+  external_data: void_p,
+  byte_length: size_t,
+  finalize_cb: napi_finalize,
+  finalize_hint: void_p,
+  result: Pointer<napi_value>
+// @ts-expect-error
 ): napi_status {
-  return _napi_set_last_error(env, napi_status.napi_generic_failure, 0, 0)
-} */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  let value: number
+
+  $PREAMBLE!(env, (envObject) => {
+    $CHECK_ARG!(envObject, result)
+    $from64('byte_length')
+    $from64('external_data')
+    $from64('result')
+
+    byte_length = byte_length >>> 0
+
+    if (!external_data) {
+      byte_length = 0
+    }
+
+    if ((external_data + byte_length) > HEAPU8.buffer.byteLength) {
+      throw new RangeError('Memory out of range')
+    }
+    if (!emnapiRt.supportFinalizer && finalize_cb) {
+      throw new emnapiRt.NotSupportWeakRefError('napi_create_external_arraybuffer', 'Parameter "finalize_cb" must be 0(NULL)')
+    }
+    const arrayBuffer = new ArrayBuffer(byte_length)
+    if (byte_length === 0) {
+      const messageChannel = new MessageChannel()
+      messageChannel.port1.postMessage(arrayBuffer, [arrayBuffer])
+    } else {
+      const u8arr = new Uint8Array(arrayBuffer)
+      u8arr.set(HEAPU8.subarray(external_data, external_data + byte_length))
+    }
+    const handle = emnapiCtx.addToCurrentScope(arrayBuffer)
+    if (finalize_cb) {
+      const status = emnapiWrap(WrapType.anonymous, env, handle.id, external_data, finalize_cb, finalize_hint, /* NULL */ 0)
+      if (status === napi_status.napi_pending_exception) {
+        const err = envObject.tryCatch.extractException()
+        envObject.clearLastError()
+        throw err
+      } else if (status !== napi_status.napi_ok) {
+        return envObject.setLastError(status)
+      }
+    }
+    value = handle.id
+    $makeSetValue('result', 0, 'value', '*')
+    return envObject.getReturnStatus()
+  })
+}
 
 function napi_create_object (env: napi_env, result: Pointer<napi_value>): napi_status {
   $CHECK_ENV!(env)
@@ -249,7 +293,7 @@ emnapiImplement('napi_create_array_with_length', 'ippp', napi_create_array_with_
 emnapiImplement('napi_create_arraybuffer', 'ipppp', napi_create_arraybuffer)
 emnapiImplement('napi_create_date', 'ipdp', napi_create_date)
 emnapiImplement('napi_create_external', 'ippppp', napi_create_external)
-// emnapiImplement('napi_create_external_arraybuffer', napi_create_external_arraybuffer, ['napi_set_last_error'])
+emnapiImplement('napi_create_external_arraybuffer', 'ipppppp', napi_create_external_arraybuffer, ['$emnapiWrap'])
 emnapiImplement('napi_create_object', 'ipp', napi_create_object)
 emnapiImplement('napi_create_symbol', 'ippp', napi_create_symbol)
 emnapiImplement('napi_create_typedarray', 'ipipppp', napi_create_typedarray, ['$emnapiCreateTypedArray'])
