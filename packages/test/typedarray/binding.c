@@ -56,16 +56,16 @@ static napi_value Multiply(napi_env env, napi_callback_info info) {
 #ifdef __EMSCRIPTEN__
   int support_weakref = emnapi_is_support_weakref();
   void* address;
-  bool is_copied;
+  bool runtime_allocated;
   emnapi_ownership ownership;
-  emnapi_get_memory_address(env, input_buffer, &address, &ownership, &is_copied);
+  emnapi_get_memory_address(env, input_buffer, &address, &ownership, &runtime_allocated);
   NAPI_ASSERT(env, address == data, "input_buffer wrong address");
   NAPI_ASSERT(env, ownership == (support_weakref ? emnapi_runtime : emnapi_userland), "input_buffer wrong ownership");
-  NAPI_ASSERT(env, is_copied, "input_buffer wrong is_copied");
-  emnapi_get_memory_address(env, output_buffer, &address, &ownership, &is_copied);
+  NAPI_ASSERT(env, runtime_allocated, "input_buffer wrong runtime_allocated");
+  emnapi_get_memory_address(env, output_buffer, &address, &ownership, &runtime_allocated);
   NAPI_ASSERT(env, address == output_ptr, "output_buffer wrong address");
   NAPI_ASSERT(env, ownership == (support_weakref ? emnapi_runtime : emnapi_userland), "input_buffer wrong ownership");
-  NAPI_ASSERT(env, is_copied, "output_buffer wrong is_copied");
+  NAPI_ASSERT(env, runtime_allocated, "output_buffer wrong runtime_allocated");
 #endif
 
   napi_value output_array;

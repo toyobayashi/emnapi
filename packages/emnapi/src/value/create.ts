@@ -121,7 +121,8 @@ function napi_create_external_arraybuffer (
       u8arr.set(HEAPU8.subarray(external_data, external_data + byte_length))
       emnapiExternalMemory.table.set(arrayBuffer, {
         address: external_data,
-        ownership: 1 /* emnapi.Ownership.kUserland */
+        ownership: 1 /* emnapi.Ownership.kUserland */,
+        runtimeAllocated: 0
       })
     }
     const handle = emnapiCtx.addToCurrentScope(arrayBuffer)

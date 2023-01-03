@@ -56,7 +56,7 @@ napi_status emnapi_get_memory_address(napi_env env,
                                       napi_value arraybuffer_or_view,
                                       void** address,
                                       emnapi_ownership* ownership,
-                                      bool* is_copied);
+                                      bool* runtime_allocated);
 
 EXTERN_C_END
 

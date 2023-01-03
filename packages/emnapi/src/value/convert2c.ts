@@ -1,13 +1,14 @@
 declare interface PointerInfo {
   address: void_p
   ownership: emnapi.Ownership
+  runtimeAllocated: 0 | 1
 }
 
 declare const emnapiExternalMemory: {
   registry: FinalizationRegistry<number> | undefined
   table: WeakMap<ArrayBuffer, PointerInfo>
   getArrayBufferPointer: (arrayBuffer: ArrayBuffer, shouldCopy: boolean) => PointerInfo
-  getViewPointer: (view: ArrayBufferView, byteOffset: number, shouldCopy: boolean) => PointerInfo
+  getViewPointer: (view: ArrayBufferView, shouldCopy: boolean) => PointerInfo
 }
 
 mergeInto(LibraryManager.library, {
@@ -21,7 +22,7 @@ mergeInto(LibraryManager.library, {
 
     getArrayBufferPointer: function (arrayBuffer: ArrayBuffer, shouldCopy: boolean): PointerInfo {
       if (arrayBuffer === HEAPU8.buffer) {
-        return { address: 0, ownership: 0 /* emnapi.Ownership.kRuntime */ }
+        return { address: 0, ownership: 0 /* emnapi.Ownership.kRuntime */, runtimeAllocated: 0 }
       }
 
       if (emnapiExternalMemory.table.has(arrayBuffer)) {
@@ -29,28 +30,29 @@ mergeInto(LibraryManager.library, {
       }
 
       if (!shouldCopy) {
-        return { address: 0, ownership: 0 /* emnapi.Ownership.kRuntime */ }
+        return { address: 0, ownership: 0 /* emnapi.Ownership.kRuntime */, runtimeAllocated: 0 }
       }
 
       const pointer = $makeMalloc('$emnapiExternalMemory.getArrayBufferPointer', 'arrayBuffer.byteLength')
       if (!pointer) throw new Error('Out of memory')
       HEAPU8.set(new Uint8Array(arrayBuffer), pointer)
-      const pointerInfo = {
+      const pointerInfo: PointerInfo = {
         address: pointer,
-        ownership: emnapiExternalMemory.registry ? 0 /* emnapi.Ownership.kRuntime */ : 1 /* emnapi.Ownership.kUserland */
+        ownership: emnapiExternalMemory.registry ? 0 /* emnapi.Ownership.kRuntime */ : 1 /* emnapi.Ownership.kUserland */,
+        runtimeAllocated: 1
       }
       emnapiExternalMemory.table.set(arrayBuffer, pointerInfo)
       emnapiExternalMemory.registry?.register(arrayBuffer, pointer)
       return pointerInfo
     },
 
-    getViewPointer: function (view: ArrayBufferView, byteOffset: number, shouldCopy: boolean): PointerInfo {
+    getViewPointer: function (view: ArrayBufferView, shouldCopy: boolean): PointerInfo {
       if (view.buffer === HEAPU8.buffer) {
-        return { address: view.byteOffset + byteOffset, ownership: 1 /* emnapi.Ownership.kUserland */ }
+        return { address: view.byteOffset, ownership: 1 /* emnapi.Ownership.kUserland */, runtimeAllocated: 0 }
       }
 
-      const { address, ownership } = emnapiExternalMemory.getArrayBufferPointer(view.buffer, shouldCopy)
-      return { address: address === 0 ? 0 : (address + byteOffset), ownership }
+      const { address, ownership, runtimeAllocated } = emnapiExternalMemory.getArrayBufferPointer(view.buffer, shouldCopy)
+      return { address: address === 0 ? 0 : (address + view.byteOffset), ownership, runtimeAllocated }
     }
   }
 })
@@ -169,7 +171,7 @@ function napi_get_typedarray_info (
       $from64('data')
 
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const p: number = emnapiExternalMemory.getViewPointer(v, v.byteOffset, true).address
+      const p: number = emnapiExternalMemory.getViewPointer(v, true).address
       $makeSetValue('data', 0, 'p', '*')
     }
     if (arraybuffer) {
@@ -214,7 +216,7 @@ function napi_get_dataview_info (
       $from64('data')
 
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const p: number = emnapiExternalMemory.getViewPointer(v, v.byteOffset, true).address
+      const p: number = emnapiExternalMemory.getViewPointer(v, true).address
       $makeSetValue('data', 0, 'p', '*')
     }
     if (arraybuffer) {

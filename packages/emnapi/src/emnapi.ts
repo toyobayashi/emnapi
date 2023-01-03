@@ -110,7 +110,7 @@ mergeInto(LibraryManager.library, {
       view = new Uint8Array(arrayBufferOrView, offset, len)
     } else if (ArrayBuffer.isView(arrayBufferOrView)) {
       if (!pointer) {
-        pointer = emnapiExternalMemory.getViewPointer(arrayBufferOrView, arrayBufferOrView.byteOffset, false).address
+        pointer = emnapiExternalMemory.getViewPointer(arrayBufferOrView, false).address
         if (!pointer) throw new Error('Unknown ArrayBuffer address')
       }
       if (typeof len !== 'number' || len === -1) {
@@ -151,14 +151,14 @@ function emnapi_sync_memory (env: napi_env, arraybuffer_or_view: napi_value, off
 }
 
 // @ts-expect-error
-function emnapi_get_memory_address (env: napi_env, arraybuffer_or_view: napi_value, address: Pointer<void_pp>, ownership: Pointer<int>, is_copied: Pointer<bool>): napi_status {
-  let p: number
+function emnapi_get_memory_address (env: napi_env, arraybuffer_or_view: napi_value, address: Pointer<void_pp>, ownership: Pointer<int>, runtime_allocated: Pointer<bool>): napi_status {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  let isCopied: number, ownershipOut: number
+  let p: number, runtimeAllocated: number, ownershipOut: number
+  let info: PointerInfo
 
   $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, arraybuffer_or_view)
-    if (!address && !is_copied) {
+    if (!address && !ownership && !runtime_allocated) {
       return envObject.setLastError(napi_status.napi_invalid_arg)
     }
 
@@ -171,40 +171,25 @@ function emnapi_get_memory_address (env: napi_env, arraybuffer_or_view: napi_val
     }
 
     if (isArrayBuffer) {
-      const info = emnapiExternalMemory.getArrayBufferPointer(handle.value as ArrayBuffer, false)
-      p = info.address
-      if (address) {
-        $from64('address')
-        $makeSetValue('address', 0, 'p', '*')
-      }
-      if (ownership) {
-        $from64('ownership')
-        ownershipOut = info.ownership
-        $makeSetValue('ownership', 0, 'ownershipOut', 'i32')
-      }
-      if (is_copied) {
-        $from64('is_copied')
-        isCopied = p !== 0 ? 1 : 0
-        $makeSetValue('is_copied', 0, 'isCopied', 'i8')
-      }
+      info = emnapiExternalMemory.getArrayBufferPointer(handle.value as ArrayBuffer, false)
     } else {
-      const value = handle.value as ArrayBufferView
-      const info = emnapiExternalMemory.getViewPointer(value as ArrayBufferView, value.byteOffset, false)
-      p = info.address
-      if (address) {
-        $from64('address')
-        $makeSetValue('address', 0, 'p', '*')
-      }
-      if (ownership) {
-        $from64('ownership')
-        ownershipOut = info.ownership
-        $makeSetValue('ownership', 0, 'ownershipOut', 'i32')
-      }
-      if (is_copied) {
-        $from64('is_copied')
-        isCopied = emnapiExternalMemory.table.has(value.buffer) ? 1 : 0
-        $makeSetValue('is_copied', 0, 'isCopied', 'i8')
-      }
+      info = emnapiExternalMemory.getViewPointer(handle.value as ArrayBufferView, false)
+    }
+
+    p = info.address
+    if (address) {
+      $from64('address')
+      $makeSetValue('address', 0, 'p', '*')
+    }
+    if (ownership) {
+      $from64('ownership')
+      ownershipOut = info.ownership
+      $makeSetValue('ownership', 0, 'ownershipOut', 'i32')
+    }
+    if (runtime_allocated) {
+      $from64('runtime_allocated')
+      runtimeAllocated = info.runtimeAllocated
+      $makeSetValue('runtime_allocated', 0, 'runtimeAllocated', 'i8')
     }
 
     return envObject.getReturnStatus()
