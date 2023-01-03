@@ -10,6 +10,11 @@ typedef struct {
   uint32_t patch;
 } emnapi_emscripten_version;
 
+typedef enum {
+  emnapi_runtime,
+  emnapi_userland,
+} emnapi_ownership;
+
 EXTERN_C_START
 
 NAPI_EXTERN int emnapi_is_support_weakref();
@@ -47,9 +52,10 @@ napi_status emnapi_sync_memory(napi_env env,
                                bool js_to_wasm);
 
 NAPI_EXTERN
-napi_status emnapi_get_buffer_address(napi_env env,
+napi_status emnapi_get_memory_address(napi_env env,
                                       napi_value arraybuffer_or_view,
                                       void** address,
+                                      emnapi_ownership* ownership,
                                       bool* is_copied);
 
 EXTERN_C_END

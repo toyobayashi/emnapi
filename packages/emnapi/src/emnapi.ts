@@ -100,7 +100,7 @@ mergeInto(LibraryManager.library, {
     let view: Uint8Array
     if (arrayBufferOrView instanceof ArrayBuffer) {
       if (!pointer) {
-        pointer = emnapiExternalMemory.getArrayBufferPointer(arrayBufferOrView, false)
+        pointer = emnapiExternalMemory.getArrayBufferPointer(arrayBufferOrView, false).address
         if (!pointer) throw new Error('Unknown ArrayBuffer address')
       }
       if (typeof len !== 'number' || len === -1) {
@@ -110,7 +110,7 @@ mergeInto(LibraryManager.library, {
       view = new Uint8Array(arrayBufferOrView, offset, len)
     } else if (ArrayBuffer.isView(arrayBufferOrView)) {
       if (!pointer) {
-        pointer = emnapiExternalMemory.getViewPointer(arrayBufferOrView, arrayBufferOrView.byteOffset, false)
+        pointer = emnapiExternalMemory.getViewPointer(arrayBufferOrView, arrayBufferOrView.byteOffset, false).address
         if (!pointer) throw new Error('Unknown ArrayBuffer address')
       }
       if (typeof len !== 'number' || len === -1) {
@@ -151,10 +151,11 @@ function emnapi_sync_memory (env: napi_env, arraybuffer_or_view: napi_value, off
 }
 
 // @ts-expect-error
-function emnapi_get_buffer_address (env: napi_env, arraybuffer_or_view: napi_value, address: Pointer<void_pp>, is_copied: Pointer<bool>): napi_status {
+function emnapi_get_memory_address (env: napi_env, arraybuffer_or_view: napi_value, address: Pointer<void_pp>, ownership: Pointer<int>, is_copied: Pointer<bool>): napi_status {
   let p: number
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  let isCopied: number
+  let isCopied: number, ownershipOut: number
+
   $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, arraybuffer_or_view)
     if (!address && !is_copied) {
@@ -170,10 +171,16 @@ function emnapi_get_buffer_address (env: napi_env, arraybuffer_or_view: napi_val
     }
 
     if (isArrayBuffer) {
-      p = emnapiExternalMemory.getArrayBufferPointer(handle.value as ArrayBuffer, false)
+      const info = emnapiExternalMemory.getArrayBufferPointer(handle.value as ArrayBuffer, false)
+      p = info.address
       if (address) {
         $from64('address')
         $makeSetValue('address', 0, 'p', '*')
+      }
+      if (ownership) {
+        $from64('ownership')
+        ownershipOut = info.ownership
+        $makeSetValue('ownership', 0, 'ownershipOut', 'i32')
       }
       if (is_copied) {
         $from64('is_copied')
@@ -182,10 +189,16 @@ function emnapi_get_buffer_address (env: napi_env, arraybuffer_or_view: napi_val
       }
     } else {
       const value = handle.value as ArrayBufferView
-      p = emnapiExternalMemory.getViewPointer(value as ArrayBufferView, value.byteOffset, false)
+      const info = emnapiExternalMemory.getViewPointer(value as ArrayBufferView, value.byteOffset, false)
+      p = info.address
       if (address) {
         $from64('address')
         $makeSetValue('address', 0, 'p', '*')
+      }
+      if (ownership) {
+        $from64('ownership')
+        ownershipOut = info.ownership
+        $makeSetValue('ownership', 0, 'ownershipOut', 'i32')
       }
       if (is_copied) {
         $from64('is_copied')
@@ -204,4 +217,4 @@ emnapiImplement('emnapi_get_module_object', 'ipp', emnapi_get_module_object)
 emnapiImplement('emnapi_get_module_property', 'ippp', emnapi_get_module_property)
 emnapiImplement('emnapi_create_external_uint8array', 'ipppppp', emnapi_create_external_uint8array, ['$emnapiWrap'])
 emnapiImplement('emnapi_sync_memory', 'ipppppi', emnapi_sync_memory, ['$emnapiSyncMemory'])
-emnapiImplement('emnapi_get_buffer_address', 'ipppp', emnapi_get_buffer_address, ['$emnapiExternalMemory'])
+emnapiImplement('emnapi_get_memory_address', 'ipppp', emnapi_get_memory_address, ['$emnapiExternalMemory'])

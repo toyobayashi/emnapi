@@ -54,13 +54,17 @@ static napi_value Multiply(napi_env env, napi_callback_info info) {
       env, byte_length, &output_ptr, &output_buffer));
 
 #ifdef __EMSCRIPTEN__
+  int support_weakref = emnapi_is_support_weakref();
   void* address;
   bool is_copied;
-  emnapi_get_buffer_address(env, input_buffer, &address, &is_copied);
+  emnapi_ownership ownership;
+  emnapi_get_memory_address(env, input_buffer, &address, &ownership, &is_copied);
   NAPI_ASSERT(env, address == data, "input_buffer wrong address");
+  NAPI_ASSERT(env, ownership == (support_weakref ? emnapi_runtime : emnapi_userland), "input_buffer wrong ownership");
   NAPI_ASSERT(env, is_copied, "input_buffer wrong is_copied");
-  emnapi_get_buffer_address(env, output_buffer, &address, &is_copied);
+  emnapi_get_memory_address(env, output_buffer, &address, &ownership, &is_copied);
   NAPI_ASSERT(env, address == output_ptr, "output_buffer wrong address");
+  NAPI_ASSERT(env, ownership == (support_weakref ? emnapi_runtime : emnapi_userland), "input_buffer wrong ownership");
   NAPI_ASSERT(env, is_copied, "output_buffer wrong is_copied");
 #endif
 
@@ -90,7 +94,7 @@ static napi_value Multiply(napi_env env, napi_callback_info info) {
     napi_throw_error(env, NULL,
         "Typed array was of a type not expected by test.");
 #ifdef __EMSCRIPTEN__
-    if (!emnapi_is_support_weakref()) {
+    if (!support_weakref) {
       free(data);
       free(output_ptr);
     }
@@ -99,7 +103,7 @@ static napi_value Multiply(napi_env env, napi_callback_info info) {
   }
 
 #ifdef __EMSCRIPTEN__
-    if (!emnapi_is_support_weakref()) {
+    if (!support_weakref) {
       free(data);
       free(output_ptr);
     }

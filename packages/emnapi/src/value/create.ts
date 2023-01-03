@@ -36,7 +36,7 @@ function napi_create_arraybuffer (env: napi_env, byte_length: size_t, data: void
 
     if (data) {
       $from64('data')
-      p = emnapiExternalMemory.getArrayBufferPointer(arrayBuffer, true)
+      p = emnapiExternalMemory.getArrayBufferPointer(arrayBuffer, true).address
       $makeSetValue('data', 0, 'p', '*')
     }
 
@@ -119,6 +119,10 @@ function napi_create_external_arraybuffer (
     } else {
       const u8arr = new Uint8Array(arrayBuffer)
       u8arr.set(HEAPU8.subarray(external_data, external_data + byte_length))
+      emnapiExternalMemory.table.set(arrayBuffer, {
+        address: external_data,
+        ownership: 1 /* emnapi.Ownership.kUserland */
+      })
     }
     const handle = emnapiCtx.addToCurrentScope(arrayBuffer)
     if (finalize_cb) {

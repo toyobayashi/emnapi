@@ -1,8 +1,13 @@
+declare interface PointerInfo {
+  address: void_p
+  ownership: emnapi.Ownership
+}
+
 declare const emnapiExternalMemory: {
   registry: FinalizationRegistry<number> | undefined
-  table: WeakMap<ArrayBuffer, void_p>
-  getArrayBufferPointer: (arrayBuffer: ArrayBuffer, shouldCopy: boolean) => void_p
-  getViewPointer: (view: ArrayBufferView, byteOffset: number, shouldCopy: boolean) => void_p
+  table: WeakMap<ArrayBuffer, PointerInfo>
+  getArrayBufferPointer: (arrayBuffer: ArrayBuffer, shouldCopy: boolean) => PointerInfo
+  getViewPointer: (view: ArrayBufferView, byteOffset: number, shouldCopy: boolean) => PointerInfo
 }
 
 mergeInto(LibraryManager.library, {
@@ -10,40 +15,42 @@ mergeInto(LibraryManager.library, {
   $emnapiExternalMemory__postset: 'emnapiExternalMemory.init();',
   $emnapiExternalMemory: {
     init: function () {
-      emnapiExternalMemory.registry = typeof FinalizationRegistry === 'function' ? new FinalizationRegistry(function (pointer) { _free(pointer) }) : undefined
+      emnapiExternalMemory.registry = typeof FinalizationRegistry === 'function' ? new FinalizationRegistry(function (_pointer) { _free($to64('_pointer') as number) }) : undefined
       emnapiExternalMemory.table = new WeakMap()
     },
 
-    getArrayBufferPointer: function (arrayBuffer: ArrayBuffer, shouldCopy: boolean): void_p {
+    getArrayBufferPointer: function (arrayBuffer: ArrayBuffer, shouldCopy: boolean): PointerInfo {
       if (arrayBuffer === HEAPU8.buffer) {
-        return /* NULL */ 0
+        return { address: 0, ownership: 0 /* emnapi.Ownership.kRuntime */ }
       }
 
-      let pointer: void_p
       if (emnapiExternalMemory.table.has(arrayBuffer)) {
-        pointer = emnapiExternalMemory.table.get(arrayBuffer)!
-        return pointer
+        return emnapiExternalMemory.table.get(arrayBuffer)!
       }
 
       if (!shouldCopy) {
-        return /* NULL */ 0
+        return { address: 0, ownership: 0 /* emnapi.Ownership.kRuntime */ }
       }
 
-      pointer = $makeMalloc('$emnapiExternalMemory.getArrayBufferPointer', 'arrayBuffer.byteLength')
+      const pointer = $makeMalloc('$emnapiExternalMemory.getArrayBufferPointer', 'arrayBuffer.byteLength')
       if (!pointer) throw new Error('Out of memory')
       HEAPU8.set(new Uint8Array(arrayBuffer), pointer)
-      emnapiExternalMemory.table.set(arrayBuffer, pointer)
+      const pointerInfo = {
+        address: pointer,
+        ownership: emnapiExternalMemory.registry ? 0 /* emnapi.Ownership.kRuntime */ : 1 /* emnapi.Ownership.kUserland */
+      }
+      emnapiExternalMemory.table.set(arrayBuffer, pointerInfo)
       emnapiExternalMemory.registry?.register(arrayBuffer, pointer)
-      return pointer
+      return pointerInfo
     },
 
-    getViewPointer: function (view: ArrayBufferView, byteOffset: number, shouldCopy: boolean): void_p {
+    getViewPointer: function (view: ArrayBufferView, byteOffset: number, shouldCopy: boolean): PointerInfo {
       if (view.buffer === HEAPU8.buffer) {
-        return view.byteOffset + byteOffset
+        return { address: view.byteOffset + byteOffset, ownership: 1 /* emnapi.Ownership.kUserland */ }
       }
 
-      const p = emnapiExternalMemory.getArrayBufferPointer(view.buffer, shouldCopy)
-      return p === 0 ? 0 : (p + byteOffset)
+      const { address, ownership } = emnapiExternalMemory.getArrayBufferPointer(view.buffer, shouldCopy)
+      return { address: address === 0 ? 0 : (address + byteOffset), ownership }
     }
   }
 })
@@ -74,7 +81,7 @@ function napi_get_arraybuffer_info (env: napi_env, arraybuffer: napi_value, data
     $from64('data')
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const p = emnapiExternalMemory.getArrayBufferPointer(handle.value, true)
+    const p: number = emnapiExternalMemory.getArrayBufferPointer(handle.value, true).address
     $makeSetValue('data', 0, 'p', '*')
   }
   if (byte_length) {
@@ -162,7 +169,7 @@ function napi_get_typedarray_info (
       $from64('data')
 
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const p = emnapiExternalMemory.getViewPointer(v, v.byteOffset, true)
+      const p: number = emnapiExternalMemory.getViewPointer(v, v.byteOffset, true).address
       $makeSetValue('data', 0, 'p', '*')
     }
     if (arraybuffer) {
@@ -207,7 +214,7 @@ function napi_get_dataview_info (
       $from64('data')
 
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const p = emnapiExternalMemory.getViewPointer(v, v.byteOffset, true)
+      const p: number = emnapiExternalMemory.getViewPointer(v, v.byteOffset, true).address
       $makeSetValue('data', 0, 'p', '*')
     }
     if (arraybuffer) {
