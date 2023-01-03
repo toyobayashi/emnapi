@@ -91,8 +91,48 @@ function emnapi_is_support_bigint (): int {
   return emnapiRt.supportBigInt ? 1 : 0
 }
 
+// @ts-expect-error
+function emnapi_sync_memory (env: napi_env, arraybuffer_or_view: napi_value, offset: size_t, pointer: void_p, len: size_t, js_to_wasm: bool): napi_status {
+  $PREAMBLE!(env, (envObject) => {
+    $CHECK_ARG!(envObject, arraybuffer_or_view)
+    $CHECK_ARG!(envObject, pointer)
+
+    $from64('offset')
+    $from64('pointer')
+    $from64('len')
+    offset = offset >>> 0
+
+    const bufferOrView: ArrayBuffer | ArrayBufferView = envObject.ctx.handleStore.get(arraybuffer_or_view)!.value
+    let view: Uint8Array
+    if (bufferOrView instanceof ArrayBuffer) {
+      if (len === -1) {
+        len = bufferOrView.byteLength - offset
+      } else {
+        len = len >>> 0
+      }
+      view = new Uint8Array(bufferOrView, offset, len)
+    } else {
+      if (len === -1) {
+        len = bufferOrView.byteLength - offset
+      } else {
+        len = len >>> 0
+      }
+      view = new Uint8Array(bufferOrView.buffer, bufferOrView.byteOffset + offset, len)
+    }
+
+    if (js_to_wasm) {
+      HEAPU8.set(view, pointer)
+    } else {
+      view.set(HEAPU8.subarray(pointer, pointer + len))
+    }
+
+    return envObject.getReturnStatus()
+  })
+}
+
 emnapiImplement('emnapi_is_support_weakref', 'i', emnapi_is_support_weakref)
 emnapiImplement('emnapi_is_support_bigint', 'i', emnapi_is_support_bigint)
 emnapiImplement('emnapi_get_module_object', 'ipp', emnapi_get_module_object)
 emnapiImplement('emnapi_get_module_property', 'ippp', emnapi_get_module_property)
 emnapiImplement('emnapi_create_external_uint8array', 'ipppppp', emnapi_create_external_uint8array, ['$emnapiWrap'])
+emnapiImplement('emnapi_sync_memory', 'ippi', emnapi_sync_memory)

@@ -179,26 +179,6 @@ mergeInto(LibraryManager.library, {
       if (registered) return emnapiExports
       registered = true
 
-      /* let napiExtendedErrorInfoPtr = $makeMalloc('$emnapiInit', POINTER_SIZE * 2 + 8)
-
-      const lastError = {
-        data: napiExtendedErrorInfoPtr,
-        getErrorCode: () => {
-          return $makeGetValue('napiExtendedErrorInfoPtr', POINTER_SIZE * 2 + 4, 'i32') as number
-        },
-        setErrorCode: (_code: napi_status) => {
-          $makeSetValue('napiExtendedErrorInfoPtr', POINTER_SIZE * 2 + 4, '_code', 'i32')
-        },
-        setErrorMessage: (_ptr: number | bigint) => {
-          $from64('_ptr')
-          $makeSetValue('napiExtendedErrorInfoPtr', 0, '_ptr', '*')
-        },
-        dispose () {
-          _free($to64('napiExtendedErrorInfoPtr'))
-          napiExtendedErrorInfoPtr = 0
-        }
-      } */
-
       env = emnapiRt.Env.create(emnapiCtx, emnapiGetDynamicCalls)
       const scope = emnapiCtx.openScope(env)
       try {

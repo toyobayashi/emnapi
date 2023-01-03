@@ -15,7 +15,7 @@ mergeInto(LibraryManager.library, {
     },
 
     getArrayBufferPointer: function (arrayBuffer: ArrayBuffer): void_p {
-      if ((!emnapiExternalMemory.registry) || (arrayBuffer === HEAPU8.buffer)) {
+      if (arrayBuffer === HEAPU8.buffer) {
         return /* NULL */ 0
       }
 
@@ -29,14 +29,11 @@ mergeInto(LibraryManager.library, {
       pointer = $makeMalloc('$emnapiExternalMemory.getArrayBufferPointer', 'arrayBuffer.byteLength')
       HEAPU8.set(new Uint8Array(arrayBuffer), pointer)
       emnapiExternalMemory.table.set(arrayBuffer, pointer)
-      emnapiExternalMemory.registry.register(arrayBuffer, pointer)
+      emnapiExternalMemory.registry?.register(arrayBuffer, pointer)
       return pointer
     },
 
     getViewPointer: function (view: ArrayBufferView): void_p {
-      if (!emnapiExternalMemory.registry) {
-        return /* NULL */ 0
-      }
       if (view.buffer === HEAPU8.buffer) {
         return view.byteOffset
       }
@@ -51,7 +48,7 @@ mergeInto(LibraryManager.library, {
       pointer = $makeMalloc('$emnapiExternalMemory.getViewPointer', 'view.byteLength')
       HEAPU8.set(new Uint8Array(view.buffer, view.byteOffset, view.byteLength), pointer)
       emnapiExternalMemory.table.set(view, pointer)
-      emnapiExternalMemory.registry.register(view, pointer)
+      emnapiExternalMemory.registry?.register(view, pointer)
       return pointer
     }
   }

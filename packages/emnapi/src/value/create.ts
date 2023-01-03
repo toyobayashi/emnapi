@@ -23,17 +23,24 @@ function napi_create_array_with_length (env: napi_env, length: size_t, result: P
 }
 
 // @ts-expect-error
-function napi_create_arraybuffer (env: napi_env, byte_length: size_t, _data: void_pp, result: Pointer<napi_value>): napi_status {
+function napi_create_arraybuffer (env: napi_env, byte_length: size_t, data: void_pp, result: Pointer<napi_value>): napi_status {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  let value: number
+  let value: number, p: number
 
   $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, result)
     $from64('byte_length')
     $from64('result')
     byte_length = byte_length >>> 0
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    value = emnapiCtx.addToCurrentScope(new ArrayBuffer(byte_length)).id
+    const arrayBuffer = new ArrayBuffer(byte_length)
+
+    if (data) {
+      $from64('data')
+      p = emnapiExternalMemory.getArrayBufferPointer(arrayBuffer)
+      $makeSetValue('data', 0, 'p', '*')
+    }
+
+    value = emnapiCtx.addToCurrentScope(arrayBuffer).id
     $makeSetValue('result', 0, 'value', '*')
     return envObject.getReturnStatus()
   })

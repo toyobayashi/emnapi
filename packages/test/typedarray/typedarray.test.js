@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 'use strict'
 const assert = require('assert')
 const { load } = require('../util')
@@ -15,6 +16,27 @@ module.exports = load('typedarray').then(test_typedarray => {
   doubleArray[1] = 1.1
   doubleArray[2] = 2.2
   assert.strictEqual(doubleArray.length, 3)
+
+  const byteResult = test_typedarray.Multiply(byteArray, 3)
+  assert.ok(byteResult instanceof Uint8Array)
+  assert.strictEqual(byteResult.length, 3)
+  assert.strictEqual(byteResult[0], 0)
+  assert.strictEqual(byteResult[1], 3)
+  assert.strictEqual(byteResult[2], 6)
+
+  const doubleResult = test_typedarray.Multiply(doubleArray, -3)
+  assert.ok(doubleResult instanceof Float64Array)
+  assert.strictEqual(doubleResult.length, 3)
+  assert.strictEqual(doubleResult[0], -0)
+  assert.strictEqual(Math.round(10 * doubleResult[1]) / 10, -3.3)
+  assert.strictEqual(Math.round(10 * doubleResult[2]) / 10, -6.6)
+
+  // const externalResult = test_typedarray.External()
+  // assert.ok(externalResult instanceof Int8Array)
+  // assert.strictEqual(externalResult.length, 3)
+  // assert.strictEqual(externalResult[0], 0)
+  // assert.strictEqual(externalResult[1], 1)
+  // assert.strictEqual(externalResult[2], 2)
 
   // Validate creation of all kinds of TypedArrays
   const buffer = new ArrayBuffer(128)
