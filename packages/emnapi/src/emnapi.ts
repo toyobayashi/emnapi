@@ -94,6 +94,7 @@ function emnapi_is_support_bigint (): int {
 declare function emnapiSyncMemory (arrayBufferOrView: ArrayBuffer | ArrayBufferView, offset?: number, pointer?: number, len?: int, js_to_wasm?: boolean): void
 
 mergeInto(LibraryManager.library, {
+  $emnapiSyncMemory__deps: ['$emnapiExternalMemory'],
   $emnapiSyncMemory: function (arrayBufferOrView: ArrayBuffer | ArrayBufferView, offset?: number, pointer?: number, len?: int, js_to_wasm?: boolean) {
     offset = offset ?? 0
     offset = offset >>> 0
