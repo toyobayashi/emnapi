@@ -94,34 +94,6 @@ function _$emnapiDefineProperty (envObject: emnapi.Env, obj: object, propertyNam
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-declare const emnapiCreateTypedArray: typeof _$emnapiCreateTypedArray
-function _$emnapiCreateTypedArray (envObject: emnapi.Env, Type: { new (...args: any[]): ArrayBufferView; name?: string }, size_of_element: number, buffer: ArrayBuffer, byte_offset: size_t, length: size_t, callback: (out: ArrayBufferView) => napi_status): napi_status {
-  $from64('byte_offset')
-  $from64('length')
-  $from64('size_of_element')
-
-  byte_offset = byte_offset >>> 0
-  length = length >>> 0
-  if (size_of_element > 1) {
-    if ((byte_offset) % (size_of_element) !== 0) {
-      const err: RangeError & { code?: string } = new RangeError(`start offset of ${Type.name ?? ''} should be a multiple of ${size_of_element}`)
-      err.code = 'ERR_NAPI_INVALID_TYPEDARRAY_ALIGNMENT'
-      envObject.tryCatch.setError(err)
-      return envObject.setLastError(napi_status.napi_generic_failure)
-    }
-  }
-  // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
-  if (((length * size_of_element) + byte_offset) > buffer.byteLength) {
-    const err: RangeError & { code?: string } = new RangeError('Invalid typed array length')
-    err.code = 'ERR_NAPI_INVALID_TYPEDARRAY_LENGTH'
-    envObject.tryCatch.setError(err)
-    return envObject.setLastError(napi_status.napi_generic_failure)
-  }
-  const out = new Type(buffer, byte_offset, length)
-  return callback(out)
-}
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 declare const emnapiWrap: typeof _$emnapiWrap
 // @ts-expect-error
 function _$emnapiWrap (type: WrapType, env: napi_env, js_object: napi_value, native_object: void_p, finalize_cb: napi_finalize, finalize_hint: void_p, result: Pointer<napi_ref>): napi_status {
@@ -200,24 +172,6 @@ function _$emnapiUnwrap (env: napi_env, js_object: napi_value, result: void_pp, 
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-declare const emnapiAddName: typeof _$emnapiAddName
-function _$emnapiAddName (ret: Array<string | number | symbol>, name: string | number | symbol, key_filter: number, conversion_mode: napi_key_conversion): void {
-  if (ret.indexOf(name) !== -1) return
-  if (conversion_mode === napi_key_conversion.napi_key_keep_numbers) {
-    ret.push(name)
-  } else if (conversion_mode === napi_key_conversion.napi_key_numbers_to_strings) {
-    const realName = typeof name === 'number' ? String(name) : name
-    if (typeof realName === 'string') {
-      if (!(key_filter & napi_key_filter.napi_key_skip_strings)) {
-        ret.push(realName)
-      }
-    } else {
-      ret.push(realName)
-    }
-  }
-}
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 declare const emnapiGetPropertyNames: typeof _$emnapiGetPropertyNames
 function _$emnapiGetPropertyNames (obj: object, collection_mode: napi_key_collection_mode, key_filter: number, conversion_mode: napi_key_conversion): Array<string | symbol | number> {
   const props: Array<{ name: string | number | symbol; desc: PropertyDescriptor; own: boolean }> = []
@@ -249,13 +203,28 @@ function _$emnapiGetPropertyNames (obj: object, collection_mode: napi_key_collec
     obj = Object.getPrototypeOf(obj)
     own = false
   } while (obj)
-  const ret: Array<string | number | symbol> = []
+  const ret: PropertyKey[] = []
+  const addName = function (ret: PropertyKey[], name: PropertyKey, key_filter: number, conversion_mode: napi_key_conversion): void {
+    if (ret.indexOf(name) !== -1) return
+    if (conversion_mode === napi_key_conversion.napi_key_keep_numbers) {
+      ret.push(name)
+    } else if (conversion_mode === napi_key_conversion.napi_key_numbers_to_strings) {
+      const realName = typeof name === 'number' ? String(name) : name
+      if (typeof realName === 'string') {
+        if (!(key_filter & napi_key_filter.napi_key_skip_strings)) {
+          ret.push(realName)
+        }
+      } else {
+        ret.push(realName)
+      }
+    }
+  }
   for (i = 0; i < props.length; i++) {
     const prop = props[i]
     const name = prop.name
     const desc = prop.desc
     if (key_filter === napi_key_filter.napi_key_all_properties) {
-      emnapiAddName(ret, name, key_filter, conversion_mode)
+      addName(ret, name, key_filter, conversion_mode)
     } else {
       if (key_filter & napi_key_filter.napi_key_skip_strings && typeof name === 'string') {
         continue
@@ -295,7 +264,7 @@ function _$emnapiGetPropertyNames (obj: object, collection_mode: napi_key_collec
         }
       }
       if (shouldAdd) {
-        emnapiAddName(ret, name, key_filter, conversion_mode)
+        addName(ret, name, key_filter, conversion_mode)
       }
     }
   }
@@ -304,8 +273,6 @@ function _$emnapiGetPropertyNames (obj: object, collection_mode: napi_key_collec
 
 emnapiImplement('$emnapiCreateFunction', undefined, _$emnapiCreateFunction)
 emnapiImplement('$emnapiDefineProperty', undefined, _$emnapiDefineProperty, ['$emnapiCreateFunction'])
-emnapiImplement('$emnapiCreateTypedArray', undefined, _$emnapiCreateTypedArray)
 emnapiImplement('$emnapiWrap', undefined, _$emnapiWrap)
 emnapiImplement('$emnapiUnwrap', undefined, _$emnapiUnwrap)
-emnapiImplement('$emnapiAddName', undefined, _$emnapiAddName)
-emnapiImplement('$emnapiGetPropertyNames', undefined, _$emnapiGetPropertyNames, ['$emnapiAddName'])
+emnapiImplement('$emnapiGetPropertyNames', undefined, _$emnapiGetPropertyNames)
