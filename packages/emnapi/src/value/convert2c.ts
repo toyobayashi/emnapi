@@ -189,6 +189,22 @@ function napi_get_typedarray_info (
   return envObject.clearLastError()
 }
 
+function napi_get_buffer_info (
+  env: napi_env,
+  buffer: napi_value,
+  data: void_pp,
+  length: Pointer<size_t>
+): napi_status {
+  $CHECK_ENV!(env)
+  const envObject = emnapiCtx.envStore.get(env)!
+  $CHECK_ARG!(envObject, buffer)
+  const handle = emnapiCtx.handleStore.get(buffer)!
+  if (!handle.isBuffer()) {
+    return envObject.setLastError(napi_status.napi_invalid_arg)
+  }
+  return napi_get_typedarray_info(env, buffer, 0, length, data, 0, 0)
+}
+
 function napi_get_dataview_info (
   env: napi_env,
   dataview: napi_value,
@@ -568,6 +584,7 @@ emnapiImplement('napi_get_array_length', 'ippp', napi_get_array_length)
 emnapiImplement('napi_get_arraybuffer_info', 'ipppp', napi_get_arraybuffer_info, ['$emnapiExternalMemory'])
 emnapiImplement('napi_get_prototype', 'ippp', napi_get_prototype)
 emnapiImplement('napi_get_typedarray_info', 'ippppppp', napi_get_typedarray_info, ['$emnapiExternalMemory'])
+emnapiImplement('napi_get_buffer_info', 'ipppp', napi_get_buffer_info, ['napi_get_typedarray_info'])
 emnapiImplement('napi_get_dataview_info', 'ipppppp', napi_get_dataview_info, ['$emnapiExternalMemory'])
 emnapiImplement('napi_get_date_value', 'ippp', napi_get_date_value)
 emnapiImplement('napi_get_value_bool', 'ippp', napi_get_value_bool)

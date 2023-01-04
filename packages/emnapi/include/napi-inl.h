@@ -731,16 +731,16 @@ inline bool Value::IsDataView() const {
   return result;
 }
 
-// inline bool Value::IsBuffer() const {
-//   if (IsEmpty()) {
-//     return false;
-//   }
+inline bool Value::IsBuffer() const {
+  if (IsEmpty()) {
+    return false;
+  }
 
-//   bool result;
-//   napi_status status = napi_is_buffer(_env, _value, &result);
-//   NAPI_THROW_IF_FAILED(_env, status, false);
-//   return result;
-// }
+  bool result;
+  napi_status status = napi_is_buffer(_env, _value, &result);
+  NAPI_THROW_IF_FAILED(_env, status, false);
+  return result;
+}
 
 inline bool Value::IsExternal() const {
   return Type() == napi_external;

@@ -434,6 +434,7 @@ namespace NAPI_CPP_CUSTOM_NAMESPACE {
     bool IsArray() const;       ///< Tests if a value is a JavaScript array.
     bool IsArrayBuffer() const; ///< Tests if a value is a JavaScript array buffer.
     bool IsTypedArray() const;  ///< Tests if a value is a JavaScript typed array.
+    bool IsBuffer() const;      ///< Tests if a value is a Node buffer.
     bool IsObject() const;      ///< Tests if a value is a JavaScript object.
     bool IsFunction() const;    ///< Tests if a value is a JavaScript function.
     bool IsPromise() const;     ///< Tests if a value is a JavaScript promise.

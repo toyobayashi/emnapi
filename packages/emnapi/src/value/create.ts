@@ -381,7 +381,10 @@ function node_api_symbol_for (env: napi_env, utf8description: const_char_p, leng
 
 emnapiImplement('napi_create_array', 'ipp', napi_create_array)
 emnapiImplement('napi_create_array_with_length', 'ippp', napi_create_array_with_length)
-emnapiImplement('napi_create_arraybuffer', 'ipppp', napi_create_arraybuffer)
+emnapiImplement('napi_create_arraybuffer', 'ipppp', napi_create_arraybuffer, ['$createArrayBuffer'])
+emnapiImplement('napi_create_buffer', 'ippp', napi_create_buffer, ['$createArrayBuffer'])
+emnapiImplement('napi_create_buffer_copy', 'ippppp', napi_create_buffer_copy, ['$createArrayBuffer'])
+emnapiImplement('napi_create_external_buffer', 'ipppppp', napi_create_external_buffer, ['napi_create_external_arraybuffer'])
 emnapiImplement('napi_create_date', 'ipdp', napi_create_date)
 emnapiImplement('napi_create_external', 'ippppp', napi_create_external)
 emnapiImplement('napi_create_external_arraybuffer', 'ipppppp', napi_create_external_arraybuffer, ['$emnapiWrap'])

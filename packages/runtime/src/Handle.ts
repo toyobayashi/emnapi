@@ -63,6 +63,10 @@ export class Handle<S> {
     return !this.isEmpty() && (ArrayBuffer.isView(this.value)) && !(this.value instanceof DataView)
   }
 
+  public isBuffer (): boolean {
+    return !this.isEmpty() && (this.value instanceof Buffer)
+  }
+
   public isDataView (): boolean {
     return !this.isEmpty() && (this.value instanceof DataView)
   }
