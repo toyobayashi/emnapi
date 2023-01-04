@@ -18,9 +18,9 @@ function napi_get_all_property_names (
     if (h.value == null) {
       throw new TypeError('Cannot convert undefined or null to object')
     }
-    let v: any
+    let obj: any
     try {
-      v = h.isObject() || h.isFunction() ? h.value : Object(h.value)
+      obj = h.isObject() || h.isFunction() ? h.value : Object(h.value)
     } catch (_) {
       return envObject.setLastError(napi_status.napi_object_expected)
     }
@@ -30,11 +30,106 @@ function napi_get_all_property_names (
     if (key_conversion !== napi_key_conversion.napi_key_keep_numbers && key_conversion !== napi_key_conversion.napi_key_numbers_to_strings) {
       return envObject.setLastError(napi_status.napi_invalid_arg)
     }
-    const names = emnapiGetPropertyNames(v, key_mode, key_filter, key_conversion)
+
+    const props: Array<{ name: string | number | symbol; desc: PropertyDescriptor; own: boolean }> = []
+    let names: string[]
+    let symbols: symbol[]
+    let i: number
+    let own: boolean = true
+    const integerIndiceRegex = /^(0|[1-9][0-9]*)$/
+    do {
+      names = Object.getOwnPropertyNames(obj)
+      symbols = Object.getOwnPropertySymbols(obj)
+      for (i = 0; i < names.length; i++) {
+        props.push({
+          name: integerIndiceRegex.test(names[i]) ? Number(names[i]) : names[i],
+          desc: Object.getOwnPropertyDescriptor(obj, names[i])!,
+          own
+        })
+      }
+      for (i = 0; i < symbols.length; i++) {
+        props.push({
+          name: symbols[i],
+          desc: Object.getOwnPropertyDescriptor(obj, symbols[i])!,
+          own
+        })
+      }
+      if (key_mode === napi_key_collection_mode.napi_key_own_only) {
+        break
+      }
+      obj = Object.getPrototypeOf(obj)
+      own = false
+    } while (obj)
+    const ret: PropertyKey[] = []
+    const addName = function (ret: PropertyKey[], name: PropertyKey, key_filter: number, conversion_mode: napi_key_conversion): void {
+      if (ret.indexOf(name) !== -1) return
+      if (conversion_mode === napi_key_conversion.napi_key_keep_numbers) {
+        ret.push(name)
+      } else if (conversion_mode === napi_key_conversion.napi_key_numbers_to_strings) {
+        const realName = typeof name === 'number' ? String(name) : name
+        if (typeof realName === 'string') {
+          if (!(key_filter & napi_key_filter.napi_key_skip_strings)) {
+            ret.push(realName)
+          }
+        } else {
+          ret.push(realName)
+        }
+      }
+    }
+    for (i = 0; i < props.length; i++) {
+      const prop = props[i]
+      const name = prop.name
+      const desc = prop.desc
+      if (key_filter === napi_key_filter.napi_key_all_properties) {
+        addName(ret, name, key_filter, key_conversion)
+      } else {
+        if (key_filter & napi_key_filter.napi_key_skip_strings && typeof name === 'string') {
+          continue
+        }
+        if (key_filter & napi_key_filter.napi_key_skip_symbols && typeof name === 'symbol') {
+          continue
+        }
+        let shouldAdd = true
+        switch (key_filter & 7) {
+          case napi_key_filter.napi_key_writable: {
+            shouldAdd = Boolean(desc.writable)
+            break
+          }
+          case napi_key_filter.napi_key_enumerable: {
+            shouldAdd = Boolean(desc.enumerable)
+            break
+          }
+          case (napi_key_filter.napi_key_writable | napi_key_filter.napi_key_enumerable): {
+            shouldAdd = Boolean(desc.writable && desc.enumerable)
+            break
+          }
+          case napi_key_filter.napi_key_configurable: {
+            shouldAdd = Boolean(desc.configurable)
+            break
+          }
+          case (napi_key_filter.napi_key_configurable | napi_key_filter.napi_key_writable): {
+            shouldAdd = Boolean(desc.configurable && desc.writable)
+            break
+          }
+          case (napi_key_filter.napi_key_configurable | napi_key_filter.napi_key_enumerable): {
+            shouldAdd = Boolean(desc.configurable && desc.enumerable)
+            break
+          }
+          case (napi_key_filter.napi_key_configurable | napi_key_filter.napi_key_enumerable | napi_key_filter.napi_key_writable): {
+            shouldAdd = Boolean(desc.configurable && desc.enumerable && desc.writable)
+            break
+          }
+        }
+        if (shouldAdd) {
+          addName(ret, name, key_filter, key_conversion)
+        }
+      }
+    }
+
     $from64('result')
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    value = emnapiCtx.addToCurrentScope(names).id
+    value = emnapiCtx.addToCurrentScope(ret).id
     $makeSetValue('result', 0, 'value', '*')
     return envObject.getReturnStatus()
   })
@@ -422,7 +517,7 @@ function napi_object_seal (env: napi_env, object: napi_value): napi_status {
   })
 }
 
-emnapiImplement('napi_get_all_property_names', 'ippiiip', napi_get_all_property_names, ['$emnapiGetPropertyNames'])
+emnapiImplement('napi_get_all_property_names', 'ippiiip', napi_get_all_property_names)
 emnapiImplement('napi_get_property_names', 'ippp', napi_get_property_names, ['napi_get_all_property_names'])
 emnapiImplement('napi_set_property', 'ipppp', napi_set_property)
 emnapiImplement('napi_has_property', 'ipppp', napi_has_property)
