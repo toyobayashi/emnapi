@@ -31,7 +31,7 @@ async function build () {
   fs.writeFileSync(libOut,
     replaceParseTool(
       libCode
-        .replace('__EMNAPI_RUNTIME_REPLACE__', `'${runtimeCode.replace(/\\/g, '\\\\').replace(/\r?\n/g, '\\n').replace(/'/g, "\\'")}'`)
+        .replace('__EMNAPI_RUNTIME_REPLACE__', `'${runtimeCode.replace(/\\/g, '\\\\').replace(/\r?\n/g, '\\n').replace(/'/g, "\\'")}emnapiRt = emnapi;'`)
     ),
     'utf8'
   )
