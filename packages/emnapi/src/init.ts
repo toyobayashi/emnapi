@@ -14,30 +14,8 @@ declare let emnapiCtx: emnapi.Context
 
 declare function _napi_register_wasm_v1 (env: Ptr, exports: Ptr): napi_value
 declare function __emnapi_runtime_init (...args: [Ptr]): void
-// declare function _free (ptr: Ptr): void
 
 mergeInto(LibraryManager.library, {
-  $emnapiGetDynamicCalls: {
-    call_vp: function (_ptr: Ptr, a: Ptr): void {
-      return $makeDynCall('vp', '_ptr')(a)
-    },
-    call_vpp (_ptr: Ptr, a: Ptr, b: Ptr): void {
-      return $makeDynCall('vpp', '_ptr')(a, b)
-    },
-    call_ppp: function (_ptr: Ptr, a: Ptr, b: Ptr): int32_t {
-      return $makeDynCall('ppp', '_ptr')(a, b)
-    },
-    call_vpip: function (_ptr: Ptr, a: Ptr, b: number, c: Ptr): void {
-      return $makeDynCall('vpip', '_ptr')(a, b, c)
-    },
-    call_vppp: function (_ptr: Ptr, a: Ptr, b: Ptr, c: Ptr): void {
-      return $makeDynCall('vppp', '_ptr')(a, b, c)
-    },
-    call_vpppp: function (_ptr: Ptr, a: Ptr, b: Ptr, c: Ptr, d: Ptr): void {
-      return $makeDynCall('vpppp', '_ptr')(a, b, c, d)
-    }
-  },
-
   $emnapiRt: undefined,
   $emnapiRt__postset: __EMNAPI_RUNTIME_REPLACE__,
 
@@ -150,7 +128,6 @@ mergeInto(LibraryManager.library, {
     '});' +
   '});',
   $emnapiInit__deps: [
-    '$emnapiGetDynamicCalls',
     '$emnapiCtx',
     '$emnapiRuntimeInit',
     'napi_register_wasm_v1',
@@ -179,7 +156,10 @@ mergeInto(LibraryManager.library, {
       if (registered) return emnapiExports
       registered = true
 
-      env = emnapiRt.Env.create(emnapiCtx, emnapiGetDynamicCalls)
+      env = emnapiRt.Env.create(
+        emnapiCtx,
+        (cb: Ptr) => $makeDynCall('vppp', 'cb')
+      )
       const scope = emnapiCtx.openScope(env)
       try {
         emnapiExports = env.callIntoModule((_envObject) => {

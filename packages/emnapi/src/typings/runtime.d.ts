@@ -1,5 +1,3 @@
-declare const emnapiGetDynamicCalls: IDynamicCalls
-
 declare const HEAPU32: Uint32Array
 declare const HEAP32: Int32Array
 declare const HEAPF64: Float64Array

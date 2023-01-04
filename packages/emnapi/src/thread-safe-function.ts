@@ -11,16 +11,13 @@ function _emnapi_tsfn_dispatch_one_js (env: number, ref: number, call_js_cb: num
   try {
     // eslint-disable-next-line @typescript-eslint/prefer-optional-chain, @typescript-eslint/prefer-nullish-coalescing
     const jsCallback = (reference && reference.get()) || 0
-    envObject.callIntoModule((_envObject) => {
-      $from64('call_js_cb')
-      emnapiGetDynamicCalls.call_vpppp(call_js_cb, env, jsCallback, context, data)
+    envObject.callIntoModule(() => {
+      $makeDynCall('vpppp', 'call_js_cb')(env, jsCallback, context, data)
     })
-  } catch (err) {
+  } finally {
     emnapiCtx.closeScope(envObject, scope)
-    throw err
   }
-  emnapiCtx.closeScope(envObject, scope)
 }
 
 emnapiImplement('_emnapi_call_finalizer', 'vpppp', _emnapi_call_finalizer)
-emnapiImplement('_emnapi_tsfn_dispatch_one_js', 'vppppp', _emnapi_tsfn_dispatch_one_js, ['$emnapiGetDynamicCalls'])
+emnapiImplement('_emnapi_tsfn_dispatch_one_js', 'vppppp', _emnapi_tsfn_dispatch_one_js)

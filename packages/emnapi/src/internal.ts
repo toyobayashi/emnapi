@@ -6,7 +6,6 @@ declare const emnapiCreateFunction: typeof _$emnapiCreateFunction
 function _$emnapiCreateFunction<F extends (...args: any[]) => any> (envObject: emnapi.Env, utf8name: Pointer<const_char>, length: size_t, cb: napi_callback, data: void_p): { status: napi_status; f: F } {
   $from64('length')
   $from64('utf8name')
-  $from64('cb')
 
   const functionName = (!utf8name || !length) ? '' : (length === -1 ? UTF8ToString(utf8name) : UTF8ToString(utf8name, length))
 
@@ -18,7 +17,7 @@ function _$emnapiCreateFunction<F extends (...args: any[]) => any> (envObject: e
     const scope = emnapiCtx.openScope(envObject)
     try {
       return envObject.callIntoModule((envObject) => {
-        const napiValue = emnapiGetDynamicCalls.call_ppp(cb, envObject.id, $to64('0'))
+        const napiValue = $makeDynCall('ppp', 'cb')(envObject.id, 0)
         return (!napiValue) ? undefined : emnapiCtx.handleStore.get(napiValue)!.value
       })
     } finally {
@@ -322,7 +321,7 @@ function _$emnapiSetErrorCode (envObject: emnapi.Env, error: Error & { code?: st
   return napi_status.napi_ok
 }
 
-emnapiImplement('$emnapiCreateFunction', undefined, _$emnapiCreateFunction, ['$emnapiGetDynamicCalls'])
+emnapiImplement('$emnapiCreateFunction', undefined, _$emnapiCreateFunction)
 emnapiImplement('$emnapiDefineProperty', undefined, _$emnapiDefineProperty, ['$emnapiCreateFunction'])
 emnapiImplement('$emnapiCreateTypedArray', undefined, _$emnapiCreateTypedArray)
 emnapiImplement('$emnapiWrap', undefined, _$emnapiWrap)

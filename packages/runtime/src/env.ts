@@ -40,16 +40,16 @@ export class Env implements IStoreValue {
 
   public static create (
     ctx: Context,
-    emnapiGetDynamicCalls: IDynamicCalls
+    makeDynCall_vppp: (cb: Ptr) => (a: Ptr, b: Ptr, c: Ptr) => void
   ): Env {
-    const env = new Env(ctx, emnapiGetDynamicCalls)
+    const env = new Env(ctx, makeDynCall_vppp)
     ctx.envStore.add(env)
     return env
   }
 
   private constructor (
     public readonly ctx: Context,
-    public emnapiGetDynamicCalls: IDynamicCalls
+    public makeDynCall_vppp: (cb: Ptr) => (a: Ptr, b: Ptr, c: Ptr) => void
   ) {
     this.id = 0
   }
@@ -112,16 +112,14 @@ export class Env implements IStoreValue {
   }
 
   public callFinalizer (cb: napi_finalize, data: void_p, hint: void_p): void {
+    const f = this.makeDynCall_vppp(cb)
+    const env: napi_env = this.id
     const scope = this.ctx.openScope(this)
     try {
-      this.callIntoModule((envObject) => {
-        this.emnapiGetDynamicCalls.call_vppp(cb, envObject.id, data, hint)
-      })
-    } catch (err) {
+      this.callIntoModule(() => { f(env, data, hint) })
+    } finally {
       this.ctx.closeScope(this, scope)
-      throw err
     }
-    this.ctx.closeScope(this, scope)
   }
 
   public enqueueFinalizer (finalizer: RefTracker): void {
