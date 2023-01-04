@@ -24,7 +24,8 @@ function napi_create_array_with_length (env: napi_env, length: size_t, result: P
   return envObject.clearLastError()
 }
 
-function $createArrayBuffer(byte_length: size_t, data: void_pp) {
+declare const createArrayBuffer: typeof _$createArrayBuffer
+function _$createArrayBuffer(byte_length: size_t, data: void_pp) {
   $from64('byte_length')
   byte_length = byte_length >>> 0
   const arrayBuffer = new ArrayBuffer(byte_length)
@@ -41,12 +42,14 @@ function $createArrayBuffer(byte_length: size_t, data: void_pp) {
 
 // @ts-expect-error
 function napi_create_arraybuffer (env: napi_env, byte_length: size_t, data: void_pp, result: Pointer<napi_value>): napi_status {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  let value: number
+
   $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, result)
     $from64('result')
-    const arrayBuffer = $createArrayBuffer(byte_length, data)
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const value = emnapiCtx.addToCurrentScope(arrayBuffer).id
+    const arrayBuffer = createArrayBuffer(byte_length, data)
+    value = emnapiCtx.addToCurrentScope(arrayBuffer).id
     $makeSetValue('result', 0, 'value', '*')
     return envObject.getReturnStatus()
   })
@@ -273,7 +276,7 @@ function napi_create_buffer (
   $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, result)
     $from64('result')
-    const arrayBuffer = $createArrayBuffer(size, data)
+    const arrayBuffer = createArrayBuffer(size, data)
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const value = emnapiCtx.addToCurrentScope(arrayBuffer).id
     $makeSetValue('result', 0, 'value', '*')
@@ -288,14 +291,16 @@ function napi_create_buffer_copy(
   result_data: Pointer<Pointer<void>>,
   result: Pointer<napi_value>
 ) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  let value: number
+
   $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, result)
     $from64('result_data')
     $from64('result')
-    const arrayBuffer = $createArrayBuffer(length, result_data)
+    const arrayBuffer = createArrayBuffer(length, result_data)
     new Uint8Array(arrayBuffer).set(HEAPU8.subarray(data, data + length))
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const value = emnapiCtx.addToCurrentScope(arrayBuffer).id
+    value = emnapiCtx.addToCurrentScope(arrayBuffer).id
     $makeSetValue('result', 0, 'value', '*')
     return envObject.getReturnStatus()
   })
@@ -379,6 +384,7 @@ function node_api_symbol_for (env: napi_env, utf8description: const_char_p, leng
   return envObject.clearLastError()
 }
 
+emnapiImplement('$createArrayBuffer', undefined, _$createArrayBuffer)
 emnapiImplement('napi_create_array', 'ipp', napi_create_array)
 emnapiImplement('napi_create_array_with_length', 'ippp', napi_create_array_with_length)
 emnapiImplement('napi_create_arraybuffer', 'ipppp', napi_create_arraybuffer, ['$createArrayBuffer'])
