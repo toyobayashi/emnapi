@@ -302,25 +302,6 @@ function _$emnapiGetPropertyNames (obj: object, collection_mode: napi_key_collec
   return ret
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-declare const emnapiSetErrorCode: typeof _$emnapiSetErrorCode
-function _$emnapiSetErrorCode (envObject: emnapi.Env, error: Error & { code?: string }, code: napi_value, code_string: const_char_p): napi_status {
-  if (code || code_string) {
-    let codeValue: string
-    if (code) {
-      codeValue = emnapiCtx.handleStore.get(code)!.value
-      if (typeof codeValue !== 'string') {
-        return envObject.setLastError(napi_status.napi_string_expected)
-      }
-    } else {
-      $from64('code_string')
-      codeValue = UTF8ToString(code_string)
-    }
-    error.code = codeValue
-  }
-  return napi_status.napi_ok
-}
-
 emnapiImplement('$emnapiCreateFunction', undefined, _$emnapiCreateFunction)
 emnapiImplement('$emnapiDefineProperty', undefined, _$emnapiDefineProperty, ['$emnapiCreateFunction'])
 emnapiImplement('$emnapiCreateTypedArray', undefined, _$emnapiCreateTypedArray)
@@ -328,4 +309,3 @@ emnapiImplement('$emnapiWrap', undefined, _$emnapiWrap)
 emnapiImplement('$emnapiUnwrap', undefined, _$emnapiUnwrap)
 emnapiImplement('$emnapiAddName', undefined, _$emnapiAddName)
 emnapiImplement('$emnapiGetPropertyNames', undefined, _$emnapiGetPropertyNames, ['$emnapiAddName'])
-emnapiImplement('$emnapiSetErrorCode', undefined, _$emnapiSetErrorCode)

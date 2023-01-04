@@ -35,9 +35,8 @@ function napi_throw_error (env: napi_env, code: const_char_p, msg: const_char_p)
     $from64('msg')
 
     const error: Error & { code?: string } = new Error(UTF8ToString(msg))
-    if (code) {
-      error.code = UTF8ToString(code)
-    }
+    $INLINE_SET_ERROR_CODE!(envObject, error, 0, code)
+
     envObject.tryCatch.setError(error)
     return envObject.clearLastError()
   })
@@ -51,9 +50,8 @@ function napi_throw_type_error (env: napi_env, code: const_char_p, msg: const_ch
     $from64('msg')
 
     const error: TypeError & { code?: string } = new TypeError(UTF8ToString(msg))
-    if (code) {
-      error.code = UTF8ToString(code)
-    }
+    $INLINE_SET_ERROR_CODE!(envObject, error, 0, code)
+
     envObject.tryCatch.setError(error)
     return envObject.clearLastError()
   })
@@ -67,9 +65,8 @@ function napi_throw_range_error (env: napi_env, code: const_char_p, msg: const_c
     $from64('msg')
 
     const error: RangeError & { code?: string } = new RangeError(UTF8ToString(msg))
-    if (code) {
-      error.code = UTF8ToString(code)
-    }
+    $INLINE_SET_ERROR_CODE!(envObject, error, 0, code)
+
     envObject.tryCatch.setError(error)
     return envObject.clearLastError()
   })
@@ -83,9 +80,8 @@ function node_api_throw_syntax_error (env: napi_env, code: const_char_p, msg: co
     $from64('msg')
 
     const error: SyntaxError & { code?: string } = new SyntaxError(UTF8ToString(msg))
-    if (code) {
-      error.code = UTF8ToString(code)
-    }
+    $INLINE_SET_ERROR_CODE!(envObject, error, 0, code)
+
     envObject.tryCatch.setError(error)
     return envObject.clearLastError()
   })
@@ -112,8 +108,8 @@ function napi_create_error (env: napi_env, code: napi_value, msg: napi_value, re
   }
 
   const error = new Error(msgValue)
-  const status = emnapiSetErrorCode(envObject, error, code, /* NULL */ 0)
-  if (status !== napi_status.napi_ok) return status
+  $INLINE_SET_ERROR_CODE!(envObject, error, code, 0)
+
   $from64('result')
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -132,8 +128,8 @@ function napi_create_type_error (env: napi_env, code: napi_value, msg: napi_valu
     return envObject.setLastError(napi_status.napi_string_expected)
   }
   const error = new TypeError(msgValue)
-  const status = emnapiSetErrorCode(envObject, error, code, /* NULL */ 0)
-  if (status !== napi_status.napi_ok) return status
+  $INLINE_SET_ERROR_CODE!(envObject, error, code, 0)
+
   $from64('result')
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -152,8 +148,7 @@ function napi_create_range_error (env: napi_env, code: napi_value, msg: napi_val
     return envObject.setLastError(napi_status.napi_string_expected)
   }
   const error = new RangeError(msgValue)
-  const status = emnapiSetErrorCode(envObject, error, code, /* NULL */ 0)
-  if (status !== napi_status.napi_ok) return status
+  $INLINE_SET_ERROR_CODE!(envObject, error, code, 0)
   $from64('result')
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -172,8 +167,7 @@ function node_api_create_syntax_error (env: napi_env, code: napi_value, msg: nap
     return envObject.setLastError(napi_status.napi_string_expected)
   }
   const error = new SyntaxError(msgValue)
-  const status = emnapiSetErrorCode(envObject, error, code, /* NULL */ 0)
-  if (status !== napi_status.napi_ok) return status
+  $INLINE_SET_ERROR_CODE!(envObject, error, code, 0)
   $from64('result')
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -217,9 +211,9 @@ emnapiImplement('napi_throw_error', 'ippp', napi_throw_error)
 emnapiImplement('napi_throw_type_error', 'ippp', napi_throw_type_error)
 emnapiImplement('napi_throw_range_error', 'ippp', napi_throw_range_error)
 emnapiImplement('node_api_throw_syntax_error', 'ippp', node_api_throw_syntax_error)
-emnapiImplement('napi_create_error', 'ipppp', napi_create_error, ['$emnapiSetErrorCode'])
-emnapiImplement('napi_create_type_error', 'ipppp', napi_create_type_error, ['$emnapiSetErrorCode'])
-emnapiImplement('napi_create_range_error', 'ipppp', napi_create_range_error, ['$emnapiSetErrorCode'])
-emnapiImplement('node_api_create_syntax_error', 'ipppp', node_api_create_syntax_error, ['$emnapiSetErrorCode'])
+emnapiImplement('napi_create_error', 'ipppp', napi_create_error)
+emnapiImplement('napi_create_type_error', 'ipppp', napi_create_type_error)
+emnapiImplement('napi_create_range_error', 'ipppp', napi_create_range_error)
+emnapiImplement('node_api_create_syntax_error', 'ipppp', node_api_create_syntax_error)
 emnapiImplement('napi_is_exception_pending', 'ipp', napi_is_exception_pending)
 emnapiImplement('napi_fatal_error', 'vpppp', napi_fatal_error)

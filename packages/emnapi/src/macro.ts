@@ -25,3 +25,24 @@ function $PREAMBLE (env: number, fn: (envObject: emnapi.Env) => napi_status): na
     return envObject.setLastError(napi_status.napi_pending_exception)
   }
 }
+
+function $INLINE_SET_ERROR_CODE (
+  env: emnapi.Env,
+  error: Error & { code?: string },
+  code_value: napi_value,
+  code_string: const_char_p
+): void {
+  // @ts-expect-error
+
+  $$escape!(() => {
+    if (code_value) {
+      const codeValue = emnapiCtx.handleStore.get(code_value)!.value
+      if (typeof codeValue !== 'string') {
+        return env.setLastError(napi_status.napi_string_expected)
+      }
+      error.code = codeValue
+    } else if (code_string) {
+      error.code = UTF8ToString(code_string)
+    }
+  })
+}
