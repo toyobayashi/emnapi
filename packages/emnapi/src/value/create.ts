@@ -1,3 +1,5 @@
+declare const Buffer: any
+
 function napi_create_array (env: napi_env, result: Pointer<napi_value>): napi_status {
   $CHECK_ENV!(env)
   const envObject = emnapiCtx.envStore.get(env)!
@@ -22,25 +24,29 @@ function napi_create_array_with_length (env: napi_env, length: size_t, result: P
   return envObject.clearLastError()
 }
 
+function $createArrayBuffer(byte_length: size_t, data: void_pp) {
+  $from64('byte_length')
+  byte_length = byte_length >>> 0
+  const arrayBuffer = new ArrayBuffer(byte_length)
+
+  if (data) {
+    $from64('data')
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const p = emnapiExternalMemory.getArrayBufferPointer(arrayBuffer, true).address
+    $makeSetValue('data', 0, 'p', '*')
+  }
+
+  return arrayBuffer
+}
+
 // @ts-expect-error
 function napi_create_arraybuffer (env: napi_env, byte_length: size_t, data: void_pp, result: Pointer<napi_value>): napi_status {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  let value: number, p: number
-
   $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, result)
-    $from64('byte_length')
     $from64('result')
-    byte_length = byte_length >>> 0
-    const arrayBuffer = new ArrayBuffer(byte_length)
-
-    if (data) {
-      $from64('data')
-      p = emnapiExternalMemory.getArrayBufferPointer(arrayBuffer, true).address
-      $makeSetValue('data', 0, 'p', '*')
-    }
-
-    value = emnapiCtx.addToCurrentScope(arrayBuffer).id
+    const arrayBuffer = $createArrayBuffer(byte_length, data)
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const value = emnapiCtx.addToCurrentScope(arrayBuffer).id
     $makeSetValue('result', 0, 'value', '*')
     return envObject.getReturnStatus()
   })
@@ -255,6 +261,64 @@ function napi_create_typedarray (
       default:
         return envObject.setLastError(napi_status.napi_invalid_arg)
     }
+  })
+}
+
+function napi_create_buffer (
+  env: napi_env,
+  size: size_t,
+  data: Pointer<Pointer<void>>,
+  result: Pointer<napi_value>
+) {
+  $PREAMBLE!(env, (envObject) => {
+    $CHECK_ARG!(envObject, result)
+    $from64('result')
+    const arrayBuffer = $createArrayBuffer(size, data)
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const value = emnapiCtx.addToCurrentScope(arrayBuffer).id
+    $makeSetValue('result', 0, 'value', '*')
+    return envObject.getReturnStatus()
+  })
+}
+
+function napi_create_buffer_copy(
+  env: napi_env,
+  length: size_t,
+  data: Pointer<void>,
+  result_data: Pointer<Pointer<void>>,
+  result: Pointer<napi_value>
+) {
+  $PREAMBLE!(env, (envObject) => {
+    $CHECK_ARG!(envObject, result)
+    $from64('result_data')
+    $from64('result')
+    const arrayBuffer = $createArrayBuffer(length, result_data)
+    new Uint8Array(arrayBuffer).set(HEAPU8.subarray(data, data + length))
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const value = emnapiCtx.addToCurrentScope(arrayBuffer).id
+    $makeSetValue('result', 0, 'value', '*')
+    return envObject.getReturnStatus()
+  })
+}
+
+function napi_create_external_buffer(
+  env: napi_env,
+  length: size_t,
+  data: Pointer<void>,
+  finalize_cb: napi_finalize,
+  finalize_hint: Pointer<void>,
+  result: Pointer<napi_value>
+) {
+  $PREAMBLE!(env, (envObject) => {
+    const status = napi_create_external_arraybuffer(env, data, length, finalize_cb, finalize_hint, result)
+    if (status !== napi_status.napi_ok) {
+      return status
+    }
+    const handleId = $makeGetValue('result', 0, '*')
+    const handle = emnapiCtx.handleStore.get(handleId)!
+    // I know I'm the only owner of handle, so just wrap value in-place.
+    handle.value = Buffer.from(handle.value)
+    return envObject.getReturnStatus()
   })
 }
 
