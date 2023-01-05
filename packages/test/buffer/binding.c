@@ -10,8 +10,7 @@
 static const char theText[] =
     "Lorem ipsum dolor sit amet, consectetur adipiscing elit.";
 
-// TODO: figure out how upstream tests manage without truncating the final \0 here.
-const unsigned int theTextSize = sizeof(theText) - 1;
+const unsigned int theTextSize = sizeof(theText);
 
 static int deleterCallCount = 0;
 static void deleteTheText(napi_env env, void* data, void* finalize_hint) {
