@@ -20,6 +20,8 @@ module.exports = load('general').then(async test_general => {
   const baseObject = new BaseClass()
   const extendedObject = new ExtendedClass()
 
+  assert.ok(test_general.dynamicallyInitialized);
+
   // Test napi_strict_equals
   assert.ok(test_general.testStrictEquals(val1, val1))
   assert.strictEqual(test_general.testStrictEquals(val1, val2), false)
