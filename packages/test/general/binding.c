@@ -280,6 +280,19 @@ static napi_value env_cleanup_wrap(napi_env env, napi_callback_info info) {
   return wrap_first_arg(env, info, cleanup_env_finalizer, (void*)ptr_value);
 }
 
+static bool dynamically_initialized = false;
+
+__attribute__((constructor))
+static void dynamically_initialize() {
+  dynamically_initialized = true;
+}
+
+static napi_value getDynamicallyInitialized(napi_env env) {
+  napi_value result;
+  NAPI_CALL(env, napi_get_boolean(env, dynamically_initialized, &result));
+  return result;
+}
+
 EXTERN_C_START
 napi_value Init(napi_env env, napi_value exports) {
   napi_property_descriptor descriptors[] = {
@@ -301,7 +314,11 @@ napi_value Init(napi_env env, napi_value exports) {
     DECLARE_NAPI_PROPERTY("testFinalizeWrap", test_finalize_wrap),
     DECLARE_NAPI_PROPERTY("finalizeWasCalled", finalize_was_called),
     DECLARE_NAPI_PROPERTY("derefItemWasCalled", deref_item_was_called),
-    DECLARE_NAPI_PROPERTY("testAdjustExternalMemory", testAdjustExternalMemory)
+    DECLARE_NAPI_PROPERTY("testAdjustExternalMemory", testAdjustExternalMemory),
+    {
+      .utf8name = "dynamicallyInitialized",
+      .value = getDynamicallyInitialized(env),
+    },
   };
 
   NAPI_CALL(env, napi_define_properties(
