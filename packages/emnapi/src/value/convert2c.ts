@@ -189,6 +189,7 @@ function napi_get_typedarray_info (
   return envObject.clearLastError()
 }
 
+declare const _napi_get_typedarray_info: typeof napi_get_typedarray_info
 function napi_get_buffer_info (
   env: napi_env,
   buffer: napi_value,
@@ -202,7 +203,7 @@ function napi_get_buffer_info (
   if (!handle.isBuffer()) {
     return envObject.setLastError(napi_status.napi_invalid_arg)
   }
-  return napi_get_typedarray_info(env, buffer, 0, length, data, 0, 0)
+  return _napi_get_typedarray_info(env, buffer, 0, length, data, 0, 0)
 }
 
 function napi_get_dataview_info (

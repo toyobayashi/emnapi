@@ -1,3 +1,7 @@
+#ifdef __EMSCRIPTEN__
+#include <emnapi.h>
+#endif
+
 #include <stdlib.h>
 #include <string.h>
 #include <node_api.h>
@@ -5,6 +9,9 @@
 
 static const char theText[] =
     "Lorem ipsum dolor sit amet, consectetur adipiscing elit.";
+
+// TODO: figure out how upstream tests manage without truncating the final \0 here.
+const unsigned int theTextSize = sizeof(theText) - 1;
 
 static int deleterCallCount = 0;
 static void deleteTheText(napi_env env, void* data, void* finalize_hint) {
@@ -36,13 +43,15 @@ static void malignDeleter(napi_env env, void* data, void* finalize_hint) {
 static napi_value newBuffer(napi_env env, napi_callback_info info) {
   napi_value theBuffer;
   char* theCopy;
-  const unsigned int kBufferSize = sizeof(theText);
 
   NAPI_CALL(env,
       napi_create_buffer(
-          env, sizeof(theText), (void**)(&theCopy), &theBuffer));
+          env, theTextSize, (void**)(&theCopy), &theBuffer));
   NAPI_ASSERT(env, theCopy, "Failed to copy static text for newBuffer");
-  memcpy(theCopy, theText, kBufferSize);
+  memcpy(theCopy, theText, theTextSize);
+#ifdef __EMSCRIPTEN__
+  emnapi_sync_memory(env, theBuffer, 0, theCopy, NAPI_AUTO_LENGTH, false);
+#endif
 
   return theBuffer;
 }
@@ -54,7 +63,7 @@ static napi_value newExternalBuffer(napi_env env, napi_callback_info info) {
       env, theCopy, "Failed to copy static text for newExternalBuffer");
   NAPI_CALL(env,
       napi_create_external_buffer(
-          env, sizeof(theText), theCopy, deleteTheText,
+          env, theTextSize, theCopy, deleteTheText,
           NULL /* finalize_hint */, &theBuffer));
 
   return theBuffer;
@@ -69,7 +78,7 @@ static napi_value getDeleterCallCount(napi_env env, napi_callback_info info) {
 static napi_value copyBuffer(napi_env env, napi_callback_info info) {
   napi_value theBuffer;
   NAPI_CALL(env, napi_create_buffer_copy(
-      env, sizeof(theText), theText, NULL, &theBuffer));
+      env, theTextSize, theText, NULL, &theBuffer));
   return theBuffer;
 }
 

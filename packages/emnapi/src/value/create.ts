@@ -267,18 +267,21 @@ function napi_create_typedarray (
   })
 }
 
-function napi_create_buffer (
+function napi_create_buffer(
   env: napi_env,
   size: size_t,
   data: Pointer<Pointer<void>>,
   result: Pointer<napi_value>
 ) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  let value: number
+
   $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, result)
     $from64('result')
     const arrayBuffer = createArrayBuffer(size, data)
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const value = emnapiCtx.addToCurrentScope(arrayBuffer).id
+    const buffer = Buffer.from(arrayBuffer)
+    value = emnapiCtx.addToCurrentScope(buffer).id
     $makeSetValue('result', 0, 'value', '*')
     return envObject.getReturnStatus()
   })
@@ -299,13 +302,15 @@ function napi_create_buffer_copy(
     $from64('result_data')
     $from64('result')
     const arrayBuffer = createArrayBuffer(length, result_data)
-    new Uint8Array(arrayBuffer).set(HEAPU8.subarray(data, data + length))
-    value = emnapiCtx.addToCurrentScope(arrayBuffer).id
+    const buffer = Buffer.from(arrayBuffer)
+    buffer.set(HEAPU8.subarray(data, data + length))
+    value = emnapiCtx.addToCurrentScope(buffer).id
     $makeSetValue('result', 0, 'value', '*')
     return envObject.getReturnStatus()
   })
 }
 
+declare const _napi_create_external_arraybuffer: typeof napi_create_external_arraybuffer
 function napi_create_external_buffer(
   env: napi_env,
   length: size_t,
@@ -315,7 +320,7 @@ function napi_create_external_buffer(
   result: Pointer<napi_value>
 ) {
   $PREAMBLE!(env, (envObject) => {
-    const status = napi_create_external_arraybuffer(env, data, length, finalize_cb, finalize_hint, result)
+    const status = _napi_create_external_arraybuffer(env, data, length, finalize_cb, finalize_hint, result)
     if (status !== napi_status.napi_ok) {
       return status
     }
@@ -390,10 +395,10 @@ emnapiImplement('napi_create_array_with_length', 'ippp', napi_create_array_with_
 emnapiImplement('napi_create_arraybuffer', 'ipppp', napi_create_arraybuffer, ['$createArrayBuffer'])
 emnapiImplement('napi_create_buffer', 'ippp', napi_create_buffer, ['$createArrayBuffer'])
 emnapiImplement('napi_create_buffer_copy', 'ippppp', napi_create_buffer_copy, ['$createArrayBuffer'])
-emnapiImplement('napi_create_external_buffer', 'ipppppp', napi_create_external_buffer, ['napi_create_external_arraybuffer'])
 emnapiImplement('napi_create_date', 'ipdp', napi_create_date)
 emnapiImplement('napi_create_external', 'ippppp', napi_create_external)
 emnapiImplement('napi_create_external_arraybuffer', 'ipppppp', napi_create_external_arraybuffer, ['$emnapiWrap'])
+emnapiImplement('napi_create_external_buffer', 'ipppppp', napi_create_external_buffer, ['napi_create_external_arraybuffer'])
 emnapiImplement('napi_create_object', 'ipp', napi_create_object)
 emnapiImplement('napi_create_symbol', 'ippp', napi_create_symbol)
 emnapiImplement('napi_create_typedarray', 'ipipppp', napi_create_typedarray)
