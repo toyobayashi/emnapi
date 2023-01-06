@@ -179,7 +179,7 @@ mergeInto(LibraryManager.library, {
       return emnapiExports
     }
 
-    addOnInit(function (Module) {
+    __ATINIT__.push(function (Module) {
       delete Module._napi_register_wasm_v1
       delete Module.__emnapi_runtime_init
 
