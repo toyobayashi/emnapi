@@ -25,7 +25,7 @@ function napi_create_array_with_length (env: napi_env, length: size_t, result: P
 }
 
 declare const createArrayBuffer: typeof _$createArrayBuffer
-function _$createArrayBuffer(byte_length: size_t, data: void_pp) {
+function _$createArrayBuffer (byte_length: size_t, data: void_pp): ArrayBuffer {
   $from64('byte_length')
   byte_length = byte_length >>> 0
   const arrayBuffer = new ArrayBuffer(byte_length)
@@ -267,12 +267,13 @@ function napi_create_typedarray (
   })
 }
 
-function napi_create_buffer(
+function napi_create_buffer (
   env: napi_env,
   size: size_t,
   data: Pointer<Pointer<void>>,
   result: Pointer<napi_value>
-) {
+// @ts-expect-error
+): napi_status {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let value: number
 
@@ -287,13 +288,14 @@ function napi_create_buffer(
   })
 }
 
-function napi_create_buffer_copy(
+function napi_create_buffer_copy (
   env: napi_env,
   length: size_t,
   data: Pointer<void>,
   result_data: Pointer<Pointer<void>>,
   result: Pointer<napi_value>
-) {
+// @ts-expect-error
+): napi_status {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let value: number
 
@@ -311,14 +313,15 @@ function napi_create_buffer_copy(
 }
 
 declare const _napi_create_external_arraybuffer: typeof napi_create_external_arraybuffer
-function napi_create_external_buffer(
+function napi_create_external_buffer (
   env: napi_env,
   length: size_t,
   data: Pointer<void>,
   finalize_cb: napi_finalize,
   finalize_hint: Pointer<void>,
   result: Pointer<napi_value>
-) {
+// @ts-expect-error
+): napi_status {
   $PREAMBLE!(env, (envObject) => {
     const status = _napi_create_external_arraybuffer(env, data, length, finalize_cb, finalize_hint, result)
     if (status !== napi_status.napi_ok) {

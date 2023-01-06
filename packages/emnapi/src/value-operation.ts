@@ -188,7 +188,7 @@ function napi_is_typedarray (env: napi_env, value: napi_value, result: Pointer<b
   return envObject.clearLastError()
 }
 
-function napi_is_buffer(env: napi_env, value: napi_value, result: Pointer<bool>): napi_status {
+function napi_is_buffer (env: napi_env, value: napi_value, result: Pointer<bool>): napi_status {
   $CHECK_ENV!(env)
   const envObject = emnapiCtx.envStore.get(env)!
   $CHECK_ARG!(envObject, value)
