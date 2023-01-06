@@ -64,7 +64,7 @@ export class Handle<S> {
   }
 
   public isBuffer (): boolean {
-    return !this.isEmpty() && (this.value instanceof Buffer)
+    return !this.isEmpty() && typeof Buffer === 'function' && (this.value instanceof Buffer)
   }
 
   public isDataView (): boolean {
