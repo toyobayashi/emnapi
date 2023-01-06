@@ -29,7 +29,8 @@ export {
   isReferenceType,
   TryCatch,
   _setImmediate,
-  construct
+  utf8Decoder,
+  utf16leDecoder
 } from './util'
 
 declare const __VERSION__: string

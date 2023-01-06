@@ -201,7 +201,11 @@ function napi_fatal_error (location: const_char_p, location_len: size_t, message
   $from64('message')
   $from64('message_len')
 
-  abort('FATAL ERROR: ' + (location_len === -1 ? UTF8ToString(location) : UTF8ToString(location, location_len)) + ' ' + (message_len === -1 ? UTF8ToString(message) : UTF8ToString(message, message_len)))
+  abort('FATAL ERROR: ' +
+    (location_len === -1 ? UTF8ToString(location) : emnapiRt.utf8Decoder.decode(HEAPU8.subarray(location, location + location_len))) +
+    ' ' +
+    (message_len === -1 ? UTF8ToString(message) : emnapiRt.utf8Decoder.decode(HEAPU8.subarray(message, message + message_len)))
+  )
 }
 
 emnapiImplement('_emnapi_get_last_error_info', 'vpppp', _emnapi_get_last_error_info)

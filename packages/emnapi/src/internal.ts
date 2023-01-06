@@ -7,7 +7,7 @@ function _$emnapiCreateFunction<F extends (...args: any[]) => any> (envObject: e
   $from64('length')
   $from64('utf8name')
 
-  const functionName = (!utf8name || !length) ? '' : (length === -1 ? UTF8ToString(utf8name) : UTF8ToString(utf8name, length))
+  const functionName = (!utf8name || !length) ? '' : (length === -1 ? UTF8ToString(utf8name) : emnapiRt.utf8Decoder.decode(HEAPU8.subarray(utf8name, utf8name + length)))
 
   let f: F
 

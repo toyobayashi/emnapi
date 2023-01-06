@@ -381,7 +381,7 @@ function node_api_symbol_for (env: napi_env, utf8description: const_char_p, leng
   $from64('utf8description')
   $from64('result')
 
-  const descriptionString = length === -1 ? UTF8ToString(utf8description) : UTF8ToString(utf8description, length)
+  const descriptionString = length === -1 ? UTF8ToString(utf8description) : emnapiRt.utf8Decoder.decode(HEAPU8.subarray(utf8description, utf8description + length))
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const value = emnapiCtx.addToCurrentScope(Symbol.for(descriptionString)).id
