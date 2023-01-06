@@ -125,6 +125,41 @@ napi_ref_threadsafe_function(napi_env env, napi_threadsafe_function func);
 
 #endif
 
+// Methods to provide node::Buffer functionality with napi types
+NAPI_EXTERN napi_status
+napi_create_buffer(napi_env env,
+                   size_t length,
+                   void** data,
+                   napi_value* result);
+
+#ifndef NODE_API_NO_EXTERNAL_BUFFERS_ALLOWED
+NAPI_EXTERN napi_status
+napi_create_external_buffer(napi_env env,
+                            size_t length,
+                            void* data,
+                            napi_finalize finalize_cb,
+                            void* finalize_hint,
+                            napi_value* result);
+#endif  // NODE_API_NO_EXTERNAL_BUFFERS_ALLOWED
+
+NAPI_EXTERN napi_status
+napi_create_buffer_copy(napi_env env,
+                        size_t length,
+                        const void* data,
+                        void** result_data,
+                        napi_value* result);
+
+NAPI_EXTERN napi_status
+napi_is_buffer(napi_env env,
+               napi_value value,
+               bool* result);
+
+NAPI_EXTERN napi_status
+napi_get_buffer_info(napi_env env,
+                     napi_value value,
+                     void** data,
+                     size_t* length);
+
 #endif
 
 EXTERN_C_END

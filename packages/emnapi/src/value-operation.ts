@@ -188,6 +188,17 @@ function napi_is_typedarray (env: napi_env, value: napi_value, result: Pointer<b
   return envObject.clearLastError()
 }
 
+function napi_is_buffer(env: napi_env, value: napi_value, result: Pointer<bool>): napi_status {
+  $CHECK_ENV!(env)
+  const envObject = emnapiCtx.envStore.get(env)!
+  $CHECK_ARG!(envObject, value)
+  $CHECK_ARG!(envObject, result)
+  const h = emnapiCtx.handleStore.get(value)!
+  $from64('result')
+  HEAPU8[result] = h.isBuffer() ? 1 : 0
+  return envObject.clearLastError()
+}
+
 function napi_is_dataview (env: napi_env, value: napi_value, result: Pointer<bool>): napi_status {
   $CHECK_ENV!(env)
   const envObject = emnapiCtx.envStore.get(env)!
@@ -267,6 +278,7 @@ emnapiImplement('napi_is_arraybuffer', 'ippp', napi_is_arraybuffer)
 emnapiImplement('napi_is_date', 'ippp', napi_is_date)
 emnapiImplement('napi_is_error', 'ippp', napi_is_error)
 emnapiImplement('napi_is_typedarray', 'ippp', napi_is_typedarray)
+emnapiImplement('napi_is_buffer', 'ippp', napi_is_buffer)
 emnapiImplement('napi_is_dataview', 'ippp', napi_is_dataview)
 emnapiImplement('napi_strict_equals', 'ipppp', napi_strict_equals)
 emnapiImplement('napi_detach_arraybuffer', 'ipp', napi_detach_arraybuffer, ['napi_set_last_error'])

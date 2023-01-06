@@ -145,6 +145,7 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
       createTarget('number', ['./number/binding.c'], true),
       createTarget('symbol', ['./symbol/binding.c'], true),
       createTarget('typedarray', ['./typedarray/binding.c'], true),
+      createTarget('buffer', ['./buffer/binding.c'], false),
       ...(isEmscripten ? [createTarget('emnapitest', ['./emnapitest/binding.c'], true)] : []),
       createTarget('version', ['./version/binding.c']),
 
