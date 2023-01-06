@@ -162,6 +162,13 @@ napi_status napi_adjust_external_memory(napi_env env,
   return napi_clear_last_error(env);
 }
 
+napi_status napi_get_version(napi_env env, uint32_t* result) {
+  CHECK_ENV(env);
+  CHECK_ARG(env, result);
+  *result = NAPI_VERSION;
+  return napi_clear_last_error(env);
+}
+
 napi_status
 napi_get_node_version(napi_env env,
                       const napi_node_version** version) {
