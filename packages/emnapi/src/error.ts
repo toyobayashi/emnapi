@@ -202,9 +202,9 @@ function napi_fatal_error (location: const_char_p, location_len: size_t, message
   $from64('message_len')
 
   abort('FATAL ERROR: ' +
-    (location_len === -1 ? UTF8ToString(location) : emnapiRt.utf8Decoder.decode(HEAPU8.subarray(location, location + location_len))) +
+    emnapiUtf8ToString(location, location_len) +
     ' ' +
-    (message_len === -1 ? UTF8ToString(message) : emnapiRt.utf8Decoder.decode(HEAPU8.subarray(message, message + message_len)))
+    emnapiUtf8ToString(message, message_len)
   )
 }
 
@@ -220,4 +220,4 @@ emnapiImplement('napi_create_type_error', 'ipppp', napi_create_type_error)
 emnapiImplement('napi_create_range_error', 'ipppp', napi_create_range_error)
 emnapiImplement('node_api_create_syntax_error', 'ipppp', node_api_create_syntax_error)
 emnapiImplement('napi_is_exception_pending', 'ipp', napi_is_exception_pending)
-emnapiImplement('napi_fatal_error', 'vpppp', napi_fatal_error)
+emnapiImplement('napi_fatal_error', 'vpppp', napi_fatal_error, ['$emnapiUtf8ToString'])

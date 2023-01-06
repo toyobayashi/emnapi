@@ -18,6 +18,7 @@ declare type ValType = Integer | Float | PtrType
 declare function $makeGetValue (ptrVar: string, pos: number | string, type: PtrType): number
 declare function $makeGetValue (ptrVar: string, pos: number | string, type: ValType): number | bigint
 declare function $makeSetValue (ptrVar: string, pos: number | string, valueVar: string, type: ValType): void
+declare function $getUnsharedTextDecoderView (heap: string, start: string, end: string): ArrayBufferView
 
 declare function $from64 (x: string | string[]): void
 declare function $to64 (x: string): number | bigint

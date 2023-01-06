@@ -6,7 +6,7 @@ declare const emnapiCreateFunction: typeof _$emnapiCreateFunction
 function _$emnapiCreateFunction<F extends (...args: any[]) => any> (envObject: emnapi.Env, utf8name: Pointer<const_char>, length: size_t, cb: napi_callback, data: void_p): { status: napi_status; f: F } {
   $from64('utf8name')
 
-  const functionName = (!utf8name || !length) ? '' : (length === -1 ? UTF8ToString(utf8name) : emnapiRt.utf8Decoder.decode(HEAPU8.subarray(utf8name, utf8name + (length >>> 0))))
+  const functionName = (!utf8name || !length) ? '' : (emnapiUtf8ToString(utf8name, length))
 
   let f: F
 
@@ -170,7 +170,7 @@ function _$emnapiUnwrap (env: napi_env, js_object: napi_value, result: void_pp, 
   })
 }
 
-emnapiImplement('$emnapiCreateFunction', undefined, _$emnapiCreateFunction)
+emnapiImplement('$emnapiCreateFunction', undefined, _$emnapiCreateFunction, ['$emnapiUtf8ToString'])
 emnapiImplement('$emnapiDefineProperty', undefined, _$emnapiDefineProperty, ['$emnapiCreateFunction'])
 emnapiImplement('$emnapiWrap', undefined, _$emnapiWrap)
 emnapiImplement('$emnapiUnwrap', undefined, _$emnapiUnwrap)

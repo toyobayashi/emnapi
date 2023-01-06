@@ -100,12 +100,11 @@ function napi_create_string_utf16 (env: napi_env, str: const_char16_t_p, length:
   $from64('str')
   $from64('length')
 
-  length = length >>> 0
-  if (!((length === 0xffffffff) || (length <= 2147483647)) || (!str)) {
+  if (((length < -1) || (length > 2147483647)) || (!str)) {
     return envObject.setLastError(napi_status.napi_invalid_arg)
   }
 
-  const utf16String = length === 0xffffffff ? UTF16ToString(str) : emnapiRt.utf16leDecoder.decode(HEAPU8.subarray(str, str + length * 2))
+  const utf16String = emnapiUtf16ToString(str, length)
   $from64('result')
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const value = emnapiCtx.addToCurrentScope(utf16String).id
@@ -120,11 +119,10 @@ function napi_create_string_utf8 (env: napi_env, str: const_char_p, length: size
   $from64('str')
   $from64('length')
 
-  length = length >>> 0
-  if (!((length === 0xffffffff) || (length <= 2147483647)) || (!str)) {
+  if (((length < -1) || (length > 2147483647)) || (!str)) {
     return envObject.setLastError(napi_status.napi_invalid_arg)
   }
-  const utf8String = length === 0xffffffff ? UTF8ToString(str) : emnapiRt.utf8Decoder.decode(HEAPU8.subarray(str, str + length))
+  const utf8String = emnapiUtf8ToString(str, length)
   $from64('result')
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const value = emnapiCtx.addToCurrentScope(utf8String).id
@@ -231,10 +229,6 @@ emnapiImplement('napi_create_bigint_uint64', 'ipjp', napi_create_bigint_uint64)
 emnapiImplement('napi_create_bigint_words', 'ipippp', napi_create_bigint_words)
 emnapiImplement('napi_create_string_latin1', 'ipppp', napi_create_string_latin1)
 
-// #if typeof LEGACY_RUNTIME !== 'undefined' && !LEGACY_RUNTIME
-emnapiImplement('napi_create_string_utf16', 'ipppp', napi_create_string_utf16, ['$UTF16ToString'])
-// #else
-emnapiImplement('napi_create_string_utf16', 'ipppp', napi_create_string_utf16)
-// #endif
+emnapiImplement('napi_create_string_utf16', 'ipppp', napi_create_string_utf16, ['$emnapiUtf16ToString'])
 
-emnapiImplement('napi_create_string_utf8', 'ipppp', napi_create_string_utf8)
+emnapiImplement('napi_create_string_utf8', 'ipppp', napi_create_string_utf8, ['$emnapiUtf8ToString'])

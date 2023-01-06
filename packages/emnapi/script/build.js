@@ -8,7 +8,7 @@ const {
 
 function replaceParseTool (code) {
   return code
-    .replace(/(\r?\n)\s*\/\/\s+(#((if)|(else)|(endif)))/g, '$1$2')
+    .replace(/(\r?\n)\s*\/\/\s+(#((if)|(else)|(elif)|(endif)))/g, '$1$2')
     .replace(/\$POINTER_SIZE/g, '{{{ POINTER_SIZE }}}')
     .replace(/\$(from64\(.*?\))/g, '{{{ $1 }}}')
     .replace(/\$(to64\(.*?\))/g, '{{{ $1 }}}')
@@ -16,6 +16,7 @@ function replaceParseTool (code) {
     .replace(/\$(makeSetValue\(.*?\))/g, '{{{ $1 }}}')
     .replace(/\$(makeDynCall\(.*?\))/g, '{{{ $1 }}}')
     .replace(/\$(makeMalloc\(.*?\))/g, '{{{ $1 }}}')
+    .replace(/\$(getUnsharedTextDecoderView\(.*?\))/g, '{{{ $1 }}}')
 }
 
 async function build () {

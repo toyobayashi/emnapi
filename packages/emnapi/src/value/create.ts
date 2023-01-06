@@ -384,7 +384,7 @@ function node_api_symbol_for (env: napi_env, utf8description: const_char_p, leng
   $from64('utf8description')
   $from64('result')
 
-  const descriptionString = length === -1 ? UTF8ToString(utf8description) : emnapiRt.utf8Decoder.decode(HEAPU8.subarray(utf8description, utf8description + length))
+  const descriptionString = emnapiUtf8ToString(utf8description, length)
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const value = emnapiCtx.addToCurrentScope(Symbol.for(descriptionString)).id
@@ -406,4 +406,4 @@ emnapiImplement('napi_create_object', 'ipp', napi_create_object)
 emnapiImplement('napi_create_symbol', 'ippp', napi_create_symbol)
 emnapiImplement('napi_create_typedarray', 'ipipppp', napi_create_typedarray)
 emnapiImplement('napi_create_dataview', 'ippppp', napi_create_dataview)
-emnapiImplement('node_api_symbol_for', 'ipppp', node_api_symbol_for)
+emnapiImplement('node_api_symbol_for', 'ipppp', node_api_symbol_for, ['$emnapiUtf8ToString'])
