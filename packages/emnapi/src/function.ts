@@ -8,6 +8,8 @@ function napi_create_function (env: napi_env, utf8name: Pointer<const_char>, len
     $CHECK_ARG!(envObject, result)
     $CHECK_ARG!(envObject, cb)
 
+    $from64('length')
+
     const fresult = emnapiCreateFunction(envObject, utf8name, length, cb, data)
     if (fresult.status !== napi_status.napi_ok) return envObject.setLastError(fresult.status)
     const f = fresult.f

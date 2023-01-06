@@ -175,7 +175,7 @@ export const utf16leDecoder: { decode: (input: BufferSource) => string } = typeo
         if (!isArrayBuffer && !isView) {
           throw new TypeError('The "input" argument must be an instance of ArrayBuffer or ArrayBufferView')
         }
-        const bytes = isArrayBuffer ? new Uint16Array(input) : new Uint16Array(input.buffer, input.byteOffset, input.byteLength)
+        const bytes = isArrayBuffer ? new Uint16Array(input) : new Uint16Array(input.buffer, input.byteOffset, input.byteLength / 2)
         return String.fromCharCode.apply(String, bytes as any)
       }
     }

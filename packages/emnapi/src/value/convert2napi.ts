@@ -105,7 +105,7 @@ function napi_create_string_utf16 (env: napi_env, str: const_char16_t_p, length:
     return envObject.setLastError(napi_status.napi_invalid_arg)
   }
 
-  const utf16String = length === -1 ? UTF16ToString(str) : emnapiRt.utf16leDecoder.decode(HEAPU8.subarray(str, str + length))
+  const utf16String = length === 0xffffffff ? UTF16ToString(str) : emnapiRt.utf16leDecoder.decode(HEAPU8.subarray(str, str + length * 2))
   $from64('result')
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const value = emnapiCtx.addToCurrentScope(utf16String).id
@@ -124,7 +124,7 @@ function napi_create_string_utf8 (env: napi_env, str: const_char_p, length: size
   if (!((length === 0xffffffff) || (length <= 2147483647)) || (!str)) {
     return envObject.setLastError(napi_status.napi_invalid_arg)
   }
-  const utf8String = length === -1 ? UTF8ToString(str) : emnapiRt.utf8Decoder.decode(HEAPU8.subarray(str, str + length))
+  const utf8String = length === 0xffffffff ? UTF8ToString(str) : emnapiRt.utf8Decoder.decode(HEAPU8.subarray(str, str + length))
   $from64('result')
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const value = emnapiCtx.addToCurrentScope(utf8String).id

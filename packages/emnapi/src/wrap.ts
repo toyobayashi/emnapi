@@ -19,13 +19,12 @@ function napi_define_class (
     $from64('properties')
     $from64('property_count')
 
-    length = length >>> 0
     property_count = property_count >>> 0
 
     if (property_count > 0) {
       if (!properties) return envObject.setLastError(napi_status.napi_invalid_arg)
     }
-    if (!((length === 0xffffffff) || (length <= 2147483647)) || (!utf8name)) {
+    if ((length < -1) || (length > 2147483647) || (!utf8name)) {
       return envObject.setLastError(napi_status.napi_invalid_arg)
     }
     const fresult = emnapiCreateFunction(envObject, utf8name, length, constructor, callback_data)
