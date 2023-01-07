@@ -199,7 +199,6 @@ function emnapi_sync_memory (env: napi_env, js_to_wasm: bool, arraybuffer_or_vie
 
   $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, arraybuffer_or_view)
-    $CHECK_ARG!(envObject, pointer)
 
     $from64('offset')
     $from64('pointer')
