@@ -9,7 +9,8 @@ declare type TypedArrayConstructor =
   BigInt64ArrayConstructor |
   BigUint64ArrayConstructor |
   Float32ArrayConstructor |
-  Float64ArrayConstructor
+  Float64ArrayConstructor |
+  DataViewConstructor
 
 declare interface ViewInfo {
   Ctor: TypedArrayConstructor

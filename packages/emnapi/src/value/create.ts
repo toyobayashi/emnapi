@@ -229,6 +229,15 @@ function napi_create_typedarray (
         return envObject.setLastError(napi_status.napi_generic_failure)
       }
       const out = new Type(buffer, byte_offset, length)
+      if (buffer === HEAPU8.buffer) {
+        if (!emnapiExternalMemory.wasmMemoryViewTable.has(out)) {
+          emnapiExternalMemory.wasmMemoryViewTable.set(out, {
+            Ctor: Type as any,
+            ptr: byte_offset,
+            length
+          })
+        }
+      }
 
       $from64('result')
 
@@ -377,6 +386,15 @@ function napi_create_dataview (
     }
 
     const dataview = new DataView(buffer, byte_offset, byte_length)
+    if (buffer === HEAPU8.buffer) {
+      if (!emnapiExternalMemory.wasmMemoryViewTable.has(dataview)) {
+        emnapiExternalMemory.wasmMemoryViewTable.set(dataview, {
+          Ctor: DataView,
+          ptr: byte_offset,
+          length: byte_length
+        })
+      }
+    }
     $from64('result')
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -414,6 +432,6 @@ emnapiImplement('napi_create_external_arraybuffer', 'ipppppp', napi_create_exter
 emnapiImplement('napi_create_external_buffer', 'ipppppp', napi_create_external_buffer, ['emnapi_create_memory_view'])
 emnapiImplement('napi_create_object', 'ipp', napi_create_object)
 emnapiImplement('napi_create_symbol', 'ippp', napi_create_symbol)
-emnapiImplement('napi_create_typedarray', 'ipipppp', napi_create_typedarray)
-emnapiImplement('napi_create_dataview', 'ippppp', napi_create_dataview)
+emnapiImplement('napi_create_typedarray', 'ipipppp', napi_create_typedarray, ['$emnapiExternalMemory'])
+emnapiImplement('napi_create_dataview', 'ippppp', napi_create_dataview, ['$emnapiExternalMemory'])
 emnapiImplement('node_api_symbol_for', 'ipppp', node_api_symbol_for, ['$emnapiUtf8ToString'])
