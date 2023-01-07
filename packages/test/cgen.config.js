@@ -146,7 +146,7 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
       createTarget('symbol', ['./symbol/binding.c'], true),
       createTarget('typedarray', ['./typedarray/binding.c'], true),
       createTarget('buffer', ['./buffer/binding.c'], false),
-      ...(isEmscripten ? [createTarget('emnapitest', ['./emnapitest/binding.c'], true)] : []),
+      ...(isEmscripten ? [createTarget('emnapitest', ['./emnapitest/binding.c'], true, false, ['-sEXPORTED_RUNTIME_METHODS=[\'emnapiSyncMemory\']'])] : []),
       createTarget('version', ['./version/binding.c']),
 
       ...(isEmscripten
