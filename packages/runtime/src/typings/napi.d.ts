@@ -150,3 +150,19 @@ declare const enum napi_key_conversion {
   napi_key_keep_numbers,
   napi_key_numbers_to_strings
 }
+
+declare const enum emnapi_memory_view_type {
+  emnapi_int8_array,
+  emnapi_uint8_array,
+  emnapi_uint8_clamped_array,
+  emnapi_int16_array,
+  emnapi_uint16_array,
+  emnapi_int32_array,
+  emnapi_uint32_array,
+  emnapi_float32_array,
+  emnapi_float64_array,
+  emnapi_bigint64_array,
+  emnapi_biguint64_array,
+  emnapi_data_view = 16,
+  emnapi_buffer = 17
+}

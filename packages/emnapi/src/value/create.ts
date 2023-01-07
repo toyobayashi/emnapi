@@ -328,30 +328,16 @@ function napi_create_external_buffer (
   finalize_cb: napi_finalize,
   finalize_hint: Pointer<void>,
   result: Pointer<napi_value>
-// @ts-expect-error
 ): napi_status {
-  $PREAMBLE!(env, (envObject) => {
-    const status = _emnapi_create_memory_view(
-      env,
-      napi_typedarray_type.napi_uint8_array,
-      data,
-      length,
-      finalize_cb,
-      finalize_hint,
-      result
-    )
-    if (status !== napi_status.napi_ok) {
-      return status
-    }
-    const handleId = $makeGetValue('result', 0, '*')
-    const handle = emnapiCtx.handleStore.get(handleId)!
-    const info = emnapiExternalMemory.wasmMemoryViewTable.get(handle.value)!
-    const buffer = Buffer.from(HEAPU8.buffer, info.ptr, info.length)
-    emnapiExternalMemory.wasmMemoryViewTable.set(buffer, info)
-    // I know I'm the only owner of handle, so just wrap value in-place.
-    handle.value = buffer
-    return envObject.getReturnStatus()
-  })
+  return _emnapi_create_memory_view(
+    env,
+    emnapi_memory_view_type.emnapi_buffer,
+    data,
+    length,
+    finalize_cb,
+    finalize_hint,
+    result
+  )
 }
 
 function napi_create_dataview (

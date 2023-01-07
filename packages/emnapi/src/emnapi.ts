@@ -36,7 +36,7 @@ function emnapi_get_module_property (env: napi_env, utf8name: const_char_p, resu
 declare const _emnapi_create_memory_view: typeof emnapi_create_memory_view
 function emnapi_create_memory_view (
   env: napi_env,
-  typedarray_type: napi_typedarray_type,
+  typedarray_type: emnapi_memory_view_type,
   external_data: void_p,
   byte_length: size_t,
   finalize_cb: napi_finalize,
@@ -60,7 +60,7 @@ function emnapi_create_memory_view (
     }
 
     if (byte_length > 2147483647) {
-      throw new RangeError('Cannot create a TypedArray larger than 2147483647 bytes')
+      throw new RangeError('Cannot create a memory view larger than 2147483647 bytes')
     }
     if ((external_data + byte_length) > HEAPU8.buffer.byteLength) {
       throw new RangeError('Memory out of range')
@@ -71,42 +71,51 @@ function emnapi_create_memory_view (
 
     let info: ViewInfo
     switch (typedarray_type) {
-      case napi_typedarray_type.napi_int8_array:
+      case emnapi_memory_view_type.emnapi_int8_array:
         info = { Ctor: Int8Array, ptr: external_data, length: byte_length }
         break
-      case napi_typedarray_type.napi_uint8_array:
+      case emnapi_memory_view_type.emnapi_uint8_array:
         info = { Ctor: Uint8Array, ptr: external_data, length: byte_length }
         break
-      case napi_typedarray_type.napi_uint8_clamped_array:
+      case emnapi_memory_view_type.emnapi_uint8_clamped_array:
         info = { Ctor: Uint8ClampedArray, ptr: external_data, length: byte_length }
         break
-      case napi_typedarray_type.napi_int16_array:
+      case emnapi_memory_view_type.emnapi_int16_array:
         info = { Ctor: Int16Array, ptr: external_data, length: byte_length >> 1 }
         break
-      case napi_typedarray_type.napi_uint16_array:
+      case emnapi_memory_view_type.emnapi_uint16_array:
         info = { Ctor: Uint16Array, ptr: external_data, length: byte_length >> 1 }
         break
-      case napi_typedarray_type.napi_int32_array:
+      case emnapi_memory_view_type.emnapi_int32_array:
         info = { Ctor: Int32Array, ptr: external_data, length: byte_length >> 2 }
         break
-      case napi_typedarray_type.napi_uint32_array:
+      case emnapi_memory_view_type.emnapi_uint32_array:
         info = { Ctor: Uint32Array, ptr: external_data, length: byte_length >> 2 }
         break
-      case napi_typedarray_type.napi_float32_array:
+      case emnapi_memory_view_type.emnapi_float32_array:
         info = { Ctor: Float32Array, ptr: external_data, length: byte_length >> 2 }
         break
-      case napi_typedarray_type.napi_float64_array:
+      case emnapi_memory_view_type.emnapi_float64_array:
         info = { Ctor: Float64Array, ptr: external_data, length: byte_length >> 3 }
         break
-      case napi_typedarray_type.napi_bigint64_array:
+      case emnapi_memory_view_type.emnapi_bigint64_array:
         info = { Ctor: BigInt64Array, ptr: external_data, length: byte_length >> 3 }
         break
-      case napi_typedarray_type.napi_biguint64_array:
+      case emnapi_memory_view_type.emnapi_biguint64_array:
         info = { Ctor: BigUint64Array, ptr: external_data, length: byte_length >> 3 }
+        break
+      case emnapi_memory_view_type.emnapi_data_view:
+        info = { Ctor: DataView, ptr: external_data, length: byte_length >> 3 }
+        break
+      case emnapi_memory_view_type.emnapi_buffer:
+        info = { Ctor: Buffer, ptr: external_data, length: byte_length }
         break
       default: return envObject.setLastError(napi_status.napi_invalid_arg)
     }
-    const typedArray = new (info.Ctor)(HEAPU8.buffer, info.ptr, info.length)
+    const Ctor = info.Ctor
+    const typedArray = typedarray_type === emnapi_memory_view_type.emnapi_buffer
+      ? Buffer.from(HEAPU8.buffer, info.ptr, info.length)
+      : new Ctor(HEAPU8.buffer, info.ptr, info.length)
     const handle = emnapiCtx.addToCurrentScope(typedArray)
     emnapiExternalMemory.wasmMemoryViewTable.set(typedArray, info)
     if (finalize_cb) {

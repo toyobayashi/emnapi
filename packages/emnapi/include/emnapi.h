@@ -15,6 +15,22 @@ typedef enum {
   emnapi_userland,
 } emnapi_ownership;
 
+typedef enum {
+  emnapi_int8_array,
+  emnapi_uint8_array,
+  emnapi_uint8_clamped_array,
+  emnapi_int16_array,
+  emnapi_uint16_array,
+  emnapi_int32_array,
+  emnapi_uint32_array,
+  emnapi_float32_array,
+  emnapi_float64_array,
+  emnapi_bigint64_array,
+  emnapi_biguint64_array,
+  emnapi_data_view = 16,
+  emnapi_buffer = 17,
+} emnapi_memory_view_type;
+
 EXTERN_C_START
 
 NAPI_EXTERN int emnapi_is_support_weakref();
@@ -31,7 +47,7 @@ napi_status emnapi_get_module_property(napi_env env,
 
 NAPI_EXTERN
 napi_status emnapi_create_memory_view(napi_env env,
-                                      napi_typedarray_type type,
+                                      emnapi_memory_view_type type,
                                       void* external_data,
                                       size_t byte_length,
                                       napi_finalize finalize_cb,

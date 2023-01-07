@@ -119,7 +119,13 @@ mergeInto(LibraryManager.library, {
 
       if (isDetachedArrayBuffer(view.buffer) && emnapiExternalMemory.wasmMemoryViewTable.has(view)) {
         const info = emnapiExternalMemory.wasmMemoryViewTable.get(view)!
-        const newView = new (info.Ctor)(HEAPU8.buffer, info.ptr, info.length)
+        const Ctor = info.Ctor
+        let newView: ArrayBufferView
+        if (typeof Buffer !== 'undefined' && Ctor === Buffer) {
+          newView = Buffer.from(HEAPU8.buffer, info.ptr, info.length)
+        } else {
+          newView = new Ctor(HEAPU8.buffer, info.ptr, info.length)
+        }
         emnapiExternalMemory.wasmMemoryViewTable.set(newView, info)
         return newView as unknown as T
       }
