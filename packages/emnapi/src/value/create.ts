@@ -312,7 +312,6 @@ function napi_create_buffer_copy (
   })
 }
 
-declare const _napi_create_external_arraybuffer: typeof napi_create_external_arraybuffer
 function napi_create_external_buffer (
   env: napi_env,
   length: size_t,
@@ -323,14 +322,25 @@ function napi_create_external_buffer (
 // @ts-expect-error
 ): napi_status {
   $PREAMBLE!(env, (envObject) => {
-    const status = _napi_create_external_arraybuffer(env, data, length, finalize_cb, finalize_hint, result)
+    const status = _emnapi_create_memory_view(
+      env,
+      napi_typedarray_type.napi_uint8_array,
+      data,
+      length,
+      finalize_cb,
+      finalize_hint,
+      result
+    )
     if (status !== napi_status.napi_ok) {
       return status
     }
     const handleId = $makeGetValue('result', 0, '*')
     const handle = emnapiCtx.handleStore.get(handleId)!
+    const info = emnapiExternalMemory.wasmMemoryViewTable.get(handle.value)!
+    const buffer = Buffer.from(HEAPU8.buffer, info.ptr, info.length)
+    emnapiExternalMemory.wasmMemoryViewTable.set(buffer, info)
     // I know I'm the only owner of handle, so just wrap value in-place.
-    handle.value = Buffer.from(handle.value)
+    handle.value = buffer
     return envObject.getReturnStatus()
   })
 }
@@ -401,7 +411,7 @@ emnapiImplement('napi_create_buffer_copy', 'ippppp', napi_create_buffer_copy, ['
 emnapiImplement('napi_create_date', 'ipdp', napi_create_date)
 emnapiImplement('napi_create_external', 'ippppp', napi_create_external)
 emnapiImplement('napi_create_external_arraybuffer', 'ipppppp', napi_create_external_arraybuffer, ['$emnapiWrap'])
-emnapiImplement('napi_create_external_buffer', 'ipppppp', napi_create_external_buffer, ['napi_create_external_arraybuffer'])
+emnapiImplement('napi_create_external_buffer', 'ipppppp', napi_create_external_buffer, ['emnapi_create_memory_view'])
 emnapiImplement('napi_create_object', 'ipp', napi_create_object)
 emnapiImplement('napi_create_symbol', 'ippp', napi_create_symbol)
 emnapiImplement('napi_create_typedarray', 'ipipppp', napi_create_typedarray)

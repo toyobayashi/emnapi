@@ -32,6 +32,8 @@ function emnapi_get_module_property (env: napi_env, utf8name: const_char_p, resu
   })
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+declare const _emnapi_create_memory_view: typeof emnapi_create_memory_view
 function emnapi_create_memory_view (
   env: napi_env,
   typedarray_type: napi_typedarray_type,
