@@ -163,6 +163,6 @@ declare const enum emnapi_memory_view_type {
   emnapi_float64_array,
   emnapi_bigint64_array,
   emnapi_biguint64_array,
-  emnapi_data_view = 16,
-  emnapi_buffer = 17
+  emnapi_data_view = -1,
+  emnapi_buffer = -2
 }
