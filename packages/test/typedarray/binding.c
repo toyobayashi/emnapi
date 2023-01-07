@@ -79,7 +79,7 @@ static napi_value Multiply(napi_env env, napi_callback_info info) {
       output_bytes[i] = (uint8_t)(input_bytes[i] * multiplier);
     }
 #ifdef __EMSCRIPTEN__
-    emnapi_sync_memory(env, output_buffer, 0, output_ptr, NAPI_AUTO_LENGTH, false);
+    emnapi_sync_memory(env, output_buffer, 0, output_ptr, NAPI_AUTO_LENGTH, false, NULL);
 #endif
   } else if (type == napi_float64_array) {
     double* input_doubles = (double*)((uint8_t*)(data) + byte_offset);
@@ -88,7 +88,7 @@ static napi_value Multiply(napi_env env, napi_callback_info info) {
       output_doubles[i] = input_doubles[i] * multiplier;
     }
 #ifdef __EMSCRIPTEN__
-    emnapi_sync_memory(env, output_buffer, 0, output_ptr, NAPI_AUTO_LENGTH, false);
+    emnapi_sync_memory(env, output_buffer, 0, output_ptr, NAPI_AUTO_LENGTH, false, NULL);
 #endif
   } else {
     napi_throw_error(env, NULL,

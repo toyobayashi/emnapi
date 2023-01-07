@@ -31,6 +31,7 @@ napi_status emnapi_get_module_property(napi_env env,
 
 NAPI_EXTERN
 napi_status emnapi_create_memory_view(napi_env env,
+                                      napi_typedarray_type type,
                                       void* external_data,
                                       size_t byte_length,
                                       napi_finalize finalize_cb,
@@ -47,7 +48,8 @@ napi_status emnapi_sync_memory(napi_env env,
                                size_t byte_offset,
                                void* data,
                                size_t length,
-                               bool js_to_wasm);
+                               bool js_to_wasm,
+                               napi_value* result);
 
 NAPI_EXTERN
 napi_status emnapi_get_memory_address(napi_env env,

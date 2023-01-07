@@ -50,6 +50,7 @@ static napi_value External(napi_env env, napi_callback_info info) {
   napi_value output_view;
   NAPI_CALL(env, emnapi_create_memory_view(
       env,
+      napi_uint8_array,
       externalData,
       nElem*sizeof(int8_t),
       FinalizeCallback,
@@ -64,7 +65,7 @@ static napi_value NullArrayBuffer(napi_env env, napi_callback_info info) {
   static void* data = NULL;
   napi_value output_view;
   NAPI_CALL(env,
-      emnapi_create_memory_view(env, data, 0, NULL, NULL, &output_view));
+      emnapi_create_memory_view(env, napi_uint8_array, data, 0, NULL, NULL, &output_view));
   return output_view;
 }
 

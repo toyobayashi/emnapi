@@ -13,14 +13,14 @@ module.exports = load('emnapitest').then(test_typedarray => {
   assert.ok(mem instanceof ArrayBuffer || mem instanceof SharedArrayBuffer)
   assert.strictEqual(mod.HEAPU8, HEAPU8)
 
-  const externalResult = test_typedarray.External().HEAPU8
+  const externalResult = test_typedarray.External()
   assert.ok(externalResult instanceof Uint8Array)
   assert.strictEqual(externalResult.length, 3)
   assert.strictEqual(externalResult[0], 0)
   assert.strictEqual(externalResult[1], 1)
   assert.strictEqual(externalResult[2], 2)
 
-  const buffer = test_typedarray.NullArrayBuffer().HEAPU8
+  const buffer = test_typedarray.NullArrayBuffer()
   assert.ok(buffer instanceof Uint8Array)
   assert.strictEqual(buffer.length, 0)
   assert.strictEqual(buffer.buffer, mem)

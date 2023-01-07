@@ -32,111 +32,9 @@ function emnapi_get_module_property (env: napi_env, utf8name: const_char_p, resu
   })
 }
 
-declare class EmnapiMemoryView {
-  readonly byteOffset: number
-  readonly byteLength: number
-
-  constructor (byteOffset: number, byteLength: number)
-
-  get buffer (): ArrayBufferLike
-  get HEAP8 (): Int8Array
-  get HEAPU8 (): Uint8Array
-  get HEAP16 (): Int16Array
-  get HEAPU16 (): Uint16Array
-  get HEAP32 (): Int32Array
-  get HEAPU32 (): Uint32Array
-  get HEAP64 (): BigInt64Array
-  get HEAPU64 (): BigUint64Array
-  get HEAPF32 (): Float32Array
-  get HEAPF64 (): Float64Array
-  get view (): DataView
-}
-
-mergeInto(LibraryManager.library, {
-  $EmnapiMemoryView__postset: 'EmnapiMemoryView();',
-  $EmnapiMemoryView: function () {
-    // @ts-expect-error
-    // eslint-disable-next-line no-class-assign
-    EmnapiMemoryView = class {
-      public readonly byteOffset!: number
-      public readonly byteLength!: number
-
-      private _HEAP8!: Int8Array
-      private _HEAPU8!: Uint8Array
-      private _HEAP16!: Int16Array
-      private _HEAPU16!: Uint16Array
-      private _HEAP32!: Int32Array
-      private _HEAPU32!: Uint32Array
-      private _HEAP64!: BigInt64Array
-      private _HEAPU64!: BigUint64Array
-      private _HEAPF32!: Float32Array
-      private _HEAPF64!: Float64Array
-      private _view!: DataView
-
-      constructor (byteOffset: number, byteLength: number) {
-        Object.defineProperties(this, {
-          byteOffset: {
-            enumerable: true,
-            value: byteOffset
-          },
-          byteLength: {
-            enumerable: true,
-            value: byteLength
-          }
-        })
-      }
-
-      public get buffer (): ArrayBufferLike { return HEAPU8.buffer }
-
-      public get HEAP8 (): Int8Array {
-        return this._HEAP8?.buffer === HEAPU8.buffer ? this._HEAP8 : (this._HEAP8 = new Int8Array(HEAPU8.buffer, this.byteOffset, this.byteLength))
-      }
-
-      public get HEAPU8 (): Uint8Array {
-        return this._HEAPU8?.buffer === HEAPU8.buffer ? this._HEAPU8 : (this._HEAPU8 = new Uint8Array(HEAPU8.buffer, this.byteOffset, this.byteLength))
-      }
-
-      public get HEAP16 (): Int16Array {
-        return this._HEAP16?.buffer === HEAPU8.buffer ? this._HEAP16 : (this._HEAP16 = new Int16Array(HEAPU8.buffer, this.byteOffset, this.byteLength >> 1))
-      }
-
-      public get HEAPU16 (): Uint16Array {
-        return this._HEAPU16?.buffer === HEAPU8.buffer ? this._HEAPU16 : (this._HEAPU16 = new Uint16Array(HEAPU8.buffer, this.byteOffset, this.byteLength >> 1))
-      }
-
-      public get HEAP32 (): Int32Array {
-        return this._HEAP32?.buffer === HEAPU8.buffer ? this._HEAP32 : (this._HEAP32 = new Int32Array(HEAPU8.buffer, this.byteOffset, this.byteLength >> 2))
-      }
-
-      public get HEAPU32 (): Uint32Array {
-        return this._HEAPU32?.buffer === HEAPU8.buffer ? this._HEAPU32 : (this._HEAPU32 = new Uint32Array(HEAPU8.buffer, this.byteOffset, this.byteLength >> 2))
-      }
-
-      public get HEAP64 (): BigInt64Array {
-        return this._HEAP64?.buffer === HEAPU8.buffer ? this._HEAP64 : (this._HEAP64 = new BigInt64Array(HEAPU8.buffer, this.byteOffset, this.byteLength >> 3))
-      }
-
-      public get HEAPU64 (): BigUint64Array {
-        return this._HEAPU64?.buffer === HEAPU8.buffer ? this._HEAPU64 : (this._HEAPU64 = new BigUint64Array(HEAPU8.buffer, this.byteOffset, this.byteLength >> 3))
-      }
-
-      public get HEAPF32 (): Float32Array {
-        return this._HEAPF32?.buffer === HEAPU8.buffer ? this._HEAPF32 : (this._HEAPF32 = new Float32Array(HEAPU8.buffer, this.byteOffset, this.byteLength >> 2))
-      }
-
-      public get HEAPF64 (): Float64Array {
-        return this._HEAPF64?.buffer === HEAPU8.buffer ? this._HEAPF64 : (this._HEAPF64 = new Float64Array(HEAPU8.buffer, this.byteOffset, this.byteLength >> 3))
-      }
-
-      public get view (): DataView {
-        return this._view?.buffer === HEAPU8.buffer ? this._view : (this._view = new DataView(HEAPU8.buffer, this.byteOffset, this.byteLength))
-      }
-    }
-  }
-})
-
 function emnapi_create_memory_view (
   env: napi_env,
+  typedarray_type: napi_typedarray_type,
   external_data: void_p,
   byte_length: size_t,
   finalize_cb: napi_finalize,
@@ -160,7 +58,7 @@ function emnapi_create_memory_view (
     }
 
     if (byte_length > 2147483647) {
-      throw new RangeError('Cannot create a Uint8Array larger than 2147483647 bytes')
+      throw new RangeError('Cannot create a TypedArray larger than 2147483647 bytes')
     }
     if ((external_data + byte_length) > HEAPU8.buffer.byteLength) {
       throw new RangeError('Memory out of range')
@@ -168,8 +66,47 @@ function emnapi_create_memory_view (
     if (!emnapiRt.supportFinalizer && finalize_cb) {
       throw new emnapiRt.NotSupportWeakRefError('emnapi_create_memory_view', 'Parameter "finalize_cb" must be 0(NULL)')
     }
-    const memoryView = new EmnapiMemoryView(external_data, byte_length)
-    const handle = emnapiCtx.addToCurrentScope(memoryView)
+
+    let info: ViewInfo
+    switch (typedarray_type) {
+      case napi_typedarray_type.napi_int8_array:
+        info = { Ctor: Int8Array, ptr: external_data, length: byte_length }
+        break
+      case napi_typedarray_type.napi_uint8_array:
+        info = { Ctor: Uint8Array, ptr: external_data, length: byte_length }
+        break
+      case napi_typedarray_type.napi_uint8_clamped_array:
+        info = { Ctor: Uint8ClampedArray, ptr: external_data, length: byte_length }
+        break
+      case napi_typedarray_type.napi_int16_array:
+        info = { Ctor: Int16Array, ptr: external_data, length: byte_length >> 1 }
+        break
+      case napi_typedarray_type.napi_uint16_array:
+        info = { Ctor: Uint16Array, ptr: external_data, length: byte_length >> 1 }
+        break
+      case napi_typedarray_type.napi_int32_array:
+        info = { Ctor: Int32Array, ptr: external_data, length: byte_length >> 2 }
+        break
+      case napi_typedarray_type.napi_uint32_array:
+        info = { Ctor: Uint32Array, ptr: external_data, length: byte_length >> 2 }
+        break
+      case napi_typedarray_type.napi_float32_array:
+        info = { Ctor: Float32Array, ptr: external_data, length: byte_length >> 2 }
+        break
+      case napi_typedarray_type.napi_float64_array:
+        info = { Ctor: Float64Array, ptr: external_data, length: byte_length >> 3 }
+        break
+      case napi_typedarray_type.napi_bigint64_array:
+        info = { Ctor: BigInt64Array, ptr: external_data, length: byte_length >> 3 }
+        break
+      case napi_typedarray_type.napi_biguint64_array:
+        info = { Ctor: BigUint64Array, ptr: external_data, length: byte_length >> 3 }
+        break
+      default: return envObject.setLastError(napi_status.napi_invalid_arg)
+    }
+    const typedArray = new (info.Ctor)(HEAPU8.buffer, info.ptr, info.length)
+    const handle = emnapiCtx.addToCurrentScope(typedArray)
+    emnapiExternalMemory.wasmMemoryViewTable.set(typedArray, info)
     if (finalize_cb) {
       const status = emnapiWrap(WrapType.anonymous, env, handle.id, external_data, finalize_cb, finalize_hint, /* NULL */ 0)
       if (status === napi_status.napi_pending_exception) {
@@ -194,11 +131,17 @@ function emnapi_is_support_bigint (): int {
   return emnapiRt.supportBigInt ? 1 : 0
 }
 
-declare function emnapiSyncMemory (arrayBufferOrView: ArrayBuffer | ArrayBufferView, offset?: number, pointer?: number, len?: int, js_to_wasm?: boolean): void
+declare function emnapiSyncMemory<T extends ArrayBuffer | ArrayBufferView> (
+  arrayBufferOrView: T,
+  offset?: number,
+  pointer?: number,
+  len?: int,
+  js_to_wasm?: boolean
+): T
 
 mergeInto(LibraryManager.library, {
   $emnapiSyncMemory__deps: ['$emnapiExternalMemory'],
-  $emnapiSyncMemory: function (arrayBufferOrView: ArrayBuffer | ArrayBufferView, offset?: number, pointer?: number, len?: int, js_to_wasm?: boolean) {
+  $emnapiSyncMemory: function<T extends ArrayBuffer | ArrayBufferView> (arrayBufferOrView: T, offset?: number, pointer?: number, len?: int, js_to_wasm?: boolean): T {
     if (js_to_wasm === undefined) {
       // make the usage of this function in js can omit parameters behind the first
       js_to_wasm = true
@@ -216,30 +159,46 @@ mergeInto(LibraryManager.library, {
       }
       len = len >>> 0
       view = new Uint8Array(arrayBufferOrView, offset, len)
-    } else if (ArrayBuffer.isView(arrayBufferOrView)) {
+
+      if (!js_to_wasm) {
+        view.set(HEAPU8.subarray(pointer, pointer + len))
+      } else {
+        HEAPU8.set(view, pointer)
+      }
+
+      return arrayBufferOrView
+    }
+
+    if (ArrayBuffer.isView(arrayBufferOrView)) {
+      const viewPointerInfo = emnapiExternalMemory.getViewPointer(arrayBufferOrView, false)
+      const latestView = viewPointerInfo.view
       if (!pointer) {
-        pointer = emnapiExternalMemory.getViewPointer(arrayBufferOrView, false).address
+        pointer = viewPointerInfo.address
         if (!pointer) throw new Error('Unknown ArrayBuffer address')
       }
       if (typeof len !== 'number' || len === -1) {
-        len = arrayBufferOrView.byteLength - offset
+        len = latestView.byteLength - offset
       }
       len = len >>> 0
-      view = new Uint8Array(arrayBufferOrView.buffer, arrayBufferOrView.byteOffset + offset, len)
-    } else {
-      throw new TypeError('emnapiSyncMemory expect ArrayBuffer or ArrayBufferView as first parameter')
-    }
+      view = new Uint8Array(latestView.buffer, latestView.byteOffset + offset, len)
 
-    if (!js_to_wasm) {
-      view.set(HEAPU8.subarray(pointer, pointer + len))
-    } else {
-      HEAPU8.set(view, pointer)
+      if (!js_to_wasm) {
+        view.set(HEAPU8.subarray(pointer, pointer + len))
+      } else {
+        HEAPU8.set(view, pointer)
+      }
+
+      return latestView
     }
+    throw new TypeError('emnapiSyncMemory expect ArrayBuffer or ArrayBufferView as first parameter')
   }
 })
 
 // @ts-expect-error
-function emnapi_sync_memory (env: napi_env, arraybuffer_or_view: napi_value, offset: size_t, pointer: void_p, len: size_t, js_to_wasm: bool): napi_status {
+function emnapi_sync_memory (env: napi_env, arraybuffer_or_view: napi_value, offset: size_t, pointer: void_p, len: size_t, js_to_wasm: bool, result: Pointer<napi_value>): napi_status {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  let v: number
+
   $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, arraybuffer_or_view)
     $CHECK_ARG!(envObject, pointer)
@@ -252,7 +211,12 @@ function emnapi_sync_memory (env: napi_env, arraybuffer_or_view: napi_value, off
     if (!handle.isArrayBuffer() && !handle.isTypedArray() && !handle.isDataView()) {
       return envObject.setLastError(napi_status.napi_invalid_arg)
     }
-    emnapiSyncMemory(handle.value, offset, pointer, len, Boolean(js_to_wasm))
+    const ret = emnapiSyncMemory(handle.value, offset, pointer, len, Boolean(js_to_wasm))
+    if (result) {
+      $from64('result')
+      v = envObject.ensureHandleId(ret)
+      $makeSetValue('result', 0, 'v', '*')
+    }
 
     return envObject.getReturnStatus()
   })
@@ -308,6 +272,6 @@ emnapiImplement('emnapi_is_support_weakref', 'i', emnapi_is_support_weakref)
 emnapiImplement('emnapi_is_support_bigint', 'i', emnapi_is_support_bigint)
 emnapiImplement('emnapi_get_module_object', 'ipp', emnapi_get_module_object)
 emnapiImplement('emnapi_get_module_property', 'ippp', emnapi_get_module_property)
-emnapiImplement('emnapi_create_memory_view', 'ipppppp', emnapi_create_memory_view, ['$emnapiWrap', '$EmnapiMemoryView'])
+emnapiImplement('emnapi_create_memory_view', 'ipippppp', emnapi_create_memory_view, ['$emnapiWrap', '$emnapiExternalMemory'])
 emnapiImplement('emnapi_sync_memory', 'ipppppi', emnapi_sync_memory, ['$emnapiSyncMemory'])
 emnapiImplement('emnapi_get_memory_address', 'ipppp', emnapi_get_memory_address, ['$emnapiExternalMemory'])

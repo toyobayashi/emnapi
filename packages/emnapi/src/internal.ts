@@ -100,13 +100,19 @@ function _$emnapiWrap (type: WrapType, env: napi_env, js_object: napi_value, nat
   let referenceId: number
   $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, js_object)
-    const value = emnapiCtx.handleStore.get(js_object)!
-    if (!(value.isObject() || value.isFunction())) {
+    let handle = emnapiCtx.handleStore.get(js_object)!
+    if (!(handle.isObject() || handle.isFunction())) {
       return envObject.setLastError(napi_status.napi_invalid_arg)
     }
 
+    if (ArrayBuffer.isView(handle.value)) {
+      if (emnapiExternalMemory.wasmMemoryViewTable.has(handle.value)) {
+        handle = emnapiCtx.addToCurrentScope(emnapiExternalMemory.wasmMemoryViewTable.get(handle.value)!)
+      }
+    }
+
     if (type === WrapType.retrievable) {
-      if (emnapiRt.HandleStore.getObjectBinding(value.value).wrapped !== 0) {
+      if (emnapiRt.HandleStore.getObjectBinding(handle.value).wrapped !== 0) {
         return envObject.setLastError(napi_status.napi_invalid_arg)
       }
     } else if (type === WrapType.anonymous) {
@@ -116,16 +122,16 @@ function _$emnapiWrap (type: WrapType, env: napi_env, js_object: napi_value, nat
     let reference: emnapi.Reference
     if (result) {
       if (!finalize_cb) return envObject.setLastError(napi_status.napi_invalid_arg)
-      reference = emnapiRt.Reference.create(envObject, value.id, 0, emnapiRt.Ownership.kUserland, finalize_cb, native_object, finalize_hint)
+      reference = emnapiRt.Reference.create(envObject, handle.id, 0, emnapiRt.Ownership.kUserland, finalize_cb, native_object, finalize_hint)
       $from64('result')
       referenceId = reference.id
       $makeSetValue('result', 0, 'referenceId', '*')
     } else {
-      reference = emnapiRt.Reference.create(envObject, value.id, 0, emnapiRt.Ownership.kRuntime, finalize_cb, native_object, !finalize_cb ? finalize_cb : finalize_hint)
+      reference = emnapiRt.Reference.create(envObject, handle.id, 0, emnapiRt.Ownership.kRuntime, finalize_cb, native_object, !finalize_cb ? finalize_cb : finalize_hint)
     }
 
     if (type === WrapType.retrievable) {
-      emnapiRt.HandleStore.getObjectBinding(value.value).wrapped = reference.id
+      emnapiRt.HandleStore.getObjectBinding(handle.value).wrapped = reference.id
     }
     return envObject.getReturnStatus()
   })
@@ -172,5 +178,5 @@ function _$emnapiUnwrap (env: napi_env, js_object: napi_value, result: void_pp, 
 
 emnapiImplement('$emnapiCreateFunction', undefined, _$emnapiCreateFunction, ['$emnapiUtf8ToString'])
 emnapiImplement('$emnapiDefineProperty', undefined, _$emnapiDefineProperty, ['$emnapiCreateFunction'])
-emnapiImplement('$emnapiWrap', undefined, _$emnapiWrap)
+emnapiImplement('$emnapiWrap', undefined, _$emnapiWrap, ['$emnapiExternalMemory'])
 emnapiImplement('$emnapiUnwrap', undefined, _$emnapiUnwrap)
