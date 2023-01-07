@@ -105,7 +105,7 @@ function emnapi_create_memory_view (
         info = { Ctor: BigUint64Array, ptr: external_data, length: byte_length >> 3 }
         break
       case emnapi_memory_view_type.emnapi_data_view:
-        info = { Ctor: DataView, ptr: external_data, length: byte_length >> 3 }
+        info = { Ctor: DataView, ptr: external_data, length: byte_length }
         break
       case emnapi_memory_view_type.emnapi_buffer:
         info = { Ctor: Buffer, ptr: external_data, length: byte_length }
