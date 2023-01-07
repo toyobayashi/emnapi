@@ -19,7 +19,7 @@ module.exports = promise.then(test_typedarray => {
   assert.ok(externalResult instanceof Uint8Array)
   assert.deepStrictEqual([...externalResult], [0, 1, 2])
   test_typedarray.GrowMemory()
-  externalResult = promise.Module.emnapiSyncMemory(externalResult, 0, 0, -1, false)
+  externalResult = promise.Module.emnapiSyncMemory(false, externalResult)
   assert.deepStrictEqual([...externalResult], [0, 1, 2])
 
   const buffer = test_typedarray.NullArrayBuffer()

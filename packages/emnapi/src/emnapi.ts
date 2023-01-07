@@ -134,20 +134,16 @@ function emnapi_is_support_bigint (): int {
 }
 
 declare function emnapiSyncMemory<T extends ArrayBuffer | ArrayBufferView> (
+  js_to_wasm: boolean,
   arrayBufferOrView: T,
   offset?: number,
   pointer?: number,
   len?: int,
-  js_to_wasm?: boolean
 ): T
 
 mergeInto(LibraryManager.library, {
   $emnapiSyncMemory__deps: ['$emnapiExternalMemory'],
-  $emnapiSyncMemory: function<T extends ArrayBuffer | ArrayBufferView> (arrayBufferOrView: T, offset?: number, pointer?: number, len?: int, js_to_wasm?: boolean): T {
-    if (js_to_wasm === undefined) {
-      // make the usage of this function in js can omit parameters behind the first
-      js_to_wasm = true
-    }
+  $emnapiSyncMemory: function<T extends ArrayBuffer | ArrayBufferView> (js_to_wasm: boolean, arrayBufferOrView: T, offset?: number, pointer?: number, len?: int): T {
     offset = offset ?? 0
     offset = offset >>> 0
     let view: Uint8Array
@@ -197,7 +193,7 @@ mergeInto(LibraryManager.library, {
 })
 
 // @ts-expect-error
-function emnapi_sync_memory (env: napi_env, arraybuffer_or_view: napi_value, offset: size_t, pointer: void_p, len: size_t, js_to_wasm: bool, result: Pointer<napi_value>): napi_status {
+function emnapi_sync_memory (env: napi_env, js_to_wasm: bool, arraybuffer_or_view: napi_value, offset: size_t, pointer: void_p, len: size_t, result: Pointer<napi_value>): napi_status {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let v: number
 
@@ -213,7 +209,7 @@ function emnapi_sync_memory (env: napi_env, arraybuffer_or_view: napi_value, off
     if (!handle.isArrayBuffer() && !handle.isTypedArray() && !handle.isDataView()) {
       return envObject.setLastError(napi_status.napi_invalid_arg)
     }
-    const ret = emnapiSyncMemory(handle.value, offset, pointer, len, Boolean(js_to_wasm))
+    const ret = emnapiSyncMemory(Boolean(js_to_wasm), handle.value, offset, pointer, len)
     if (result) {
       $from64('result')
       v = envObject.ensureHandleId(ret)

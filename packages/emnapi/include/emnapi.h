@@ -44,11 +44,11 @@ napi_status emnapi_get_emscripten_version(napi_env env,
 
 NAPI_EXTERN
 napi_status emnapi_sync_memory(napi_env env,
+                               bool js_to_wasm,
                                napi_value arraybuffer_or_view,
                                size_t byte_offset,
                                void* data,
                                size_t length,
-                               bool js_to_wasm,
                                napi_value* result);
 
 NAPI_EXTERN
