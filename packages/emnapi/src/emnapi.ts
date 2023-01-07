@@ -137,21 +137,18 @@ declare function emnapiSyncMemory<T extends ArrayBuffer | ArrayBufferView> (
   js_to_wasm: boolean,
   arrayBufferOrView: T,
   offset?: number,
-  pointer?: number,
   len?: int,
 ): T
 
 mergeInto(LibraryManager.library, {
   $emnapiSyncMemory__deps: ['$emnapiExternalMemory'],
-  $emnapiSyncMemory: function<T extends ArrayBuffer | ArrayBufferView> (js_to_wasm: boolean, arrayBufferOrView: T, offset?: number, pointer?: number, len?: int): T {
+  $emnapiSyncMemory: function<T extends ArrayBuffer | ArrayBufferView> (js_to_wasm: boolean, arrayBufferOrView: T, offset?: number, len?: int): T {
     offset = offset ?? 0
     offset = offset >>> 0
     let view: Uint8Array
     if (arrayBufferOrView instanceof ArrayBuffer) {
-      if (!pointer) {
-        pointer = emnapiExternalMemory.getArrayBufferPointer(arrayBufferOrView, false).address
-        if (!pointer) throw new Error('Unknown ArrayBuffer address')
-      }
+      const pointer = emnapiExternalMemory.getArrayBufferPointer(arrayBufferOrView, false).address
+      if (!pointer) throw new Error('Unknown ArrayBuffer address')
       if (typeof len !== 'number' || len === -1) {
         len = arrayBufferOrView.byteLength - offset
       }
@@ -170,10 +167,8 @@ mergeInto(LibraryManager.library, {
     if (ArrayBuffer.isView(arrayBufferOrView)) {
       const viewPointerInfo = emnapiExternalMemory.getViewPointer(arrayBufferOrView, false)
       const latestView = viewPointerInfo.view
-      if (!pointer) {
-        pointer = viewPointerInfo.address
-        if (!pointer) throw new Error('Unknown ArrayBuffer address')
-      }
+      const pointer = viewPointerInfo.address
+      if (!pointer) throw new Error('Unknown ArrayBuffer address')
       if (typeof len !== 'number' || len === -1) {
         len = latestView.byteLength - offset
       }
@@ -193,26 +188,29 @@ mergeInto(LibraryManager.library, {
 })
 
 // @ts-expect-error
-function emnapi_sync_memory (env: napi_env, js_to_wasm: bool, arraybuffer_or_view: napi_value, offset: size_t, pointer: void_p, len: size_t, result: Pointer<napi_value>): napi_status {
+function emnapi_sync_memory (env: napi_env, js_to_wasm: bool, arraybuffer_or_view: Pointer<napi_value>, offset: size_t, len: size_t): napi_status {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let v: number
 
   $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, arraybuffer_or_view)
 
+    $from64('arraybuffer_or_view')
     $from64('offset')
-    $from64('pointer')
     $from64('len')
 
-    const handle: emnapi.Handle<ArrayBuffer | ArrayBufferView> = envObject.ctx.handleStore.get(arraybuffer_or_view)!
+    const handleId = $makeGetValue('arraybuffer_or_view', 0, '*')
+
+    const handle: emnapi.Handle<ArrayBuffer | ArrayBufferView> = envObject.ctx.handleStore.get(handleId)!
     if (!handle.isArrayBuffer() && !handle.isTypedArray() && !handle.isDataView()) {
       return envObject.setLastError(napi_status.napi_invalid_arg)
     }
-    const ret = emnapiSyncMemory(Boolean(js_to_wasm), handle.value, offset, pointer, len)
-    if (result) {
-      $from64('result')
+    const ret = emnapiSyncMemory(Boolean(js_to_wasm), handle.value, offset, len)
+
+    if (handle.value !== ret) {
+      $from64('arraybuffer_or_view')
       v = envObject.ensureHandleId(ret)
-      $makeSetValue('result', 0, 'v', '*')
+      $makeSetValue('arraybuffer_or_view', 0, 'v', '*')
     }
 
     return envObject.getReturnStatus()

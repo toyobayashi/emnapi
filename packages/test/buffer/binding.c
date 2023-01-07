@@ -49,7 +49,7 @@ static napi_value newBuffer(napi_env env, napi_callback_info info) {
   NAPI_ASSERT(env, theCopy, "Failed to copy static text for newBuffer");
   memcpy(theCopy, theText, theTextSize);
 #ifdef __EMSCRIPTEN__
-  emnapi_sync_memory(env, false, theBuffer, 0, theCopy, NAPI_AUTO_LENGTH, NULL);
+  emnapi_sync_memory(env, false, &theBuffer, 0, NAPI_AUTO_LENGTH);
 #endif
 
   return theBuffer;
