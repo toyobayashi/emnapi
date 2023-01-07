@@ -289,33 +289,39 @@ function napi_create_buffer (
   $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, result)
 
-    pointer = $makeMalloc('napi_create_buffer', 'size')
-    if (!pointer) throw new Error('Out of memory')
-    $from64('size')
-    for (let i = pointer; i < pointer + size; ++i) {
-      HEAPU8[i] = 0
-    }
-    const pointerInfo: PointerInfo = {
-      address: pointer,
-      ownership: emnapiExternalMemory.registry ? 0 /* emnapi.Ownership.kRuntime */ : 1 /* emnapi.Ownership.kUserland */,
-      runtimeAllocated: 1
-    }
-    const buffer = Buffer.from(HEAPU8.buffer, pointer, size)
-    emnapiExternalMemory.bufferTable.set(buffer, pointerInfo)
-    emnapiExternalMemory.wasmMemoryViewTable.set(buffer, {
-      Ctor: Buffer,
-      ptr: pointer,
-      length: size
-    })
-    emnapiExternalMemory.registry?.register(buffer, pointer)
-
-    value = emnapiCtx.addToCurrentScope(buffer).id
     $from64('result')
-    $makeSetValue('result', 0, 'value', '*')
-    if (data) {
+
+    let buffer: Uint8Array
+    if (!data) {
+      buffer = Buffer.alloc(size)
+      value = emnapiCtx.addToCurrentScope(buffer).id
+      $makeSetValue('result', 0, 'value', '*')
+    } else {
+      pointer = $makeMalloc('napi_create_buffer', 'size')
+      if (!pointer) throw new Error('Out of memory')
+      $from64('size')
+      HEAPU8.subarray(pointer, pointer + size).fill(0)
+      const pointerInfo: PointerInfo = {
+        address: pointer,
+        ownership: emnapiExternalMemory.registry ? 0 /* emnapi.Ownership.kRuntime */ : 1 /* emnapi.Ownership.kUserland */,
+        runtimeAllocated: 1
+      }
+      const buffer = Buffer.from(HEAPU8.buffer, pointer, size)
+      emnapiExternalMemory.bufferTable.set(buffer, pointerInfo)
+      const viewInfo: ViewInfo = {
+        Ctor: Buffer,
+        ptr: pointer,
+        length: size
+      }
+      emnapiExternalMemory.wasmMemoryViewTable.set(buffer, viewInfo)
+      emnapiExternalMemory.registry?.register(viewInfo, pointer)
+
+      value = emnapiCtx.addToCurrentScope(buffer).id
+      $makeSetValue('result', 0, 'value', '*')
       $from64('data')
       $makeSetValue('data', 0, 'pointer', '*')
     }
+
     return envObject.getReturnStatus()
   })
 }
@@ -434,7 +440,7 @@ emnapiImplement('$emnapiCreateArrayBuffer', undefined, _$emnapiCreateArrayBuffer
 emnapiImplement('napi_create_array', 'ipp', napi_create_array)
 emnapiImplement('napi_create_array_with_length', 'ippp', napi_create_array_with_length)
 emnapiImplement('napi_create_arraybuffer', 'ipppp', napi_create_arraybuffer, ['$emnapiCreateArrayBuffer'])
-emnapiImplement('napi_create_buffer', 'ippp', napi_create_buffer, ['$emnapiExternalMemory'])
+emnapiImplement('napi_create_buffer', 'ippp', napi_create_buffer, ['$emnapiExternalMemory', 'malloc'])
 emnapiImplement('napi_create_buffer_copy', 'ippppp', napi_create_buffer_copy, ['$emnapiCreateArrayBuffer'])
 emnapiImplement('napi_create_date', 'ipdp', napi_create_date)
 emnapiImplement('napi_create_external', 'ippppp', napi_create_external)
