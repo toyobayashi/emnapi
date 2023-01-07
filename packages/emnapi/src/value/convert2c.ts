@@ -31,6 +31,7 @@ declare interface ViewPointerInfo<T extends ArrayBufferView> extends PointerInfo
 declare const emnapiExternalMemory: {
   registry: FinalizationRegistry<number> | undefined
   table: WeakMap<ArrayBuffer, PointerInfo>
+  bufferTable: WeakMap<Uint8Array, PointerInfo> // for napi_create_buffer
   wasmMemoryViewTable: WeakMap<ArrayBufferView, ViewInfo>
   getOrUpdateMemoryView: <T extends ArrayBufferView>(view: T) => T
   getArrayBufferPointer: (arrayBuffer: ArrayBuffer, shouldCopy: boolean) => PointerInfo
@@ -44,6 +45,7 @@ mergeInto(LibraryManager.library, {
     init: function () {
       emnapiExternalMemory.registry = typeof FinalizationRegistry === 'function' ? new FinalizationRegistry(function (_pointer) { _free($to64('_pointer') as number) }) : undefined
       emnapiExternalMemory.table = new WeakMap()
+      emnapiExternalMemory.bufferTable = new WeakMap()
       emnapiExternalMemory.wasmMemoryViewTable = new WeakMap()
     },
 
@@ -74,6 +76,10 @@ mergeInto(LibraryManager.library, {
     },
 
     getOrUpdateMemoryView: function<T extends ArrayBufferView> (view: T): T {
+      let bufferInfo: PointerInfo | undefined
+      if (typeof Buffer !== 'undefined' && view instanceof Buffer && emnapiExternalMemory.bufferTable.has(view as any)) {
+        bufferInfo = emnapiExternalMemory.bufferTable.get(view as any)
+      }
       if (view.buffer === HEAPU8.buffer) {
         if (!emnapiExternalMemory.wasmMemoryViewTable.has(view)) {
           emnapiExternalMemory.wasmMemoryViewTable.set(view, {
@@ -127,6 +133,9 @@ mergeInto(LibraryManager.library, {
           newView = new Ctor(HEAPU8.buffer, info.ptr, info.length)
         }
         emnapiExternalMemory.wasmMemoryViewTable.set(newView, info)
+        if (bufferInfo) {
+          emnapiExternalMemory.bufferTable.set(newView as any, bufferInfo)
+        }
         return newView as unknown as T
       }
 
@@ -136,6 +145,10 @@ mergeInto(LibraryManager.library, {
     getViewPointer: function<T extends ArrayBufferView> (view: T, shouldCopy: boolean): ViewPointerInfo<T> {
       view = emnapiExternalMemory.getOrUpdateMemoryView(view)
       if (view.buffer === HEAPU8.buffer) {
+        if (emnapiExternalMemory.bufferTable.has(view as any)) {
+          const { address, ownership, runtimeAllocated } = emnapiExternalMemory.bufferTable.get(view as any)!
+          return { address, ownership, runtimeAllocated, view }
+        }
         return { address: view.byteOffset, ownership: 1 /* emnapi.Ownership.kUserland */, runtimeAllocated: 0, view }
       }
 
