@@ -228,6 +228,32 @@ function emnapi_sync_memory (env: napi_env, js_to_wasm: bool, arraybuffer_or_vie
   })
 }
 
+declare function emnapiGetMemoryAddress (arrayBufferOrView: ArrayBuffer | ArrayBufferView): PointerInfo
+
+mergeInto(LibraryManager.library, {
+  $emnapiGetMemoryAddress__deps: ['$emnapiExternalMemory'],
+  $emnapiGetMemoryAddress: function (arrayBufferOrView: ArrayBuffer | ArrayBufferView): PointerInfo {
+    const isArrayBuffer = arrayBufferOrView instanceof ArrayBuffer
+    const isDataView = arrayBufferOrView instanceof DataView
+    const isTypedArray = ArrayBuffer.isView(arrayBufferOrView) && !isDataView
+    if (!isArrayBuffer && !isTypedArray && !isDataView) {
+      throw new TypeError('emnapiGetMemoryAddress expect ArrayBuffer or ArrayBufferView as first parameter')
+    }
+
+    let info: PointerInfo
+    if (isArrayBuffer) {
+      info = emnapiExternalMemory.getArrayBufferPointer(arrayBufferOrView as ArrayBuffer, false)
+    } else {
+      info = emnapiExternalMemory.getViewPointer(arrayBufferOrView as ArrayBufferView, false)
+    }
+    return {
+      address: info.address,
+      ownership: info.ownership,
+      runtimeAllocated: info.runtimeAllocated
+    }
+  }
+})
+
 // @ts-expect-error
 function emnapi_get_memory_address (env: napi_env, arraybuffer_or_view: napi_value, address: Pointer<void_pp>, ownership: Pointer<int>, runtime_allocated: Pointer<bool>): napi_status {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -241,18 +267,7 @@ function emnapi_get_memory_address (env: napi_env, arraybuffer_or_view: napi_val
     }
 
     const handle: emnapi.Handle<ArrayBuffer | ArrayBufferView> = envObject.ctx.handleStore.get(arraybuffer_or_view)!
-    const isArrayBuffer = handle.isArrayBuffer()
-    const isTypedArray = handle.isTypedArray()
-    const isDataView = handle.isDataView()
-    if (!isArrayBuffer && !isTypedArray && !isDataView) {
-      return envObject.setLastError(napi_status.napi_invalid_arg)
-    }
-
-    if (isArrayBuffer) {
-      info = emnapiExternalMemory.getArrayBufferPointer(handle.value as ArrayBuffer, false)
-    } else {
-      info = emnapiExternalMemory.getViewPointer(handle.value as ArrayBufferView, false)
-    }
+    info = emnapiGetMemoryAddress(handle.value)
 
     p = info.address
     if (address) {
@@ -280,4 +295,4 @@ emnapiImplement('emnapi_get_module_object', 'ipp', emnapi_get_module_object)
 emnapiImplement('emnapi_get_module_property', 'ippp', emnapi_get_module_property)
 emnapiImplement('emnapi_create_memory_view', 'ipippppp', emnapi_create_memory_view, ['$emnapiWrap', '$emnapiExternalMemory'])
 emnapiImplement('emnapi_sync_memory', 'ipppppi', emnapi_sync_memory, ['$emnapiSyncMemory'])
-emnapiImplement('emnapi_get_memory_address', 'ipppp', emnapi_get_memory_address, ['$emnapiExternalMemory'])
+emnapiImplement('emnapi_get_memory_address', 'ipppp', emnapi_get_memory_address, ['$emnapiGetMemoryAddress'])
