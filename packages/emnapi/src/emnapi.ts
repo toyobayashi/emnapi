@@ -162,6 +162,7 @@ mergeInto(LibraryManager.library, {
         len = arrayBufferOrView.byteLength - offset
       }
       len = len >>> 0
+      if (len === 0) return arrayBufferOrView
       view = new Uint8Array(arrayBufferOrView, offset, len)
 
       if (!js_to_wasm) {
@@ -182,6 +183,7 @@ mergeInto(LibraryManager.library, {
         len = latestView.byteLength - offset
       }
       len = len >>> 0
+      if (len === 0) return latestView
       view = new Uint8Array(latestView.buffer, latestView.byteOffset + offset, len)
 
       if (!js_to_wasm) {
