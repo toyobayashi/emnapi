@@ -12,7 +12,8 @@ const files = glob.sync(`${subdir}/*.test.js`, {
       ? [
           'async/**/*',
           'pool/**/*',
-          'tsfn/**/*'
+          'tsfn/**/*',
+          'string/string-pthread.test.js'
         ]
       : []
 })
