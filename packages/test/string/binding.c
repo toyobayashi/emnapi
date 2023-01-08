@@ -1,5 +1,6 @@
 #include <limits.h>  // INT_MAX
 #include <string.h>
+#include <stdlib.h>
 #include <js_native_api.h>
 #include "../common.h"
 
@@ -263,6 +264,18 @@ static napi_value TestMemoryCorruption(napi_env env, napi_callback_info info) {
   return NULL;
 }
 
+static napi_value TestUtf8Large(napi_env env, napi_callback_info info) {
+  size_t size = 256 * 1024 * 1024;
+  char* buffer = (char*)malloc(size);
+  memset(buffer, 97, size);
+
+  napi_value output;
+  NAPI_CALL(env, napi_create_string_utf8(env, buffer, size, &output));
+  free(buffer);
+
+  return output;
+}
+
 EXTERN_C_START
 napi_value Init(napi_env env, napi_value exports) {
   napi_property_descriptor properties[] = {
@@ -278,6 +291,7 @@ napi_value Init(napi_env env, napi_value exports) {
     DECLARE_NAPI_PROPERTY("TestLargeLatin1", TestLargeLatin1),
     DECLARE_NAPI_PROPERTY("TestLargeUtf16", TestLargeUtf16),
     DECLARE_NAPI_PROPERTY("TestMemoryCorruption", TestMemoryCorruption),
+    DECLARE_NAPI_PROPERTY("TestUtf8Large", TestUtf8Large),
   };
 
   NAPI_CALL(env, napi_define_properties(

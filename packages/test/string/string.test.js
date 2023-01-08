@@ -90,4 +90,5 @@ function test (test_string) {
   }, /^Error: Invalid argument$/)
 
   test_string.TestMemoryCorruption(' '.repeat(64 * 1024))
+  assert.strictEqual(test_string.TestUtf8Large(), 'a'.repeat(256 * 1024 * 1024))
 }
