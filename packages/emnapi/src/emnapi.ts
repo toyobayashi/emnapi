@@ -69,55 +69,55 @@ function emnapi_create_memory_view (
       throw new emnapiRt.NotSupportWeakRefError('emnapi_create_memory_view', 'Parameter "finalize_cb" must be 0(NULL)')
     }
 
-    let info: ViewInfo
+    let viewDescriptor: MemoryViewDescriptor
     switch (typedarray_type) {
       case emnapi_memory_view_type.emnapi_int8_array:
-        info = { Ctor: Int8Array, ptr: external_data, length: byte_length }
+        viewDescriptor = { Ctor: Int8Array, address: external_data, length: byte_length, ownership: 1, runtimeAllocated: 0 }
         break
       case emnapi_memory_view_type.emnapi_uint8_array:
-        info = { Ctor: Uint8Array, ptr: external_data, length: byte_length }
+        viewDescriptor = { Ctor: Uint8Array, address: external_data, length: byte_length, ownership: 1, runtimeAllocated: 0 }
         break
       case emnapi_memory_view_type.emnapi_uint8_clamped_array:
-        info = { Ctor: Uint8ClampedArray, ptr: external_data, length: byte_length }
+        viewDescriptor = { Ctor: Uint8ClampedArray, address: external_data, length: byte_length, ownership: 1, runtimeAllocated: 0 }
         break
       case emnapi_memory_view_type.emnapi_int16_array:
-        info = { Ctor: Int16Array, ptr: external_data, length: byte_length >> 1 }
+        viewDescriptor = { Ctor: Int16Array, address: external_data, length: byte_length >> 1, ownership: 1, runtimeAllocated: 0 }
         break
       case emnapi_memory_view_type.emnapi_uint16_array:
-        info = { Ctor: Uint16Array, ptr: external_data, length: byte_length >> 1 }
+        viewDescriptor = { Ctor: Uint16Array, address: external_data, length: byte_length >> 1, ownership: 1, runtimeAllocated: 0 }
         break
       case emnapi_memory_view_type.emnapi_int32_array:
-        info = { Ctor: Int32Array, ptr: external_data, length: byte_length >> 2 }
+        viewDescriptor = { Ctor: Int32Array, address: external_data, length: byte_length >> 2, ownership: 1, runtimeAllocated: 0 }
         break
       case emnapi_memory_view_type.emnapi_uint32_array:
-        info = { Ctor: Uint32Array, ptr: external_data, length: byte_length >> 2 }
+        viewDescriptor = { Ctor: Uint32Array, address: external_data, length: byte_length >> 2, ownership: 1, runtimeAllocated: 0 }
         break
       case emnapi_memory_view_type.emnapi_float32_array:
-        info = { Ctor: Float32Array, ptr: external_data, length: byte_length >> 2 }
+        viewDescriptor = { Ctor: Float32Array, address: external_data, length: byte_length >> 2, ownership: 1, runtimeAllocated: 0 }
         break
       case emnapi_memory_view_type.emnapi_float64_array:
-        info = { Ctor: Float64Array, ptr: external_data, length: byte_length >> 3 }
+        viewDescriptor = { Ctor: Float64Array, address: external_data, length: byte_length >> 3, ownership: 1, runtimeAllocated: 0 }
         break
       case emnapi_memory_view_type.emnapi_bigint64_array:
-        info = { Ctor: BigInt64Array, ptr: external_data, length: byte_length >> 3 }
+        viewDescriptor = { Ctor: BigInt64Array, address: external_data, length: byte_length >> 3, ownership: 1, runtimeAllocated: 0 }
         break
       case emnapi_memory_view_type.emnapi_biguint64_array:
-        info = { Ctor: BigUint64Array, ptr: external_data, length: byte_length >> 3 }
+        viewDescriptor = { Ctor: BigUint64Array, address: external_data, length: byte_length >> 3, ownership: 1, runtimeAllocated: 0 }
         break
       case emnapi_memory_view_type.emnapi_data_view:
-        info = { Ctor: DataView, ptr: external_data, length: byte_length }
+        viewDescriptor = { Ctor: DataView, address: external_data, length: byte_length, ownership: 1, runtimeAllocated: 0 }
         break
       case emnapi_memory_view_type.emnapi_buffer:
-        info = { Ctor: Buffer, ptr: external_data, length: byte_length }
+        viewDescriptor = { Ctor: Buffer, address: external_data, length: byte_length, ownership: 1, runtimeAllocated: 0 }
         break
       default: return envObject.setLastError(napi_status.napi_invalid_arg)
     }
-    const Ctor = info.Ctor
+    const Ctor = viewDescriptor.Ctor
     const typedArray = typedarray_type === emnapi_memory_view_type.emnapi_buffer
-      ? Buffer.from(HEAPU8.buffer, info.ptr, info.length)
-      : new Ctor(HEAPU8.buffer, info.ptr, info.length)
+      ? Buffer.from(HEAPU8.buffer, viewDescriptor.address, viewDescriptor.length)
+      : new Ctor(HEAPU8.buffer, viewDescriptor.address, viewDescriptor.length)
     const handle = emnapiCtx.addToCurrentScope(typedArray)
-    emnapiExternalMemory.wasmMemoryViewTable.set(typedArray, info)
+    emnapiExternalMemory.wasmMemoryViewTable.set(typedArray, viewDescriptor)
     if (finalize_cb) {
       const status = emnapiWrap(WrapType.anonymous, env, handle.id, external_data, finalize_cb, finalize_hint, /* NULL */ 0)
       if (status === napi_status.napi_pending_exception) {

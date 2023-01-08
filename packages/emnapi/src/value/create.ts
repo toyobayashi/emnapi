@@ -1,5 +1,3 @@
-declare const Buffer: any
-
 function napi_create_array (env: napi_env, result: Pointer<napi_value>): napi_status {
   $CHECK_ENV!(env)
   const envObject = emnapiCtx.envStore.get(env)!
@@ -233,8 +231,10 @@ function napi_create_typedarray (
         if (!emnapiExternalMemory.wasmMemoryViewTable.has(out)) {
           emnapiExternalMemory.wasmMemoryViewTable.set(out, {
             Ctor: Type as any,
-            ptr: byte_offset,
-            length
+            address: byte_offset,
+            length,
+            ownership: 1 /* emnapi.Ownership.kUserland */,
+            runtimeAllocated: 0
           })
         }
       }
@@ -302,20 +302,16 @@ function napi_create_buffer (
       if (!pointer) throw new Error('Out of memory')
       $from64('size')
       HEAPU8.subarray(pointer, pointer + size).fill(0)
-      const pointerInfo: PointerInfo = {
+      const buffer = Buffer.from(HEAPU8.buffer, pointer, size)
+      const viewDescriptor: MemoryViewDescriptor = {
+        Ctor: Buffer,
         address: pointer,
+        length: size,
         ownership: emnapiExternalMemory.registry ? 0 /* emnapi.Ownership.kRuntime */ : 1 /* emnapi.Ownership.kUserland */,
         runtimeAllocated: 1
       }
-      const buffer = Buffer.from(HEAPU8.buffer, pointer, size)
-      emnapiExternalMemory.bufferTable.set(buffer, pointerInfo)
-      const viewInfo: ViewInfo = {
-        Ctor: Buffer,
-        ptr: pointer,
-        length: size
-      }
-      emnapiExternalMemory.wasmMemoryViewTable.set(buffer, viewInfo)
-      emnapiExternalMemory.registry?.register(viewInfo, pointer)
+      emnapiExternalMemory.wasmMemoryViewTable.set(buffer, viewDescriptor)
+      emnapiExternalMemory.registry?.register(viewDescriptor, pointer)
 
       value = emnapiCtx.addToCurrentScope(buffer).id
       $makeSetValue('result', 0, 'value', '*')
@@ -407,8 +403,10 @@ function napi_create_dataview (
       if (!emnapiExternalMemory.wasmMemoryViewTable.has(dataview)) {
         emnapiExternalMemory.wasmMemoryViewTable.set(dataview, {
           Ctor: DataView,
-          ptr: byte_offset,
-          length: byte_length
+          address: byte_offset,
+          length: byte_length,
+          ownership: 1 /* emnapi.Ownership.kUserland */,
+          runtimeAllocated: 0
         })
       }
     }
