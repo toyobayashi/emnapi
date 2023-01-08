@@ -105,7 +105,7 @@ function _$emnapiWrap (type: WrapType, env: napi_env, js_object: napi_value, nat
       return envObject.setLastError(napi_status.napi_invalid_arg)
     }
 
-    if (ArrayBuffer.isView(handle.value)) {
+    if (typeof emnapiExternalMemory !== 'undefined' && ArrayBuffer.isView(handle.value)) {
       if (emnapiExternalMemory.wasmMemoryViewTable.has(handle.value)) {
         handle = emnapiCtx.addToCurrentScope(emnapiExternalMemory.wasmMemoryViewTable.get(handle.value)!)
       }
@@ -178,5 +178,5 @@ function _$emnapiUnwrap (env: napi_env, js_object: napi_value, result: void_pp, 
 
 emnapiImplement('$emnapiCreateFunction', undefined, _$emnapiCreateFunction, ['$emnapiUtf8ToString'])
 emnapiImplement('$emnapiDefineProperty', undefined, _$emnapiDefineProperty, ['$emnapiCreateFunction'])
-emnapiImplement('$emnapiWrap', undefined, _$emnapiWrap, ['$emnapiExternalMemory'])
+emnapiImplement('$emnapiWrap', undefined, _$emnapiWrap)
 emnapiImplement('$emnapiUnwrap', undefined, _$emnapiUnwrap)
