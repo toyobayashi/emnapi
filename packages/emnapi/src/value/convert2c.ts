@@ -86,6 +86,9 @@ mergeInto(LibraryManager.library, {
             Ctor: view.constructor as any,
             ptr: view.byteOffset,
             length: ((view) => {
+              if (typeof Buffer !== 'undefined' && view.constructor === Buffer) {
+                return view.byteLength
+              }
               switch (view.constructor) {
                 case Int8Array:
                 case Uint8Array:
