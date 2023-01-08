@@ -113,6 +113,7 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
       ...(isEmscripten ? [emnapiTarget(false), emnapiTarget(true)] : []),
       createTarget('env', ['./env/binding.c']),
       createTarget('hello', ['./hello/binding.c']),
+      ...(!(isEmscripten && process.env.MEMORY64) ? [createTarget('string_mt', ['./string/binding.c'], true, true)] : []),
       ...(!(isEmscripten && process.env.MEMORY64) ? [createTarget('async', ['./async/binding.c'], false, true)] : []),
       ...(!(isEmscripten && process.env.MEMORY64) ? [createTarget('pool', ['./pool/binding.c'], false, true, ['--pre-js=../pool/pre.js'])] : []),
       ...(!(isEmscripten && process.env.MEMORY64) ? [createTarget('tsfn', ['./tsfn/binding.c'], false, true)] : []),

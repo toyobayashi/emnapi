@@ -1,9 +1,17 @@
+/* eslint-disable camelcase */
 'use strict'
 const assert = require('assert')
 const { load } = require('../util')
 
 // eslint-disable-next-line camelcase
-module.exports = load('string').then(test_string => {
+module.exports = Promise.all([
+  load('string'),
+  load('string_mt')
+]).then(exports => {
+  exports.forEach(test)
+})
+
+function test (test_string) {
   const empty = ''
   assert.strictEqual(test_string.TestLatin1(empty), empty)
   assert.strictEqual(test_string.TestUtf8(empty), empty)
@@ -82,4 +90,4 @@ module.exports = load('string').then(test_string => {
   }, /^Error: Invalid argument$/)
 
   test_string.TestMemoryCorruption(' '.repeat(64 * 1024))
-})
+}
