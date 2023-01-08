@@ -47,25 +47,35 @@ static napi_value External(napi_env env, napi_callback_info info) {
   externalData[1] = 1;
   externalData[2] = 2;
 
-  napi_value output_array;
-  NAPI_CALL(env, emnapi_create_external_uint8array(
+  napi_value output_view;
+  NAPI_CALL(env, emnapi_create_memory_view(
       env,
+      emnapi_uint8_array,
       externalData,
       nElem*sizeof(int8_t),
       FinalizeCallback,
       NULL,  // finalize_hint
-      &output_array));
+      &output_view));
 
-  return output_array;
+  return output_view;
 }
 
+static napi_value GrowMemory(napi_env env, napi_callback_info info) {
+  napi_value result;
+  int64_t adjustedValue;
+
+  NAPI_CALL(env, napi_adjust_external_memory(env, 1, &adjustedValue));
+  NAPI_CALL(env, napi_create_double(env, (double)adjustedValue, &result));
+
+  return result;
+}
 
 static napi_value NullArrayBuffer(napi_env env, napi_callback_info info) {
   static void* data = NULL;
-  napi_value output_array;
+  napi_value output_view;
   NAPI_CALL(env,
-      emnapi_create_external_uint8array(env, data, 0, NULL, NULL, &output_array));
-  return output_array;
+      emnapi_create_memory_view(env, emnapi_uint8_array, data, 0, NULL, NULL, &output_view));
+  return output_view;
 }
 
 static napi_value testGetEmscriptenVersion(napi_env env, napi_callback_info info) {
@@ -94,6 +104,7 @@ napi_value Init(napi_env env, napi_value exports) {
     DECLARE_NAPI_PROPERTY("getModuleProperty", getModuleProperty),
     DECLARE_NAPI_PROPERTY("External", External),
     DECLARE_NAPI_PROPERTY("NullArrayBuffer", NullArrayBuffer),
+    DECLARE_NAPI_PROPERTY("GrowMemory", GrowMemory),
     DECLARE_NAPI_PROPERTY("testGetEmscriptenVersion", testGetEmscriptenVersion)
   };
 

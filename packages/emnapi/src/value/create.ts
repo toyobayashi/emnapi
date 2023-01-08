@@ -1,5 +1,3 @@
-declare const Buffer: any
-
 function napi_create_array (env: napi_env, result: Pointer<napi_value>): napi_status {
   $CHECK_ENV!(env)
   const envObject = emnapiCtx.envStore.get(env)!
@@ -24,8 +22,8 @@ function napi_create_array_with_length (env: napi_env, length: size_t, result: P
   return envObject.clearLastError()
 }
 
-declare const createArrayBuffer: typeof _$createArrayBuffer
-function _$createArrayBuffer (byte_length: size_t, data: void_pp): ArrayBuffer {
+declare const emnapiCreateArrayBuffer: typeof _$emnapiCreateArrayBuffer
+function _$emnapiCreateArrayBuffer (byte_length: size_t, data: void_pp): ArrayBuffer {
   $from64('byte_length')
   byte_length = byte_length >>> 0
   const arrayBuffer = new ArrayBuffer(byte_length)
@@ -48,7 +46,7 @@ function napi_create_arraybuffer (env: napi_env, byte_length: size_t, data: void
   $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, result)
     $from64('result')
-    const arrayBuffer = createArrayBuffer(byte_length, data)
+    const arrayBuffer = emnapiCreateArrayBuffer(byte_length, data)
     value = emnapiCtx.addToCurrentScope(arrayBuffer).id
     $makeSetValue('result', 0, 'value', '*')
     return envObject.getReturnStatus()
@@ -229,6 +227,17 @@ function napi_create_typedarray (
         return envObject.setLastError(napi_status.napi_generic_failure)
       }
       const out = new Type(buffer, byte_offset, length)
+      if (buffer === HEAPU8.buffer) {
+        if (!emnapiExternalMemory.wasmMemoryViewTable.has(out)) {
+          emnapiExternalMemory.wasmMemoryViewTable.set(out, {
+            Ctor: Type as any,
+            address: byte_offset,
+            length,
+            ownership: 1 /* emnapi.Ownership.kUserland */,
+            runtimeAllocated: 0
+          })
+        }
+      }
 
       $from64('result')
 
@@ -275,15 +284,41 @@ function napi_create_buffer (
 // @ts-expect-error
 ): napi_status {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  let value: number
+  let value: number, pointer: number
 
   $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, result)
+
     $from64('result')
-    const arrayBuffer = createArrayBuffer(size, data)
-    const buffer = Buffer.from(arrayBuffer)
-    value = emnapiCtx.addToCurrentScope(buffer).id
-    $makeSetValue('result', 0, 'value', '*')
+
+    let buffer: Uint8Array
+    if (!data) {
+      $from64('size')
+      buffer = Buffer.alloc(size)
+      value = emnapiCtx.addToCurrentScope(buffer).id
+      $makeSetValue('result', 0, 'value', '*')
+    } else {
+      pointer = $makeMalloc('napi_create_buffer', 'size')
+      if (!pointer) throw new Error('Out of memory')
+      $from64('size')
+      HEAPU8.subarray(pointer, pointer + size).fill(0)
+      const buffer = Buffer.from(HEAPU8.buffer, pointer, size)
+      const viewDescriptor: MemoryViewDescriptor = {
+        Ctor: Buffer,
+        address: pointer,
+        length: size,
+        ownership: emnapiExternalMemory.registry ? 0 /* emnapi.Ownership.kRuntime */ : 1 /* emnapi.Ownership.kUserland */,
+        runtimeAllocated: 1
+      }
+      emnapiExternalMemory.wasmMemoryViewTable.set(buffer, viewDescriptor)
+      emnapiExternalMemory.registry?.register(viewDescriptor, pointer)
+
+      value = emnapiCtx.addToCurrentScope(buffer).id
+      $makeSetValue('result', 0, 'value', '*')
+      $from64('data')
+      $makeSetValue('data', 0, 'pointer', '*')
+    }
+
     return envObject.getReturnStatus()
   })
 }
@@ -301,18 +336,18 @@ function napi_create_buffer_copy (
 
   $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, result)
-    $from64('result_data')
-    $from64('result')
-    const arrayBuffer = createArrayBuffer(length, result_data)
+    const arrayBuffer = emnapiCreateArrayBuffer(length, result_data)
     const buffer = Buffer.from(arrayBuffer)
+    $from64('data')
+    $from64('length')
     buffer.set(HEAPU8.subarray(data, data + length))
     value = emnapiCtx.addToCurrentScope(buffer).id
+    $from64('result')
     $makeSetValue('result', 0, 'value', '*')
     return envObject.getReturnStatus()
   })
 }
 
-declare const _napi_create_external_arraybuffer: typeof napi_create_external_arraybuffer
 function napi_create_external_buffer (
   env: napi_env,
   length: size_t,
@@ -320,19 +355,16 @@ function napi_create_external_buffer (
   finalize_cb: napi_finalize,
   finalize_hint: Pointer<void>,
   result: Pointer<napi_value>
-// @ts-expect-error
 ): napi_status {
-  $PREAMBLE!(env, (envObject) => {
-    const status = _napi_create_external_arraybuffer(env, data, length, finalize_cb, finalize_hint, result)
-    if (status !== napi_status.napi_ok) {
-      return status
-    }
-    const handleId = $makeGetValue('result', 0, '*')
-    const handle = emnapiCtx.handleStore.get(handleId)!
-    // I know I'm the only owner of handle, so just wrap value in-place.
-    handle.value = Buffer.from(handle.value)
-    return envObject.getReturnStatus()
-  })
+  return _emnapi_create_memory_view(
+    env,
+    emnapi_memory_view_type.emnapi_buffer,
+    data,
+    length,
+    finalize_cb,
+    finalize_hint,
+    result
+  )
 }
 
 function napi_create_dataview (
@@ -367,6 +399,17 @@ function napi_create_dataview (
     }
 
     const dataview = new DataView(buffer, byte_offset, byte_length)
+    if (buffer === HEAPU8.buffer) {
+      if (!emnapiExternalMemory.wasmMemoryViewTable.has(dataview)) {
+        emnapiExternalMemory.wasmMemoryViewTable.set(dataview, {
+          Ctor: DataView,
+          address: byte_offset,
+          length: byte_length,
+          ownership: 1 /* emnapi.Ownership.kUserland */,
+          runtimeAllocated: 0
+        })
+      }
+    }
     $from64('result')
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -392,18 +435,18 @@ function node_api_symbol_for (env: napi_env, utf8description: const_char_p, leng
   return envObject.clearLastError()
 }
 
-emnapiImplement('$createArrayBuffer', undefined, _$createArrayBuffer)
+emnapiImplement('$emnapiCreateArrayBuffer', undefined, _$emnapiCreateArrayBuffer, ['$emnapiExternalMemory'])
 emnapiImplement('napi_create_array', 'ipp', napi_create_array)
 emnapiImplement('napi_create_array_with_length', 'ippp', napi_create_array_with_length)
-emnapiImplement('napi_create_arraybuffer', 'ipppp', napi_create_arraybuffer, ['$createArrayBuffer'])
-emnapiImplement('napi_create_buffer', 'ippp', napi_create_buffer, ['$createArrayBuffer'])
-emnapiImplement('napi_create_buffer_copy', 'ippppp', napi_create_buffer_copy, ['$createArrayBuffer'])
+emnapiImplement('napi_create_arraybuffer', 'ipppp', napi_create_arraybuffer, ['$emnapiCreateArrayBuffer'])
+emnapiImplement('napi_create_buffer', 'ippp', napi_create_buffer, ['$emnapiExternalMemory', 'malloc'])
+emnapiImplement('napi_create_buffer_copy', 'ippppp', napi_create_buffer_copy, ['$emnapiCreateArrayBuffer'])
 emnapiImplement('napi_create_date', 'ipdp', napi_create_date)
 emnapiImplement('napi_create_external', 'ippppp', napi_create_external)
 emnapiImplement('napi_create_external_arraybuffer', 'ipppppp', napi_create_external_arraybuffer, ['$emnapiWrap'])
-emnapiImplement('napi_create_external_buffer', 'ipppppp', napi_create_external_buffer, ['napi_create_external_arraybuffer'])
+emnapiImplement('napi_create_external_buffer', 'ipppppp', napi_create_external_buffer, ['emnapi_create_memory_view'])
 emnapiImplement('napi_create_object', 'ipp', napi_create_object)
 emnapiImplement('napi_create_symbol', 'ippp', napi_create_symbol)
-emnapiImplement('napi_create_typedarray', 'ipipppp', napi_create_typedarray)
-emnapiImplement('napi_create_dataview', 'ippppp', napi_create_dataview)
+emnapiImplement('napi_create_typedarray', 'ipipppp', napi_create_typedarray, ['$emnapiExternalMemory'])
+emnapiImplement('napi_create_dataview', 'ippppp', napi_create_dataview, ['$emnapiExternalMemory'])
 emnapiImplement('node_api_symbol_for', 'ipppp', node_api_symbol_for, ['$emnapiUtf8ToString'])

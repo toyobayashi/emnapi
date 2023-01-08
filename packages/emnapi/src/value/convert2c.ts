@@ -1,14 +1,40 @@
+declare type ViewConstuctor =
+  Int8ArrayConstructor |
+  Uint8ArrayConstructor |
+  Uint8ClampedArrayConstructor |
+  Int16ArrayConstructor |
+  Uint16ArrayConstructor |
+  Int32ArrayConstructor |
+  Uint32ArrayConstructor |
+  BigInt64ArrayConstructor |
+  BigUint64ArrayConstructor |
+  Float32ArrayConstructor |
+  Float64ArrayConstructor |
+  DataViewConstructor |
+  BufferConstructor
+
 declare interface PointerInfo {
   address: void_p
   ownership: emnapi.Ownership
   runtimeAllocated: 0 | 1
 }
 
+declare interface MemoryViewDescriptor extends PointerInfo {
+  Ctor: ViewConstuctor
+  length: number
+}
+
+declare interface ViewPointerInfo<T extends ArrayBufferView> extends PointerInfo {
+  view: T
+}
+
 declare const emnapiExternalMemory: {
   registry: FinalizationRegistry<number> | undefined
   table: WeakMap<ArrayBuffer, PointerInfo>
+  wasmMemoryViewTable: WeakMap<ArrayBufferView, MemoryViewDescriptor>
+  getOrUpdateMemoryView: <T extends ArrayBufferView>(view: T) => T
   getArrayBufferPointer: (arrayBuffer: ArrayBuffer, shouldCopy: boolean) => PointerInfo
-  getViewPointer: (view: ArrayBufferView, shouldCopy: boolean) => PointerInfo
+  getViewPointer: <T extends ArrayBufferView>(view: T, shouldCopy: boolean) => ViewPointerInfo<T>
 }
 
 mergeInto(LibraryManager.library, {
@@ -18,6 +44,7 @@ mergeInto(LibraryManager.library, {
     init: function () {
       emnapiExternalMemory.registry = typeof FinalizationRegistry === 'function' ? new FinalizationRegistry(function (_pointer) { _free($to64('_pointer') as number) }) : undefined
       emnapiExternalMemory.table = new WeakMap()
+      emnapiExternalMemory.wasmMemoryViewTable = new WeakMap()
     },
 
     getArrayBufferPointer: function (arrayBuffer: ArrayBuffer, shouldCopy: boolean): PointerInfo {
@@ -46,13 +73,60 @@ mergeInto(LibraryManager.library, {
       return pointerInfo
     },
 
-    getViewPointer: function (view: ArrayBufferView, shouldCopy: boolean): PointerInfo {
+    getOrUpdateMemoryView: function<T extends ArrayBufferView> (view: T): T {
       if (view.buffer === HEAPU8.buffer) {
-        return { address: view.byteOffset, ownership: 1 /* emnapi.Ownership.kUserland */, runtimeAllocated: 0 }
+        if (!emnapiExternalMemory.wasmMemoryViewTable.has(view)) {
+          emnapiExternalMemory.wasmMemoryViewTable.set(view, {
+            Ctor: view.constructor as any,
+            address: view.byteOffset,
+            length: view instanceof DataView ? view.byteLength : (view as any).length,
+            ownership: 1 /* emnapi.Ownership.kUserland */,
+            runtimeAllocated: 0
+          })
+        }
+        return view
+      }
+
+      const isDetachedArrayBuffer = (arrayBuffer: ArrayBufferLike): boolean => {
+        if (arrayBuffer.byteLength === 0) {
+          try {
+            // eslint-disable-next-line no-new
+            new Uint8Array(arrayBuffer)
+          } catch (_) {
+            return true
+          }
+        }
+        return false
+      }
+
+      if (isDetachedArrayBuffer(view.buffer) && emnapiExternalMemory.wasmMemoryViewTable.has(view)) {
+        const info = emnapiExternalMemory.wasmMemoryViewTable.get(view)!
+        const Ctor = info.Ctor
+        let newView: ArrayBufferView
+        if (typeof Buffer !== 'undefined' && Ctor === Buffer) {
+          newView = Buffer.from(HEAPU8.buffer, info.address, info.length)
+        } else {
+          newView = new Ctor(HEAPU8.buffer, info.address, info.length)
+        }
+        emnapiExternalMemory.wasmMemoryViewTable.set(newView, info)
+        return newView as unknown as T
+      }
+
+      return view
+    },
+
+    getViewPointer: function<T extends ArrayBufferView> (view: T, shouldCopy: boolean): ViewPointerInfo<T> {
+      view = emnapiExternalMemory.getOrUpdateMemoryView(view)
+      if (view.buffer === HEAPU8.buffer) {
+        if (emnapiExternalMemory.wasmMemoryViewTable.has(view)) {
+          const { address, ownership, runtimeAllocated } = emnapiExternalMemory.wasmMemoryViewTable.get(view)!
+          return { address, ownership, runtimeAllocated, view }
+        }
+        return { address: view.byteOffset, ownership: 1 /* emnapi.Ownership.kUserland */, runtimeAllocated: 0, view }
       }
 
       const { address, ownership, runtimeAllocated } = emnapiExternalMemory.getArrayBufferPointer(view.buffer, shouldCopy)
-      return { address: address === 0 ? 0 : (address + view.byteOffset), ownership, runtimeAllocated }
+      return { address: address === 0 ? 0 : (address + view.byteOffset), ownership, runtimeAllocated, view }
     }
   }
 })
