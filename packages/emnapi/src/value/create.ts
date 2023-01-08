@@ -293,6 +293,7 @@ function napi_create_buffer (
 
     let buffer: Uint8Array
     if (!data) {
+      $from64('size')
       buffer = Buffer.alloc(size)
       value = emnapiCtx.addToCurrentScope(buffer).id
       $makeSetValue('result', 0, 'value', '*')
