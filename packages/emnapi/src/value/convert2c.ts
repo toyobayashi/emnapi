@@ -79,30 +79,7 @@ mergeInto(LibraryManager.library, {
           emnapiExternalMemory.wasmMemoryViewTable.set(view, {
             Ctor: view.constructor as any,
             address: view.byteOffset,
-            length: ((view) => {
-              if (typeof Buffer !== 'undefined' && view instanceof Buffer) {
-                return view.byteLength
-              }
-              switch (view.constructor) {
-                case Int8Array:
-                case Uint8Array:
-                case Uint8ClampedArray:
-                case DataView:
-                  return view.byteLength
-                case Int16Array:
-                case Uint16Array:
-                  return view.byteLength >> 1
-                case Int32Array:
-                case Uint32Array:
-                case Float32Array:
-                  return view.byteLength >> 2
-                case Float64Array:
-                case BigInt64Array:
-                case BigUint64Array:
-                  return view.byteLength >> 3
-                default: throw new TypeError('Unknown view type')
-              }
-            })(view),
+            length: view instanceof DataView ? view.byteLength : (view as any).length,
             ownership: 1 /* emnapi.Ownership.kUserland */,
             runtimeAllocated: 0
           })
