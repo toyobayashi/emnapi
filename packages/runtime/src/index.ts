@@ -28,7 +28,8 @@ export {
   canSetFunctionName,
   isReferenceType,
   TryCatch,
-  _setImmediate
+  _setImmediate,
+  Buffer
 } from './util'
 
 declare const __VERSION__: string

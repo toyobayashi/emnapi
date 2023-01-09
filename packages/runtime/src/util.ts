@@ -2,6 +2,7 @@
 /* eslint-disable @typescript-eslint/no-implied-eval */
 
 declare const __webpack_public_path__: any
+declare const __non_webpack_require__: ((id: string) => any) | undefined
 declare const global: typeof globalThis
 
 export const supportNewFunction = (function () {
@@ -19,7 +20,9 @@ export const _global: typeof globalThis = (function () {
 
   let g = (function (this: any) { return this })()
   if (!g && supportNewFunction) {
-    g = new Function('return this')()
+    try {
+      g = new Function('return this')()
+    } catch (_) {}
   }
 
   if (!g) {
@@ -102,3 +105,29 @@ export const construct = supportReflect
     }
     return instance
   }
+
+const _require = (function () {
+  let nativeRequire
+
+  if (typeof __webpack_public_path__ !== 'undefined') {
+    nativeRequire = (function () {
+      return typeof __non_webpack_require__ !== 'undefined' ? __non_webpack_require__ : undefined
+    })()
+  } else {
+    nativeRequire = (function () {
+      return typeof __webpack_public_path__ !== 'undefined' ? (typeof __non_webpack_require__ !== 'undefined' ? __non_webpack_require__ : undefined) : (typeof require !== 'undefined' ? require : undefined)
+    })()
+  }
+
+  return nativeRequire
+})()
+
+export const Buffer: BufferCtor | undefined = (function () {
+  if (typeof _global.Buffer === 'function') return _global.Buffer
+
+  try {
+    return _require!('buffer').Buffer
+  } catch (_) {}
+
+  return undefined
+})()

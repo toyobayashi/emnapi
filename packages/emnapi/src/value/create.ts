@@ -291,6 +291,7 @@ function napi_create_buffer (
 
     $from64('result')
 
+    const Buffer = emnapiRt.Buffer!
     let buffer: Uint8Array
     if (!data) {
       $from64('size')
@@ -337,6 +338,7 @@ function napi_create_buffer_copy (
   $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, result)
     const arrayBuffer = emnapiCreateArrayBuffer(length, result_data)
+    const Buffer = emnapiRt.Buffer!
     const buffer = Buffer.from(arrayBuffer)
     $from64('data')
     $from64('length')

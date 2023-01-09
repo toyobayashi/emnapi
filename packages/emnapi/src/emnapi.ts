@@ -108,13 +108,13 @@ function emnapi_create_memory_view (
         viewDescriptor = { Ctor: DataView, address: external_data, length: byte_length, ownership: Ownership.kUserland, runtimeAllocated: 0 }
         break
       case emnapi_memory_view_type.emnapi_buffer:
-        viewDescriptor = { Ctor: Buffer, address: external_data, length: byte_length, ownership: Ownership.kUserland, runtimeAllocated: 0 }
+        viewDescriptor = { Ctor: emnapiRt.Buffer!, address: external_data, length: byte_length, ownership: Ownership.kUserland, runtimeAllocated: 0 }
         break
       default: return envObject.setLastError(napi_status.napi_invalid_arg)
     }
     const Ctor = viewDescriptor.Ctor
     const typedArray = typedarray_type === emnapi_memory_view_type.emnapi_buffer
-      ? Buffer.from(HEAPU8.buffer, viewDescriptor.address, viewDescriptor.length)
+      ? emnapiRt.Buffer!.from(HEAPU8.buffer, viewDescriptor.address, viewDescriptor.length)
       : new Ctor(HEAPU8.buffer, viewDescriptor.address, viewDescriptor.length)
     const handle = emnapiCtx.addToCurrentScope(typedArray)
     emnapiExternalMemory.wasmMemoryViewTable.set(typedArray, viewDescriptor)

@@ -1,4 +1,4 @@
-import { isReferenceType, _global } from './util'
+import { isReferenceType, _global, Buffer } from './util'
 
 /** @internal */
 export interface IReferenceBinding {
@@ -64,7 +64,7 @@ export class Handle<S> {
   }
 
   public isBuffer (): boolean {
-    return !this.isEmpty() && typeof Buffer === 'function' && (this.value instanceof Buffer)
+    return !this.isEmpty() && typeof Buffer === 'function' && Buffer.isBuffer(this.value)
   }
 
   public isDataView (): boolean {

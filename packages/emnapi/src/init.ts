@@ -39,7 +39,9 @@ mergeInto(LibraryManager.library, {
           return typeof f === 'function'
         })()
       ) {
-        g = new Function('return this')()
+        try {
+          g = new Function('return this')()
+        } catch (_) {}
       }
 
       if (!g) {

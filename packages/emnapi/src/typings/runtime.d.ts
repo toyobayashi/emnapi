@@ -50,19 +50,19 @@ declare interface ICallbackInfo {
   _isConstructCall: boolean
 }
 
-declare interface Buffer extends Uint8Array {}
-declare interface BufferConstructor {
-  readonly prototype: Buffer
-  /** @deprecated */
-  new (...args: any[]): Buffer
-  from: {
-    (buffer: ArrayBufferLike): Buffer
-    (buffer: ArrayBufferLike, byteOffset: number, length: number): Buffer
-  }
-  alloc: (size: number) => Buffer
-}
-// eslint-disable-next-line @typescript-eslint/no-redeclare
-declare const Buffer: BufferConstructor
+// declare interface Buffer extends Uint8Array {}
+// declare interface BufferConstructor {
+//   readonly prototype: Buffer
+//   /** @deprecated */
+//   new (...args: any[]): Buffer
+//   from: {
+//     (buffer: ArrayBufferLike): Buffer
+//     (buffer: ArrayBufferLike, byteOffset: number, length: number): Buffer
+//   }
+//   alloc: (size: number) => Buffer
+// }
+// // eslint-disable-next-line @typescript-eslint/no-redeclare
+// declare const Buffer: BufferConstructor
 
 /* declare class FinalizationRegistry<H = any> {
   constructor (callback: (heldValue: H) => void)

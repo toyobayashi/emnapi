@@ -11,7 +11,7 @@ declare type ViewConstuctor =
   Float32ArrayConstructor |
   Float64ArrayConstructor |
   DataViewConstructor |
-  BufferConstructor
+  BufferCtor
 
 declare interface PointerInfo {
   address: void_p
@@ -38,7 +38,7 @@ declare const emnapiExternalMemory: {
 }
 
 mergeInto(LibraryManager.library, {
-  $emnapiExternalMemory__deps: ['malloc', 'free'],
+  $emnapiExternalMemory__deps: ['malloc', 'free', '$emnapiInit'],
   $emnapiExternalMemory__postset: 'emnapiExternalMemory.init();',
   $emnapiExternalMemory: {
     init: function () {
@@ -103,7 +103,8 @@ mergeInto(LibraryManager.library, {
         const info = emnapiExternalMemory.wasmMemoryViewTable.get(view)!
         const Ctor = info.Ctor
         let newView: ArrayBufferView
-        if (typeof Buffer !== 'undefined' && Ctor === Buffer) {
+        const Buffer = emnapiRt.Buffer
+        if (typeof Buffer === 'function' && Ctor === Buffer) {
           newView = Buffer.from(HEAPU8.buffer, info.address, info.length)
         } else {
           newView = new Ctor(HEAPU8.buffer, info.address, info.length)
