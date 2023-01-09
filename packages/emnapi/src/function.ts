@@ -26,7 +26,7 @@ function napi_get_cb_info (env: napi_env, _cbinfo: napi_callback_info, argc: Poi
   $CHECK_ENV!(env)
   const envObject = emnapiCtx.envStore.get(env)!
 
-  const cbinfoValue = emnapiRt.CallbackInfo.current!
+  const cbinfoValue = emnapiCtx.cbinfoStack.current!
 
   $from64('argc')
   $from64('argv')
@@ -174,7 +174,7 @@ function napi_get_new_target (
 
   $from64('result')
 
-  const cbinfoValue = emnapiRt.CallbackInfo.current!
+  const cbinfoValue = emnapiCtx.cbinfoStack.current!
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const value = cbinfoValue.getNewTarget(envObject)
   $makeSetValue('result', 0, 'value', '*')

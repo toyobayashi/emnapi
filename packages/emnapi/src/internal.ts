@@ -12,7 +12,7 @@ function _$emnapiCreateFunction<F extends (...args: any[]) => any> (envObject: E
 
   const makeFunction = () => function (this: any): any {
     'use strict'
-    emnapiRt.CallbackInfo.push(this, data, arguments, f)
+    emnapiCtx.cbinfoStack.push(this, data, arguments, f)
     const scope = emnapiCtx.openScope(envObject)
     try {
       return envObject.callIntoModule((envObject) => {
@@ -20,7 +20,7 @@ function _$emnapiCreateFunction<F extends (...args: any[]) => any> (envObject: E
         return (!napiValue) ? undefined : emnapiCtx.handleStore.get(napiValue)!.value
       })
     } finally {
-      emnapiRt.CallbackInfo.pop()
+      emnapiCtx.cbinfoStack.pop()
       emnapiCtx.closeScope(envObject, scope)
     }
   }

@@ -2,7 +2,7 @@
  * @packageDocumentation
  */
 
-export { CallbackInfo } from './CallbackInfo'
+export { CallbackInfo, CallbackInfoStack } from './CallbackInfo'
 export { createContext, Context } from './Context'
 export { Deferred, type IDeferrdValue } from './Deferred'
 export { DeferredStore } from './DeferredStore'

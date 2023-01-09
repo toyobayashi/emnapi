@@ -7,6 +7,7 @@ import type { Handle } from './Handle'
 import type { HandleScope } from './HandleScope'
 import type { Env } from './env'
 import { _global } from './util'
+import { CallbackInfoStack } from './CallbackInfo'
 
 /** @internal */
 export class Context {
@@ -15,6 +16,7 @@ export class Context {
   public refStore: RefStore
   public deferredStore: DeferredStore
   public handleStore: HandleStore
+  public cbinfoStack: CallbackInfoStack
 
   constructor () {
     this.envStore = new EnvStore()
@@ -22,6 +24,7 @@ export class Context {
     this.refStore = new RefStore()
     this.deferredStore = new DeferredStore()
     this.handleStore = new HandleStore()
+    this.cbinfoStack = new CallbackInfoStack()
   }
 
   /** @internal */
