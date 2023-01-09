@@ -22,7 +22,6 @@
     ]
   },
   "include": [
-    "../runtime/dist/emnapi.iife.d.ts",
     "../runtime/src/typings/**/*.d.ts",
     "./src/**/*.ts"
   ]

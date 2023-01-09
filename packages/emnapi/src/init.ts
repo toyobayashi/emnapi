@@ -9,8 +9,8 @@ declare const __webpack_public_path__: any
 
 declare const __EMNAPI_RUNTIME_REPLACE__: string
 
-declare let emnapiRt: typeof emnapi
-declare let emnapiCtx: emnapi.Context
+declare let emnapiRt: EmnapiRuntime
+declare let emnapiCtx: Context
 
 declare function _napi_register_wasm_v1 (env: Ptr, exports: Ptr): napi_value
 declare function __emnapi_runtime_init (...args: [Ptr]): void
@@ -137,7 +137,7 @@ mergeInto(LibraryManager.library, {
     let registered = false
     let emnapiExports: any
     let exportsKey: string
-    let env: emnapi.Env | undefined
+    let env: Env | undefined
 
     function callInStack<T extends () => any> (f: T): ReturnType<T> {
       const stack = stackSave()

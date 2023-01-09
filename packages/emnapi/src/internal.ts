@@ -3,7 +3,7 @@
 /* eslint-disable @typescript-eslint/no-implied-eval */
 
 declare const emnapiCreateFunction: typeof _$emnapiCreateFunction
-function _$emnapiCreateFunction<F extends (...args: any[]) => any> (envObject: emnapi.Env, utf8name: Pointer<const_char>, length: size_t, cb: napi_callback, data: void_p): { status: napi_status; f: F } {
+function _$emnapiCreateFunction<F extends (...args: any[]) => any> (envObject: Env, utf8name: Pointer<const_char>, length: size_t, cb: napi_callback, data: void_p): { status: napi_status; f: F } {
   $from64('utf8name')
 
   const functionName = (!utf8name || !length) ? '' : (emnapiUtf8ToString(utf8name, length))
@@ -55,7 +55,7 @@ function _$emnapiCreateFunction<F extends (...args: any[]) => any> (envObject: e
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 declare const emnapiDefineProperty: typeof _$emnapiDefineProperty
-function _$emnapiDefineProperty (envObject: emnapi.Env, obj: object, propertyName: string | symbol, method: napi_callback, getter: napi_callback, setter: napi_callback, value: napi_value, attributes: number, data: void_p): void {
+function _$emnapiDefineProperty (envObject: Env, obj: object, propertyName: string | symbol, method: napi_callback, getter: napi_callback, setter: napi_callback, value: napi_value, attributes: number, data: void_p): void {
   if (getter || setter) {
     let localGetter: () => any
     let localSetter: (v: any) => void
@@ -119,7 +119,7 @@ function _$emnapiWrap (type: WrapType, env: napi_env, js_object: napi_value, nat
       if (!finalize_cb) return envObject.setLastError(napi_status.napi_invalid_arg)
     }
 
-    let reference: emnapi.Reference
+    let reference: Reference
     if (result) {
       if (!finalize_cb) return envObject.setLastError(napi_status.napi_invalid_arg)
       reference = emnapiRt.Reference.create(envObject, handle.id, 0, emnapiRt.Ownership.kUserland, finalize_cb, native_object, finalize_hint)

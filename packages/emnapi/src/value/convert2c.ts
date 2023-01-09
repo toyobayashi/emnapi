@@ -15,7 +15,7 @@ declare type ViewConstuctor =
 
 declare interface PointerInfo {
   address: void_p
-  ownership: emnapi.Ownership
+  ownership: Ownership
   runtimeAllocated: 0 | 1
 }
 
@@ -49,7 +49,7 @@ mergeInto(LibraryManager.library, {
 
     getArrayBufferPointer: function (arrayBuffer: ArrayBuffer, shouldCopy: boolean): PointerInfo {
       if (arrayBuffer === HEAPU8.buffer) {
-        return { address: 0, ownership: 0 /* emnapi.Ownership.kRuntime */, runtimeAllocated: 0 }
+        return { address: 0, ownership: Ownership.kRuntime, runtimeAllocated: 0 }
       }
 
       if (emnapiExternalMemory.table.has(arrayBuffer)) {
@@ -57,7 +57,7 @@ mergeInto(LibraryManager.library, {
       }
 
       if (!shouldCopy) {
-        return { address: 0, ownership: 0 /* emnapi.Ownership.kRuntime */, runtimeAllocated: 0 }
+        return { address: 0, ownership: Ownership.kRuntime, runtimeAllocated: 0 }
       }
 
       const pointer = $makeMalloc('$emnapiExternalMemory.getArrayBufferPointer', 'arrayBuffer.byteLength')
@@ -65,7 +65,7 @@ mergeInto(LibraryManager.library, {
       HEAPU8.set(new Uint8Array(arrayBuffer), pointer)
       const pointerInfo: PointerInfo = {
         address: pointer,
-        ownership: emnapiExternalMemory.registry ? 0 /* emnapi.Ownership.kRuntime */ : 1 /* emnapi.Ownership.kUserland */,
+        ownership: emnapiExternalMemory.registry ? Ownership.kRuntime : Ownership.kUserland,
         runtimeAllocated: 1
       }
       emnapiExternalMemory.table.set(arrayBuffer, pointerInfo)
@@ -80,7 +80,7 @@ mergeInto(LibraryManager.library, {
             Ctor: view.constructor as any,
             address: view.byteOffset,
             length: view instanceof DataView ? view.byteLength : (view as any).length,
-            ownership: 1 /* emnapi.Ownership.kUserland */,
+            ownership: Ownership.kUserland,
             runtimeAllocated: 0
           })
         }
@@ -122,7 +122,7 @@ mergeInto(LibraryManager.library, {
           const { address, ownership, runtimeAllocated } = emnapiExternalMemory.wasmMemoryViewTable.get(view)!
           return { address, ownership, runtimeAllocated, view }
         }
-        return { address: view.byteOffset, ownership: 1 /* emnapi.Ownership.kUserland */, runtimeAllocated: 0, view }
+        return { address: view.byteOffset, ownership: Ownership.kUserland, runtimeAllocated: 0, view }
       }
 
       const { address, ownership, runtimeAllocated } = emnapiExternalMemory.getArrayBufferPointer(view.buffer, shouldCopy)

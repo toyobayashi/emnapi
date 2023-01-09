@@ -2,6 +2,7 @@
 node_modules
 /script
 /lib/**/*.d.ts
+/lib/**/*.d.ts.map
 /src
 .gitignore
 .npmignore

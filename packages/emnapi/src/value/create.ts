@@ -128,7 +128,7 @@ function napi_create_external_arraybuffer (
       u8arr.set(HEAPU8.subarray(external_data, external_data + byte_length))
       emnapiExternalMemory.table.set(arrayBuffer, {
         address: external_data,
-        ownership: 1 /* emnapi.Ownership.kUserland */,
+        ownership: Ownership.kUserland,
         runtimeAllocated: 0
       })
     }
@@ -208,7 +208,7 @@ function napi_create_typedarray (
     $from64('byte_offset')
     $from64('length')
 
-    const createTypedArray = function (envObject: emnapi.Env, Type: { new (...args: any[]): ArrayBufferView; name?: string }, size_of_element: number, buffer: ArrayBuffer, byte_offset: size_t, length: size_t): napi_status {
+    const createTypedArray = function (envObject: Env, Type: { new (...args: any[]): ArrayBufferView; name?: string }, size_of_element: number, buffer: ArrayBuffer, byte_offset: size_t, length: size_t): napi_status {
       byte_offset = byte_offset >>> 0
       length = length >>> 0
       if (size_of_element > 1) {
@@ -233,7 +233,7 @@ function napi_create_typedarray (
             Ctor: Type as any,
             address: byte_offset,
             length,
-            ownership: 1 /* emnapi.Ownership.kUserland */,
+            ownership: Ownership.kUserland,
             runtimeAllocated: 0
           })
         }
@@ -307,7 +307,7 @@ function napi_create_buffer (
         Ctor: Buffer,
         address: pointer,
         length: size,
-        ownership: emnapiExternalMemory.registry ? 0 /* emnapi.Ownership.kRuntime */ : 1 /* emnapi.Ownership.kUserland */,
+        ownership: emnapiExternalMemory.registry ? Ownership.kRuntime : Ownership.kUserland,
         runtimeAllocated: 1
       }
       emnapiExternalMemory.wasmMemoryViewTable.set(buffer, viewDescriptor)
@@ -405,7 +405,7 @@ function napi_create_dataview (
           Ctor: DataView,
           address: byte_offset,
           length: byte_length,
-          ownership: 1 /* emnapi.Ownership.kUserland */,
+          ownership: Ownership.kUserland,
           runtimeAllocated: 0
         })
       }

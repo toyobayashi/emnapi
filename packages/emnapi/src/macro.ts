@@ -10,11 +10,11 @@ function $CHECK_ENV (env: napi_env): any {
   if (env == 0) return napi_status.napi_invalid_arg
 }
 
-function $CHECK_ARG (env: emnapi.Env, arg: void_p): any {
+function $CHECK_ARG (env: Env, arg: void_p): any {
   if (arg == 0) return env.setLastError(napi_status.napi_invalid_arg)
 }
 
-function $PREAMBLE (env: number, fn: (envObject: emnapi.Env) => napi_status): napi_status {
+function $PREAMBLE (env: number, fn: (envObject: Env) => napi_status): napi_status {
   $CHECK_ENV!(env)
   const envObject = emnapiCtx.envStore.get(env)!
   if (envObject.tryCatch.hasCaught()) return envObject.setLastError(napi_status.napi_pending_exception)
@@ -28,7 +28,7 @@ function $PREAMBLE (env: number, fn: (envObject: emnapi.Env) => napi_status): na
 }
 
 function $INLINE_SET_ERROR_CODE (
-  env: emnapi.Env,
+  env: Env,
   error: Error & { code?: string },
   code_value: napi_value,
   code_string: const_char_p
