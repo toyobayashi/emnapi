@@ -1,11 +1,5 @@
+import type { Env } from './env'
 import { isReferenceType, _global, Buffer } from './util'
-
-/** @internal */
-export interface IReferenceBinding {
-  wrapped: number // wrapped Reference id
-  tag: [number, number, number, number] | null
-  data: void_p
-}
 
 /** @internal */
 export class Handle<S> {
@@ -19,8 +13,8 @@ export class Handle<S> {
     this.value = value
   }
 
-  public data (): void_p {
-    return HandleStore.getObjectBinding(this.value as any).data
+  public data (envObject: Env): void_p {
+    return envObject.getObjectBinding(this.value as any).data
   }
 
   public isEmpty (): boolean {
@@ -111,7 +105,7 @@ export class ConstHandle<S extends undefined | null | boolean | typeof globalThi
   public override dispose (): void {}
 }
 
-function External (this: any): void {
+export function External (this: any): void {
   Object.setPrototypeOf(this, null)
 }
 External.prototype = null as any
@@ -143,26 +137,6 @@ export class HandleStore {
 
   private _next: number = HandleStore.MIN_ID
 
-  // js object -> IReferenceBinding
-  private static readonly _objWeakMap: WeakMap<object, IReferenceBinding> = new WeakMap()
-
-  public static initObjectBinding<S extends object> (value: S): IReferenceBinding {
-    const binding: IReferenceBinding = {
-      wrapped: 0,
-      tag: null,
-      data: 0
-    }
-    HandleStore._objWeakMap.set(value, binding)
-    return binding
-  }
-
-  public static getObjectBinding<S extends object> (value: S): IReferenceBinding {
-    if (HandleStore._objWeakMap.has(value)) {
-      return HandleStore._objWeakMap.get(value)!
-    }
-    return HandleStore.initObjectBinding(value)
-  }
-
   public push<S> (value: S): Handle<S> {
     let h: Handle<S>
     const next = this._next
@@ -175,14 +149,6 @@ export class HandleStore {
       values[next] = h
     }
     this._next++
-    return h
-  }
-
-  public pushExternal (data: void_p): Handle<object> {
-    const value = new (External as any)()
-    const h = this.push(value)
-    const binding = HandleStore.initObjectBinding(value)
-    binding.data = data
     return h
   }
 

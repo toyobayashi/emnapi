@@ -39,7 +39,7 @@ export class Reference extends RefBase implements IStoreValue {
   public persistent!: Persistent<object>
 
   private constructor (
-    public envObject: Env,
+    envObject: Env,
     initialRefcount: uint32_t,
     ownership: Ownership,
     finalize_callback: napi_finalize = 0,

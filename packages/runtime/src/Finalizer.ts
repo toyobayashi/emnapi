@@ -3,7 +3,7 @@ import type { Env } from './env'
 /** @internal */
 export class Finalizer {
   public constructor (
-    protected envObject: Env,
+    public envObject: Env,
     protected _finalizeCallback: napi_finalize = 0,
     protected _finalizeData: void_p = 0,
     protected _finalizeHint: void_p = 0

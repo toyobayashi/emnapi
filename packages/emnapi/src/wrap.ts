@@ -112,7 +112,7 @@ function napi_type_tag_object (env: napi_env, object: napi_value, type_tag: Cons
     if (!type_tag) {
       return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_invalid_arg)
     }
-    const binding = emnapiRt.HandleStore.getObjectBinding(value.value)
+    const binding = envObject.getObjectBinding(value.value)
     if (binding.tag !== null) {
       return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_invalid_arg)
     }
@@ -144,7 +144,7 @@ function napi_check_object_type_tag (env: napi_env, object: napi_value, type_tag
       return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_invalid_arg)
     }
     let ret = true
-    const binding = emnapiRt.HandleStore.getObjectBinding(value.value)
+    const binding = envObject.getObjectBinding(value.value)
     if (binding.tag !== null) {
       $from64('type_tag')
       for (let i = 0; i < 4; i++) {

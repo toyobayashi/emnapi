@@ -504,7 +504,7 @@ function napi_get_value_external (env: napi_env, value: napi_value, result: void
   $from64('result')
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const p = handle.data()
+  const p = handle.data(envObject)
   $makeSetValue('result', 0, 'p', '*')
   return envObject.clearLastError()
 }

@@ -112,7 +112,7 @@ function _$emnapiWrap (type: WrapType, env: napi_env, js_object: napi_value, nat
     }
 
     if (type === WrapType.retrievable) {
-      if (emnapiRt.HandleStore.getObjectBinding(handle.value).wrapped !== 0) {
+      if (envObject.getObjectBinding(handle.value).wrapped !== 0) {
         return envObject.setLastError(napi_status.napi_invalid_arg)
       }
     } else if (type === WrapType.anonymous) {
@@ -131,7 +131,7 @@ function _$emnapiWrap (type: WrapType, env: napi_env, js_object: napi_value, nat
     }
 
     if (type === WrapType.retrievable) {
-      emnapiRt.HandleStore.getObjectBinding(handle.value).wrapped = reference.id
+      envObject.getObjectBinding(handle.value).wrapped = reference.id
     }
     return envObject.getReturnStatus()
   })
@@ -152,7 +152,7 @@ function _$emnapiUnwrap (env: napi_env, js_object: napi_value, result: void_pp, 
     if (!(value.isObject() || value.isFunction())) {
       return envObject.setLastError(napi_status.napi_invalid_arg)
     }
-    const binding = emnapiRt.HandleStore.getObjectBinding(value.value)
+    const binding = envObject.getObjectBinding(value.value)
     const referenceId = binding.wrapped
     const ref = emnapiCtx.refStore.get(referenceId)
     if (!ref) return envObject.setLastError(napi_status.napi_invalid_arg)

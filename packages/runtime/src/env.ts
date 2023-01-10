@@ -6,6 +6,13 @@ import { RefTracker } from './RefTracker'
 import { RefBase } from './RefBase'
 
 /** @internal */
+export interface IReferenceBinding {
+  wrapped: number // wrapped Reference id
+  tag: [number, number, number, number] | null
+  data: void_p
+}
+
+/** @internal */
 export interface ILastError {
   setErrorMessage: (ptr: number | bigint) => void
   getErrorCode: () => number
@@ -159,5 +166,25 @@ export class Env implements IStoreValue {
 
     this.tryCatch.extractException()
     this.ctx.envStore.remove(this.id)
+  }
+
+  // js object -> IReferenceBinding
+  private readonly _bindingMap: WeakMap<object, IReferenceBinding> = new WeakMap()
+
+  public initObjectBinding<S extends object> (value: S): IReferenceBinding {
+    const binding: IReferenceBinding = {
+      wrapped: 0,
+      tag: null,
+      data: 0
+    }
+    this._bindingMap.set(value, binding)
+    return binding
+  }
+
+  public getObjectBinding<S extends object> (value: S): IReferenceBinding {
+    if (this._bindingMap.has(value)) {
+      return this._bindingMap.get(value)!
+    }
+    return this.initObjectBinding(value)
   }
 }
