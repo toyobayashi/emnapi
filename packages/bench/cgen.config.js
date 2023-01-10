@@ -52,7 +52,7 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
         sources: ['../emnapi/src/emnapi.c'],
         publicIncludePaths: ['../emnapi/include'],
         compileOptions: [...compilerFlags],
-        publicLinkOptions: [`--js-library=${require('path').join(__dirname, '../emnapi/dist/library_napi_no_runtime.js')}`]
+        publicLinkOptions: [`--js-library=${require('path').join(__dirname, '../emnapi/dist/library_napi.js')}`]
       },
       {
         name: 'embindcpp',
