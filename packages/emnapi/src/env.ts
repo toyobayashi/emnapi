@@ -1,10 +1,10 @@
 function napi_set_instance_data (env: napi_env, data: void_p, finalize_cb: napi_finalize, finalize_hint: void_p): napi_status {
   $CHECK_ENV!(env)
   const envObject = emnapiCtx.envStore.get(env)!
-  if (envObject.instanceData) {
-    envObject.instanceData.dispose()
-  }
-  envObject.instanceData = new emnapiRt.RefBase(envObject, 0, emnapiRt.Ownership.kRuntime, finalize_cb, data, finalize_hint)
+  $from64('data')
+  $from64('finalize_cb')
+  $from64('finalize_hint')
+  envObject.setInstanceData(data, finalize_cb, finalize_hint)
   return envObject.clearLastError()
 }
 
@@ -15,7 +15,7 @@ function napi_get_instance_data (env: napi_env, data: void_pp): napi_status {
   $from64('data')
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const value = envObject.instanceData ? envObject.instanceData.data() : 0
+  const value = envObject.getInstanceData()
   $makeSetValue('data', 0, 'value', '*')
   return envObject.clearLastError()
 }

@@ -3,7 +3,7 @@ import type { Context } from './Context'
 import type { IStoreValue } from './Store'
 import { TryCatch, _setImmediate } from './util'
 import { RefTracker } from './RefTracker'
-import { RefBase } from './RefBase'
+import { Ownership, RefBase } from './RefBase'
 
 /** @internal */
 export interface IReferenceBinding {
@@ -186,5 +186,16 @@ export class Env implements IStoreValue {
       return this._bindingMap.get(value)!
     }
     return this.initObjectBinding(value)
+  }
+
+  setInstanceData (data: number, finalize_cb: number, finalize_hint: number): void {
+    if (this.instanceData) {
+      this.instanceData.dispose()
+    }
+    this.instanceData = new RefBase(this, 0, Ownership.kRuntime, finalize_cb, data, finalize_hint)
+  }
+
+  getInstanceData (): number {
+    return this.instanceData ? this.instanceData.data() : 0
   }
 }
