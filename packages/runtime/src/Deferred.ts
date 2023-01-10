@@ -1,4 +1,4 @@
-import type { Env } from './env'
+import type { Context } from './Context'
 import type { IStoreValue } from './Store'
 
 /** @internal */
@@ -9,19 +9,19 @@ export interface IDeferrdValue<T = any> {
 
 /** @internal */
 export class Deferred<T = any> implements IStoreValue {
-  public static create<T = any> (envObject: Env, value: IDeferrdValue<T>): Deferred {
-    const deferred = new Deferred<T>(envObject, value)
-    envObject.ctx.deferredStore.add(deferred)
+  public static create<T = any> (ctx: Context, value: IDeferrdValue<T>): Deferred {
+    const deferred = new Deferred<T>(ctx, value)
+    ctx.deferredStore.add(deferred)
     return deferred
   }
 
   public id: number
-  public envObject: Env
+  public ctx: Context
   public value: IDeferrdValue<T>
 
-  public constructor (envObject: Env, value: IDeferrdValue<T>) {
+  public constructor (ctx: Context, value: IDeferrdValue<T>) {
     this.id = 0
-    this.envObject = envObject
+    this.ctx = ctx
     this.value = value
   }
 
@@ -36,7 +36,7 @@ export class Deferred<T = any> implements IStoreValue {
   }
 
   public dispose (): void {
-    this.envObject.ctx.deferredStore.remove(this.id)
+    this.ctx.deferredStore.remove(this.id)
     this.id = 0
     this.value = null!
   }

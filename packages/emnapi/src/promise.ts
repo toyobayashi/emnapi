@@ -8,7 +8,7 @@ function napi_create_promise (env: napi_env, deferred: Pointer<napi_deferred>, p
     $CHECK_ARG!(envObject, promise)
 
     const p = new Promise<any>((resolve, reject) => {
-      const deferredObject = emnapiRt.Deferred.create<any>(envObject, { resolve, reject })
+      const deferredObject = emnapiCtx.createDeferred({ resolve, reject })
       deferredObjectId = deferredObject.id
       $from64('deferred')
       $makeSetValue('deferred', 0, 'deferredObjectId', '*')

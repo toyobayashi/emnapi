@@ -20,6 +20,7 @@ import { CallbackInfoStack } from './CallbackInfo'
 import { NotSupportWeakRefError, NotSupportBigIntError } from './errors'
 import { Reference } from './Reference'
 import type { Ownership } from './RefBase'
+import { type IDeferrdValue, Deferred } from './Deferred'
 
 /** @internal */
 export class Context {
@@ -65,6 +66,10 @@ export class Context {
       finalize_data,
       finalize_hint
     )
+  }
+
+  createDeferred<T = any> (value: IDeferrdValue<T>): Deferred<T> {
+    return Deferred.create(this, value)
   }
 
   /** @internal */
