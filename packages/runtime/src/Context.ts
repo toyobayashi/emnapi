@@ -18,6 +18,8 @@ import {
 } from './util'
 import { CallbackInfoStack } from './CallbackInfo'
 import { NotSupportWeakRefError, NotSupportBigIntError } from './errors'
+import { Reference } from './Reference'
+import type { Ownership } from './RefBase'
 
 /** @internal */
 export class Context {
@@ -43,6 +45,26 @@ export class Context {
 
   createNotSupportBigIntError (api: string, message: string): NotSupportBigIntError {
     return new NotSupportBigIntError(api, message)
+  }
+
+  public createReference (
+    envObject: Env,
+    handle_id: napi_value,
+    initialRefcount: uint32_t,
+    ownership: Ownership,
+    finalize_callback: napi_finalize = 0,
+    finalize_data: void_p = 0,
+    finalize_hint: void_p = 0
+  ): Reference {
+    return Reference.create(
+      envObject,
+      handle_id,
+      initialRefcount,
+      ownership,
+      finalize_callback,
+      finalize_data,
+      finalize_hint
+    )
   }
 
   /** @internal */

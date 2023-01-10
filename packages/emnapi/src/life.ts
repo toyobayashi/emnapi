@@ -80,7 +80,7 @@ function napi_create_reference (
     return envObject.setLastError(napi_status.napi_object_expected)
   }
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const ref = emnapiRt.Reference.create(envObject, handle.id, initial_refcount >>> 0, emnapiRt.Ownership.kUserland)
+  const ref = emnapiCtx.createReference(envObject, handle.id, initial_refcount >>> 0, Ownership.kUserland as any)
   $from64('result')
   $makeSetValue('result', 0, 'ref.id', '*')
   return envObject.clearLastError()

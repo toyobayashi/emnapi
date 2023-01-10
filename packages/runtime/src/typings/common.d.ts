@@ -20,3 +20,8 @@ declare const enum GlobalHandle {
   TRUE,
   GLOBAL
 }
+
+declare const enum Ownership {
+  kRuntime,
+  kUserland
+}
