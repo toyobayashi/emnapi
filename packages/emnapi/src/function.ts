@@ -137,7 +137,7 @@ function napi_new_instance (
     const Ctor: new (...args: any[]) => any = emnapiCtx.handleStore.get(constructor)!.value
     if (typeof Ctor !== 'function') return envObject.setLastError(napi_status.napi_invalid_arg)
     let ret: any
-    if (emnapiRt.supportReflect) {
+    if (emnapiCtx.feature.supportReflect) {
       const argList = Array(argc)
       for (i = 0; i < argc; i++) {
         const argVal = $makeGetValue('argv', 'i * ' + POINTER_SIZE, '*')

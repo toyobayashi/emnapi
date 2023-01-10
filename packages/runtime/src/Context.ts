@@ -6,25 +6,43 @@ import { HandleStore } from './Handle'
 import type { Handle } from './Handle'
 import type { HandleScope } from './HandleScope'
 import type { Env } from './env'
-import { _global } from './util'
+import {
+  _global,
+  supportReflect,
+  supportFinalizer,
+  supportBigInt,
+  supportNewFunction,
+  canSetFunctionName,
+  _setImmediate,
+  Buffer
+} from './util'
 import { CallbackInfoStack } from './CallbackInfo'
+import { NotSupportWeakRefError, NotSupportBigIntError } from './errors'
 
 /** @internal */
 export class Context {
-  public envStore: EnvStore
-  public scopeStore: ScopeStore
-  public refStore: RefStore
-  public deferredStore: DeferredStore
-  public handleStore: HandleStore
-  public cbinfoStack: CallbackInfoStack
+  public envStore = new EnvStore()
+  public scopeStore = new ScopeStore()
+  public refStore = new RefStore()
+  public deferredStore = new DeferredStore()
+  public handleStore = new HandleStore()
+  public cbinfoStack = new CallbackInfoStack()
+  public feature = {
+    supportReflect,
+    supportFinalizer,
+    supportBigInt,
+    supportNewFunction,
+    canSetFunctionName,
+    setImmediate: _setImmediate,
+    Buffer
+  }
 
-  constructor () {
-    this.envStore = new EnvStore()
-    this.scopeStore = new ScopeStore()
-    this.refStore = new RefStore()
-    this.deferredStore = new DeferredStore()
-    this.handleStore = new HandleStore()
-    this.cbinfoStack = new CallbackInfoStack()
+  createNotSupportWeakRefError (api: string, message: string): NotSupportWeakRefError {
+    return new NotSupportWeakRefError(api, message)
+  }
+
+  createNotSupportBigIntError (api: string, message: string): NotSupportBigIntError {
+    return new NotSupportBigIntError(api, message)
   }
 
   /** @internal */

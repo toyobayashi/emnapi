@@ -74,10 +74,7 @@ function napi_create_reference (
   const envObject = emnapiCtx.envStore.get(env)!
   $CHECK_ARG!(envObject, value)
   $CHECK_ARG!(envObject, result)
-  /* if (!emnapiRt.supportFinalizer && initial_refcount === 0) {
-    envObject.tryCatch.setError(new emnapiRt.NotSupportWeakRefError('napi_create_reference', 'Parameter "initial_refcount" must be a positive integer'))
-    return envObject.setLastError(napi_status.napi_pending_exception)
-  } */
+
   const handle = emnapiCtx.handleStore.get(value)!
   if (!(handle.isObject() || handle.isFunction())) {
     return envObject.setLastError(napi_status.napi_object_expected)
@@ -126,10 +123,7 @@ function napi_reference_unref (
   $CHECK_ARG!(envObject, ref)
   const reference = emnapiCtx.refStore.get(ref)!
   const refcount = reference.refCount()
-  /* if (!emnapiRt.supportFinalizer && refcount === 1) {
-    envObject.tryCatch.setError(new emnapiRt.NotSupportWeakRefError('napi_reference_unref', 'Can not unref a ref which count is 1'))
-    return envObject.setLastError(napi_status.napi_pending_exception)
-  } */
+
   if (refcount === 0) {
     return envObject.setLastError(napi_status.napi_generic_failure)
   }

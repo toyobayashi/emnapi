@@ -21,15 +21,8 @@ export { ScopeStore } from './ScopeStore'
 export { Store, type IStoreValue } from './Store'
 
 export {
-  supportReflect,
-  supportFinalizer,
-  supportBigInt,
-  supportNewFunction,
-  canSetFunctionName,
   isReferenceType,
-  TryCatch,
-  _setImmediate,
-  Buffer
+  TryCatch
 } from './util'
 
 declare const __VERSION__: string

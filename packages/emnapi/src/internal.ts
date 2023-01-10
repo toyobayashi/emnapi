@@ -35,7 +35,7 @@ function _$emnapiCreateFunction<F extends (...args: any[]) => any> (envObject: E
   }
 
 // #if DYNAMIC_EXECUTION
-    if (emnapiRt.supportNewFunction) {
+    if (emnapiCtx.feature.supportNewFunction) {
       f = (new Function('_',
         'return function ' + functionName + '(){' +
           '"use strict";' +
@@ -44,11 +44,11 @@ function _$emnapiCreateFunction<F extends (...args: any[]) => any> (envObject: E
       ))(makeFunction())
     } else {
       f = makeFunction() as F
-      if (emnapiRt.canSetFunctionName) Object.defineProperty(f, 'name', { value: functionName })
+      if (emnapiCtx.feature.canSetFunctionName) Object.defineProperty(f, 'name', { value: functionName })
     }
 // #else
     f = makeFunction() as F
-    if (emnapiRt.canSetFunctionName) Object.defineProperty(f, 'name', { value: functionName })
+    if (emnapiCtx.feature.canSetFunctionName) Object.defineProperty(f, 'name', { value: functionName })
 // #endif
   return { status: napi_status.napi_ok, f }
 }

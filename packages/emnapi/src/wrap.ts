@@ -75,15 +75,15 @@ function napi_define_class (
 }
 
 function napi_wrap (env: napi_env, js_object: napi_value, native_object: void_p, finalize_cb: napi_finalize, finalize_hint: void_p, result: Pointer<napi_ref>): napi_status {
-  if (!emnapiRt.supportFinalizer) {
+  if (!emnapiCtx.feature.supportFinalizer) {
     if (finalize_cb) {
       $PREAMBLE!(env, () => {
-        throw new emnapiRt.NotSupportWeakRefError('napi_wrap', 'Parameter "finalize_cb" must be 0(NULL)')
+        throw emnapiCtx.createNotSupportWeakRefError('napi_wrap', 'Parameter "finalize_cb" must be 0(NULL)')
       })
     }
     if (result) {
       $PREAMBLE!(env, () => {
-        throw new emnapiRt.NotSupportWeakRefError('napi_wrap', 'Parameter "result" must be 0(NULL)')
+        throw emnapiCtx.createNotSupportWeakRefError('napi_wrap', 'Parameter "result" must be 0(NULL)')
       })
     }
   }
@@ -165,9 +165,9 @@ function napi_check_object_type_tag (env: napi_env, object: napi_value, type_tag
 }
 
 function napi_add_finalizer (env: napi_env, js_object: napi_value, native_object: void_p, finalize_cb: napi_finalize, finalize_hint: void_p, result: Pointer<napi_ref>): napi_status {
-  if (!emnapiRt.supportFinalizer) {
+  if (!emnapiCtx.feature.supportFinalizer) {
     $PREAMBLE!(env, () => {
-      throw new emnapiRt.NotSupportWeakRefError('napi_add_finalizer', 'This API is unavailable')
+      throw emnapiCtx.createNotSupportWeakRefError('napi_add_finalizer', 'This API is unavailable')
     })
   }
   return emnapiWrap(WrapType.anonymous, env, js_object, native_object, finalize_cb, finalize_hint, result)

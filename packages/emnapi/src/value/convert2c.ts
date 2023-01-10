@@ -103,7 +103,7 @@ mergeInto(LibraryManager.library, {
         const info = emnapiExternalMemory.wasmMemoryViewTable.get(view)!
         const Ctor = info.Ctor
         let newView: ArrayBufferView
-        const Buffer = emnapiRt.Buffer
+        const Buffer = emnapiCtx.feature.Buffer
         if (typeof Buffer === 'function' && Ctor === Buffer) {
           newView = Buffer.from(HEAPU8.buffer, info.address, info.length)
         } else {
@@ -372,8 +372,8 @@ function napi_get_value_double (env: napi_env, value: napi_value, result: Pointe
 function napi_get_value_bigint_int64 (env: napi_env, value: napi_value, result: Pointer<int64_t>, lossless: Pointer<bool>): napi_status {
   $CHECK_ENV!(env)
   const envObject = emnapiCtx.envStore.get(env)!
-  if (!emnapiRt.supportBigInt) {
-    envObject.tryCatch.setError(new emnapiRt.NotSupportBigIntError('napi_get_value_bigint_int64', 'This API is unavailable'))
+  if (!emnapiCtx.feature.supportBigInt) {
+    envObject.tryCatch.setError(emnapiCtx.createNotSupportBigIntError('napi_get_value_bigint_int64', 'This API is unavailable'))
     return envObject.setLastError(napi_status.napi_pending_exception)
   }
   $CHECK_ARG!(envObject, value)
@@ -405,8 +405,8 @@ function napi_get_value_bigint_int64 (env: napi_env, value: napi_value, result: 
 function napi_get_value_bigint_uint64 (env: napi_env, value: napi_value, result: Pointer<uint64_t>, lossless: Pointer<bool>): napi_status {
   $CHECK_ENV!(env)
   const envObject = emnapiCtx.envStore.get(env)!
-  if (!emnapiRt.supportBigInt) {
-    envObject.tryCatch.setError(new emnapiRt.NotSupportBigIntError('napi_get_value_bigint_uint64', 'This API is unavailable'))
+  if (!emnapiCtx.feature.supportBigInt) {
+    envObject.tryCatch.setError(emnapiCtx.createNotSupportBigIntError('napi_get_value_bigint_uint64', 'This API is unavailable'))
     return envObject.setLastError(napi_status.napi_pending_exception)
   }
   $CHECK_ARG!(envObject, value)
@@ -441,8 +441,8 @@ function napi_get_value_bigint_words (
 ): napi_status {
   $CHECK_ENV!(env)
   const envObject = emnapiCtx.envStore.get(env)!
-  if (!emnapiRt.supportBigInt) {
-    envObject.tryCatch.setError(new emnapiRt.NotSupportBigIntError('napi_get_value_bigint_words', 'This API is unavailable'))
+  if (!emnapiCtx.feature.supportBigInt) {
+    envObject.tryCatch.setError(emnapiCtx.createNotSupportBigIntError('napi_get_value_bigint_words', 'This API is unavailable'))
     return envObject.setLastError(napi_status.napi_pending_exception)
   }
   $CHECK_ARG!(envObject, value)

@@ -65,8 +65,8 @@ function emnapi_create_memory_view (
     if ((external_data + byte_length) > HEAPU8.buffer.byteLength) {
       throw new RangeError('Memory out of range')
     }
-    if (!emnapiRt.supportFinalizer && finalize_cb) {
-      throw new emnapiRt.NotSupportWeakRefError('emnapi_create_memory_view', 'Parameter "finalize_cb" must be 0(NULL)')
+    if (!emnapiCtx.feature.supportFinalizer && finalize_cb) {
+      throw emnapiCtx.createNotSupportWeakRefError('emnapi_create_memory_view', 'Parameter "finalize_cb" must be 0(NULL)')
     }
 
     let viewDescriptor: MemoryViewDescriptor
@@ -108,13 +108,13 @@ function emnapi_create_memory_view (
         viewDescriptor = { Ctor: DataView, address: external_data, length: byte_length, ownership: Ownership.kUserland, runtimeAllocated: 0 }
         break
       case emnapi_memory_view_type.emnapi_buffer:
-        viewDescriptor = { Ctor: emnapiRt.Buffer!, address: external_data, length: byte_length, ownership: Ownership.kUserland, runtimeAllocated: 0 }
+        viewDescriptor = { Ctor: emnapiCtx.feature.Buffer!, address: external_data, length: byte_length, ownership: Ownership.kUserland, runtimeAllocated: 0 }
         break
       default: return envObject.setLastError(napi_status.napi_invalid_arg)
     }
     const Ctor = viewDescriptor.Ctor
     const typedArray = typedarray_type === emnapi_memory_view_type.emnapi_buffer
-      ? emnapiRt.Buffer!.from(HEAPU8.buffer, viewDescriptor.address, viewDescriptor.length)
+      ? emnapiCtx.feature.Buffer!.from(HEAPU8.buffer, viewDescriptor.address, viewDescriptor.length)
       : new Ctor(HEAPU8.buffer, viewDescriptor.address, viewDescriptor.length)
     const handle = emnapiCtx.addToCurrentScope(typedArray)
     emnapiExternalMemory.wasmMemoryViewTable.set(typedArray, viewDescriptor)
@@ -135,11 +135,11 @@ function emnapi_create_memory_view (
 }
 
 function emnapi_is_support_weakref (): int {
-  return emnapiRt.supportFinalizer ? 1 : 0
+  return emnapiCtx.feature.supportFinalizer ? 1 : 0
 }
 
 function emnapi_is_support_bigint (): int {
-  return emnapiRt.supportBigInt ? 1 : 0
+  return emnapiCtx.feature.supportBigInt ? 1 : 0
 }
 
 declare function emnapiSyncMemory<T extends ArrayBuffer | ArrayBufferView> (
