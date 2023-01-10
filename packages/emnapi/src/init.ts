@@ -158,8 +158,7 @@ mergeInto(LibraryManager.library, {
       if (registered) return emnapiExports
       registered = true
 
-      env = emnapiRt.Env.create(
-        emnapiCtx,
+      env = emnapiCtx.createEnv(
         (cb: Ptr) => $makeDynCall('vppp', 'cb')
       )
       const scope = emnapiCtx.openScope(env)

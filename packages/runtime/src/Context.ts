@@ -5,7 +5,7 @@ import { DeferredStore } from './DeferredStore'
 import { HandleStore } from './Handle'
 import type { Handle } from './Handle'
 import type { HandleScope } from './HandleScope'
-import type { Env } from './env'
+import { Env } from './env'
 import {
   _global,
   supportReflect,
@@ -70,6 +70,10 @@ export class Context {
 
   createDeferred<T = any> (value: IDeferrdValue<T>): Deferred<T> {
     return Deferred.create(this, value)
+  }
+
+  createEnv (makeDynCall_vppp: (cb: Ptr) => (a: Ptr, b: Ptr, c: Ptr) => void): Env {
+    return Env.create(this, makeDynCall_vppp)
   }
 
   /** @internal */
