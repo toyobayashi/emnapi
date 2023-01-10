@@ -48,7 +48,7 @@ function napi_coerce_to_bool (env: napi_env, value: napi_value, result: Pointer<
     const handle = emnapiCtx.handleStore.get(value)!
     $from64('result')
 
-    v = handle.value ? emnapiRt.HandleStore.ID_TRUE : emnapiRt.HandleStore.ID_FALSE
+    v = handle.value ? GlobalHandle.TRUE : GlobalHandle.FALSE
     $makeSetValue('result', 0, 'v', '*')
     return envObject.getReturnStatus()
   })

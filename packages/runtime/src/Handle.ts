@@ -112,17 +112,11 @@ External.prototype = null as any
 
 /** @internal */
 export class HandleStore {
-  public static UNDEFINED = new ConstHandle(1, undefined)
-  public static NULL = new ConstHandle(2, null)
-  public static FALSE = new ConstHandle(3, false)
-  public static TRUE = new ConstHandle(4, true)
-  public static GLOBAL = new ConstHandle(5, _global)
-
-  public static ID_UNDEFINED = HandleStore.UNDEFINED.id as 1
-  public static ID_NULL = HandleStore.NULL.id as 2
-  public static ID_FALSE = HandleStore.FALSE.id as 3
-  public static ID_TRUE = HandleStore.TRUE.id as 4
-  public static ID_GLOBAL = HandleStore.GLOBAL.id as 5
+  public static UNDEFINED = new ConstHandle(GlobalHandle.UNDEFINED, undefined)
+  public static NULL = new ConstHandle(GlobalHandle.NULL, null)
+  public static FALSE = new ConstHandle(GlobalHandle.FALSE, false)
+  public static TRUE = new ConstHandle(GlobalHandle.TRUE, true)
+  public static GLOBAL = new ConstHandle(GlobalHandle.GLOBAL, _global)
 
   public static MIN_ID = 6 as const
 

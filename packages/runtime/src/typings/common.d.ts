@@ -12,3 +12,11 @@ declare interface BufferCtor {
   alloc: (size: number) => IBuffer
   isBuffer: (obj: unknown) => obj is IBuffer
 }
+
+declare const enum GlobalHandle {
+  UNDEFINED = 1,
+  NULL,
+  FALSE,
+  TRUE,
+  GLOBAL
+}

@@ -12,7 +12,7 @@ function napi_run_script (env: napi_env, script: napi_value, result: Pointer<nap
     if (!v8Script.isString()) {
       return envObject.setLastError(napi_status.napi_string_expected)
     }
-    const g: typeof globalThis = emnapiCtx.handleStore.get(emnapiRt.HandleStore.ID_GLOBAL)!.value
+    const g: typeof globalThis = emnapiCtx.handleStore.get(GlobalHandle.GLOBAL)!.value
     const ret = g.eval(v8Script.value)
     $from64('result')
 
