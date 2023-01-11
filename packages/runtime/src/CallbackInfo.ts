@@ -37,4 +37,8 @@ export class CallbackInfoStack {
     this.current = info
     return info
   }
+
+  public dispose (): void {
+    this.current = null
+  }
 }

@@ -39,5 +39,6 @@ export class Deferred<T = any> implements IStoreValue {
     this.ctx.deferredStore.remove(this.id)
     this.id = 0
     this.value = null!
+    this.ctx = null!
   }
 }

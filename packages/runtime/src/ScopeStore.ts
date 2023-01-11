@@ -46,4 +46,20 @@ export class ScopeStore {
     scope.dispose()
     envObject.openHandleScopes--
   }
+
+  dispose (): void {
+    let scope: HandleScope | null = this.currentScope
+    while (scope !== null) {
+      scope.handleStore = null!
+      scope.id = 0
+      scope.parent = null
+      scope.start = HandleStore.MIN_ID
+      scope.end = HandleStore.MIN_ID
+      scope._escapeCalled = false
+      const child: HandleScope | null = scope.child
+      scope.child = null
+      scope = child
+    }
+    this.currentScope = null!
+  }
 }

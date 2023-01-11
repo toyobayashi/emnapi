@@ -110,6 +110,21 @@ export class Context {
     const currentScope = this.scopeStore.currentScope
     return currentScope.add(value)
   }
+
+  dispose (): void {
+    this.cbinfoStack.dispose()
+    this.scopeStore.dispose()
+    this.handleStore.dispose()
+    this.deferredStore.dispose()
+    this.refStore.dispose()
+    this.envStore.dispose()
+    this.cbinfoStack = null!
+    this.scopeStore = null!
+    this.handleStore = null!
+    this.deferredStore = null!
+    this.refStore = null!
+    this.envStore = null!
+  }
 }
 
 /** @public */

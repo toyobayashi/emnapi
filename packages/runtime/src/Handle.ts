@@ -166,4 +166,9 @@ export class HandleStore {
     values[b] = h
     h.id = Number(b)
   }
+
+  public dispose (): void {
+    this._values.length = HandleStore.MIN_ID
+    this._next = HandleStore.MIN_ID
+  }
 }
