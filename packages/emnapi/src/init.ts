@@ -15,6 +15,7 @@ declare const emnapiModule: {
   exports: any
   loaded: boolean
   filename: string | null
+  envObject?: Env
 }
 
 declare interface InitOptions {
@@ -51,9 +52,11 @@ mergeInto(LibraryManager.library, {
       emnapiModule.filename = options.filename
     }
 
-    const envObject = emnapiCtx.createEnv(
+    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+    const envObject = emnapiModule.envObject || (emnapiModule.envObject = emnapiCtx.createEnv(
       (cb: Ptr) => $makeDynCall('vppp', 'cb')
-    )
+    ))
+
     const scope = emnapiCtx.openScope(envObject)
     try {
       envObject.callIntoModule((_envObject) => {
@@ -61,7 +64,6 @@ mergeInto(LibraryManager.library, {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const exportsHandle = scope.add(exports)
         const napiValue = _napi_register_wasm_v1($to64('_envObject.id'), $to64('exportsHandle.id'))
-        $from64('napiValue')
         emnapiModule.exports = (!napiValue) ? exports : emnapiCtx.handleStore.get(napiValue)!.value
       })
     } catch (err) {
@@ -70,6 +72,7 @@ mergeInto(LibraryManager.library, {
     }
     emnapiCtx.closeScope(envObject, scope)
     emnapiModule.loaded = true
+    delete emnapiModule.envObject
     return emnapiModule.exports
   }
 })
