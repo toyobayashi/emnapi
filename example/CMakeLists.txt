@@ -21,6 +21,8 @@ target_link_libraries(async emnapi-mt)
 target_compile_options(async PRIVATE "-sUSE_PTHREADS=1")
 target_link_options(async PRIVATE
   "-sALLOW_MEMORY_GROWTH=1"
+  "-sMODULARIZE=1"
+  "-sEXPORT_NAME=emscriptenInitAsyncModule"
   "-sEXPORTED_FUNCTIONS=['_malloc','_free']"
   "-sUSE_PTHREADS=1"
   "-sPTHREAD_POOL_SIZE=8"
