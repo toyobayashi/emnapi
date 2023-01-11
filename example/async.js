@@ -1,26 +1,18 @@
 (function () {
-  var Module;
+  var Module, emnapi;
   if (typeof window !== 'undefined') {
     Module = window.Module;
+    emnapi = window.emnapi;
   } else {
     Module = require('./build/async.js');
-    Module.emnapiRuntime = require('@tybys/emnapi-runtime')
+    emnapi = require('@tybys/emnapi-runtime');
   }
 
-  Module.onEmnapiInitialized = function (err, emnapiExports) {
-    if (err) {
-      console.error(err);
-    } else {
-      console.log('onEmnapiInitialized', emnapiExports === Module.emnapiExports);
-    }
-  };
+  var emnapiContext = emnapi.createContext();
 
   Module.onRuntimeInitialized = function () {
     console.log('onRuntimeInitialized');
-    if (!('emnapiExports' in Module)) {
-      return;
-    }
-    var binding = Module.emnapiExports;
+    var binding = Module.emnapiInit({ context: emnapiContext });
     Promise.all(Array.from({ length: 4 }, () => binding.async_method()))
   };
 })();

@@ -175,7 +175,6 @@ const Module = require('./hello.js')
 const emnapiContext = emnapi.createContext()
 
 Module.onRuntimeInitialized = function () {
-  if (!('emnapiExports' in Module)) return
   const binding = Module.emnapiInit({ context: emnapiContext })
   const msg = `hello ${binding.hello()}`
   console.log(msg)
@@ -256,7 +255,7 @@ cmake --build build
 
 Output code can run in recent version modern browsers and Node.js latest LTS. IE is not supported.
 
-If a JS error is thrown on runtime initialization, Node.js process will exit. You can use `-sNODEJS_CATCH_EXIT=0` and add `uncaughtException` handler yourself to avoid this. Alternatively, you can use `Module.onEmnapiInitialized` callback to catch error.
+If a JS error is thrown on runtime initialization, Node.js process will exit. You can use `-sNODEJS_CATCH_EXIT=0` and add `uncaughtException` handler yourself to avoid this.
 
 ### Multithread
 
