@@ -98,16 +98,6 @@ const char* emnapi_error_messages[] = {
   "External buffers are not allowed"
 };
 
-#define EMNAPI_MOD_NAME_X_HELPER(modname) #modname
-#define EMNAPI_MOD_NAME_X(modname) EMNAPI_MOD_NAME_X_HELPER(modname)
-
-EMSCRIPTEN_KEEPALIVE
-void _emnapi_runtime_init(const char** key) {
-  if (key) {
-    *key = EMNAPI_MOD_NAME_X(NODE_GYP_MODULE_NAME);
-  }
-}
-
 extern void _emnapi_get_last_error_info(napi_env env,
                                         napi_status* error_code,
                                         uint32_t* engine_error_code,

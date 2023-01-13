@@ -1,11 +1,5 @@
+import type { Env } from './env'
 import { isReferenceType, _global, Buffer } from './util'
-
-/** @internal */
-export interface IReferenceBinding {
-  wrapped: number // wrapped Reference id
-  tag: [number, number, number, number] | null
-  data: void_p
-}
 
 /** @internal */
 export class Handle<S> {
@@ -19,8 +13,8 @@ export class Handle<S> {
     this.value = value
   }
 
-  public data (): void_p {
-    return HandleStore.getObjectBinding(this.value as any).data
+  public data (envObject: Env): void_p {
+    return envObject.getObjectBinding(this.value as any).data
   }
 
   public isEmpty (): boolean {
@@ -111,24 +105,18 @@ export class ConstHandle<S extends undefined | null | boolean | typeof globalThi
   public override dispose (): void {}
 }
 
-function External (this: any): void {
+export function External (this: any): void {
   Object.setPrototypeOf(this, null)
 }
 External.prototype = null as any
 
 /** @internal */
 export class HandleStore {
-  public static UNDEFINED = new ConstHandle(1, undefined)
-  public static NULL = new ConstHandle(2, null)
-  public static FALSE = new ConstHandle(3, false)
-  public static TRUE = new ConstHandle(4, true)
-  public static GLOBAL = new ConstHandle(5, _global)
-
-  public static ID_UNDEFINED = HandleStore.UNDEFINED.id as 1
-  public static ID_NULL = HandleStore.NULL.id as 2
-  public static ID_FALSE = HandleStore.FALSE.id as 3
-  public static ID_TRUE = HandleStore.TRUE.id as 4
-  public static ID_GLOBAL = HandleStore.GLOBAL.id as 5
+  public static UNDEFINED = new ConstHandle(GlobalHandle.UNDEFINED, undefined)
+  public static NULL = new ConstHandle(GlobalHandle.NULL, null)
+  public static FALSE = new ConstHandle(GlobalHandle.FALSE, false)
+  public static TRUE = new ConstHandle(GlobalHandle.TRUE, true)
+  public static GLOBAL = new ConstHandle(GlobalHandle.GLOBAL, _global)
 
   public static MIN_ID = 6 as const
 
@@ -143,26 +131,6 @@ export class HandleStore {
 
   private _next: number = HandleStore.MIN_ID
 
-  // js object -> IReferenceBinding
-  private static readonly _objWeakMap: WeakMap<object, IReferenceBinding> = new WeakMap()
-
-  public static initObjectBinding<S extends object> (value: S): IReferenceBinding {
-    const binding: IReferenceBinding = {
-      wrapped: 0,
-      tag: null,
-      data: 0
-    }
-    HandleStore._objWeakMap.set(value, binding)
-    return binding
-  }
-
-  public static getObjectBinding<S extends object> (value: S): IReferenceBinding {
-    if (HandleStore._objWeakMap.has(value)) {
-      return HandleStore._objWeakMap.get(value)!
-    }
-    return HandleStore.initObjectBinding(value)
-  }
-
   public push<S> (value: S): Handle<S> {
     let h: Handle<S>
     const next = this._next
@@ -175,14 +143,6 @@ export class HandleStore {
       values[next] = h
     }
     this._next++
-    return h
-  }
-
-  public pushExternal (data: void_p): Handle<object> {
-    const value = new (External as any)()
-    const h = this.push(value)
-    const binding = HandleStore.initObjectBinding(value)
-    binding.data = data
     return h
   }
 
@@ -205,5 +165,10 @@ export class HandleStore {
     values[a]!.id = Number(a)
     values[b] = h
     h.id = Number(b)
+  }
+
+  public dispose (): void {
+    this._values.length = HandleStore.MIN_ID
+    this._next = HandleStore.MIN_ID
   }
 }

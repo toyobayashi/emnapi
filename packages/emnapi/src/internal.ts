@@ -35,7 +35,7 @@ function _$emnapiCreateFunction<F extends (...args: any[]) => any> (envObject: E
   }
 
 // #if DYNAMIC_EXECUTION
-    if (emnapiRt.supportNewFunction) {
+    if (emnapiCtx.feature.supportNewFunction) {
       f = (new Function('_',
         'return function ' + functionName + '(){' +
           '"use strict";' +
@@ -44,11 +44,11 @@ function _$emnapiCreateFunction<F extends (...args: any[]) => any> (envObject: E
       ))(makeFunction())
     } else {
       f = makeFunction() as F
-      if (emnapiRt.canSetFunctionName) Object.defineProperty(f, 'name', { value: functionName })
+      if (emnapiCtx.feature.canSetFunctionName) Object.defineProperty(f, 'name', { value: functionName })
     }
 // #else
     f = makeFunction() as F
-    if (emnapiRt.canSetFunctionName) Object.defineProperty(f, 'name', { value: functionName })
+    if (emnapiCtx.feature.canSetFunctionName) Object.defineProperty(f, 'name', { value: functionName })
 // #endif
   return { status: napi_status.napi_ok, f }
 }
@@ -112,7 +112,7 @@ function _$emnapiWrap (type: WrapType, env: napi_env, js_object: napi_value, nat
     }
 
     if (type === WrapType.retrievable) {
-      if (emnapiRt.HandleStore.getObjectBinding(handle.value).wrapped !== 0) {
+      if (envObject.getObjectBinding(handle.value).wrapped !== 0) {
         return envObject.setLastError(napi_status.napi_invalid_arg)
       }
     } else if (type === WrapType.anonymous) {
@@ -122,16 +122,16 @@ function _$emnapiWrap (type: WrapType, env: napi_env, js_object: napi_value, nat
     let reference: Reference
     if (result) {
       if (!finalize_cb) return envObject.setLastError(napi_status.napi_invalid_arg)
-      reference = emnapiRt.Reference.create(envObject, handle.id, 0, emnapiRt.Ownership.kUserland, finalize_cb, native_object, finalize_hint)
+      reference = emnapiCtx.createReference(envObject, handle.id, 0, Ownership.kUserland as any, finalize_cb, native_object, finalize_hint)
       $from64('result')
       referenceId = reference.id
       $makeSetValue('result', 0, 'referenceId', '*')
     } else {
-      reference = emnapiRt.Reference.create(envObject, handle.id, 0, emnapiRt.Ownership.kRuntime, finalize_cb, native_object, !finalize_cb ? finalize_cb : finalize_hint)
+      reference = emnapiCtx.createReference(envObject, handle.id, 0, Ownership.kRuntime as any, finalize_cb, native_object, !finalize_cb ? finalize_cb : finalize_hint)
     }
 
     if (type === WrapType.retrievable) {
-      emnapiRt.HandleStore.getObjectBinding(handle.value).wrapped = reference.id
+      envObject.getObjectBinding(handle.value).wrapped = reference.id
     }
     return envObject.getReturnStatus()
   })
@@ -152,7 +152,7 @@ function _$emnapiUnwrap (env: napi_env, js_object: napi_value, result: void_pp, 
     if (!(value.isObject() || value.isFunction())) {
       return envObject.setLastError(napi_status.napi_invalid_arg)
     }
-    const binding = emnapiRt.HandleStore.getObjectBinding(value.value)
+    const binding = envObject.getObjectBinding(value.value)
     const referenceId = binding.wrapped
     const ref = emnapiCtx.refStore.get(referenceId)
     if (!ref) return envObject.setLastError(napi_status.napi_invalid_arg)
@@ -165,7 +165,7 @@ function _$emnapiUnwrap (env: napi_env, js_object: napi_value, result: void_pp, 
     }
     if (action === UnwrapAction.RemoveWrap) {
       binding.wrapped = 0
-      if (ref.ownership() === emnapiRt.Ownership.kUserland) {
+      if (ref.ownership() === Ownership.kUserland) {
         // When the wrap is been removed, the finalizer should be reset.
         ref.resetFinalizer()
       } else {

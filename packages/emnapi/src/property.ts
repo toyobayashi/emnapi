@@ -221,7 +221,7 @@ function napi_delete_property (env: napi_env, object: napi_value, key: napi_valu
     }
     let r: boolean
     const propertyKey = emnapiCtx.handleStore.get(key)!.value
-    if (emnapiRt.supportReflect) {
+    if (emnapiCtx.feature.supportReflect) {
       r = Reflect.deleteProperty(h.value, propertyKey)
     } else {
       try {
@@ -414,7 +414,7 @@ function napi_delete_element (env: napi_env, object: napi_value, index: uint32_t
       return envObject.setLastError(napi_status.napi_object_expected)
     }
     let r: boolean
-    if (emnapiRt.supportReflect) {
+    if (emnapiCtx.feature.supportReflect) {
       r = Reflect.deleteProperty(h.value, index >>> 0)
     } else {
       try {

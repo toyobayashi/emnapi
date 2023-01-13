@@ -26,7 +26,7 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
     ? ['../emnapi/include']
     : [`${require('path').join(require('os').homedir(), 'AppData/Local/node-gyp/Cache', process.versions.node, 'include/node')}`, '../../node_modules/node-addon-api']
 
-  const jsLib = `--js-library=${require('path').join(__dirname, '../emnapi/dist/library_napi_no_runtime.js')}`
+  const jsLib = `--js-library=${require('path').join(__dirname, '../emnapi/dist/library_napi.js')}`
 
   const emnapiTarget = (pthread) => ({
     name: pthread ? 'emnapimt' : 'emnapist',

@@ -3,7 +3,14 @@ import type { Context } from './Context'
 import type { IStoreValue } from './Store'
 import { TryCatch, _setImmediate } from './util'
 import { RefTracker } from './RefTracker'
-import { RefBase } from './RefBase'
+import { Ownership, RefBase } from './RefBase'
+
+/** @internal */
+export interface IReferenceBinding {
+  wrapped: number // wrapped Reference id
+  tag: [number, number, number, number] | null
+  data: void_p
+}
 
 /** @internal */
 export interface ILastError {
@@ -159,5 +166,36 @@ export class Env implements IStoreValue {
 
     this.tryCatch.extractException()
     this.ctx.envStore.remove(this.id)
+  }
+
+  // js object -> IReferenceBinding
+  private readonly _bindingMap: WeakMap<object, IReferenceBinding> = new WeakMap()
+
+  public initObjectBinding<S extends object> (value: S): IReferenceBinding {
+    const binding: IReferenceBinding = {
+      wrapped: 0,
+      tag: null,
+      data: 0
+    }
+    this._bindingMap.set(value, binding)
+    return binding
+  }
+
+  public getObjectBinding<S extends object> (value: S): IReferenceBinding {
+    if (this._bindingMap.has(value)) {
+      return this._bindingMap.get(value)!
+    }
+    return this.initObjectBinding(value)
+  }
+
+  setInstanceData (data: number, finalize_cb: number, finalize_hint: number): void {
+    if (this.instanceData) {
+      this.instanceData.dispose()
+    }
+    this.instanceData = new RefBase(this, 0, Ownership.kRuntime, finalize_cb, data, finalize_hint)
+  }
+
+  getInstanceData (): number {
+    return this.instanceData ? this.instanceData.data() : 0
   }
 }

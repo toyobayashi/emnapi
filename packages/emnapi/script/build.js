@@ -2,9 +2,9 @@ const fs = require('fs')
 const path = require('path')
 const { compile } = require('@tybys/tsapi')
 
-const {
-  runtimeOut
-} = require('../../runtime/script/build.js')
+// const {
+//   runtimeOut
+// } = require('../../runtime/script/build.js')
 
 function replaceParseTool (code) {
   return code
@@ -26,24 +26,23 @@ async function build () {
 
   const libOut = path.join(path.dirname(libTsconfigPath), libTsconfig.compilerOptions.outFile)
 
-  const runtimeCode = fs.readFileSync(runtimeOut, 'utf8')
+  // const runtimeCode = fs.readFileSync(runtimeOut, 'utf8')
   const libCode = fs.readFileSync(libOut, 'utf8')
 
   fs.writeFileSync(libOut,
     replaceParseTool(
       libCode
-        .replace('__EMNAPI_RUNTIME_REPLACE__', `'${runtimeCode.replace(/\\/g, '\\\\').replace(/\r?\n/g, '\\n').replace(/'/g, "\\'")}emnapiRt = emnapi;'`)
     ),
     'utf8'
   )
 
-  fs.writeFileSync(path.join(path.dirname(libOut), path.basename(libOut, '.js') + '_no_runtime.js'),
-    replaceParseTool(
-      libCode
-        .replace('__EMNAPI_RUNTIME_REPLACE__', '""')
-    ),
-    'utf8'
-  )
+  // fs.writeFileSync(path.join(path.dirname(libOut), path.basename(libOut, '.js') + '_no_runtime.js'),
+  //   replaceParseTool(
+  //     libCode
+  //       .replace('__EMNAPI_RUNTIME_REPLACE__', '""')
+  //   ),
+  //   'utf8'
+  // )
 }
 
 exports.build = build

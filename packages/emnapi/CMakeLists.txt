@@ -17,7 +17,7 @@ set(EMNAPI_SRC "${CMAKE_CURRENT_SOURCE_DIR}/src/emnapi.c")
 set(EMNAPI_INCLUDE "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
 set(EMNAPI_JS_LIB "${CMAKE_CURRENT_SOURCE_DIR}/dist/library_napi.js")
-set(EMNAPI_JS_LIB_NO_RUNTIME "${CMAKE_CURRENT_SOURCE_DIR}/dist/library_napi_no_runtime.js")
+# set(EMNAPI_JS_LIB_NO_RUNTIME "${CMAKE_CURRENT_SOURCE_DIR}/dist/library_napi_no_runtime.js")
 
 set(EMNAPI_MT_CFLAGS "-sUSE_PTHREADS=1" "-sWASM_WORKERS=1")
 
@@ -27,10 +27,12 @@ set(EMNAPI_MT_CFLAGS "-sUSE_PTHREADS=1" "-sWASM_WORKERS=1")
 
 add_library(emnapi STATIC ${EMNAPI_SRC})
 target_include_directories(emnapi PUBLIC ${EMNAPI_INCLUDE})
+target_link_options(emnapi INTERFACE "--js-library=${EMNAPI_JS_LIB}")
 
 add_library(emnapi-mt STATIC ${EMNAPI_SRC} ${UV_SRC})
 target_compile_options(emnapi-mt PRIVATE ${EMNAPI_MT_CFLAGS})
 target_include_directories(emnapi-mt PUBLIC ${EMNAPI_INCLUDE})
+target_link_options(emnapi-mt INTERFACE "--js-library=${EMNAPI_JS_LIB}")
 if(EMNAPI_WORKER_POOL_SIZE)
   target_compile_definitions(emnapi-mt PRIVATE "EMNAPI_WORKER_POOL_SIZE=${EMNAPI_WORKER_POOL_SIZE}")
 endif()
@@ -40,22 +42,6 @@ endif()
 if(EMNAPI_USE_PROXYING)
   target_compile_definitions(emnapi-mt PRIVATE "EMNAPI_USE_PROXYING=${EMNAPI_USE_PROXYING}")
 endif()
-
-add_library(emnapi_full INTERFACE)
-target_link_options(emnapi_full INTERFACE "--js-library=${EMNAPI_JS_LIB}")
-target_link_libraries(emnapi_full INTERFACE emnapi)
-
-add_library(emnapi_noruntime INTERFACE)
-target_link_options(emnapi_noruntime INTERFACE "--js-library=${EMNAPI_JS_LIB_NO_RUNTIME}")
-target_link_libraries(emnapi_noruntime INTERFACE emnapi)
-
-add_library(emnapi_full-mt INTERFACE)
-target_link_options(emnapi_full-mt INTERFACE "--js-library=${EMNAPI_JS_LIB}")
-target_link_libraries(emnapi_full-mt INTERFACE emnapi-mt)
-
-add_library(emnapi_noruntime-mt INTERFACE)
-target_link_options(emnapi_noruntime-mt INTERFACE "--js-library=${EMNAPI_JS_LIB_NO_RUNTIME}")
-target_link_libraries(emnapi_noruntime-mt INTERFACE emnapi-mt)
 
 install(TARGETS emnapi DESTINATION "lib/${PROJECT_NAME}")
 install(TARGETS emnapi DESTINATION "lib/${CMAKE_LIBRARY_ARCHITECTURE}")
@@ -78,7 +64,6 @@ install(DIRECTORY
   DESTINATION "include/${PROJECT_NAME}")
 
 install(FILES
-    ${CMAKE_CURRENT_SOURCE_DIR}/dist/library_napi_no_runtime.js
     ${CMAKE_CURRENT_SOURCE_DIR}/dist/library_napi.js
   DESTINATION "lib/${PROJECT_NAME}")
 

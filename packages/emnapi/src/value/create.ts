@@ -75,12 +75,12 @@ function napi_create_external (env: napi_env, data: void_p, finalize_cb: napi_fi
 
   $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, result)
-    if (!emnapiRt.supportFinalizer && finalize_cb) {
-      throw new emnapiRt.NotSupportWeakRefError('napi_create_external', 'Parameter "finalize_cb" must be 0(NULL)')
+    if (!emnapiCtx.feature.supportFinalizer && finalize_cb) {
+      throw emnapiCtx.createNotSupportWeakRefError('napi_create_external', 'Parameter "finalize_cb" must be 0(NULL)')
     }
-    const externalHandle = emnapiCtx.getCurrentScope()!.addExternal(data)
+    const externalHandle = emnapiCtx.getCurrentScope()!.addExternal(envObject, data)
     if (finalize_cb) {
-      emnapiRt.Reference.create(envObject, externalHandle.id, 0, emnapiRt.Ownership.kRuntime, finalize_cb, data, finalize_hint)
+      emnapiCtx.createReference(envObject, externalHandle.id, 0, Ownership.kRuntime as any, finalize_cb, data, finalize_hint)
     }
     $from64('result')
     value = externalHandle.id
@@ -116,8 +116,8 @@ function napi_create_external_arraybuffer (
     if ((external_data + byte_length) > HEAPU8.buffer.byteLength) {
       throw new RangeError('Memory out of range')
     }
-    if (!emnapiRt.supportFinalizer && finalize_cb) {
-      throw new emnapiRt.NotSupportWeakRefError('napi_create_external_arraybuffer', 'Parameter "finalize_cb" must be 0(NULL)')
+    if (!emnapiCtx.feature.supportFinalizer && finalize_cb) {
+      throw emnapiCtx.createNotSupportWeakRefError('napi_create_external_arraybuffer', 'Parameter "finalize_cb" must be 0(NULL)')
     }
     const arrayBuffer = new ArrayBuffer(byte_length)
     if (byte_length === 0) {
@@ -291,7 +291,7 @@ function napi_create_buffer (
 
     $from64('result')
 
-    const Buffer = emnapiRt.Buffer!
+    const Buffer = emnapiCtx.feature.Buffer!
     let buffer: Uint8Array
     if (!data) {
       $from64('size')
@@ -338,7 +338,7 @@ function napi_create_buffer_copy (
   $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, result)
     const arrayBuffer = emnapiCreateArrayBuffer(length, result_data)
-    const Buffer = emnapiRt.Buffer!
+    const Buffer = emnapiCtx.feature.Buffer!
     const buffer = Buffer.from(arrayBuffer)
     $from64('data')
     $from64('length')

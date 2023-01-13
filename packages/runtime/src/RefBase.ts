@@ -31,7 +31,7 @@ export class RefBase extends Finalizer {
   constructor (
     envObject: Env,
     initial_refcount: uint32_t,
-    ownership: Ownership,
+    ownership: number,
     finalize_callback: napi_finalize,
     finalize_data: void_p,
     finalize_hint: void_p
@@ -70,7 +70,7 @@ export class RefBase extends Finalizer {
     return this._refcount
   }
 
-  public ownership (): Ownership {
+  public ownership (): number {
     return this._ownership
   }
 

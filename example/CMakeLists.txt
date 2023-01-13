@@ -9,8 +9,7 @@ add_executable(hello
   hello.c
 )
 
-target_link_libraries(hello emnapi_full)
-# target_link_libraries(hello emnapi_noruntime)
+target_link_libraries(hello emnapi)
 target_link_options(hello PRIVATE
   "-sEXPORTED_FUNCTIONS=['_malloc','_free']"
 )
@@ -18,11 +17,12 @@ target_link_options(hello PRIVATE
 add_executable(async
   async.c
 )
-# target_link_libraries(async emnapi_noruntime)
-target_link_libraries(async emnapi_noruntime-mt)
+target_link_libraries(async emnapi-mt)
 target_compile_options(async PRIVATE "-sUSE_PTHREADS=1")
 target_link_options(async PRIVATE
   "-sALLOW_MEMORY_GROWTH=1"
+  "-sMODULARIZE=1"
+  "-sEXPORT_NAME=emscriptenInitAsyncModule"
   "-sEXPORTED_FUNCTIONS=['_malloc','_free']"
   "-sUSE_PTHREADS=1"
   "-sPTHREAD_POOL_SIZE=8"

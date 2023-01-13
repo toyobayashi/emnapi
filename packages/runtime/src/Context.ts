@@ -5,26 +5,75 @@ import { DeferredStore } from './DeferredStore'
 import { HandleStore } from './Handle'
 import type { Handle } from './Handle'
 import type { HandleScope } from './HandleScope'
-import type { Env } from './env'
-import { _global } from './util'
+import { Env } from './env'
+import {
+  _global,
+  supportReflect,
+  supportFinalizer,
+  supportBigInt,
+  supportNewFunction,
+  canSetFunctionName,
+  _setImmediate,
+  Buffer
+} from './util'
 import { CallbackInfoStack } from './CallbackInfo'
+import { NotSupportWeakRefError, NotSupportBigIntError } from './errors'
+import { Reference } from './Reference'
+import type { Ownership } from './RefBase'
+import { type IDeferrdValue, Deferred } from './Deferred'
 
 /** @internal */
 export class Context {
-  public envStore: EnvStore
-  public scopeStore: ScopeStore
-  public refStore: RefStore
-  public deferredStore: DeferredStore
-  public handleStore: HandleStore
-  public cbinfoStack: CallbackInfoStack
+  public envStore = new EnvStore()
+  public scopeStore = new ScopeStore()
+  public refStore = new RefStore()
+  public deferredStore = new DeferredStore()
+  public handleStore = new HandleStore()
+  public cbinfoStack = new CallbackInfoStack()
+  public feature = {
+    supportReflect,
+    supportFinalizer,
+    supportBigInt,
+    supportNewFunction,
+    canSetFunctionName,
+    setImmediate: _setImmediate,
+    Buffer
+  }
 
-  constructor () {
-    this.envStore = new EnvStore()
-    this.scopeStore = new ScopeStore()
-    this.refStore = new RefStore()
-    this.deferredStore = new DeferredStore()
-    this.handleStore = new HandleStore()
-    this.cbinfoStack = new CallbackInfoStack()
+  createNotSupportWeakRefError (api: string, message: string): NotSupportWeakRefError {
+    return new NotSupportWeakRefError(api, message)
+  }
+
+  createNotSupportBigIntError (api: string, message: string): NotSupportBigIntError {
+    return new NotSupportBigIntError(api, message)
+  }
+
+  public createReference (
+    envObject: Env,
+    handle_id: napi_value,
+    initialRefcount: uint32_t,
+    ownership: Ownership,
+    finalize_callback: napi_finalize = 0,
+    finalize_data: void_p = 0,
+    finalize_hint: void_p = 0
+  ): Reference {
+    return Reference.create(
+      envObject,
+      handle_id,
+      initialRefcount,
+      ownership,
+      finalize_callback,
+      finalize_data,
+      finalize_hint
+    )
+  }
+
+  createDeferred<T = any> (value: IDeferrdValue<T>): Deferred<T> {
+    return Deferred.create(this, value)
+  }
+
+  createEnv (makeDynCall_vppp: (cb: Ptr) => (a: Ptr, b: Ptr, c: Ptr) => void): Env {
+    return Env.create(this, makeDynCall_vppp)
   }
 
   /** @internal */
@@ -60,6 +109,21 @@ export class Context {
 
     const currentScope = this.scopeStore.currentScope
     return currentScope.add(value)
+  }
+
+  dispose (): void {
+    this.cbinfoStack.dispose()
+    this.scopeStore.dispose()
+    this.handleStore.dispose()
+    this.deferredStore.dispose()
+    this.refStore.dispose()
+    this.envStore.dispose()
+    this.cbinfoStack = null!
+    this.scopeStore = null!
+    this.handleStore = null!
+    this.deferredStore = null!
+    this.refStore = null!
+    this.envStore = null!
   }
 }
 

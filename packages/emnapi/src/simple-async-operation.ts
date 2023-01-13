@@ -9,9 +9,9 @@ declare function __emnapi_next_tick (callback: number, data: number): void
 
 mergeInto(LibraryManager.library, {
   _emnapi_set_immediate__sig: 'vpp',
-  _emnapi_set_immediate__deps: ['$emnapiInit', '$emnapiRt'],
+  _emnapi_set_immediate__deps: ['$emnapiInit', '$emnapiCtx'],
   _emnapi_set_immediate: function (callback: number, data: number): void {
-    emnapiRt._setImmediate(() => {
+    emnapiCtx.feature.setImmediate(() => {
       $makeDynCall('vp', 'callback')(data)
     })
   },

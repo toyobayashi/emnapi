@@ -74,8 +74,10 @@ npm test
 ### NPM Install
 
 ```bash
-npm install -D @tybys/emnapi
+npm install -D @tybys/emnapi @tybys/emnapi-runtime
 ```
+
+`@tybys/emnapi-runtime` version should match `@tybys/emnapi` version.
 
 ### Using C
 
@@ -147,29 +149,30 @@ emcc -O3 \
      hello.c
 ```
 
-Use the output js in html. The default export key is `emnapiExports` on [`Module`](https://emscripten.org/docs/api_reference/module.html) object. You can change the key by predefining `NODE_GYP_MODULE_NAME`. `onEmnapiInitialized` will be called before `onRuntimeInitialized`.
+Use the output js in html. To initialize emnapi, you need to import the emnapi runtime to create a `Context` by `createContext` first, then call `Module.emnapiInit` after emscripten runtime initialized. Each context owns isolated Node-API object such as `napi_env`, `napi_value`, `napi_ref`. If you have multiple emnapi modules, you should reuse the same `Context` across them. `Module.emnapiInit` only do initialization once, it will always return the same binding exports after successfully initialized.
 
 ```html
+<script src="node_modules/@tybys/emnapi-runtime/dist/emnapi.min.js"></script>
 <script src="hello.js"></script>
 <script>
-// Emscripten js glue code will create a global `Module` object
-Module.onEmnapiInitialized = function (err, emnapiExports) {
-  if (err) {
-    // error handling
-    // emnapiExports === undefined
-    // Module[NODE_GYP_MODULE_NAME] === undefined
-    console.error(err);
-  } else {
-    // emnapiExports === Module[NODE_GYP_MODULE_NAME]
-  }
-};
+var emnapiContext = emnapi.createContext();
 
 Module.onRuntimeInitialized = function () {
-  if (!('emnapiExports' in Module)) return;
-  var binding = Module.emnapiExports;
+  var binding;
+  try {
+    binding = Module.emnapiInit({ context: emnapiContext });
+  } catch (err) {
+    console.error(err);
+    return;
+  }
   var msg = 'hello ' + binding.hello();
   window.alert(msg);
 };
+
+// if -sMODULARIZE=1
+Module({ /* Emscripten module init options */ }).then(function (Module) {
+  var binding = Module.emnapiInit({ context: emnapiContext });
+});
 </script>
 ```
 
@@ -178,18 +181,26 @@ If you are using `Visual Studio Code` and have `Live Server` extension installed
 Running on Node.js:
 
 ```js
+const emnapi = require('@tybys/emnapi-runtime')
 const Module = require('./hello.js')
-
-Module.onEmnapiInitialized = function (err, emnapiExports) {
-  // ...
-}
+const emnapiContext = emnapi.createContext()
 
 Module.onRuntimeInitialized = function () {
-  if (!('emnapiExports' in Module)) return
-  const binding = Module.emnapiExports
+  let binding
+  try {
+    binding = Module.emnapiInit({ context: emnapiContext })
+  } catch (err) {
+    console.error(err)
+    return
+  }
   const msg = `hello ${binding.hello()}`
   console.log(msg)
 }
+
+// if -sMODULARIZE=1
+Module({ /* Emscripten module init options */ }).then((Module) => {
+  const binding = Module.emnapiInit({ context: emnapiContext })
+})
 ```
 
 ### Using C++
@@ -245,7 +256,7 @@ add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/node_modules/@tybys/emnapi")
 add_executable(hello hello.c)
 # or add_executable(hello hello.cpp)
 
-target_link_libraries(hello emnapi_full)
+target_link_libraries(hello emnapi)
 target_link_options(hello PRIVATE
   "-sEXPORTED_FUNCTIONS=['_malloc','_free']"
 )
@@ -266,8 +277,6 @@ cmake --build build
 
 Output code can run in recent version modern browsers and Node.js latest LTS. IE is not supported.
 
-If a JS error is thrown on runtime initialization, Node.js process will exit. You can use `-sNODEJS_CATCH_EXIT=0` and add `uncaughtException` handler yourself to avoid this. Alternatively, you can use `Module.onEmnapiInitialized` callback to catch error.
-
 ### Multithread
 
 If you want to use async work or thread safe functions,
@@ -279,7 +288,7 @@ add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/node_modules/@tybys/emnapi")
 
 add_executable(hello hello.c)
 
-target_link_libraries(hello emnapi_full-mt)
+target_link_libraries(hello emnapi-mt)
 target_compile_options(hello PRIVATE "-sUSE_PTHREADS=1")
 target_link_options(hello PRIVATE
   "-sALLOW_MEMORY_GROWTH=1"
@@ -343,77 +352,6 @@ This option only has effect if you use `-sUSE_PTHREADS`. Default is `1` if emscr
 - `1`:
 
     Use Emscripten [proxying API](https://emscripten.org/docs/api_reference/proxying.h.html) to send async work from worker threads in C. If you experience something wrong, you can switch set this to `0` and feel free to create an issue.
-
-## Emnapi Runtime
-
-Most APIs are implemented in JavaScript and they are depend on runtime code shipped in `library_napi.js` library file. So if you are building multiple wasm target, the same runtime code will be linked into each wasm glue js file. This is problematic when passing JavaScript objects across wasm bindings in same web page, we need to share emnapi's runtime code between multiple wasms like this:
-
-1. Installing emnapi runtime
-
-    ```bash
-    npm install @tybys/emnapi-runtime
-    ```
-
-2. Linking no runtime library build
-
-    - emcc
-
-      ```bash
-      emcc ... --js-library=./node_modules/@tybys/emnapi/dist/library_napi_no_runtime.js
-      ```
-
-    - cmake
-
-      ```cmake
-      add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/node_modules/@tybys/emnapi")
-      target_link_libraries(hello emnapi_noruntime)
-      ```
-
-3. Importing runtime code
-
-    - Browser
-
-        ```html
-        <script src="node_modules/@tybys/emnapi-runtime/dist/emnapi.min.js"></script>
-        <script src="your-wasm-glue.js"></script>
-        ```
-    
-    - Node.js
-
-        Just npm install `@tybys/emnapi-runtime` 
-
-4. (Optional) You can specify `emnapiRuntime` and `emnapiContext` explicitly
-
-    ```html
-    <script src="node_modules/@tybys/emnapi-runtime/dist/emnapi.min.js"></script>
-    <script>
-      var Module = { /* ... */ };
-      Module.emnapiRuntime = window.emnapi;
-      var __emnapi_context__ = window.emnapi.createContext();
-      Module.emnapiContext = __emnapi_context__;
-
-      // can be function or async function
-      Module.emnapiRuntime = function () { return window.emnapi; };
-      Module.emnapiRuntime = function () { return Promise.resolve(window.emnapi); };
-      Module.emnapiContext = function (emnapiRuntime) { /* ... */ };
-      Module.emnapiContext = async function (emnapiRuntime) { /* ... */ };
-    </script>
-    <script src="your-wasm-glue.js"></script>
-    ```
-
-    ```js
-    // Node.js CJS
-    const emnapi = require('@tybys/emnapi-runtime')
-    const Module1 = require('./your-wasm-glue1.js')
-    const Module2 = require('./your-wasm-glue2.js')
-    const ctx = emnapi.createContext()
-    Module1.emnapiRuntime = emnapi
-    Module1.emnapiContext = ctx
-    Module2.emnapiRuntime = emnapi
-    Module2.emnapiContext = ctx
-    ```
-
-`@tybys/emnapi-runtime` version should match `@tybys/emnapi` version.
 
 ## Performance compare with Embind
 

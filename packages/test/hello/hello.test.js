@@ -16,11 +16,13 @@ module.exports = new Promise((resolve, reject) => {
 
       new Worker(`
   const { parentPort } = require('worker_threads');
+  const emnapi = require(${JSON.stringify(require.resolve('../../runtime'))})
+  const context = emnapi.createContext()
   
   function load (request) {
     const mod = require(request)
   
-    return typeof mod.default === 'function' ? mod.default({ emnapiRuntime: require(${JSON.stringify(require.resolve('../../runtime'))}) }).then(({ Module }) => Module.emnapiExports) : Promise.resolve(mod)
+    return typeof mod.default === 'function' ? mod.default().then(({ Module }) => Module.emnapiInit({ context })) : Promise.resolve(mod)
   }
   load(${JSON.stringify(getEntry('hello'))}).then((binding) => { const msg = binding.hello(); parentPort.postMessage(msg) });`, { eval: true, env: process.env })
         .on('message', common.mustCall((msg) => {
