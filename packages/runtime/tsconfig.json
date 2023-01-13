@@ -25,7 +25,7 @@
       {
         "transform": "@tybys/ts-transform-define",
         "defines": {
-          "__VERSION__": "\"0.24.0\""
+          "__VERSION__": "\"0.25.0\""
         }
       }
     ]
