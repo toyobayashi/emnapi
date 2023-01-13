@@ -149,7 +149,7 @@ emcc -O3 \
      hello.c
 ```
 
-Use the output js in html.
+Use the output js in html. To initialize emnapi, you need to import the emnapi runtime to create a `Context` by `createContext` first, then call `Module.emnapiInit` after emscripten runtime initialized. Each context owns isolated Node-API object such as `napi_env`, `napi_value`, `napi_ref`. If you have multiple emnapi modules, you should reuse the same `Context` across them. `Module.emnapiInit` only do initialization once, it will always return the same binding exports after successfully initialized.
 
 ```html
 <script src="node_modules/@tybys/emnapi-runtime/dist/emnapi.min.js"></script>
@@ -158,10 +158,21 @@ Use the output js in html.
 var emnapiContext = emnapi.createContext();
 
 Module.onRuntimeInitialized = function () {
-  var binding = Module.emnapiInit({ context: emnapiContext });
+  var binding;
+  try {
+    binding = Module.emnapiInit({ context: emnapiContext });
+  } catch (err) {
+    console.error(err);
+    return;
+  }
   var msg = 'hello ' + binding.hello();
   window.alert(msg);
 };
+
+// if -sMODULARIZE=1
+Module({ /* Emscripten module init options */ }).then(function (Module) {
+  var binding = Module.emnapiInit({ context: emnapiContext });
+});
 </script>
 ```
 
@@ -175,10 +186,21 @@ const Module = require('./hello.js')
 const emnapiContext = emnapi.createContext()
 
 Module.onRuntimeInitialized = function () {
-  const binding = Module.emnapiInit({ context: emnapiContext })
+  let binding
+  try {
+    binding = Module.emnapiInit({ context: emnapiContext })
+  } catch (err) {
+    console.error(err)
+    return
+  }
   const msg = `hello ${binding.hello()}`
   console.log(msg)
 }
+
+// if -sMODULARIZE=1
+Module({ /* Emscripten module init options */ }).then((Module) => {
+  const binding = Module.emnapiInit({ context: emnapiContext })
+})
 ```
 
 ### Using C++
@@ -254,8 +276,6 @@ cmake --build build
 ```
 
 Output code can run in recent version modern browsers and Node.js latest LTS. IE is not supported.
-
-If a JS error is thrown on runtime initialization, Node.js process will exit. You can use `-sNODEJS_CATCH_EXIT=0` and add `uncaughtException` handler yourself to avoid this.
 
 ### Multithread
 
