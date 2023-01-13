@@ -31,7 +31,6 @@ mergeInto(LibraryManager.library, {
     filename: null
   },
 
-  $emnapiInit__postset: 'Module.emnapiInit = emnapiInit;',
   $emnapiInit__deps: ['$emnapiModule', '$emnapiCtx', 'napi_register_wasm_v1'],
   $emnapiInit: function (options: InitOptions) {
     if (emnapiModule.loaded) return emnapiModule.exports

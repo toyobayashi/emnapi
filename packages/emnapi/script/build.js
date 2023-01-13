@@ -1,5 +1,6 @@
 const fs = require('fs')
 const path = require('path')
+const { EOL } = require('os')
 const { compile } = require('@tybys/tsapi')
 
 // const {
@@ -30,6 +31,7 @@ async function build () {
   const libCode = fs.readFileSync(libOut, 'utf8')
 
   fs.writeFileSync(libOut,
+    '{{{ ((EXPORTED_RUNTIME_METHODS.indexOf("emnapiInit") === -1 ? EXPORTED_RUNTIME_METHODS.push("emnapiInit") : undefined), "") }}}' + EOL +
     replaceParseTool(
       libCode
     ),
