@@ -184,14 +184,16 @@ function browserMain () {
   console.log('')
 
   Promise.all([
-    window.embindcpp.default({ emnapiRuntime: window.emnapi }),
-    window.emnapic.default({ emnapiRuntime: window.emnapi }),
-    window.emnapicpp.default({ emnapiRuntime: window.emnapi })
+    window.embindcpp.default(),
+    window.emnapic.default(),
+    window.emnapicpp.default()
   ]).then(([
     { Module: embind },
-    { Module: { emnapiExports: napi } },
-    { Module: { emnapiExports: naa } }
+    { Module: Module2 },
+    { Module: Module3 }
   ]) => {
+    const napi = Module2.emnapiInit({ context: window.emnapi.createContext() })
+    const naa = Module3.emnapiInit({ context: window.emnapi.createContext() })
     const btnNapi = document.getElementById('testNapi')
     btnNapi.addEventListener('click', () => {
       testEmptyFunction(embind, napi, naa)
@@ -206,14 +208,16 @@ function browserMain () {
 
 function nodeMain () {
   Promise.all([
-    require('./.cgenbuild/Release/embindcpp').default({ emnapiRuntime: require('@tybys/emnapi-runtime') }),
-    require('./.cgenbuild/Release/emnapic').default({ emnapiRuntime: require('@tybys/emnapi-runtime') }),
-    require('./.cgenbuild/Release/emnapicpp').default({ emnapiRuntime: require('@tybys/emnapi-runtime') })
+    require('./.cgenbuild/Release/embindcpp').default(),
+    require('./.cgenbuild/Release/emnapic').default(),
+    require('./.cgenbuild/Release/emnapicpp').default()
   ]).then(([
     { Module: embind },
-    { Module: { emnapiExports: napi } },
-    { Module: { emnapiExports: naa } }
+    { Module: Module2 },
+    { Module: Module3 }
   ]) => {
+    const napi = Module2.emnapiInit({ context: require('@tybys/emnapi-runtime').createContext() })
+    const naa = Module3.emnapiInit({ context: require('@tybys/emnapi-runtime').createContext() })
     testEmptyFunction(embind, napi, naa)
     testReturnParam(embind, napi, naa)
     testConvertInteger(embind, napi, naa)
