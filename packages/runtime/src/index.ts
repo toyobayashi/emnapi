@@ -27,9 +27,4 @@ export {
 
 declare const __VERSION__: string
 
-Object.defineProperty(exports, 'version', {
-  configurable: true,
-  enumerable: true,
-  writable: false,
-  value: __VERSION__
-})
+export const version = __VERSION__
