@@ -83,7 +83,8 @@ declare const enum napi_status {
   napi_date_expected,
   napi_arraybuffer_expected,
   napi_detachable_arraybuffer_expected,
-  napi_would_deadlock // unused
+  napi_would_deadlock, // unused
+  napi_no_external_buffers_allowed
 }
 
 declare const enum napi_property_attributes {
