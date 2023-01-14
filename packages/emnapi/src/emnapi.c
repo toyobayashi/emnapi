@@ -159,17 +159,24 @@ napi_status napi_get_version(napi_env env, uint32_t* result) {
   return napi_clear_last_error(env);
 }
 
+extern void _emnapi_get_node_version(uint32_t* major,
+                                     uint32_t* minor,
+                                     uint32_t* patch);
+
 napi_status
 napi_get_node_version(napi_env env,
                       const napi_node_version** version) {
   CHECK_ENV(env);
   CHECK_ARG(env, version);
   static napi_node_version node_version = {
-    16,
-    15,
+    0,
+    0,
     0,
     "node"
   };
+  _emnapi_get_node_version(&node_version.major,
+                           &node_version.minor,
+                           &node_version.patch);
   *version = &node_version;
   return napi_clear_last_error(env);
 }
