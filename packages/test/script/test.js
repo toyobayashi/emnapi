@@ -4,7 +4,7 @@ const glob = require('glob')
 const cwd = require('path').join(__dirname, '..')
 const subdir = process.argv[2]
 
-const files = glob.sync(`${subdir ? (subdir + '/') : ''}**/*.test.js`, {
+let files = glob.sync(`${subdir ? (subdir + '/') : ''}**/*.test.js`, {
   cwd,
   ignore: process.env.EMNAPI_TEST_NATIVE
     ? ['**/{emnapitest,node-addon-api}/**/*']
@@ -19,6 +19,11 @@ const files = glob.sync(`${subdir ? (subdir + '/') : ''}**/*.test.js`, {
       : []
 })
 // const files = ['tsfn/tsfn.test.js']
+
+files = [
+  ...files.filter(f => !f.includes('node-addon-api')),
+  ...files.filter(f => f.includes('node-addon-api'))
+]
 
 files.forEach((f) => {
   test(f)
