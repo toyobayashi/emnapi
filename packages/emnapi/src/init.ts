@@ -53,7 +53,8 @@ mergeInto(LibraryManager.library, {
 
     // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
     const envObject = emnapiModule.envObject || (emnapiModule.envObject = emnapiCtx.createEnv(
-      (cb: Ptr) => $makeDynCall('vppp', 'cb')
+      (cb: Ptr) => $makeDynCall('vppp', 'cb'),
+      (cb: Ptr) => $makeDynCall('vp', 'cb')
     ))
 
     const scope = emnapiCtx.openScope(envObject)

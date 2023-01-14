@@ -72,8 +72,11 @@ export class Context {
     return Deferred.create(this, value)
   }
 
-  createEnv (makeDynCall_vppp: (cb: Ptr) => (a: Ptr, b: Ptr, c: Ptr) => void): Env {
-    return Env.create(this, makeDynCall_vppp)
+  createEnv (
+    makeDynCall_vppp: (cb: Ptr) => (a: Ptr, b: Ptr, c: Ptr) => void,
+    makeDynCall_vp: (cb: Ptr) => (a: Ptr) => void
+  ): Env {
+    return Env.create(this, makeDynCall_vppp, makeDynCall_vp)
   }
 
   /** @internal */

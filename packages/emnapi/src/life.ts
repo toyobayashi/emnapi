@@ -152,6 +152,32 @@ function napi_get_reference_value (
   return envObject.clearLastError()
 }
 
+function napi_add_env_cleanup_hook (env: napi_env, fun: number, arg: number): napi_status {
+  $CHECK_ENV!(env)
+  const envObject = emnapiCtx.envStore.get(env)!
+  $CHECK_ARG!(envObject, fun)
+
+  $from64('fun')
+  $from64('arg')
+
+  envObject.addCleanupHook(fun, arg)
+
+  return napi_status.napi_ok
+}
+
+function napi_remove_env_cleanup_hook (env: napi_env, fun: number, arg: number): napi_status {
+  $CHECK_ENV!(env)
+  const envObject = emnapiCtx.envStore.get(env)!
+  $CHECK_ARG!(envObject, fun)
+
+  $from64('fun')
+  $from64('arg')
+
+  envObject.removeCleanupHook(fun, arg)
+
+  return napi_status.napi_ok
+}
+
 emnapiImplement('napi_open_handle_scope', 'ipp', napi_open_handle_scope)
 emnapiImplement('napi_close_handle_scope', 'ipp', napi_close_handle_scope)
 emnapiImplement('napi_open_escapable_handle_scope', 'ipp', napi_open_escapable_handle_scope)
@@ -163,3 +189,6 @@ emnapiImplement('napi_delete_reference', 'ipp', napi_delete_reference)
 emnapiImplement('napi_reference_ref', 'ippp', napi_reference_ref)
 emnapiImplement('napi_reference_unref', 'ippp', napi_reference_unref)
 emnapiImplement('napi_get_reference_value', 'ippp', napi_get_reference_value)
+
+emnapiImplement('napi_add_env_cleanup_hook', 'ippp', napi_add_env_cleanup_hook)
+emnapiImplement('napi_remove_env_cleanup_hook', 'ippp', napi_remove_env_cleanup_hook)

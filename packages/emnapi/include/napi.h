@@ -309,16 +309,16 @@ class Env {
   MaybeOrValue<Value> RunScript(const std::string& utf8script) const;
   MaybeOrValue<Value> RunScript(String script) const;
 
-// #if NAPI_VERSION > 2
-//   template <typename Hook, typename Arg = void>
-//   class CleanupHook;
+#if NAPI_VERSION > 2
+  template <typename Hook, typename Arg = void>
+  class CleanupHook;
 
-//   template <typename Hook>
-//   CleanupHook<Hook> AddCleanupHook(Hook hook);
+  template <typename Hook>
+  CleanupHook<Hook> AddCleanupHook(Hook hook);
 
-//   template <typename Hook, typename Arg>
-//   CleanupHook<Hook, Arg> AddCleanupHook(Hook hook, Arg* arg);
-// #endif  // NAPI_VERSION > 2
+  template <typename Hook, typename Arg>
+  CleanupHook<Hook, Arg> AddCleanupHook(Hook hook, Arg* arg);
+#endif  // NAPI_VERSION > 2
 
 #if NAPI_VERSION > 5
   template <typename T>
@@ -338,27 +338,27 @@ class Env {
   void SetInstanceData(DataType* data, HintType* hint) const;
 #endif  // NAPI_VERSION > 5
 
-// #if NAPI_VERSION > 2
-//   template <typename Hook, typename Arg>
-//   class CleanupHook {
-//    public:
-//     CleanupHook();
-//     CleanupHook(Env env, Hook hook, Arg* arg);
-//     CleanupHook(Env env, Hook hook);
-//     bool Remove(Env env);
-//     bool IsEmpty() const;
+#if NAPI_VERSION > 2
+  template <typename Hook, typename Arg>
+  class CleanupHook {
+   public:
+    CleanupHook();
+    CleanupHook(Env env, Hook hook, Arg* arg);
+    CleanupHook(Env env, Hook hook);
+    bool Remove(Env env);
+    bool IsEmpty() const;
 
-//    private:
-//     static inline void Wrapper(void* data) NAPI_NOEXCEPT;
-//     static inline void WrapperWithArg(void* data) NAPI_NOEXCEPT;
+   private:
+    static inline void Wrapper(void* data) NAPI_NOEXCEPT;
+    static inline void WrapperWithArg(void* data) NAPI_NOEXCEPT;
 
-//     void (*wrapper)(void* arg);
-//     struct CleanupData {
-//       Hook hook;
-//       Arg* arg;
-//     } * data;
-//   };
-// #endif  // NAPI_VERSION > 2
+    void (*wrapper)(void* arg);
+    struct CleanupData {
+      Hook hook;
+      Arg* arg;
+    } * data;
+  };
+#endif  // NAPI_VERSION > 2
 };
 
 /// A JavaScript value of unknown type.

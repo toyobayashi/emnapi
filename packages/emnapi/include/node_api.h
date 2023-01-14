@@ -113,6 +113,19 @@ NAPI_EXTERN napi_status napi_get_uv_event_loop(napi_env env,
 
 #endif  // NAPI_VERSION >= 2
 
+#if NAPI_VERSION >= 3
+
+NAPI_EXTERN napi_status napi_fatal_exception(napi_env env,
+                                             napi_value err);
+
+NAPI_EXTERN napi_status
+napi_add_env_cleanup_hook(napi_env env, napi_cleanup_hook fun, void* arg);
+
+NAPI_EXTERN napi_status
+napi_remove_env_cleanup_hook(napi_env env, napi_cleanup_hook fun, void* arg);
+
+#endif  // NAPI_VERSION >= 3
+
 #if NAPI_VERSION >= 4
 
 #if !defined(__wasm32__) || defined(__EMSCRIPTEN__)

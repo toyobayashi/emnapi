@@ -208,6 +208,19 @@ function napi_fatal_error (location: const_char_p, location_len: size_t, message
   )
 }
 
+// @ts-expect-error
+function napi_fatal_exception (env: napi_env, err: napi_value): napi_status {
+  $PREAMBLE!(env, (envObject) => {
+    $CHECK_ARG!(envObject, err)
+    if (typeof process === 'object' && process !== null && typeof process._fatalException === 'function') {
+      const error = envObject.ctx.handleStore.get(err)!
+      process._fatalException(error.value)
+      return envObject.clearLastError()
+    }
+    return envObject.setLastError(napi_status.napi_generic_failure)
+  })
+}
+
 emnapiImplement('_emnapi_get_last_error_info', 'vpppp', _emnapi_get_last_error_info)
 emnapiImplement('napi_get_and_clear_last_exception', 'ipp', napi_get_and_clear_last_exception)
 emnapiImplement('napi_throw', 'ipp', napi_throw)
@@ -221,3 +234,4 @@ emnapiImplement('napi_create_range_error', 'ipppp', napi_create_range_error)
 emnapiImplement('node_api_create_syntax_error', 'ipppp', node_api_create_syntax_error)
 emnapiImplement('napi_is_exception_pending', 'ipp', napi_is_exception_pending)
 emnapiImplement('napi_fatal_error', 'vpppp', napi_fatal_error, ['$emnapiUtf8ToString'])
+emnapiImplement('napi_fatal_exception', 'ipp', napi_fatal_exception)

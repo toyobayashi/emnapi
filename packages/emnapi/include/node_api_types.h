@@ -4,6 +4,11 @@
 #include "js_native_api_types.h"
 
 typedef struct napi_async_work__* napi_async_work;
+
+#if NAPI_VERSION >= 3
+typedef void(*napi_cleanup_hook)(void* arg);
+#endif  // NAPI_VERSION >= 3
+
 #if NAPI_VERSION >= 4
 typedef struct napi_threadsafe_function__* napi_threadsafe_function;
 #endif  // NAPI_VERSION >= 4

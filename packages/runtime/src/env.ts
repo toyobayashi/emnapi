@@ -21,6 +21,50 @@ export interface ILastError {
   dispose (): void
 }
 
+class CleanupHookCallback {
+  constructor (
+    public fn: number,
+    public arg: number,
+    public order: number
+  ) {}
+}
+
+class CleanupQueue {
+  private readonly _cleanupHooks = [] as CleanupHookCallback[]
+  private _cleanupHookCounter = 0
+
+  constructor (private readonly makeDynCall_vp: (cb: Ptr) => (a: Ptr) => void) {}
+
+  public empty (): boolean {
+    return this._cleanupHooks.length === 0
+  }
+
+  public add (fn: number, arg: number): void {
+    if (this._cleanupHooks.filter((hook) => (hook.fn === fn && hook.arg === arg)).length > 0) {
+      throw new Error('Can not add same fn and arg twice')
+    }
+    this._cleanupHooks.push(new CleanupHookCallback(fn, arg, this._cleanupHookCounter++))
+  }
+
+  public remove (fn: number, arg: number): void {
+    for (let i = 0; i < this._cleanupHooks.length; ++i) {
+      const hook = this._cleanupHooks[i]
+      if (hook.fn === fn && hook.arg === arg) {
+        this._cleanupHooks.splice(i, 1)
+        return
+      }
+    }
+  }
+
+  public drain (): void {
+    while (this._cleanupHooks.length > 0) {
+      const cb = this._cleanupHooks[this._cleanupHooks.length - 1]
+      this.makeDynCall_vp(cb.fn)(cb.arg)
+      this._cleanupHooks.pop()
+    }
+  }
+}
+
 /** @internal */
 export class Env implements IStoreValue {
   public id: number
@@ -39,6 +83,8 @@ export class Env implements IStoreValue {
   public finalizationScheduled: boolean = false
   public pendingFinalizers: RefTracker[] = []
 
+  private readonly cleanupQueue: CleanupQueue
+
   public lastError = {
     errorCode: napi_status.napi_ok,
     engineErrorCode: 0 as uint32_t,
@@ -47,18 +93,41 @@ export class Env implements IStoreValue {
 
   public static create (
     ctx: Context,
-    makeDynCall_vppp: (cb: Ptr) => (a: Ptr, b: Ptr, c: Ptr) => void
+    makeDynCall_vppp: (cb: Ptr) => (a: Ptr, b: Ptr, c: Ptr) => void,
+    makeDynCall_vp: (cb: Ptr) => (a: Ptr) => void
   ): Env {
-    const env = new Env(ctx, makeDynCall_vppp)
+    const env = new Env(ctx, makeDynCall_vppp, makeDynCall_vp)
     ctx.envStore.add(env)
     return env
   }
 
   private constructor (
     public readonly ctx: Context,
-    public makeDynCall_vppp: (cb: Ptr) => (a: Ptr, b: Ptr, c: Ptr) => void
+    public makeDynCall_vppp: (cb: Ptr) => (a: Ptr, b: Ptr, c: Ptr) => void,
+    makeDynCall_vp: (cb: Ptr) => (a: Ptr) => void
   ) {
     this.id = 0
+    this.cleanupQueue = new CleanupQueue(makeDynCall_vp)
+
+    if (typeof process === 'object' && process !== null && typeof process.once === 'function') {
+      process.once('beforeExit', () => {
+        this.dispose()
+      })
+    }
+  }
+
+  public addCleanupHook (fn: number, arg: number): void {
+    this.cleanupQueue.add(fn, arg)
+  }
+
+  public removeCleanupHook (fn: number, arg: number): void {
+    this.cleanupQueue.remove(fn, arg)
+  }
+
+  public runCleanup (): void {
+    while (!this.cleanupQueue.empty()) {
+      this.cleanupQueue.drain()
+    }
   }
 
   public ref (): void {
@@ -159,6 +228,7 @@ export class Env implements IStoreValue {
   }
 
   public dispose (): void {
+    if (this.id === 0) return
     this.drainFinalizerQueue()
     // this.scopeList.clear()
     RefBase.finalizeAll(this.finalizing_reflist)
@@ -166,6 +236,9 @@ export class Env implements IStoreValue {
 
     this.tryCatch.extractException()
     this.ctx.envStore.remove(this.id)
+    this.id = 0
+
+    this.runCleanup()
   }
 
   // js object -> IReferenceBinding
