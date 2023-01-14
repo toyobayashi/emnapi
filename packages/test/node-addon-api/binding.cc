@@ -8,12 +8,12 @@ Object InitAddon(Env env);
 #endif
 // Object InitArrayBuffer(Env env);
 // Object InitAsyncContext(Env env);
-// #if (NAPI_VERSION > 3)
-// Object InitAsyncProgressQueueWorker(Env env);
-// Object InitAsyncProgressWorker(Env env);
-// #endif
+#if (NAPI_VERSION > 3)
+Object InitAsyncProgressQueueWorker(Env env);
+Object InitAsyncProgressWorker(Env env);
+#endif
 Object InitAsyncWorker(Env env);
-// Object InitPersistentAsyncWorker(Env env);
+Object InitPersistentAsyncWorker(Env env);
 // Object InitBasicTypesArray(Env env);
 // Object InitBasicTypesBoolean(Env env);
 // Object InitBasicTypesNumber(Env env);
@@ -88,13 +88,13 @@ Object Init(Env env, Object exports) {
 #endif
 //   exports.Set("arraybuffer", InitArrayBuffer(env));
 //   exports.Set("asynccontext", InitAsyncContext(env));
-// #if (NAPI_VERSION > 3)
-//   exports.Set("asyncprogressqueueworker", InitAsyncProgressQueueWorker(env));
-//   exports.Set("asyncprogressworker", InitAsyncProgressWorker(env));
-// #endif
+#if (NAPI_VERSION > 3)
+  exports.Set("asyncprogressqueueworker", InitAsyncProgressQueueWorker(env));
+  exports.Set("asyncprogressworker", InitAsyncProgressWorker(env));
+#endif
 //   exports.Set("globalObject", InitGlobalObject(env));
   exports.Set("asyncworker", InitAsyncWorker(env));
-//   exports.Set("persistentasyncworker", InitPersistentAsyncWorker(env));
+  exports.Set("persistentasyncworker", InitPersistentAsyncWorker(env));
 //   exports.Set("basic_types_array", InitBasicTypesArray(env));
 //   exports.Set("basic_types_boolean", InitBasicTypesBoolean(env));
 //   exports.Set("basic_types_number", InitBasicTypesNumber(env));

@@ -98,6 +98,9 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
   const buildSources = [
     'addon.cc',
     'async_worker.cc',
+    'async_progress_queue_worker.cc',
+    'async_progress_worker.cc',
+    'async_worker_persistent.cc',
     'callbackInfo.cc',
     'error.cc',
     'threadsafe_function/threadsafe_function.cc',
