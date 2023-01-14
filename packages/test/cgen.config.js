@@ -75,7 +75,7 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
       ...sources
     ],
     emwrap: {},
-    libs: [...(isEmscripten ? ['emnapist'] : [])],
+    libs: [...(isEmscripten ? ['emnapimt'] : [])],
     includePaths,
     defines: [
       ...defines,
@@ -84,19 +84,23 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
     ],
     compileOptions: [...new Set([
       ...compilerFlags,
+      ...(isEmscripten ? ['-sUSE_PTHREADS=1'] : []),
       ...(enableException && isEmscripten && !process.env.MEMORY64 ? ['-sDISABLE_EXCEPTION_CATCHING=0'] : [])
     ])],
     // eslint-disable-next-line no-template-curly-in-string
     linkOptions: [...new Set([
       ...linkerFlags,
       ...(enableException && isEmscripten && !process.env.MEMORY64 ? ['-sDISABLE_EXCEPTION_CATCHING=0'] : []),
-      ...(isEmscripten ? [jsLib] : [])
+      ...(isEmscripten ? [jsLib, '-sUSE_PTHREADS=1', '-sPTHREAD_POOL_SIZE=8', '-sPTHREAD_POOL_SIZE_STRICT=2'] : [])
     ])]
   })
 
   const buildSources = [
     'addon.cc',
+    'async_worker.cc',
+    'callbackInfo.cc',
     'error.cc',
+    'threadsafe_function/threadsafe_function.cc',
     'binding.cc'
   ].map(p => `./node-addon-api/${p}`)
 
@@ -150,7 +154,7 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
       ...(isEmscripten ? [createTarget('emnapitest', ['./emnapitest/binding.c'], true, false, ['-sEXPORTED_RUNTIME_METHODS=[\'emnapiSyncMemory\']'])] : []),
       createTarget('version', ['./version/binding.c']),
 
-      ...(isEmscripten
+      ...(!(isEmscripten && process.env.MEMORY64)
         ? [
             createNodeAddonApiTarget({
               name: 'naa_binding',

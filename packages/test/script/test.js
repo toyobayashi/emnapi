@@ -2,14 +2,15 @@ const { spawnSync } = require('child_process')
 const glob = require('glob')
 
 const cwd = require('path').join(__dirname, '..')
-const subdir = process.argv[2] || '**'
+const subdir = process.argv[2]
 
-const files = glob.sync(`${subdir}/*.test.js`, {
+const files = glob.sync(`${subdir ? (subdir + '/') : ''}**/*.test.js`, {
   cwd,
   ignore: process.env.EMNAPI_TEST_NATIVE
     ? ['**/{emnapitest,node-addon-api}/**/*']
     : process.env.MEMORY64
       ? [
+          'node-addon-api/**/*',
           'async/**/*',
           'pool/**/*',
           'tsfn/**/*',

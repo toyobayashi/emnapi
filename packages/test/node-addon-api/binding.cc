@@ -12,7 +12,7 @@ Object InitAddon(Env env);
 // Object InitAsyncProgressQueueWorker(Env env);
 // Object InitAsyncProgressWorker(Env env);
 // #endif
-// Object InitAsyncWorker(Env env);
+Object InitAsyncWorker(Env env);
 // Object InitPersistentAsyncWorker(Env env);
 // Object InitBasicTypesArray(Env env);
 // Object InitBasicTypesBoolean(Env env);
@@ -28,6 +28,7 @@ Object InitAddon(Env env);
 // #if (NAPI_VERSION > 4)
 // Object InitDate(Env env);
 // #endif
+Object InitCallbackInfo(Env env);
 // Object InitDataView(Env env);
 // Object InitDataViewReadWrite(Env env);
 // Object InitEnvCleanup(Env env);
@@ -52,7 +53,7 @@ Object InitError(Env env);
 // Object InitThreadSafeFunctionPtr(Env env);
 // Object InitThreadSafeFunctionSum(Env env);
 // Object InitThreadSafeFunctionUnref(Env env);
-// Object InitThreadSafeFunction(Env env);
+Object InitThreadSafeFunction(Env env);
 // Object InitTypedThreadSafeFunctionCtx(Env env);
 // Object InitTypedThreadSafeFunctionExistingTsfn(Env env);
 // Object InitTypedThreadSafeFunctionPtr(Env env);
@@ -92,7 +93,7 @@ Object Init(Env env, Object exports) {
 //   exports.Set("asyncprogressworker", InitAsyncProgressWorker(env));
 // #endif
 //   exports.Set("globalObject", InitGlobalObject(env));
-//   exports.Set("asyncworker", InitAsyncWorker(env));
+  exports.Set("asyncworker", InitAsyncWorker(env));
 //   exports.Set("persistentasyncworker", InitPersistentAsyncWorker(env));
 //   exports.Set("basic_types_array", InitBasicTypesArray(env));
 //   exports.Set("basic_types_boolean", InitBasicTypesBoolean(env));
@@ -108,6 +109,7 @@ Object Init(Env env, Object exports) {
 // #if (NAPI_VERSION > 2)
 //   exports.Set("callbackscope", InitCallbackScope(env));
 // #endif
+  exports.Set("callbackInfo", InitCallbackInfo(env));
 //   exports.Set("dataview", InitDataView(env));
 //   exports.Set("dataview_read_write", InitDataView(env));
 //   exports.Set("dataview_read_write", InitDataViewReadWrite(env));
@@ -137,7 +139,7 @@ Object Init(Env env, Object exports) {
 //   exports.Set("threadsafe_function_ptr", InitThreadSafeFunctionPtr(env));
 //   exports.Set("threadsafe_function_sum", InitThreadSafeFunctionSum(env));
 //   exports.Set("threadsafe_function_unref", InitThreadSafeFunctionUnref(env));
-//   exports.Set("threadsafe_function", InitThreadSafeFunction(env));
+  exports.Set("threadsafe_function", InitThreadSafeFunction(env));
 //   exports.Set("typed_threadsafe_function_ctx",
 //               InitTypedThreadSafeFunctionCtx(env));
 //   exports.Set("typed_threadsafe_function_existing_tsfn",
