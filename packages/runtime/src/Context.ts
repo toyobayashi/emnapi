@@ -195,6 +195,9 @@ export class Context {
   }
 
   dispose (): void {
+    this.runCleanup()
+    this.cleanupQueue.dispose()
+
     this.cbinfoStack.dispose()
     this.scopeStore.dispose()
     this.handleStore.dispose()
@@ -207,9 +210,6 @@ export class Context {
     this.deferredStore = null!
     this.refStore = null!
     this.envStore = null!
-
-    this.runCleanup()
-    this.cleanupQueue.dispose()
   }
 }
 
