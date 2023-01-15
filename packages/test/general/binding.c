@@ -280,6 +280,7 @@ static napi_value env_cleanup_wrap(napi_env env, napi_callback_info info) {
   return wrap_first_arg(env, info, cleanup_env_finalizer, (void*)ptr_value);
 }
 
+#ifdef __EMSCRIPTEN__
 static bool dynamically_initialized = false;
 
 __attribute__((constructor))
@@ -292,6 +293,7 @@ static napi_value getDynamicallyInitialized(napi_env env) {
   NAPI_CALL(env, napi_get_boolean(env, dynamically_initialized, &result));
   return result;
 }
+#endif
 
 EXTERN_C_START
 napi_value Init(napi_env env, napi_value exports) {
@@ -315,10 +317,12 @@ napi_value Init(napi_env env, napi_value exports) {
     DECLARE_NAPI_PROPERTY("finalizeWasCalled", finalize_was_called),
     DECLARE_NAPI_PROPERTY("derefItemWasCalled", deref_item_was_called),
     DECLARE_NAPI_PROPERTY("testAdjustExternalMemory", testAdjustExternalMemory),
+#ifdef __EMSCRIPTEN__
     {
       .utf8name = "dynamicallyInitialized",
       .value = getDynamicallyInitialized(env),
     },
+#endif
   };
 
   NAPI_CALL(env, napi_define_properties(

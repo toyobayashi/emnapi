@@ -20,12 +20,15 @@ module.exports = load('general').then(async test_general => {
   const baseObject = new BaseClass()
   const extendedObject = new ExtendedClass()
 
-  assert.ok(test_general.dynamicallyInitialized);
+  if (!process.env.EMNAPI_TEST_NATIVE) {
+    assert.ok(test_general.dynamicallyInitialized)
+  }
 
   // Test napi_strict_equals
   assert.ok(test_general.testStrictEquals(val1, val1))
   assert.strictEqual(test_general.testStrictEquals(val1, val2), false)
   assert.ok(test_general.testStrictEquals(val2, val3))
+  assert.strictEqual(test_general.testStrictEquals(NaN, NaN), false)
 
   // Test napi_get_prototype
   assert.strictEqual(test_general.testGetPrototype(baseObject),
