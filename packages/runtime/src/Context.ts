@@ -82,7 +82,7 @@ export class Context {
   public deferredStore = new DeferredStore()
   public handleStore = new HandleStore()
   public cbinfoStack = new CallbackInfoStack()
-  private readonly cleanupQueue: CleanupQueue
+  private cleanupQueue: CleanupQueue
 
   public feature = {
     supportReflect,
@@ -168,8 +168,7 @@ export class Context {
       default: break
     }
 
-    const currentScope = this.scopeStore.currentScope
-    return currentScope.add(value)
+    return this.addToCurrentScope(value)
   }
 
   public addCleanupHook (envObject: Env, fn: CleanupHookCallbackFunction, arg: number): void {
@@ -187,8 +186,10 @@ export class Context {
   }
 
   dispose (): void {
+    if (this.cleanupQueue === null) return
     this.runCleanup()
     this.cleanupQueue.dispose()
+    this.cleanupQueue = null!
 
     this.cbinfoStack.dispose()
     this.scopeStore.dispose()
