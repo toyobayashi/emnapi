@@ -31,6 +31,7 @@ async function build () {
   const libCode = fs.readFileSync(libOut, 'utf8')
 
   fs.writeFileSync(libOut,
+    '{{{ ((DEFAULT_LIBRARY_FUNCS_TO_INCLUDE.indexOf("$emnapiInit") === -1 ? DEFAULT_LIBRARY_FUNCS_TO_INCLUDE.push("$emnapiInit") : undefined), "") }}}' + EOL +
     '{{{ ((EXPORTED_RUNTIME_METHODS.indexOf("emnapiInit") === -1 ? EXPORTED_RUNTIME_METHODS.push("emnapiInit") : undefined), "") }}}' + EOL +
     replaceParseTool(
       libCode
