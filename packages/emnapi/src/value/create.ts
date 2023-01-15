@@ -429,6 +429,10 @@ function node_api_symbol_for (env: napi_env, utf8description: const_char_p, leng
   $from64('utf8description')
   $from64('result')
 
+  if (((length < -1) || (length > 2147483647)) || (!utf8description)) {
+    return envObject.setLastError(napi_status.napi_invalid_arg)
+  }
+
   const descriptionString = emnapiUtf8ToString(utf8description, length)
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars

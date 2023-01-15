@@ -16,6 +16,35 @@ module.exports = p.then(test_reference => {
   // Run each test function in sequence,
   // with an async delay and GC call between each.
   async function runTests () {
+    // emnapi can not create reference on a symbol
+    // https://github.com/tc39/proposal-symbols-as-weakmap-keys
+
+    // (() => {
+    //   const symbol = test_reference.createSymbol('testSym')
+    //   test_reference.createReference(symbol, 0)
+    //   assert.strictEqual(test_reference.referenceValue, symbol)
+    // })()
+    // test_reference.deleteReference();
+
+    // (() => {
+    //   const symbol = test_reference.createSymbolFor('testSymFor')
+    //   test_reference.createReference(symbol, 0)
+    //   assert.strictEqual(test_reference.referenceValue, symbol)
+    //   assert.strictEqual(test_reference.referenceValue, Symbol.for('testSymFor'))
+    // })()
+    // test_reference.deleteReference();
+
+    // (() => {
+    //   const symbol = test_reference.createSymbolForEmptyString()
+    //   test_reference.createReference(symbol, 0)
+    //   assert.strictEqual(test_reference.referenceValue, symbol)
+    //   assert.strictEqual(test_reference.referenceValue, Symbol.for(''))
+    // })()
+    // test_reference.deleteReference()
+
+    assert.throws(() => test_reference.createSymbolForIncorrectLength(),
+      /Invalid argument/);
+
     (() => {
       const value = test_reference.createExternal()
       assert.strictEqual(test_reference.finalizeCount, 0)
@@ -43,7 +72,7 @@ module.exports = p.then(test_reference => {
     // Value should be GC'd because there is only a weak ref
     await gcUntil('Weak reference',
       () => (test_reference.referenceValue === undefined &&
-                test_reference.finalizeCount === 1))
+                  test_reference.finalizeCount === 1))
     test_reference.deleteReference();
 
     (() => {
@@ -87,36 +116,32 @@ module.exports = p.then(test_reference => {
     await gcUntil(
       'Strong reference, increment then decrement to weak reference (cont.d-4)',
       () => (test_reference.finalizeCount === 1))
-
-    // This test creates a napi_ref on an object that has
-    // been wrapped by napi_wrap and for which the finalizer
-    // for the wrap calls napi_delete_ref on that napi_ref.
-    //
-    // Since both the wrap and the reference use the same
-    // object the finalizer for the wrap and reference
-    // may run in the same gc and in any order.
-    //
-    // It does that to validate that napi_delete_ref can be
-    // called before the finalizer has been run for the
-    // reference (there is a finalizer behind the scenes even
-    // though it cannot be passed to napi_create_reference).
-    //
-    // Since the order is not guarranteed, run the
-    // test a number of times maximize the chance that we
-    // get a run with the desired order for the test.
-    //
-    // 1000 reliably recreated the problem without the fix
-    // required to ensure delete could be called before
-    // the finalizer in manual testing.
-
-    // for (let i = 0; i < 1000; i++) {
-    //   const wrapObject = new Object()
-    //   test_reference.validateDeleteBeforeFinalize(wrapObject)
-    //   global.gc()
-    // }
   }
-  return runTests().catch(err => {
-    console.error(err)
-    process.exit(1)
-  })
+  // This test creates a napi_ref on an object that has
+  // been wrapped by napi_wrap and for which the finalizer
+  // for the wrap calls napi_delete_ref on that napi_ref.
+  //
+  // Since both the wrap and the reference use the same
+  // object the finalizer for the wrap and reference
+  // may run in the same gc and in any order.
+  //
+  // It does that to validate that napi_delete_ref can be
+  // called before the finalizer has been run for the
+  // reference (there is a finalizer behind the scenes even
+  // though it cannot be passed to napi_create_reference).
+  //
+  // Since the order is not guarranteed, run the
+  // test a number of times maximize the chance that we
+  // get a run with the desired order for the test.
+  //
+  // 1000 reliably recreated the problem without the fix
+  // required to ensure delete could be called before
+  // the finalizer in manual testing.
+
+  for (let i = 0; i < 1000; i++) {
+    const wrapObject = new Object()
+    test_reference.validateDeleteBeforeFinalize(wrapObject)
+    global.gc()
+  }
+  return runTests()
 })
