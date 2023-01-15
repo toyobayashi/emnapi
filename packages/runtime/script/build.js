@@ -7,7 +7,23 @@ const runtimeOut = path.join(__dirname, '../dist/emnapi.iife.js')
 const { compile } = require('@tybys/tsapi')
 
 function build () {
-  compile(path.join(__dirname, '../tsconfig.json'))
+  compile(path.join(__dirname, '../tsconfig.json'), {
+    optionsToExtend: {
+      target: require('typescript').ScriptTarget.ES5,
+      outDir: path.join(__dirname, '../lib/es5')
+    }
+  })
+  compile(path.join(__dirname, '../tsconfig.json'), {
+    optionsToExtend: {
+      target: require('typescript').ScriptTarget.ES2019,
+      outDir: path.join(__dirname, '../lib/es2019'),
+      removeComments: true,
+      declaration: true,
+      declarationMap: true,
+      declarationDir: path.join(__dirname, '../lib/typings'),
+      downlevelIteration: false
+    }
+  })
   const {
     Extractor,
     ExtractorConfig
@@ -28,12 +44,13 @@ function build () {
   const runtimeDts = extractorConfig.publicTrimmedFilePath
 
   /**
+   * @param {'es5' | 'es2019'} esversion
    * @param {boolean=} minify
    * @returns {rollup.RollupOptions}
    */
-  function createInput (minify, options) {
+  function createInput (esversion, minify, options) {
     return {
-      input: path.join(__dirname, '../lib/index.js'),
+      input: path.join(__dirname, '../lib', esversion, 'index.js'),
       plugins: [
         rollupNodeResolve({
           mainFields: ['module', 'main'],
@@ -56,7 +73,7 @@ function build () {
 
   return Promise.all(([
     {
-      input: createInput(false),
+      input: createInput('es5', false),
       output: {
         file: runtimeOut,
         format: 'iife',
@@ -66,7 +83,7 @@ function build () {
       }
     },
     {
-      input: createInput(false),
+      input: createInput('es5', false),
       output: {
         file: path.join(path.dirname(runtimeOut), 'emnapi.js'),
         format: 'umd',
@@ -76,7 +93,7 @@ function build () {
       }
     },
     {
-      input: createInput(true),
+      input: createInput('es5', true),
       output: {
         file: path.join(path.dirname(runtimeOut), 'emnapi.min.js'),
         format: 'umd',
@@ -86,7 +103,7 @@ function build () {
       }
     },
     {
-      input: createInput(false, { resolveOnly: [/^(?!(tslib)).*?$/] }),
+      input: createInput('es2019', false, { resolveOnly: [/^(?!(tslib)).*?$/] }),
       output: {
         file: path.join(path.dirname(runtimeOut), 'emnapi.cjs.js'),
         format: 'cjs',
@@ -96,7 +113,7 @@ function build () {
       }
     },
     {
-      input: createInput(true, { resolveOnly: [/^(?!(tslib)).*?$/] }),
+      input: createInput('es2019', true, { resolveOnly: [/^(?!(tslib)).*?$/] }),
       output: {
         file: path.join(path.dirname(runtimeOut), 'emnapi.cjs.min.js'),
         format: 'cjs',
@@ -106,7 +123,7 @@ function build () {
       }
     },
     {
-      input: createInput(false),
+      input: createInput('es2019', false, { resolveOnly: [/^(?!(tslib)).*?$/] }),
       output: {
         file: path.join(path.dirname(runtimeOut), 'emnapi.mjs'),
         format: 'esm',
@@ -116,7 +133,7 @@ function build () {
       }
     },
     {
-      input: createInput(true),
+      input: createInput('es2019', true, { resolveOnly: [/^(?!(tslib)).*?$/] }),
       output: {
         file: path.join(path.dirname(runtimeOut), 'emnapi.min.mjs'),
         format: 'esm',
@@ -126,7 +143,7 @@ function build () {
       }
     },
     {
-      input: createInput(false, { resolveOnly: [/^(?!(tslib)).*?$/] }),
+      input: createInput('es5', false, { resolveOnly: [/^(?!(tslib)).*?$/] }),
       output: {
         file: path.join(path.dirname(runtimeOut), 'emnapi.esm-bundler.js'),
         format: 'esm',

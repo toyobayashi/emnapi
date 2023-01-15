@@ -2,7 +2,6 @@ import type { Env } from './env'
 import type { Handle, HandleStore } from './Handle'
 import { External } from './Handle'
 
-/** @internal */
 export class HandleScope {
   public handleStore: HandleStore
   public id: number
@@ -39,8 +38,6 @@ export class HandleScope {
   }
 
   public dispose (): void {
-    // if (this.id === 0) return
-    // this.id = 0
     if (this.start === this.end) return
     this.handleStore.erase(this.start, this.end)
   }

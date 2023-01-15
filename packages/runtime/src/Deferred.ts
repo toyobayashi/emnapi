@@ -1,13 +1,11 @@
 import type { Context } from './Context'
 import type { IStoreValue } from './Store'
 
-/** @internal */
 export interface IDeferrdValue<T = any> {
   resolve: (value: T) => void
   reject: (reason?: any) => void
 }
 
-/** @internal */
 export class Deferred<T = any> implements IStoreValue {
   public static create<T = any> (ctx: Context, value: IDeferrdValue<T>): Deferred {
     const deferred = new Deferred<T>(ctx, value)

@@ -6,7 +6,7 @@
 
   "projectFolder": ".",
 
-  "mainEntryPointFilePath": "<projectFolder>/lib/index.d.ts",
+  "mainEntryPointFilePath": "<projectFolder>/lib/typings/index.d.ts",
 
   "bundledPackages": [],
 

@@ -1,6 +1,5 @@
 import { supportFinalizer } from './util'
 
-/** @public */
 export class Persistent<T extends object> {
   private _ref: T | WeakRef<T> | null
   private _param: any

@@ -1,6 +1,5 @@
 import type { Env } from './env'
 
-/** @internal */
 export class Finalizer {
   public constructor (
     public envObject: Env,

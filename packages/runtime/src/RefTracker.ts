@@ -1,4 +1,3 @@
-/** @internal */
 export class RefTracker {
   /** @virtual */
   public finalize (): void {}

@@ -1,7 +1,6 @@
 import type { Env } from './env'
 import { isReferenceType, _global, Buffer } from './util'
 
-/** @internal */
 export class Handle<S> {
   public constructor (
     public id: number,
@@ -96,7 +95,6 @@ export class Handle<S> {
   }
 }
 
-/** @internal */
 export class ConstHandle<S extends undefined | null | boolean | typeof globalThis> extends Handle<S> {
   public constructor (id: number, value: S) {
     super(id, value)
@@ -110,7 +108,6 @@ export function External (this: any): void {
 }
 External.prototype = null as any
 
-/** @internal */
 export class HandleStore {
   public static UNDEFINED = new ConstHandle(GlobalHandle.UNDEFINED, undefined)
   public static NULL = new ConstHandle(GlobalHandle.NULL, null)

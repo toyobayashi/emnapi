@@ -3,13 +3,8 @@
   "compilerOptions": {
     "target": "ES5",
     "module": "ESNext",
-    "downlevelIteration": true,
     "noEmitHelpers": true,
     "importHelpers": true,
-    "declaration": true,
-    "declarationMap": true,
-    "outDir": "./lib",
-    "removeComments": true,
     "importsNotUsedAsValues": "error",
     "paths": {
       "tslib" : ["../../node_modules/tslib/tslib.d.ts"]
@@ -23,10 +18,9 @@
     ],
     "plugins": [
       {
-        "transform": "@tybys/ts-transform-define",
-        "defines": {
-          "__VERSION__": "\"0.25.1\""
-        }
+        "transform": "@tybys/ts-transform-pure-class",
+        "type": "raw",
+        "after": true
       }
     ]
   },

@@ -2,16 +2,8 @@ import type { Env } from './env'
 import { Finalizer } from './Finalizer'
 import { RefTracker } from './RefTracker'
 
-/** @internal */
 export interface RefBase extends Finalizer, RefTracker {}
 
-/** @public */
-export enum Ownership {
-  kRuntime,
-  kUserland
-}
-
-/** @internal */
 export class RefBase extends Finalizer {
   public static finalizeAll (list: RefTracker): void {
     RefTracker.finalizeAll(list)

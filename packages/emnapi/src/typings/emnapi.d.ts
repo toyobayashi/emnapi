@@ -1,4 +1,4 @@
-declare type Env = import('../../../runtime/lib/index').Env
-declare type Handle<S> = import('../../../runtime/lib/index').Handle<S>
-declare type Context = import('../../../runtime/lib/index').Context
-declare type Reference = import('../../../runtime/lib/index').Reference
+declare type Env = import('../../../runtime/lib/typings/index').Env
+declare type Handle<S> = import('../../../runtime/lib/typings/index').Handle<S>
+declare type Context = import('../../../runtime/lib/typings/index').Context
+declare type Reference = import('../../../runtime/lib/typings/index').Reference

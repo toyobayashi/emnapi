@@ -5,6 +5,7 @@
   "main": "index.js",
   "module": "./dist/emnapi.esm-bundler.js",
   "types": "./dist/emnapi.d.ts",
+  "sideEffects": false,
   "exports": {
     ".": {
       "module": "./dist/emnapi.esm-bundler.js",

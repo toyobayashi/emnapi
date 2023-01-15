@@ -1,11 +1,8 @@
-/* eslint-disable no-new-func */
-/* eslint-disable @typescript-eslint/no-implied-eval */
-
 declare const __webpack_public_path__: any
 declare const __non_webpack_require__: ((id: string) => any) | undefined
 declare const global: typeof globalThis
 
-export const supportNewFunction = (function () {
+export const supportNewFunction = /*#__PURE__*/ (function () {
   let f: Function
   try {
     f = new Function()
@@ -15,7 +12,7 @@ export const supportNewFunction = (function () {
   return typeof f === 'function'
 })()
 
-export const _global: typeof globalThis = (function () {
+export const _global: typeof globalThis = /*#__PURE__*/ (function () {
   if (typeof globalThis !== 'undefined') return globalThis
 
   let g = (function (this: any) { return this })()
@@ -38,7 +35,6 @@ export const _global: typeof globalThis = (function () {
 
 const emptyException = new Error()
 
-/** @internal */
 export class TryCatch {
   private _exception: any = emptyException
   public hasCaught (): boolean {
@@ -64,10 +60,13 @@ export class TryCatch {
   }
 }
 
-export let canSetFunctionName = false
-try {
-  canSetFunctionName = !!Object.getOwnPropertyDescriptor(Function.prototype, 'name')?.configurable
-} catch (_) {}
+export const canSetFunctionName = /*#__PURE__*/ (function () {
+  try {
+    return Boolean(Object.getOwnPropertyDescriptor(Function.prototype, 'name')?.configurable)
+  } catch (_) {
+    return false
+  }
+})()
 
 export const supportReflect = typeof Reflect === 'object'
 export const supportFinalizer = (typeof FinalizationRegistry !== 'undefined') && (typeof WeakRef !== 'undefined')
@@ -90,23 +89,7 @@ export const _setImmediate = typeof setImmediate === 'function'
     channel.port2.postMessage(null)
   }
 
-export const construct = supportReflect
-  ? Reflect.construct
-  : function<R> (target: new (...args: any[]) => R, args: ArrayLike<any>, newTarget?: Function): R {
-    const argsList = Array(args.length + 1) as [undefined, ...any[]]
-    argsList[0] = undefined
-    for (let i = 0; i < args.length; i++) {
-      argsList[i + 1] = args[i]
-    }
-    const BoundCtor = target.bind.apply(target as any, argsList) as new () => any
-    const instance = new BoundCtor()
-    if (typeof newTarget === 'function') {
-      Object.setPrototypeOf(instance, newTarget.prototype)
-    }
-    return instance
-  }
-
-const _require = (function () {
+const _require = /*#__PURE__*/ (function () {
   let nativeRequire
 
   if (typeof __webpack_public_path__ !== 'undefined') {
@@ -122,7 +105,7 @@ const _require = (function () {
   return nativeRequire
 })()
 
-export const Buffer: BufferCtor | undefined = (function () {
+export const Buffer: BufferCtor | undefined = /*#__PURE__*/ (function () {
   if (typeof _global.Buffer === 'function') return _global.Buffer
 
   try {

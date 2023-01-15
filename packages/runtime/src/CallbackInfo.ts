@@ -1,6 +1,5 @@
 import type { Env } from './env'
 
-/** @internal */
 export class CallbackInfo {
   public constructor (
     public parent: CallbackInfo | null,
@@ -17,7 +16,6 @@ export class CallbackInfo {
   }
 }
 
-/** @internal */
 export class CallbackInfoStack {
   public current: CallbackInfo | null = null
 

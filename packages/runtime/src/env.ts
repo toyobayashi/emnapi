@@ -3,25 +3,14 @@ import type { Context } from './Context'
 import type { IStoreValue } from './Store'
 import { TryCatch, _setImmediate } from './util'
 import { RefTracker } from './RefTracker'
-import { Ownership, RefBase } from './RefBase'
+import { RefBase } from './RefBase'
 
-/** @internal */
 export interface IReferenceBinding {
   wrapped: number // wrapped Reference id
   tag: [number, number, number, number] | null
   data: void_p
 }
 
-/** @internal */
-export interface ILastError {
-  setErrorMessage: (ptr: number | bigint) => void
-  getErrorCode: () => number
-  setErrorCode: (code: number) => void
-  data: number
-  dispose (): void
-}
-
-/** @internal */
 export class Env implements IStoreValue {
   public id: number
 
@@ -85,8 +74,6 @@ export class Env implements IStoreValue {
   }
 
   public clearLastError (): napi_status {
-    // this.lastError.setErrorCode(napi_status.napi_ok)
-
     const lastError = this.lastError
     lastError.errorCode = napi_status.napi_ok
     lastError.engineErrorCode = 0
@@ -96,8 +83,6 @@ export class Env implements IStoreValue {
   }
 
   public setLastError (error_code: napi_status, engine_error_code: uint32_t = 0, engine_reserved: void_p = 0): napi_status {
-    // this.lastError.setErrorCode(error_code)
-
     const lastError = this.lastError
     lastError.errorCode = error_code
     lastError.engineErrorCode = engine_error_code
@@ -114,9 +99,6 @@ export class Env implements IStoreValue {
     const r = fn(this)
     if (this.tryCatch.hasCaught()) {
       const err = this.tryCatch.extractException()!
-      // if (this.lastError.getErrorCode() === napi_status.napi_pending_exception) {
-      //   this.clearLastError()
-      // }
       throw err
     }
     return r
@@ -166,7 +148,7 @@ export class Env implements IStoreValue {
     if (this.id === 0) return
     this.destructing = true
     this.drainFinalizerQueue()
-    // this.scopeList.clear()
+
     RefBase.finalizeAll(this.finalizing_reflist)
     RefBase.finalizeAll(this.reflist)
 
@@ -175,7 +157,6 @@ export class Env implements IStoreValue {
     this.id = 0
   }
 
-  // js object -> IReferenceBinding
   private readonly _bindingMap: WeakMap<object, IReferenceBinding> = new WeakMap()
 
   public initObjectBinding<S extends object> (value: S): IReferenceBinding {

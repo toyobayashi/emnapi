@@ -1,7 +1,7 @@
 import type { IStoreValue } from './Store'
 import { isReferenceType } from './util'
 import type { Env } from './env'
-import { Ownership, RefBase } from './RefBase'
+import { RefBase } from './RefBase'
 import { Persistent } from './Persistent'
 
 function weakCallback (ref: Reference): void {
@@ -9,7 +9,6 @@ function weakCallback (ref: Reference): void {
   ref.envObject.enqueueFinalizer(ref)
 }
 
-/** @internal */
 export class Reference extends RefBase implements IStoreValue {
   public id: number
 
@@ -17,7 +16,7 @@ export class Reference extends RefBase implements IStoreValue {
     envObject: Env,
     handle_id: napi_value,
     initialRefcount: uint32_t,
-    ownership: Ownership,
+    ownership: 0 | 1,
     finalize_callback: napi_finalize = 0,
     finalize_data: void_p = 0,
     finalize_hint: void_p = 0

@@ -9,6 +9,10 @@ module.exports = {
     'standard-with-typescript'
   ],
   rules: {
+    'spaced-comment': 'off',
+    'no-new-func': 'off',
+    'no-implied-eval': 'off',
+    '@typescript-eslint/no-implied-eval': 'off',
     '@typescript-eslint/no-unused-vars': 'error',
     '@typescript-eslint/no-namespace': 'off',
     '@typescript-eslint/no-var-requires': 'off',

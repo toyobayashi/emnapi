@@ -1,18 +1,14 @@
-/**
- * @packageDocumentation
- */
-
 export { CallbackInfo, CallbackInfoStack } from './CallbackInfo'
 export { createContext, Context, type CleanupHookCallbackFunction } from './Context'
 export { Deferred, type IDeferrdValue } from './Deferred'
 export { DeferredStore } from './DeferredStore'
-export { type ILastError, Env, type IReferenceBinding } from './env'
+export { Env, type IReferenceBinding } from './env'
 export { EnvStore } from './EnvStore'
 export { EmnapiError, NotSupportWeakRefError, NotSupportBigIntError } from './errors'
 export { Finalizer } from './Finalizer'
 export { Handle, ConstHandle, HandleStore } from './Handle'
 export { HandleScope } from './HandleScope'
-export { RefBase, Ownership } from './RefBase'
+export { RefBase } from './RefBase'
 export { Persistent } from './Persistent'
 export { Reference } from './Reference'
 export { RefStore } from './RefStore'
@@ -25,6 +21,4 @@ export {
   TryCatch
 } from './util'
 
-declare const __VERSION__: string
-
-export const version = __VERSION__
+export const version = '0.25.1'

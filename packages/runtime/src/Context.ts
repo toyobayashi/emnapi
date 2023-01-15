@@ -19,10 +19,8 @@ import {
 import { CallbackInfoStack } from './CallbackInfo'
 import { NotSupportWeakRefError, NotSupportBigIntError } from './errors'
 import { Reference } from './Reference'
-import type { Ownership } from './RefBase'
 import { type IDeferrdValue, Deferred } from './Deferred'
 
-/** @internal */
 export type CleanupHookCallbackFunction = number | ((arg: number) => void)
 
 class CleanupHookCallback {
@@ -77,7 +75,6 @@ class CleanupQueue {
   }
 }
 
-/** @internal */
 export class Context {
   public envStore = new EnvStore()
   public scopeStore = new ScopeStore()
@@ -118,7 +115,7 @@ export class Context {
     envObject: Env,
     handle_id: napi_value,
     initialRefcount: uint32_t,
-    ownership: Ownership,
+    ownership: 0 | 1,
     finalize_callback: napi_finalize = 0,
     finalize_data: void_p = 0,
     finalize_hint: void_p = 0
@@ -145,27 +142,22 @@ export class Context {
     return Env.create(this, makeDynCall_vppp, makeDynCall_vp)
   }
 
-  /** @internal */
   getCurrentScope (): HandleScope | null {
     return this.scopeStore.currentScope
   }
 
-  /** @internal */
   addToCurrentScope<V> (value: V): Handle<V> {
     return this.scopeStore.currentScope.add(value)
   }
 
-  /** @internal */
   openScope (envObject: Env): HandleScope {
     return this.scopeStore.openScope(envObject)
   }
 
-  /** @internal */
   closeScope (envObject: Env, _scope?: HandleScope): void {
     return this.scopeStore.closeScope(envObject)
   }
 
-  /** @internal */
   ensureHandle<S> (value: S): Handle<S> {
     switch (value as any) {
       case undefined: return HandleStore.UNDEFINED as any
@@ -203,17 +195,15 @@ export class Context {
     this.handleStore.dispose()
     this.deferredStore.dispose()
     this.refStore.dispose()
-    // this.envStore.dispose()
+
     this.cbinfoStack = null!
     this.scopeStore = null!
     this.handleStore = null!
     this.deferredStore = null!
     this.refStore = null!
-    // this.envStore = null!
   }
 }
 
-/** @public */
 export function createContext (): Context {
   return new Context()
 }
