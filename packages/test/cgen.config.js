@@ -126,6 +126,7 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
       createTarget('objfac', ['./objfac/binding.c'], true),
       createTarget('fnfac', ['./fnfac/binding.c'], true),
       createTarget('general', ['./general/binding.c'], true),
+      createTarget('filename', ['./filename/binding.c'], true),
       createTarget('string', ['./string/binding.c'], true),
       createTarget('property', ['./property/binding.c'], true),
       createTarget('promise', ['./promise/binding.c'], true),

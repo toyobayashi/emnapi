@@ -14,7 +14,7 @@ declare function _napi_register_wasm_v1 (env: Ptr, exports: Ptr): napi_value
 declare const emnapiModule: {
   exports: any
   loaded: boolean
-  filename: string | null
+  filename: string
   envObject?: Env
 }
 
@@ -28,7 +28,7 @@ mergeInto(LibraryManager.library, {
   $emnapiModule: {
     exports: {},
     loaded: false,
-    filename: null
+    filename: ''
   },
 
   $emnapiInit__deps: ['$emnapiModule', '$emnapiCtx', 'napi_register_wasm_v1'],

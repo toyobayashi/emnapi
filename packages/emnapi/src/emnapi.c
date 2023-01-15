@@ -208,6 +208,29 @@ napi_status napi_get_uv_event_loop(napi_env env,
 #endif
 }
 
+extern int _emnapi_get_filename_length();
+extern int _emnapi_get_filename(char* buf, int len);
+
+napi_status node_api_get_module_file_name(napi_env env,
+                                          const char** result) {
+  CHECK_ENV(env);
+  CHECK_ARG(env, result);
+
+  static char* filename = NULL;
+
+  if (filename != NULL) {
+    free(filename);
+  }
+
+  int len = _emnapi_get_filename_length();
+  filename = (char*) malloc(len + 1);
+  len = _emnapi_get_filename(filename, len + 1);
+  *(filename + len) = '\0';
+
+  *result = filename;
+  return napi_clear_last_error(env);
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // Async work implementation
 ////////////////////////////////////////////////////////////////////////////////
