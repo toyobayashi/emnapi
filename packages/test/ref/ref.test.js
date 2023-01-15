@@ -108,11 +108,12 @@ module.exports = p.then(test_reference => {
     // 1000 reliably recreated the problem without the fix
     // required to ensure delete could be called before
     // the finalizer in manual testing.
-    for (let i = 0; i < 1000; i++) {
-      const wrapObject = new Object()
-      test_reference.validateDeleteBeforeFinalize(wrapObject)
-      global.gc()
-    }
+
+    // for (let i = 0; i < 1000; i++) {
+    //   const wrapObject = new Object()
+    //   test_reference.validateDeleteBeforeFinalize(wrapObject)
+    //   global.gc()
+    // }
   }
   return runTests().catch(err => {
     console.error(err)

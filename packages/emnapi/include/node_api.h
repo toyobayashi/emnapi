@@ -169,6 +169,19 @@ napi_ref_threadsafe_function(napi_env env, napi_threadsafe_function func);
 
 #endif
 
+#if NAPI_VERSION >= 8
+
+NAPI_EXTERN napi_status
+napi_add_async_cleanup_hook(napi_env env,
+                            napi_async_cleanup_hook hook,
+                            void* arg,
+                            napi_async_cleanup_hook_handle* remove_handle);
+
+NAPI_EXTERN napi_status
+napi_remove_async_cleanup_hook(napi_async_cleanup_hook_handle remove_handle);
+
+#endif  // NAPI_VERSION >= 8
+
 EXTERN_C_END
 
 #endif

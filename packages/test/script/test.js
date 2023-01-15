@@ -14,6 +14,7 @@ let files = glob.sync(`${subdir ? (subdir + '/') : ''}**/*.test.js`, {
           'async/**/*',
           'pool/**/*',
           'tsfn/**/*',
+          'async_cleanup_hook/**/*',
           'string/string-pthread.test.js'
         ]
       : []

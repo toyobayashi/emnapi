@@ -76,7 +76,7 @@ exports.mustNotCall = function (msg) {
   }
 }
 
-exports.runTest = async function (test, buildType, buildPathRoot = process.env.BUILD_PATH || '') {
+async function runTest (test, buildType, buildPathRoot = process.env.BUILD_PATH || '') {
   buildType = buildType || process.config.target_defaults.default_configuration || 'Release'
 
   const bindings = [
@@ -96,8 +96,13 @@ exports.runTest = async function (test, buildType, buildPathRoot = process.env.B
       .finally(exports.mustCall())
   }
 }
+exports.runTest = function (test, buildType, buildPathRoot = process.env.BUILD_PATH || '') {
+  const p = runTest(test, buildType, buildPathRoot)
+  p.immdiateExit = true
+  return p
+}
 
-exports.runTestWithBindingPath = async function (test, buildType, buildPathRoot = process.env.BUILD_PATH || '') {
+async function runTestWithBindingPath (test, buildType, buildPathRoot = process.env.BUILD_PATH || '') {
   buildType = buildType || process.config.target_defaults.default_configuration || 'Release'
 
   const bindings = [
@@ -115,10 +120,20 @@ exports.runTestWithBindingPath = async function (test, buildType, buildPathRoot 
     await test(item)
   }
 }
+exports.runTestWithBindingPath = function (test, buildType, buildPathRoot = process.env.BUILD_PATH || '') {
+  const p = runTestWithBindingPath(test, buildType, buildPathRoot)
+  p.immdiateExit = true
+  return p
+}
 
-exports.runTestWithBuildType = async function (test, buildType) {
+async function runTestWithBuildType (test, buildType) {
   buildType = buildType || process.config.target_defaults.default_configuration || 'Release'
 
   await Promise.resolve(test(buildType))
     .finally(exports.mustCall())
+}
+exports.runTestWithBuildType = function (test, buildType) {
+  const p = runTestWithBuildType(test, buildType)
+  p.immdiateExit = true
+  return p
 }
