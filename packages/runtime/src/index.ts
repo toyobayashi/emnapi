@@ -3,7 +3,7 @@
  */
 
 export { CallbackInfo, CallbackInfoStack } from './CallbackInfo'
-export { createContext, Context } from './Context'
+export { createContext, Context, type CleanupHookCallbackFunction } from './Context'
 export { Deferred, type IDeferrdValue } from './Deferred'
 export { DeferredStore } from './DeferredStore'
 export { type ILastError, Env, type IReferenceBinding } from './env'

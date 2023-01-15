@@ -160,7 +160,7 @@ function napi_add_env_cleanup_hook (env: napi_env, fun: number, arg: number): na
   $from64('fun')
   $from64('arg')
 
-  envObject.addCleanupHook(fun, arg)
+  emnapiCtx.addCleanupHook(envObject, fun, arg)
 
   return napi_status.napi_ok
 }
@@ -173,9 +173,19 @@ function napi_remove_env_cleanup_hook (env: napi_env, fun: number, arg: number):
   $from64('fun')
   $from64('arg')
 
-  envObject.removeCleanupHook(fun, arg)
+  emnapiCtx.removeCleanupHook(envObject, fun, arg)
 
   return napi_status.napi_ok
+}
+
+function _emnapi_env_ref (env: napi_env): void {
+  const envObject = emnapiCtx.envStore.get(env)!
+  envObject.ref()
+}
+
+function _emnapi_env_unref (env: napi_env): void {
+  const envObject = emnapiCtx.envStore.get(env)!
+  envObject.unref()
 }
 
 emnapiImplement('napi_open_handle_scope', 'ipp', napi_open_handle_scope)
@@ -192,3 +202,6 @@ emnapiImplement('napi_get_reference_value', 'ippp', napi_get_reference_value)
 
 emnapiImplement('napi_add_env_cleanup_hook', 'ippp', napi_add_env_cleanup_hook)
 emnapiImplement('napi_remove_env_cleanup_hook', 'ippp', napi_remove_env_cleanup_hook)
+
+emnapiImplement('_emnapi_env_ref', 'vp', _emnapi_env_ref)
+emnapiImplement('_emnapi_env_unref', 'vp', _emnapi_env_unref)

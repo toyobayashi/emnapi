@@ -465,6 +465,11 @@ static void _emnapi_tsfn_default_call_js(napi_env env, napi_value cb, void* cont
   }
 }
 
+static void _emnapi_tsfn_cleanup(void* data);
+
+extern void _emnapi_env_ref(napi_env env);
+extern void _emnapi_env_unref(napi_env env);
+
 static napi_threadsafe_function
 _emnapi_tsfn_create(napi_env env,
                     napi_ref ref,
@@ -496,6 +501,9 @@ _emnapi_tsfn_create(napi_env env,
   ts_fn->call_js_cb = call_js_cb;
   ts_fn->handles_closing = false;
 
+  napi_add_env_cleanup_hook(env, _emnapi_tsfn_cleanup, ts_fn);
+  _emnapi_env_ref(env);
+
   EMNAPI_KEEPALIVE_PUSH();
   ts_fn->async_ref = true;
   return ts_fn;
@@ -520,6 +528,8 @@ static void _emnapi_tsfn_destroy(napi_threadsafe_function func) {
 
   napi_delete_reference(func->env, func->ref);
 
+  napi_remove_env_cleanup_hook(func->env, _emnapi_tsfn_cleanup, func);
+  _emnapi_env_unref(func->env);
   if (func->async_ref) {
     EMNAPI_KEEPALIVE_POP();
     func->async_ref = false;
@@ -615,6 +625,10 @@ static void _emnapi_tsfn_close_handles_and_maybe_delete(
   uv_close((uv_handle_t*)&func->async, _emnapi_tsfn_do_finalize);
 
   napi_close_handle_scope(func->env, scope);
+}
+
+static void _emnapi_tsfn_cleanup(void* data) {
+  _emnapi_tsfn_close_handles_and_maybe_delete((napi_threadsafe_function) data, true);
 }
 
 // only main thread
