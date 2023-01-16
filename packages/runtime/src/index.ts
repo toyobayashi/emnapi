@@ -21,4 +21,6 @@ export {
   TryCatch
 } from './util'
 
-export const version = '0.25.1'
+declare const __VERSION__: string
+
+export const version = __VERSION__

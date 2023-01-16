@@ -2,6 +2,7 @@ const path = require('path')
 const fs = require('fs-extra')
 const rollup = require('rollup')
 const rollupNodeResolve = require('@rollup/plugin-node-resolve').default
+const rollupReplace = require('@rollup/plugin-replace').default
 const rollupTerser = require('rollup-plugin-terser').terser
 const runtimeOut = path.join(__dirname, '../dist/emnapi.iife.js')
 const { compile } = require('@tybys/tsapi')
@@ -55,6 +56,12 @@ function build () {
         rollupNodeResolve({
           mainFields: ['module', 'main'],
           ...((options && options.resolveOnly) ? { resolveOnly: options.resolveOnly } : {})
+        }),
+        rollupReplace({
+          preventAssignment: true,
+          values: {
+            __VERSION__: JSON.stringify(require('../package.json').version)
+          }
         }),
         ...(minify
           ? [
