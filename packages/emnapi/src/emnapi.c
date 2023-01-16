@@ -208,7 +208,6 @@ napi_status napi_get_uv_event_loop(napi_env env,
 #endif
 }
 
-extern int _emnapi_get_filename_length();
 extern int _emnapi_get_filename(char* buf, int len);
 
 napi_status node_api_get_module_file_name(napi_env env,
@@ -222,7 +221,7 @@ napi_status node_api_get_module_file_name(napi_env env,
     free(filename);
   }
 
-  int len = _emnapi_get_filename_length();
+  int len = _emnapi_get_filename(NULL, 0);
   filename = (char*) malloc(len + 1);
   len = _emnapi_get_filename(filename, len + 1);
   *(filename + len) = '\0';
