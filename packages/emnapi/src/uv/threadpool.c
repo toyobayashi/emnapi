@@ -97,6 +97,7 @@ static void* worker(void* arg) {
   uv_sem_post((uv_sem_t*) arg);
   arg = NULL;
 
+  _emnapi_unref_this_thread();
   uv_mutex_lock(&mutex);
   for (;;) {
     /* `mutex` should always be locked at this point. */
