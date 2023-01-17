@@ -42,7 +42,7 @@ export class Env implements IStoreValue {
   ): Env {
     const env = new Env(ctx, makeDynCall_vppp, makeDynCall_vp)
     ctx.envStore.add(env)
-    // ctx.addCleanupHook(env, () => { env.unref() }, 0)
+    ctx.addCleanupHook(env, () => { env.unref() }, 0)
     return env
   }
 
