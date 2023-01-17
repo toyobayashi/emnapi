@@ -2,8 +2,8 @@
 #define UV_COMMON_H_
 
 #ifdef __EMSCRIPTEN_PTHREADS__
-
 #include <assert.h>
+#include <emscripten.h> /* version.h */
 #include "uv.h"
 #include "queue.h"
 
@@ -50,6 +50,14 @@ enum uv__work_kind {
 void uv__work_done(uv_async_t* handle);
 void uv__loop_close(uv_loop_t* loop);
 void uv__async_close(uv_async_t* handle);
+
+#ifndef EMNAPI_USE_PROXYING
+  #if __EMSCRIPTEN_major__ * 10000 + __EMSCRIPTEN_minor__ * 100 + __EMSCRIPTEN_tiny__ >= 30109
+  #define EMNAPI_USE_PROXYING 1
+  #else
+  #define EMNAPI_USE_PROXYING 0
+  #endif
+#endif
 
 #endif
 

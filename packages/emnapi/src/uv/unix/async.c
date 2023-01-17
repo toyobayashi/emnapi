@@ -26,7 +26,6 @@
 
 #include <stdlib.h>
 #include <sched.h>
-#include <emscripten.h> /* version.h */
 #include "../uv-common.h"
 
 #if defined(__clang__) ||                                                     \
@@ -54,14 +53,6 @@ extern void _emnapi_next_tick(void (*callback)(void*), void* data);
 #define NEXT_TICK(callback, data) _emnapi_next_tick((callback), (data))
 #else
 #error "Invalid EMNAPI_NEXTTICK_TYPE"
-#endif
-
-#ifndef EMNAPI_USE_PROXYING
-  #if __EMSCRIPTEN_major__ * 10000 + __EMSCRIPTEN_minor__ * 100 + __EMSCRIPTEN_tiny__ >= 30109
-  #define EMNAPI_USE_PROXYING 1
-  #else
-  #define EMNAPI_USE_PROXYING 0
-  #endif
 #endif
 
 #if EMNAPI_USE_PROXYING

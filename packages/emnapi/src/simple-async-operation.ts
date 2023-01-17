@@ -1,11 +1,14 @@
 /* eslint-disable @typescript-eslint/indent */
 /* eslint-disable no-unreachable */
 
-// declare const PThread: any
+declare const PThread: any
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 // declare function __emnapi_async_send_js (callback: number, data: number): void
 declare function __emnapi_set_immediate (callback: number, data: number): void
 declare function __emnapi_next_tick (callback: number, data: number): void
+declare function __emnapi_worker_ref (pid: number): void
+declare function __emnapi_worker_unref (pid: number): void
+declare function __emnapi_ref_worker_js (type: number, pid: number): void
 
 mergeInto(LibraryManager.library, {
   _emnapi_set_immediate__sig: 'vpp',
@@ -24,6 +27,36 @@ mergeInto(LibraryManager.library, {
     })
   },
 
+  _emnapi_worker_unref__sig: 'vp',
+  _emnapi_worker_unref__deps: ['$PThread'],
+  _emnapi_worker_unref: function (pid: number): void {
+    let worker = PThread.pthreads[pid]
+    worker = worker.worker || worker
+    if (typeof worker.unref === 'function') {
+      worker.unref()
+    }
+  },
+  _emnapi_worker_ref__sig: 'vp',
+  _emnapi_worker_ref__deps: ['$PThread'],
+  _emnapi_worker_ref: function (pid: number): void {
+    let worker = PThread.pthreads[pid]
+    worker = worker.worker || worker
+    if (typeof worker.ref === 'function') {
+      worker.ref()
+    }
+  },
+
+  // if EMNAPI_USE_PROXYING=1 (default is 1 if emscripten version >= 3.1.9),
+  // the following helpers won't be linked into runtime code
+  $emnapiAddSendListener__deps: ['$PThread'],
+  $emnapiAddSendListener__postset:
+    'PThread.unusedWorkers.forEach(emnapiAddSendListener);' +
+    'PThread.runningWorkers.forEach(emnapiAddSendListener);' +
+    '(function () { var __original_getNewWorker = PThread.getNewWorker; PThread.getNewWorker = function () {' +
+      'var r = __original_getNewWorker.apply(this, arguments);' +
+      'emnapiAddSendListener(r);' +
+      'return r;' +
+    '}; })();',
   $emnapiAddSendListener: function (worker: any) {
     if (worker && !worker._emnapiSendListener) {
       worker._emnapiSendListener = function _emnapiSendListener (e: any) {
@@ -38,6 +71,16 @@ mergeInto(LibraryManager.library, {
             const callback = data.emnapiAsyncSend.callback
             $makeDynCall('vp', 'callback')(data.emnapiAsyncSend.data)
           }
+        } else if (data.emnapiRefWorker) {
+          if (ENVIRONMENT_IS_PTHREAD) {
+            postMessage({
+              emnapiRefWorker: data.emnapiRefWorker
+            })
+          } else {
+            if (typeof __emnapi_ref_worker_js === 'function') {
+              __emnapi_ref_worker_js(data.emnapiRefWorker.type, data.emnapiRefWorker.pid)
+            }
+          }
         }
       }
       if (ENVIRONMENT_IS_NODE) {
@@ -50,7 +93,6 @@ mergeInto(LibraryManager.library, {
 
   _emnapi_async_send_js__sig: 'vipp',
   _emnapi_async_send_js__deps: [
-    '$PThread',
     '$emnapiAddSendListener',
     '_emnapi_set_immediate',
     '_emnapi_next_tick'
@@ -71,16 +113,26 @@ mergeInto(LibraryManager.library, {
       }
     }
   },
-  // if EMNAPI_USE_PROXYING=1 (default is 1 if emscripten version >= 3.1.9),
-  // _emnapi_async_send_js and $emnapiAddSendListener won't be linked into runtime code
-  _emnapi_async_send_js__postset:
-    'PThread.unusedWorkers.forEach(emnapiAddSendListener);' +
-    'PThread.runningWorkers.forEach(emnapiAddSendListener);' +
-    'var __original_getNewWorker = PThread.getNewWorker; PThread.getNewWorker = function () {' +
-      'var r = __original_getNewWorker.apply(this, arguments);' +
-      'emnapiAddSendListener(r);' +
-      'return r;' +
-    '};'
+
+  _emnapi_ref_worker_js__sig: 'vip',
+  _emnapi_ref_worker_js__deps: [
+    '$emnapiAddSendListener',
+    '_emnapi_worker_unref',
+    '_emnapi_worker_ref'
+  ],
+  _emnapi_ref_worker_js: function (type: number, pid: number): void {
+    if (ENVIRONMENT_IS_PTHREAD) {
+      postMessage({
+        emnapiRefWorker: { type, pid }
+      })
+    } else {
+      switch (type) {
+        case 0: __emnapi_worker_unref(pid); break
+        case 1: __emnapi_worker_ref(pid); break
+        default: break
+      }
+    }
+  }
 })
 
 function _emnapi_call_into_module (env: napi_env, callback: number, data: number): void {
