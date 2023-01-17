@@ -9,7 +9,8 @@
     "chalk": "^4.1.1",
     "cross-env": "^7.0.3",
     "glob": "^7.2.0",
-    "node-addon-api": "5.1.0"
+    "node-addon-api": "5.1.0",
+    "why-is-node-running": "^2.2.2"
   },
   "scripts": {
     "rebuild": "cgen rebuild -e -d -G Ninja",

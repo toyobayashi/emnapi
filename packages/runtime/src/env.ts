@@ -42,7 +42,7 @@ export class Env implements IStoreValue {
   ): Env {
     const env = new Env(ctx, makeDynCall_vppp, makeDynCall_vp)
     ctx.envStore.add(env)
-    ctx.addCleanupHook(env, () => { env.unref() }, 0)
+    // ctx.addCleanupHook(env, () => { env.unref() }, 0)
     return env
   }
 
@@ -145,16 +145,16 @@ export class Env implements IStoreValue {
   }
 
   public dispose (): void {
-    if (this.id === 0) return
+    // if (this.id === 0) return
     this.destructing = true
     this.drainFinalizerQueue()
 
     RefBase.finalizeAll(this.finalizing_reflist)
     RefBase.finalizeAll(this.reflist)
 
-    this.tryCatch.extractException()
-    this.ctx.envStore.remove(this.id)
-    this.id = 0
+    // this.tryCatch.extractException()
+    // this.ctx.envStore.remove(this.id)
+    // this.id = 0
   }
 
   private readonly _bindingMap: WeakMap<object, IReferenceBinding> = new WeakMap()

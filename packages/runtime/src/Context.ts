@@ -58,19 +58,21 @@ class CleanupQueue {
   }
 
   public drain (): void {
-    while (this._cleanupHooks.length > 0) {
-      const cb = this._cleanupHooks[this._cleanupHooks.length - 1]
+    const hooks = this._cleanupHooks.slice()
+    hooks.sort((a, b) => (b.order - a.order))
+    for (let i = 0; i < hooks.length; ++i) {
+      const cb = hooks[i]
       if (typeof cb.fn === 'number') {
         cb.envObject.makeDynCall_vp(cb.fn)(cb.arg)
       } else {
         cb.fn(cb.arg)
       }
-      this._cleanupHooks.pop()
+      this._cleanupHooks.splice(this._cleanupHooks.indexOf(cb), 1)
     }
   }
 
   public dispose (): void {
-    this._cleanupHooks = null!
+    this._cleanupHooks.length = 0
     this._cleanupHookCounter = 0
   }
 }
@@ -82,7 +84,7 @@ export class Context {
   public deferredStore = new DeferredStore()
   public handleStore = new HandleStore()
   public cbinfoStack = new CallbackInfoStack()
-  private cleanupQueue: CleanupQueue
+  private readonly cleanupQueue: CleanupQueue
 
   public feature = {
     supportReflect,
@@ -98,7 +100,24 @@ export class Context {
     this.cleanupQueue = new CleanupQueue()
     if (typeof process === 'object' && process !== null && typeof process.once === 'function') {
       process.once('beforeExit', () => {
+        // ???
+        const waitNoRef = (): Promise<void> => {
+          return new Promise((resolve) => {
+            const f = (): void => {
+              if (this.noRef()) {
+                // _setImmediate(resolve)
+                resolve()
+              } else {
+                setTimeout(f, 10)
+              }
+            }
+            setTimeout(f, 10)
+          })
+        }
+
         this.dispose()
+        // eslint-disable-next-line @typescript-eslint/no-floating-promises
+        waitNoRef().then(() => {})
       })
     }
   }
@@ -185,23 +204,28 @@ export class Context {
     }
   }
 
+  public noRef (): boolean {
+    return this.envStore.canDispose() && this.deferredStore.canDispose()
+  }
+
   dispose (): void {
-    if (this.cleanupQueue === null) return
+    // if (this.cleanupQueue === null) return
     this.runCleanup()
-    this.cleanupQueue.dispose()
-    this.cleanupQueue = null!
+    // this.cleanupQueue.dispose()
+    // this.cleanupQueue = null!
 
-    this.cbinfoStack.dispose()
-    this.scopeStore.dispose()
-    this.handleStore.dispose()
-    this.deferredStore.dispose()
-    this.refStore.dispose()
+    // this.cbinfoStack.dispose()
+    // this.scopeStore.dispose()
+    // this.handleStore.dispose()
+    // this.deferredStore.dispose()
+    // this.refStore.dispose()
 
-    this.cbinfoStack = null!
-    this.scopeStore = null!
-    this.handleStore = null!
-    this.deferredStore = null!
-    this.refStore = null!
+    // this.cbinfoStack = null!
+    // this.scopeStore = null!
+    // this.handleStore = null!
+    // this.deferredStore = null!
+    // this.refStore = null!
+    // this.envStore = null!
   }
 }
 

@@ -236,6 +236,9 @@ napi_status node_api_get_module_file_name(napi_env env,
   return napi_clear_last_error(env);
 }
 
+extern void _emnapi_env_ref(napi_env env);
+extern void _emnapi_env_unref(napi_env env);
+
 ////////////////////////////////////////////////////////////////////////////////
 // Async work implementation
 ////////////////////////////////////////////////////////////////////////////////
@@ -327,16 +330,18 @@ static void async_work_schedule_work_on_execute(uv_work_t* req) {
 static void async_work_schedule_work_on_complete(uv_work_t* req, int status) {
   napi_async_work self = container_of(req, struct napi_async_work__, work_req_);
   EMNAPI_KEEPALIVE_POP();
+  _emnapi_env_unref(self->env);
   async_work_after_thread_pool_work(self, status);
 }
 
 static void async_work_schedule_work(napi_async_work work) {
-  EMNAPI_KEEPALIVE_PUSH();
   int status = uv_queue_work(uv_default_loop(),
                              &work->work_req_,
                              async_work_schedule_work_on_execute,
                              async_work_schedule_work_on_complete);
   CHECK_EQ(status, 0);
+  EMNAPI_KEEPALIVE_PUSH();
+  _emnapi_env_ref(work->env);
 }
 
 static int async_work_cancel_work(napi_async_work work) {
@@ -424,9 +429,6 @@ napi_status napi_cancel_async_work(napi_env env, napi_async_work work) {
   return napi_set_last_error(env, napi_generic_failure, 0, NULL);
 #endif
 }
-
-extern void _emnapi_env_ref(napi_env env);
-extern void _emnapi_env_unref(napi_env env);
 
 ////////////////////////////////////////////////////////////////////////////////
 // TSFN implementation

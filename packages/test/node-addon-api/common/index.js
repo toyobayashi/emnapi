@@ -92,13 +92,14 @@ async function runTest (test, buildType, buildPathRoot = process.env.BUILD_PATH 
 
   for (const item of bindings) {
     const binding = await load(item)
+    console.log('>>>>>>>>' + item)
     await Promise.resolve(test(binding))
       .finally(exports.mustCall())
   }
 }
 exports.runTest = function (test, buildType, buildPathRoot = process.env.BUILD_PATH || '') {
   const p = runTest(test, buildType, buildPathRoot)
-  p.immdiateExit = true
+  // p.immdiateExit = true
   return p
 }
 
@@ -122,7 +123,7 @@ async function runTestWithBindingPath (test, buildType, buildPathRoot = process.
 }
 exports.runTestWithBindingPath = function (test, buildType, buildPathRoot = process.env.BUILD_PATH || '') {
   const p = runTestWithBindingPath(test, buildType, buildPathRoot)
-  p.immdiateExit = true
+  // p.immdiateExit = true
   return p
 }
 
@@ -134,6 +135,6 @@ async function runTestWithBuildType (test, buildType) {
 }
 exports.runTestWithBuildType = function (test, buildType) {
   const p = runTestWithBuildType(test, buildType)
-  p.immdiateExit = true
+  // p.immdiateExit = true
   return p
 }
