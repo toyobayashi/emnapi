@@ -28,6 +28,11 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
 
   const jsLib = `--js-library=${require('path').join(__dirname, '../emnapi/dist/library_napi.js')}`
 
+  const EMNAPI_WORKER_POOL_SIZE = process.env.UV_THREADPOOL_SIZE || 4
+  const PTHREAD_POOL_SIZE = EMNAPI_WORKER_POOL_SIZE * 2
+  console.log(`EMNAPI_WORKER_POOL_SIZE: ${EMNAPI_WORKER_POOL_SIZE}`)
+  console.log(`PTHREAD_POOL_SIZE: ${PTHREAD_POOL_SIZE}`)
+
   const emnapiTarget = (pthread) => ({
     name: pthread ? 'emnapimt' : 'emnapist',
     type: 'lib',
@@ -45,7 +50,7 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
         : [])
     ],
     includePaths,
-    defines: ['NAPI_VERSION=8', ...(pthread ? ['EMNAPI_WORKER_POOL_SIZE=8'] : [])],
+    defines: ['NAPI_VERSION=8', ...(pthread ? [`EMNAPI_WORKER_POOL_SIZE=${EMNAPI_WORKER_POOL_SIZE}`] : [])],
     compileOptions: [...compilerFlags, ...(pthread ? ['-sUSE_PTHREADS=1'] : [])]
   })
 
@@ -63,7 +68,7 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
     linkOptions: [
       ...linkerFlags,
       ...(isEmscripten ? [jsLib] : []),
-      ...(isEmscripten && pthread ? ['-sUSE_PTHREADS=1', '-sPTHREAD_POOL_SIZE=16', '-sPTHREAD_POOL_SIZE_STRICT=2'] : []),
+      ...(isEmscripten && pthread ? ['-sUSE_PTHREADS=1', `-sPTHREAD_POOL_SIZE=${PTHREAD_POOL_SIZE}`, '-sPTHREAD_POOL_SIZE_STRICT=2'] : []),
       ...(linkOptions || [])
     ]
   })
@@ -94,7 +99,7 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
     linkOptions: [...new Set([
       ...linkerFlags,
       ...(enableException && isEmscripten && !process.env.MEMORY64 ? ['-sDISABLE_EXCEPTION_CATCHING=0'] : []),
-      ...(isEmscripten ? [jsLib, '-sUSE_PTHREADS=1', '-sPTHREAD_POOL_SIZE=8', '-sPTHREAD_POOL_SIZE_STRICT=2'] : [])
+      ...(isEmscripten ? [jsLib, '-sUSE_PTHREADS=1', `-sPTHREAD_POOL_SIZE=${PTHREAD_POOL_SIZE}`, '-sPTHREAD_POOL_SIZE_STRICT=2'] : [])
     ])]
   })
 

@@ -13,14 +13,14 @@
     "why-is-node-running": "^2.2.2"
   },
   "scripts": {
-    "rebuild": "cgen rebuild -e -d -G Ninja",
-    "rebuild:r": "cgen rebuild -e -G Ninja",
+    "rebuild": "cross-env UV_THREADPOOL_SIZE=8 cgen rebuild -e -d -G Ninja",
+    "rebuild:r": "cross-env UV_THREADPOOL_SIZE=8 cgen rebuild -e -G Ninja",
     "rebuild:n": "cgen rebuild -d",
     "rebuild:nr": "cgen rebuild",
-    "test": "cross-env NODE_TEST_KNOWN_GLOBALS=0 node ./script/test.js",
-    "test:r": "cross-env NODE_TEST_KNOWN_GLOBALS=0 NODE_ENV=production node ./script/test.js",
-    "test:n": "cross-env NODE_TEST_KNOWN_GLOBALS=0 EMNAPI_TEST_NATIVE=1 UV_THREADPOOL_SIZE=2 node ./script/test.js",
-    "test:nr": "cross-env NODE_TEST_KNOWN_GLOBALS=0 EMNAPI_TEST_NATIVE=1 UV_THREADPOOL_SIZE=2 NODE_ENV=production node ./script/test.js"
+    "test": "cross-env NODE_TEST_KNOWN_GLOBALS=0 UV_THREADPOOL_SIZE=8 node ./script/test.js",
+    "test:r": "cross-env NODE_TEST_KNOWN_GLOBALS=0 UV_THREADPOOL_SIZE=8 NODE_ENV=production node ./script/test.js",
+    "test:n": "cross-env NODE_TEST_KNOWN_GLOBALS=0 EMNAPI_TEST_NATIVE=1 UV_THREADPOOL_SIZE=8 node ./script/test.js",
+    "test:nr": "cross-env NODE_TEST_KNOWN_GLOBALS=0 EMNAPI_TEST_NATIVE=1 UV_THREADPOOL_SIZE=8 NODE_ENV=production node ./script/test.js"
   },
   "repository": {
     "type": "git",
