@@ -337,13 +337,13 @@ static void async_work_schedule_work_on_complete(uv_work_t* req, int status) {
 }
 
 static void async_work_schedule_work(napi_async_work work) {
+  EMNAPI_KEEPALIVE_PUSH();
+  _emnapi_ctx_increase_waiting_request_counter();
   int status = uv_queue_work(uv_default_loop(),
                              &work->work_req_,
                              async_work_schedule_work_on_execute,
                              async_work_schedule_work_on_complete);
   CHECK_EQ(status, 0);
-  EMNAPI_KEEPALIVE_PUSH();
-  _emnapi_ctx_increase_waiting_request_counter();
 }
 
 static int async_work_cancel_work(napi_async_work work) {
