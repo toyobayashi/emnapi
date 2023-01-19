@@ -3,10 +3,11 @@
   "version": "0.0.0",
   "scripts": {
     "build": "npm run build --workspaces --if-present",
+    "build:runtime": "npm run build -w packages/runtime",
     "rebuild:test": "npm run rebuild -w packages/test",
     "test": "npm run test -w packages/test",
     "release": "node ./script/release.js && npm publish --ignore-scripts -w packages/runtime -w packages/emnapi",
-    "lint": "eslint packages/**/*.ts"
+    "lint": "eslint \"packages/**/*.ts\""
   },
   "author": "toyobayashi",
   "repository": {

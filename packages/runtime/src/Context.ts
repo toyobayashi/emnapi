@@ -33,7 +33,7 @@ class CleanupHookCallback {
 }
 
 class CleanupQueue {
-  private _cleanupHooks = [] as CleanupHookCallback[]
+  private readonly _cleanupHooks = [] as CleanupHookCallback[]
   private _cleanupHookCounter = 0
 
   public empty (): boolean {
