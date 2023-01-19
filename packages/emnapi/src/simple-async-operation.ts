@@ -147,4 +147,14 @@ function _emnapi_call_into_module (env: napi_env, callback: number, data: number
   }
 }
 
+function _emnapi_ctx_increase_waiting_request_counter (): void {
+  emnapiCtx.increaseWaitingRequestCounter()
+}
+
+function _emnapi_ctx_decrease_waiting_request_counter (): void {
+  emnapiCtx.decreaseWaitingRequestCounter()
+}
+
 emnapiImplement('_emnapi_call_into_module', 'vppp', _emnapi_call_into_module)
+emnapiImplement('_emnapi_ctx_increase_waiting_request_counter', 'v', _emnapi_ctx_increase_waiting_request_counter)
+emnapiImplement('_emnapi_ctx_decrease_waiting_request_counter', 'v', _emnapi_ctx_decrease_waiting_request_counter)

@@ -238,6 +238,8 @@ napi_status node_api_get_module_file_name(napi_env env,
 
 extern void _emnapi_env_ref(napi_env env);
 extern void _emnapi_env_unref(napi_env env);
+extern void _emnapi_ctx_increase_waiting_request_counter();
+extern void _emnapi_ctx_decrease_waiting_request_counter();
 
 ////////////////////////////////////////////////////////////////////////////////
 // Async work implementation
@@ -330,7 +332,7 @@ static void async_work_schedule_work_on_execute(uv_work_t* req) {
 static void async_work_schedule_work_on_complete(uv_work_t* req, int status) {
   napi_async_work self = container_of(req, struct napi_async_work__, work_req_);
   EMNAPI_KEEPALIVE_POP();
-  _emnapi_env_unref(self->env);
+  _emnapi_ctx_decrease_waiting_request_counter();
   async_work_after_thread_pool_work(self, status);
 }
 
@@ -341,7 +343,7 @@ static void async_work_schedule_work(napi_async_work work) {
                              async_work_schedule_work_on_complete);
   CHECK_EQ(status, 0);
   EMNAPI_KEEPALIVE_PUSH();
-  _emnapi_env_ref(work->env);
+  _emnapi_ctx_increase_waiting_request_counter();
 }
 
 static int async_work_cancel_work(napi_async_work work) {
@@ -983,11 +985,13 @@ static void _emnapi_ach_handle_hook(void* data, void (*done_cb)(void*), void* do
 static void _emnapi_finish_async_cleanup_hook(void* arg) {
   // struct async_cleanup_hook_info* info = (struct async_cleanup_hook_info*) (arg);
   EMNAPI_KEEPALIVE_POP();
+  _emnapi_ctx_decrease_waiting_request_counter();
 }
 
 static void _emnapi_run_async_cleanup_hook(void* arg) {
   struct async_cleanup_hook_info* info = (struct async_cleanup_hook_info*) (arg);
   EMNAPI_KEEPALIVE_PUSH();
+  _emnapi_ctx_increase_waiting_request_counter();
   info->started = true;
   info->fun(info->arg, _emnapi_finish_async_cleanup_hook, info);
 }

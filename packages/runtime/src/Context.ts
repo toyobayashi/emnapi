@@ -77,6 +77,27 @@ class CleanupQueue {
   }
 }
 
+class NodejsWaitingRequestCounter {
+  private timer: any = undefined
+  private count: number = 0
+
+  public increase (): void {
+    if (this.count === 0) {
+      this.timer = setInterval(() => {}, 1e8)
+    }
+    this.count++
+  }
+
+  public decrease (): void {
+    if (this.count === 0) return
+    if (this.count === 1) {
+      clearInterval(this.timer)
+      this.timer = undefined
+    }
+    this.count--
+  }
+}
+
 export class Context {
   public envStore = new EnvStore()
   public scopeStore = new ScopeStore()
@@ -84,6 +105,7 @@ export class Context {
   public deferredStore = new DeferredStore()
   public handleStore = new HandleStore()
   public cbinfoStack = new CallbackInfoStack()
+  private readonly refCounter?: NodejsWaitingRequestCounter
   private readonly cleanupQueue: CleanupQueue
 
   public feature = {
@@ -99,25 +121,9 @@ export class Context {
   public constructor () {
     this.cleanupQueue = new CleanupQueue()
     if (typeof process === 'object' && process !== null && typeof process.once === 'function') {
+      this.refCounter = new NodejsWaitingRequestCounter()
       process.once('beforeExit', () => {
-        // ???
-        const waitNoRef = (): Promise<void> => {
-          return new Promise((resolve) => {
-            const f = (): void => {
-              if (this.noRef()) {
-                // _setImmediate(resolve)
-                resolve()
-              } else {
-                setTimeout(f, 10)
-              }
-            }
-            setTimeout(f, 10)
-          })
-        }
-
-        this.dispose()
-        // eslint-disable-next-line @typescript-eslint/no-floating-promises
-        waitNoRef().then(() => {})
+        this.runCleanup()
       })
     }
   }
@@ -204,28 +210,16 @@ export class Context {
     }
   }
 
-  public noRef (): boolean {
-    return this.envStore.canDispose() && this.deferredStore.canDispose()
+  public increaseWaitingRequestCounter (): void {
+    this.refCounter?.increase()
+  }
+
+  public decreaseWaitingRequestCounter (): void {
+    this.refCounter?.decrease()
   }
 
   dispose (): void {
-    // if (this.cleanupQueue === null) return
     this.runCleanup()
-    // this.cleanupQueue.dispose()
-    // this.cleanupQueue = null!
-
-    // this.cbinfoStack.dispose()
-    // this.scopeStore.dispose()
-    // this.handleStore.dispose()
-    // this.deferredStore.dispose()
-    // this.refStore.dispose()
-
-    // this.cbinfoStack = null!
-    // this.scopeStore = null!
-    // this.handleStore = null!
-    // this.deferredStore = null!
-    // this.refStore = null!
-    // this.envStore = null!
   }
 }
 
