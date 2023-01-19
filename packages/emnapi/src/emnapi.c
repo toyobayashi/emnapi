@@ -409,9 +409,9 @@ napi_status napi_queue_async_work(napi_env env, napi_async_work work) {
 #define CALL_UV(env, condition)                                         \
   do {                                                                  \
     int result = (condition);                                           \
-    napi_status status = uvimpl::ConvertUVErrorCode(result);            \
+    napi_status status = convert_error_code(result);                    \
     if (status != napi_ok) {                                            \
-      return napi_set_last_error(env, status, result);                  \
+      return napi_set_last_error(env, status, result, NULL);            \
     }                                                                   \
   } while (0)
 
@@ -420,11 +420,7 @@ napi_status napi_cancel_async_work(napi_env env, napi_async_work work) {
   CHECK_ENV(env);
   CHECK_ARG(env, work);
 
-  int result = async_work_cancel_work(work);
-  napi_status status = convert_error_code(async_work_cancel_work(work));
-  if (status != napi_ok) {
-    return napi_set_last_error(env, status, result, NULL);
-  }
+  CALL_UV(env, async_work_cancel_work(work));
 
   return napi_clear_last_error(env);
 #else
