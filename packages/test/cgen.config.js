@@ -60,14 +60,13 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
     sources: [
       ...(needEntry ? (sources.push('./entry_point.c'), sources) : sources)
     ],
-    emwrap: {},
     includePaths,
     libs: ['testcommon', ...(isEmscripten ? [pthread ? 'emnapimt' : 'emnapist'] : [])],
     compileOptions: [...compilerFlags, ...(isEmscripten && pthread ? ['-sUSE_PTHREADS=1'] : [])],
     // eslint-disable-next-line no-template-curly-in-string
     linkOptions: [
       ...linkerFlags,
-      ...(isEmscripten ? [jsLib] : []),
+      ...(isEmscripten ? [jsLib, '-sMODULARIZE=1', `-sEXPORT_NAME=emnapitest_${name}`] : []),
       ...(isEmscripten && pthread ? ['-sUSE_PTHREADS=1', `-sPTHREAD_POOL_SIZE=${PTHREAD_POOL_SIZE}`, '-sPTHREAD_POOL_SIZE_STRICT=2'] : []),
       ...(linkOptions || [])
     ]
@@ -79,7 +78,6 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
     sources: [
       ...sources
     ],
-    emwrap: {},
     libs: [...(isEmscripten ? ['emnapimt'] : [])],
     includePaths: [
       ...includePaths,
@@ -99,7 +97,16 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
     linkOptions: [...new Set([
       ...linkerFlags,
       ...(enableException && isEmscripten && !process.env.MEMORY64 ? ['-sDISABLE_EXCEPTION_CATCHING=0'] : []),
-      ...(isEmscripten ? [jsLib, '-sUSE_PTHREADS=1', `-sPTHREAD_POOL_SIZE=${PTHREAD_POOL_SIZE}`, '-sPTHREAD_POOL_SIZE_STRICT=2'] : [])
+      ...(isEmscripten
+        ? [
+            jsLib,
+            '-sMODULARIZE=1',
+            `-sEXPORT_NAME=emnapitest_${name}`,
+            '-sUSE_PTHREADS=1',
+            `-sPTHREAD_POOL_SIZE=${PTHREAD_POOL_SIZE}`,
+            '-sPTHREAD_POOL_SIZE_STRICT=2'
+          ]
+        : [])
     ])]
   })
 

@@ -1,20 +1,12 @@
 'use strict'
 const common = require('../common')
 const { Worker } = require('worker_threads')
-const { load, getEntry } = require('../util')
+const { load } = require('../util')
 
 module.exports = new Promise((resolve, reject) => {
   const w = new Worker(`
-    const emnapi = require(${JSON.stringify(require.resolve('../../runtime'))})
-    const context = emnapi.createContext()
-
-    function load (request) {
-      const mod = require(request)
-
-      return typeof mod.default === 'function' ? mod.default().then(({ Module }) => Module.emnapiInit({ context })) : Promise.resolve(mod)
-    }
-
-    load(${JSON.stringify(getEntry('async_cleanup_hook'))})
+    const { load } = require(${JSON.stringify(require.resolve('../util.js'))})
+    load('async_cleanup_hook')
   `, { eval: true, env: process.env })
   w.on('exit', common.mustCall((code) => {
     console.log('Worker exit')

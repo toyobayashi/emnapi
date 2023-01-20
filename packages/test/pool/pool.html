@@ -11,8 +11,8 @@
   <script src="../.cgenbuild/Debug/pool.js"></script>
   <script>
     (async function main () {
-      const loadPromise = window.pool.default()
-      const A = (await loadPromise).Module.emnapiInit({ context: emnapi.createContext() })
+      const Module = await emnapitest_pool()
+      const A = Module.emnapiInit({ context: emnapi.createContext() })
 
       await Promise.all(Array.from({ length: 4 }, () => A.async_method()))
       console.log('done')

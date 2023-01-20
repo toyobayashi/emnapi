@@ -16,15 +16,8 @@ module.exports = new Promise((resolve, reject) => {
 
       new Worker(`
   const { parentPort } = require('worker_threads');
-  const emnapi = require(${JSON.stringify(require.resolve('../../runtime'))})
-  const context = emnapi.createContext()
-  
-  function load (request) {
-    const mod = require(request)
-  
-    return typeof mod.default === 'function' ? mod.default().then(({ Module }) => Module.emnapiInit({ context })) : Promise.resolve(mod)
-  }
-  load(${JSON.stringify(getEntry('hello'))}).then((binding) => { const msg = binding.hello(); parentPort.postMessage(msg) });`, { eval: true, env: process.env })
+  const { load } = require(${JSON.stringify(require.resolve('../util.js'))})
+  load('hello').then((binding) => { const msg = binding.hello(); parentPort.postMessage(msg) });`, { eval: true, env: process.env })
         .on('message', common.mustCall((msg) => {
           try {
             assert.strictEqual(msg, 'world')

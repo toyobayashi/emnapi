@@ -11,8 +11,8 @@
   <script src="../.cgenbuild/Debug/async.js"></script>
   <script>
     (async function main () {
-      const loadPromise = window['async'].default()
-      const test_async = (await loadPromise).Module.emnapiInit({ context: emnapi.createContext() })
+      const Module = await emnapitest_async()
+      const test_async = Module.emnapiInit({ context: emnapi.createContext() })
 
       const testException = 'test_async_cb_exception'
 

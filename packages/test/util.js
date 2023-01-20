@@ -14,24 +14,35 @@ function loadPath (request, options) {
   try {
     const mod = require(request)
 
-    if (typeof mod.default === 'function') {
-      const p = new Promise((resolve, reject) => {
-        mod.default().then(({ Module }) => {
-          p.Module = Module
-          try {
-            resolve(Module.emnapiInit({
-              context,
-              ...(options || {})
-            }))
-          } catch (err) {
-            reject(err)
-          }
-        })
-      })
-      return p
-    } else {
+    if (process.env.EMNAPI_TEST_NATIVE) {
       return Promise.resolve(mod)
     }
+
+    const resolveEmnapiExports = (Module, resolve, reject) => {
+      try {
+        resolve(Module.emnapiInit({
+          context,
+          ...(options || {})
+        }))
+      } catch (err) {
+        reject(err)
+      }
+    }
+
+    if (mod.Module) {
+      const p = new Promise((resolve, reject) => {
+        resolveEmnapiExports(mod.Module, resolve, reject)
+      })
+      p.Module = mod.Module
+      return p
+    }
+    const p = new Promise((resolve, reject) => {
+      mod().then((Module) => {
+        p.Module = Module
+        resolveEmnapiExports(Module, resolve, reject)
+      }).catch(reject)
+    })
+    return p
   } catch (err) {
     return Promise.reject(err)
   }
