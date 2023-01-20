@@ -51,6 +51,40 @@ static void uv__cancelled(struct uv__work* w) {
   abort();
 }
 
+#if EMNAPI_USE_PROXYING
+#include <emscripten/proxying.h>
+#include <emscripten/threading.h>
+
+extern void _emnapi_worker_unref(void* pid);
+extern void _emnapi_worker_ref(void* pid);
+
+static void _emnapi_ref_this_thread() {
+  if (!emscripten_proxy_async(emscripten_proxy_get_system_queue(),
+                              emscripten_main_browser_thread_id(),
+                              _emnapi_worker_ref,
+                              pthread_self())) {
+    abort();
+  }
+}
+
+static void _emnapi_unref_this_thread() {
+  if (!emscripten_proxy_async(emscripten_proxy_get_system_queue(),
+                              emscripten_main_browser_thread_id(),
+                              _emnapi_worker_unref,
+                              pthread_self())) {
+    abort();
+  }
+}
+#else
+extern void _emnapi_ref_worker_js(int type, void* pid);
+static void _emnapi_ref_this_thread() {
+  _emnapi_ref_worker_js(1, pthread_self());
+}
+
+static void _emnapi_unref_this_thread() {
+  _emnapi_ref_worker_js(0, pthread_self());
+}
+#endif
 
 /* To avoid deadlock with uv_cancel() it's crucial that the worker
  * never holds the global mutex and the loop-local mutex at the same time.
@@ -63,6 +97,7 @@ static void* worker(void* arg) {
   uv_sem_post((uv_sem_t*) arg);
   arg = NULL;
 
+  _emnapi_unref_this_thread();
   uv_mutex_lock(&mutex);
   for (;;) {
     /* `mutex` should always be locked at this point. */
@@ -77,6 +112,8 @@ static void* worker(void* arg) {
       uv_cond_wait(&cond, &mutex);
       idle_threads -= 1;
     }
+
+    _emnapi_ref_this_thread();
 
     q = QUEUE_HEAD(&wq);
     if (q == &exit_message) {
@@ -136,7 +173,10 @@ static void* worker(void* arg) {
       /* `slow_io_work_running` is protected by `mutex`. */
       slow_io_work_running--;
     }
+
+    _emnapi_unref_this_thread();
   }
+  _emnapi_unref_this_thread();
   return NULL;
 }
 

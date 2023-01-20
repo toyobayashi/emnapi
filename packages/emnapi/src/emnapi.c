@@ -236,6 +236,11 @@ napi_status node_api_get_module_file_name(napi_env env,
   return napi_clear_last_error(env);
 }
 
+extern void _emnapi_env_ref(napi_env env);
+extern void _emnapi_env_unref(napi_env env);
+extern void _emnapi_ctx_increase_waiting_request_counter();
+extern void _emnapi_ctx_decrease_waiting_request_counter();
+
 ////////////////////////////////////////////////////////////////////////////////
 // Async work implementation
 ////////////////////////////////////////////////////////////////////////////////
@@ -327,11 +332,13 @@ static void async_work_schedule_work_on_execute(uv_work_t* req) {
 static void async_work_schedule_work_on_complete(uv_work_t* req, int status) {
   napi_async_work self = container_of(req, struct napi_async_work__, work_req_);
   EMNAPI_KEEPALIVE_POP();
+  _emnapi_ctx_decrease_waiting_request_counter();
   async_work_after_thread_pool_work(self, status);
 }
 
 static void async_work_schedule_work(napi_async_work work) {
   EMNAPI_KEEPALIVE_PUSH();
+  _emnapi_ctx_increase_waiting_request_counter();
   int status = uv_queue_work(uv_default_loop(),
                              &work->work_req_,
                              async_work_schedule_work_on_execute,
@@ -402,9 +409,9 @@ napi_status napi_queue_async_work(napi_env env, napi_async_work work) {
 #define CALL_UV(env, condition)                                         \
   do {                                                                  \
     int result = (condition);                                           \
-    napi_status status = uvimpl::ConvertUVErrorCode(result);            \
+    napi_status status = convert_error_code(result);                    \
     if (status != napi_ok) {                                            \
-      return napi_set_last_error(env, status, result);                  \
+      return napi_set_last_error(env, status, result, NULL);            \
     }                                                                   \
   } while (0)
 
@@ -413,20 +420,13 @@ napi_status napi_cancel_async_work(napi_env env, napi_async_work work) {
   CHECK_ENV(env);
   CHECK_ARG(env, work);
 
-  int result = async_work_cancel_work(work);
-  napi_status status = convert_error_code(async_work_cancel_work(work));
-  if (status != napi_ok) {
-    return napi_set_last_error(env, status, result, NULL);
-  }
+  CALL_UV(env, async_work_cancel_work(work));
 
   return napi_clear_last_error(env);
 #else
   return napi_set_last_error(env, napi_generic_failure, 0, NULL);
 #endif
 }
-
-extern void _emnapi_env_ref(napi_env env);
-extern void _emnapi_env_unref(napi_env env);
 
 ////////////////////////////////////////////////////////////////////////////////
 // TSFN implementation
@@ -981,11 +981,13 @@ static void _emnapi_ach_handle_hook(void* data, void (*done_cb)(void*), void* do
 static void _emnapi_finish_async_cleanup_hook(void* arg) {
   // struct async_cleanup_hook_info* info = (struct async_cleanup_hook_info*) (arg);
   EMNAPI_KEEPALIVE_POP();
+  _emnapi_ctx_decrease_waiting_request_counter();
 }
 
 static void _emnapi_run_async_cleanup_hook(void* arg) {
   struct async_cleanup_hook_info* info = (struct async_cleanup_hook_info*) (arg);
   EMNAPI_KEEPALIVE_PUSH();
+  _emnapi_ctx_increase_waiting_request_counter();
   info->started = true;
   info->fun(info->arg, _emnapi_finish_async_cleanup_hook, info);
 }

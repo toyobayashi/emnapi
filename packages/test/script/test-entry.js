@@ -1,3 +1,4 @@
+// global.why = require('why-is-node-running')
 const path = require('path')
 const chalk = require('chalk')
 

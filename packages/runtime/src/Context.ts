@@ -33,7 +33,7 @@ class CleanupHookCallback {
 }
 
 class CleanupQueue {
-  private _cleanupHooks = [] as CleanupHookCallback[]
+  private readonly _cleanupHooks = [] as CleanupHookCallback[]
   private _cleanupHookCounter = 0
 
   public empty (): boolean {
@@ -58,20 +58,43 @@ class CleanupQueue {
   }
 
   public drain (): void {
-    while (this._cleanupHooks.length > 0) {
-      const cb = this._cleanupHooks[this._cleanupHooks.length - 1]
+    const hooks = this._cleanupHooks.slice()
+    hooks.sort((a, b) => (b.order - a.order))
+    for (let i = 0; i < hooks.length; ++i) {
+      const cb = hooks[i]
       if (typeof cb.fn === 'number') {
         cb.envObject.makeDynCall_vp(cb.fn)(cb.arg)
       } else {
         cb.fn(cb.arg)
       }
-      this._cleanupHooks.pop()
+      this._cleanupHooks.splice(this._cleanupHooks.indexOf(cb), 1)
     }
   }
 
   public dispose (): void {
-    this._cleanupHooks = null!
+    this._cleanupHooks.length = 0
     this._cleanupHookCounter = 0
+  }
+}
+
+class NodejsWaitingRequestCounter {
+  private timer: any = undefined
+  private count: number = 0
+
+  public increase (): void {
+    if (this.count === 0) {
+      this.timer = setInterval(() => {}, 1e8)
+    }
+    this.count++
+  }
+
+  public decrease (): void {
+    if (this.count === 0) return
+    if (this.count === 1) {
+      clearInterval(this.timer)
+      this.timer = undefined
+    }
+    this.count--
   }
 }
 
@@ -82,7 +105,8 @@ export class Context {
   public deferredStore = new DeferredStore()
   public handleStore = new HandleStore()
   public cbinfoStack = new CallbackInfoStack()
-  private cleanupQueue: CleanupQueue
+  private readonly refCounter?: NodejsWaitingRequestCounter
+  private readonly cleanupQueue: CleanupQueue
 
   public feature = {
     supportReflect,
@@ -97,8 +121,9 @@ export class Context {
   public constructor () {
     this.cleanupQueue = new CleanupQueue()
     if (typeof process === 'object' && process !== null && typeof process.once === 'function') {
+      this.refCounter = new NodejsWaitingRequestCounter()
       process.once('beforeExit', () => {
-        this.dispose()
+        this.runCleanup()
       })
     }
   }
@@ -185,23 +210,16 @@ export class Context {
     }
   }
 
+  public increaseWaitingRequestCounter (): void {
+    this.refCounter?.increase()
+  }
+
+  public decreaseWaitingRequestCounter (): void {
+    this.refCounter?.decrease()
+  }
+
   dispose (): void {
-    if (this.cleanupQueue === null) return
     this.runCleanup()
-    this.cleanupQueue.dispose()
-    this.cleanupQueue = null!
-
-    this.cbinfoStack.dispose()
-    this.scopeStore.dispose()
-    this.handleStore.dispose()
-    this.deferredStore.dispose()
-    this.refStore.dispose()
-
-    this.cbinfoStack = null!
-    this.scopeStore = null!
-    this.handleStore = null!
-    this.deferredStore = null!
-    this.refStore = null!
   }
 }
 
