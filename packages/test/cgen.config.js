@@ -29,7 +29,7 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
   const jsLib = `--js-library=${require('path').join(__dirname, '../emnapi/dist/library_napi.js')}`
 
   const EMNAPI_WORKER_POOL_SIZE = process.env.UV_THREADPOOL_SIZE || 4
-  const PTHREAD_POOL_SIZE = EMNAPI_WORKER_POOL_SIZE * 2
+  const PTHREAD_POOL_SIZE = EMNAPI_WORKER_POOL_SIZE * 4
   console.log(`EMNAPI_WORKER_POOL_SIZE: ${EMNAPI_WORKER_POOL_SIZE}`)
   console.log(`PTHREAD_POOL_SIZE: ${PTHREAD_POOL_SIZE}`)
 
