@@ -533,6 +533,7 @@ _emnapi_tsfn_create(napi_env env,
   _emnapi_env_ref(env);
 
   EMNAPI_KEEPALIVE_PUSH();
+  _emnapi_ctx_increase_waiting_request_counter();
   ts_fn->async_ref = true;
   return ts_fn;
 }
@@ -560,6 +561,7 @@ static void _emnapi_tsfn_destroy(napi_threadsafe_function func) {
   _emnapi_env_unref(func->env);
   if (func->async_ref) {
     EMNAPI_KEEPALIVE_POP();
+    _emnapi_ctx_decrease_waiting_request_counter();
     func->async_ref = false;
   }
 
@@ -923,6 +925,7 @@ napi_unref_threadsafe_function(napi_env env, napi_threadsafe_function func) {
 #ifdef __EMSCRIPTEN_PTHREADS__
   if (func->async_ref) {
     EMNAPI_KEEPALIVE_POP();
+    _emnapi_ctx_decrease_waiting_request_counter();
     func->async_ref = false;
   }
   return napi_ok;
@@ -936,6 +939,7 @@ napi_ref_threadsafe_function(napi_env env, napi_threadsafe_function func) {
 #ifdef __EMSCRIPTEN_PTHREADS__
   if (!func->async_ref) {
     EMNAPI_KEEPALIVE_PUSH();
+    _emnapi_ctx_increase_waiting_request_counter();
     func->async_ref = true;
   }
   return napi_ok;
