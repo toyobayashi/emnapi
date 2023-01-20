@@ -16,6 +16,8 @@ void uv_close(uv_handle_t* handle, uv_close_cb close_cb) {
   }
 }
 
+int nanosleep(const struct timespec *, struct timespec *);
+
 void uv_sleep(unsigned int msec) {
   struct timespec timeout;
   int rc;
