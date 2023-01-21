@@ -6,9 +6,7 @@ declare const PThread: any
 // declare function __emnapi_async_send_js (callback: number, data: number): void
 declare function __emnapi_set_immediate (callback: number, data: number): void
 declare function __emnapi_next_tick (callback: number, data: number): void
-declare function __emnapi_worker_ref (pid: number): void
-declare function __emnapi_worker_unref (pid: number): void
-declare function __emnapi_ref_worker_js (type: number, pid: number): void
+// declare function __emnapi_worker_unref (pid: number): void
 
 mergeInto(LibraryManager.library, {
   _emnapi_set_immediate__sig: 'vpp',
@@ -36,15 +34,6 @@ mergeInto(LibraryManager.library, {
       worker.unref()
     }
   },
-  _emnapi_worker_ref__sig: 'vp',
-  _emnapi_worker_ref__deps: ['$PThread'],
-  _emnapi_worker_ref: function (pid: number): void {
-    let worker = PThread.pthreads[pid]
-    worker = worker.worker || worker
-    if (typeof worker.ref === 'function') {
-      worker.ref()
-    }
-  },
 
   // if EMNAPI_USE_PROXYING=1 (default is 1 if emscripten version >= 3.1.9),
   // the following helpers won't be linked into runtime code
@@ -70,16 +59,6 @@ mergeInto(LibraryManager.library, {
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const callback = data.emnapiAsyncSend.callback
             $makeDynCall('vp', 'callback')(data.emnapiAsyncSend.data)
-          }
-        } else if (data.emnapiRefWorker) {
-          if (ENVIRONMENT_IS_PTHREAD) {
-            postMessage({
-              emnapiRefWorker: data.emnapiRefWorker
-            })
-          } else {
-            if (typeof __emnapi_ref_worker_js === 'function') {
-              __emnapi_ref_worker_js(data.emnapiRefWorker.type, data.emnapiRefWorker.pid)
-            }
           }
         }
       }
@@ -109,26 +88,6 @@ mergeInto(LibraryManager.library, {
       switch (type) {
         case 0: __emnapi_set_immediate(callback, data); break
         case 1: __emnapi_next_tick(callback, data); break
-        default: break
-      }
-    }
-  },
-
-  _emnapi_ref_worker_js__sig: 'vip',
-  _emnapi_ref_worker_js__deps: [
-    '$emnapiAddSendListener',
-    '_emnapi_worker_unref',
-    '_emnapi_worker_ref'
-  ],
-  _emnapi_ref_worker_js: function (type: number, pid: number): void {
-    if (ENVIRONMENT_IS_PTHREAD) {
-      postMessage({
-        emnapiRefWorker: { type, pid }
-      })
-    } else {
-      switch (type) {
-        case 0: __emnapi_worker_unref(pid); break
-        case 1: __emnapi_worker_ref(pid); break
         default: break
       }
     }

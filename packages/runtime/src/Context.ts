@@ -83,7 +83,6 @@ class NodejsWaitingRequestCounter {
 
   constructor () {
     this.refHandle = new MessageChannel().port1 as unknown as import('worker_threads').MessagePort
-    this.refHandle.unref()
     this.count = 0
   }
 
