@@ -93,30 +93,39 @@ function _$emnapiDefineProperty (envObject: Env, obj: object, propertyName: stri
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
+declare const emnapiGetHandle: typeof _$emnapiGetHandle
+function _$emnapiGetHandle (js_object: napi_value): { status: napi_status; handle?: Handle<any>} {
+  let handle = emnapiCtx.handleStore.get(js_object)!
+  if (!(handle.isObject() || handle.isFunction())) {
+    return { status: napi_status.napi_invalid_arg }
+  }
+
+  if (typeof emnapiExternalMemory !== 'undefined' && ArrayBuffer.isView(handle.value)) {
+    if (emnapiExternalMemory.wasmMemoryViewTable.has(handle.value)) {
+      handle = emnapiCtx.addToCurrentScope(emnapiExternalMemory.wasmMemoryViewTable.get(handle.value)!)
+    }
+  }
+
+  return { status: napi_status.napi_ok, handle }
+}
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 declare const emnapiWrap: typeof _$emnapiWrap
 // @ts-expect-error
-function _$emnapiWrap (type: WrapType, env: napi_env, js_object: napi_value, native_object: void_p, finalize_cb: napi_finalize, finalize_hint: void_p, result: Pointer<napi_ref>): napi_status {
+function _$emnapiWrap (env: napi_env, js_object: napi_value, native_object: void_p, finalize_cb: napi_finalize, finalize_hint: void_p, result: Pointer<napi_ref>): napi_status {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let referenceId: number
   $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, js_object)
-    let handle = emnapiCtx.handleStore.get(js_object)!
-    if (!(handle.isObject() || handle.isFunction())) {
+
+    const handleResult = emnapiGetHandle(js_object)
+    if (handleResult.status !== napi_status.napi_ok) {
+      return envObject.setLastError(handleResult.status)
+    }
+    const handle = handleResult.handle!
+
+    if (envObject.getObjectBinding(handle.value).wrapped !== 0) {
       return envObject.setLastError(napi_status.napi_invalid_arg)
-    }
-
-    if (typeof emnapiExternalMemory !== 'undefined' && ArrayBuffer.isView(handle.value)) {
-      if (emnapiExternalMemory.wasmMemoryViewTable.has(handle.value)) {
-        handle = emnapiCtx.addToCurrentScope(emnapiExternalMemory.wasmMemoryViewTable.get(handle.value)!)
-      }
-    }
-
-    if (type === WrapType.retrievable) {
-      if (envObject.getObjectBinding(handle.value).wrapped !== 0) {
-        return envObject.setLastError(napi_status.napi_invalid_arg)
-      }
-    } else if (type === WrapType.anonymous) {
-      if (!finalize_cb) return envObject.setLastError(napi_status.napi_invalid_arg)
     }
 
     let reference: Reference
@@ -130,9 +139,7 @@ function _$emnapiWrap (type: WrapType, env: napi_env, js_object: napi_value, nat
       reference = emnapiCtx.createReference(envObject, handle.id, 0, Ownership.kRuntime as any, finalize_cb, native_object, !finalize_cb ? finalize_cb : finalize_hint)
     }
 
-    if (type === WrapType.retrievable) {
-      envObject.getObjectBinding(handle.value).wrapped = reference.id
-    }
+    envObject.getObjectBinding(handle.value).wrapped = reference.id
     return envObject.getReturnStatus()
   })
 }
@@ -178,5 +185,6 @@ function _$emnapiUnwrap (env: napi_env, js_object: napi_value, result: void_pp, 
 
 emnapiImplement('$emnapiCreateFunction', undefined, _$emnapiCreateFunction, ['$emnapiUtf8ToString'])
 emnapiImplement('$emnapiDefineProperty', undefined, _$emnapiDefineProperty, ['$emnapiCreateFunction'])
-emnapiImplement('$emnapiWrap', undefined, _$emnapiWrap)
+emnapiImplement('$emnapiGetHandle', undefined, _$emnapiGetHandle)
+emnapiImplement('$emnapiWrap', undefined, _$emnapiWrap, ['$emnapiGetHandle'])
 emnapiImplement('$emnapiUnwrap', undefined, _$emnapiUnwrap)

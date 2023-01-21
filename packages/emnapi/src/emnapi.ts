@@ -119,7 +119,7 @@ function emnapi_create_memory_view (
     const handle = emnapiCtx.addToCurrentScope(typedArray)
     emnapiExternalMemory.wasmMemoryViewTable.set(typedArray, viewDescriptor)
     if (finalize_cb) {
-      const status = emnapiWrap(WrapType.anonymous, env, handle.id, external_data, finalize_cb, finalize_hint, /* NULL */ 0)
+      const status = _napi_add_finalizer(env, handle.id, external_data, finalize_cb, finalize_hint, /* NULL */ 0)
       if (status === napi_status.napi_pending_exception) {
         const err = envObject.tryCatch.extractException()
         envObject.clearLastError()
@@ -293,6 +293,6 @@ emnapiImplement('emnapi_is_support_weakref', 'i', emnapi_is_support_weakref)
 emnapiImplement('emnapi_is_support_bigint', 'i', emnapi_is_support_bigint)
 emnapiImplement('emnapi_get_module_object', 'ipp', emnapi_get_module_object)
 emnapiImplement('emnapi_get_module_property', 'ippp', emnapi_get_module_property)
-emnapiImplement('emnapi_create_memory_view', 'ipippppp', emnapi_create_memory_view, ['$emnapiWrap', '$emnapiExternalMemory'])
+emnapiImplement('emnapi_create_memory_view', 'ipippppp', emnapi_create_memory_view, ['napi_add_finalizer', '$emnapiExternalMemory'])
 emnapiImplement('emnapi_sync_memory', 'ipppppi', emnapi_sync_memory, ['$emnapiSyncMemory'])
 emnapiImplement('emnapi_get_memory_address', 'ipppp', emnapi_get_memory_address, ['$emnapiGetMemoryAddress'])

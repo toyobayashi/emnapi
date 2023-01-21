@@ -87,7 +87,7 @@ function napi_wrap (env: napi_env, js_object: napi_value, native_object: void_p,
       })
     }
   }
-  return emnapiWrap(WrapType.retrievable, env, js_object, native_object, finalize_cb, finalize_hint, result)
+  return emnapiWrap(env, js_object, native_object, finalize_cb, finalize_hint, result)
 }
 
 function napi_unwrap (env: napi_env, js_object: napi_value, result: void_pp): napi_status {
@@ -164,13 +164,38 @@ function napi_check_object_type_tag (env: napi_env, object: napi_value, type_tag
   })
 }
 
-function napi_add_finalizer (env: napi_env, js_object: napi_value, native_object: void_p, finalize_cb: napi_finalize, finalize_hint: void_p, result: Pointer<napi_ref>): napi_status {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+declare const _napi_add_finalizer: typeof napi_add_finalizer
+function napi_add_finalizer (env: napi_env, js_object: napi_value, finalize_data: void_p, finalize_cb: napi_finalize, finalize_hint: void_p, result: Pointer<napi_ref>): napi_status {
+  $CHECK_ENV!(env)
+  const envObject = emnapiCtx.envStore.get(env)!
+
   if (!emnapiCtx.feature.supportFinalizer) {
-    $PREAMBLE!(env, () => {
-      throw emnapiCtx.createNotSupportWeakRefError('napi_add_finalizer', 'This API is unavailable')
-    })
+    return envObject.setLastError(napi_status.napi_generic_failure)
   }
-  return emnapiWrap(WrapType.anonymous, env, js_object, native_object, finalize_cb, finalize_hint, result)
+
+  $CHECK_ARG!(envObject, js_object)
+  $CHECK_ARG!(envObject, finalize_cb)
+
+  const handleResult = emnapiGetHandle(js_object)
+  if (handleResult.status !== napi_status.napi_ok) {
+    return envObject.setLastError(handleResult.status)
+  }
+  const handle = handleResult.handle!
+
+  const ownership: Ownership = !result ? Ownership.kRuntime : Ownership.kUserland
+  $from64('finalize_data')
+  $from64('finalize_cb')
+  $from64('finalize_hint')
+  const reference = emnapiCtx.createReference(envObject, handle.id, 0, ownership as any, finalize_cb, finalize_data, finalize_hint)
+  if (result) {
+    $from64('result')
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const referenceId = reference.id
+    $makeSetValue('result', 0, 'referenceId', '*')
+  }
+
+  return envObject.clearLastError()
 }
 
 emnapiImplement('napi_define_class', 'ipppppppp', napi_define_class, ['$emnapiCreateFunction', '$emnapiDefineProperty'])
@@ -179,4 +204,4 @@ emnapiImplement('napi_unwrap', 'ippp', napi_unwrap, ['$emnapiUnwrap'])
 emnapiImplement('napi_remove_wrap', 'ippp', napi_remove_wrap, ['$emnapiUnwrap'])
 emnapiImplement('napi_type_tag_object', 'ippp', napi_type_tag_object)
 emnapiImplement('napi_check_object_type_tag', 'ipppp', napi_check_object_type_tag)
-emnapiImplement('napi_add_finalizer', 'ipppppp', napi_add_finalizer, ['$emnapiWrap'])
+emnapiImplement('napi_add_finalizer', 'ipppppp', napi_add_finalizer, ['$emnapiGetHandle'])

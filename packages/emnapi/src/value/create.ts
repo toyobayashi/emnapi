@@ -134,7 +134,7 @@ function napi_create_external_arraybuffer (
     }
     const handle = emnapiCtx.addToCurrentScope(arrayBuffer)
     if (finalize_cb) {
-      const status = emnapiWrap(WrapType.anonymous, env, handle.id, external_data, finalize_cb, finalize_hint, /* NULL */ 0)
+      const status = _napi_add_finalizer(env, handle.id, external_data, finalize_cb, finalize_hint, /* NULL */ 0)
       if (status === napi_status.napi_pending_exception) {
         const err = envObject.tryCatch.extractException()
         envObject.clearLastError()
@@ -449,7 +449,7 @@ emnapiImplement('napi_create_buffer', 'ippp', napi_create_buffer, ['$emnapiExter
 emnapiImplement('napi_create_buffer_copy', 'ippppp', napi_create_buffer_copy, ['$emnapiCreateArrayBuffer'])
 emnapiImplement('napi_create_date', 'ipdp', napi_create_date)
 emnapiImplement('napi_create_external', 'ippppp', napi_create_external)
-emnapiImplement('napi_create_external_arraybuffer', 'ipppppp', napi_create_external_arraybuffer, ['$emnapiWrap'])
+emnapiImplement('napi_create_external_arraybuffer', 'ipppppp', napi_create_external_arraybuffer, ['napi_add_finalizer'])
 emnapiImplement('napi_create_external_buffer', 'ipppppp', napi_create_external_buffer, ['emnapi_create_memory_view'])
 emnapiImplement('napi_create_object', 'ipp', napi_create_object)
 emnapiImplement('napi_create_symbol', 'ippp', napi_create_symbol)
