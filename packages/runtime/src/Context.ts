@@ -78,12 +78,18 @@ class CleanupQueue {
 }
 
 class NodejsWaitingRequestCounter {
-  private timer: any = undefined
-  private count: number = 0
+  private readonly refHandle: { ref: () => void; unref: () => void }
+  private count: number
+
+  constructor () {
+    this.refHandle = new MessageChannel().port1 as unknown as import('worker_threads').MessagePort
+    this.refHandle.unref()
+    this.count = 0
+  }
 
   public increase (): void {
     if (this.count === 0) {
-      this.timer = setInterval(() => {}, 1e8)
+      this.refHandle.ref()
     }
     this.count++
   }
@@ -91,8 +97,7 @@ class NodejsWaitingRequestCounter {
   public decrease (): void {
     if (this.count === 0) return
     if (this.count === 1) {
-      clearInterval(this.timer)
-      this.timer = undefined
+      this.refHandle.unref()
     }
     this.count--
   }
