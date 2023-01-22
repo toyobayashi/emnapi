@@ -1,0 +1,23 @@
+{
+  "name": "@tybys/emnapi-node-binding",
+  "version": "0.28.0",
+  "description": "Bridge connecting emnapi and Node.js native implementation",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "scripts": {
+    "build": "node-gyp rebuild"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/toyobayashi/emnapi.git"
+  },
+  "author": "toyobayashi",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/toyobayashi/emnapi/issues"
+  },
+  "homepage": "https://github.com/toyobayashi/emnapi#readme",
+  "publishConfig": {
+    "access": "public"
+  }
+}

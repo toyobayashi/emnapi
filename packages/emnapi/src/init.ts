@@ -8,6 +8,8 @@
 // declare const __webpack_public_path__: any
 
 declare let emnapiCtx: Context
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+declare let emnapiNodeBinding: NodeBinding
 
 declare function _napi_register_wasm_v1 (env: Ptr, exports: Ptr): napi_value
 
@@ -21,17 +23,19 @@ declare const emnapiModule: {
 declare interface InitOptions {
   context: Context
   filename?: string
+  nodeBinding?: NodeBinding
 }
 
 mergeInto(LibraryManager.library, {
   $emnapiCtx: undefined,
+  $emnapiNodeBinding: undefined,
   $emnapiModule: {
     exports: {},
     loaded: false,
     filename: ''
   },
 
-  $emnapiInit__deps: ['$emnapiModule', '$emnapiCtx', 'napi_register_wasm_v1'],
+  $emnapiInit__deps: ['$emnapiModule', '$emnapiCtx', '$emnapiNodeBinding', 'napi_register_wasm_v1'],
   $emnapiInit: function (options: InitOptions) {
     if (emnapiModule.loaded) return emnapiModule.exports
 
@@ -40,7 +44,6 @@ mergeInto(LibraryManager.library, {
     }
 
     const context = options.context
-
     if (typeof context !== 'object' || context === null) {
       throw new TypeError("Invalid `options.context`. You can create a context by `import { createContext } from '@tybys/emnapi-runtime`'")
     }
@@ -49,6 +52,14 @@ mergeInto(LibraryManager.library, {
 
     if (typeof options.filename === 'string') {
       emnapiModule.filename = options.filename
+    }
+
+    if ('nodeBinding' in options) {
+      const nodeBinding = options.nodeBinding
+      if (typeof nodeBinding !== 'object' || nodeBinding === null) {
+        throw new TypeError('Invalid `options.nodeBinding`. Use @tybys/emnapi-node-binding package')
+      }
+      emnapiNodeBinding = nodeBinding
     }
 
     // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing

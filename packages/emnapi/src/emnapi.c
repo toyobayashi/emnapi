@@ -1,6 +1,7 @@
 #include <stdlib.h>
 
 #ifdef __EMSCRIPTEN_PTHREADS__
+#include <assert.h>
 #include <pthread.h>
 // #include <emscripten/threading.h>
 
@@ -253,22 +254,77 @@ extern void _emnapi_ctx_decrease_waiting_request_counter();
 typedef void (*_emnapi_call_into_module_callback)(napi_env env, void* args);
 extern void _emnapi_call_into_module(napi_env env, _emnapi_call_into_module_callback callback, void* args);
 
+typedef double async_id;
+typedef struct async_context {
+  async_id async_id;
+  async_id trigger_async_id;
+} async_context;
+
+extern int _emnapi_node_binding_available();
+
+// call node::EmitAsyncInit
+extern void _emnapi_node_emit_async_init(napi_value async_resource,
+                                         napi_value async_resource_name,
+                                         async_id trigger_async_id,
+                                         async_context* result);
+// call node::EmitAsyncDestroy
+extern void _emnapi_node_emit_async_destroy(async_id id, async_id trigger_async_id);
+
+// extern void _emnapi_node_open_callback_scope(napi_value async_resource, async_id id, async_id trigger_async_id, int64_t* result);
+// extern void _emnapi_node_close_callback_scope(int64_t* scope);
+
+// call node:MakeCallback
+extern napi_status _emnapi_node_make_callback(napi_env env,
+                                              napi_value async_resource,
+                                              napi_value cb,
+                                              napi_value* argv,
+                                              size_t size,
+                                              double async_id,
+                                              double trigger_async_id,
+                                              napi_value* result);
+
+#define ASYNC_RESOURCE_FIELD             \
+  napi_ref resource_;                    \
+  async_context async_context_;
+
+typedef struct emnapi_async_resource {
+  ASYNC_RESOURCE_FIELD
+} emnapi_async_resource;
+
 struct napi_async_work__ {
+  ASYNC_RESOURCE_FIELD
+  uv_work_t work_req_;
   napi_env env;
   void* data;
   napi_async_execute_callback execute;
   napi_async_complete_callback complete;
-  uv_work_t work_req_;
 };
+
+static void _emnapi_async_resource_ctor(napi_env env,
+                                        napi_value resource,
+                                        napi_value resource_name,
+                                        emnapi_async_resource* ar) {
+  assert(napi_ok == napi_create_reference(env, resource, 1, &ar->resource_));
+  _emnapi_node_emit_async_init(resource, resource_name, -1.0, &ar->async_context_);
+}
+
+static void _emnapi_async_resource_dtor(napi_env env, emnapi_async_resource* ar) {
+  assert(napi_ok == napi_delete_reference(env, ar->resource_));
+  _emnapi_node_emit_async_destroy(ar->async_context_.async_id,
+                                  ar->async_context_.trigger_async_id);
+}
 
 static napi_async_work async_work_init(
   napi_env env,
+  napi_value async_resource,
+  napi_value async_resource_name,
   napi_async_execute_callback execute,
   napi_async_complete_callback complete,
   void* data
 ) {
   napi_async_work work = (napi_async_work)calloc(1, sizeof(struct napi_async_work__));
   if (work == NULL) return NULL;
+  _emnapi_async_resource_ctor(env, async_resource, async_resource_name, (emnapi_async_resource*)work);
   work->env = env;
   work->execute = execute;
   work->complete = complete;
@@ -277,6 +333,7 @@ static napi_async_work async_work_init(
 }
 
 static void async_work_delete(napi_async_work work) {
+  _emnapi_async_resource_dtor(work->env, (emnapi_async_resource*)work);
   free(work);
 }
 
@@ -312,16 +369,39 @@ static void async_work_on_complete(napi_env env, void* args) {
   work->complete(_env, status, data);
 }
 
+static napi_value async_work_after_cb(napi_env env, napi_callback_info info) {
+  void* data = NULL;
+  napi_get_cb_info(env, info, NULL, NULL, NULL, &data);
+  complete_wrap_t* wrap = (complete_wrap_t*) data;
+  _emnapi_call_into_module(env, async_work_on_complete, wrap);
+  return NULL;
+}
+
 static void async_work_after_thread_pool_work(napi_async_work work, int status) {
   if (work->complete == NULL) return;
   napi_handle_scope scope;
+  napi_value resource, cb;
   napi_env env = work->env;
-  napi_open_handle_scope(env, &scope);
+  assert(napi_ok == napi_open_handle_scope(env, &scope));
+  assert(napi_ok == napi_get_reference_value(env, work->resource_, &resource));
   complete_wrap_t* wrap = (complete_wrap_t*) malloc(sizeof(complete_wrap_t));
+  assert(wrap != NULL);
   wrap->status = status;
   wrap->work = work;
-  _emnapi_call_into_module(env, async_work_on_complete, wrap);
-  napi_close_handle_scope(env, scope);
+  if (_emnapi_node_binding_available()) {
+    assert(napi_ok == napi_create_function(env, NULL, 0, async_work_after_cb, wrap, &cb));
+    assert(napi_ok == _emnapi_node_make_callback(env,
+                                                 resource,
+                                                 cb,
+                                                 NULL,
+                                                 0,
+                                                 work->async_context_.async_id,
+                                                 work->async_context_.trigger_async_id,
+                                                 NULL));
+  } else {
+    _emnapi_call_into_module(env, async_work_on_complete, wrap);
+  }
+  assert(napi_ok == napi_close_handle_scope(env, scope));
 }
 
 static void async_work_schedule_work_on_execute(uv_work_t* req) {
@@ -364,7 +444,24 @@ napi_status napi_create_async_work(napi_env env,
   CHECK_ARG(env, execute);
   CHECK_ARG(env, result);
 
+  napi_status status;
+  napi_value resource;
+  napi_value resource_name;
+  if (async_resource != NULL) {
+    status = napi_coerce_to_object(env, async_resource, &resource);
+    if (status != napi_ok) return status;
+  } else {
+    status = napi_create_object(env, &resource);
+    if (status != napi_ok) return status;
+  }
+
+  CHECK_ARG(env, async_resource_name);
+  status = napi_coerce_to_string(env, async_resource_name, &resource_name);
+  if (status != napi_ok) return status;
+
   napi_async_work work = async_work_init(env,
+                                         resource,
+                                         resource_name,
                                          execute,
                                          complete,
                                          data);
