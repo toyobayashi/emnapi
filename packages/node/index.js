@@ -1,6 +1,6 @@
 'use strict'
-Object.defineProperty(exports, '__esModule', { value: true })
 
-const emnapiNodeBinding = require('./dist/emnapi_node_binding.node')
-
-module.exports = emnapiNodeBinding
+module.exports = {
+  ...require('./dist/emnapi_node_binding.node')/* ,
+  ...require('./dist/emnapi_node_binding_napi.node') */
+}
