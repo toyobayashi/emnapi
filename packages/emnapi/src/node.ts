@@ -12,7 +12,7 @@ function _emnapi_node_emit_async_init (
   const resource = emnapiCtx.handleStore.get(async_resource)!.value
   const resource_name = emnapiCtx.handleStore.get(async_resource_name)!.value
 
-  const asyncContext = emnapiNodeBinding.emitAsyncInit(resource, resource_name, trigger_async_id)
+  const asyncContext = emnapiNodeBinding.node.emitAsyncInit(resource, resource_name, trigger_async_id)
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const asyncId = asyncContext.asyncId; const triggerAsyncId = asyncContext.triggerAsyncId
   if (result) {
@@ -24,7 +24,7 @@ function _emnapi_node_emit_async_init (
 
 function _emnapi_node_emit_async_destroy (async_id: double, trigger_async_id: double): void {
   if (!emnapiNodeBinding) return
-  emnapiNodeBinding.emitAsyncDestroy({
+  emnapiNodeBinding.node.emitAsyncDestroy({
     asyncId: async_id,
     triggerAsyncId: trigger_async_id
   })
@@ -34,7 +34,7 @@ function _emnapi_node_emit_async_destroy (async_id: double, trigger_async_id: do
   if (!emnapiNodeBinding || !result) return
   const resource = emnapiCtx.handleStore.get(async_resource)!.value
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const nativeCallbackScopePointer = emnapiNodeBinding.openCallbackScope(resource, {
+  const nativeCallbackScopePointer = emnapiNodeBinding.node.openCallbackScope(resource, {
     asyncId: async_id,
     triggerAsyncId: trigger_async_id
   })
@@ -47,7 +47,7 @@ function _emnapi_node_close_callback_scope (scope: Pointer<int64_t>): void {
   if (!emnapiNodeBinding || !scope) return
   $from64('scope')
   const nativeCallbackScopePointer = $makeGetValue('scope', 0, 'i64')
-  emnapiNodeBinding.closeCallbackScope(BigInt(nativeCallbackScopePointer))
+  emnapiNodeBinding.node.closeCallbackScope(BigInt(nativeCallbackScopePointer))
 } */
 
 // @ts-expect-error
@@ -71,7 +71,7 @@ function _emnapi_node_make_callback (env: napi_env, async_resource: napi_value, 
       const argVal = $makeGetValue('argv', 'i * ' + POINTER_SIZE, '*')
       arr[i] = emnapiCtx.handleStore.get(argVal)!.value
     }
-    const ret = emnapiNodeBinding.makeCallback(resource, callback, arr, {
+    const ret = emnapiNodeBinding.node.makeCallback(resource, callback, arr, {
       asyncId: async_id,
       triggerAsyncId: trigger_async_id
     })
