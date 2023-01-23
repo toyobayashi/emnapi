@@ -1389,17 +1389,17 @@ class Function : public Object {
                            size_t argc,
                            const napi_value* args) const;
 
-  // MaybeOrValue<Value> MakeCallback(
-  //     napi_value recv,
-  //     const std::initializer_list<napi_value>& args,
-  //     napi_async_context context = nullptr) const;
-  // MaybeOrValue<Value> MakeCallback(napi_value recv,
-  //                                  const std::vector<napi_value>& args,
-  //                                  napi_async_context context = nullptr) const;
-  // MaybeOrValue<Value> MakeCallback(napi_value recv,
-  //                                  size_t argc,
-  //                                  const napi_value* args,
-  //                                  napi_async_context context = nullptr) const;
+  MaybeOrValue<Value> MakeCallback(
+      napi_value recv,
+      const std::initializer_list<napi_value>& args,
+      napi_async_context context = nullptr) const;
+  MaybeOrValue<Value> MakeCallback(napi_value recv,
+                                   const std::vector<napi_value>& args,
+                                   napi_async_context context = nullptr) const;
+  MaybeOrValue<Value> MakeCallback(napi_value recv,
+                                   size_t argc,
+                                   const napi_value* args,
+                                   napi_async_context context = nullptr) const;
 
   MaybeOrValue<Object> New(const std::initializer_list<napi_value>& args) const;
   MaybeOrValue<Object> New(const std::vector<napi_value>& args) const;
@@ -1583,19 +1583,19 @@ class FunctionReference : public Reference<Function> {
                                  size_t argc,
                                  const napi_value* args) const;
 
-  // MaybeOrValue<Napi::Value> MakeCallback(
-  //     napi_value recv,
-  //     const std::initializer_list<napi_value>& args,
-  //     napi_async_context context = nullptr) const;
-  // MaybeOrValue<Napi::Value> MakeCallback(
-  //     napi_value recv,
-  //     const std::vector<napi_value>& args,
-  //     napi_async_context context = nullptr) const;
-  // MaybeOrValue<Napi::Value> MakeCallback(
-  //     napi_value recv,
-  //     size_t argc,
-  //     const napi_value* args,
-  //     napi_async_context context = nullptr) const;
+  MaybeOrValue<Napi::Value> MakeCallback(
+      napi_value recv,
+      const std::initializer_list<napi_value>& args,
+      napi_async_context context = nullptr) const;
+  MaybeOrValue<Napi::Value> MakeCallback(
+      napi_value recv,
+      const std::vector<napi_value>& args,
+      napi_async_context context = nullptr) const;
+  MaybeOrValue<Napi::Value> MakeCallback(
+      napi_value recv,
+      size_t argc,
+      const napi_value* args,
+      napi_async_context context = nullptr) const;
 
   MaybeOrValue<Object> New(const std::initializer_list<napi_value>& args) const;
   MaybeOrValue<Object> New(const std::vector<napi_value>& args) const;
@@ -2414,26 +2414,26 @@ class EscapableHandleScope {
 // };
 // #endif
 
-// class AsyncContext {
-//  public:
-//   explicit AsyncContext(napi_env env, const char* resource_name);
-//   explicit AsyncContext(napi_env env,
-//                         const char* resource_name,
-//                         const Object& resource);
-//   virtual ~AsyncContext();
+class AsyncContext {
+ public:
+  explicit AsyncContext(napi_env env, const char* resource_name);
+  explicit AsyncContext(napi_env env,
+                        const char* resource_name,
+                        const Object& resource);
+  virtual ~AsyncContext();
 
-//   AsyncContext(AsyncContext&& other);
-//   AsyncContext& operator=(AsyncContext&& other);
-//   NAPI_DISALLOW_ASSIGN_COPY(AsyncContext)
+  AsyncContext(AsyncContext&& other);
+  AsyncContext& operator=(AsyncContext&& other);
+  NAPI_DISALLOW_ASSIGN_COPY(AsyncContext)
 
-//   operator napi_async_context() const;
+  operator napi_async_context() const;
 
-//   Napi::Env Env() const;
+  Napi::Env Env() const;
 
-//  private:
-//   napi_env _env;
-//   napi_async_context _context;
-// };
+ private:
+  napi_env _env;
+  napi_async_context _context;
+};
 
 class AsyncWorker {
  public:

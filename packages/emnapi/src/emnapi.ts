@@ -142,6 +142,10 @@ function emnapi_is_support_bigint (): int {
   return emnapiCtx.feature.supportBigInt ? 1 : 0
 }
 
+function emnapi_is_node_binding_available (): int {
+  return emnapiNodeBinding ? 1 : 0
+}
+
 declare function emnapiSyncMemory<T extends ArrayBuffer | ArrayBufferView> (
   js_to_wasm: boolean,
   arrayBufferOrView: T,
@@ -291,6 +295,7 @@ function emnapi_get_memory_address (env: napi_env, arraybuffer_or_view: napi_val
 
 emnapiImplement('emnapi_is_support_weakref', 'i', emnapi_is_support_weakref)
 emnapiImplement('emnapi_is_support_bigint', 'i', emnapi_is_support_bigint)
+emnapiImplement('emnapi_is_node_binding_available', 'i', emnapi_is_node_binding_available)
 emnapiImplement('emnapi_get_module_object', 'ipp', emnapi_get_module_object)
 emnapiImplement('emnapi_get_module_property', 'ippp', emnapi_get_module_property)
 emnapiImplement('emnapi_create_memory_view', 'ipippppp', emnapi_create_memory_view, ['napi_add_finalizer', '$emnapiExternalMemory'])

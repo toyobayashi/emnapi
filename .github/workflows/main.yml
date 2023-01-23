@@ -47,6 +47,7 @@ jobs:
       if: ${{ matrix.os == 'ubuntu-latest' }}
       shell: bash
       run: |
+        npm install -g node-gyp
         npm install --legacy-peer-deps
         npm run build --workspaces --if-present
     
@@ -69,7 +70,7 @@ jobs:
       if: ${{ startsWith(github.event.ref, 'refs/tags') && matrix.os == 'ubuntu-latest' }}
       run: |
         node ./script/release.js
-        npm publish --ignore-scripts -w packages/runtime -w packages/emnapi
+        npm publish --ignore-scripts -w packages/runtime -w packages/node -w packages/emnapi
 
     - name: Create release
       if: ${{ startsWith(github.event.ref, 'refs/tags') }}

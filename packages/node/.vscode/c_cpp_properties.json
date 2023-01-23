@@ -1,0 +1,69 @@
+{
+  "env": {
+    "includePath": [
+      "${default}",
+      "${env:USERPROFILE}/AppData/Local/node-gyp/Cache/16.15.0/include/node"
+    ],
+    "defines": ["NAPI_DISABLE_CPP_EXCEPTIONS", "NODE_ADDON_API_ENABLE_MAYBE"],
+    "clPath": "C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.32.31326\\bin\\Hostx64\\x64\\cl.exe",
+    "gccPath": "/usr/bin/gcc",
+    "clangPath": "/usr/bin/clang"
+  },
+  "configurations": [
+    {
+      "name": "Win32",
+      "defines": ["${defines}", "_DEBUG", "UNICODE", "_UNICODE", "_CRT_SECURE_NO_WARNINGS"],
+      "compilerPath": "${clPath}",
+      "windowsSdkVersion": "10.0.19041.0",
+      "intelliSenseMode": "msvc-x64",
+      "cStandard": "c11",
+      "cppStandard": "c++17",
+      "includePath": ["${includePath}"]
+    },
+    {
+      "name": "Linux",
+      "defines": ["${defines}"],
+      "compilerPath": "${gccPath}",
+      "cStandard": "c11",
+      "cppStandard": "c++17",
+      "intelliSenseMode": "gcc-x64",
+      "browse": {
+        "path": [
+          "${workspaceFolder}"
+        ],
+        "limitSymbolsToIncludedHeaders": true,
+        "databaseFilename": ""
+      },
+      "includePath": ["${includePath}"]
+    },
+    {
+      "name": "macOS",
+      "includePath": ["${includePath}"],
+      "defines": ["${defines}"],
+      "macFrameworkPath": ["/System/Library/Frameworks", "/Library/Frameworks"],
+      "compilerPath": "${clangPath}",
+      "cStandard": "c11",
+      "cppStandard": "c++17",
+      "intelliSenseMode": "${default}"
+    },
+    {
+      "name": "Emscripten",
+      "defines": ["${defines}", "__wasm32__", "__EMSCRIPTEN_PTHREADS__", "NAPI_VERSION=8"],
+      "compilerPath": "${env:EMSDK}/upstream/emscripten/emcc",
+      "intelliSenseMode": "linux-clang-x86",
+      "cStandard": "c11",
+      "cppStandard": "c++17",
+      "includePath": ["${includePath}"]
+    },
+    {
+      "name": "Win32 Emscripten",
+      "defines": ["${defines}", "__wasm32__", "__EMSCRIPTEN_PTHREADS__", "NAPI_VERSION=8"],
+      "compilerPath": "${env:EMSDK}\\upstream\\emscripten\\emcc.bat",
+      "intelliSenseMode": "linux-clang-x86",
+      "cStandard": "c11",
+      "cppStandard": "c++17",
+      "includePath": ["${includePath}"]
+    }
+  ],
+  "version": 4
+}

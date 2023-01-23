@@ -6,8 +6,13 @@
       "request": "launch",
       "name": "Launch Program",
       "runtimeArgs": ["--expose-gc"],
-      "program": "${workspaceFolder}/packages/test/tsfn/tsfn.test.js",
+      "program": "${workspaceFolder}/packages/test/make_callback/make_callback.test.js",
       "args": []
+    },
+    {
+      "name": "Windows Attach",
+      "type": "cppvsdbg",
+      "request": "attach",
     },
     {
       "name": "Windows",

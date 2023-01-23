@@ -60,6 +60,7 @@ nmake /?
 ```bash
 git clone https://github.com/toyobayashi/emnapi.git
 cd ./emnapi
+npm install -g node-gyp
 npm install
 npm run build             # output ./packages/*/dist
 node ./script/release.js  # output ./out
@@ -162,7 +163,21 @@ declare namespace emnapi {
 declare namespace Module {
   interface EmnapiInitOptions {
     context: emnapi.Context
+
+    /** node_api_get_module_file_name */
     filename?: string
+
+    /**
+     * Support following async_hooks related things
+     * on Node.js runtime only
+     * 
+     * napi_async_init,
+     * napi_async_destroy,
+     * napi_make_callback,
+     * async resource parameter of
+     * napi_create_async_work and napi_create_threadsafe_function
+     */
+    nodeBinding?: typeof import('@tybys/emnapi-node-binding')
   }
   export function emnapiInit (options: EmnapiInitOptions): any
 }
@@ -224,7 +239,7 @@ Module({ /* Emscripten module init options */ }).then((Module) => {
 
 ### Using C++
 
-Alternatively, you can also use [`node-addon-api`](https://github.com/nodejs/node-addon-api) which is official Node-API C++ wrapper, already shipped ([v5.1.0](https://github.com/nodejs/node-addon-api/releases/tag/v5.1.0)) in this package but without Node.js specific API such as `AsyncContext`, `Function::MakeCallback`, etc.
+Alternatively, you can also use [`node-addon-api`](https://github.com/nodejs/node-addon-api) which is official Node-API C++ wrapper, already shipped ([v5.1.0](https://github.com/nodejs/node-addon-api/releases/tag/v5.1.0)) in this package but without Node.js specific API such as `CallbackScope`.
 
 **Note: C++ wrapper can only be used to target Node.js v14.6.0+ and modern browsers those support `FinalizationRegistry` and `WeakRef` ([v8 engine v8.4+](https://v8.dev/blog/v8-release-84))!**
 

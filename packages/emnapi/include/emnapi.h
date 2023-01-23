@@ -35,6 +35,7 @@ EXTERN_C_START
 
 NAPI_EXTERN int emnapi_is_support_weakref();
 NAPI_EXTERN int emnapi_is_support_bigint();
+NAPI_EXTERN int emnapi_is_node_binding_available();
 
 NAPI_EXTERN
 napi_status emnapi_get_module_object(napi_env env,

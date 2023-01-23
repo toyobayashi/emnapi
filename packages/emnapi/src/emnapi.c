@@ -1,6 +1,7 @@
 #include <stdlib.h>
 
 #ifdef __EMSCRIPTEN_PTHREADS__
+#include <assert.h>
 #include <pthread.h>
 // #include <emscripten/threading.h>
 
@@ -241,6 +242,53 @@ extern void _emnapi_env_unref(napi_env env);
 extern void _emnapi_ctx_increase_waiting_request_counter();
 extern void _emnapi_ctx_decrease_waiting_request_counter();
 
+struct napi_async_context__ {
+  int32_t low;
+  int32_t high;
+};
+
+extern napi_status
+_emnapi_async_init_js(napi_value async_resource,
+                      napi_value async_resource_name,
+                      napi_async_context result);
+extern napi_status
+_emnapi_async_destroy_js(napi_async_context async_context);
+
+napi_status
+napi_async_init(napi_env env,
+                napi_value async_resource,
+                napi_value async_resource_name,
+                napi_async_context* result) {
+  CHECK_ENV(env);
+  CHECK_ARG(env, async_resource_name);
+  CHECK_ARG(env, result);
+
+  napi_async_context ret = (napi_async_context) malloc(sizeof(struct napi_async_context__));
+
+  napi_status status = _emnapi_async_init_js(async_resource, async_resource_name, ret);
+  if (status != napi_ok) {
+    free(ret);
+    return napi_set_last_error(env, status, 0, NULL);
+  }
+
+  *result = ret;
+  return napi_clear_last_error(env);
+}
+
+napi_status napi_async_destroy(napi_env env,
+                               napi_async_context async_context) {
+  CHECK_ENV(env);
+  CHECK_ARG(env, async_context);
+
+  napi_status status = _emnapi_async_destroy_js(async_context);
+  if (status != napi_ok) {
+    return napi_set_last_error(env, status, 0, NULL);
+  }
+  free(async_context);
+
+  return napi_clear_last_error(env);
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // Async work implementation
 ////////////////////////////////////////////////////////////////////////////////
@@ -253,22 +301,75 @@ extern void _emnapi_ctx_decrease_waiting_request_counter();
 typedef void (*_emnapi_call_into_module_callback)(napi_env env, void* args);
 extern void _emnapi_call_into_module(napi_env env, _emnapi_call_into_module_callback callback, void* args);
 
+typedef double async_id;
+typedef struct async_context {
+  async_id async_id;
+  async_id trigger_async_id;
+} async_context;
+
+// call node::EmitAsyncInit
+extern void _emnapi_node_emit_async_init(napi_value async_resource,
+                                         napi_value async_resource_name,
+                                         async_id trigger_async_id,
+                                         async_context* result);
+// call node::EmitAsyncDestroy
+extern void _emnapi_node_emit_async_destroy(async_id id, async_id trigger_async_id);
+
+// extern void _emnapi_node_open_callback_scope(napi_value async_resource, async_id id, async_id trigger_async_id, int64_t* result);
+// extern void _emnapi_node_close_callback_scope(int64_t* scope);
+
+// call node:MakeCallback
+extern napi_status _emnapi_node_make_callback(napi_env env,
+                                              napi_value async_resource,
+                                              napi_value cb,
+                                              napi_value* argv,
+                                              size_t size,
+                                              double async_id,
+                                              double trigger_async_id,
+                                              napi_value* result);
+
+#define ASYNC_RESOURCE_FIELD             \
+  napi_ref resource_;                    \
+  async_context async_context_;
+
+typedef struct emnapi_async_resource {
+  ASYNC_RESOURCE_FIELD
+} emnapi_async_resource;
+
 struct napi_async_work__ {
+  ASYNC_RESOURCE_FIELD
+  uv_work_t work_req_;
   napi_env env;
   void* data;
   napi_async_execute_callback execute;
   napi_async_complete_callback complete;
-  uv_work_t work_req_;
 };
+
+static void _emnapi_async_resource_ctor(napi_env env,
+                                        napi_value resource,
+                                        napi_value resource_name,
+                                        emnapi_async_resource* ar) {
+  assert(napi_ok == napi_create_reference(env, resource, 1, &ar->resource_));
+  _emnapi_node_emit_async_init(resource, resource_name, -1.0, &ar->async_context_);
+}
+
+static void _emnapi_async_resource_dtor(napi_env env, emnapi_async_resource* ar) {
+  assert(napi_ok == napi_delete_reference(env, ar->resource_));
+  _emnapi_node_emit_async_destroy(ar->async_context_.async_id,
+                                  ar->async_context_.trigger_async_id);
+}
 
 static napi_async_work async_work_init(
   napi_env env,
+  napi_value async_resource,
+  napi_value async_resource_name,
   napi_async_execute_callback execute,
   napi_async_complete_callback complete,
   void* data
 ) {
   napi_async_work work = (napi_async_work)calloc(1, sizeof(struct napi_async_work__));
   if (work == NULL) return NULL;
+  _emnapi_async_resource_ctor(env, async_resource, async_resource_name, (emnapi_async_resource*)work);
   work->env = env;
   work->execute = execute;
   work->complete = complete;
@@ -277,6 +378,7 @@ static napi_async_work async_work_init(
 }
 
 static void async_work_delete(napi_async_work work) {
+  _emnapi_async_resource_dtor(work->env, (emnapi_async_resource*)work);
   free(work);
 }
 
@@ -312,16 +414,39 @@ static void async_work_on_complete(napi_env env, void* args) {
   work->complete(_env, status, data);
 }
 
+static napi_value async_work_after_cb(napi_env env, napi_callback_info info) {
+  void* data = NULL;
+  assert(napi_ok == napi_get_cb_info(env, info, NULL, NULL, NULL, &data));
+  complete_wrap_t* wrap = (complete_wrap_t*) data;
+  _emnapi_call_into_module(env, async_work_on_complete, wrap);
+  return NULL;
+}
+
 static void async_work_after_thread_pool_work(napi_async_work work, int status) {
   if (work->complete == NULL) return;
   napi_handle_scope scope;
+  napi_value resource, cb;
   napi_env env = work->env;
-  napi_open_handle_scope(env, &scope);
+  assert(napi_ok == napi_open_handle_scope(env, &scope));
+  assert(napi_ok == napi_get_reference_value(env, work->resource_, &resource));
   complete_wrap_t* wrap = (complete_wrap_t*) malloc(sizeof(complete_wrap_t));
+  assert(wrap != NULL);
   wrap->status = status;
   wrap->work = work;
-  _emnapi_call_into_module(env, async_work_on_complete, wrap);
-  napi_close_handle_scope(env, scope);
+  if (emnapi_is_node_binding_available()) {
+    assert(napi_ok == napi_create_function(env, NULL, 0, async_work_after_cb, wrap, &cb));
+    assert(napi_ok == _emnapi_node_make_callback(env,
+                                                 resource,
+                                                 cb,
+                                                 NULL,
+                                                 0,
+                                                 work->async_context_.async_id,
+                                                 work->async_context_.trigger_async_id,
+                                                 NULL));
+  } else {
+    _emnapi_call_into_module(env, async_work_on_complete, wrap);
+  }
+  assert(napi_ok == napi_close_handle_scope(env, scope));
 }
 
 static void async_work_schedule_work_on_execute(uv_work_t* req) {
@@ -364,7 +489,24 @@ napi_status napi_create_async_work(napi_env env,
   CHECK_ARG(env, execute);
   CHECK_ARG(env, result);
 
+  napi_status status;
+  napi_value resource;
+  napi_value resource_name;
+  if (async_resource != NULL) {
+    status = napi_coerce_to_object(env, async_resource, &resource);
+    if (status != napi_ok) return status;
+  } else {
+    status = napi_create_object(env, &resource);
+    if (status != napi_ok) return status;
+  }
+
+  CHECK_ARG(env, async_resource_name);
+  status = napi_coerce_to_string(env, async_resource_name, &resource_name);
+  if (status != napi_ok) return status;
+
   napi_async_work work = async_work_init(env,
+                                         resource,
+                                         resource_name,
                                          execute,
                                          complete,
                                          data);
@@ -448,6 +590,7 @@ struct data_queue_node {
 };
 
 struct napi_threadsafe_function__ {
+  ASYNC_RESOURCE_FIELD
   // These are variables protected by the mutex.
   pthread_mutex_t mutex;
   pthread_cond_t* cond;
@@ -472,8 +615,6 @@ struct napi_threadsafe_function__ {
   bool handles_closing;
   bool async_ref;
 };
-
-extern void _emnapi_tsfn_dispatch_one_js(napi_env env, napi_ref ref, napi_threadsafe_function_call_js call_js_cb, void* context, void* data);
 
 static void _emnapi_tsfn_default_call_js(napi_env env, napi_value cb, void* context, void* data) {
   if (!(env == NULL || cb == NULL)) {
@@ -501,6 +642,8 @@ static void _emnapi_tsfn_cleanup(void* data);
 static napi_threadsafe_function
 _emnapi_tsfn_create(napi_env env,
                     napi_ref ref,
+                    napi_value async_resource,
+                    napi_value async_resource_name,
                     size_t max_queue_size,
                     size_t initial_thread_count,
                     void* thread_finalize_data,
@@ -510,7 +653,7 @@ _emnapi_tsfn_create(napi_env env,
   napi_threadsafe_function ts_fn =
     (napi_threadsafe_function) calloc(1, sizeof(struct napi_threadsafe_function__));
   if (ts_fn == NULL) return NULL;
-
+  _emnapi_async_resource_ctor(env, async_resource, async_resource_name, (emnapi_async_resource*) ts_fn);
   pthread_mutex_init(&ts_fn->mutex, NULL);
   ts_fn->cond = NULL;
   ts_fn->queue_size = 0;
@@ -529,7 +672,7 @@ _emnapi_tsfn_create(napi_env env,
   ts_fn->call_js_cb = call_js_cb;
   ts_fn->handles_closing = false;
 
-  napi_add_env_cleanup_hook(env, _emnapi_tsfn_cleanup, ts_fn);
+  assert(napi_ok == napi_add_env_cleanup_hook(env, _emnapi_tsfn_cleanup, ts_fn));
   _emnapi_env_ref(env);
 
   EMNAPI_KEEPALIVE_PUSH();
@@ -555,9 +698,11 @@ static void _emnapi_tsfn_destroy(napi_threadsafe_function func) {
   }
   QUEUE_INIT(&func->queue);
 
-  napi_delete_reference(func->env, func->ref);
+  if (func->ref != NULL) {
+    assert(napi_ok == napi_delete_reference(func->env, func->ref));
+  }
 
-  napi_remove_env_cleanup_hook(func->env, _emnapi_tsfn_cleanup, func);
+  assert(napi_ok == napi_remove_env_cleanup_hook(func->env, _emnapi_tsfn_cleanup, func));
   _emnapi_env_unref(func->env);
   if (func->async_ref) {
     EMNAPI_KEEPALIVE_POP();
@@ -565,6 +710,7 @@ static void _emnapi_tsfn_destroy(napi_threadsafe_function func) {
     func->async_ref = false;
   }
 
+  _emnapi_async_resource_dtor(func->env, (emnapi_async_resource*) func);
   free(func);
 }
 
@@ -620,11 +766,33 @@ static void _emnapi_tsfn_empty_queue_and_delete(napi_threadsafe_function func) {
   _emnapi_tsfn_destroy(func);
 }
 
+static napi_value _emnapi_tsfn_finalize_in_callback_scope(napi_env env, napi_callback_info info) {
+  void* data = NULL;
+  assert(napi_ok == napi_get_cb_info(env, info, NULL, NULL, NULL, &data));
+  napi_threadsafe_function func = (napi_threadsafe_function) data;
+  _emnapi_call_finalizer(func->env, func->finalize_cb, func->finalize_data, func->context);
+  return NULL;
+}
+
 static void _emnapi_tsfn_finalize(napi_threadsafe_function func) {
   napi_handle_scope scope;
   napi_open_handle_scope(func->env, &scope);
   if (func->finalize_cb) {
-    _emnapi_call_finalizer(func->env, func->finalize_cb, func->finalize_data, func->context);
+    if (emnapi_is_node_binding_available()) {
+      napi_value resource, cb;
+      assert(napi_ok == napi_get_reference_value(func->env, func->resource_, &resource));
+      assert(napi_ok == napi_create_function(func->env, NULL, 0, _emnapi_tsfn_finalize_in_callback_scope, func, &cb));
+      assert(napi_ok == _emnapi_node_make_callback(func->env,
+                                                  resource,
+                                                  cb,
+                                                  NULL,
+                                                  0,
+                                                  func->async_context_.async_id,
+                                                  func->async_context_.trigger_async_id,
+                                                  NULL));
+    } else {
+      _emnapi_call_finalizer(func->env, func->finalize_cb, func->finalize_data, func->context);
+    }
   }
   _emnapi_tsfn_empty_queue_and_delete(func);
   napi_close_handle_scope(func->env, scope);
@@ -660,6 +828,23 @@ static void _emnapi_tsfn_close_handles_and_maybe_delete(
 static void _emnapi_tsfn_cleanup(void* data) {
   _emnapi_tsfn_close_handles_and_maybe_delete((napi_threadsafe_function) data, true);
 }
+
+static void _emnapi_tsfn_call_js_cb(napi_env env, void* arg) {
+  void** args = (void**) arg;
+  napi_threadsafe_function func = (napi_threadsafe_function) *args;
+  napi_value js_callback = (napi_value) *(args + 1);
+  void* data = *(args + 2);
+  func->call_js_cb(func->env, js_callback, func->context, data);
+}
+
+static napi_value _emnapi_tsfn_call_js_cb_in_callback_scope(napi_env env, napi_callback_info info) {
+  void* data = NULL;
+  assert(napi_ok == napi_get_cb_info(env, info, NULL, NULL, NULL, &data));
+  _emnapi_call_into_module(env, _emnapi_tsfn_call_js_cb, data);
+  return NULL;
+}
+
+// static void _emnapi_tsfn_
 
 // only main thread
 static bool _emnapi_tsfn_dispatch_one(napi_threadsafe_function func) {
@@ -705,7 +890,31 @@ static bool _emnapi_tsfn_dispatch_one(napi_threadsafe_function func) {
   }
 
   if (popped_value) {
-    _emnapi_tsfn_dispatch_one_js(func->env, func->ref, func->call_js_cb, func->context, data);
+    napi_handle_scope scope;
+    napi_open_handle_scope(func->env, &scope);
+    napi_value js_callback = NULL;
+    void* jscb_data[3] = { (void*)(func), NULL, data };
+    if (func->ref != NULL) {
+      assert(napi_ok == napi_get_reference_value(func->env, func->ref, &js_callback));
+      jscb_data[1] = (void*)js_callback;
+    }
+
+    if (emnapi_is_node_binding_available()) {
+      napi_value resource, cb;
+      assert(napi_ok == napi_get_reference_value(func->env, func->resource_, &resource));
+      assert(napi_ok == napi_create_function(func->env, NULL, 0, _emnapi_tsfn_call_js_cb_in_callback_scope, jscb_data, &cb));
+      assert(napi_ok == _emnapi_node_make_callback(func->env,
+                                                  resource,
+                                                  cb,
+                                                  NULL,
+                                                  0,
+                                                  func->async_context_.async_id,
+                                                  func->async_context_.trigger_async_id,
+                                                  NULL));
+    } else {
+      _emnapi_call_into_module(func->env, _emnapi_tsfn_call_js_cb, jscb_data);
+    }
+    napi_close_handle_scope(func->env, scope);
   }
 
   return has_more;
@@ -781,9 +990,25 @@ napi_create_threadsafe_function(napi_env env,
     if (status != napi_ok) return napi_set_last_error(env, status, 0, NULL);
   }
 
+  napi_value resource;
+  napi_value resource_name;
+  if (async_resource != NULL) {
+    status = napi_coerce_to_object(env, async_resource, &resource);
+    if (status != napi_ok) return status;
+  } else {
+    status = napi_create_object(env, &resource);
+    if (status != napi_ok) return status;
+  }
+
+  CHECK_ARG(env, async_resource_name);
+  status = napi_coerce_to_string(env, async_resource_name, &resource_name);
+  if (status != napi_ok) return status;
+
   napi_threadsafe_function ts_fn = _emnapi_tsfn_create(
     env,
     ref,
+    resource,
+    resource_name,
     max_queue_size,
     initial_thread_count,
     thread_finalize_data,

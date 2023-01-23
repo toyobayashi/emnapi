@@ -67,6 +67,25 @@ NAPI_EXTERN NAPI_NO_RETURN void napi_fatal_error(const char* location,
                                                  const char* message,
                                                  size_t message_len);
 
+// Methods for custom handling of async operations
+NAPI_EXTERN napi_status
+napi_async_init(napi_env env,
+                napi_value async_resource,
+                napi_value async_resource_name,
+                napi_async_context* result);
+
+NAPI_EXTERN napi_status
+napi_async_destroy(napi_env env, napi_async_context async_context);
+
+NAPI_EXTERN napi_status
+napi_make_callback(napi_env env,
+                   napi_async_context async_context,
+                   napi_value recv,
+                   napi_value func,
+                   size_t argc,
+                   const napi_value* argv,
+                   napi_value* result);
+
 // Methods to provide node::Buffer functionality with napi types
 NAPI_EXTERN napi_status
 napi_create_buffer(napi_env env,
