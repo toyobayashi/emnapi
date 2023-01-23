@@ -6,6 +6,7 @@ export declare interface AsyncContext {
 export declare interface NapiResult<T> {
   status: number
   value: T
+  error?: any
 }
 
 export declare namespace node {
@@ -17,6 +18,12 @@ export declare namespace node {
 }
 
 export declare namespace napi {
-  export function asyncInit (resource: object, name: string): NapiResult<bigint>
+  export function asyncInit (resource: object | undefined | null, name: string): NapiResult<bigint>
   export function asyncDestroy (asyncContextPointer: bigint): NapiResult<undefined>
+  export function makeCallback<P extends any[], T> (
+    asyncContextPointer: bigint,
+    recv: any,
+    func: (...args: P) => T,
+    argv: P
+  ): NapiResult<T>
 }

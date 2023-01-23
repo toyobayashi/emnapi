@@ -6,7 +6,7 @@
       "request": "launch",
       "name": "Launch Program",
       "runtimeArgs": ["--expose-gc"],
-      "program": "${workspaceFolder}/packages/test/async/async_hooks.test.js",
+      "program": "${workspaceFolder}/packages/test/make_callback/make_callback.test.js",
       "args": []
     },
     {
