@@ -1,7 +1,3 @@
-function _emnapi_node_binding_available (): int {
-  return emnapiNodeBinding ? 1 : 0
-}
-
 function _emnapi_node_emit_async_init (
   async_resource: napi_value,
   async_resource_name: napi_value,
@@ -86,6 +82,10 @@ function _emnapi_node_make_callback (env: napi_env, async_resource: napi_value, 
 }
 
 function _emnapi_async_init_js (async_resource: napi_value, async_resource_name: napi_value, result: Pointer<int64_t>): napi_status {
+  if (!emnapiNodeBinding) {
+    return napi_status.napi_generic_failure
+  }
+
   let resource: object | undefined
 
   if (async_resource) {
@@ -113,6 +113,9 @@ function _emnapi_async_init_js (async_resource: napi_value, async_resource_name:
 }
 
 function _emnapi_async_destroy_js (async_context: Pointer<int64_t>): napi_status {
+  if (!emnapiNodeBinding) {
+    return napi_status.napi_generic_failure
+  }
   $from64('async_context')
   const low = $makeGetValue('async_context', 0, 'i32')
   const high = $makeGetValue('async_context', 4, 'i32')
@@ -177,7 +180,6 @@ function napi_make_callback (env: napi_env, async_context: Pointer<int64_t>, rec
   })
 }
 
-emnapiImplement('_emnapi_node_binding_available', 'i', _emnapi_node_binding_available)
 emnapiImplement('_emnapi_node_emit_async_init', 'vppdp', _emnapi_node_emit_async_init)
 emnapiImplement('_emnapi_node_emit_async_destroy', 'vdd', _emnapi_node_emit_async_destroy)
 // emnapiImplement('_emnapi_node_open_callback_scope', 'vpddp', _emnapi_node_open_callback_scope)

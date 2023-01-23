@@ -242,8 +242,6 @@ extern void _emnapi_env_unref(napi_env env);
 extern void _emnapi_ctx_increase_waiting_request_counter();
 extern void _emnapi_ctx_decrease_waiting_request_counter();
 
-extern int _emnapi_node_binding_available();
-
 struct napi_async_context__ {
   int32_t low;
   int32_t high;
@@ -261,10 +259,6 @@ napi_async_init(napi_env env,
                 napi_value async_resource,
                 napi_value async_resource_name,
                 napi_async_context* result) {
-  if (!_emnapi_node_binding_available()) {
-    return napi_set_last_error(env, napi_generic_failure, 0, NULL);
-  }
-
   CHECK_ENV(env);
   CHECK_ARG(env, async_resource_name);
   CHECK_ARG(env, result);
@@ -439,7 +433,7 @@ static void async_work_after_thread_pool_work(napi_async_work work, int status) 
   assert(wrap != NULL);
   wrap->status = status;
   wrap->work = work;
-  if (_emnapi_node_binding_available()) {
+  if (emnapi_is_node_binding_available()) {
     assert(napi_ok == napi_create_function(env, NULL, 0, async_work_after_cb, wrap, &cb));
     assert(napi_ok == _emnapi_node_make_callback(env,
                                                  resource,
@@ -784,7 +778,7 @@ static void _emnapi_tsfn_finalize(napi_threadsafe_function func) {
   napi_handle_scope scope;
   napi_open_handle_scope(func->env, &scope);
   if (func->finalize_cb) {
-    if (_emnapi_node_binding_available()) {
+    if (emnapi_is_node_binding_available()) {
       napi_value resource, cb;
       assert(napi_ok == napi_get_reference_value(func->env, func->resource_, &resource));
       assert(napi_ok == napi_create_function(func->env, NULL, 0, _emnapi_tsfn_finalize_in_callback_scope, func, &cb));
@@ -905,7 +899,7 @@ static bool _emnapi_tsfn_dispatch_one(napi_threadsafe_function func) {
       jscb_data[1] = (void*)js_callback;
     }
 
-    if (_emnapi_node_binding_available()) {
+    if (emnapi_is_node_binding_available()) {
       napi_value resource, cb;
       assert(napi_ok == napi_get_reference_value(func->env, func->resource_, &resource));
       assert(napi_ok == napi_create_function(func->env, NULL, 0, _emnapi_tsfn_call_js_cb_in_callback_scope, jscb_data, &cb));
