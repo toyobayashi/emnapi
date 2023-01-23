@@ -168,6 +168,7 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
       ...(isEmscripten ? [createTarget('emnapitest', ['./emnapitest/binding.c'], true, false, ['-sEXPORTED_RUNTIME_METHODS=[\'emnapiSyncMemory\']'])] : []),
       createTarget('version', ['./version/binding.c']),
       createTarget('make_callback', ['./make_callback/binding.c'], false),
+      createTarget('async_context', ['./async_context/binding.c'], false),
 
       ...(!(isEmscripten && process.env.MEMORY64)
         ? [

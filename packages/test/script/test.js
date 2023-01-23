@@ -35,7 +35,17 @@ files.forEach((f) => {
 })
 
 function test (f) {
-  const r = spawnSync('node', ['--expose-gc', ...(process.env.MEMORY64 ? ['--experimental-wasm-memory64'] : []), './script/test-entry.js', f], { cwd, env: process.env, stdio: 'inherit' })
+  const additionalFlags = []
+  if (f.includes('async_context')) {
+    additionalFlags.push('--gc-interval=100', '--gc-global')
+  }
+  const r = spawnSync('node', [
+    '--expose-gc',
+    ...additionalFlags,
+    ...(process.env.MEMORY64 ? ['--experimental-wasm-memory64'] : []),
+    './script/test-entry.js',
+    f
+  ], { cwd, env: process.env, stdio: 'inherit' })
   if (r.status !== 0) {
     process.exit(r.status)
   }
