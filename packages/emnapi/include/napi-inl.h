@@ -2332,31 +2332,31 @@ inline MaybeOrValue<Value> Function::Call(napi_value recv,
       _env, status, Napi::Value(_env, result), Napi::Value);
 }
 
-// inline MaybeOrValue<Value> Function::MakeCallback(
-//     napi_value recv,
-//     const std::initializer_list<napi_value>& args,
-//     napi_async_context context) const {
-//   return MakeCallback(recv, args.size(), args.begin(), context);
-// }
+inline MaybeOrValue<Value> Function::MakeCallback(
+    napi_value recv,
+    const std::initializer_list<napi_value>& args,
+    napi_async_context context) const {
+  return MakeCallback(recv, args.size(), args.begin(), context);
+}
 
-// inline MaybeOrValue<Value> Function::MakeCallback(
-//     napi_value recv,
-//     const std::vector<napi_value>& args,
-//     napi_async_context context) const {
-//   return MakeCallback(recv, args.size(), args.data(), context);
-// }
+inline MaybeOrValue<Value> Function::MakeCallback(
+    napi_value recv,
+    const std::vector<napi_value>& args,
+    napi_async_context context) const {
+  return MakeCallback(recv, args.size(), args.data(), context);
+}
 
-// inline MaybeOrValue<Value> Function::MakeCallback(
-//     napi_value recv,
-//     size_t argc,
-//     const napi_value* args,
-//     napi_async_context context) const {
-//   napi_value result;
-//   napi_status status =
-//       napi_make_callback(_env, context, recv, _value, argc, args, &result);
-//   NAPI_RETURN_OR_THROW_IF_FAILED(
-//       _env, status, Napi::Value(_env, result), Napi::Value);
-// }
+inline MaybeOrValue<Value> Function::MakeCallback(
+    napi_value recv,
+    size_t argc,
+    const napi_value* args,
+    napi_async_context context) const {
+  napi_value result;
+  napi_status status =
+      napi_make_callback(_env, context, recv, _value, argc, args, &result);
+  NAPI_RETURN_OR_THROW_IF_FAILED(
+      _env, status, Napi::Value(_env, result), Napi::Value);
+}
 
 inline MaybeOrValue<Object> Function::New(
     const std::initializer_list<napi_value>& args) const {
@@ -3326,65 +3326,65 @@ inline MaybeOrValue<Napi::Value> FunctionReference::Call(
 #endif
 }
 
-// inline MaybeOrValue<Napi::Value> FunctionReference::MakeCallback(
-//     napi_value recv,
-//     const std::initializer_list<napi_value>& args,
-//     napi_async_context context) const {
-//   EscapableHandleScope scope(_env);
-//   MaybeOrValue<Napi::Value> result = Value().MakeCallback(recv, args, context);
-// #ifdef NODE_ADDON_API_ENABLE_MAYBE
-//   if (result.IsJust()) {
-//     return Just(scope.Escape(result.Unwrap()));
-//   }
+inline MaybeOrValue<Napi::Value> FunctionReference::MakeCallback(
+    napi_value recv,
+    const std::initializer_list<napi_value>& args,
+    napi_async_context context) const {
+  EscapableHandleScope scope(_env);
+  MaybeOrValue<Napi::Value> result = Value().MakeCallback(recv, args, context);
+#ifdef NODE_ADDON_API_ENABLE_MAYBE
+  if (result.IsJust()) {
+    return Just(scope.Escape(result.Unwrap()));
+  }
 
-//   return result;
-// #else
-//   if (scope.Env().IsExceptionPending()) {
-//     return Value();
-//   }
-//   return scope.Escape(result);
-// #endif
-// }
+  return result;
+#else
+  if (scope.Env().IsExceptionPending()) {
+    return Value();
+  }
+  return scope.Escape(result);
+#endif
+}
 
-// inline MaybeOrValue<Napi::Value> FunctionReference::MakeCallback(
-//     napi_value recv,
-//     const std::vector<napi_value>& args,
-//     napi_async_context context) const {
-//   EscapableHandleScope scope(_env);
-//   MaybeOrValue<Napi::Value> result = Value().MakeCallback(recv, args, context);
-// #ifdef NODE_ADDON_API_ENABLE_MAYBE
-//   if (result.IsJust()) {
-//     return Just(scope.Escape(result.Unwrap()));
-//   }
-//   return result;
-// #else
-//   if (scope.Env().IsExceptionPending()) {
-//     return Value();
-//   }
-//   return scope.Escape(result);
-// #endif
-// }
+inline MaybeOrValue<Napi::Value> FunctionReference::MakeCallback(
+    napi_value recv,
+    const std::vector<napi_value>& args,
+    napi_async_context context) const {
+  EscapableHandleScope scope(_env);
+  MaybeOrValue<Napi::Value> result = Value().MakeCallback(recv, args, context);
+#ifdef NODE_ADDON_API_ENABLE_MAYBE
+  if (result.IsJust()) {
+    return Just(scope.Escape(result.Unwrap()));
+  }
+  return result;
+#else
+  if (scope.Env().IsExceptionPending()) {
+    return Value();
+  }
+  return scope.Escape(result);
+#endif
+}
 
-// inline MaybeOrValue<Napi::Value> FunctionReference::MakeCallback(
-//     napi_value recv,
-//     size_t argc,
-//     const napi_value* args,
-//     napi_async_context context) const {
-//   EscapableHandleScope scope(_env);
-//   MaybeOrValue<Napi::Value> result =
-//       Value().MakeCallback(recv, argc, args, context);
-// #ifdef NODE_ADDON_API_ENABLE_MAYBE
-//   if (result.IsJust()) {
-//     return Just(scope.Escape(result.Unwrap()));
-//   }
-//   return result;
-// #else
-//   if (scope.Env().IsExceptionPending()) {
-//     return Value();
-//   }
-//   return scope.Escape(result);
-// #endif
-// }
+inline MaybeOrValue<Napi::Value> FunctionReference::MakeCallback(
+    napi_value recv,
+    size_t argc,
+    const napi_value* args,
+    napi_async_context context) const {
+  EscapableHandleScope scope(_env);
+  MaybeOrValue<Napi::Value> result =
+      Value().MakeCallback(recv, argc, args, context);
+#ifdef NODE_ADDON_API_ENABLE_MAYBE
+  if (result.IsJust()) {
+    return Just(scope.Escape(result.Unwrap()));
+  }
+  return result;
+#else
+  if (scope.Env().IsExceptionPending()) {
+    return Value();
+  }
+  return scope.Escape(result);
+#endif
+}
 
 inline MaybeOrValue<Object> FunctionReference::New(
     const std::initializer_list<napi_value>& args) const {
@@ -4672,51 +4672,51 @@ inline Value EscapableHandleScope::Escape(napi_value escapee) {
 // AsyncContext class
 ////////////////////////////////////////////////////////////////////////////////
 
-// inline AsyncContext::AsyncContext(napi_env env, const char* resource_name)
-//     : AsyncContext(env, resource_name, Object::New(env)) {}
+inline AsyncContext::AsyncContext(napi_env env, const char* resource_name)
+    : AsyncContext(env, resource_name, Object::New(env)) {}
 
-// inline AsyncContext::AsyncContext(napi_env env,
-//                                   const char* resource_name,
-//                                   const Object& resource)
-//     : _env(env), _context(nullptr) {
-//   napi_value resource_id;
-//   napi_status status = napi_create_string_utf8(
-//       _env, resource_name, NAPI_AUTO_LENGTH, &resource_id);
-//   NAPI_THROW_IF_FAILED_VOID(_env, status);
+inline AsyncContext::AsyncContext(napi_env env,
+                                  const char* resource_name,
+                                  const Object& resource)
+    : _env(env), _context(nullptr) {
+  napi_value resource_id;
+  napi_status status = napi_create_string_utf8(
+      _env, resource_name, NAPI_AUTO_LENGTH, &resource_id);
+  NAPI_THROW_IF_FAILED_VOID(_env, status);
 
-//   status = napi_async_init(_env, resource, resource_id, &_context);
-//   NAPI_THROW_IF_FAILED_VOID(_env, status);
-// }
+  status = napi_async_init(_env, resource, resource_id, &_context);
+  NAPI_THROW_IF_FAILED_VOID(_env, status);
+}
 
-// inline AsyncContext::~AsyncContext() {
-//   if (_context != nullptr) {
-//     napi_async_destroy(_env, _context);
-//     _context = nullptr;
-//   }
-// }
+inline AsyncContext::~AsyncContext() {
+  if (_context != nullptr) {
+    napi_async_destroy(_env, _context);
+    _context = nullptr;
+  }
+}
 
-// inline AsyncContext::AsyncContext(AsyncContext&& other) {
-//   _env = other._env;
-//   other._env = nullptr;
-//   _context = other._context;
-//   other._context = nullptr;
-// }
+inline AsyncContext::AsyncContext(AsyncContext&& other) {
+  _env = other._env;
+  other._env = nullptr;
+  _context = other._context;
+  other._context = nullptr;
+}
 
-// inline AsyncContext& AsyncContext::operator=(AsyncContext&& other) {
-//   _env = other._env;
-//   other._env = nullptr;
-//   _context = other._context;
-//   other._context = nullptr;
-//   return *this;
-// }
+inline AsyncContext& AsyncContext::operator=(AsyncContext&& other) {
+  _env = other._env;
+  other._env = nullptr;
+  _context = other._context;
+  other._context = nullptr;
+  return *this;
+}
 
-// inline AsyncContext::operator napi_async_context() const {
-//   return _context;
-// }
+inline AsyncContext::operator napi_async_context() const {
+  return _context;
+}
 
-// inline Napi::Env AsyncContext::Env() const {
-//   return Napi::Env(_env);
-// }
+inline Napi::Env AsyncContext::Env() const {
+  return Napi::Env(_env);
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 // AsyncWorker class
