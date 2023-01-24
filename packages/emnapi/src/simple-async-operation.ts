@@ -94,16 +94,21 @@ mergeInto(LibraryManager.library, {
   }
 })
 
-function _emnapi_call_into_module (env: napi_env, callback: number, data: number): void {
+function _emnapi_call_into_module (env: napi_env, callback: number, data: number, close_scope_if_throw: int): void {
   const envObject = emnapiCtx.envStore.get(env)!
   const scope = emnapiCtx.openScope(envObject)
   try {
     envObject.callIntoModule(() => {
       $makeDynCall('vpp', 'callback')(env, data)
     })
-  } finally {
+  } catch (err) {
     emnapiCtx.closeScope(envObject, scope)
+    if (close_scope_if_throw) {
+      emnapiCtx.closeScope(envObject)
+    }
+    throw err
   }
+  emnapiCtx.closeScope(envObject, scope)
 }
 
 function _emnapi_ctx_increase_waiting_request_counter (): void {

@@ -46,39 +46,34 @@ function _emnapi_node_close_callback_scope (scope: Pointer<int64_t>): void {
   emnapiNodeBinding.node.closeCallbackScope(BigInt(nativeCallbackScopePointer))
 } */
 
-// @ts-expect-error
-function _emnapi_node_make_callback (env: napi_env, async_resource: napi_value, cb: napi_value, argv: Pointer<napi_value>, size: size_t, async_id: double, trigger_async_id: double, result: Pointer<napi_value>): napi_status {
+function _emnapi_node_make_callback (env: napi_env, async_resource: napi_value, cb: napi_value, argv: Pointer<napi_value>, size: size_t, async_id: double, trigger_async_id: double, result: Pointer<napi_value>): void {
   let i = 0
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let v: number
 
-  $PREAMBLE!(env, (envObject) => {
-    if (!emnapiNodeBinding) {
-      return envObject.setLastError(napi_status.napi_generic_failure)
-    }
-    const resource = emnapiCtx.handleStore.get(async_resource)!.value
-    const callback = emnapiCtx.handleStore.get(cb)!.value
-    $from64('argv')
-    $from64('size')
-    size = size >>> 0
-    const arr = Array(size)
-    for (; i < size; i++) {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/restrict-plus-operands
-      const argVal = $makeGetValue('argv', 'i * ' + POINTER_SIZE, '*')
-      arr[i] = emnapiCtx.handleStore.get(argVal)!.value
-    }
-    const ret = emnapiNodeBinding.node.makeCallback(resource, callback, arr, {
-      asyncId: async_id,
-      triggerAsyncId: trigger_async_id
-    })
-    if (result) {
-      $from64('result')
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      v = envObject.ensureHandleId(ret)
-      $makeSetValue('result', 0, 'v', '*')
-    }
-    return envObject.clearLastError()
+  if (!emnapiNodeBinding) return
+  const resource = emnapiCtx.handleStore.get(async_resource)!.value
+  const callback = emnapiCtx.handleStore.get(cb)!.value
+  $from64('argv')
+  $from64('size')
+  size = size >>> 0
+  const arr = Array(size)
+  for (; i < size; i++) {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/restrict-plus-operands
+    const argVal = $makeGetValue('argv', 'i * ' + POINTER_SIZE, '*')
+    arr[i] = emnapiCtx.handleStore.get(argVal)!.value
+  }
+  const ret = emnapiNodeBinding.node.makeCallback(resource, callback, arr, {
+    asyncId: async_id,
+    triggerAsyncId: trigger_async_id
   })
+  if (result) {
+    $from64('result')
+    const envObject = emnapiCtx.envStore.get(env)!
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    v = envObject.ensureHandleId(ret)
+    $makeSetValue('result', 0, 'v', '*')
+  }
 }
 
 function _emnapi_async_init_js (async_resource: napi_value, async_resource_name: napi_value, result: Pointer<int64_t>): napi_status {

@@ -2,7 +2,11 @@
 #include <stdlib.h>
 #include <node_api.h>
 
-#define NAPI_ASSERT(call) assert(napi_ok == (call))
+#ifdef NDEBUG
+#define	NAPI_ASSERT(the_call) (the_call)
+#else
+#define NAPI_ASSERT(the_call) (assert(napi_ok == (the_call)))
+#endif
 
 static napi_value napi_async_init_js(napi_env env, napi_callback_info info) {
   napi_value argv[2];
