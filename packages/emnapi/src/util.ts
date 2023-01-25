@@ -1,15 +1,4 @@
 /* eslint-disable @typescript-eslint/indent */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function emnapiImplement (name: string, sig: string | undefined, compilerTimeFunction: Function, deps?: string[]): void {
-  const sym: any = {
-    [name]: compilerTimeFunction,
-    [name + '__deps']: (['$emnapiInit']).concat(deps ?? [])
-  }
-  if (sig) {
-    sym[name + '__sig'] = sig
-  }
-  mergeInto(LibraryManager.library, sym)
-}
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 declare function _napi_set_last_error (env: napi_env, error_code: napi_status, engine_error_code: uint32_t, engine_reserved: void_p): napi_status

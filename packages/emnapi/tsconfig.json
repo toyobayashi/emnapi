@@ -23,6 +23,9 @@
   },
   "include": [
     "../runtime/src/typings/**/*.d.ts",
-    "./src/**/*.ts"
+    "./src/typings/**/*.d.ts",
+    "./src/*.ts",
+    "./src/value/**/*.ts",
+    "./src/emscripten/**/*.ts"
   ]
 }
