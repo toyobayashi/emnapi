@@ -14,7 +14,7 @@ function napi_clear_last_error (env: napi_env): napi_status {
 }
 
 declare const process: any
-function _emnapi_get_node_version (major: number, minor: number, patch: number): void {
+function __emnapi_get_node_version (major: number, minor: number, patch: number): void {
   $from64('major')
   $from64('minor')
   $from64('patch')
@@ -36,7 +36,7 @@ function _emnapi_get_node_version (major: number, minor: number, patch: number):
 
 emnapiImplement('napi_set_last_error', 'ipiip', napi_set_last_error)
 emnapiImplement('napi_clear_last_error', 'ip', napi_clear_last_error)
-emnapiImplement('_emnapi_get_node_version', 'vp', _emnapi_get_node_version)
+emnapiImplementInternal('_emnapi_get_node_version', 'vp', __emnapi_get_node_version)
 
 declare function runtimeKeepalivePush (): void
 declare function runtimeKeepalivePop (): void

@@ -178,12 +178,12 @@ function napi_remove_env_cleanup_hook (env: napi_env, fun: number, arg: number):
   return napi_status.napi_ok
 }
 
-function _emnapi_env_ref (env: napi_env): void {
+function __emnapi_env_ref (env: napi_env): void {
   const envObject = emnapiCtx.envStore.get(env)!
   envObject.ref()
 }
 
-function _emnapi_env_unref (env: napi_env): void {
+function __emnapi_env_unref (env: napi_env): void {
   const envObject = emnapiCtx.envStore.get(env)!
   envObject.unref()
 }
@@ -203,5 +203,5 @@ emnapiImplement('napi_get_reference_value', 'ippp', napi_get_reference_value)
 emnapiImplement('napi_add_env_cleanup_hook', 'ippp', napi_add_env_cleanup_hook)
 emnapiImplement('napi_remove_env_cleanup_hook', 'ippp', napi_remove_env_cleanup_hook)
 
-emnapiImplement('_emnapi_env_ref', 'vp', _emnapi_env_ref)
-emnapiImplement('_emnapi_env_unref', 'vp', _emnapi_env_unref)
+emnapiImplementInternal('_emnapi_env_ref', 'vp', __emnapi_env_ref)
+emnapiImplementInternal('_emnapi_env_unref', 'vp', __emnapi_env_unref)

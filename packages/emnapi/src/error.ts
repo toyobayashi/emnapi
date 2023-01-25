@@ -1,4 +1,4 @@
-function _emnapi_get_last_error_info (env: napi_env, error_code: Pointer<napi_status>, engine_error_code: Pointer<uint32_t>, engine_reserved: void_pp): void {
+function __emnapi_get_last_error_info (env: napi_env, error_code: Pointer<napi_status>, engine_error_code: Pointer<uint32_t>, engine_reserved: void_pp): void {
   $from64('error_code')
   $from64('engine_error_code')
   $from64('engine_reserved')
@@ -221,7 +221,8 @@ function napi_fatal_exception (env: napi_env, err: napi_value): napi_status {
   })
 }
 
-emnapiImplement('_emnapi_get_last_error_info', 'vpppp', _emnapi_get_last_error_info)
+emnapiImplementInternal('_emnapi_get_last_error_info', 'vpppp', __emnapi_get_last_error_info)
+
 emnapiImplement('napi_get_and_clear_last_exception', 'ipp', napi_get_and_clear_last_exception)
 emnapiImplement('napi_throw', 'ipp', napi_throw)
 emnapiImplement('napi_throw_error', 'ippp', napi_throw_error)
