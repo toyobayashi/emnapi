@@ -22,8 +22,7 @@ function napi_create_array_with_length (env: napi_env, length: size_t, result: P
   return envObject.clearLastError()
 }
 
-declare const emnapiCreateArrayBuffer: typeof _$emnapiCreateArrayBuffer
-function _$emnapiCreateArrayBuffer (byte_length: size_t, data: void_pp): ArrayBuffer {
+function emnapiCreateArrayBuffer (byte_length: size_t, data: void_pp): ArrayBuffer {
   $from64('byte_length')
   byte_length = byte_length >>> 0
   const arrayBuffer = new ArrayBuffer(byte_length)
@@ -441,7 +440,8 @@ function node_api_symbol_for (env: napi_env, utf8description: const_char_p, leng
   return envObject.clearLastError()
 }
 
-emnapiImplement('$emnapiCreateArrayBuffer', undefined, _$emnapiCreateArrayBuffer, ['$emnapiExternalMemory'])
+emnapiImplementHelper('$emnapiCreateArrayBuffer', undefined, emnapiCreateArrayBuffer, ['$emnapiExternalMemory'])
+
 emnapiImplement('napi_create_array', 'ipp', napi_create_array)
 emnapiImplement('napi_create_array_with_length', 'ippp', napi_create_array_with_length)
 emnapiImplement('napi_create_arraybuffer', 'ipppp', napi_create_arraybuffer, ['$emnapiCreateArrayBuffer'])

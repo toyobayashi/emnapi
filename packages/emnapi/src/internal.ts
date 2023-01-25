@@ -2,8 +2,7 @@
 /* eslint-disable no-new-func */
 /* eslint-disable @typescript-eslint/no-implied-eval */
 
-declare const emnapiCreateFunction: typeof _$emnapiCreateFunction
-function _$emnapiCreateFunction<F extends (...args: any[]) => any> (envObject: Env, utf8name: Pointer<const_char>, length: size_t, cb: napi_callback, data: void_p): { status: napi_status; f: F } {
+function emnapiCreateFunction<F extends (...args: any[]) => any> (envObject: Env, utf8name: Pointer<const_char>, length: size_t, cb: napi_callback, data: void_p): { status: napi_status; f: F } {
   $from64('utf8name')
 
   const functionName = (!utf8name || !length) ? '' : (emnapiUtf8ToString(utf8name, length))
@@ -53,9 +52,7 @@ function _$emnapiCreateFunction<F extends (...args: any[]) => any> (envObject: E
   return { status: napi_status.napi_ok, f }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-declare const emnapiDefineProperty: typeof _$emnapiDefineProperty
-function _$emnapiDefineProperty (envObject: Env, obj: object, propertyName: string | symbol, method: napi_callback, getter: napi_callback, setter: napi_callback, value: napi_value, attributes: number, data: void_p): void {
+function emnapiDefineProperty (envObject: Env, obj: object, propertyName: string | symbol, method: napi_callback, getter: napi_callback, setter: napi_callback, value: napi_value, attributes: number, data: void_p): void {
   if (getter || setter) {
     let localGetter: () => any
     let localSetter: (v: any) => void
@@ -92,9 +89,7 @@ function _$emnapiDefineProperty (envObject: Env, obj: object, propertyName: stri
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-declare const emnapiGetHandle: typeof _$emnapiGetHandle
-function _$emnapiGetHandle (js_object: napi_value): { status: napi_status; handle?: Handle<any>} {
+function emnapiGetHandle (js_object: napi_value): { status: napi_status; handle?: Handle<any>} {
   let handle = emnapiCtx.handleStore.get(js_object)!
   if (!(handle.isObject() || handle.isFunction())) {
     return { status: napi_status.napi_invalid_arg }
@@ -109,10 +104,8 @@ function _$emnapiGetHandle (js_object: napi_value): { status: napi_status; handl
   return { status: napi_status.napi_ok, handle }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-declare const emnapiWrap: typeof _$emnapiWrap
 // @ts-expect-error
-function _$emnapiWrap (env: napi_env, js_object: napi_value, native_object: void_p, finalize_cb: napi_finalize, finalize_hint: void_p, result: Pointer<napi_ref>): napi_status {
+function emnapiWrap (env: napi_env, js_object: napi_value, native_object: void_p, finalize_cb: napi_finalize, finalize_hint: void_p, result: Pointer<napi_ref>): napi_status {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let referenceId: number
   $PREAMBLE!(env, (envObject) => {
@@ -144,10 +137,8 @@ function _$emnapiWrap (env: napi_env, js_object: napi_value, native_object: void
   })
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-declare const emnapiUnwrap: typeof _$emnapiUnwrap
 // @ts-expect-error
-function _$emnapiUnwrap (env: napi_env, js_object: napi_value, result: void_pp, action: UnwrapAction): napi_status {
+function emnapiUnwrap (env: napi_env, js_object: napi_value, result: void_pp, action: UnwrapAction): napi_status {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let data: number
   $PREAMBLE!(env, (envObject) => {
@@ -183,8 +174,8 @@ function _$emnapiUnwrap (env: napi_env, js_object: napi_value, result: void_pp, 
   })
 }
 
-emnapiImplement('$emnapiCreateFunction', undefined, _$emnapiCreateFunction, ['$emnapiUtf8ToString'])
-emnapiImplement('$emnapiDefineProperty', undefined, _$emnapiDefineProperty, ['$emnapiCreateFunction'])
-emnapiImplement('$emnapiGetHandle', undefined, _$emnapiGetHandle)
-emnapiImplement('$emnapiWrap', undefined, _$emnapiWrap, ['$emnapiGetHandle'])
-emnapiImplement('$emnapiUnwrap', undefined, _$emnapiUnwrap)
+emnapiImplementHelper('$emnapiCreateFunction', undefined, emnapiCreateFunction, ['$emnapiUtf8ToString'])
+emnapiImplementHelper('$emnapiDefineProperty', undefined, emnapiDefineProperty, ['$emnapiCreateFunction'])
+emnapiImplementHelper('$emnapiGetHandle', undefined, emnapiGetHandle)
+emnapiImplementHelper('$emnapiWrap', undefined, emnapiWrap, ['$emnapiGetHandle'])
+emnapiImplementHelper('$emnapiUnwrap', undefined, emnapiUnwrap)
