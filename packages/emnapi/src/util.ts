@@ -35,9 +35,6 @@ emnapiImplementInternal('napi_set_last_error', 'ipiip', _napi_set_last_error)
 emnapiImplementInternal('napi_clear_last_error', 'ip', _napi_clear_last_error)
 emnapiImplementInternal('_emnapi_get_node_version', 'vp', __emnapi_get_node_version)
 
-declare function runtimeKeepalivePush (): void
-declare function runtimeKeepalivePop (): void
-
 function __emnapi_runtime_keepalive_push (): void {
   if (typeof runtimeKeepalivePush === 'function') runtimeKeepalivePush()
 }

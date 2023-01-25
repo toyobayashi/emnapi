@@ -41,6 +41,9 @@ declare function addOnInit (callback: number | ((Module: any) => void) | Lifecyc
 declare function addOnExit (callback: number | ((Module: any) => void) | LifecycleCallback<any>): void
 declare function abort (msg?: string): void
 
+declare function runtimeKeepalivePush (): void
+declare function runtimeKeepalivePop (): void
+
 declare interface ICallbackInfo {
   _this: any
   _data: void_p

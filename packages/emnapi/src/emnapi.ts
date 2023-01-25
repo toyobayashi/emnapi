@@ -32,9 +32,7 @@ function emnapi_get_module_property (env: napi_env, utf8name: const_char_p, resu
   })
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-declare const _emnapi_create_memory_view: typeof emnapi_create_memory_view
-function emnapi_create_memory_view (
+function _emnapi_create_memory_view (
   env: napi_env,
   typedarray_type: emnapi_memory_view_type,
   external_data: void_p,
@@ -291,6 +289,6 @@ emnapiImplement2('emnapi_is_support_bigint', 'i', emnapi_is_support_bigint)
 emnapiImplement2('emnapi_is_node_binding_available', 'i', emnapi_is_node_binding_available)
 emnapiImplement2('emnapi_get_module_object', 'ipp', emnapi_get_module_object)
 emnapiImplement2('emnapi_get_module_property', 'ippp', emnapi_get_module_property)
-emnapiImplement2('emnapi_create_memory_view', 'ipippppp', emnapi_create_memory_view, ['napi_add_finalizer', '$emnapiExternalMemory'])
+emnapiImplement2('emnapi_create_memory_view', 'ipippppp', _emnapi_create_memory_view, ['napi_add_finalizer', '$emnapiExternalMemory'])
 emnapiImplement2('emnapi_sync_memory', 'ipppppi', emnapi_sync_memory, ['$emnapiSyncMemory'])
 emnapiImplement2('emnapi_get_memory_address', 'ipppp', emnapi_get_memory_address, ['$emnapiGetMemoryAddress'])

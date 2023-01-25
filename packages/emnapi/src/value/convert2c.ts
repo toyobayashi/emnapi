@@ -58,7 +58,7 @@ function napi_get_prototype (env: napi_env, value: napi_value, result: Pointer<n
   return envObject.clearLastError()
 }
 
-function napi_get_typedarray_info (
+function _napi_get_typedarray_info (
   env: napi_env,
   typedarray: napi_value,
   type: Pointer<napi_typedarray_type>,
@@ -130,7 +130,6 @@ function napi_get_typedarray_info (
   return envObject.clearLastError()
 }
 
-declare const _napi_get_typedarray_info: typeof napi_get_typedarray_info
 function napi_get_buffer_info (
   env: napi_env,
   buffer: napi_value,
@@ -525,7 +524,7 @@ function napi_get_value_uint32 (env: napi_env, value: napi_value, result: Pointe
 emnapiImplement('napi_get_array_length', 'ippp', napi_get_array_length)
 emnapiImplement('napi_get_arraybuffer_info', 'ipppp', napi_get_arraybuffer_info, ['$emnapiExternalMemory'])
 emnapiImplement('napi_get_prototype', 'ippp', napi_get_prototype)
-emnapiImplement('napi_get_typedarray_info', 'ippppppp', napi_get_typedarray_info, ['$emnapiExternalMemory'])
+emnapiImplement('napi_get_typedarray_info', 'ippppppp', _napi_get_typedarray_info, ['$emnapiExternalMemory'])
 emnapiImplement('napi_get_buffer_info', 'ipppp', napi_get_buffer_info, ['napi_get_typedarray_info'])
 emnapiImplement('napi_get_dataview_info', 'ipppppp', napi_get_dataview_info, ['$emnapiExternalMemory'])
 emnapiImplement('napi_get_date_value', 'ippp', napi_get_date_value)

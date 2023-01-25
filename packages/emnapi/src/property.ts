@@ -1,5 +1,4 @@
-declare const _napi_get_all_property_names: typeof napi_get_all_property_names
-function napi_get_all_property_names (
+function _napi_get_all_property_names (
   env: napi_env,
   object: napi_value,
   key_mode: napi_key_collection_mode,
@@ -517,7 +516,7 @@ function napi_object_seal (env: napi_env, object: napi_value): napi_status {
   })
 }
 
-emnapiImplement('napi_get_all_property_names', 'ippiiip', napi_get_all_property_names)
+emnapiImplement('napi_get_all_property_names', 'ippiiip', _napi_get_all_property_names)
 emnapiImplement('napi_get_property_names', 'ippp', napi_get_property_names, ['napi_get_all_property_names'])
 emnapiImplement('napi_set_property', 'ipppp', napi_set_property)
 emnapiImplement('napi_has_property', 'ipppp', napi_has_property)
