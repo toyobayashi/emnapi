@@ -6,15 +6,9 @@ declare const LibraryManager: {
 declare function mergeInto (target: any, source: { [key: string]: any }): void
 
 // runtime
-declare const HEAPU32: Uint32Array
-declare const HEAP32: Int32Array
-declare const HEAPF64: Float64Array
-declare const HEAPU8: Uint8Array
-declare const HEAP64: BigInt64Array
-declare const HEAPU64: BigUint64Array
+declare const wasmMemory: WebAssembly.Memory
 declare const ENVIRONMENT_IS_NODE: boolean
 declare const ENVIRONMENT_IS_PTHREAD: boolean
-declare const wasmTable: WebAssembly.Table
 
 declare function UTF8ToString (ptr: const_char_p, maxRead?: number): string
 declare function UTF16ToString (ptr: const_char16_t_p, maxRead?: number): string

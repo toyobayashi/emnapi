@@ -91,9 +91,10 @@ function napi_is_exception_pending (env: napi_env, result: Pointer<bool>): napi_
   $CHECK_ENV!(env)
   const envObject = emnapiCtx.envStore.get(env)!
   $CHECK_ARG!(envObject, result)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const r = envObject.tryCatch.hasCaught()
   $from64('result')
-  HEAPU8[result] = r ? 1 : 0
+  $makeSetValue('result', 0, 'r ? 1 : 0', 'i8')
   return envObject.clearLastError()
 }
 

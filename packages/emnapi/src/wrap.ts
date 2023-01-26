@@ -117,10 +117,10 @@ function napi_type_tag_object (env: napi_env, object: napi_value, type_tag: Cons
       return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_invalid_arg)
     }
     binding.tag = [
-      HEAPU32[type_tag >> 2],
-      HEAPU32[(type_tag + 4) >> 2],
-      HEAPU32[(type_tag + 8) >> 2],
-      HEAPU32[(type_tag + 12) >> 2]
+      $makeGetValue('type_tag', '0', 'u32') as number,
+      $makeGetValue('type_tag', '4', 'u32') as number,
+      $makeGetValue('type_tag', '8', 'u32') as number,
+      $makeGetValue('type_tag', '12', 'u32') as number
     ]
 
     return envObject.getReturnStatus()
@@ -129,6 +129,9 @@ function napi_type_tag_object (env: napi_env, object: napi_value, type_tag: Cons
 
 // @ts-expect-error
 function napi_check_object_type_tag (env: napi_env, object: napi_value, type_tag: Const<Pointer<unknown>>, result: Pointer<bool>): napi_status {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars, one-var
+  let ret = true, i: number
+
   $PREAMBLE!(env, (envObject) => {
     if (!object) {
       return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_invalid_arg)
@@ -143,12 +146,12 @@ function napi_check_object_type_tag (env: napi_env, object: napi_value, type_tag
     if (!result) {
       return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_invalid_arg)
     }
-    let ret = true
     const binding = envObject.getObjectBinding(value.value)
     if (binding.tag !== null) {
       $from64('type_tag')
-      for (let i = 0; i < 4; i++) {
-        if (HEAPU32[(type_tag + (i * 4)) >> 2] !== binding.tag[i]) {
+      for (i = 0; i < 4; i++) {
+        const x = $makeGetValue('type_tag', 'i * 4', 'u32')
+        if (x !== binding.tag[i]) {
           ret = false
           break
         }
@@ -158,7 +161,7 @@ function napi_check_object_type_tag (env: napi_env, object: napi_value, type_tag
     }
 
     $from64('result')
-    HEAPU8[result] = ret ? 1 : 0
+    $makeSetValue('result', 0, 'ret ? 1 : 0', 'i8')
 
     return envObject.getReturnStatus()
   })

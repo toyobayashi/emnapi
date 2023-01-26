@@ -105,10 +105,11 @@ function napi_reference_ref (
   $CHECK_ENV!(env)
   const envObject = emnapiCtx.envStore.get(env)!
   $CHECK_ARG!(envObject, ref)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const count = emnapiCtx.refStore.get(ref)!.ref()
   if (result) {
     $from64('result')
-    HEAPU32[result >> 2] = count
+    $makeSetValue('result', 0, 'count', 'u32')
   }
   return envObject.clearLastError()
 }
@@ -127,10 +128,11 @@ function napi_reference_unref (
   if (refcount === 0) {
     return envObject.setLastError(napi_status.napi_generic_failure)
   }
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const count = reference.unref()
   if (result) {
     $from64('result')
-    HEAPU32[result >> 2] = count
+    $makeSetValue('result', 0, 'count', 'u32')
   }
   return envObject.clearLastError()
 }

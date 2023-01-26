@@ -48,7 +48,7 @@ const emnapiExternalMemory: {
   },
 
   getArrayBufferPointer: function (arrayBuffer: ArrayBuffer, shouldCopy: boolean): PointerInfo {
-    if (arrayBuffer === HEAPU8.buffer) {
+    if (arrayBuffer === wasmMemory.buffer) {
       return { address: 0, ownership: Ownership.kRuntime, runtimeAllocated: 0 }
     }
 
@@ -62,7 +62,7 @@ const emnapiExternalMemory: {
 
     const pointer = $makeMalloc('$emnapiExternalMemory.getArrayBufferPointer', 'arrayBuffer.byteLength')
     if (!pointer) throw new Error('Out of memory')
-    HEAPU8.set(new Uint8Array(arrayBuffer), pointer)
+    new Uint8Array(wasmMemory.buffer).set(new Uint8Array(arrayBuffer), pointer)
     const pointerInfo: PointerInfo = {
       address: pointer,
       ownership: emnapiExternalMemory.registry ? Ownership.kRuntime : Ownership.kUserland,
@@ -74,7 +74,7 @@ const emnapiExternalMemory: {
   },
 
   getOrUpdateMemoryView: function<T extends ArrayBufferView> (view: T): T {
-    if (view.buffer === HEAPU8.buffer) {
+    if (view.buffer === wasmMemory.buffer) {
       if (!emnapiExternalMemory.wasmMemoryViewTable.has(view)) {
         emnapiExternalMemory.wasmMemoryViewTable.set(view, {
           Ctor: view.constructor as any,
@@ -105,9 +105,9 @@ const emnapiExternalMemory: {
       let newView: ArrayBufferView
       const Buffer = emnapiCtx.feature.Buffer
       if (typeof Buffer === 'function' && Ctor === Buffer) {
-        newView = Buffer.from(HEAPU8.buffer, info.address, info.length)
+        newView = Buffer.from(wasmMemory.buffer, info.address, info.length)
       } else {
-        newView = new Ctor(HEAPU8.buffer, info.address, info.length)
+        newView = new Ctor(wasmMemory.buffer, info.address, info.length)
       }
       emnapiExternalMemory.wasmMemoryViewTable.set(newView, info)
       return newView as unknown as T
@@ -118,7 +118,7 @@ const emnapiExternalMemory: {
 
   getViewPointer: function<T extends ArrayBufferView> (view: T, shouldCopy: boolean): ViewPointerInfo<T> {
     view = emnapiExternalMemory.getOrUpdateMemoryView(view)
-    if (view.buffer === HEAPU8.buffer) {
+    if (view.buffer === wasmMemory.buffer) {
       if (emnapiExternalMemory.wasmMemoryViewTable.has(view)) {
         const { address, ownership, runtimeAllocated } = emnapiExternalMemory.wasmMemoryViewTable.get(view)!
         return { address, ownership, runtimeAllocated, view }

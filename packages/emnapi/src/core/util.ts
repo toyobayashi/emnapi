@@ -1,22 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
-declare interface INapiModule {
-  imports: {
-    env: any
-    napi: any
-    emnapi: any
-  }
-}
-
-// eslint-disable-next-line no-var
-var napiModule: INapiModule = {
-  imports: {
-    env: {},
-    napi: {},
-    emnapi: {}
-  }
-}
-
 function emnapiImplement (name: string, sig: string | undefined, compilerTimeFunction: Function, deps?: string[]): void {
   napiModule.imports.napi[name] = compilerTimeFunction
 }

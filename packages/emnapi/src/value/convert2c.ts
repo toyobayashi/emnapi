@@ -8,7 +8,9 @@ function napi_get_array_length (env: napi_env, value: napi_value, result: Pointe
     return envObject.setLastError(napi_status.napi_array_expected)
   }
   $from64('result')
-  HEAPU32[result >> 2] = handle.value.length >>> 0
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const v = handle.value.length >>> 0
+  $makeSetValue('result', 0, 'v', 'u32')
   return envObject.clearLastError()
 }
 
@@ -77,29 +79,34 @@ function _napi_get_typedarray_info (
   const v: ArrayBufferView = handle.value
   if (type) {
     $from64('type')
+    let t: napi_typedarray_type
     if (v instanceof Int8Array) {
-      HEAP32[type >> 2] = napi_typedarray_type.napi_int8_array
+      t = napi_typedarray_type.napi_int8_array
     } else if (v instanceof Uint8Array) {
-      HEAP32[type >> 2] = napi_typedarray_type.napi_uint8_array
+      t = napi_typedarray_type.napi_uint8_array
     } else if (v instanceof Uint8ClampedArray) {
-      HEAP32[type >> 2] = napi_typedarray_type.napi_uint8_clamped_array
+      t = napi_typedarray_type.napi_uint8_clamped_array
     } else if (v instanceof Int16Array) {
-      HEAP32[type >> 2] = napi_typedarray_type.napi_int16_array
+      t = napi_typedarray_type.napi_int16_array
     } else if (v instanceof Uint16Array) {
-      HEAP32[type >> 2] = napi_typedarray_type.napi_uint16_array
+      t = napi_typedarray_type.napi_uint16_array
     } else if (v instanceof Int32Array) {
-      HEAP32[type >> 2] = napi_typedarray_type.napi_int32_array
+      t = napi_typedarray_type.napi_int32_array
     } else if (v instanceof Uint32Array) {
-      HEAP32[type >> 2] = napi_typedarray_type.napi_uint32_array
+      t = napi_typedarray_type.napi_uint32_array
     } else if (v instanceof Float32Array) {
-      HEAP32[type >> 2] = napi_typedarray_type.napi_float32_array
+      t = napi_typedarray_type.napi_float32_array
     } else if (v instanceof Float64Array) {
-      HEAP32[type >> 2] = napi_typedarray_type.napi_float64_array
+      t = napi_typedarray_type.napi_float64_array
     } else if (v instanceof BigInt64Array) {
-      HEAP32[type >> 2] = napi_typedarray_type.napi_bigint64_array
+      t = napi_typedarray_type.napi_bigint64_array
     } else if (v instanceof BigUint64Array) {
-      HEAP32[type >> 2] = napi_typedarray_type.napi_biguint64_array
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      t = napi_typedarray_type.napi_biguint64_array
+    } else {
+      return envObject.setLastError(napi_status.napi_generic_failure)
     }
+    $makeSetValue('type', 0, 't', 'i32')
   }
   if (length) {
     $from64('length')
@@ -193,6 +200,9 @@ function napi_get_dataview_info (
 
 // @ts-expect-error
 function napi_get_date_value (env: napi_env, value: napi_value, result: Pointer<double>): napi_status {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  let v: number
+
   $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, value)
     $CHECK_ARG!(envObject, result)
@@ -201,7 +211,8 @@ function napi_get_date_value (env: napi_env, value: napi_value, result: Pointer<
       return envObject.setLastError(napi_status.napi_invalid_arg)
     }
     $from64('result')
-    HEAPF64[result >> 3] = (handle.value as Date).valueOf()
+    v = (handle.value as Date).valueOf()
+    $makeSetValue('result', 0, 'v', 'double')
     return envObject.getReturnStatus()
   })
 }
@@ -216,7 +227,9 @@ function napi_get_value_bool (env: napi_env, value: napi_value, result: Pointer<
     return envObject.setLastError(napi_status.napi_boolean_expected)
   }
   $from64('result')
-  HEAPU8[result] = handle.value ? 1 : 0
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const r = handle.value ? 1 : 0
+  $makeSetValue('result', 0, 'r', 'i8')
   return envObject.clearLastError()
 }
 
@@ -230,7 +243,9 @@ function napi_get_value_double (env: napi_env, value: napi_value, result: Pointe
     return envObject.setLastError(napi_status.napi_number_expected)
   }
   $from64('result')
-  HEAPF64[result >> 3] = handle.value
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const r = handle.value
+  $makeSetValue('result', 0, 'r', 'double')
   return envObject.clearLastError()
 }
 
@@ -252,18 +267,20 @@ function napi_get_value_bigint_int64 (env: napi_env, value: napi_value, result: 
   $from64('lossless')
   $from64('result')
   if ((numberValue >= (BigInt(-1) * (BigInt(1) << BigInt(63)))) && (numberValue < (BigInt(1) << BigInt(63)))) {
-    HEAPU8[lossless] = 1
+    $makeSetValue('lossless', 0, '1', 'i8')
   } else {
-    HEAPU8[lossless] = 0
+    $makeSetValue('lossless', 0, '0', 'i8')
     numberValue = numberValue & ((BigInt(1) << BigInt(64)) - BigInt(1))
     if (numberValue >= (BigInt(1) << BigInt(63))) {
       numberValue = numberValue - (BigInt(1) << BigInt(64))
     }
   }
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const low = Number(numberValue & BigInt(0xffffffff))
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const high = Number(numberValue >> BigInt(32))
-  HEAP32[result >> 2] = low
-  HEAP32[result + 4 >> 2] = high
+  $makeSetValue('result', 0, 'low', 'i32')
+  $makeSetValue('result', 4, 'high', 'i32')
   return envObject.clearLastError()
 }
 
@@ -285,15 +302,17 @@ function napi_get_value_bigint_uint64 (env: napi_env, value: napi_value, result:
   $from64('lossless')
   $from64('result')
   if ((numberValue >= BigInt(0)) && (numberValue < (BigInt(1) << BigInt(64)))) {
-    HEAPU8[lossless] = 1
+    $makeSetValue('lossless', 0, '1', 'i8')
   } else {
-    HEAPU8[lossless] = 0
+    $makeSetValue('lossless', 0, '0', 'i8')
     numberValue = numberValue & ((BigInt(1) << BigInt(64)) - BigInt(1))
   }
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const low = Number(numberValue & BigInt(0xffffffff))
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const high = Number(numberValue >> BigInt(32))
-  HEAPU32[result >> 2] = low
-  HEAPU32[result + 4 >> 2] = high
+  $makeSetValue('result', 0, 'low', 'u32')
+  $makeSetValue('result', 4, 'high', 'u32')
   return envObject.clearLastError()
 }
 
@@ -346,12 +365,14 @@ function napi_get_value_bigint_words (
     }
     const len = Math.min(word_count_int, wordsArr.length)
     for (let i = 0; i < len; i++) {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const low = Number(wordsArr[i] & BigInt(0xffffffff))
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const high = Number(wordsArr[i] >> BigInt(32))
-      HEAPU32[(words + (i * 8)) >> 2] = low
-      HEAPU32[(words + 4 + (i * 8)) >> 2] = high
+      $makeSetValue('words', 'i * 8', 'low', 'u32')
+      $makeSetValue('words', 'i * 8 + 4', 'high', 'u32')
     }
-    HEAP32[sign_bit >> 2] = isMinus ? 1 : 0
+    $makeSetValue('sign_bit', 0, 'isMinus ? 1 : 0', 'i32')
     $makeSetValue('word_count', 0, 'len', SIZE_TYPE)
   }
   return envObject.clearLastError()
@@ -384,7 +405,7 @@ function napi_get_value_int32 (env: napi_env, value: napi_value, result: Pointer
     return envObject.setLastError(napi_status.napi_number_expected)
   }
   $from64('result')
-  HEAP32[result >> 2] = handle.value
+  $makeSetValue('result', 0, 'handle.value', 'i32')
   return envObject.clearLastError()
 }
 
@@ -399,20 +420,22 @@ function napi_get_value_int64 (env: napi_env, value: napi_value, result: Pointer
   }
   const numberValue = handle.value
   $from64('result')
+  let tempI64: any
   if (numberValue === Number.POSITIVE_INFINITY || numberValue === Number.NEGATIVE_INFINITY || isNaN(numberValue)) {
-    HEAP32[result >> 2] = 0
-    HEAP32[result + 4 >> 2] = 0
+    $makeSetValue('result', 0, '0', 'i32')
+    $makeSetValue('result', 4, '0', 'i32')
   } else if (numberValue < /* INT64_RANGE_NEGATIVE */ -9223372036854776000) {
-    HEAP32[result >> 2] = 0
-    HEAP32[result + 4 >> 2] = 0x80000000
+    $makeSetValue('result', 0, '0', 'i32')
+    $makeSetValue('result', 4, '0x80000000', 'i32')
   } else if (numberValue >= /* INT64_RANGE_POSITIVE */ 9223372036854776000) {
-    HEAPU32[result >> 2] = 0xffffffff
-    HEAPU32[result + 4 >> 2] = 0x7fffffff
+    $makeSetValue('result', 0, '0xffffffff', 'u32')
+    $makeSetValue('result', 4, '0x7fffffff', 'u32')
   } else {
     let tempDouble
-    const tempI64 = [numberValue >>> 0, (tempDouble = numberValue, +Math.abs(tempDouble) >= 1 ? tempDouble > 0 ? (Math.min(+Math.floor(tempDouble / 4294967296), 4294967295) | 0) >>> 0 : ~~+Math.ceil((tempDouble - +(~~tempDouble >>> 0)) / 4294967296) >>> 0 : 0)]
-    HEAP32[result >> 2] = tempI64[0]
-    HEAP32[result + 4 >> 2] = tempI64[1]
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    tempI64 = [numberValue >>> 0, (tempDouble = numberValue, +Math.abs(tempDouble) >= 1 ? tempDouble > 0 ? (Math.min(+Math.floor(tempDouble / 4294967296), 4294967295) | 0) >>> 0 : ~~+Math.ceil((tempDouble - +(~~tempDouble >>> 0)) / 4294967296) >>> 0 : 0)]
+    $makeSetValue('result', 0, 'tempI64[0]', 'i32')
+    $makeSetValue('result', 4, 'tempI64[1]', 'i32')
   }
   return envObject.clearLastError()
 }
@@ -435,11 +458,15 @@ function napi_get_value_string_latin1 (env: napi_env, value: napi_value, buf: ch
     $makeSetValue('result', 0, 'handle.value.length', SIZE_TYPE)
   } else if (buf_size !== 0) {
     let copied: number = 0
+    let v: number
     for (let i = 0; i < buf_size - 1; ++i) {
-      HEAPU8[buf + i] = handle.value.charCodeAt(i) & 0xff
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      v = handle.value.charCodeAt(i) & 0xff
+      $makeSetValue('buf', 'i', 'v', 'u8')
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       copied++
     }
-    HEAPU8[buf + copied] = 0
+    $makeSetValue('buf', 'copied', '0', 'u8')
     if (result) {
       $makeSetValue('result', 0, 'copied', SIZE_TYPE)
     }
@@ -517,7 +544,7 @@ function napi_get_value_uint32 (env: napi_env, value: napi_value, result: Pointe
     return envObject.setLastError(napi_status.napi_number_expected)
   }
   $from64('result')
-  HEAPU32[result >> 2] = handle.value
+  $makeSetValue('result', 0, 'handle.value', 'u32')
   return envObject.clearLastError()
 }
 

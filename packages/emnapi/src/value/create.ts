@@ -112,7 +112,7 @@ function napi_create_external_arraybuffer (
       byte_length = 0
     }
 
-    if ((external_data + byte_length) > HEAPU8.buffer.byteLength) {
+    if ((external_data + byte_length) > wasmMemory.buffer.byteLength) {
       throw new RangeError('Memory out of range')
     }
     if (!emnapiCtx.feature.supportFinalizer && finalize_cb) {
@@ -124,7 +124,7 @@ function napi_create_external_arraybuffer (
       messageChannel.port1.postMessage(arrayBuffer, [arrayBuffer])
     } else {
       const u8arr = new Uint8Array(arrayBuffer)
-      u8arr.set(HEAPU8.subarray(external_data, external_data + byte_length))
+      u8arr.set(new Uint8Array(wasmMemory.buffer).subarray(external_data, external_data + byte_length))
       emnapiExternalMemory.table.set(arrayBuffer, {
         address: external_data,
         ownership: Ownership.kUserland,
@@ -226,7 +226,7 @@ function napi_create_typedarray (
         return envObject.setLastError(napi_status.napi_generic_failure)
       }
       const out = new Type(buffer, byte_offset, length)
-      if (buffer === HEAPU8.buffer) {
+      if (buffer === wasmMemory.buffer) {
         if (!emnapiExternalMemory.wasmMemoryViewTable.has(out)) {
           emnapiExternalMemory.wasmMemoryViewTable.set(out, {
             Ctor: Type as any,
@@ -301,8 +301,8 @@ function napi_create_buffer (
       pointer = $makeMalloc('napi_create_buffer', 'size')
       if (!pointer) throw new Error('Out of memory')
       $from64('size')
-      HEAPU8.subarray(pointer, pointer + size).fill(0)
-      const buffer = Buffer.from(HEAPU8.buffer, pointer, size)
+      new Uint8Array(wasmMemory.buffer).subarray(pointer, pointer + size).fill(0)
+      const buffer = Buffer.from(wasmMemory.buffer, pointer, size)
       const viewDescriptor: MemoryViewDescriptor = {
         Ctor: Buffer,
         address: pointer,
@@ -341,7 +341,7 @@ function napi_create_buffer_copy (
     const buffer = Buffer.from(arrayBuffer)
     $from64('data')
     $from64('length')
-    buffer.set(HEAPU8.subarray(data, data + length))
+    buffer.set(new Uint8Array(wasmMemory.buffer).subarray(data, data + length))
     value = emnapiCtx.addToCurrentScope(buffer).id
     $from64('result')
     $makeSetValue('result', 0, 'value', '*')
@@ -400,7 +400,7 @@ function napi_create_dataview (
     }
 
     const dataview = new DataView(buffer, byte_offset, byte_length)
-    if (buffer === HEAPU8.buffer) {
+    if (buffer === wasmMemory.buffer) {
       if (!emnapiExternalMemory.wasmMemoryViewTable.has(dataview)) {
         emnapiExternalMemory.wasmMemoryViewTable.set(dataview, {
           Ctor: DataView,

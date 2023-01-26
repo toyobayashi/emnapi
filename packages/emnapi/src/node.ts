@@ -98,11 +98,13 @@ function __emnapi_async_init_js (async_resource: napi_value, async_resource_name
       numberValue = numberValue - (BigInt(1) << BigInt(64))
     }
   }
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const low = Number(numberValue & BigInt(0xffffffff))
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const high = Number(numberValue >> BigInt(32))
   $from64('result')
-  HEAP32[result >> 2] = low
-  HEAP32[result + 4 >> 2] = high
+  $makeSetValue('result', 0, 'low', 'i32')
+  $makeSetValue('result', 4, 'high', 'i32')
 
   return napi_status.napi_ok
 }
