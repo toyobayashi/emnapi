@@ -39,13 +39,22 @@ async function build () {
     'utf8'
   )
 
-  // fs.writeFileSync(path.join(path.dirname(libOut), path.basename(libOut, '.js') + '_no_runtime.js'),
-  //   replaceParseTool(
-  //     libCode
-  //       .replace('__EMNAPI_RUNTIME_REPLACE__', '""')
-  //   ),
-  //   'utf8'
-  // )
+  /* const coreTsconfigPath = path.join(__dirname, '../tsconfig.core.json')
+  compile(coreTsconfigPath)
+  const coreTsconfig = JSON.parse(fs.readFileSync(coreTsconfigPath, 'utf8'))
+  const coreOut = path.join(path.dirname(coreTsconfigPath), coreTsconfig.compilerOptions.outFile)
+  const coreCode = fs.readFileSync(coreOut, 'utf8')
+  const { Compiler } = require('./preprocess.js')
+  const compiler = new Compiler({
+    defines: {
+      DYNAMIC_EXECUTION: 1,
+      TEXTDECODER: 1,
+      LEGACY_RUNTIME: 1,
+      WASM_BIGINT: 1
+    }
+  })
+  const parsedCode = compiler.parseCode(coreCode)
+  fs.writeFileSync(coreOut, parsedCode, 'utf8') */
 }
 
 exports.build = build

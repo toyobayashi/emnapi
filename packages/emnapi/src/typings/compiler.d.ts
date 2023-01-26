@@ -1,9 +1,3 @@
-declare const LibraryManager: {
-  library: any
-}
-
-declare function mergeInto (target: any, source: { [key: string]: any }): void
-
 // fake
 declare function $makeDynCall (sig: string, ptr: string): (...args: any[]) => any
 declare function $makeMalloc (source: string, size: string | number): void_p

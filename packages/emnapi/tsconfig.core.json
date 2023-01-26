@@ -1,7 +1,7 @@
 {
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
-    "outFile": "./dist/library_napi.js",
+    "outFile": "./dist/emnapi-core.js",
     "plugins": [
       { "transform": "ts-macros" }
     ]
@@ -11,6 +11,6 @@
     "./src/typings/**/*.d.ts",
     "./src/*.ts",
     "./src/value/**/*.ts",
-    "./src/emscripten/**/*.ts"
+    "./src/core/**/*.ts"
   ]
 }
