@@ -28,19 +28,16 @@ declare function lengthBytesUTF8 (str: string): number
 
 declare const Module: any
 
-declare function stackSave (): number
-declare function stackRestore (s: number): void
-declare function stackAlloc (size: number): void_p
 // declare function allocateUTF8 (str: string): char_p
 declare function _free (ptr: void_p): void
 
-declare type LifecycleCallback<Arg> = {
-  func: (arg: Arg) => void
-  arg: Arg
-}
-declare const __ATINIT__: Array<(Module: any) => void>
-declare function addOnInit (callback: number | ((Module: any) => void) | LifecycleCallback<any>): void
-declare function addOnExit (callback: number | ((Module: any) => void) | LifecycleCallback<any>): void
+// declare type LifecycleCallback<Arg> = {
+//   func: (arg: Arg) => void
+//   arg: Arg
+// }
+// declare const __ATINIT__: Array<(Module: any) => void>
+// declare function addOnInit (callback: number | ((Module: any) => void) | LifecycleCallback<any>): void
+// declare function addOnExit (callback: number | ((Module: any) => void) | LifecycleCallback<any>): void
 declare function abort (msg?: string): void
 
 declare function runtimeKeepalivePush (): void

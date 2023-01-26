@@ -24,7 +24,9 @@ declare interface INapiModule {
   init (instance: WebAssembly.Instance, memory?: WebAssembly.Memory, table?: WebAssembly.Table): any
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 var wasmMemory: WebAssembly.Memory
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 var wasmTable: WebAssembly.Table
 
 // eslint-disable-next-line no-var
