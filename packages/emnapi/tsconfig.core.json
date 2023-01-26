@@ -7,10 +7,10 @@
     ]
   },
   "include": [
+    "./src/core/**/*.ts",
     "../runtime/src/typings/**/*.d.ts",
     "./src/typings/**/*.d.ts",
     "./src/*.ts",
-    "./src/value/**/*.ts",
-    "./src/core/**/*.ts"
+    "./src/value/**/*.ts"
   ]
 }

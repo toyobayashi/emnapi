@@ -39,8 +39,20 @@ async function build () {
     'utf8'
   )
 
-  /* const coreTsconfigPath = path.join(__dirname, '../tsconfig.core.json')
-  compile(coreTsconfigPath)
+  /* const transformerTsconfigPath = path.join(__dirname, '../transformer/tsconfig.json')
+  compile(transformerTsconfigPath)
+  const coreTsconfigPath = path.join(__dirname, '../tsconfig.core.json')
+  compile(coreTsconfigPath, {
+    customTransformersAfter: (program) => {
+      return {
+        before: [require('../transformer/out/index').default(program, {
+          defines: {
+            MEMORY64: 1
+          }
+        })]
+      }
+    }
+  })
   const coreTsconfig = JSON.parse(fs.readFileSync(coreTsconfigPath, 'utf8'))
   const coreOut = path.join(path.dirname(coreTsconfigPath), coreTsconfig.compilerOptions.outFile)
   const coreCode = fs.readFileSync(coreOut, 'utf8')
