@@ -195,25 +195,38 @@ class Transform {
       }
       return ts.visitEachChild(node, this.visitor, this.ctx)
     }
-    if (ts.isCallExpression(node) &&
-        ts.isIdentifier(node.expression) &&
-        isEmscriptenMacro(node.expression.text as string)
-    ) {
+    if (ts.isCallExpression(node) && ts.isIdentifier(node.expression)) {
       const functionName = node.expression.text
-      if (functionName === '$to64' && ts.isStringLiteral(node.arguments[0])) {
-        return expandTo64(this.ctx.factory, this.defines, node)
+      if (isEmscriptenMacro(functionName)) {
+        if (functionName === '$to64' && ts.isStringLiteral(node.arguments[0])) {
+          return expandTo64(this.ctx.factory, this.defines, node)
+        }
+        if (functionName === '$makeGetValue') {
+          return this.expandMakeGetValue(node)
+        }
+        if (functionName === '$makeSetValue') {
+          return this.expandMakeSetValue(node)
+        }
+        if (functionName === '$makeMalloc') {
+          return this.expandMakeMalloc(node)
+        }
+        if (functionName === '$makeDynCall') {
+          return this.expandMakeDynCall(node)
+        }
       }
-      if (functionName === '$makeGetValue') {
-        return this.expandMakeGetValue(node)
-      }
-      if (functionName === '$makeSetValue') {
-        return this.expandMakeSetValue(node)
-      }
-      if (functionName === '$makeMalloc') {
-        return this.expandMakeMalloc(node)
-      }
-      if (functionName === '$makeDynCall') {
-        return this.expandMakeDynCall(node)
+      const removeDeps = [
+        'emnapiImplement',
+        'emnapiImplement2',
+        'emnapiImplementInternal',
+        'emnapiImplementHelper'
+      ]
+      if (removeDeps.includes(functionName)) {
+        return this.ctx.factory.updateCallExpression(
+          node,
+          node.expression,
+          node.typeArguments,
+          node.arguments.slice(0, 3)
+        )
       }
       return ts.visitEachChild(node, this.visitor, this.ctx)
     }
