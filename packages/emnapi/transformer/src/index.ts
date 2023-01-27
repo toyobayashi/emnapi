@@ -212,6 +212,9 @@ class Transform {
       if (functionName === '$makeMalloc') {
         return this.expandMakeMalloc(node)
       }
+      if (functionName === '$makeDynCall') {
+        return this.expandMakeDynCall(node)
+      }
       return ts.visitEachChild(node, this.visitor, this.ctx)
     }
     return ts.visitEachChild(node, this.visitor, this.ctx)
@@ -337,6 +340,33 @@ class Transform {
         )
       ]
     )
+  }
+
+  expandMakeDynCall (node: CallExpression): Expression {
+    const callexp = node
+    const argv0 = callexp.arguments[0]
+    const argv1 = callexp.arguments[1]
+    if (!ts.isStringLiteral(argv0)) return node
+    if (!ts.isStringLiteral(argv1)) return node
+    const pointerName = argv1.text
+    if (!pointerName) return node
+
+    return this.ctx.factory.createParenthesizedExpression(this.ctx.factory.createCallExpression(
+      this.ctx.factory.createPropertyAccessExpression(
+        this.ctx.factory.createIdentifier('wasmTable'),
+        this.ctx.factory.createIdentifier('get')
+      ),
+      undefined,
+      [
+        this.defines.MEMORY64
+          ? (this.ctx.factory.createCallExpression(
+              this.ctx.factory.createIdentifier('Number'),
+              undefined,
+              [this.ctx.factory.createNumericLiteral(argv1.text)]
+            ))
+          : this.ctx.factory.createNumericLiteral(argv1.text)
+      ]
+    ))
   }
 }
 
