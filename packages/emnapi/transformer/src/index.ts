@@ -209,6 +209,9 @@ class Transform {
       if (functionName === '$makeSetValue') {
         return this.expandMakeSetValue(node)
       }
+      if (functionName === '$makeMalloc') {
+        return this.expandMakeMalloc(node)
+      }
       return ts.visitEachChild(node, this.visitor, this.ctx)
     }
     return ts.visitEachChild(node, this.visitor, this.ctx)
@@ -310,6 +313,28 @@ class Transform {
             ))
           : this.ctx.factory.createNumericLiteral(argv2.text),
         this.ctx.factory.createTrue()
+      ]
+    )
+  }
+
+  expandMakeMalloc (node: CallExpression): Expression {
+    const callexp = node
+    const argv0 = callexp.arguments[0]
+    const argv1 = callexp.arguments[1]
+    if (!ts.isStringLiteral(argv0)) return node
+    if (!ts.isStringLiteral(argv1)) return node
+    const pointerName = argv1.text
+    if (!pointerName) return node
+
+    return this.ctx.factory.createCallExpression(
+      this.ctx.factory.createIdentifier('_malloc'),
+      undefined,
+      [
+        this.ctx.factory.createCallExpression(
+          this.ctx.factory.createIdentifier(this.defines.MEMORY64 ? 'BigInt' : 'Number'),
+          undefined,
+          [this.ctx.factory.createNumericLiteral(argv1.text)]
+        )
       ]
     )
   }
