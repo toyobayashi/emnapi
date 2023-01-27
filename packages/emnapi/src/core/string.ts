@@ -96,6 +96,7 @@ var emnapiUtf16leDecoder = typeof TextDecoder === 'function'
       }
     }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function emnapiUtf16ToString (ptr: number, length: number): string {
   // eslint-disable-next-line eqeqeq
   if (length == -1) {
