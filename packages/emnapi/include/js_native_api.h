@@ -451,10 +451,12 @@ NAPI_EXTERN napi_status napi_run_script(napi_env env,
                                         napi_value script,
                                         napi_value* result);
 
+#ifdef __EMSCRIPTEN__
 // Memory management
 NAPI_EXTERN napi_status napi_adjust_external_memory(napi_env env,
                                                     int64_t change_in_bytes,
                                                     int64_t* adjusted_value);
+#endif
 
 #if NAPI_VERSION >= 5
 

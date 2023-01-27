@@ -9,11 +9,13 @@
 #include "uv.h"
 #endif
 
+#ifdef __EMSCRIPTEN__
 #include <emscripten.h>
 #include <emscripten/heap.h>
 
 #if __EMSCRIPTEN_major__ * 10000 + __EMSCRIPTEN_minor__ * 100 + __EMSCRIPTEN_tiny__ >= 30114  // NOLINT
 #include <emscripten/eventloop.h>
+#endif
 #endif
 
 #include "emnapi.h"
@@ -61,19 +63,27 @@
 
 EXTERN_C_START
 
-extern napi_status napi_set_last_error(napi_env env,
+EMNAPI_INTERNAL_EXTERN napi_status napi_set_last_error(napi_env env,
                                        napi_status error_code,
                                        uint32_t engine_error_code,
                                        void* engine_reserved);
-extern napi_status napi_clear_last_error(napi_env env);
+EMNAPI_INTERNAL_EXTERN napi_status napi_clear_last_error(napi_env env);
 
+#ifdef __EMSCRIPTEN__
 #if __EMSCRIPTEN_major__ * 10000 + __EMSCRIPTEN_minor__ * 100 + __EMSCRIPTEN_tiny__ >= 30114  // NOLINT
 #define EMNAPI_KEEPALIVE_PUSH emscripten_runtime_keepalive_push
 #define EMNAPI_KEEPALIVE_POP emscripten_runtime_keepalive_pop
 #else
 
-extern void _emnapi_runtime_keepalive_push();
-extern void _emnapi_runtime_keepalive_pop();
+EMNAPI_INTERNAL_EXTERN void _emnapi_runtime_keepalive_push();
+EMNAPI_INTERNAL_EXTERN void _emnapi_runtime_keepalive_pop();
+
+#define EMNAPI_KEEPALIVE_PUSH _emnapi_runtime_keepalive_push
+#define EMNAPI_KEEPALIVE_POP _emnapi_runtime_keepalive_pop
+#endif
+#else
+EMNAPI_INTERNAL_EXTERN void _emnapi_runtime_keepalive_push();
+EMNAPI_INTERNAL_EXTERN void _emnapi_runtime_keepalive_pop();
 
 #define EMNAPI_KEEPALIVE_PUSH _emnapi_runtime_keepalive_push
 #define EMNAPI_KEEPALIVE_POP _emnapi_runtime_keepalive_pop
@@ -105,7 +115,7 @@ const char* emnapi_error_messages[] = {
   "External buffers are not allowed"
 };
 
-extern void _emnapi_get_last_error_info(napi_env env,
+EMNAPI_INTERNAL_EXTERN void _emnapi_get_last_error_info(napi_env env,
                                         napi_status* error_code,
                                         uint32_t* engine_error_code,
                                         void** engine_reserved);
@@ -139,6 +149,7 @@ napi_status napi_get_last_error_info(
   return napi_ok;
 }
 
+#ifdef __EMSCRIPTEN__
 napi_status napi_adjust_external_memory(napi_env env,
                                         int64_t change_in_bytes,
                                         int64_t* adjusted_value) {
@@ -158,6 +169,7 @@ napi_status napi_adjust_external_memory(napi_env env,
 
   return napi_clear_last_error(env);
 }
+#endif
 
 napi_status napi_get_version(napi_env env, uint32_t* result) {
   CHECK_ENV(env);
@@ -166,7 +178,7 @@ napi_status napi_get_version(napi_env env, uint32_t* result) {
   return napi_clear_last_error(env);
 }
 
-extern void _emnapi_get_node_version(uint32_t* major,
+EMNAPI_INTERNAL_EXTERN void _emnapi_get_node_version(uint32_t* major,
                                      uint32_t* minor,
                                      uint32_t* patch);
 
@@ -188,6 +200,7 @@ napi_get_node_version(napi_env env,
   return napi_clear_last_error(env);
 }
 
+#ifdef __EMSCRIPTEN__
 napi_status
 emnapi_get_emscripten_version(napi_env env,
                               const emnapi_emscripten_version** version) {
@@ -201,6 +214,7 @@ emnapi_get_emscripten_version(napi_env env,
   *version = &emscripten_version;
   return napi_clear_last_error(env);
 }
+#endif
 
 napi_status napi_get_uv_event_loop(napi_env env,
                                    struct uv_loop_s** loop) {
@@ -215,7 +229,7 @@ napi_status napi_get_uv_event_loop(napi_env env,
 #endif
 }
 
-extern int _emnapi_get_filename(char* buf, int len);
+EMNAPI_INTERNAL_EXTERN int _emnapi_get_filename(char* buf, int len);
 
 napi_status node_api_get_module_file_name(napi_env env,
                                           const char** result) {
@@ -243,21 +257,21 @@ napi_status node_api_get_module_file_name(napi_env env,
   return napi_clear_last_error(env);
 }
 
-extern void _emnapi_env_ref(napi_env env);
-extern void _emnapi_env_unref(napi_env env);
-extern void _emnapi_ctx_increase_waiting_request_counter();
-extern void _emnapi_ctx_decrease_waiting_request_counter();
+EMNAPI_INTERNAL_EXTERN void _emnapi_env_ref(napi_env env);
+EMNAPI_INTERNAL_EXTERN void _emnapi_env_unref(napi_env env);
+EMNAPI_INTERNAL_EXTERN void _emnapi_ctx_increase_waiting_request_counter();
+EMNAPI_INTERNAL_EXTERN void _emnapi_ctx_decrease_waiting_request_counter();
 
 struct napi_async_context__ {
   int32_t low;
   int32_t high;
 };
 
-extern napi_status
+EMNAPI_INTERNAL_EXTERN napi_status
 _emnapi_async_init_js(napi_value async_resource,
                       napi_value async_resource_name,
                       napi_async_context result);
-extern napi_status
+EMNAPI_INTERNAL_EXTERN napi_status
 _emnapi_async_destroy_js(napi_async_context async_context);
 
 napi_status
@@ -305,7 +319,7 @@ napi_status napi_async_destroy(napi_env env,
   ((type *) ((char *) (ptr) - offsetof(type, member)))
 
 typedef void (*_emnapi_call_into_module_callback)(napi_env env, void* args);
-extern void _emnapi_call_into_module(napi_env env, _emnapi_call_into_module_callback callback, void* args, int close_scope_if_throw);
+EMNAPI_INTERNAL_EXTERN void _emnapi_call_into_module(napi_env env, _emnapi_call_into_module_callback callback, void* args, int close_scope_if_throw);
 
 typedef double async_id;
 typedef struct async_context {
@@ -314,18 +328,18 @@ typedef struct async_context {
 } async_context;
 
 // call node::EmitAsyncInit
-extern void _emnapi_node_emit_async_init(napi_value async_resource,
+EMNAPI_INTERNAL_EXTERN void _emnapi_node_emit_async_init(napi_value async_resource,
                                          napi_value async_resource_name,
                                          async_id trigger_async_id,
                                          async_context* result);
 // call node::EmitAsyncDestroy
-extern void _emnapi_node_emit_async_destroy(async_id id, async_id trigger_async_id);
+EMNAPI_INTERNAL_EXTERN void _emnapi_node_emit_async_destroy(async_id id, async_id trigger_async_id);
 
-// extern void _emnapi_node_open_callback_scope(napi_value async_resource, async_id id, async_id trigger_async_id, int64_t* result);
-// extern void _emnapi_node_close_callback_scope(int64_t* scope);
+// EMNAPI_INTERNAL_EXTERN void _emnapi_node_open_callback_scope(napi_value async_resource, async_id id, async_id trigger_async_id, int64_t* result);
+// EMNAPI_INTERNAL_EXTERN void _emnapi_node_close_callback_scope(int64_t* scope);
 
 // call node:MakeCallback
-extern napi_status _emnapi_node_make_callback(napi_env env,
+EMNAPI_INTERNAL_EXTERN napi_status _emnapi_node_make_callback(napi_env env,
                                               napi_value async_resource,
                                               napi_value cb,
                                               napi_value* argv,
@@ -582,7 +596,7 @@ napi_status napi_cancel_async_work(napi_env env, napi_async_work work) {
 
 #if NAPI_VERSION >= 4 && defined(__EMSCRIPTEN_PTHREADS__)
 
-extern void _emnapi_call_finalizer(napi_env env, napi_finalize cb, void* data, void* hint);
+EMNAPI_INTERNAL_EXTERN void _emnapi_call_finalizer(napi_env env, napi_finalize cb, void* data, void* hint);
 
 static const unsigned char kDispatchIdle = 0;
 static const unsigned char kDispatchRunning = 1 << 0;
@@ -1264,7 +1278,7 @@ _emnapi_ach_handle_create(napi_env env,
   return handle;
 }
 
-extern void _emnapi_set_immediate(void (*callback)(void*), void* data);
+EMNAPI_INTERNAL_EXTERN void _emnapi_set_immediate(void (*callback)(void*), void* data);
 
 static void _emnapi_ach_handle_env_unref(void* arg) {
   napi_env env = (napi_env) arg;
