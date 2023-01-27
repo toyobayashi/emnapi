@@ -1,6 +1,129 @@
 /* eslint-disable no-var */
 /* eslint-disable @typescript-eslint/indent */
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function lengthBytesUTF8 (str: string): number {
+  var len = 0
+  for (var i = 0; i < str.length; ++i) {
+    // Gotcha: charCodeAt returns a 16-bit word that is a UTF-16 encoded code
+    // unit, not a Unicode code point of the character! So decode
+    // UTF16->UTF32->UTF8.
+    // See http://unicode.org/faq/utf_bom.html#utf16-3
+    var c = str.charCodeAt(i) // possibly a lead surrogate
+    if (c <= 0x7F) {
+      len++
+    } else if (c <= 0x7FF) {
+      len += 2
+    } else if (c >= 0xD800 && c <= 0xDFFF) {
+      len += 4; ++i
+    } else {
+      len += 3
+    }
+  }
+  return len
+}
+
+function UTF8ToString (ptr: number): string {
+  ptr >>>= 0
+  if (!ptr) return ''
+  const HEAPU8 = new Uint8Array(wasmMemory.buffer)
+  for (var end = ptr; HEAPU8[end];) ++end
+  const shared = (typeof SharedArrayBuffer === 'function') && (wasmMemory.buffer instanceof SharedArrayBuffer)
+  return emnapiUtf8Decoder.decode(shared ? HEAPU8.slice(ptr, ptr + end) : HEAPU8.subarray(ptr, ptr + end))
+}
+
+function stringToUTF8Array (str: string, heap: Uint8Array, outIdx: number, maxBytesToWrite: number): number {
+  outIdx >>>= 0
+  // Parameter maxBytesToWrite is not optional. Negative values, 0, null,
+  // undefined and false each don't write out any bytes.
+  if (!(maxBytesToWrite > 0)) { return 0 }
+
+  var startIdx = outIdx
+  var endIdx = outIdx + maxBytesToWrite - 1 // -1 for string null terminator.
+  for (var i = 0; i < str.length; ++i) {
+    // Gotcha: charCodeAt returns a 16-bit word that is a UTF-16 encoded code
+    // unit, not a Unicode code point of the character! So decode
+    // UTF16->UTF32->UTF8.
+    // See http://unicode.org/faq/utf_bom.html#utf16-3
+    // For UTF8 byte structure, see http://en.wikipedia.org/wiki/UTF-8#Description
+    // and https://www.ietf.org/rfc/rfc2279.txt
+    // and https://tools.ietf.org/html/rfc3629
+    var u = str.charCodeAt(i) // possibly a lead surrogate
+    if (u >= 0xD800 && u <= 0xDFFF) {
+      var u1 = str.charCodeAt(++i)
+      u = 0x10000 + ((u & 0x3FF) << 10) | (u1 & 0x3FF)
+    }
+    if (u <= 0x7F) {
+      if (outIdx >= endIdx) break
+      heap[outIdx++] = u
+    } else if (u <= 0x7FF) {
+      if (outIdx + 1 >= endIdx) break
+      heap[outIdx++] = 0xC0 | (u >> 6)
+      heap[outIdx++] = 0x80 | (u & 63)
+    } else if (u <= 0xFFFF) {
+      if (outIdx + 2 >= endIdx) break
+      heap[outIdx++] = 0xE0 | (u >> 12)
+      heap[outIdx++] = 0x80 | ((u >> 6) & 63)
+      heap[outIdx++] = 0x80 | (u & 63)
+    } else {
+      if (outIdx + 3 >= endIdx) break
+      heap[outIdx++] = 0xF0 | (u >> 18)
+      heap[outIdx++] = 0x80 | ((u >> 12) & 63)
+      heap[outIdx++] = 0x80 | ((u >> 6) & 63)
+      heap[outIdx++] = 0x80 | (u & 63)
+    }
+  }
+  // Null-terminate the pointer to the buffer.
+  heap[outIdx] = 0
+  return outIdx - startIdx
+}
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function stringToUTF8 (str: string, outPtr: number, maxBytesToWrite: number): number {
+  const HEAPU8 = new Uint8Array(wasmMemory.buffer)
+  return stringToUTF8Array(str, HEAPU8, outPtr, maxBytesToWrite)
+}
+
+function UTF16ToString (ptr: number): string {
+  var endPtr = ptr
+  // TextDecoder needs to know the byte length in advance, it doesn't stop on
+  // null terminator by itself.
+  // Also, use the length info to avoid running tiny strings through
+  // TextDecoder, since .subarray() allocates garbage.
+  var idx = endPtr >> 1
+  const HEAPU16 = new Uint16Array(wasmMemory.buffer)
+  // If maxBytesToRead is not passed explicitly, it will be undefined, and this
+  // will always evaluate to true. This saves on code size.
+  while (HEAPU16[idx]) ++idx
+  endPtr = idx << 1
+
+  const HEAPU8 = new Uint8Array(wasmMemory.buffer)
+  const shared = (typeof SharedArrayBuffer === 'function') && (wasmMemory.buffer instanceof SharedArrayBuffer)
+  return emnapiUtf16leDecoder.decode(shared ? HEAPU8.slice(ptr, ptr + endPtr) : HEAPU8.subarray(ptr, ptr + endPtr))
+}
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function stringToUTF16 (str: string, outPtr: number, maxBytesToWrite: number): number {
+  // Backwards compatibility: if max bytes is not specified, assume unsafe unbounded write is allowed.
+  if (maxBytesToWrite === undefined) {
+    maxBytesToWrite = 0x7FFFFFFF
+  }
+  if (maxBytesToWrite < 2) return 0
+  maxBytesToWrite -= 2 // Null terminator.
+  var startPtr = outPtr
+  var numCharsToWrite = (maxBytesToWrite < str.length * 2) ? (maxBytesToWrite / 2) : str.length
+  for (var i = 0; i < numCharsToWrite; ++i) {
+    // charCodeAt returns a UTF-16 encoded code unit, so it can be directly written to the HEAP.
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    var codeUnit = str.charCodeAt(i) // possibly a lead surrogate
+    $makeSetValue('outPtr', 0, 'codeUnit', 'i16')
+    outPtr += 2
+  }
+  // Null-terminate the pointer to the HEAP.
+  $makeSetValue('outPtr', 0, '0', 'i16')
+  return outPtr - startPtr
+}
+
 var emnapiUtf8Decoder = typeof TextDecoder === 'function'
   ? new TextDecoder()
   : {

@@ -39,7 +39,7 @@ async function build () {
     'utf8'
   )
 
-  /* const transformerTsconfigPath = path.join(__dirname, '../transformer/tsconfig.json')
+  const transformerTsconfigPath = path.join(__dirname, '../transformer/tsconfig.json')
   compile(transformerTsconfigPath)
   const coreTsconfigPath = path.join(__dirname, '../tsconfig.core.json')
   compile(coreTsconfigPath, {
@@ -47,7 +47,7 @@ async function build () {
       return {
         before: [require('../transformer/out/index').default(program, {
           defines: {
-            MEMORY64: 1
+            MEMORY64: 0
           }
         })]
       }
@@ -66,7 +66,13 @@ async function build () {
     }
   })
   const parsedCode = compiler.parseCode(coreCode)
-  fs.writeFileSync(coreOut, parsedCode, 'utf8') */
+  fs.writeFileSync(path.join(__dirname, '../../core/src/index.js'),
+`export function createNapiModule (options) {
+  ${parsedCode}
+  return napiModule;
+}
+export const version = __VERSION__;
+`, 'utf8')
 }
 
 exports.build = build

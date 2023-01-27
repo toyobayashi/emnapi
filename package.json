@@ -42,6 +42,7 @@
     "packages/runtime",
     "packages/node",
     "packages/emnapi",
+    "packages/core",
     "packages/test",
     "packages/bench"
   ]

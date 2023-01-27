@@ -8,3 +8,4 @@ node_modules
 /packages/runtime/lib
 /packages/emnapi/lib
 /packages/emnapi/transformer/out
+/packages/core/src/index.js

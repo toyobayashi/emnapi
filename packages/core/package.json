@@ -1,0 +1,51 @@
+{
+  "name": "@tybys/emnapi-core",
+  "version": "0.29.0",
+  "description": "emnapi core",
+  "main": "index.js",
+  "module": "./src/index.js",
+  "types": "./index.d.ts",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "module": "./src/index.js",
+      "import": "./dist/emnapi-core.mjs",
+      "require": "./index.js",
+      "types": "./index.d.ts"
+    },
+    "./dist/emnapi-core.cjs.min": {
+      "default": "./dist/emnapi-core.cjs.min.js",
+      "types": "./index.d.ts"
+    },
+    "./dist/emnapi-core.min.mjs": {
+      "import": "./dist/emnapi-core.min.mjs",
+      "require": null,
+      "types": "./index.d.ts"
+    }
+  },
+  "dependencies": {
+    "tslib": "^2.4.0"
+  },
+  "devDependencies": {
+    "@rollup/plugin-node-resolve": "^13.3.0",
+    "@rollup/plugin-replace": "^5.0.2",
+    "rollup": "^2.77.2",
+    "rollup-plugin-terser": "^7.0.2"
+  },
+  "scripts": {
+    "build": "node ./script/build.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/toyobayashi/emnapi.git"
+  },
+  "author": "toyobayashi",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/toyobayashi/emnapi/issues"
+  },
+  "homepage": "https://github.com/toyobayashi/emnapi#readme",
+  "publishConfig": {
+    "access": "public"
+  }
+}

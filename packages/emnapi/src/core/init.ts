@@ -29,6 +29,22 @@ var wasmMemory: WebAssembly.Memory
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 var wasmTable: WebAssembly.Table
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+var _malloc: any, _free: any
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function abort (msg: string): never {
+  if (typeof WebAssembly.RuntimeError === 'function') {
+    throw new WebAssembly.RuntimeError(msg)
+  }
+  throw Error(msg)
+}
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function runtimeKeepalivePush (): void {}
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function runtimeKeepalivePop (): void {}
+
 // eslint-disable-next-line no-var
 var napiModule: INapiModule = {
   imports: {
@@ -44,6 +60,8 @@ var napiModule: INapiModule = {
     if (napiModule.loaded) return napiModule.exports
     wasmMemory = memory || instance.exports.memory as WebAssembly.Memory
     wasmTable = table || instance.exports.__indirect_function_table as WebAssembly.Table
+    _malloc = instance.exports.malloc
+    _free = instance.exports.free
 
     // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
     const envObject = napiModule.envObject || (napiModule.envObject = emnapiCtx.createEnv(
