@@ -1,7 +1,7 @@
 #ifndef UV_COMMON_H_
 #define UV_COMMON_H_
 
-#ifdef __EMSCRIPTEN_PTHREADS__
+#if defined(__EMSCRIPTEN_PTHREADS__) || defined(_REENTRANT)
 #include <assert.h>
 #include <emscripten.h> /* version.h */
 #include "uv.h"

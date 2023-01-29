@@ -27,7 +27,7 @@
 #ifndef UV_THREADPOOL_H_
 #define UV_THREADPOOL_H_
 
-#ifdef __EMSCRIPTEN_PTHREADS__
+#if defined(__EMSCRIPTEN_PTHREADS__) || defined(_REENTRANT)
 
 struct uv__work {
   void (*work)(struct uv__work *w);

@@ -1,7 +1,7 @@
 #ifndef UV_H
 #define UV_H
 
-#ifdef __EMSCRIPTEN_PTHREADS__
+#if defined(__EMSCRIPTEN_PTHREADS__) || defined(_REENTRANT)
 
 #include <stddef.h>
 #include "uv/unix.h"

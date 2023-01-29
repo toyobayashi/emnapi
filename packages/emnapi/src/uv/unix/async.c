@@ -22,7 +22,7 @@
  * user-facing uv_async_t functions.
  */
 
-#ifdef __EMSCRIPTEN_PTHREADS__
+#if defined(__EMSCRIPTEN_PTHREADS__) || defined(_REENTRANT)
 
 #include <stdlib.h>
 #include <sched.h>

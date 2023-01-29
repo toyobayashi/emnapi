@@ -21,7 +21,7 @@
 
 // from libuv 1.43.0
 
-#ifdef __EMSCRIPTEN_PTHREADS__
+#if defined(__EMSCRIPTEN_PTHREADS__) || defined(_REENTRANT)
 
 #include <stdlib.h>
 #include <errno.h>

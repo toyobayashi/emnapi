@@ -12,7 +12,7 @@
 
 #include <algorithm>
 #include <cstring>
-#if !defined(__wasm32__) || (defined(__EMSCRIPTEN__) && defined(__EMSCRIPTEN_PTHREADS__))
+#if defined(__EMSCRIPTEN_PTHREADS__) || defined(_REENTRANT)
 #include <mutex>
 #endif
 #include <type_traits>
@@ -203,7 +203,7 @@ struct FinalizeData {
   Hint* hint;
 };
 
-#if (NAPI_VERSION > 3 && (!defined(__wasm32__) || (defined(__EMSCRIPTEN__) && defined(__EMSCRIPTEN_PTHREADS__))))
+#if (NAPI_VERSION > 3 && (defined(__EMSCRIPTEN_PTHREADS__) || defined(_REENTRANT)))
 template <typename ContextType = void,
           typename Finalizer = std::function<void(Env, void*, ContextType*)>,
           typename FinalizerDataType = void>
@@ -297,7 +297,7 @@ napi_value DefaultCallbackWrapper(napi_env env, Napi::Function cb) {
   return cb;
 }
 #endif  // NAPI_VERSION > 4
-#endif  // NAPI_VERSION > 3 && (!defined(__wasm32__) || (defined(__EMSCRIPTEN__) && defined(__EMSCRIPTEN_PTHREADS__)))
+#endif  // NAPI_VERSION > 3 && (defined(__EMSCRIPTEN_PTHREADS__) || defined(_REENTRANT))
 
 template <typename Getter, typename Setter>
 struct AccessorCallbackData {
@@ -4923,7 +4923,7 @@ inline void AsyncWorker::OnWorkComplete(Napi::Env /*env*/, napi_status status) {
   }
 }
 
-#if (NAPI_VERSION > 3 && (!defined(__wasm32__) || (defined(__EMSCRIPTEN__) && defined(__EMSCRIPTEN_PTHREADS__))))
+#if (NAPI_VERSION > 3 && (defined(__EMSCRIPTEN_PTHREADS__) || defined(_REENTRANT)))
 ////////////////////////////////////////////////////////////////////////////////
 // TypedThreadSafeFunction<ContextType,DataType,CallJs> class
 ////////////////////////////////////////////////////////////////////////////////
@@ -6172,7 +6172,7 @@ inline void AsyncProgressQueueWorker<T>::ExecutionProgress::Send(
     const T* data, size_t count) const {
   _worker->SendProgress_(data, count);
 }
-#endif  // NAPI_VERSION > 3 && (!defined(__wasm32__) || (defined(__EMSCRIPTEN__) && defined(__EMSCRIPTEN_PTHREADS__)))
+#endif  // NAPI_VERSION > 3 && (defined(__EMSCRIPTEN_PTHREADS__) || defined(_REENTRANT))
 
 ////////////////////////////////////////////////////////////////////////////////
 // Memory Management class

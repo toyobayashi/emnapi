@@ -8,11 +8,9 @@
 #define EMNAPI_EXTERN __attribute__((visibility("default")))              \
                       __attribute__((__import_module__("env")))
 #else
-#define NAPI_EXTERN __attribute__((visibility("default")))                \
-                    __attribute__((__import_module__("napi")))
+#define NAPI_EXTERN __attribute__((__import_module__("napi")))
 
-#define EMNAPI_EXTERN __attribute__((visibility("default")))              \
-                      __attribute__((__import_module__("emnapi")))
+#define EMNAPI_EXTERN __attribute__((__import_module__("emnapi")))
 #endif
 
 #define EMNAPI_INTERNAL_EXTERN __attribute__((__import_module__("env")))

@@ -5,7 +5,7 @@
 #include <functional>
 #include <initializer_list>
 #include <memory>
-#if !defined(__wasm32__) || (defined(__EMSCRIPTEN__) && defined(__EMSCRIPTEN_PTHREADS__))
+#if defined(__EMSCRIPTEN_PTHREADS__) || defined(_REENTRANT)
 #include <mutex>
 #endif
 
@@ -2501,7 +2501,7 @@ class AsyncWorker {
   bool _suppress_destruct;
 };
 
-#if (NAPI_VERSION > 3 && (!defined(__wasm32__) || (defined(__EMSCRIPTEN__) && defined(__EMSCRIPTEN_PTHREADS__))))
+#if (NAPI_VERSION > 3 && (defined(__EMSCRIPTEN_PTHREADS__) || defined(_REENTRANT)))
 class ThreadSafeFunction {
  public:
   // This API may only be called from the main thread.
@@ -3071,7 +3071,7 @@ class AsyncProgressQueueWorker
   void Signal() const;
   void SendProgress_(const T* data, size_t count);
 };
-#endif  // NAPI_VERSION > 3 && (!defined(__wasm32__) || (defined(__EMSCRIPTEN__) && defined(__EMSCRIPTEN_PTHREADS__)))
+#endif  // NAPI_VERSION > 3 && (defined(__EMSCRIPTEN_PTHREADS__) || defined(_REENTRANT))
 
 // Memory management.
 class MemoryManagement {
