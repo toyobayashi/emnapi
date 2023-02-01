@@ -127,7 +127,7 @@ napi_status napi_get_last_error_info(
 
   const int last_status = napi_no_external_buffers_allowed;
 
-  _Static_assert((sizeof(emnapi_error_messages) / sizeof(const char*)) == last_status + 1,
+  _Static_assert((sizeof(emnapi_error_messages) / sizeof(const char*)) == napi_no_external_buffers_allowed + 1,
                 "Count of error messages must match count of error values");
   
   _emnapi_get_last_error_info(env,

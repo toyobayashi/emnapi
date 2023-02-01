@@ -10,7 +10,12 @@ if (process.argv[2] === 'child') {
   module.exports = new Promise((resolve) => {
     const { stdout } =
       child_process.spawnSync(process.execPath, [
-        '--expose-gc', ...(process.env.MEMORY64 ? ['--experimental-wasm-memory64'] : []), __filename, 'child'])
+        '--expose-gc',
+        ...(process.env.EMNAPI_TEST_WASI ? ['--experimental-wasi-unstable-preview1'] : []),
+        ...(process.env.MEMORY64 ? ['--experimental-wasm-memory64'] : []),
+        __filename,
+        'child'
+      ])
     assert.strictEqual(stdout.toString().trim(), 'cleanup(42)')
     resolve()
   })

@@ -204,6 +204,7 @@ static napi_value finalize_was_called(napi_env env, napi_callback_info info) {
   return it_was_called;
 }
 
+#if defined(__EMSCRIPTEN__) || (!defined(__wasm__))
 static napi_value testAdjustExternalMemory(napi_env env, napi_callback_info info) {
   napi_value result;
   int64_t adjustedValue;
@@ -213,6 +214,7 @@ static napi_value testAdjustExternalMemory(napi_env env, napi_callback_info info
 
   return result;
 }
+#endif
 
 static napi_value testNapiRun(napi_env env, napi_callback_info info) {
   napi_value script, result;
@@ -280,7 +282,7 @@ static napi_value env_cleanup_wrap(napi_env env, napi_callback_info info) {
   return wrap_first_arg(env, info, cleanup_env_finalizer, (void*)ptr_value);
 }
 
-#ifdef __EMSCRIPTEN__
+#ifdef __wasm__
 static bool dynamically_initialized = false;
 
 __attribute__((constructor))
@@ -316,8 +318,10 @@ napi_value Init(napi_env env, napi_value exports) {
     DECLARE_NAPI_PROPERTY("testFinalizeWrap", test_finalize_wrap),
     DECLARE_NAPI_PROPERTY("finalizeWasCalled", finalize_was_called),
     DECLARE_NAPI_PROPERTY("derefItemWasCalled", deref_item_was_called),
+#if defined(__EMSCRIPTEN__) || (!defined(__wasm__))
     DECLARE_NAPI_PROPERTY("testAdjustExternalMemory", testAdjustExternalMemory),
-#ifdef __EMSCRIPTEN__
+#endif
+#ifdef __wasm__
     {
       .utf8name = "dynamicallyInitialized",
       .value = getDynamicallyInitialized(env),

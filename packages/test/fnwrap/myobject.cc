@@ -1,4 +1,4 @@
-#ifdef __EMSCRIPTEN__
+#ifdef __wasm__
 #include <emnapi.h>
 #endif
 #include "myobject.h"
@@ -72,7 +72,7 @@ napi_value MyObject::New(napi_env env, napi_callback_info info) {
   }
 
   obj->env_ = env;
-#ifdef __EMSCRIPTEN__
+#ifdef __wasm__
   if (emnapi_is_support_weakref()) {
 #endif
     NAPI_CALL(env, napi_wrap(env,
@@ -81,7 +81,7 @@ napi_value MyObject::New(napi_env env, napi_callback_info info) {
                             MyObject::Destructor,
                             nullptr, /* finalize_hint */
                             &obj->wrapper_));
-#ifdef __EMSCRIPTEN__
+#ifdef __wasm__
   } else {
     NAPI_CALL(env, napi_wrap(env,
                             _this,

@@ -5,19 +5,48 @@ const emnapi = require('../runtime')
 const context = emnapi.createContext()
 
 function getEntry (targetName) {
-  return join(__dirname, `./.cgenbuild/${common.buildType}/${targetName}.${process.env.EMNAPI_TEST_NATIVE ? 'node' : 'js'}`)
+  return join(__dirname, `./.cgenbuild/${common.buildType}/${targetName}.${process.env.EMNAPI_TEST_NATIVE ? 'node' : process.env.EMNAPI_TEST_WASI ? 'wasm' : 'js'}`)
 }
 
 exports.getEntry = getEntry
 
 function loadPath (request, options) {
   try {
-    const mod = require(request)
-
     if (process.env.EMNAPI_TEST_NATIVE) {
-      return Promise.resolve(mod)
+      return Promise.resolve(require(request))
     }
 
+    if (process.env.EMNAPI_TEST_WASI) {
+      const { WASI } = require('wasi')
+      const { createNapiModule } = require('@tybys/emnapi-core')
+      const wasi = new WASI()
+      const napiModule = createNapiModule({
+        context,
+        ...(options || {})
+      })
+      return new Promise((resolve, reject) => {
+        WebAssembly.instantiate(require('fs').readFileSync(request), {
+          wasi_snapshot_preview1: wasi.wasiImport,
+          env: napiModule.imports.env,
+          napi: napiModule.imports.napi,
+          emnapi: napiModule.imports.emnapi
+        })
+          .then(({ instance }) => {
+            wasi.initialize(instance)
+            let exports
+            try {
+              exports = napiModule.init(instance, instance.exports.memory, instance.exports.__indirect_function_table)
+            } catch (err) {
+              reject(err)
+              return
+            }
+            resolve(exports)
+          })
+          .catch(reject)
+      })
+    }
+
+    const mod = require(request)
     const resolveEmnapiExports = (Module, resolve, reject) => {
       try {
         resolve(Module.emnapiInit({

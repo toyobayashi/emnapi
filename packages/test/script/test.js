@@ -4,28 +4,46 @@ const glob = require('glob')
 const cwd = require('path').join(__dirname, '..')
 const subdir = process.argv[2]
 
+let ignore = []
+
+const pthread = [
+  'node-addon-api/**/*',
+  'async/**/*',
+  'pool/**/*',
+  'tsfn/**/*',
+  'async_cleanup_hook/**/*',
+  'string/string-pthread.test.js'
+]
+
+if (process.env.MEMORY64) {
+  ignore = [...new Set([
+    ...ignore,
+    ...pthread
+  ])]
+}
+
+if (process.env.EMNAPI_TEST_NATIVE) {
+  ignore = [...new Set([
+    ...ignore,
+    'filename/**/*',
+    'objwrap/objwrapref.test.js',
+    '**/{emnapitest,node-addon-api}/**/*'
+  ])]
+} else if (process.env.EMNAPI_TEST_WASI) {
+  ignore = [...new Set([
+    ...ignore,
+    ...pthread,
+    'emnapitest/**/*'
+  ])]
+}
+
 let files = glob.sync(subdir
   ? subdir.endsWith('.js')
     ? subdir
     : `${subdir}/**/*.test.js`
   : '**/*.test.js', {
   cwd,
-  ignore: process.env.EMNAPI_TEST_NATIVE
-    ? [
-        'filename/**/*',
-        'objwrap/objwrapref.test.js',
-        '**/{emnapitest,node-addon-api}/**/*'
-      ]
-    : process.env.MEMORY64
-      ? [
-          'node-addon-api/**/*',
-          'async/**/*',
-          'pool/**/*',
-          'tsfn/**/*',
-          'async_cleanup_hook/**/*',
-          'string/string-pthread.test.js'
-        ]
-      : []
+  ignore
 })
 // let files = ['node-addon-api/async_progress_queue_worker.test.js']
 
@@ -46,6 +64,7 @@ function test (f) {
   const r = spawnSync('node', [
     '--expose-gc',
     ...additionalFlags,
+    ...(process.env.EMNAPI_TEST_WASI ? ['--experimental-wasi-unstable-preview1'] : []),
     ...(process.env.MEMORY64 ? ['--experimental-wasm-memory64'] : []),
     './script/test-entry.js',
     f

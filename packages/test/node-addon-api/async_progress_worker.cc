@@ -46,7 +46,7 @@ class TestWorker : public AsyncProgressWorker<ProgressData> {
     Napi::Env env = Env();
     if (!_progress.IsEmpty()) {
       Number progress = Number::New(env, data->progress);
-#ifdef __EMSCRIPTEN__
+#ifdef __wasm__
       _progress.Call(Receiver().Value(), {progress});
 #else
       _progress.MakeCallback(Receiver().Value(), {progress});
@@ -119,7 +119,7 @@ class MalignWorker : public AsyncProgressWorker<ProgressData> {
       reason = Napi::String::New(
           env, "expect 1 count of data on non-1st and non-2nd call");
     }
-#ifdef __EMSCRIPTEN__
+#ifdef __wasm__
     _progress.Call(Receiver().Value(),
                    {Napi::Boolean::New(env, error), reason});
 #else
@@ -171,7 +171,7 @@ class SignalAfterProgressTestWorker : public AsyncProgressWorker<ProgressData> {
       error = true;
       reason = Napi::String::New(env, "expect 1 count of data");
     }
-#ifdef __EMSCRIPTEN__
+#ifdef __wasm__
     _progress.Call(Receiver().Value(),
                    {Napi::Boolean::New(env, error), reason});
 #else

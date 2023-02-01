@@ -230,6 +230,9 @@ class Transform {
       }
       return ts.visitEachChild(node, this.visitor, this.ctx)
     }
+    if (ts.isIdentifier(node) && node.text === '$POINTER_SIZE') {
+      return this.ctx.factory.createNumericLiteral(this.defines.MEMORY64 ? 8 : 4)
+    }
     return ts.visitEachChild(node, this.visitor, this.ctx)
   }
 

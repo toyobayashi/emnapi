@@ -29,7 +29,7 @@ function UTF8ToString (ptr: number): string {
   const HEAPU8 = new Uint8Array(wasmMemory.buffer)
   for (var end = ptr; HEAPU8[end];) ++end
   const shared = (typeof SharedArrayBuffer === 'function') && (wasmMemory.buffer instanceof SharedArrayBuffer)
-  return emnapiUtf8Decoder.decode(shared ? HEAPU8.slice(ptr, ptr + end) : HEAPU8.subarray(ptr, ptr + end))
+  return emnapiUtf8Decoder.decode(shared ? HEAPU8.slice(ptr, end) : HEAPU8.subarray(ptr, end))
 }
 
 function stringToUTF8Array (str: string, heap: Uint8Array, outIdx: number, maxBytesToWrite: number): number {
@@ -99,7 +99,7 @@ function UTF16ToString (ptr: number): string {
 
   const HEAPU8 = new Uint8Array(wasmMemory.buffer)
   const shared = (typeof SharedArrayBuffer === 'function') && (wasmMemory.buffer instanceof SharedArrayBuffer)
-  return emnapiUtf16leDecoder.decode(shared ? HEAPU8.slice(ptr, ptr + endPtr) : HEAPU8.subarray(ptr, ptr + endPtr))
+  return emnapiUtf16leDecoder.decode(shared ? HEAPU8.slice(ptr, endPtr) : HEAPU8.subarray(ptr, endPtr))
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars

@@ -1,4 +1,4 @@
-#ifdef __EMSCRIPTEN__
+#ifdef __wasm__
 #include <emnapi.h>
 #endif
 
@@ -53,7 +53,7 @@ static napi_value Multiply(napi_env env, napi_callback_info info) {
   NAPI_CALL(env, napi_create_arraybuffer(
       env, byte_length, &output_ptr, &output_buffer));
 
-#ifdef __EMSCRIPTEN__
+#ifdef __wasm__
   int support_weakref = emnapi_is_support_weakref();
   void* address;
   bool runtime_allocated;
@@ -78,7 +78,7 @@ static napi_value Multiply(napi_env env, napi_callback_info info) {
     for (i = 0; i < length; i++) {
       output_bytes[i] = (uint8_t)(input_bytes[i] * multiplier);
     }
-#ifdef __EMSCRIPTEN__
+#ifdef __wasm__
     emnapi_sync_memory(env, false, &output_buffer, 0, NAPI_AUTO_LENGTH);
 #endif
   } else if (type == napi_float64_array) {
@@ -87,13 +87,13 @@ static napi_value Multiply(napi_env env, napi_callback_info info) {
     for (i = 0; i < length; i++) {
       output_doubles[i] = input_doubles[i] * multiplier;
     }
-#ifdef __EMSCRIPTEN__
+#ifdef __wasm__
     emnapi_sync_memory(env, false, &output_buffer, 0, NAPI_AUTO_LENGTH);
 #endif
   } else {
     napi_throw_error(env, NULL,
         "Typed array was of a type not expected by test.");
-#ifdef __EMSCRIPTEN__
+#ifdef __wasm__
     if (!support_weakref) {
       free(data);
       free(output_ptr);
@@ -102,7 +102,7 @@ static napi_value Multiply(napi_env env, napi_callback_info info) {
     return NULL;
   }
 
-#ifdef __EMSCRIPTEN__
+#ifdef __wasm__
     if (!support_weakref) {
       free(data);
       free(output_ptr);

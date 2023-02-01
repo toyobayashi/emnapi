@@ -83,6 +83,13 @@ if(IS_EMSCRIPTEN)
     "--js-library=${CMAKE_CURRENT_SOURCE_DIR}/../emnapi/dist/library_napi.js"
     "-sMODULARIZE=1"
   )
+elseif(IS_WASI)
+  set(COMMON_LINK_OPTIONS
+    # "-v"
+    "-mexec-model=reactor"
+    # "-Wl,--import-memory"
+    "-Wl,--initial-memory=16777216,--export-dynamic,--export=malloc,--export=free,--import-undefined,--export-table"
+  )
 else()
   set(COMMON_LINK_OPTIONS "")
 endif()
@@ -90,23 +97,23 @@ endif()
 add_library(testcommon STATIC "./common.c")
 if(IS_WASM)
   add_library(emnapist STATIC "../emnapi/src/emnapi.c")
-  add_library(emnapimt STATIC
-    "../emnapi/src/emnapi.c"
-    "../emnapi/src/uv/uv-common.c"
-    "../emnapi/src/uv/threadpool.c"
-    "../emnapi/src/uv/unix/loop.c"
-    "../emnapi/src/uv/unix/thread.c"
-    "../emnapi/src/uv/unix/async.c"
-    "../emnapi/src/uv/unix/core.c"
-  )
+  if(IS_EMSCRIPTEN)
+    add_library(emnapimt STATIC
+      "../emnapi/src/emnapi.c"
+      "../emnapi/src/uv/uv-common.c"
+      "../emnapi/src/uv/threadpool.c"
+      "../emnapi/src/uv/unix/loop.c"
+      "../emnapi/src/uv/unix/thread.c"
+      "../emnapi/src/uv/unix/async.c"
+      "../emnapi/src/uv/unix/core.c"
+    )
 
-  target_compile_definitions(emnapimt PRIVATE
-    "EMNAPI_WORKER_POOL_SIZE=${EMNAPI_WORKER_POOL_SIZE}")
-
-  if(IS_WASM)
+    target_compile_definitions(emnapimt PRIVATE
+      "EMNAPI_WORKER_POOL_SIZE=${EMNAPI_WORKER_POOL_SIZE}")
     target_compile_options(emnapimt PUBLIC "-pthread")
   endif()
 endif()
+
 function(add_test NAME SOURCE_LIST NEED_ENTRY PTHREAD LINKOPTIONS)
   set(__SRC_LIST ${SOURCE_LIST})
   if(NEED_ENTRY)
@@ -116,6 +123,12 @@ function(add_test NAME SOURCE_LIST NEED_ENTRY PTHREAD LINKOPTIONS)
     add_executable(${NAME} ${__SRC_LIST})
     if(IS_WASI)
       set_target_properties(${NAME} PROPERTIES SUFFIX ".wasm")
+      if(CMAKE_BUILD_TYPE STREQUAL "Release")
+        # https://github.com/WebAssembly/wasi-sdk/issues/254
+        target_link_options(${NAME} PRIVATE
+          "-Wl,--strip-debug"
+        )
+      endif()
     endif()
   else()
     add_library(${NAME} SHARED ${__SRC_LIST} ${CMAKE_JS_SRC})
@@ -149,6 +162,12 @@ function(add_naa_test NAME SOURCE_LIST DEFINES ENABLE_EXCEPTION)
     add_executable(${NAME} ${SOURCE_LIST})
     if(IS_WASI)
       set_target_properties(${NAME} PROPERTIES SUFFIX ".wasm")
+      if(CMAKE_BUILD_TYPE STREQUAL "Release")
+        # https://github.com/WebAssembly/wasi-sdk/issues/254
+        target_link_options(${NAME} PRIVATE
+          "-Wl,--strip-debug"
+        )
+      endif()
     endif()
   else()
     add_library(${NAME} SHARED ${SOURCE_LIST} ${CMAKE_JS_SRC})

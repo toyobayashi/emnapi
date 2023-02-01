@@ -26,7 +26,11 @@ async function main () {
 
   const { spawnSync } = require('child_process')
   const child = spawnSync(process.execPath, [
-    '--expose-gc', ...(process.env.MEMORY64 ? ['--experimental-wasm-memory64'] : []), __filename, 'child'
+    '--expose-gc',
+    ...(process.env.EMNAPI_TEST_WASI ? ['--experimental-wasi-unstable-preview1'] : []),
+    ...(process.env.MEMORY64 ? ['--experimental-wasm-memory64'] : []),
+    __filename,
+    'child'
   ])
   assert.strictEqual(child.signal, null)
   assert.match(child.stderr.toString(), /Error during Finalize/)
