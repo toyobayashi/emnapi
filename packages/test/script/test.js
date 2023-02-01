@@ -11,7 +11,11 @@ let files = glob.sync(subdir
   : '**/*.test.js', {
   cwd,
   ignore: process.env.EMNAPI_TEST_NATIVE
-    ? ['**/{emnapitest,node-addon-api}/**/*']
+    ? [
+        'filename/**/*',
+        'objwrap/objwrapref.test.js',
+        '**/{emnapitest,node-addon-api}/**/*'
+      ]
     : process.env.MEMORY64
       ? [
           'node-addon-api/**/*',
