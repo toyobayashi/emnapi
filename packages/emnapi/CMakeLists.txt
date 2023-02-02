@@ -4,6 +4,18 @@ project(emnapi)
 
 option(EMNAPI_INSTALL_SRC "EMNAPI_INSTALL_SRC" OFF)
 
+if(CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
+  set(IS_EMSCRIPTEN ON)
+else()
+  set(IS_EMSCRIPTEN OFF)
+endif()
+
+if(CMAKE_SYSTEM_NAME STREQUAL "WASI")
+  set(IS_WASI ON)
+else()
+  set(IS_WASI OFF)
+endif()
+
 set(UV_SRC
   "${CMAKE_CURRENT_SOURCE_DIR}/src/uv/uv-common.c"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/uv/threadpool.c"
@@ -17,36 +29,63 @@ set(EMNAPI_SRC "${CMAKE_CURRENT_SOURCE_DIR}/src/emnapi.c")
 set(EMNAPI_INCLUDE "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
 set(EMNAPI_JS_LIB "${CMAKE_CURRENT_SOURCE_DIR}/dist/library_napi.js")
-# set(EMNAPI_JS_LIB_NO_RUNTIME "${CMAKE_CURRENT_SOURCE_DIR}/dist/library_napi_no_runtime.js")
 
-set(EMNAPI_MT_CFLAGS "-sUSE_PTHREADS=1" "-sWASM_WORKERS=1")
-
-# add_library(uv STATIC ${UV_SRC})
-# target_include_directories(uv PUBLIC ${EMNAPI_INCLUDE})
-# target_compile_options(uv PRIVATE ${EMNAPI_MT_CFLAGS})
-
-add_library(emnapi STATIC ${EMNAPI_SRC})
-target_include_directories(emnapi PUBLIC ${EMNAPI_INCLUDE})
-target_link_options(emnapi INTERFACE "--js-library=${EMNAPI_JS_LIB}")
-
-add_library(emnapi-mt STATIC ${EMNAPI_SRC} ${UV_SRC})
-target_compile_options(emnapi-mt PRIVATE ${EMNAPI_MT_CFLAGS})
-target_include_directories(emnapi-mt PUBLIC ${EMNAPI_INCLUDE})
-target_link_options(emnapi-mt INTERFACE "--js-library=${EMNAPI_JS_LIB}")
-if(EMNAPI_WORKER_POOL_SIZE)
-  target_compile_definitions(emnapi-mt PRIVATE "EMNAPI_WORKER_POOL_SIZE=${EMNAPI_WORKER_POOL_SIZE}")
-endif()
-if(EMNAPI_NEXTTICK_TYPE)
-  target_compile_definitions(emnapi-mt PRIVATE "EMNAPI_NEXTTICK_TYPE=${EMNAPI_NEXTTICK_TYPE}")
-endif()
-if(EMNAPI_USE_PROXYING)
-  target_compile_definitions(emnapi-mt PRIVATE "EMNAPI_USE_PROXYING=${EMNAPI_USE_PROXYING}")
+if(IS_EMSCRIPTEN)
+  set(EMNAPI_MT_CFLAGS "-sUSE_PTHREADS=1" "-sWASM_WORKERS=1")
+else()
+  set(EMNAPI_MT_CFLAGS "-pthread")
 endif()
 
-install(TARGETS emnapi DESTINATION "lib/${PROJECT_NAME}")
-install(TARGETS emnapi DESTINATION "lib/${CMAKE_LIBRARY_ARCHITECTURE}")
-install(TARGETS emnapi-mt DESTINATION "lib/${PROJECT_NAME}")
-install(TARGETS emnapi-mt DESTINATION "lib/${CMAKE_LIBRARY_ARCHITECTURE}")
+set(EMNAPI_TARGET_NAME "emnapi")
+set(EMNAPI_MT_TARGET_NAME "emnapi-mt")
+
+add_library(${EMNAPI_TARGET_NAME} STATIC ${EMNAPI_SRC})
+target_include_directories(${EMNAPI_TARGET_NAME} PUBLIC ${EMNAPI_INCLUDE})
+if(IS_EMSCRIPTEN)
+  target_link_options(${EMNAPI_TARGET_NAME} INTERFACE "--js-library=${EMNAPI_JS_LIB}")
+endif()
+
+if(IS_EMSCRIPTEN OR (CMAKE_C_COMPILER_TARGET STREQUAL "wasm32-wasi-threads"))
+  set(EMNAPI_BUILD_MT ON)
+else()
+  set(EMNAPI_BUILD_MT OFF)
+endif()
+
+if(EMNAPI_BUILD_MT)
+  add_library(${EMNAPI_MT_TARGET_NAME} STATIC ${EMNAPI_SRC} ${UV_SRC})
+  target_compile_options(${EMNAPI_MT_TARGET_NAME} PRIVATE ${EMNAPI_MT_CFLAGS})
+  target_include_directories(${EMNAPI_MT_TARGET_NAME} PUBLIC ${EMNAPI_INCLUDE})
+  if(IS_EMSCRIPTEN)
+    target_link_options(${EMNAPI_MT_TARGET_NAME} INTERFACE "--js-library=${EMNAPI_JS_LIB}")
+  endif()
+  if(EMNAPI_WORKER_POOL_SIZE)
+    target_compile_definitions(${EMNAPI_MT_TARGET_NAME} PRIVATE "EMNAPI_WORKER_POOL_SIZE=${EMNAPI_WORKER_POOL_SIZE}")
+  endif()
+  if(EMNAPI_NEXTTICK_TYPE)
+    target_compile_definitions(${EMNAPI_MT_TARGET_NAME} PRIVATE "EMNAPI_NEXTTICK_TYPE=${EMNAPI_NEXTTICK_TYPE}")
+  endif()
+  if(EMNAPI_USE_PROXYING)
+    target_compile_definitions(${EMNAPI_MT_TARGET_NAME} PRIVATE "EMNAPI_USE_PROXYING=${EMNAPI_USE_PROXYING}")
+  endif()
+endif()
+
+if(IS_EMSCRIPTEN)
+  set(LIB_ARCH "${CMAKE_LIBRARY_ARCHITECTURE}")
+elseif(IS_WASI)
+  set(LIB_ARCH "${CMAKE_C_COMPILER_TARGET}")
+endif()
+
+# install(TARGETS ${EMNAPI_TARGET_NAME} DESTINATION "lib/${PROJECT_NAME}")
+# if(EMNAPI_BUILD_MT)
+#   install(TARGETS ${EMNAPI_MT_TARGET_NAME} DESTINATION "lib/${PROJECT_NAME}")
+# endif()
+if(LIB_ARCH)
+  install(TARGETS ${EMNAPI_TARGET_NAME} DESTINATION "lib/${LIB_ARCH}")
+  if(EMNAPI_BUILD_MT)
+    install(TARGETS ${EMNAPI_MT_TARGET_NAME} DESTINATION "lib/${LIB_ARCH}")
+  endif()
+endif()
+
 install(FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/include/common.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/emnapi.h

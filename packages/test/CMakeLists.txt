@@ -80,7 +80,6 @@ if(IS_EMSCRIPTEN)
     "-sSTACK_SIZE=2MB"
     "-sDEFAULT_PTHREAD_STACK_SIZE=2MB"
     "-sSAFE_HEAP=1"
-    "--js-library=${CMAKE_CURRENT_SOURCE_DIR}/../emnapi/dist/library_napi.js"
     "-sMODULARIZE=1"
   )
 elseif(IS_WASI)
@@ -94,25 +93,9 @@ else()
   set(COMMON_LINK_OPTIONS "")
 endif()
 
-add_library(testcommon STATIC "./common.c")
-if(IS_WASM)
-  add_library(emnapist STATIC "../emnapi/src/emnapi.c")
-  if(IS_EMSCRIPTEN)
-    add_library(emnapimt STATIC
-      "../emnapi/src/emnapi.c"
-      "../emnapi/src/uv/uv-common.c"
-      "../emnapi/src/uv/threadpool.c"
-      "../emnapi/src/uv/unix/loop.c"
-      "../emnapi/src/uv/unix/thread.c"
-      "../emnapi/src/uv/unix/async.c"
-      "../emnapi/src/uv/unix/core.c"
-    )
+add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/../emnapi" "${CMAKE_CURRENT_BINARY_DIR}/emnapi")
 
-    target_compile_definitions(emnapimt PRIVATE
-      "EMNAPI_WORKER_POOL_SIZE=${EMNAPI_WORKER_POOL_SIZE}")
-    target_compile_options(emnapimt PUBLIC "-pthread")
-  endif()
-endif()
+add_library(testcommon STATIC "./common.c")
 
 function(add_test NAME SOURCE_LIST NEED_ENTRY PTHREAD LINKOPTIONS)
   set(__SRC_LIST ${SOURCE_LIST})
@@ -141,13 +124,14 @@ function(add_test NAME SOURCE_LIST NEED_ENTRY PTHREAD LINKOPTIONS)
   target_link_libraries(${NAME} PRIVATE "testcommon")
   if(IS_WASM)
     if(PTHREAD)
-      target_link_libraries(${NAME} PRIVATE "emnapimt")
+      target_link_libraries(${NAME} PRIVATE "emnapi-mt")
+      target_compile_options(${NAME} PRIVATE "-pthread")
       target_link_options(${NAME} PRIVATE "-pthread")
       if(IS_EMSCRIPTEN)
         target_link_options(${NAME} PRIVATE "-sPTHREAD_POOL_SIZE=${PTHREAD_POOL_SIZE}" "-sPTHREAD_POOL_SIZE_STRICT=2")
       endif()
     else()
-      target_link_libraries(${NAME} PRIVATE "emnapist")
+      target_link_libraries(${NAME} PRIVATE "emnapi")
     endif()
   endif()
   target_link_options(${NAME} PRIVATE ${COMMON_LINK_OPTIONS})
@@ -178,7 +162,8 @@ function(add_naa_test NAME SOURCE_LIST DEFINES ENABLE_EXCEPTION)
   set_target_properties(${NAME} PROPERTIES
     BUILD_RPATH "$ORIGIN")
   if(IS_WASM)
-    target_link_libraries(${NAME} PRIVATE "emnapimt")
+    target_link_libraries(${NAME} PRIVATE "emnapi-mt")
+    target_compile_options(${NAME} PRIVATE "-pthread")
     target_link_options(${NAME} PRIVATE "-pthread")
     if(IS_EMSCRIPTEN)
       target_link_options(${NAME} PRIVATE "-sPTHREAD_POOL_SIZE=${PTHREAD_POOL_SIZE}" "-sPTHREAD_POOL_SIZE_STRICT=2")

@@ -1,7 +1,18 @@
 export declare interface CreateOptions {
-  context: Context
+  context: import('@tybys/emnapi-runtime').Context
   filename?: string
-  nodeBinding?: NodeBinding
+  nodeBinding?: {
+    node: {
+      emitAsyncInit: Function
+      emitAsyncDestroy: Function
+      makeCallback: Function
+    }
+    napi: {
+      asyncInit: Function
+      asyncDestroy: Function
+      makeCallback: Function
+    }
+  }
 }
 
 export declare interface NapiModule {
@@ -13,7 +24,6 @@ export declare interface NapiModule {
   exports: any
   loaded: boolean
   filename: string
-  envObject?: Env
 
   init (instance: WebAssembly.Instance, memory?: WebAssembly.Memory, table?: WebAssembly.Table): any
 }

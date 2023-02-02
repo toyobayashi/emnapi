@@ -1,4 +1,5 @@
 const path = require('path')
+const fs = require('fs-extra')
 const rollup = require('rollup')
 const rollupNodeResolve = require('@rollup/plugin-node-resolve').default
 const rollupReplace = require('@rollup/plugin-replace').default
@@ -103,7 +104,12 @@ function build () {
     }
   ]).map(conf => {
     return rollup.rollup(conf.input).then(bundle => bundle.write(conf.output))
-  }))
+  })).then(() => {
+    const dts = path.join(__dirname, '../index.d.ts')
+    const dest = path.join(__dirname, '../dist/emnapi-core.d.ts')
+    fs.copyFileSync(dts, dest)
+    fs.appendFileSync(dest, '\nexport as namespace emnapiCore;\n', 'utf8')
+  })
 }
 
 exports.build = build
