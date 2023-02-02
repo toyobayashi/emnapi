@@ -13,6 +13,9 @@ async function main () {
   if (!WASI_SDK_PATH) {
     throw new Error('process.env.WASI_SDK_PATH is falsy value')
   }
+  if (!path.isAbsolute(WASI_SDK_PATH)) {
+    WASI_SDK_PATH = path.join(__dirname, '../../..', WASI_SDK_PATH)
+  }
   WASI_SDK_PATH = WASI_SDK_PATH.replace(/\\/g, '/')
 
   await spawn('cmake', [
