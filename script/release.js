@@ -1,4 +1,4 @@
-const fs = require('fs')
+const fs = require('fs-extra')
 const path = require('path')
 const crossZip = require('@tybys/cross-zip')
 const { which } = require('./which.js')
@@ -104,6 +104,9 @@ async function main () {
   fs.copyFileSync(path.join(__dirname, '../packages/core/dist/emnapi-core.js'), path.join(sysroot, 'lib/emnapi', 'emnapi-core.js'))
   fs.copyFileSync(path.join(__dirname, '../packages/core/dist/emnapi-core.min.js'), path.join(sysroot, 'lib/emnapi', 'emnapi-core.min.js'))
   fs.copyFileSync(path.join(__dirname, '../packages/core/dist/emnapi-core.d.ts'), path.join(sysroot, 'lib/emnapi', 'emnapi-core.d.ts'))
+
+  fs.copySync(path.join(sysroot, 'lib/wasm32-emscripten'), path.join(__dirname, '../packages/emnapi/lib/wasm32-emscripten'))
+  fs.copySync(path.join(sysroot, 'lib/wasm32-wasi'), path.join(__dirname, '../packages/emnapi/lib/wasm32-wasi'))
 
   crossZip.zipSync(sysroot, path.join(__dirname, 'emnapi.zip'))
   // fs.rmSync(sysroot, { force: true, recursive: true })
