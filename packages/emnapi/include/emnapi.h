@@ -4,12 +4,6 @@
 #include "js_native_api.h"
 #include "common.h"
 
-typedef struct {
-  uint32_t major;
-  uint32_t minor;
-  uint32_t patch;
-} emnapi_emscripten_version;
-
 typedef enum {
   emnapi_runtime,
   emnapi_userland,
@@ -46,6 +40,12 @@ EMNAPI_EXTERN
 napi_status emnapi_get_module_property(napi_env env,
                                        const char* utf8name,
                                        napi_value* result);
+
+typedef struct {
+  uint32_t major;
+  uint32_t minor;
+  uint32_t patch;
+} emnapi_emscripten_version;
 
 EMNAPI_EXTERN
 napi_status emnapi_get_emscripten_version(napi_env env,
