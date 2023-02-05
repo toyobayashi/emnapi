@@ -64,6 +64,15 @@
       "cStandard": "c11",
       "cppStandard": "c++17",
       "includePath": ["${includePath}"]
+    },
+    {
+      "name": "WASI",
+      "defines": ["${defines}"],
+      "compilerPath": "${env:WASI_SDK_PATH}/bin/clang",
+      "intelliSenseMode": "clang-x86",
+      "cStandard": "c11",
+      "cppStandard": "c++14",
+      "includePath": ["${includePath}"]
     }
   ],
   "version": 4
