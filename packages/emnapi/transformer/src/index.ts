@@ -221,11 +221,15 @@ class Transform {
         'emnapiImplementHelper'
       ]
       if (removeDeps.includes(functionName)) {
+        const arr = node.arguments.slice()
+        if (arr.length > 3) {
+          arr[3] = this.ctx.factory.createIdentifier('undefined')
+        }
         return this.ctx.factory.updateCallExpression(
           node,
           node.expression,
           node.typeArguments,
-          node.arguments.slice(0, 3)
+          this.ctx.factory.createNodeArray(arr, node.arguments.hasTrailingComma)
         )
       }
       return ts.visitEachChild(node, this.visitor, this.ctx)

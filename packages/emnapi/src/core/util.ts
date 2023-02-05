@@ -15,8 +15,10 @@ function emnapiImplementInternal (name: string, sig: string | undefined, compile
 }
 
 // $emnapi*
-function emnapiImplementHelper (...args: Parameters<typeof emnapiImplement>): void
-function emnapiImplementHelper (name: string, sig: string | undefined, compilerTimeFunction: Function, deps?: string[]): void {
+function emnapiImplementHelper (_name: string, _sig: string | undefined, compilerTimeFunction: Function, _deps?: string[], exportName?: string): void {
+  if (exportName) {
+    napiModule.emnapi[exportName] = compilerTimeFunction
+  }
 }
 
 function emnapiDefineVar (name: string, value: any, deps?: string[], postset?: string): void {

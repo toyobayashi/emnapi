@@ -233,6 +233,8 @@ add_test("cleanup_hook" "./cleanup_hook/binding.c" OFF OFF "")
 
 if(IS_EMSCRIPTEN)
   add_test("emnapitest" "./emnapitest/binding.c" ON OFF "-sEXPORTED_RUNTIME_METHODS=['emnapiSyncMemory']")
+else()
+  add_test("emnapitest" "./emnapitest/binding.c" ON OFF "")
 endif()
 
 add_test("version" "./version/binding.c" OFF OFF "")

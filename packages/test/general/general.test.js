@@ -76,11 +76,9 @@ module.exports = load('general').then(async test_general => {
   test_general.removeWrap(y)
 
   // Test napi_adjust_external_memory
-  if (!process.env.EMNAPI_TEST_WASI) {
-    const adjustedValue = test_general.testAdjustExternalMemory()
-    assert.strictEqual(typeof adjustedValue, 'number')
-    assert(adjustedValue > 0)
-  }
+  const adjustedValue = test_general.testAdjustExternalMemory()
+  assert.strictEqual(typeof adjustedValue, 'number')
+  assert(adjustedValue > 0)
 
   async function runGCTests () {
   // Ensure that garbage collecting an object with a wrapped native item results

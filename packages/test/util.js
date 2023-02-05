@@ -24,7 +24,7 @@ function loadPath (request, options) {
         context,
         ...(options || {})
       })
-      return new Promise((resolve, reject) => {
+      const p = new Promise((resolve, reject) => {
         WebAssembly.instantiate(require('fs').readFileSync(request), {
           wasi_snapshot_preview1: wasi.wasiImport,
           env: napiModule.imports.env,
@@ -44,6 +44,8 @@ function loadPath (request, options) {
           })
           .catch(reject)
       })
+      p.Module = napiModule
+      return p
     }
 
     const mod = require(request)

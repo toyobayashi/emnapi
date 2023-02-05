@@ -17,6 +17,7 @@ declare interface INapiModule {
     emnapi: any
   }
   exports: any
+  emnapi: any
   loaded: boolean
   filename: string
   envObject?: Env
@@ -53,6 +54,7 @@ var napiModule: INapiModule = {
     emnapi: {}
   },
   exports: {},
+  emnapi: {},
   loaded: false,
   filename: '',
 

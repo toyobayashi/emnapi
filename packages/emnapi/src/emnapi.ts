@@ -249,8 +249,8 @@ function emnapi_get_memory_address (env: napi_env, arraybuffer_or_view: napi_val
   })
 }
 
-emnapiImplementHelper('$emnapiSyncMemory', undefined, emnapiSyncMemory, ['$emnapiExternalMemory'])
-emnapiImplementHelper('$emnapiGetMemoryAddress', undefined, emnapiGetMemoryAddress, ['$emnapiExternalMemory'])
+emnapiImplementHelper('$emnapiSyncMemory', undefined, emnapiSyncMemory, ['$emnapiExternalMemory'], 'syncMemory')
+emnapiImplementHelper('$emnapiGetMemoryAddress', undefined, emnapiGetMemoryAddress, ['$emnapiExternalMemory'], 'getMemoryAddress')
 
 emnapiImplement2('emnapi_is_support_weakref', 'i', emnapi_is_support_weakref)
 emnapiImplement2('emnapi_is_support_bigint', 'i', emnapi_is_support_bigint)

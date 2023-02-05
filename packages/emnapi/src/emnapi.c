@@ -148,7 +148,10 @@ napi_status napi_get_last_error_info(
   return napi_ok;
 }
 
-#ifdef __EMSCRIPTEN__
+#ifndef __EMSCRIPTEN__
+EMNAPI_INTERNAL_EXTERN int _emnapi_wasm_memory_grow(size_t page_increase);
+#endif
+
 napi_status napi_adjust_external_memory(napi_env env,
                                         int64_t change_in_bytes,
                                         int64_t* adjusted_value) {
@@ -159,16 +162,23 @@ napi_status napi_adjust_external_memory(napi_env env,
     return napi_set_last_error(env, napi_invalid_arg, 0, NULL);
   }
 
-  size_t old_size = emscripten_get_heap_size();
-  if (!emscripten_resize_heap(old_size + (size_t) change_in_bytes)) {
+  size_t old_size = __builtin_wasm_memory_size(0) << 16;
+  size_t new_size = old_size + (size_t) change_in_bytes;
+#ifdef __EMSCRIPTEN__
+  if (!emscripten_resize_heap(new_size)) {
     return napi_set_last_error(env, napi_generic_failure, 0, NULL);
   }
+#else
+  new_size = new_size + (65536 - new_size % 65536) % 65536;
+  if (!_emnapi_wasm_memory_grow((new_size - old_size + 65535) >> 16)) {
+    return napi_set_last_error(env, napi_generic_failure, 0, NULL);
+  }
+#endif
 
-  *adjusted_value = (int64_t) emscripten_get_heap_size();
+  *adjusted_value = (int64_t) (__builtin_wasm_memory_size(0) << 16);
 
   return napi_clear_last_error(env);
 }
-#endif
 
 napi_status napi_get_version(napi_env env, uint32_t* result) {
   CHECK_ENV(env);

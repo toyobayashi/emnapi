@@ -32,8 +32,7 @@ if (process.env.EMNAPI_TEST_NATIVE) {
 } else if (process.env.EMNAPI_TEST_WASI) {
   ignore = [...new Set([
     ...ignore,
-    ...pthread,
-    'emnapitest/**/*'
+    ...pthread
   ])]
 }
 

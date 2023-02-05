@@ -24,9 +24,8 @@ function emnapiImplementInternal (): void {
 }
 
 // $emnapi*
-function emnapiImplementHelper (...args: Parameters<typeof emnapiImplement>): void
-function emnapiImplementHelper (): void {
-  return emnapiImplement.apply(null, arguments as any)
+function emnapiImplementHelper (name: string, sig: string | undefined, compilerTimeFunction: Function, deps?: string[], _exportName?: string): void {
+  return emnapiImplement(name, sig, compilerTimeFunction, deps)
 }
 
 function emnapiDefineVar (name: string, value: any, deps?: string[], postset?: string): void {

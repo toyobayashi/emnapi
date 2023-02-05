@@ -8,29 +8,40 @@ const { load } = require('../util')
 const promise = load('emnapitest')
 
 module.exports = promise.then(test_typedarray => {
-  const mod = test_typedarray.getModuleObject()
+  if (!process.env.EMNAPI_TEST_WASI) {
+    const mod = test_typedarray.getModuleObject()
 
-  const HEAPU8 = test_typedarray.getModuleProperty('HEAPU8')
-  const mem = HEAPU8.buffer
-  assert.ok(mem instanceof ArrayBuffer || mem instanceof SharedArrayBuffer)
-  assert.strictEqual(mod.HEAPU8, HEAPU8)
+    const HEAPU8 = test_typedarray.getModuleProperty('HEAPU8')
+    const mem = HEAPU8.buffer
+    assert.ok(mem instanceof ArrayBuffer || mem instanceof SharedArrayBuffer)
+    assert.strictEqual(mod.HEAPU8, HEAPU8)
+  }
 
   let externalResult = test_typedarray.External()
   assert.ok(externalResult instanceof Uint8Array)
   assert.deepStrictEqual([...externalResult], [0, 1, 2])
   test_typedarray.GrowMemory()
-  externalResult = promise.Module.emnapiSyncMemory(false, externalResult)
+  if (process.env.EMNAPI_TEST_WASI) {
+    console.log(promise.Module.emnapi)
+    externalResult = promise.Module.emnapi.syncMemory(false, externalResult)
+  } else {
+    externalResult = promise.Module.emnapiSyncMemory(false, externalResult)
+  }
   assert.deepStrictEqual([...externalResult], [0, 1, 2])
 
   const buffer = test_typedarray.NullArrayBuffer()
   assert.ok(buffer instanceof Uint8Array)
   assert.strictEqual(buffer.length, 0)
-  assert.strictEqual(buffer.buffer, test_typedarray.getModuleProperty('HEAPU8').buffer)
+  if (!process.env.EMNAPI_TEST_WASI) {
+    assert.strictEqual(buffer.buffer, test_typedarray.getModuleProperty('HEAPU8').buffer)
+  }
   assert.notStrictEqual(buffer.buffer.byteLength, 0)
 
-  const [major, minor, patch] = test_typedarray.testGetEmscriptenVersion()
-  assert.strictEqual(typeof major, 'number')
-  assert.strictEqual(typeof minor, 'number')
-  assert.strictEqual(typeof patch, 'number')
-  console.log(`test: Emscripten v${major}.${minor}.${patch}`)
+  if (!process.env.EMNAPI_TEST_WASI) {
+    const [major, minor, patch] = test_typedarray.testGetEmscriptenVersion()
+    assert.strictEqual(typeof major, 'number')
+    assert.strictEqual(typeof minor, 'number')
+    assert.strictEqual(typeof patch, 'number')
+    console.log(`test: Emscripten v${major}.${minor}.${patch}`)
+  }
 })
