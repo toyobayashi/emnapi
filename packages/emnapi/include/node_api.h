@@ -1,7 +1,9 @@
 #ifndef SRC_NODE_API_H_
 #define SRC_NODE_API_H_
 
+#if defined(__EMSCRIPTEN__) || defined(__wasi__)
 #include <stdlib.h>
+#endif
 #include "js_native_api.h"
 #include "node_api_types.h"
 

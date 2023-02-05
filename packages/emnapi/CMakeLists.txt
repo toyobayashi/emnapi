@@ -10,11 +10,6 @@ else()
   set(IS_EMSCRIPTEN OFF)
 endif()
 
-if(CMAKE_SYSTEM_NAME STREQUAL "WASI")
-  set(IS_WASI ON)
-else()
-  set(IS_WASI OFF)
-endif()
 
 set(UV_SRC
   "${CMAKE_CURRENT_SOURCE_DIR}/src/uv/uv-common.c"
@@ -39,7 +34,7 @@ endif()
 set(EMNAPI_TARGET_NAME "emnapi")
 set(EMNAPI_MT_TARGET_NAME "emnapi-mt")
 
-add_library(${EMNAPI_TARGET_NAME} STATIC ${EMNAPI_SRC})
+add_library(${EMNAPI_TARGET_NAME} STATIC ${EMNAPI_SRC} ${UV_SRC})
 target_include_directories(${EMNAPI_TARGET_NAME} PUBLIC ${EMNAPI_INCLUDE})
 if(IS_EMSCRIPTEN)
   target_link_options(${EMNAPI_TARGET_NAME} INTERFACE "--js-library=${EMNAPI_JS_LIB}")
@@ -71,7 +66,7 @@ endif()
 
 if(IS_EMSCRIPTEN)
   set(LIB_ARCH "${CMAKE_LIBRARY_ARCHITECTURE}")
-elseif(IS_WASI)
+else()
   set(LIB_ARCH "${CMAKE_C_COMPILER_TARGET}")
 endif()
 

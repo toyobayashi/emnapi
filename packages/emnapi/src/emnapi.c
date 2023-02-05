@@ -1,5 +1,12 @@
+#if defined(__EMSCRIPTEN__) || defined(__wasi__)
 #include <assert.h>
 #include <stdlib.h>
+#else
+void* malloc(unsigned long size);
+void* calloc(unsigned long count, unsigned long size);
+void free(void* p);
+void abort();
+#endif
 
 #if defined(__EMSCRIPTEN_PTHREADS__) || defined(_REENTRANT)
 #include <pthread.h>
@@ -26,9 +33,13 @@
 #endif
 
 #ifdef NDEBUG
-#define	EMNAPI_ASSERT_CALL(the_call) (the_call)
+  #define	EMNAPI_ASSERT_CALL(the_call) (the_call)
 #else
-#define EMNAPI_ASSERT_CALL(the_call) (assert(napi_ok == (the_call)))
+  #if defined(__EMSCRIPTEN__) || defined(__wasi__)
+  #define EMNAPI_ASSERT_CALL(the_call) (assert(napi_ok == (the_call)))
+  #else
+  #define	EMNAPI_ASSERT_CALL(the_call) (the_call)
+  #endif
 #endif
 
 #define CHECK_ENV(env)          \

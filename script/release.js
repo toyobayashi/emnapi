@@ -20,6 +20,15 @@ async function main () {
   const wasiSdkPath = WASI_SDK_PATH
   WASI_SDK_PATH = WASI_SDK_PATH.replace(/\\/g, '/')
 
+  let LLVM_PATH = process.env.LLVM_PATH
+  if (!LLVM_PATH) {
+    throw new Error('process.env.LLVM_PATH is falsy value')
+  }
+  if (!path.isAbsolute(LLVM_PATH)) {
+    LLVM_PATH = path.join(__dirname, '..', LLVM_PATH)
+  }
+  LLVM_PATH = LLVM_PATH.replace(/\\/g, '/')
+
   const cwd = path.join(__dirname, '../packages/emnapi')
   let emcmake = process.platform === 'win32' ? 'emcmake.bat' : 'emcmake'
   if (process.env.EMSDK) {
@@ -29,6 +38,28 @@ async function main () {
   const generatorOptions = which('ninja')
     ? ['-G', 'Ninja']
     : (process.platform === 'win32' ? ['-G', 'MinGW Makefiles', '-DCMAKE_MAKE_PROGRAM=make'] : [])
+
+  await spawn('cmake', [
+    ...generatorOptions,
+    '-DCMAKE_TOOLCHAIN_FILE=./cmake/wasm.cmake',
+    `-DLLVM_PREFIX=${LLVM_PATH}`,
+    '-DCMAKE_BUILD_TYPE=Release',
+    '-DCMAKE_VERBOSE_MAKEFILE=1',
+    '-H.',
+    '-Bbuild/wasm32'
+  ], cwd)
+
+  await spawn('cmake', [
+    '--build',
+    'build/wasm32'
+  ], cwd)
+
+  await spawn('cmake', [
+    '--install',
+    'build/wasm32',
+    '--prefix',
+    sysroot
+  ], cwd)
 
   await spawn('cmake', [
     ...generatorOptions,
@@ -107,6 +138,7 @@ async function main () {
 
   fs.copySync(path.join(sysroot, 'lib/wasm32-emscripten'), path.join(__dirname, '../packages/emnapi/lib/wasm32-emscripten'))
   fs.copySync(path.join(sysroot, 'lib/wasm32-wasi'), path.join(__dirname, '../packages/emnapi/lib/wasm32-wasi'))
+  fs.copySync(path.join(sysroot, 'lib/wasm32'), path.join(__dirname, '../packages/emnapi/lib/wasm32'))
 
   crossZip.zipSync(sysroot, path.join(__dirname, 'emnapi.zip'))
   // fs.rmSync(sysroot, { force: true, recursive: true })
