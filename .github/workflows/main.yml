@@ -23,6 +23,8 @@ jobs:
       WASI_VERSION: '19'
       WASI_VERSION_FULL: '19.0'
       WASI_SDK_PATH: './wasi-sdk'
+      LLVM_VERSION: '15.0.7'
+      LLVM_PATH: './llvm'
     strategy:
       fail-fast: false
       matrix:
@@ -47,6 +49,13 @@ jobs:
       with:
         path: ${{ env.WASI_SDK_PATH }}
         key: ${{ runner.os }}-${{ env.WASI_VERSION_FULL }}
+    
+    - name: Cache LLVM
+      id: cache-llvm
+      uses: actions/cache@v3
+      with:
+        path: ${{ env.LLVM_PATH }}
+        key: ${{ runner.os }}-${{ env.LLVM_VERSION }}
 
     - name: Install wasi-sdk
       if: ${{ steps.cache-wasi-sdk.outputs.cache-hit != 'true' }}
@@ -55,6 +64,14 @@ jobs:
         wget https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${WASI_VERSION}/wasi-sdk-${WASI_VERSION_FULL}-linux.tar.gz
         tar zxvf wasi-sdk-${WASI_VERSION_FULL}-linux.tar.gz
         mv wasi-sdk-${WASI_VERSION_FULL} $WASI_SDK_PATH
+
+    - name: Install LLVM
+      if: ${{ steps.cache-llvm.outputs.cache-hit != 'true' }}
+      shell: bash
+      run: |
+        wget https://github.com/llvm/llvm-project/releases/download/llvmorg-${LLVM_VERSION}/clang+llvm-${LLVM_VERSION}-powerpc64le-linux-ubuntu-18.04.tar.xz
+        tar -xf clang+llvm-${LLVM_VERSION}-powerpc64le-linux-ubuntu-18.04.tar.xz
+        mv clang+llvm-${LLVM_VERSION}-powerpc64le-linux-ubuntu-18.04.tar.xz $LLVM_PATH
 
     - uses: actions/setup-node@v3
       with:
@@ -74,22 +91,27 @@ jobs:
     - name: Lint
       run: npm run lint
 
-    - name: Test
+    - name: Test wasm32-unknown-emscripten
       run: |
         npm run rebuild -w packages/test
         npm run test -w packages/test
 
-    - name: Test MEMORY64
+    - name: Test wasm64-unknown-emscripten
       env:
         MEMORY64: '1'
       run: |
         npm run rebuild -w packages/test
         npm run test -w packages/test
 
-    - name: Test WASI
+    - name: Test wasm32-wasi
       run: |
         npm run rebuild:w -w packages/test
         npm run test:w -w packages/test
+
+    - name: Test wasm32-unknown-unknown
+      run: |
+        npm run rebuild:wasm32 -w packages/test
+        npm run test:wasm32 -w packages/test
 
     - name: Publish
       if: ${{ startsWith(github.event.ref, 'refs/tags') && matrix.os == 'ubuntu-latest' }}
