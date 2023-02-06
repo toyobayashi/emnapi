@@ -1,6 +1,9 @@
-#include <stdlib.h>
+// #include <stdlib.h>
 #include <js_native_api.h>
 #include "../common.h"
+
+void* malloc(size_t size);
+void free(void* p);
 
 static size_t g_call_count = 0;
 
@@ -15,7 +18,7 @@ static void NoDeleteDestructor(napi_env env, void* data, void* hint) {
   size_t* call_count = hint;
 
   // This destructor must be called exactly once.
-  if ((*call_count) > 0) abort();
+  if ((*call_count) > 0) __builtin_trap();
   *call_count = ((*call_count) + 1);
   free(ref);
 }

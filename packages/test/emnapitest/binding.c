@@ -1,8 +1,12 @@
-#include <stdlib.h>
+#ifdef __EMSCRIPTEN__
 #include <stdio.h>
+#endif
 #include "js_native_api.h"
 #include "emnapi.h"
 #include "../common.h"
+
+void* malloc(size_t size);
+void free(void* p);
 
 #ifdef __EMSCRIPTEN__
 static napi_value getModuleObject(napi_env env, napi_callback_info info) {

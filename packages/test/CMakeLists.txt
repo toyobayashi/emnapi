@@ -33,7 +33,13 @@ else()
   set(IS_WASI OFF)
 endif()
 
-if(IS_EMSCRIPTEN OR IS_WASI)
+if((CMAKE_C_COMPILER_TARGET STREQUAL "wasm32") OR (CMAKE_C_COMPILER_TARGET STREQUAL "wasm32-unknown-unknown"))
+  set(IS_WASM32 ON)
+else()
+  set(IS_WASM32 OFF)
+endif()
+
+if(IS_EMSCRIPTEN OR IS_WASI OR IS_WASM32)
   set(IS_WASM ON)
 else()
   set(IS_WASM OFF)
@@ -89,6 +95,13 @@ elseif(IS_WASI)
     # "-Wl,--import-memory"
     "-Wl,--initial-memory=16777216,--export-dynamic,--export=malloc,--export=free,--import-undefined,--export-table"
   )
+elseif(IS_WASM32)
+  set(COMMON_LINK_OPTIONS
+    # "-v"
+    "-nostdlib"
+    # "-Wl,--import-memory"
+    "-Wl,--no-entry,--initial-memory=16777216,--export-dynamic,--export=malloc,--export=free,--import-undefined,--export-table"
+  )
 else()
   set(COMMON_LINK_OPTIONS "")
 endif()
@@ -104,7 +117,7 @@ function(add_test NAME SOURCE_LIST NEED_ENTRY PTHREAD LINKOPTIONS)
   endif()
   if(IS_WASM)
     add_executable(${NAME} ${__SRC_LIST})
-    if(IS_WASI)
+    if(IS_WASI OR IS_WASM32)
       set_target_properties(${NAME} PROPERTIES SUFFIX ".wasm")
       if(CMAKE_BUILD_TYPE STREQUAL "Release")
         # https://github.com/WebAssembly/wasi-sdk/issues/254
@@ -112,6 +125,9 @@ function(add_test NAME SOURCE_LIST NEED_ENTRY PTHREAD LINKOPTIONS)
           "-Wl,--strip-debug"
         )
       endif()
+    endif()
+    if(IS_WASM32)
+      target_link_libraries(${NAME} PRIVATE "dlmalloc")
     endif()
   else()
     add_library(${NAME} SHARED ${__SRC_LIST} ${CMAKE_JS_SRC})
@@ -144,7 +160,7 @@ endfunction()
 function(add_naa_test NAME SOURCE_LIST DEFINES ENABLE_EXCEPTION)
   if(IS_WASM)
     add_executable(${NAME} ${SOURCE_LIST})
-    if(IS_WASI)
+    if(IS_WASI OR IS_WASM32)
       set_target_properties(${NAME} PROPERTIES SUFFIX ".wasm")
       if(CMAKE_BUILD_TYPE STREQUAL "Release")
         # https://github.com/WebAssembly/wasi-sdk/issues/254
@@ -152,6 +168,9 @@ function(add_naa_test NAME SOURCE_LIST DEFINES ENABLE_EXCEPTION)
           "-Wl,--strip-debug"
         )
       endif()
+    endif()
+    if(IS_WASM32)
+      target_link_libraries(${NAME} PRIVATE "dlmalloc")
     endif()
   else()
     add_library(${NAME} SHARED ${SOURCE_LIST} ${CMAKE_JS_SRC})

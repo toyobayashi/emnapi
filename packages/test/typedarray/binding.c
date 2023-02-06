@@ -3,9 +3,12 @@
 #endif
 
 #include <js_native_api.h>
-#include <string.h>
-#include <stdlib.h>
+// #include <string.h>
+// #include <stdlib.h>
 #include "../common.h"
+
+void* malloc(size_t size);
+void free(void* p);
 
 static napi_value Multiply(napi_env env, napi_callback_info info) {
   size_t argc = 2;

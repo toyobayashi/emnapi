@@ -1,6 +1,20 @@
-#include <assert.h>
+// #include <assert.h>
 #include "myobject.h"
 #include "../common.h"
+
+#if !(!defined(__wasm__) || (defined(__EMSCRIPTEN__) || defined(__wasi__)))
+#include <stddef.h>
+extern "C" void* malloc(size_t size);
+extern "C" void free(void* p);
+
+void* operator new(size_t size) {
+  return malloc(size);
+}
+
+void operator delete(void* p) noexcept {
+  free(p);
+}
+#endif
 
 napi_ref MyObject::constructor;
 
@@ -157,7 +171,8 @@ napi_value MyObject::Multiply(napi_env env, napi_callback_info info) {
 void ObjectWrapDanglingReferenceFinalizer(napi_env env,
                                           void* finalize_data,
                                           void* finalize_hint) {
-  assert(0 && "unreachable");
+  __builtin_trap();
+  // assert(0 && "unreachable");
 }
 
 napi_ref dangling_ref;

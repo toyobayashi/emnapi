@@ -1,5 +1,5 @@
 #include <js_native_api.h>
-#include <string.h>
+// #include <string.h>
 #include "../common.h"
 
 static napi_value CreateDataView(napi_env env, napi_callback_info info) {

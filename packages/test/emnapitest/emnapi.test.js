@@ -8,7 +8,7 @@ const { load } = require('../util')
 const promise = load('emnapitest')
 
 module.exports = promise.then(test_typedarray => {
-  if (!process.env.EMNAPI_TEST_WASI) {
+  if (!process.env.EMNAPI_TEST_WASI && !process.env.EMNAPI_TEST_WASM32) {
     const mod = test_typedarray.getModuleObject()
 
     const HEAPU8 = test_typedarray.getModuleProperty('HEAPU8')
@@ -21,7 +21,7 @@ module.exports = promise.then(test_typedarray => {
   assert.ok(externalResult instanceof Uint8Array)
   assert.deepStrictEqual([...externalResult], [0, 1, 2])
   test_typedarray.GrowMemory()
-  if (process.env.EMNAPI_TEST_WASI) {
+  if (process.env.EMNAPI_TEST_WASI || process.env.EMNAPI_TEST_WASM32) {
     console.log(promise.Module.emnapi)
     externalResult = promise.Module.emnapi.syncMemory(false, externalResult)
   } else {
@@ -32,12 +32,12 @@ module.exports = promise.then(test_typedarray => {
   const buffer = test_typedarray.NullArrayBuffer()
   assert.ok(buffer instanceof Uint8Array)
   assert.strictEqual(buffer.length, 0)
-  if (!process.env.EMNAPI_TEST_WASI) {
+  if (!process.env.EMNAPI_TEST_WASI && !process.env.EMNAPI_TEST_WASM32) {
     assert.strictEqual(buffer.buffer, test_typedarray.getModuleProperty('HEAPU8').buffer)
   }
   assert.notStrictEqual(buffer.buffer.byteLength, 0)
 
-  if (!process.env.EMNAPI_TEST_WASI) {
+  if (!process.env.EMNAPI_TEST_WASI && !process.env.EMNAPI_TEST_WASM32) {
     const [major, minor, patch] = test_typedarray.testGetEmscriptenVersion()
     assert.strictEqual(typeof major, 'number')
     assert.strictEqual(typeof minor, 'number')

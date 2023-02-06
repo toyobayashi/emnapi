@@ -1,6 +1,20 @@
 #include "myobject.h"
 #include "../common.h"
 
+#if !(!defined(__wasm__) || (defined(__EMSCRIPTEN__) || defined(__wasi__)))
+#include <stddef.h>
+extern "C" void* malloc(size_t size);
+extern "C" void free(void* p);
+
+void* operator new(size_t size) {
+  return malloc(size);
+}
+
+void operator delete(void* p) noexcept {
+  free(p);
+}
+#endif
+
 size_t finalize_count = 0;
 
 MyObject::MyObject() : env_(nullptr), wrapper_(nullptr) {}

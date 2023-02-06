@@ -1,8 +1,11 @@
 #define NAPI_EXPERIMENTAL
-#include <stdlib.h>
-#include <assert.h>
 #include <js_native_api.h>
 #include "../common.h"
+
+#define assert(x) do { if (!(x)) { __builtin_trap(); } } while (0)
+
+void* malloc(size_t size);
+void free(void* p);
 
 static int test_value = 1;
 static int finalize_count = 0;

@@ -1,6 +1,8 @@
 #include <limits.h>
-#include <inttypes.h>
+// #include <inttypes.h>
+#if !defined(__wasm__) || (defined(__EMSCRIPTEN__) || defined(__wasi__))
 #include <stdio.h>
+#endif
 #include <js_native_api.h>
 #include "../common.h"
 
@@ -98,7 +100,7 @@ static napi_value TestWords(napi_env env, napi_callback_info info) {
 
   NAPI_CALL(env, napi_get_value_bigint_words(
         env, args[0], &sign_bit, &word_count, words));
-
+#if !defined(__wasm__) || (defined(__EMSCRIPTEN__) || defined(__wasi__))
   printf("[");
   for (size_t i = 0; i < word_count; i++) {
     if (i == 0) {
@@ -108,7 +110,7 @@ static napi_value TestWords(napi_env env, napi_callback_info info) {
     }
   }
   printf("]\n");
-
+#endif
   NAPI_ASSERT(env, word_count == expected_word_count,
       "word counts do not match");
 

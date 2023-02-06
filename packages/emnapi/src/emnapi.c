@@ -2,10 +2,10 @@
 #include <assert.h>
 #include <stdlib.h>
 #else
-void* malloc(unsigned long size);
-void* calloc(unsigned long count, unsigned long size);
+#include <stddef.h>
+void* malloc(size_t size);
+void* calloc(size_t count, size_t size);
 void free(void* p);
-void abort();
 #endif
 
 #if defined(__EMSCRIPTEN_PTHREADS__) || defined(_REENTRANT)
@@ -62,7 +62,7 @@ void abort();
 #define CHECK(expr)                                                           \
   do {                                                                        \
     if (!(expr)) {                                                            \
-      abort();                                                                \
+      __builtin_trap();                                                       \
     }                                                                         \
   } while (0)
 
@@ -159,9 +159,7 @@ napi_status napi_get_last_error_info(
   return napi_ok;
 }
 
-#ifndef __EMSCRIPTEN__
-EMNAPI_INTERNAL_EXTERN int _emnapi_wasm_memory_grow(size_t page_increase);
-#endif
+#define PAGESIZE 65536
 
 napi_status napi_adjust_external_memory(napi_env env,
                                         int64_t change_in_bytes,
@@ -180,8 +178,8 @@ napi_status napi_adjust_external_memory(napi_env env,
     return napi_set_last_error(env, napi_generic_failure, 0, NULL);
   }
 #else
-  new_size = new_size + (65536 - new_size % 65536) % 65536;
-  if (!_emnapi_wasm_memory_grow((new_size - old_size + 65535) >> 16)) {
+  new_size = new_size + (PAGESIZE - new_size % PAGESIZE) % PAGESIZE;
+  if (-1 == __builtin_wasm_memory_grow(0, (new_size - old_size + 65535) >> 16)) {
     return napi_set_last_error(env, napi_generic_failure, 0, NULL);
   }
 #endif

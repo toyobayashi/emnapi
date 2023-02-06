@@ -10,6 +10,11 @@ else()
   set(IS_EMSCRIPTEN OFF)
 endif()
 
+if((CMAKE_C_COMPILER_TARGET STREQUAL "wasm32") OR (CMAKE_C_COMPILER_TARGET STREQUAL "wasm32-unknown-unknown"))
+  set(IS_WASM32 ON)
+else()
+  set(IS_WASM32 OFF)
+endif()
 
 set(UV_SRC
   "${CMAKE_CURRENT_SOURCE_DIR}/src/uv/uv-common.c"
@@ -33,6 +38,17 @@ endif()
 
 set(EMNAPI_TARGET_NAME "emnapi")
 set(EMNAPI_MT_TARGET_NAME "emnapi-mt")
+set(DLMALLOC_TARGET_NAME "dlmalloc")
+
+if(IS_WASM32)
+  add_library(${DLMALLOC_TARGET_NAME} STATIC
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/dlmalloc/dlmalloc.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/dlmalloc/sbrk.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/dlmalloc/memcpy.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/dlmalloc/memset.c"
+  )
+  target_compile_definitions(${DLMALLOC_TARGET_NAME} PRIVATE "PAGESIZE=65536")
+endif()
 
 add_library(${EMNAPI_TARGET_NAME} STATIC ${EMNAPI_SRC} ${UV_SRC})
 target_include_directories(${EMNAPI_TARGET_NAME} PUBLIC ${EMNAPI_INCLUDE})
@@ -79,6 +95,9 @@ if(LIB_ARCH)
   if(EMNAPI_BUILD_MT)
     install(TARGETS ${EMNAPI_MT_TARGET_NAME} DESTINATION "lib/${LIB_ARCH}")
   endif()
+  if(IS_WASM32)
+    install(TARGETS ${DLMALLOC_TARGET_NAME} DESTINATION "lib/${LIB_ARCH}")
+  endif()
 endif()
 
 install(FILES
@@ -107,5 +126,8 @@ if(EMNAPI_INSTALL_SRC)
     DESTINATION "src/${PROJECT_NAME}")
   install(DIRECTORY
     ${CMAKE_CURRENT_SOURCE_DIR}/src/uv
+    DESTINATION "src/${PROJECT_NAME}")
+  install(DIRECTORY
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/dlmalloc
     DESTINATION "src/${PROJECT_NAME}")
 endif()

@@ -73,6 +73,16 @@
       "cStandard": "c11",
       "cppStandard": "c++14",
       "includePath": ["${includePath}"]
+    },
+    {
+      "name": "WASM32",
+      "defines": ["${defines}", "PAGESIZE=65536"],
+      "compilerPath": "${env:LLVM_PATH}/bin/clang",
+      "intelliSenseMode": "clang-x86",
+      "cStandard": "c11",
+      "cppStandard": "c++14",
+      "includePath": ["${includePath}"],
+      "compilerArgs": ["--target=wasm32"]
     }
   ],
   "version": 4

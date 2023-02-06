@@ -1,5 +1,7 @@
+#if !defined(__wasm__) || (defined(__EMSCRIPTEN__) || defined(__wasi__))
 #include <stdio.h>
 #include <stdlib.h>
+#endif
 #include <stdint.h>
 #include <js_native_api.h>
 #include "../common.h"
@@ -252,19 +254,22 @@ static napi_value add_finalizer_only(napi_env env, napi_callback_info info) {
   return NULL;
 }
 
+#if !defined(__wasm__) || (defined(__EMSCRIPTEN__) || defined(__wasi__))
 static const char* env_cleanup_finalizer_messages[] = {
   "simple wrap",
   "wrap, removeWrap",
   "first wrap",
   "second wrap"
 };
+#endif
 
 static void cleanup_env_finalizer(napi_env env, void* data, void* hint) {
   (void) env;
   (void) hint;
-
+#if !defined(__wasm__) || (defined(__EMSCRIPTEN__) || defined(__wasi__))
   printf("finalize at env cleanup for %s\n",
       env_cleanup_finalizer_messages[(uintptr_t)data]);
+#endif
 }
 
 static napi_value env_cleanup_wrap(napi_env env, napi_callback_info info) {

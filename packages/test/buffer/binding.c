@@ -1,11 +1,35 @@
-#ifdef __EMSCRIPTEN__
+#ifdef __wasm__
 #include <emnapi.h>
 #endif
 
-#include <stdlib.h>
-#include <string.h>
 #include <node_api.h>
 #include "../common.h"
+
+void* malloc(size_t size);
+void free(void* p);
+void* memcpy(void* dst, const void* src, size_t n);
+
+#if !defined(__wasm__) || (defined(__EMSCRIPTEN__) || defined(__wasi__))
+#include <string.h>
+#else
+int strcmp(const char *l, const char *r) {
+	for (; *l==*r && *l; l++, r++);
+	return *(unsigned char *)l - *(unsigned char *)r;
+}
+
+size_t strlen(const char *s) {
+	const char *a = s;
+	for (; *s; s++);
+	return s-a;
+}
+
+char *strdup(const char *s) {
+	size_t l = strlen(s);
+	char *d = malloc(l+1);
+	if (!d) return NULL;
+	return memcpy(d, s, l+1);
+}
+#endif
 
 static const char theText[] =
     "Lorem ipsum dolor sit amet, consectetur adipiscing elit.";

@@ -1,6 +1,9 @@
 #include <node_api.h>
-#include <stdlib.h>
+// #include <stdlib.h>
 #include "../common.h"
+
+void* malloc(size_t size);
+void free(void* p);
 
 static napi_value testGetNodeVersion(napi_env env, napi_callback_info info) {
   const napi_node_version* node_version;

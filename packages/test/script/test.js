@@ -1,7 +1,8 @@
 const { spawnSync } = require('child_process')
+const path = require('path')
 const glob = require('glob')
 
-const cwd = require('path').join(__dirname, '..')
+const cwd = path.join(__dirname, '..')
 const subdir = process.argv[2]
 
 let ignore = []
@@ -29,7 +30,7 @@ if (process.env.EMNAPI_TEST_NATIVE) {
     'objwrap/objwrapref.test.js',
     '**/{emnapitest,node-addon-api}/**/*'
   ])]
-} else if (process.env.EMNAPI_TEST_WASI) {
+} else if (process.env.EMNAPI_TEST_WASI || process.env.EMNAPI_TEST_WASM32) {
   ignore = [...new Set([
     ...ignore,
     ...pthread
