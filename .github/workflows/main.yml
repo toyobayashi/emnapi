@@ -62,16 +62,16 @@ jobs:
       shell: bash
       run: |
         wget -q https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${WASI_VERSION}/wasi-sdk-${WASI_VERSION_FULL}-linux.tar.gz
-        tar zxvf wasi-sdk-${WASI_VERSION_FULL}-linux.tar.gz
-        mv wasi-sdk-${WASI_VERSION_FULL} $WASI_SDK_PATH
+        mkdir -p $WASI_SDK_PATH
+        tar zxvf wasi-sdk-${WASI_VERSION_FULL}-linux.tar.gz -C $WASI_SDK_PATH --strip 1
 
     - name: Install LLVM
       if: ${{ steps.cache-llvm.outputs.cache-hit != 'true' }}
       shell: bash
       run: |
         wget -q https://github.com/llvm/llvm-project/releases/download/llvmorg-${LLVM_VERSION}/clang+llvm-${LLVM_VERSION}-powerpc64le-linux-ubuntu-18.04.tar.xz
-        tar -xf clang+llvm-${LLVM_VERSION}-powerpc64le-linux-ubuntu-18.04.tar.xz
-        mv clang+llvm-${LLVM_VERSION}-powerpc64le-linux-ubuntu-18.04 $LLVM_PATH
+        mkdir -p $LLVM_PATH
+        tar -xf clang+llvm-${LLVM_VERSION}-powerpc64le-linux-ubuntu-18.04.tar.xz -C $LLVM_PATH --strip 1
 
     - uses: actions/setup-node@v3
       with:
