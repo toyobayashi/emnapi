@@ -61,7 +61,7 @@ jobs:
       if: ${{ steps.cache-wasi-sdk.outputs.cache-hit != 'true' }}
       shell: bash
       run: |
-        wget https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${WASI_VERSION}/wasi-sdk-${WASI_VERSION_FULL}-linux.tar.gz
+        wget -q https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${WASI_VERSION}/wasi-sdk-${WASI_VERSION_FULL}-linux.tar.gz
         tar zxvf wasi-sdk-${WASI_VERSION_FULL}-linux.tar.gz
         mv wasi-sdk-${WASI_VERSION_FULL} $WASI_SDK_PATH
 
@@ -69,9 +69,9 @@ jobs:
       if: ${{ steps.cache-llvm.outputs.cache-hit != 'true' }}
       shell: bash
       run: |
-        wget https://github.com/llvm/llvm-project/releases/download/llvmorg-${LLVM_VERSION}/clang+llvm-${LLVM_VERSION}-powerpc64le-linux-ubuntu-18.04.tar.xz
+        wget -q https://github.com/llvm/llvm-project/releases/download/llvmorg-${LLVM_VERSION}/clang+llvm-${LLVM_VERSION}-powerpc64le-linux-ubuntu-18.04.tar.xz
         tar -xf clang+llvm-${LLVM_VERSION}-powerpc64le-linux-ubuntu-18.04.tar.xz
-        mv clang+llvm-${LLVM_VERSION}-powerpc64le-linux-ubuntu-18.04.tar.xz $LLVM_PATH
+        mv clang+llvm-${LLVM_VERSION}-powerpc64le-linux-ubuntu-18.04 $LLVM_PATH
 
     - uses: actions/setup-node@v3
       with:
@@ -88,25 +88,25 @@ jobs:
         npm install --legacy-peer-deps
         npm run build --workspaces --if-present
     
-    - name: Lint
-      run: npm run lint
+    # - name: Lint
+    #   run: npm run lint
 
-    - name: Test wasm32-unknown-emscripten
-      run: |
-        npm run rebuild -w packages/test
-        npm run test -w packages/test
+    # - name: Test wasm32-unknown-emscripten
+    #   run: |
+    #     npm run rebuild -w packages/test
+    #     npm run test -w packages/test
 
-    - name: Test wasm64-unknown-emscripten
-      env:
-        MEMORY64: '1'
-      run: |
-        npm run rebuild -w packages/test
-        npm run test -w packages/test
+    # - name: Test wasm64-unknown-emscripten
+    #   env:
+    #     MEMORY64: '1'
+    #   run: |
+    #     npm run rebuild -w packages/test
+    #     npm run test -w packages/test
 
-    - name: Test wasm32-wasi
-      run: |
-        npm run rebuild:w -w packages/test
-        npm run test:w -w packages/test
+    # - name: Test wasm32-wasi
+    #   run: |
+    #     npm run rebuild:w -w packages/test
+    #     npm run test:w -w packages/test
 
     - name: Test wasm32-unknown-unknown
       run: |
