@@ -10,8 +10,9 @@ async function main () {
   fs.rmSync(buildDir, { force: true, recursive: true })
   fs.mkdirSync(buildDir, { recursive: true })
   let LLVM_PATH = process.env.LLVM_PATH
+  if (!LLVM_PATH) LLVM_PATH = process.env.WASI_SDK_PATH
   if (!LLVM_PATH) {
-    throw new Error('process.env.LLVM_PATH is falsy value')
+    throw new Error('Both process.env.LLVM_PATH and process.env.WASI_SDK_PATH are falsy value')
   }
   if (!path.isAbsolute(LLVM_PATH)) {
     LLVM_PATH = path.join(__dirname, '../../..', LLVM_PATH)
@@ -24,7 +25,7 @@ async function main () {
         ? ['-G', 'Ninja']
         : (process.platform === 'win32' ? ['-G', 'MinGW Makefiles', '-DCMAKE_MAKE_PROGRAM=make'] : [])
     ),
-    `-DCMAKE_TOOLCHAIN_FILE=${path.join(__dirname, '../../emnapi/cmake/wasm.cmake').replace(/\\/g, '/')}`,
+    `-DCMAKE_TOOLCHAIN_FILE=${path.join(__dirname, '../../emnapi/cmake/wasm32.cmake').replace(/\\/g, '/')}`,
     `-DLLVM_PREFIX=${LLVM_PATH}`,
     `-DCMAKE_BUILD_TYPE=${process.argv[2] || 'Debug'}`,
     // '-DCMAKE_VERBOSE_MAKEFILE=1',

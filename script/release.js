@@ -21,9 +21,7 @@ async function main () {
   WASI_SDK_PATH = WASI_SDK_PATH.replace(/\\/g, '/')
 
   let LLVM_PATH = process.env.LLVM_PATH
-  if (!LLVM_PATH) {
-    throw new Error('process.env.LLVM_PATH is falsy value')
-  }
+  if (!LLVM_PATH) LLVM_PATH = process.env.WASI_SDK_PATH
   if (!path.isAbsolute(LLVM_PATH)) {
     LLVM_PATH = path.join(__dirname, '..', LLVM_PATH)
   }
@@ -41,7 +39,7 @@ async function main () {
 
   await spawn('cmake', [
     ...generatorOptions,
-    '-DCMAKE_TOOLCHAIN_FILE=./cmake/wasm.cmake',
+    '-DCMAKE_TOOLCHAIN_FILE=./cmake/wasm32.cmake',
     `-DLLVM_PREFIX=${LLVM_PATH}`,
     '-DCMAKE_BUILD_TYPE=Release',
     '-DCMAKE_VERBOSE_MAKEFILE=1',

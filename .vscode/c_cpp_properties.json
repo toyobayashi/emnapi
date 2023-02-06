@@ -77,7 +77,7 @@
     {
       "name": "WASM32",
       "defines": ["${defines}", "PAGESIZE=65536"],
-      "compilerPath": "${env:LLVM_PATH}/bin/clang",
+      "compilerPath": "${env:WASI_SDK_PATH}/bin/clang",
       "intelliSenseMode": "clang-x86",
       "cStandard": "c11",
       "cppStandard": "c++14",
