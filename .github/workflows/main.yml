@@ -22,9 +22,9 @@ jobs:
     env:
       WASI_VERSION: '19'
       WASI_VERSION_FULL: '19.0'
-      WASI_SDK_PATH: './wasi-sdk'
+      WASI_SDK_PATH: './wasi-sdk-19.0'
       LLVM_VERSION: '15.0.7'
-      LLVM_PATH: './wasi-sdk'
+      LLVM_PATH: './wasi-sdk-19.0'
     strategy:
       fail-fast: false
       matrix:

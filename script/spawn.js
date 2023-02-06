@@ -27,4 +27,15 @@ function spawn (command, args, cwdPath, stdin) {
   return p
 }
 
+function spawnSync (command, args, cwdPath) {
+  const argsString = args.map(a => a.indexOf(' ') !== -1 ? ('"' + a + '"') : a).join(' ')
+  const cwd = cwdPath || process.cwd()
+  console.log(`[spawn] ${cwd}${process.platform === 'win32' ? '>' : '$'} ${command} ${argsString}`)
+  return require('child_process').spawnSync(command, args, {
+    env: process.env,
+    cwd
+  })
+}
+
 exports.spawn = spawn
+exports.spawnSync = spawnSync

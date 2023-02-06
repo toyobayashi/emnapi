@@ -2,7 +2,7 @@ const fs = require('fs-extra')
 const path = require('path')
 const crossZip = require('@tybys/cross-zip')
 const { which } = require('./which.js')
-const { spawn } = require('./spawn.js')
+const { spawn, spawnSync } = require('./spawn.js')
 
 async function main () {
   const sysroot = path.join(__dirname, '../out')
@@ -28,6 +28,7 @@ async function main () {
   LLVM_PATH = LLVM_PATH.replace(/\\/g, '/')
 
   const cwd = path.join(__dirname, '../packages/emnapi')
+  fs.rmSync(path.join(cwd, 'build'), { force: true, recursive: true })
   let emcmake = process.platform === 'win32' ? 'emcmake.bat' : 'emcmake'
   if (process.env.EMSDK) {
     emcmake = path.join(process.env.EMSDK, 'upstream/emscripten', emcmake)
@@ -126,6 +127,18 @@ async function main () {
     '--prefix',
     sysroot
   ], cwd)
+
+  const { stderr: llvmClangVersion } = spawnSync(path.join(LLVM_PATH, 'bin/clang' + (process.platform === 'win32' ? '.exe' : '')), ['-v', '--target=wasm32'])
+  const { stderr: wasiSdkClangVersion } = spawnSync(path.join(WASI_SDK_PATH, 'bin/clang' + (process.platform === 'win32' ? '.exe' : '')), ['-v'])
+  const { stderr: emccVersion } = spawnSync(path.join(process.env.EMSDK, 'upstream/emscripten/emcc' + (process.platform === 'win32' ? '.exe' : '')), ['-v'])
+
+  fs.writeFileSync(path.join(sysroot, 'lib/emnapi', 'wasm32.txt'), llvmClangVersion)
+  fs.writeFileSync(path.join(sysroot, 'lib/emnapi', 'wasm32-wasi.txt'), wasiSdkClangVersion)
+  fs.writeFileSync(path.join(sysroot, 'lib/emnapi', 'wasm32-emscripten.txt'), emccVersion)
+
+  fs.copySync(path.join(sysroot, 'lib/emnapi', 'wasm32.txt'), path.join(__dirname, '../packages/emnapi/lib/wasm32.txt'))
+  fs.copySync(path.join(sysroot, 'lib/emnapi', 'wasm32-wasi.txt'), path.join(__dirname, '../packages/emnapi/lib/wasm32-wasi.txt'))
+  fs.copySync(path.join(sysroot, 'lib/emnapi', 'wasm32-emscripten.txt'), path.join(__dirname, '../packages/emnapi/lib/wasm32-emscripten.txt'))
 
   fs.copyFileSync(path.join(__dirname, '../packages/runtime/dist/emnapi.js'), path.join(sysroot, 'lib/emnapi', 'emnapi.js'))
   fs.copyFileSync(path.join(__dirname, '../packages/runtime/dist/emnapi.min.js'), path.join(sysroot, 'lib/emnapi', 'emnapi.min.js'))
