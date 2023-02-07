@@ -1,0 +1,19 @@
+[package]
+edition = "2021"
+name = "binding"
+version = "0.0.0"
+
+# We should build binary for WASI reactor
+# [lib]
+# crate-type = ["cdylib"]
+
+[dependencies]
+napi = { version = "2.10.13", default-features = false, features = ["napi8", "compat-mode"] }
+napi-sys = { version = "2.2.3", features = ["napi8"] }
+napi-derive = "2.10.0"
+
+[build-dependencies]
+napi-build = "2.0.1"
+
+[profile.release]
+strip = "symbols"

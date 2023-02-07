@@ -42,6 +42,11 @@ jobs:
         version: '3.1.29'
         # no-cache: true
         actions-cache-folder: 'emsdk-cache'
+    - uses: actions-rs/toolchain@v1
+      with:
+        toolchain: nightly
+        default: true
+        target: wasm32-unknown-unknown, wasm32-wasi
 
     - name: Cache wasi-sdk
       id: cache-wasi-sdk
@@ -72,6 +77,11 @@ jobs:
         npm install -g node-gyp
         npm install --legacy-peer-deps
         npm run build --workspaces --if-present
+    
+    - name: Build Rust
+      shell: bash
+      working-directory: ./packages/test/rust
+      run: cargo build --release
 
     - name: Lint
       run: npm run lint

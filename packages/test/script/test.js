@@ -28,12 +28,18 @@ if (process.env.EMNAPI_TEST_NATIVE) {
     ...ignore,
     'filename/**/*',
     'objwrap/objwrapref.test.js',
+    'rust/**/*',
     '**/{emnapitest,node-addon-api}/**/*'
   ])]
 } else if (process.env.EMNAPI_TEST_WASI || process.env.EMNAPI_TEST_WASM32) {
   ignore = [...new Set([
     ...ignore,
     ...pthread
+  ])]
+} else {
+  ignore = [...new Set([
+    ...ignore,
+    'rust/**/*'
   ])]
 }
 
