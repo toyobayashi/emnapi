@@ -1,5 +1,4 @@
-declare const _napi_get_all_property_names: typeof napi_get_all_property_names
-function napi_get_all_property_names (
+function _napi_get_all_property_names (
   env: napi_env,
   object: napi_value,
   key_mode: napi_key_collection_mode,
@@ -163,6 +162,9 @@ function napi_set_property (env: napi_env, object: napi_value, key: napi_value, 
 
 // @ts-expect-error
 function napi_has_property (env: napi_env, object: napi_value, key: napi_value, result: Pointer<bool>): napi_status {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  let r: number
+
   $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, key)
     $CHECK_ARG!(envObject, result)
@@ -178,7 +180,8 @@ function napi_has_property (env: napi_env, object: napi_value, key: napi_value, 
       return envObject.setLastError(napi_status.napi_object_expected)
     }
     $from64('result')
-    HEAPU8[result] = (emnapiCtx.handleStore.get(key)!.value in v) ? 1 : 0
+    r = (emnapiCtx.handleStore.get(key)!.value in v) ? 1 : 0
+    $makeSetValue('result', 0, 'r', 'i8')
     return envObject.getReturnStatus()
   })
 }
@@ -212,6 +215,9 @@ function napi_get_property (env: napi_env, object: napi_value, key: napi_value, 
 
 // @ts-expect-error
 function napi_delete_property (env: napi_env, object: napi_value, key: napi_value, result: Pointer<bool>): napi_status {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  let r: boolean
+
   $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, key)
     $CHECK_ARG!(envObject, object)
@@ -219,7 +225,6 @@ function napi_delete_property (env: napi_env, object: napi_value, key: napi_valu
     if (!(h.isObject() || h.isFunction())) {
       return envObject.setLastError(napi_status.napi_object_expected)
     }
-    let r: boolean
     const propertyKey = emnapiCtx.handleStore.get(key)!.value
     if (emnapiCtx.feature.supportReflect) {
       r = Reflect.deleteProperty(h.value, propertyKey)
@@ -232,7 +237,7 @@ function napi_delete_property (env: napi_env, object: napi_value, key: napi_valu
     }
     if (result) {
       $from64('result')
-      HEAPU8[result] = r ? 1 : 0
+      $makeSetValue('result', 0, 'r ? 1 : 0', 'i8')
     }
     return envObject.getReturnStatus()
   })
@@ -241,7 +246,7 @@ function napi_delete_property (env: napi_env, object: napi_value, key: napi_valu
 // @ts-expect-error
 function napi_has_own_property (env: napi_env, object: napi_value, key: napi_value, result: Pointer<bool>): napi_status {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  let value: number
+  let value: number, r: boolean
 
   $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, key)
@@ -261,9 +266,9 @@ function napi_has_own_property (env: napi_env, object: napi_value, key: napi_val
     if (typeof prop !== 'string' && typeof prop !== 'symbol') {
       return envObject.setLastError(napi_status.napi_name_expected)
     }
-    const r = Object.prototype.hasOwnProperty.call(v, emnapiCtx.handleStore.get(key)!.value)
+    r = Object.prototype.hasOwnProperty.call(v, emnapiCtx.handleStore.get(key)!.value)
     $from64('result')
-    HEAPU8[result] = r ? 1 : 0
+    $makeSetValue('result', 0, 'r ? 1 : 0', 'i8')
     return envObject.getReturnStatus()
   })
 }
@@ -288,6 +293,9 @@ function napi_set_named_property (env: napi_env, object: napi_value, cname: cons
 
 // @ts-expect-error
 function napi_has_named_property (env: napi_env, object: napi_value, utf8name: const_char_p, result: Pointer<bool>): napi_status {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  let r: boolean
+
   $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, result)
     $CHECK_ARG!(envObject, object)
@@ -307,8 +315,8 @@ function napi_has_named_property (env: napi_env, object: napi_value, utf8name: c
     $from64('utf8name')
     $from64('result')
 
-    const r = UTF8ToString(utf8name) in v
-    HEAPU8[result] = r ? 1 : 0
+    r = UTF8ToString(utf8name) in v
+    $makeSetValue('result', 0, 'r ? 1 : 0', 'i8')
     return envObject.getReturnStatus()
   })
 }
@@ -360,6 +368,9 @@ function napi_set_element (env: napi_env, object: napi_value, index: uint32_t, v
 
 // @ts-expect-error
 function napi_has_element (env: napi_env, object: napi_value, index: uint32_t, result: Pointer<bool>): napi_status {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  let r: number
+
   $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, result)
     $CHECK_ARG!(envObject, object)
@@ -374,7 +385,8 @@ function napi_has_element (env: napi_env, object: napi_value, index: uint32_t, r
       return envObject.setLastError(napi_status.napi_object_expected)
     }
     $from64('result')
-    HEAPU8[result] = ((index >>> 0) in v) ? 1 : 0
+    r = ((index >>> 0) in v) ? 1 : 0
+    $makeSetValue('result', 0, 'r', 'i8')
     return envObject.getReturnStatus()
   })
 }
@@ -407,13 +419,15 @@ function napi_get_element (env: napi_env, object: napi_value, index: uint32_t, r
 
 // @ts-expect-error
 function napi_delete_element (env: napi_env, object: napi_value, index: uint32_t, result: Pointer<bool>): napi_status {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  let r: boolean
+
   $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, object)
     const h = emnapiCtx.handleStore.get(object)!
     if (!(h.isObject() || h.isFunction())) {
       return envObject.setLastError(napi_status.napi_object_expected)
     }
-    let r: boolean
     if (emnapiCtx.feature.supportReflect) {
       r = Reflect.deleteProperty(h.value, index >>> 0)
     } else {
@@ -425,7 +439,7 @@ function napi_delete_element (env: napi_env, object: napi_value, index: uint32_t
     }
     if (result) {
       $from64('result')
-      HEAPU8[result] = r ? 1 : 0
+      $makeSetValue('result', 0, 'r ? 1 : 0', 'i8')
     }
     return envObject.getReturnStatus()
   })
@@ -517,7 +531,7 @@ function napi_object_seal (env: napi_env, object: napi_value): napi_status {
   })
 }
 
-emnapiImplement('napi_get_all_property_names', 'ippiiip', napi_get_all_property_names)
+emnapiImplement('napi_get_all_property_names', 'ippiiip', _napi_get_all_property_names)
 emnapiImplement('napi_get_property_names', 'ippp', napi_get_property_names, ['napi_get_all_property_names'])
 emnapiImplement('napi_set_property', 'ipppp', napi_set_property)
 emnapiImplement('napi_has_property', 'ipppp', napi_has_property)

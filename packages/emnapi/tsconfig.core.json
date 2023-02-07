@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "outFile": "./dist/emnapi-core.js",
+    "plugins": [
+      { "transform": "ts-macros" }
+    ]
+  },
+  "include": [
+    "./src/core/**/*.ts",
+    "../runtime/src/typings/**/*.d.ts",
+    "./src/typings/**/*.d.ts",
+    "./src/*.ts",
+    "./src/value/**/*.ts"
+  ]
+}

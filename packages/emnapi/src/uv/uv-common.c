@@ -1,4 +1,4 @@
-#ifdef __EMSCRIPTEN_PTHREADS__
+#if defined(__EMSCRIPTEN_PTHREADS__) || defined(_REENTRANT)
 
 #include <errno.h>
 #include <string.h>

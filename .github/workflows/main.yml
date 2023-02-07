@@ -19,6 +19,12 @@ jobs:
   build:
     name: Build
     runs-on: ${{ matrix.os }}
+    env:
+      WASI_VERSION: '19'
+      WASI_VERSION_FULL: '19.0'
+      WASI_SDK_PATH: './wasi-sdk-19.0'
+      LLVM_VERSION: '15.0.7'
+      LLVM_PATH: './wasi-sdk-19.0'
     strategy:
       fail-fast: false
       matrix:
@@ -36,6 +42,32 @@ jobs:
         version: '3.1.29'
         # no-cache: true
         actions-cache-folder: 'emsdk-cache'
+    - uses: actions-rs/toolchain@v1
+      with:
+        toolchain: nightly
+        default: true
+        target: wasm32-unknown-unknown
+    - uses: actions-rs/toolchain@v1
+      with:
+        toolchain: nightly
+        default: true
+        target: wasm32-wasi
+
+    - name: Cache wasi-sdk
+      id: cache-wasi-sdk
+      uses: actions/cache@v3
+      with:
+        path: ${{ env.WASI_SDK_PATH }}
+        key: ${{ runner.os }}-${{ env.WASI_VERSION_FULL }}
+
+    - name: Install wasi-sdk
+      if: ${{ steps.cache-wasi-sdk.outputs.cache-hit != 'true' }}
+      shell: bash
+      run: |
+        wget -q https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${WASI_VERSION}/wasi-sdk-${WASI_VERSION_FULL}-linux.tar.gz
+        mkdir -p $WASI_SDK_PATH
+        tar zxvf wasi-sdk-${WASI_VERSION_FULL}-linux.tar.gz -C $WASI_SDK_PATH --strip 1
+
     - uses: actions/setup-node@v3
       with:
         node-version: '16.15.0'
@@ -50,27 +82,39 @@ jobs:
         npm install -g node-gyp
         npm install --legacy-peer-deps
         npm run build --workspaces --if-present
-    
+
     - name: Lint
       run: npm run lint
 
-    - name: Test
+    - name: Test wasm32-unknown-emscripten
       run: |
         npm run rebuild -w packages/test
         npm run test -w packages/test
 
-    - name: Test MEMORY64
+    - name: Test wasm64-unknown-emscripten
       env:
         MEMORY64: '1'
       run: |
         npm run rebuild -w packages/test
         npm run test -w packages/test
 
+    - name: Test wasm32-wasi
+      run: |
+        npm run rebuild:w -w packages/test
+        cd ./packages/test/rust && cargo build --release --target=wasm32-wasi && cd ../../..
+        npm run test:w -w packages/test
+
+    - name: Test wasm32-unknown-unknown
+      run: |
+        npm run rebuild:wasm32 -w packages/test
+        cd ./packages/test/rust && cargo build --release --target=wasm32-unknown-unknown && cd ../../..
+        npm run test:wasm32 -w packages/test
+
     - name: Publish
       if: ${{ startsWith(github.event.ref, 'refs/tags') && matrix.os == 'ubuntu-latest' }}
       run: |
         node ./script/release.js
-        npm publish --ignore-scripts -w packages/runtime -w packages/node -w packages/emnapi
+        npm publish --ignore-scripts -w packages/runtime -w packages/node -w packages/emnapi -w packages/core
 
     - name: Create release
       if: ${{ startsWith(github.event.ref, 'refs/tags') }}

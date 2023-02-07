@@ -51,7 +51,9 @@ function napi_is_promise (env: napi_env, value: napi_value, is_promise: Pointer<
   $CHECK_ARG!(envObject, is_promise)
   const h = emnapiCtx.handleStore.get(value)!
   $from64('is_promise')
-  HEAPU8[is_promise] = h.isPromise() ? 1 : 0
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const r = h.isPromise() ? 1 : 0
+  $makeSetValue('is_promise', 0, 'r', 'i8')
   return envObject.clearLastError()
 }
 

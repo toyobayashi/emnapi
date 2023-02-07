@@ -22,11 +22,12 @@
  * user-facing uv_async_t functions.
  */
 
-#ifdef __EMSCRIPTEN_PTHREADS__
+#if defined(__EMSCRIPTEN_PTHREADS__) || defined(_REENTRANT)
 
 #include <stdlib.h>
 #include <sched.h>
 #include "../uv-common.h"
+#include "common.h"
 
 #if defined(__clang__) ||                                                     \
     defined(__GNUC__) ||                                                      \
@@ -46,10 +47,10 @@ UV_UNUSED(static int cmpxchgi(int* ptr, int oldval, int newval)) {
 #define EMNAPI_NEXTTICK_TYPE 0
 #endif
 #if EMNAPI_NEXTTICK_TYPE == 0
-extern void _emnapi_set_immediate(void (*callback)(void*), void* data);
+EMNAPI_INTERNAL_EXTERN void _emnapi_set_immediate(void (*callback)(void*), void* data);
 #define NEXT_TICK(callback, data) _emnapi_set_immediate((callback), (data))
 #elif EMNAPI_NEXTTICK_TYPE == 1
-extern void _emnapi_next_tick(void (*callback)(void*), void* data);
+EMNAPI_INTERNAL_EXTERN void _emnapi_next_tick(void (*callback)(void*), void* data);
 #define NEXT_TICK(callback, data) _emnapi_next_tick((callback), (data))
 #else
 #error "Invalid EMNAPI_NEXTTICK_TYPE"
@@ -74,7 +75,7 @@ void _emnapi_destroy_proxying_queue(uv_loop_t* loop) {
 }
 
 #else
-extern void _emnapi_async_send_js(int type,
+EMNAPI_INTERNAL_EXTERN void _emnapi_async_send_js(int type,
                                   void (*callback)(void*),
                                   void* data);
 

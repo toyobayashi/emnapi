@@ -1,40 +1,4 @@
-// @ts-expect-error
-function emnapi_get_module_object (env: napi_env, result: Pointer<napi_value>): napi_status {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  let value: number
-
-  $PREAMBLE!(env, (envObject) => {
-    $CHECK_ARG!(envObject, result)
-    $from64('result')
-
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    value = envObject.ensureHandleId(Module)
-    $makeSetValue('result', 0, 'value', '*')
-    return envObject.getReturnStatus()
-  })
-}
-
-// @ts-expect-error
-function emnapi_get_module_property (env: napi_env, utf8name: const_char_p, result: Pointer<napi_value>): napi_status {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  let value: number
-
-  $PREAMBLE!(env, (envObject) => {
-    $CHECK_ARG!(envObject, utf8name)
-    $CHECK_ARG!(envObject, result)
-    $from64('utf8name')
-    $from64('result')
-
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    value = envObject.ensureHandleId(Module[UTF8ToString(utf8name)])
-    $makeSetValue('result', 0, 'value', '*')
-    return envObject.getReturnStatus()
-  })
-}
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-declare const _emnapi_create_memory_view: typeof emnapi_create_memory_view
-function emnapi_create_memory_view (
+function _emnapi_create_memory_view (
   env: napi_env,
   typedarray_type: emnapi_memory_view_type,
   external_data: void_p,
@@ -62,7 +26,7 @@ function emnapi_create_memory_view (
     if (byte_length > 2147483647) {
       throw new RangeError('Cannot create a memory view larger than 2147483647 bytes')
     }
-    if ((external_data + byte_length) > HEAPU8.buffer.byteLength) {
+    if ((external_data + byte_length) > wasmMemory.buffer.byteLength) {
       throw new RangeError('Memory out of range')
     }
     if (!emnapiCtx.feature.supportFinalizer && finalize_cb) {
@@ -114,8 +78,8 @@ function emnapi_create_memory_view (
     }
     const Ctor = viewDescriptor.Ctor
     const typedArray = typedarray_type === emnapi_memory_view_type.emnapi_buffer
-      ? emnapiCtx.feature.Buffer!.from(HEAPU8.buffer, viewDescriptor.address, viewDescriptor.length)
-      : new Ctor(HEAPU8.buffer, viewDescriptor.address, viewDescriptor.length)
+      ? emnapiCtx.feature.Buffer!.from(wasmMemory.buffer, viewDescriptor.address, viewDescriptor.length)
+      : new Ctor(wasmMemory.buffer, viewDescriptor.address, viewDescriptor.length)
     const handle = emnapiCtx.addToCurrentScope(typedArray)
     emnapiExternalMemory.wasmMemoryViewTable.set(typedArray, viewDescriptor)
     if (finalize_cb) {
@@ -146,61 +110,58 @@ function emnapi_is_node_binding_available (): int {
   return emnapiNodeBinding ? 1 : 0
 }
 
-declare function emnapiSyncMemory<T extends ArrayBuffer | ArrayBufferView> (
+function emnapiSyncMemory<T extends ArrayBuffer | ArrayBufferView> (
   js_to_wasm: boolean,
   arrayBufferOrView: T,
   offset?: number,
-  len?: int,
-): T
+  len?: int
+): T {
+  offset = offset ?? 0
+  offset = offset >>> 0
+  let view: Uint8Array
+  if (arrayBufferOrView instanceof ArrayBuffer) {
+    const pointer = emnapiExternalMemory.getArrayBufferPointer(arrayBufferOrView, false).address
+    if (!pointer) throw new Error('Unknown ArrayBuffer address')
+    if (typeof len !== 'number' || len === -1) {
+      len = arrayBufferOrView.byteLength - offset
+    }
+    len = len >>> 0
+    if (len === 0) return arrayBufferOrView
+    view = new Uint8Array(arrayBufferOrView, offset, len)
 
-mergeInto(LibraryManager.library, {
-  $emnapiSyncMemory__deps: ['$emnapiExternalMemory'],
-  $emnapiSyncMemory: function<T extends ArrayBuffer | ArrayBufferView> (js_to_wasm: boolean, arrayBufferOrView: T, offset?: number, len?: int): T {
-    offset = offset ?? 0
-    offset = offset >>> 0
-    let view: Uint8Array
-    if (arrayBufferOrView instanceof ArrayBuffer) {
-      const pointer = emnapiExternalMemory.getArrayBufferPointer(arrayBufferOrView, false).address
-      if (!pointer) throw new Error('Unknown ArrayBuffer address')
-      if (typeof len !== 'number' || len === -1) {
-        len = arrayBufferOrView.byteLength - offset
-      }
-      len = len >>> 0
-      if (len === 0) return arrayBufferOrView
-      view = new Uint8Array(arrayBufferOrView, offset, len)
-
-      if (!js_to_wasm) {
-        view.set(HEAPU8.subarray(pointer, pointer + len))
-      } else {
-        HEAPU8.set(view, pointer)
-      }
-
-      return arrayBufferOrView
+    const wasmMemoryU8 = new Uint8Array(wasmMemory.buffer)
+    if (!js_to_wasm) {
+      view.set(wasmMemoryU8.subarray(pointer, pointer + len))
+    } else {
+      wasmMemoryU8.set(view, pointer)
     }
 
-    if (ArrayBuffer.isView(arrayBufferOrView)) {
-      const viewPointerInfo = emnapiExternalMemory.getViewPointer(arrayBufferOrView, false)
-      const latestView = viewPointerInfo.view
-      const pointer = viewPointerInfo.address
-      if (!pointer) throw new Error('Unknown ArrayBuffer address')
-      if (typeof len !== 'number' || len === -1) {
-        len = latestView.byteLength - offset
-      }
-      len = len >>> 0
-      if (len === 0) return latestView
-      view = new Uint8Array(latestView.buffer, latestView.byteOffset + offset, len)
-
-      if (!js_to_wasm) {
-        view.set(HEAPU8.subarray(pointer, pointer + len))
-      } else {
-        HEAPU8.set(view, pointer)
-      }
-
-      return latestView
-    }
-    throw new TypeError('emnapiSyncMemory expect ArrayBuffer or ArrayBufferView as first parameter')
+    return arrayBufferOrView
   }
-})
+
+  if (ArrayBuffer.isView(arrayBufferOrView)) {
+    const viewPointerInfo = emnapiExternalMemory.getViewPointer(arrayBufferOrView, false)
+    const latestView = viewPointerInfo.view
+    const pointer = viewPointerInfo.address
+    if (!pointer) throw new Error('Unknown ArrayBuffer address')
+    if (typeof len !== 'number' || len === -1) {
+      len = latestView.byteLength - offset
+    }
+    len = len >>> 0
+    if (len === 0) return latestView
+    view = new Uint8Array(latestView.buffer, latestView.byteOffset + offset, len)
+
+    const wasmMemoryU8 = new Uint8Array(wasmMemory.buffer)
+    if (!js_to_wasm) {
+      view.set(wasmMemoryU8.subarray(pointer, pointer + len))
+    } else {
+      wasmMemoryU8.set(view, pointer)
+    }
+
+    return latestView
+  }
+  throw new TypeError('emnapiSyncMemory expect ArrayBuffer or ArrayBufferView as first parameter')
+}
 
 // @ts-expect-error
 function emnapi_sync_memory (env: napi_env, js_to_wasm: bool, arraybuffer_or_view: Pointer<napi_value>, offset: size_t, len: size_t): napi_status {
@@ -232,31 +193,26 @@ function emnapi_sync_memory (env: napi_env, js_to_wasm: bool, arraybuffer_or_vie
   })
 }
 
-declare function emnapiGetMemoryAddress (arrayBufferOrView: ArrayBuffer | ArrayBufferView): PointerInfo
-
-mergeInto(LibraryManager.library, {
-  $emnapiGetMemoryAddress__deps: ['$emnapiExternalMemory'],
-  $emnapiGetMemoryAddress: function (arrayBufferOrView: ArrayBuffer | ArrayBufferView): PointerInfo {
-    const isArrayBuffer = arrayBufferOrView instanceof ArrayBuffer
-    const isDataView = arrayBufferOrView instanceof DataView
-    const isTypedArray = ArrayBuffer.isView(arrayBufferOrView) && !isDataView
-    if (!isArrayBuffer && !isTypedArray && !isDataView) {
-      throw new TypeError('emnapiGetMemoryAddress expect ArrayBuffer or ArrayBufferView as first parameter')
-    }
-
-    let info: PointerInfo
-    if (isArrayBuffer) {
-      info = emnapiExternalMemory.getArrayBufferPointer(arrayBufferOrView as ArrayBuffer, false)
-    } else {
-      info = emnapiExternalMemory.getViewPointer(arrayBufferOrView as ArrayBufferView, false)
-    }
-    return {
-      address: info.address,
-      ownership: info.ownership,
-      runtimeAllocated: info.runtimeAllocated
-    }
+function emnapiGetMemoryAddress (arrayBufferOrView: ArrayBuffer | ArrayBufferView): PointerInfo {
+  const isArrayBuffer = arrayBufferOrView instanceof ArrayBuffer
+  const isDataView = arrayBufferOrView instanceof DataView
+  const isTypedArray = ArrayBuffer.isView(arrayBufferOrView) && !isDataView
+  if (!isArrayBuffer && !isTypedArray && !isDataView) {
+    throw new TypeError('emnapiGetMemoryAddress expect ArrayBuffer or ArrayBufferView as first parameter')
   }
-})
+
+  let info: PointerInfo
+  if (isArrayBuffer) {
+    info = emnapiExternalMemory.getArrayBufferPointer(arrayBufferOrView as ArrayBuffer, false)
+  } else {
+    info = emnapiExternalMemory.getViewPointer(arrayBufferOrView as ArrayBufferView, false)
+  }
+  return {
+    address: info.address,
+    ownership: info.ownership,
+    runtimeAllocated: info.runtimeAllocated
+  }
+}
 
 // @ts-expect-error
 function emnapi_get_memory_address (env: napi_env, arraybuffer_or_view: napi_value, address: Pointer<void_pp>, ownership: Pointer<int>, runtime_allocated: Pointer<bool>): napi_status {
@@ -293,11 +249,13 @@ function emnapi_get_memory_address (env: napi_env, arraybuffer_or_view: napi_val
   })
 }
 
-emnapiImplement('emnapi_is_support_weakref', 'i', emnapi_is_support_weakref)
-emnapiImplement('emnapi_is_support_bigint', 'i', emnapi_is_support_bigint)
-emnapiImplement('emnapi_is_node_binding_available', 'i', emnapi_is_node_binding_available)
-emnapiImplement('emnapi_get_module_object', 'ipp', emnapi_get_module_object)
-emnapiImplement('emnapi_get_module_property', 'ippp', emnapi_get_module_property)
-emnapiImplement('emnapi_create_memory_view', 'ipippppp', emnapi_create_memory_view, ['napi_add_finalizer', '$emnapiExternalMemory'])
-emnapiImplement('emnapi_sync_memory', 'ipppppi', emnapi_sync_memory, ['$emnapiSyncMemory'])
-emnapiImplement('emnapi_get_memory_address', 'ipppp', emnapi_get_memory_address, ['$emnapiGetMemoryAddress'])
+emnapiImplementHelper('$emnapiSyncMemory', undefined, emnapiSyncMemory, ['$emnapiExternalMemory'], 'syncMemory')
+emnapiImplementHelper('$emnapiGetMemoryAddress', undefined, emnapiGetMemoryAddress, ['$emnapiExternalMemory'], 'getMemoryAddress')
+
+emnapiImplement2('emnapi_is_support_weakref', 'i', emnapi_is_support_weakref)
+emnapiImplement2('emnapi_is_support_bigint', 'i', emnapi_is_support_bigint)
+emnapiImplement2('emnapi_is_node_binding_available', 'i', emnapi_is_node_binding_available)
+
+emnapiImplement2('emnapi_create_memory_view', 'ipippppp', _emnapi_create_memory_view, ['napi_add_finalizer', '$emnapiExternalMemory'])
+emnapiImplement2('emnapi_sync_memory', 'ipppppi', emnapi_sync_memory, ['$emnapiSyncMemory'])
+emnapiImplement2('emnapi_get_memory_address', 'ipppp', emnapi_get_memory_address, ['$emnapiGetMemoryAddress'])

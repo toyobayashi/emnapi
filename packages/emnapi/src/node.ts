@@ -1,4 +1,4 @@
-function _emnapi_node_emit_async_init (
+function __emnapi_node_emit_async_init (
   async_resource: napi_value,
   async_resource_name: napi_value,
   trigger_async_id: double,
@@ -18,7 +18,7 @@ function _emnapi_node_emit_async_init (
   }
 }
 
-function _emnapi_node_emit_async_destroy (async_id: double, trigger_async_id: double): void {
+function __emnapi_node_emit_async_destroy (async_id: double, trigger_async_id: double): void {
   if (!emnapiNodeBinding) return
   emnapiNodeBinding.node.emitAsyncDestroy({
     asyncId: async_id,
@@ -26,7 +26,7 @@ function _emnapi_node_emit_async_destroy (async_id: double, trigger_async_id: do
   })
 }
 
-/* function _emnapi_node_open_callback_scope (async_resource: napi_value, async_id: double, trigger_async_id: double, result: Pointer<int64_t>): void {
+/* function __emnapi_node_open_callback_scope (async_resource: napi_value, async_id: double, trigger_async_id: double, result: Pointer<int64_t>): void {
   if (!emnapiNodeBinding || !result) return
   const resource = emnapiCtx.handleStore.get(async_resource)!.value
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -39,14 +39,14 @@ function _emnapi_node_emit_async_destroy (async_id: double, trigger_async_id: do
   $makeSetValue('result', 0, 'nativeCallbackScopePointer', 'i64')
 }
 
-function _emnapi_node_close_callback_scope (scope: Pointer<int64_t>): void {
+function __emnapi_node_close_callback_scope (scope: Pointer<int64_t>): void {
   if (!emnapiNodeBinding || !scope) return
   $from64('scope')
   const nativeCallbackScopePointer = $makeGetValue('scope', 0, 'i64')
   emnapiNodeBinding.node.closeCallbackScope(BigInt(nativeCallbackScopePointer))
 } */
 
-function _emnapi_node_make_callback (env: napi_env, async_resource: napi_value, cb: napi_value, argv: Pointer<napi_value>, size: size_t, async_id: double, trigger_async_id: double, result: Pointer<napi_value>): void {
+function __emnapi_node_make_callback (env: napi_env, async_resource: napi_value, cb: napi_value, argv: Pointer<napi_value>, size: size_t, async_id: double, trigger_async_id: double, result: Pointer<napi_value>): void {
   let i = 0
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let v: number
@@ -76,7 +76,7 @@ function _emnapi_node_make_callback (env: napi_env, async_resource: napi_value, 
   }
 }
 
-function _emnapi_async_init_js (async_resource: napi_value, async_resource_name: napi_value, result: Pointer<int64_t>): napi_status {
+function __emnapi_async_init_js (async_resource: napi_value, async_resource_name: napi_value, result: Pointer<int64_t>): napi_status {
   if (!emnapiNodeBinding) {
     return napi_status.napi_generic_failure
   }
@@ -98,16 +98,18 @@ function _emnapi_async_init_js (async_resource: napi_value, async_resource_name:
       numberValue = numberValue - (BigInt(1) << BigInt(64))
     }
   }
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const low = Number(numberValue & BigInt(0xffffffff))
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const high = Number(numberValue >> BigInt(32))
   $from64('result')
-  HEAP32[result >> 2] = low
-  HEAP32[result + 4 >> 2] = high
+  $makeSetValue('result', 0, 'low', 'i32')
+  $makeSetValue('result', 4, 'high', 'i32')
 
   return napi_status.napi_ok
 }
 
-function _emnapi_async_destroy_js (async_context: Pointer<int64_t>): napi_status {
+function __emnapi_async_destroy_js (async_context: Pointer<int64_t>): napi_status {
   if (!emnapiNodeBinding) {
     return napi_status.napi_generic_failure
   }
@@ -175,12 +177,13 @@ function napi_make_callback (env: napi_env, async_context: Pointer<int64_t>, rec
   })
 }
 
-emnapiImplement('_emnapi_node_emit_async_init', 'vppdp', _emnapi_node_emit_async_init)
-emnapiImplement('_emnapi_node_emit_async_destroy', 'vdd', _emnapi_node_emit_async_destroy)
-// emnapiImplement('_emnapi_node_open_callback_scope', 'vpddp', _emnapi_node_open_callback_scope)
-// emnapiImplement('_emnapi_node_close_callback_scope', 'vp', _emnapi_node_close_callback_scope)
-emnapiImplement('_emnapi_node_make_callback', 'ipppppddp', _emnapi_node_make_callback)
+emnapiImplementInternal('_emnapi_node_emit_async_init', 'vppdp', __emnapi_node_emit_async_init)
+emnapiImplementInternal('_emnapi_node_emit_async_destroy', 'vdd', __emnapi_node_emit_async_destroy)
+// emnapiImplementInternal('_emnapi_node_open_callback_scope', 'vpddp', __emnapi_node_open_callback_scope)
+// emnapiImplementInternal('_emnapi_node_close_callback_scope', 'vp', __emnapi_node_close_callback_scope)
+emnapiImplementInternal('_emnapi_node_make_callback', 'ipppppddp', __emnapi_node_make_callback)
 
-emnapiImplement('_emnapi_async_init_js', 'ippp', _emnapi_async_init_js)
-emnapiImplement('_emnapi_async_destroy_js', 'ip', _emnapi_async_destroy_js)
+emnapiImplementInternal('_emnapi_async_init_js', 'ippp', __emnapi_async_init_js)
+emnapiImplementInternal('_emnapi_async_destroy_js', 'ip', __emnapi_async_destroy_js)
+
 emnapiImplement('napi_make_callback', 'ippppppp', napi_make_callback)

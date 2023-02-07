@@ -1,8 +1,12 @@
 #include <limits.h>  // INT_MAX
-#include <string.h>
-#include <stdlib.h>
+// #include <string.h>
+// #include <stdlib.h>
 #include <js_native_api.h>
 #include "../common.h"
+
+void* memset(void* dst, int c, size_t n);
+void* malloc(size_t size);
+void free(void* p);
 
 static napi_value TestLatin1(napi_env env, napi_callback_info info) {
   size_t argc = 1;
@@ -257,9 +261,15 @@ static napi_value TestMemoryCorruption(napi_env env, napi_callback_info info) {
   NAPI_CALL(env, napi_get_value_string_utf8(env, args[0], buf, 0, NULL));
 
   char zero[10] = { 0 };
-  if (memcmp(buf, zero, sizeof(buf)) != 0) {
-    NAPI_CALL(env, napi_throw_error(env, NULL, "Buffer overwritten"));
+  for (int i = 0; i < sizeof(buf); ++i) {
+    if (buf[i] != zero[i]) {
+      NAPI_CALL(env, napi_throw_error(env, NULL, "Buffer overwritten"));
+      return NULL;
+    }
   }
+  // if (memcmp(buf, zero, sizeof(buf)) != 0) {
+  //   NAPI_CALL(env, napi_throw_error(env, NULL, "Buffer overwritten"));
+  // }
 
   return NULL;
 }

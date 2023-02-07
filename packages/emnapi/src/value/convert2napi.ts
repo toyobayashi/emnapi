@@ -72,14 +72,14 @@ function napi_create_string_latin1 (env: napi_env, str: const_char_p, length: si
   let len = 0
   if (length === -1) {
     while (true) {
-      const ch = HEAPU8[str]
+      const ch = $makeGetValue('str', 0, 'u8') as number
       if (!ch) break
       latin1String += String.fromCharCode(ch)
       str++
     }
   } else {
     while (len < length) {
-      const ch = HEAPU8[str]
+      const ch = $makeGetValue('str', 0, 'u8') as number
       if (!ch) break
       latin1String += String.fromCharCode(ch)
       len++
@@ -189,7 +189,7 @@ function napi_create_bigint_uint64 (env: napi_env, low: int32_t, high: int32_t, 
 // @ts-expect-error
 function napi_create_bigint_words (env: napi_env, sign_bit: int, word_count: size_t, words: Const<Pointer<uint64_t>>, result: Pointer<napi_value>): napi_status {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  let v: number
+  let v: number, i: number
 
   $PREAMBLE!(env, (envObject) => {
     if (!emnapiCtx.feature.supportBigInt) {
@@ -206,9 +206,9 @@ function napi_create_bigint_words (env: napi_env, sign_bit: int, word_count: siz
       throw new RangeError('Maximum BigInt size exceeded')
     }
     let value: bigint = BigInt(0)
-    for (let i = 0; i < word_count; i++) {
-      const low = HEAPU32[(words + (i * 8)) >> 2]
-      const high = HEAPU32[(words + (i * 8) + 4) >> 2]
+    for (i = 0; i < word_count; i++) {
+      const low = $makeGetValue('words', 'i * 8', 'u32')
+      const high = $makeGetValue('words', 'i * 8 + 4', 'u32')
       const wordi = BigInt(low) | (BigInt(high) << BigInt(32))
       value += wordi << BigInt(64 * i)
     }

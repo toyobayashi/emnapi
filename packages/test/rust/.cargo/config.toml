@@ -1,0 +1,36 @@
+[build]
+target = [
+  "wasm32-unknown-unknown",
+  "wasm32-wasi"
+]
+
+[target.wasm32-unknown-unknown]
+rustflags = [
+  "-L../../emnapi/lib/wasm32",
+  "-L../.cgenbuild/Debug",
+  "-lemnapi",
+  "-ldlmalloc",
+  "-C", "link-arg=--no-entry",
+  "-C", "link-arg=--initial-memory=16777216",
+  "-C", "link-arg=--export-dynamic",
+  "-C", "link-arg=--export=malloc",
+  "-C", "link-arg=--export=free",
+  "-C", "link-arg=--export=napi_register_wasm_v1",
+  "-C", "link-arg=--export-table",
+  "-C", "link-arg=--import-undefined",
+]
+
+[target.wasm32-wasi]
+rustflags = [
+  "-L../../emnapi/lib/wasm32-wasi",
+  "-L../.cgenbuild/Debug",
+  "-lemnapi",
+  "-C", "link-arg=--initial-memory=16777216",
+  "-C", "link-arg=--export-dynamic",
+  "-C", "link-arg=--export=malloc",
+  "-C", "link-arg=--export=free",
+  "-C", "link-arg=--export=napi_register_wasm_v1",
+  "-C", "link-arg=--export-table",
+  "-C", "link-arg=--import-undefined",
+  "-Z", "wasi-exec-model=reactor", # +nightly
+]

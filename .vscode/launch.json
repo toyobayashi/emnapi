@@ -4,9 +4,20 @@
     {
       "type": "node",
       "request": "launch",
+      "name": "Launch Build",
+      "runtimeArgs": [],
+      "program": "${workspaceFolder}/packages/emnapi/script/build.js",
+      "args": []
+    },
+    {
+      "type": "node",
+      "request": "launch",
       "name": "Launch Program",
-      "runtimeArgs": ["--expose-gc"],
-      "program": "${workspaceFolder}/packages/test/make_callback/make_callback.test.js",
+      "env": {
+        "EMNAPI_TEST_WASI": "1"
+      },
+      "runtimeArgs": ["--experimental-wasi-unstable-preview1", "--expose-gc"],
+      "program": "${workspaceFolder}/packages/test/arg/arg.test.js",
       "args": []
     },
     {

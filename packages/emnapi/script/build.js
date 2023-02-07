@@ -39,13 +39,40 @@ async function build () {
     'utf8'
   )
 
-  // fs.writeFileSync(path.join(path.dirname(libOut), path.basename(libOut, '.js') + '_no_runtime.js'),
-  //   replaceParseTool(
-  //     libCode
-  //       .replace('__EMNAPI_RUNTIME_REPLACE__', '""')
-  //   ),
-  //   'utf8'
-  // )
+  const transformerTsconfigPath = path.join(__dirname, '../transformer/tsconfig.json')
+  compile(transformerTsconfigPath)
+  const coreTsconfigPath = path.join(__dirname, '../tsconfig.core.json')
+  compile(coreTsconfigPath, {
+    customTransformersAfter: (program) => {
+      return {
+        before: [require('../transformer/out/index').default(program, {
+          defines: {
+            MEMORY64: 0
+          }
+        })]
+      }
+    }
+  })
+  const coreTsconfig = JSON.parse(fs.readFileSync(coreTsconfigPath, 'utf8'))
+  const coreOut = path.join(path.dirname(coreTsconfigPath), coreTsconfig.compilerOptions.outFile)
+  const coreCode = fs.readFileSync(coreOut, 'utf8')
+  const { Compiler } = require('./preprocess.js')
+  const compiler = new Compiler({
+    defines: {
+      DYNAMIC_EXECUTION: 1,
+      TEXTDECODER: 1,
+      LEGACY_RUNTIME: 1,
+      WASM_BIGINT: 1
+    }
+  })
+  const parsedCode = compiler.parseCode(coreCode)
+  fs.writeFileSync(path.join(__dirname, '../../core/src/index.js'),
+`export function createNapiModule (options) {
+  ${parsedCode}
+  return napiModule;
+}
+export const version = __VERSION__;
+`, 'utf8')
 }
 
 exports.build = build

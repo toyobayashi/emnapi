@@ -1,9 +1,17 @@
+#if !defined(__wasm__) || (defined(__EMSCRIPTEN__) || defined(__wasi__))
 #include <stdio.h>
+#else
+int console_log(const char* fmt, int a);
+#endif
 #include "node_api.h"
 #include "../common.h"
 
 static void cleanup(void* arg) {
+#if !defined(__wasm__) || (defined(__EMSCRIPTEN__) || defined(__wasi__))
   printf("cleanup(%d)\n", *(int*)(arg));
+#else
+  console_log("cleanup(%d)\n", *(int*)(arg));
+#endif
 }
 
 static int secret = 42;

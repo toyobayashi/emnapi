@@ -1,6 +1,8 @@
 #include <js_native_api.h>
 #include "../common.h"
+#if !defined(__wasm__) || (defined(__EMSCRIPTEN__) || defined(__wasi__))
 #include <string.h>
+#endif
 
 static napi_value RunCallback(napi_env env, napi_callback_info info) {
   size_t argc = 2;
@@ -22,7 +24,11 @@ static napi_value RunCallback(napi_env env, napi_callback_info info) {
 
   napi_value argv[1];
   const char* str = "hello world";
+  #if !defined(__wasm__) || (defined(__EMSCRIPTEN__) || defined(__wasi__))
   size_t str_len = strlen(str);
+  #else
+  size_t str_len = 11;
+  #endif
   NAPI_CALL(env, napi_create_string_utf8(env, str, str_len, argv));
 
   napi_value global;

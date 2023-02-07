@@ -1,33 +1,45 @@
+#if defined(__EMSCRIPTEN__) || defined(__wasi__)
 #include <assert.h>
 #include <stdlib.h>
+#else
+#include <stddef.h>
+void* malloc(size_t size);
+void* calloc(size_t count, size_t size);
+void free(void* p);
+#endif
 
-#ifdef __EMSCRIPTEN_PTHREADS__
+#if defined(__EMSCRIPTEN_PTHREADS__) || defined(_REENTRANT)
 #include <pthread.h>
-// #include <emscripten/threading.h>
 
 #include <errno.h>
 #include "uv.h"
 #endif
 
+#ifdef __EMSCRIPTEN__
 #include <emscripten.h>
 #include <emscripten/heap.h>
 
 #if __EMSCRIPTEN_major__ * 10000 + __EMSCRIPTEN_minor__ * 100 + __EMSCRIPTEN_tiny__ >= 30114  // NOLINT
 #include <emscripten/eventloop.h>
 #endif
+#endif
 
 #include "emnapi.h"
 #include "node_api.h"
 
-#if NAPI_VERSION >= 4 && defined(__EMSCRIPTEN_PTHREADS__)
+#if NAPI_VERSION >= 4 && (defined(__EMSCRIPTEN_PTHREADS__) || defined(_REENTRANT))
 #include <stdatomic.h>
 #include "uv/queue.h"
 #endif
 
 #ifdef NDEBUG
-#define	EMNAPI_ASSERT_CALL(the_call) (the_call)
+  #define	EMNAPI_ASSERT_CALL(the_call) (the_call)
 #else
-#define EMNAPI_ASSERT_CALL(the_call) (assert(napi_ok == (the_call)))
+  #if defined(__EMSCRIPTEN__) || defined(__wasi__)
+  #define EMNAPI_ASSERT_CALL(the_call) (assert(napi_ok == (the_call)))
+  #else
+  #define	EMNAPI_ASSERT_CALL(the_call) (the_call)
+  #endif
 #endif
 
 #define CHECK_ENV(env)          \
@@ -50,7 +62,7 @@
 #define CHECK(expr)                                                           \
   do {                                                                        \
     if (!(expr)) {                                                            \
-      abort();                                                                \
+      __builtin_trap();                                                       \
     }                                                                         \
   } while (0)
 
@@ -61,19 +73,27 @@
 
 EXTERN_C_START
 
-extern napi_status napi_set_last_error(napi_env env,
+EMNAPI_INTERNAL_EXTERN napi_status napi_set_last_error(napi_env env,
                                        napi_status error_code,
                                        uint32_t engine_error_code,
                                        void* engine_reserved);
-extern napi_status napi_clear_last_error(napi_env env);
+EMNAPI_INTERNAL_EXTERN napi_status napi_clear_last_error(napi_env env);
 
+#ifdef __EMSCRIPTEN__
 #if __EMSCRIPTEN_major__ * 10000 + __EMSCRIPTEN_minor__ * 100 + __EMSCRIPTEN_tiny__ >= 30114  // NOLINT
 #define EMNAPI_KEEPALIVE_PUSH emscripten_runtime_keepalive_push
 #define EMNAPI_KEEPALIVE_POP emscripten_runtime_keepalive_pop
 #else
 
-extern void _emnapi_runtime_keepalive_push();
-extern void _emnapi_runtime_keepalive_pop();
+EMNAPI_INTERNAL_EXTERN void _emnapi_runtime_keepalive_push();
+EMNAPI_INTERNAL_EXTERN void _emnapi_runtime_keepalive_pop();
+
+#define EMNAPI_KEEPALIVE_PUSH _emnapi_runtime_keepalive_push
+#define EMNAPI_KEEPALIVE_POP _emnapi_runtime_keepalive_pop
+#endif
+#else
+EMNAPI_INTERNAL_EXTERN void _emnapi_runtime_keepalive_push();
+EMNAPI_INTERNAL_EXTERN void _emnapi_runtime_keepalive_pop();
 
 #define EMNAPI_KEEPALIVE_PUSH _emnapi_runtime_keepalive_push
 #define EMNAPI_KEEPALIVE_POP _emnapi_runtime_keepalive_pop
@@ -105,7 +125,7 @@ const char* emnapi_error_messages[] = {
   "External buffers are not allowed"
 };
 
-extern void _emnapi_get_last_error_info(napi_env env,
+EMNAPI_INTERNAL_EXTERN void _emnapi_get_last_error_info(napi_env env,
                                         napi_status* error_code,
                                         uint32_t* engine_error_code,
                                         void** engine_reserved);
@@ -118,7 +138,7 @@ napi_status napi_get_last_error_info(
 
   const int last_status = napi_no_external_buffers_allowed;
 
-  _Static_assert((sizeof(emnapi_error_messages) / sizeof(const char*)) == last_status + 1,
+  _Static_assert((sizeof(emnapi_error_messages) / sizeof(const char*)) == napi_no_external_buffers_allowed + 1,
                 "Count of error messages must match count of error values");
   
   _emnapi_get_last_error_info(env,
@@ -139,6 +159,8 @@ napi_status napi_get_last_error_info(
   return napi_ok;
 }
 
+#define PAGESIZE 65536
+
 napi_status napi_adjust_external_memory(napi_env env,
                                         int64_t change_in_bytes,
                                         int64_t* adjusted_value) {
@@ -149,12 +171,20 @@ napi_status napi_adjust_external_memory(napi_env env,
     return napi_set_last_error(env, napi_invalid_arg, 0, NULL);
   }
 
-  size_t old_size = emscripten_get_heap_size();
-  if (!emscripten_resize_heap(old_size + (size_t) change_in_bytes)) {
+  size_t old_size = __builtin_wasm_memory_size(0) << 16;
+  size_t new_size = old_size + (size_t) change_in_bytes;
+#ifdef __EMSCRIPTEN__
+  if (!emscripten_resize_heap(new_size)) {
     return napi_set_last_error(env, napi_generic_failure, 0, NULL);
   }
+#else
+  new_size = new_size + (PAGESIZE - new_size % PAGESIZE) % PAGESIZE;
+  if (-1 == __builtin_wasm_memory_grow(0, (new_size - old_size + 65535) >> 16)) {
+    return napi_set_last_error(env, napi_generic_failure, 0, NULL);
+  }
+#endif
 
-  *adjusted_value = (int64_t) emscripten_get_heap_size();
+  *adjusted_value = (int64_t) (__builtin_wasm_memory_size(0) << 16);
 
   return napi_clear_last_error(env);
 }
@@ -166,7 +196,7 @@ napi_status napi_get_version(napi_env env, uint32_t* result) {
   return napi_clear_last_error(env);
 }
 
-extern void _emnapi_get_node_version(uint32_t* major,
+EMNAPI_INTERNAL_EXTERN void _emnapi_get_node_version(uint32_t* major,
                                      uint32_t* minor,
                                      uint32_t* patch);
 
@@ -188,6 +218,7 @@ napi_get_node_version(napi_env env,
   return napi_clear_last_error(env);
 }
 
+#ifdef __EMSCRIPTEN__
 napi_status
 emnapi_get_emscripten_version(napi_env env,
                               const emnapi_emscripten_version** version) {
@@ -201,10 +232,11 @@ emnapi_get_emscripten_version(napi_env env,
   *version = &emscripten_version;
   return napi_clear_last_error(env);
 }
+#endif
 
 napi_status napi_get_uv_event_loop(napi_env env,
                                    struct uv_loop_s** loop) {
-#ifdef __EMSCRIPTEN_PTHREADS__
+#if defined(__EMSCRIPTEN_PTHREADS__) || defined(_REENTRANT)
   CHECK_ENV(env);
   CHECK_ARG(env, loop);
   // Though this is fake libuv loop
@@ -215,7 +247,7 @@ napi_status napi_get_uv_event_loop(napi_env env,
 #endif
 }
 
-extern int _emnapi_get_filename(char* buf, int len);
+EMNAPI_INTERNAL_EXTERN int _emnapi_get_filename(char* buf, int len);
 
 napi_status node_api_get_module_file_name(napi_env env,
                                           const char** result) {
@@ -243,21 +275,21 @@ napi_status node_api_get_module_file_name(napi_env env,
   return napi_clear_last_error(env);
 }
 
-extern void _emnapi_env_ref(napi_env env);
-extern void _emnapi_env_unref(napi_env env);
-extern void _emnapi_ctx_increase_waiting_request_counter();
-extern void _emnapi_ctx_decrease_waiting_request_counter();
+EMNAPI_INTERNAL_EXTERN void _emnapi_env_ref(napi_env env);
+EMNAPI_INTERNAL_EXTERN void _emnapi_env_unref(napi_env env);
+EMNAPI_INTERNAL_EXTERN void _emnapi_ctx_increase_waiting_request_counter();
+EMNAPI_INTERNAL_EXTERN void _emnapi_ctx_decrease_waiting_request_counter();
 
 struct napi_async_context__ {
   int32_t low;
   int32_t high;
 };
 
-extern napi_status
+EMNAPI_INTERNAL_EXTERN napi_status
 _emnapi_async_init_js(napi_value async_resource,
                       napi_value async_resource_name,
                       napi_async_context result);
-extern napi_status
+EMNAPI_INTERNAL_EXTERN napi_status
 _emnapi_async_destroy_js(napi_async_context async_context);
 
 napi_status
@@ -299,13 +331,13 @@ napi_status napi_async_destroy(napi_env env,
 // Async work implementation
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifdef __EMSCRIPTEN_PTHREADS__
+#if defined(__EMSCRIPTEN_PTHREADS__) || defined(_REENTRANT)
 
 #define container_of(ptr, type, member) \
   ((type *) ((char *) (ptr) - offsetof(type, member)))
 
 typedef void (*_emnapi_call_into_module_callback)(napi_env env, void* args);
-extern void _emnapi_call_into_module(napi_env env, _emnapi_call_into_module_callback callback, void* args, int close_scope_if_throw);
+EMNAPI_INTERNAL_EXTERN void _emnapi_call_into_module(napi_env env, _emnapi_call_into_module_callback callback, void* args, int close_scope_if_throw);
 
 typedef double async_id;
 typedef struct async_context {
@@ -314,18 +346,18 @@ typedef struct async_context {
 } async_context;
 
 // call node::EmitAsyncInit
-extern void _emnapi_node_emit_async_init(napi_value async_resource,
+EMNAPI_INTERNAL_EXTERN void _emnapi_node_emit_async_init(napi_value async_resource,
                                          napi_value async_resource_name,
                                          async_id trigger_async_id,
                                          async_context* result);
 // call node::EmitAsyncDestroy
-extern void _emnapi_node_emit_async_destroy(async_id id, async_id trigger_async_id);
+EMNAPI_INTERNAL_EXTERN void _emnapi_node_emit_async_destroy(async_id id, async_id trigger_async_id);
 
-// extern void _emnapi_node_open_callback_scope(napi_value async_resource, async_id id, async_id trigger_async_id, int64_t* result);
-// extern void _emnapi_node_close_callback_scope(int64_t* scope);
+// EMNAPI_INTERNAL_EXTERN void _emnapi_node_open_callback_scope(napi_value async_resource, async_id id, async_id trigger_async_id, int64_t* result);
+// EMNAPI_INTERNAL_EXTERN void _emnapi_node_close_callback_scope(int64_t* scope);
 
 // call node:MakeCallback
-extern napi_status _emnapi_node_make_callback(napi_env env,
+EMNAPI_INTERNAL_EXTERN napi_status _emnapi_node_make_callback(napi_env env,
                                               napi_value async_resource,
                                               napi_value cb,
                                               napi_value* argv,
@@ -490,7 +522,7 @@ napi_status napi_create_async_work(napi_env env,
                                    napi_async_complete_callback complete,
                                    void* data,
                                    napi_async_work* result) {
-#ifdef __EMSCRIPTEN_PTHREADS__
+#if defined(__EMSCRIPTEN_PTHREADS__) || defined(_REENTRANT)
   CHECK_ENV(env);
   CHECK_ARG(env, execute);
   CHECK_ARG(env, result);
@@ -529,7 +561,7 @@ napi_status napi_create_async_work(napi_env env,
 }
 
 napi_status napi_delete_async_work(napi_env env, napi_async_work work) {
-#ifdef __EMSCRIPTEN_PTHREADS__
+#if defined(__EMSCRIPTEN_PTHREADS__) || defined(_REENTRANT)
   CHECK_ENV(env);
   CHECK_ARG(env, work);
 
@@ -542,7 +574,7 @@ napi_status napi_delete_async_work(napi_env env, napi_async_work work) {
 }
 
 napi_status napi_queue_async_work(napi_env env, napi_async_work work) {
-#ifdef __EMSCRIPTEN_PTHREADS__
+#if defined(__EMSCRIPTEN_PTHREADS__) || defined(_REENTRANT)
   CHECK_ENV(env);
   CHECK_ARG(env, work);
 
@@ -564,7 +596,7 @@ napi_status napi_queue_async_work(napi_env env, napi_async_work work) {
   } while (0)
 
 napi_status napi_cancel_async_work(napi_env env, napi_async_work work) {
-#ifdef __EMSCRIPTEN_PTHREADS__
+#if defined(__EMSCRIPTEN_PTHREADS__) || defined(_REENTRANT)
   CHECK_ENV(env);
   CHECK_ARG(env, work);
 
@@ -580,9 +612,9 @@ napi_status napi_cancel_async_work(napi_env env, napi_async_work work) {
 // TSFN implementation
 ////////////////////////////////////////////////////////////////////////////////
 
-#if NAPI_VERSION >= 4 && defined(__EMSCRIPTEN_PTHREADS__)
+#if NAPI_VERSION >= 4 && (defined(__EMSCRIPTEN_PTHREADS__) || defined(_REENTRANT))
 
-extern void _emnapi_call_finalizer(napi_env env, napi_finalize cb, void* data, void* hint);
+EMNAPI_INTERNAL_EXTERN void _emnapi_call_finalizer(napi_env env, napi_finalize cb, void* data, void* hint);
 
 static const unsigned char kDispatchIdle = 0;
 static const unsigned char kDispatchRunning = 1 << 0;
@@ -974,7 +1006,7 @@ napi_create_threadsafe_function(napi_env env,
                                 void* context,
                                 napi_threadsafe_function_call_js call_js_cb,
                                 napi_threadsafe_function* result) {
-#ifdef __EMSCRIPTEN_PTHREADS__
+#if defined(__EMSCRIPTEN_PTHREADS__) || defined(_REENTRANT)
   CHECK_ENV(env);
   // CHECK_ARG(env, async_resource_name);
   RETURN_STATUS_IF_FALSE(env, initial_thread_count > 0, napi_invalid_arg);
@@ -1041,7 +1073,7 @@ napi_create_threadsafe_function(napi_env env,
 napi_status
 napi_get_threadsafe_function_context(napi_threadsafe_function func,
                                      void** result) {
-#ifdef __EMSCRIPTEN_PTHREADS__
+#if defined(__EMSCRIPTEN_PTHREADS__) || defined(_REENTRANT)
   CHECK_NOT_NULL(func);
   CHECK_NOT_NULL(result);
 
@@ -1057,7 +1089,7 @@ napi_status
 napi_call_threadsafe_function(napi_threadsafe_function func,
                               void* data,
                               napi_threadsafe_function_call_mode mode) {
-#ifdef __EMSCRIPTEN_PTHREADS__
+#if defined(__EMSCRIPTEN_PTHREADS__) || defined(_REENTRANT)
   CHECK_NOT_NULL(func);
   pthread_mutex_lock(&func->mutex);
 
@@ -1100,7 +1132,7 @@ napi_call_threadsafe_function(napi_threadsafe_function func,
 
 napi_status
 napi_acquire_threadsafe_function(napi_threadsafe_function func) {
-#ifdef __EMSCRIPTEN_PTHREADS__
+#if defined(__EMSCRIPTEN_PTHREADS__) || defined(_REENTRANT)
   CHECK_NOT_NULL(func);
   pthread_mutex_lock(&func->mutex);
 
@@ -1121,7 +1153,7 @@ napi_acquire_threadsafe_function(napi_threadsafe_function func) {
 napi_status
 napi_release_threadsafe_function(napi_threadsafe_function func,
                                  napi_threadsafe_function_release_mode mode) {
-#ifdef __EMSCRIPTEN_PTHREADS__
+#if defined(__EMSCRIPTEN_PTHREADS__) || defined(_REENTRANT)
   CHECK_NOT_NULL(func);
   pthread_mutex_lock(&func->mutex);
 
@@ -1153,7 +1185,7 @@ napi_release_threadsafe_function(napi_threadsafe_function func,
 
 napi_status
 napi_unref_threadsafe_function(napi_env env, napi_threadsafe_function func) {
-#ifdef __EMSCRIPTEN_PTHREADS__
+#if defined(__EMSCRIPTEN_PTHREADS__) || defined(_REENTRANT)
   if (func->async_ref) {
     EMNAPI_KEEPALIVE_POP();
     _emnapi_ctx_decrease_waiting_request_counter();
@@ -1167,7 +1199,7 @@ napi_unref_threadsafe_function(napi_env env, napi_threadsafe_function func) {
 
 napi_status
 napi_ref_threadsafe_function(napi_env env, napi_threadsafe_function func) {
-#ifdef __EMSCRIPTEN_PTHREADS__
+#if defined(__EMSCRIPTEN_PTHREADS__) || defined(_REENTRANT)
   if (!func->async_ref) {
     EMNAPI_KEEPALIVE_PUSH();
     _emnapi_ctx_increase_waiting_request_counter();
@@ -1264,7 +1296,7 @@ _emnapi_ach_handle_create(napi_env env,
   return handle;
 }
 
-extern void _emnapi_set_immediate(void (*callback)(void*), void* data);
+EMNAPI_INTERNAL_EXTERN void _emnapi_set_immediate(void (*callback)(void*), void* data);
 
 static void _emnapi_ach_handle_env_unref(void* arg) {
   napi_env env = (napi_env) arg;

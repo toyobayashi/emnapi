@@ -1,4 +1,4 @@
-function _emnapi_get_last_error_info (env: napi_env, error_code: Pointer<napi_status>, engine_error_code: Pointer<uint32_t>, engine_reserved: void_pp): void {
+function __emnapi_get_last_error_info (env: napi_env, error_code: Pointer<napi_status>, engine_error_code: Pointer<uint32_t>, engine_reserved: void_pp): void {
   $from64('error_code')
   $from64('engine_error_code')
   $from64('engine_reserved')
@@ -91,9 +91,10 @@ function napi_is_exception_pending (env: napi_env, result: Pointer<bool>): napi_
   $CHECK_ENV!(env)
   const envObject = emnapiCtx.envStore.get(env)!
   $CHECK_ARG!(envObject, result)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const r = envObject.tryCatch.hasCaught()
   $from64('result')
-  HEAPU8[result] = r ? 1 : 0
+  $makeSetValue('result', 0, 'r ? 1 : 0', 'i8')
   return envObject.clearLastError()
 }
 
@@ -221,7 +222,8 @@ function napi_fatal_exception (env: napi_env, err: napi_value): napi_status {
   })
 }
 
-emnapiImplement('_emnapi_get_last_error_info', 'vpppp', _emnapi_get_last_error_info)
+emnapiImplementInternal('_emnapi_get_last_error_info', 'vpppp', __emnapi_get_last_error_info)
+
 emnapiImplement('napi_get_and_clear_last_exception', 'ipp', napi_get_and_clear_last_exception)
 emnapiImplement('napi_throw', 'ipp', napi_throw)
 emnapiImplement('napi_throw_error', 'ippp', napi_throw_error)

@@ -1,28 +1,16 @@
 {
-  "extends": "../shared/tsconfig.base.json",
+  "extends": "./tsconfig.base.json",
   "compilerOptions": {
-    "target": "ES5",
-    "module": "none",
     "outFile": "./dist/library_napi.js",
-    "importHelpers": false,
-    "noEmitHelpers": true,
-    "noUnusedLocals": false,
-    "noUnusedParameters": false,
-    "types": [],
-    "lib": [
-      "ES5",
-      "ES2015",
-      "ES2020.BigInt",
-      "ES2021.WeakRef",
-      "ES2017.SharedMemory",
-      "DOM"
-    ],
     "plugins": [
       { "transform": "ts-macros" }
     ]
   },
   "include": [
     "../runtime/src/typings/**/*.d.ts",
-    "./src/**/*.ts"
+    "./src/typings/**/*.d.ts",
+    "./src/*.ts",
+    "./src/value/**/*.ts",
+    "./src/emscripten/**/*.ts"
   ]
 }

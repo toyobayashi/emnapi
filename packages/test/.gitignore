@@ -1,4 +1,4 @@
 .cgenbuild
 node_modules
 /emnapi
-/CMakeLists.txt
+/rust/target

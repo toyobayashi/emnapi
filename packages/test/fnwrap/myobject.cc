@@ -1,8 +1,22 @@
-#ifdef __EMSCRIPTEN__
+#ifdef __wasm__
 #include <emnapi.h>
 #endif
 #include "myobject.h"
 #include "../common.h"
+
+#if !(!defined(__wasm__) || (defined(__EMSCRIPTEN__) || defined(__wasi__)))
+#include <stddef.h>
+extern "C" void* malloc(size_t size);
+extern "C" void free(void* p);
+
+void* operator new(size_t size) {
+  return malloc(size);
+}
+
+void operator delete(void* p) noexcept {
+  free(p);
+}
+#endif
 
 static int finalize_count = 0;
 
@@ -72,7 +86,7 @@ napi_value MyObject::New(napi_env env, napi_callback_info info) {
   }
 
   obj->env_ = env;
-#ifdef __EMSCRIPTEN__
+#ifdef __wasm__
   if (emnapi_is_support_weakref()) {
 #endif
     NAPI_CALL(env, napi_wrap(env,
@@ -81,7 +95,7 @@ napi_value MyObject::New(napi_env env, napi_callback_info info) {
                             MyObject::Destructor,
                             nullptr, /* finalize_hint */
                             &obj->wrapper_));
-#ifdef __EMSCRIPTEN__
+#ifdef __wasm__
   } else {
     NAPI_CALL(env, napi_wrap(env,
                             _this,

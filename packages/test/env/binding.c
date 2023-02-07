@@ -1,6 +1,5 @@
-#include <stdio.h>
-#include <stdlib.h>
 #include <stddef.h>
+void* malloc(size_t size);
 
 #include "node_api.h"
 

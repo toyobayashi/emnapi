@@ -69,7 +69,15 @@ async function test (bindingPath) {
   })
 
   const p = require('./napi_child').spawnSync(
-    process.execPath, ['--expose-gc', ...(process.env.MEMORY64 ? ['--experimental-wasm-memory64'] : []), __filename, 'fatal', bindingPath])
+    process.execPath, [
+      '--expose-gc',
+      ...(process.env.EMNAPI_TEST_WASI ? ['--experimental-wasi-unstable-preview1'] : []),
+      ...(process.env.MEMORY64 ? ['--experimental-wasm-memory64'] : []),
+      __filename,
+      'fatal',
+      bindingPath
+    ]
+  )
   assert.ifError(p.error)
   assert.ok(p.stderr.toString().includes(
     'FATAL ERROR: Error::ThrowFatalError This is a fatal error'))

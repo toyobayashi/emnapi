@@ -1,7 +1,7 @@
 #include <node_api.h>
-#include <assert.h>
-#include <stdio.h>
 #include "../common.h"
+
+#define assert(x) do { if (!(x)) { __builtin_trap(); } } while (0)
 
 #define MAX_ARGUMENTS 10
 #define RESERVED_ARGS 3
@@ -42,7 +42,6 @@ static napi_value MakeCallback(napi_env env, napi_callback_info info) {
 }
 
 static void AsyncDestroyCb(napi_env env, void* data, void* hint) {
-  printf("AsyncDestroyCb\n");
   napi_status status = napi_async_destroy(env, (napi_async_context)data);
   // We cannot use NAPI_ASSERT_RETURN_VOID because we need to have a JS
   // stack below in order to use exceptions.

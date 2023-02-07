@@ -1,5 +1,4 @@
 #include <node_api.h>
-#include <assert.h>
 #include "../common.h"
 
 #define MAX_ARGUMENTS 10

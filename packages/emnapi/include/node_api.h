@@ -1,13 +1,20 @@
 #ifndef SRC_NODE_API_H_
 #define SRC_NODE_API_H_
 
+#if defined(__EMSCRIPTEN__) || defined(__wasi__)
 #include <stdlib.h>
+#endif
 #include "js_native_api.h"
 #include "node_api_types.h"
 
 struct uv_loop_s;
 
+#ifdef __EMSCRIPTEN__
 #define NAPI_MODULE_EXPORT __attribute__((used))
+#else
+#define NAPI_MODULE_EXPORT __attribute__((visibility("default")))
+#endif
+
 #define NAPI_NO_RETURN __attribute__((__noreturn__))
 
 typedef napi_value (*napi_addon_register_func)(napi_env env,
@@ -147,7 +154,6 @@ napi_remove_env_cleanup_hook(napi_env env, napi_cleanup_hook fun, void* arg);
 
 #if NAPI_VERSION >= 4
 
-#if !defined(__wasm32__) || defined(__EMSCRIPTEN__)
 // Calling into JS from other threads
 NAPI_EXTERN napi_status
 napi_create_threadsafe_function(napi_env env,
@@ -183,8 +189,6 @@ napi_unref_threadsafe_function(napi_env env, napi_threadsafe_function func);
 
 NAPI_EXTERN napi_status
 napi_ref_threadsafe_function(napi_env env, napi_threadsafe_function func);
-
-#endif
 
 #endif
 

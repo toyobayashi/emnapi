@@ -1,0 +1,20 @@
+{
+  "extends": "../shared/tsconfig.base.json",
+  "compilerOptions": {
+    "target": "ES5",
+    "module": "none",
+    "importHelpers": false,
+    "noEmitHelpers": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "types": [],
+    "lib": [
+      "ES5",
+      "ES2015",
+      "ES2020.BigInt",
+      "ES2021.WeakRef",
+      "ES2017.SharedMemory",
+      "DOM"
+    ]
+  }
+}

@@ -1,137 +1,3 @@
-declare type ViewConstuctor =
-  Int8ArrayConstructor |
-  Uint8ArrayConstructor |
-  Uint8ClampedArrayConstructor |
-  Int16ArrayConstructor |
-  Uint16ArrayConstructor |
-  Int32ArrayConstructor |
-  Uint32ArrayConstructor |
-  BigInt64ArrayConstructor |
-  BigUint64ArrayConstructor |
-  Float32ArrayConstructor |
-  Float64ArrayConstructor |
-  DataViewConstructor |
-  BufferCtor
-
-declare interface PointerInfo {
-  address: void_p
-  ownership: Ownership
-  runtimeAllocated: 0 | 1
-}
-
-declare interface MemoryViewDescriptor extends PointerInfo {
-  Ctor: ViewConstuctor
-  length: number
-}
-
-declare interface ViewPointerInfo<T extends ArrayBufferView> extends PointerInfo {
-  view: T
-}
-
-declare const emnapiExternalMemory: {
-  registry: FinalizationRegistry<number> | undefined
-  table: WeakMap<ArrayBuffer, PointerInfo>
-  wasmMemoryViewTable: WeakMap<ArrayBufferView, MemoryViewDescriptor>
-  getOrUpdateMemoryView: <T extends ArrayBufferView>(view: T) => T
-  getArrayBufferPointer: (arrayBuffer: ArrayBuffer, shouldCopy: boolean) => PointerInfo
-  getViewPointer: <T extends ArrayBufferView>(view: T, shouldCopy: boolean) => ViewPointerInfo<T>
-}
-
-mergeInto(LibraryManager.library, {
-  $emnapiExternalMemory__deps: ['malloc', 'free', '$emnapiInit'],
-  $emnapiExternalMemory__postset: 'emnapiExternalMemory.init();',
-  $emnapiExternalMemory: {
-    init: function () {
-      emnapiExternalMemory.registry = typeof FinalizationRegistry === 'function' ? new FinalizationRegistry(function (_pointer) { _free($to64('_pointer') as number) }) : undefined
-      emnapiExternalMemory.table = new WeakMap()
-      emnapiExternalMemory.wasmMemoryViewTable = new WeakMap()
-    },
-
-    getArrayBufferPointer: function (arrayBuffer: ArrayBuffer, shouldCopy: boolean): PointerInfo {
-      if (arrayBuffer === HEAPU8.buffer) {
-        return { address: 0, ownership: Ownership.kRuntime, runtimeAllocated: 0 }
-      }
-
-      if (emnapiExternalMemory.table.has(arrayBuffer)) {
-        return emnapiExternalMemory.table.get(arrayBuffer)!
-      }
-
-      if (!shouldCopy) {
-        return { address: 0, ownership: Ownership.kRuntime, runtimeAllocated: 0 }
-      }
-
-      const pointer = $makeMalloc('$emnapiExternalMemory.getArrayBufferPointer', 'arrayBuffer.byteLength')
-      if (!pointer) throw new Error('Out of memory')
-      HEAPU8.set(new Uint8Array(arrayBuffer), pointer)
-      const pointerInfo: PointerInfo = {
-        address: pointer,
-        ownership: emnapiExternalMemory.registry ? Ownership.kRuntime : Ownership.kUserland,
-        runtimeAllocated: 1
-      }
-      emnapiExternalMemory.table.set(arrayBuffer, pointerInfo)
-      emnapiExternalMemory.registry?.register(arrayBuffer, pointer)
-      return pointerInfo
-    },
-
-    getOrUpdateMemoryView: function<T extends ArrayBufferView> (view: T): T {
-      if (view.buffer === HEAPU8.buffer) {
-        if (!emnapiExternalMemory.wasmMemoryViewTable.has(view)) {
-          emnapiExternalMemory.wasmMemoryViewTable.set(view, {
-            Ctor: view.constructor as any,
-            address: view.byteOffset,
-            length: view instanceof DataView ? view.byteLength : (view as any).length,
-            ownership: Ownership.kUserland,
-            runtimeAllocated: 0
-          })
-        }
-        return view
-      }
-
-      const isDetachedArrayBuffer = (arrayBuffer: ArrayBufferLike): boolean => {
-        if (arrayBuffer.byteLength === 0) {
-          try {
-            // eslint-disable-next-line no-new
-            new Uint8Array(arrayBuffer)
-          } catch (_) {
-            return true
-          }
-        }
-        return false
-      }
-
-      if (isDetachedArrayBuffer(view.buffer) && emnapiExternalMemory.wasmMemoryViewTable.has(view)) {
-        const info = emnapiExternalMemory.wasmMemoryViewTable.get(view)!
-        const Ctor = info.Ctor
-        let newView: ArrayBufferView
-        const Buffer = emnapiCtx.feature.Buffer
-        if (typeof Buffer === 'function' && Ctor === Buffer) {
-          newView = Buffer.from(HEAPU8.buffer, info.address, info.length)
-        } else {
-          newView = new Ctor(HEAPU8.buffer, info.address, info.length)
-        }
-        emnapiExternalMemory.wasmMemoryViewTable.set(newView, info)
-        return newView as unknown as T
-      }
-
-      return view
-    },
-
-    getViewPointer: function<T extends ArrayBufferView> (view: T, shouldCopy: boolean): ViewPointerInfo<T> {
-      view = emnapiExternalMemory.getOrUpdateMemoryView(view)
-      if (view.buffer === HEAPU8.buffer) {
-        if (emnapiExternalMemory.wasmMemoryViewTable.has(view)) {
-          const { address, ownership, runtimeAllocated } = emnapiExternalMemory.wasmMemoryViewTable.get(view)!
-          return { address, ownership, runtimeAllocated, view }
-        }
-        return { address: view.byteOffset, ownership: Ownership.kUserland, runtimeAllocated: 0, view }
-      }
-
-      const { address, ownership, runtimeAllocated } = emnapiExternalMemory.getArrayBufferPointer(view.buffer, shouldCopy)
-      return { address: address === 0 ? 0 : (address + view.byteOffset), ownership, runtimeAllocated, view }
-    }
-  }
-})
-
 function napi_get_array_length (env: napi_env, value: napi_value, result: Pointer<uint32_t>): napi_status {
   $CHECK_ENV!(env)
   const envObject = emnapiCtx.envStore.get(env)!
@@ -142,7 +8,9 @@ function napi_get_array_length (env: napi_env, value: napi_value, result: Pointe
     return envObject.setLastError(napi_status.napi_array_expected)
   }
   $from64('result')
-  HEAPU32[result >> 2] = handle.value.length >>> 0
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const v = handle.value.length >>> 0
+  $makeSetValue('result', 0, 'v', 'u32')
   return envObject.clearLastError()
 }
 
@@ -192,7 +60,7 @@ function napi_get_prototype (env: napi_env, value: napi_value, result: Pointer<n
   return envObject.clearLastError()
 }
 
-function napi_get_typedarray_info (
+function _napi_get_typedarray_info (
   env: napi_env,
   typedarray: napi_value,
   type: Pointer<napi_typedarray_type>,
@@ -211,29 +79,34 @@ function napi_get_typedarray_info (
   const v: ArrayBufferView = handle.value
   if (type) {
     $from64('type')
+    let t: napi_typedarray_type
     if (v instanceof Int8Array) {
-      HEAP32[type >> 2] = napi_typedarray_type.napi_int8_array
+      t = napi_typedarray_type.napi_int8_array
     } else if (v instanceof Uint8Array) {
-      HEAP32[type >> 2] = napi_typedarray_type.napi_uint8_array
+      t = napi_typedarray_type.napi_uint8_array
     } else if (v instanceof Uint8ClampedArray) {
-      HEAP32[type >> 2] = napi_typedarray_type.napi_uint8_clamped_array
+      t = napi_typedarray_type.napi_uint8_clamped_array
     } else if (v instanceof Int16Array) {
-      HEAP32[type >> 2] = napi_typedarray_type.napi_int16_array
+      t = napi_typedarray_type.napi_int16_array
     } else if (v instanceof Uint16Array) {
-      HEAP32[type >> 2] = napi_typedarray_type.napi_uint16_array
+      t = napi_typedarray_type.napi_uint16_array
     } else if (v instanceof Int32Array) {
-      HEAP32[type >> 2] = napi_typedarray_type.napi_int32_array
+      t = napi_typedarray_type.napi_int32_array
     } else if (v instanceof Uint32Array) {
-      HEAP32[type >> 2] = napi_typedarray_type.napi_uint32_array
+      t = napi_typedarray_type.napi_uint32_array
     } else if (v instanceof Float32Array) {
-      HEAP32[type >> 2] = napi_typedarray_type.napi_float32_array
+      t = napi_typedarray_type.napi_float32_array
     } else if (v instanceof Float64Array) {
-      HEAP32[type >> 2] = napi_typedarray_type.napi_float64_array
+      t = napi_typedarray_type.napi_float64_array
     } else if (v instanceof BigInt64Array) {
-      HEAP32[type >> 2] = napi_typedarray_type.napi_bigint64_array
+      t = napi_typedarray_type.napi_bigint64_array
     } else if (v instanceof BigUint64Array) {
-      HEAP32[type >> 2] = napi_typedarray_type.napi_biguint64_array
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      t = napi_typedarray_type.napi_biguint64_array
+    } else {
+      return envObject.setLastError(napi_status.napi_generic_failure)
     }
+    $makeSetValue('type', 0, 't', 'i32')
   }
   if (length) {
     $from64('length')
@@ -264,7 +137,6 @@ function napi_get_typedarray_info (
   return envObject.clearLastError()
 }
 
-declare const _napi_get_typedarray_info: typeof napi_get_typedarray_info
 function napi_get_buffer_info (
   env: napi_env,
   buffer: napi_value,
@@ -328,6 +200,9 @@ function napi_get_dataview_info (
 
 // @ts-expect-error
 function napi_get_date_value (env: napi_env, value: napi_value, result: Pointer<double>): napi_status {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  let v: number
+
   $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, value)
     $CHECK_ARG!(envObject, result)
@@ -336,7 +211,8 @@ function napi_get_date_value (env: napi_env, value: napi_value, result: Pointer<
       return envObject.setLastError(napi_status.napi_invalid_arg)
     }
     $from64('result')
-    HEAPF64[result >> 3] = (handle.value as Date).valueOf()
+    v = (handle.value as Date).valueOf()
+    $makeSetValue('result', 0, 'v', 'double')
     return envObject.getReturnStatus()
   })
 }
@@ -351,7 +227,9 @@ function napi_get_value_bool (env: napi_env, value: napi_value, result: Pointer<
     return envObject.setLastError(napi_status.napi_boolean_expected)
   }
   $from64('result')
-  HEAPU8[result] = handle.value ? 1 : 0
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const r = handle.value ? 1 : 0
+  $makeSetValue('result', 0, 'r', 'i8')
   return envObject.clearLastError()
 }
 
@@ -365,7 +243,9 @@ function napi_get_value_double (env: napi_env, value: napi_value, result: Pointe
     return envObject.setLastError(napi_status.napi_number_expected)
   }
   $from64('result')
-  HEAPF64[result >> 3] = handle.value
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const r = handle.value
+  $makeSetValue('result', 0, 'r', 'double')
   return envObject.clearLastError()
 }
 
@@ -387,18 +267,20 @@ function napi_get_value_bigint_int64 (env: napi_env, value: napi_value, result: 
   $from64('lossless')
   $from64('result')
   if ((numberValue >= (BigInt(-1) * (BigInt(1) << BigInt(63)))) && (numberValue < (BigInt(1) << BigInt(63)))) {
-    HEAPU8[lossless] = 1
+    $makeSetValue('lossless', 0, '1', 'i8')
   } else {
-    HEAPU8[lossless] = 0
+    $makeSetValue('lossless', 0, '0', 'i8')
     numberValue = numberValue & ((BigInt(1) << BigInt(64)) - BigInt(1))
     if (numberValue >= (BigInt(1) << BigInt(63))) {
       numberValue = numberValue - (BigInt(1) << BigInt(64))
     }
   }
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const low = Number(numberValue & BigInt(0xffffffff))
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const high = Number(numberValue >> BigInt(32))
-  HEAP32[result >> 2] = low
-  HEAP32[result + 4 >> 2] = high
+  $makeSetValue('result', 0, 'low', 'i32')
+  $makeSetValue('result', 4, 'high', 'i32')
   return envObject.clearLastError()
 }
 
@@ -420,15 +302,17 @@ function napi_get_value_bigint_uint64 (env: napi_env, value: napi_value, result:
   $from64('lossless')
   $from64('result')
   if ((numberValue >= BigInt(0)) && (numberValue < (BigInt(1) << BigInt(64)))) {
-    HEAPU8[lossless] = 1
+    $makeSetValue('lossless', 0, '1', 'i8')
   } else {
-    HEAPU8[lossless] = 0
+    $makeSetValue('lossless', 0, '0', 'i8')
     numberValue = numberValue & ((BigInt(1) << BigInt(64)) - BigInt(1))
   }
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const low = Number(numberValue & BigInt(0xffffffff))
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const high = Number(numberValue >> BigInt(32))
-  HEAPU32[result >> 2] = low
-  HEAPU32[result + 4 >> 2] = high
+  $makeSetValue('result', 0, 'low', 'u32')
+  $makeSetValue('result', 4, 'high', 'u32')
   return envObject.clearLastError()
 }
 
@@ -481,12 +365,14 @@ function napi_get_value_bigint_words (
     }
     const len = Math.min(word_count_int, wordsArr.length)
     for (let i = 0; i < len; i++) {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const low = Number(wordsArr[i] & BigInt(0xffffffff))
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const high = Number(wordsArr[i] >> BigInt(32))
-      HEAPU32[(words + (i * 8)) >> 2] = low
-      HEAPU32[(words + 4 + (i * 8)) >> 2] = high
+      $makeSetValue('words', 'i * 8', 'low', 'u32')
+      $makeSetValue('words', 'i * 8 + 4', 'high', 'u32')
     }
-    HEAP32[sign_bit >> 2] = isMinus ? 1 : 0
+    $makeSetValue('sign_bit', 0, 'isMinus ? 1 : 0', 'i32')
     $makeSetValue('word_count', 0, 'len', SIZE_TYPE)
   }
   return envObject.clearLastError()
@@ -519,7 +405,7 @@ function napi_get_value_int32 (env: napi_env, value: napi_value, result: Pointer
     return envObject.setLastError(napi_status.napi_number_expected)
   }
   $from64('result')
-  HEAP32[result >> 2] = handle.value
+  $makeSetValue('result', 0, 'handle.value', 'i32')
   return envObject.clearLastError()
 }
 
@@ -534,20 +420,22 @@ function napi_get_value_int64 (env: napi_env, value: napi_value, result: Pointer
   }
   const numberValue = handle.value
   $from64('result')
+  let tempI64: any
   if (numberValue === Number.POSITIVE_INFINITY || numberValue === Number.NEGATIVE_INFINITY || isNaN(numberValue)) {
-    HEAP32[result >> 2] = 0
-    HEAP32[result + 4 >> 2] = 0
+    $makeSetValue('result', 0, '0', 'i32')
+    $makeSetValue('result', 4, '0', 'i32')
   } else if (numberValue < /* INT64_RANGE_NEGATIVE */ -9223372036854776000) {
-    HEAP32[result >> 2] = 0
-    HEAP32[result + 4 >> 2] = 0x80000000
+    $makeSetValue('result', 0, '0', 'i32')
+    $makeSetValue('result', 4, '0x80000000', 'i32')
   } else if (numberValue >= /* INT64_RANGE_POSITIVE */ 9223372036854776000) {
-    HEAPU32[result >> 2] = 0xffffffff
-    HEAPU32[result + 4 >> 2] = 0x7fffffff
+    $makeSetValue('result', 0, '0xffffffff', 'u32')
+    $makeSetValue('result', 4, '0x7fffffff', 'u32')
   } else {
     let tempDouble
-    const tempI64 = [numberValue >>> 0, (tempDouble = numberValue, +Math.abs(tempDouble) >= 1 ? tempDouble > 0 ? (Math.min(+Math.floor(tempDouble / 4294967296), 4294967295) | 0) >>> 0 : ~~+Math.ceil((tempDouble - +(~~tempDouble >>> 0)) / 4294967296) >>> 0 : 0)]
-    HEAP32[result >> 2] = tempI64[0]
-    HEAP32[result + 4 >> 2] = tempI64[1]
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    tempI64 = [numberValue >>> 0, (tempDouble = numberValue, +Math.abs(tempDouble) >= 1 ? tempDouble > 0 ? (Math.min(+Math.floor(tempDouble / 4294967296), 4294967295) | 0) >>> 0 : ~~+Math.ceil((tempDouble - +(~~tempDouble >>> 0)) / 4294967296) >>> 0 : 0)]
+    $makeSetValue('result', 0, 'tempI64[0]', 'i32')
+    $makeSetValue('result', 4, 'tempI64[1]', 'i32')
   }
   return envObject.clearLastError()
 }
@@ -570,11 +458,15 @@ function napi_get_value_string_latin1 (env: napi_env, value: napi_value, buf: ch
     $makeSetValue('result', 0, 'handle.value.length', SIZE_TYPE)
   } else if (buf_size !== 0) {
     let copied: number = 0
+    let v: number
     for (let i = 0; i < buf_size - 1; ++i) {
-      HEAPU8[buf + i] = handle.value.charCodeAt(i) & 0xff
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      v = handle.value.charCodeAt(i) & 0xff
+      $makeSetValue('buf', 'i', 'v', 'u8')
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       copied++
     }
-    HEAPU8[buf + copied] = 0
+    $makeSetValue('buf', 'copied', '0', 'u8')
     if (result) {
       $makeSetValue('result', 0, 'copied', SIZE_TYPE)
     }
@@ -652,14 +544,14 @@ function napi_get_value_uint32 (env: napi_env, value: napi_value, result: Pointe
     return envObject.setLastError(napi_status.napi_number_expected)
   }
   $from64('result')
-  HEAPU32[result >> 2] = handle.value
+  $makeSetValue('result', 0, 'handle.value', 'u32')
   return envObject.clearLastError()
 }
 
 emnapiImplement('napi_get_array_length', 'ippp', napi_get_array_length)
 emnapiImplement('napi_get_arraybuffer_info', 'ipppp', napi_get_arraybuffer_info, ['$emnapiExternalMemory'])
 emnapiImplement('napi_get_prototype', 'ippp', napi_get_prototype)
-emnapiImplement('napi_get_typedarray_info', 'ippppppp', napi_get_typedarray_info, ['$emnapiExternalMemory'])
+emnapiImplement('napi_get_typedarray_info', 'ippppppp', _napi_get_typedarray_info, ['$emnapiExternalMemory'])
 emnapiImplement('napi_get_buffer_info', 'ipppp', napi_get_buffer_info, ['napi_get_typedarray_info'])
 emnapiImplement('napi_get_dataview_info', 'ipppppp', napi_get_dataview_info, ['$emnapiExternalMemory'])
 emnapiImplement('napi_get_date_value', 'ippp', napi_get_date_value)

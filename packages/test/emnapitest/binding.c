@@ -1,9 +1,14 @@
-#include <stdlib.h>
+#ifdef __EMSCRIPTEN__
 #include <stdio.h>
+#endif
 #include "js_native_api.h"
 #include "emnapi.h"
 #include "../common.h"
 
+void* malloc(size_t size);
+void free(void* p);
+
+#ifdef __EMSCRIPTEN__
 static napi_value getModuleObject(napi_env env, napi_callback_info info) {
   napi_value result;
   NAPI_CALL(env, emnapi_get_module_object(env, &result));
@@ -32,6 +37,22 @@ static napi_value getModuleProperty(napi_env env, napi_callback_info info) {
 
   return result;
 }
+
+static napi_value testGetEmscriptenVersion(napi_env env, napi_callback_info info) {
+  const emnapi_emscripten_version* emscripten_version;
+  napi_value result, major, minor, patch;
+  NAPI_CALL(env, emnapi_get_emscripten_version(env, &emscripten_version));
+  NAPI_CALL(env, napi_create_uint32(env, emscripten_version->major, &major));
+  NAPI_CALL(env, napi_create_uint32(env, emscripten_version->minor, &minor));
+  NAPI_CALL(env, napi_create_uint32(env, emscripten_version->patch, &patch));
+
+  NAPI_CALL(env, napi_create_array_with_length(env, 3, &result));
+  NAPI_CALL(env, napi_set_element(env, result, 0, major));
+  NAPI_CALL(env, napi_set_element(env, result, 1, minor));
+  NAPI_CALL(env, napi_set_element(env, result, 2, patch));
+  return result;
+}
+#endif
 
 static void FinalizeCallback(napi_env env,
                              void* finalize_data,
@@ -78,34 +99,22 @@ static napi_value NullArrayBuffer(napi_env env, napi_callback_info info) {
   return output_view;
 }
 
-static napi_value testGetEmscriptenVersion(napi_env env, napi_callback_info info) {
-  const emnapi_emscripten_version* emscripten_version;
-  napi_value result, major, minor, patch;
-  NAPI_CALL(env, emnapi_get_emscripten_version(env, &emscripten_version));
-  NAPI_CALL(env, napi_create_uint32(env, emscripten_version->major, &major));
-  NAPI_CALL(env, napi_create_uint32(env, emscripten_version->minor, &minor));
-  NAPI_CALL(env, napi_create_uint32(env, emscripten_version->patch, &patch));
-
-  NAPI_CALL(env, napi_create_array_with_length(env, 3, &result));
-  NAPI_CALL(env, napi_set_element(env, result, 0, major));
-  NAPI_CALL(env, napi_set_element(env, result, 1, minor));
-  NAPI_CALL(env, napi_set_element(env, result, 2, patch));
-  return result;
-}
-
 EXTERN_C_START
 napi_value Init(napi_env env, napi_value exports) {
+#ifdef __EMSCRIPTEN__
   const emnapi_emscripten_version* emscripten_version;
   NAPI_CALL(env, emnapi_get_emscripten_version(env, &emscripten_version));
   printf("Init: Emscripten v%u.%u.%u\n", emscripten_version->major, emscripten_version->minor, emscripten_version->patch);
-
+#endif
   napi_property_descriptor descriptors[] = {
+#ifdef __EMSCRIPTEN__
     DECLARE_NAPI_PROPERTY("getModuleObject", getModuleObject),
     DECLARE_NAPI_PROPERTY("getModuleProperty", getModuleProperty),
+    DECLARE_NAPI_PROPERTY("testGetEmscriptenVersion", testGetEmscriptenVersion),
+#endif
     DECLARE_NAPI_PROPERTY("External", External),
     DECLARE_NAPI_PROPERTY("NullArrayBuffer", NullArrayBuffer),
     DECLARE_NAPI_PROPERTY("GrowMemory", GrowMemory),
-    DECLARE_NAPI_PROPERTY("testGetEmscriptenVersion", testGetEmscriptenVersion)
   };
 
   NAPI_CALL(env, napi_define_properties(

@@ -1,7 +1,7 @@
 #define NAPI_EXPERIMENTAL
 #include <js_native_api.h>
 #include "../common.h"
-#include <string.h>
+// #include <string.h>
 #include "test_null.h"
 
 static int test_value = 3;
@@ -414,7 +414,7 @@ static napi_value New(napi_env env, napi_callback_info info) {
 
   napi_value str;
   const char* str_val = "test string";
-  size_t str_len = strlen(str_val);
+  size_t str_len = 11 /* strlen(str_val) */;
   NAPI_CALL(env, napi_create_string_utf8(env, str_val, str_len, &str));
 
   NAPI_CALL(env, napi_set_named_property(env, ret, "test_string", str));

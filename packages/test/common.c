@@ -1,7 +1,9 @@
 #include <js_native_api.h>
 #include "common.h"
 
+#if !defined(__wasm__) || (defined(__EMSCRIPTEN__) || defined(__wasi__))
 #include <stdio.h>
+#endif
 
 void add_returned_status(napi_env env,
                          const char* key,
@@ -12,11 +14,12 @@ void add_returned_status(napi_env env,
 
   char napi_message_string[100] = "";
   napi_value prop_value;
-
+#if !defined(__wasm__) || (defined(__EMSCRIPTEN__) || defined(__wasi__))
   if (actual_status != expected_status) {
     snprintf(napi_message_string, sizeof(napi_message_string),
         "Invalid status [%d]", actual_status);
   }
+#endif
 
   NAPI_CALL_RETURN_VOID(env,
       napi_create_string_utf8(

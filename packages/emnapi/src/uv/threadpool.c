@@ -21,12 +21,13 @@
 
 // from libuv 1.43.0
 
-#ifdef __EMSCRIPTEN_PTHREADS__
+#if defined(__EMSCRIPTEN_PTHREADS__) || defined(_REENTRANT)
 
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
 #include "uv-common.h"
+#include "common.h"
 
 #define MAX_THREADPOOL_SIZE 1024
 
@@ -51,7 +52,7 @@ static void uv__cancelled(struct uv__work* w) {
   abort();
 }
 
-extern void _emnapi_worker_unref(uv_thread_t pid);
+EMNAPI_INTERNAL_EXTERN void _emnapi_worker_unref(uv_thread_t pid);
 
 /* To avoid deadlock with uv_cancel() it's crucial that the worker
  * never holds the global mutex and the loop-local mutex at the same time.

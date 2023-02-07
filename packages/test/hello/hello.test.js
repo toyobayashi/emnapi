@@ -17,7 +17,11 @@ module.exports = new Promise((resolve, reject) => {
       new Worker(`
   const { parentPort } = require('worker_threads');
   const { load } = require(${JSON.stringify(require.resolve('../util.js'))})
-  load('hello').then((binding) => { const msg = binding.hello(); parentPort.postMessage(msg) });`, { eval: true, env: process.env })
+  load('hello').then((binding) => { const msg = binding.hello(); parentPort.postMessage(msg) });`, {
+        eval: true,
+        env: process.env,
+        execArgv: process.env.EMNAPI_TEST_WASI ? ['--experimental-wasi-unstable-preview1'] : []
+      })
         .on('message', common.mustCall((msg) => {
           try {
             assert.strictEqual(msg, 'world')
