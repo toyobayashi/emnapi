@@ -2,3 +2,5 @@
 tsconfig*
 /src/**/*.ts
 /build
+/dist/emnapi-core.js
+/transformer
