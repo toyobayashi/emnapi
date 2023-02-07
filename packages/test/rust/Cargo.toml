@@ -4,7 +4,17 @@ name = "binding"
 version = "0.0.0"
 
 # We should build binary for WASI reactor
+# https://github.com/rust-lang/rust/pull/79997
+# https://github.com/WebAssembly/WASI/issues/24
+# for wasm
+[[bin]]
+name = "binding"
+path = "src/main.rs"
+
+# for native
 # [lib]
+# name = "binding"
+# path = "src/lib.rs"
 # crate-type = ["cdylib"]
 
 [dependencies]

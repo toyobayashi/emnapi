@@ -7,6 +7,7 @@ target = [
 [target.wasm32-unknown-unknown]
 rustflags = [
   "-L../../emnapi/lib/wasm32",
+  "-L../.cgenbuild/Debug",
   "-lemnapi",
   "-ldlmalloc",
   "-C", "link-arg=--no-entry",
@@ -22,6 +23,7 @@ rustflags = [
 [target.wasm32-wasi]
 rustflags = [
   "-L../../emnapi/lib/wasm32-wasi",
+  "-L../.cgenbuild/Debug",
   "-lemnapi",
   "-C", "link-arg=--initial-memory=16777216",
   "-C", "link-arg=--export-dynamic",

@@ -82,11 +82,6 @@ jobs:
         npm install -g node-gyp
         npm install --legacy-peer-deps
         npm run build --workspaces --if-present
-    
-    - name: Build Rust
-      shell: bash
-      working-directory: ./packages/test/rust
-      run: cargo build --release
 
     - name: Lint
       run: npm run lint
@@ -106,11 +101,13 @@ jobs:
     - name: Test wasm32-wasi
       run: |
         npm run rebuild:w -w packages/test
+        cd ./packages/test/rust && cargo build --release --target=wasm32-wasi && cd ../../..
         npm run test:w -w packages/test
 
     - name: Test wasm32-unknown-unknown
       run: |
         npm run rebuild:wasm32 -w packages/test
+        cd ./packages/test/rust && cargo build --release --target=wasm32-unknown-unknown && cd ../../..
         npm run test:wasm32 -w packages/test
 
     - name: Publish
