@@ -164,7 +164,7 @@ emcc -O3 \
      -I./node_modules/@tybys/emnapi/include \
      -L./node_modules/@tybys/emnapi/lib/wasm32-emscripten \
      --js-library=./node_modules/@tybys/emnapi/dist/library_napi.js \
-     -sEXPORTED_FUNCTIONS=['_malloc','_free'] \
+     -sEXPORTED_FUNCTIONS="['_malloc','_free']" \
      -o hello.js \
      hello.c \
      -lemnapi
@@ -468,7 +468,7 @@ em++ -O3 \
      -I./node_modules/@tybys/emnapi/include \
      -L./node_modules/@tybys/emnapi/lib/wasm32-emscripten \
      --js-library=./node_modules/@tybys/emnapi/dist/library_napi.js \
-     -sEXPORTED_FUNCTIONS=['_malloc','_free'] \
+     -sEXPORTED_FUNCTIONS="['_malloc','_free']" \
      -o hello.js \
      hello.c \
      -lemnapi
@@ -562,7 +562,7 @@ add_executable(hello hello.c)
 target_link_libraries(hello emnapi)
 if(CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
   target_link_options(hello PRIVATE
-    "-sEXPORTED_FUNCTIONS=['_malloc','_free']"
+    "-sEXPORTED_FUNCTIONS=\"['_malloc','_free']\""
   )
 elseif(CMAKE_SYSTEM_NAME STREQUAL "WASI")
   target_link_options(hello PRIVATE
@@ -755,7 +755,7 @@ target_link_libraries(hello emnapi-mt)
 target_compile_options(hello PRIVATE "-sUSE_PTHREADS=1")
 target_link_options(hello PRIVATE
   "-sALLOW_MEMORY_GROWTH=1"
-  "-sEXPORTED_FUNCTIONS=['_malloc','_free']"
+  "-sEXPORTED_FUNCTIONS=\"['_malloc','_free']\""
   "-sUSE_PTHREADS=1"
   "-sPTHREAD_POOL_SIZE=4"
   # try to specify stack size if you experience pthread errors
