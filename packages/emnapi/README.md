@@ -470,7 +470,7 @@ em++ -O3 \
      --js-library=./node_modules/@tybys/emnapi/dist/library_napi.js \
      -sEXPORTED_FUNCTIONS="['_malloc','_free']" \
      -o hello.js \
-     hello.c \
+     hello.cpp \
      -lemnapi
 ```
 
@@ -496,7 +496,7 @@ clang++ -O3 \
         -Wl,--import-undefined \
         -Wl,--export-table \
         -o hello.wasm \
-        hello.c \
+        hello.cpp \
         -lemnapi
 ```
 
@@ -505,10 +505,12 @@ clang++ -O3 \
 <details>
 <summary>clang wasm32</summary><br />
 
+`node-addon-api` is using the C++ standard libraries, so you must use WASI if you are using `node-addon-api`.
+
+You can still use `wasm32-unknown-unknown` target if you use Node-API C API only in C++.
+
 ```bash
 clang++ -O3 \
-        -DNAPI_DISABLE_CPP_EXCEPTIONS \
-        -DNODE_ADDON_API_ENABLE_MAYBE \
         -I./node_modules/@tybys/emnapi/include \
         -L./node_modules/@tybys/emnapi/lib/wasm32 \
         --target=wasm32 \
@@ -521,8 +523,8 @@ clang++ -O3 \
         -Wl,--export=napi_register_wasm_v1 \
         -Wl,--import-undefined \
         -Wl,--export-table \
-        -o hello.wasm \
-        hello.c \
+        -o node_api_c_api_only.wasm \
+        node_api_c_api_only.cpp \
         -lemnapi \
         -ldlmalloc
 ```
