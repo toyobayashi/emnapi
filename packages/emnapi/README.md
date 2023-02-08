@@ -6,7 +6,14 @@
 
 [![Build](https://github.com/toyobayashi/emnapi/actions/workflows/main.yml/badge.svg?branch=main)](https://github.com/toyobayashi/emnapi/actions/workflows/main.yml)
 
-[Node-API (version 8)](https://nodejs.org/docs/v16.15.0/api/n-api.html) implementation for [Emscripten](https://emscripten.org/index.html), based on Node.js v16.15.0.
+[Node-API](https://nodejs.org/docs/latest/api/n-api.html) implementation for [Emscripten](https://emscripten.org/index.html), [wasi-sdk](https://github.com/WebAssembly/wasi-sdk) and clang `wasm32-unknown-unknown` target, [napi-rs support is comming soon](https://github.com/napi-rs/napi-rs/issues/796).
+
+Emscripten is the first class support target, currently thread related APIs are unavailable on `wasm32-unknown-unknown` and `wasm32-wasi` target.
+
+This project aims to
+
+- Help users port their or existing Node-API native addons to wasm with code change as less as possible.
+- Make runtime behavior matches native Node.js as much as possible.
 
 See documentation for more details:
 - [https://toyobayashi.github.io/emnapi-docs/guide/](https://toyobayashi.github.io/emnapi-docs/guide/)
@@ -26,9 +33,10 @@ You will need to install:
 
 - Node.js `>= v16.15.0`
 - npm `>= v8`
-- Emscripten `>= v3.1.9`
-- CMake `>= 3.13`
-- ninja / make
+- Emscripten `>= v3.1.9` / wasi-sdk / LLVM clang with wasm support
+- (Optional) CMake `>= v3.13`
+- (Optional) ninja
+- (Optional) make
 
 There are several choices to get `make` for Windows user
 
@@ -43,6 +51,10 @@ Verify your environment:
 node -v
 npm -v
 emcc -v
+
+# clang -v
+# clang -print-targets # ensure wasm32 target exists
+
 cmake --version
 
 # if you use ninja
@@ -56,6 +68,8 @@ nmake /?
 ```
 
 ## Build from source
+
+You need to set `EMSDK` and `WASI_SDK_PATH` environment variables.
 
 ```bash
 git clone https://github.com/toyobayashi/emnapi.git
@@ -75,10 +89,14 @@ npm test
 ### NPM Install
 
 ```bash
-npm install -D @tybys/emnapi @tybys/emnapi-runtime
+npm install -D @tybys/emnapi
+npm install @tybys/emnapi-runtime
+
+# for non-emscripten
+npm install @tybys/emnapi-core
 ```
 
-`@tybys/emnapi-runtime` version should match `@tybys/emnapi` version.
+Each package should match the same version.
 
 ### Using C
 
@@ -86,7 +104,6 @@ Create `hello.c`.
 
 ```c
 #include <node_api.h>
-#include <string.h>
 
 #define NAPI_CALL(env, the_call)                                \
   do {                                                          \
@@ -109,8 +126,7 @@ Create `hello.c`.
 static napi_value js_hello(napi_env env, napi_callback_info info) {
   napi_value world;
   const char* str = "world";
-  size_t str_len = strlen(str);
-  NAPI_CALL(env, napi_create_string_utf8(env, str, str_len, &world));
+  NAPI_CALL(env, napi_create_string_utf8(env, str, NAPI_AUTO_LENGTH, &world));
   return world;
 }
 
@@ -138,19 +154,79 @@ module.exports = (function (exports) {
 })(module.exports)
 ```
 
-Compile `hello.c` using `emcc`, set include directory by `-I`, export `_malloc` and `_free`, link emnapi JavaScript library by `--js-library`.
+#### Building
+
+<details>
+<summary>emscripten</summary><br />
 
 ```bash
 emcc -O3 \
      -I./node_modules/@tybys/emnapi/include \
+     -L./node_modules/@tybys/emnapi/lib/wasm32-emscripten \
      --js-library=./node_modules/@tybys/emnapi/dist/library_napi.js \
      -sEXPORTED_FUNCTIONS=['_malloc','_free'] \
      -o hello.js \
-     ./node_modules/@tybys/emnapi/src/emnapi.c \
-     hello.c
+     hello.c \
+     -lemnapi
 ```
 
-To initialize emnapi, you need to import the emnapi runtime to create a `Context` by `createContext` first, then call `Module.emnapiInit` after emscripten runtime initialized.
+</details>
+
+<details>
+<summary>wasi-sdk</summary><br />
+
+```bash
+clang -O3 \
+      -I./node_modules/@tybys/emnapi/include \
+      -L./node_modules/@tybys/emnapi/lib/wasm32-wasi \
+      --target=wasm32-wasi \
+      --sysroot=$WASI_SDK_PATH/share/wasi-sysroot \
+      -mexec-model=reactor \
+      -Wl,--initial-memory=16777216 \
+      -Wl,--export-dynamic \
+      -Wl,--export=malloc \
+      -Wl,--export=free \
+      -Wl,--export=napi_register_wasm_v1 \
+      -Wl,--import-undefined \
+      -Wl,--export-table \
+      -o hello.wasm \
+      hello.c \
+      -lemnapi
+```
+
+</details>
+
+<details>
+<summary>clang wasm32</summary><br />
+
+You can link against `@tybys/emnapi/lib/wasm32/libdlmalloc.a` for `malloc` and `free`.
+
+```bash
+clang -O3 \
+      -I./node_modules/@tybys/emnapi/include \
+      -L./node_modules/@tybys/emnapi/lib/wasm32 \
+      --target=wasm32 \
+      -nostdlib \
+      -Wl,--no-entry \
+      -Wl,--initial-memory=16777216 \
+      -Wl,--export-dynamic \
+      -Wl,--export=malloc \
+      -Wl,--export=free \
+      -Wl,--export=napi_register_wasm_v1 \
+      -Wl,--import-undefined \
+      -Wl,--export-table \
+      -o hello.wasm \
+      hello.c \
+      -lemnapi \
+      -ldlmalloc
+```
+
+</details>
+
+#### Initialization
+
+To initialize emnapi, you need to import the emnapi runtime to create a `Context` by `createContext` first.
+Each context owns isolated Node-API object such as `napi_env`, `napi_value`, `napi_ref`. If you have multiple emnapi modules, you should reuse the same `Context` across them. 
 
 ```ts
 declare namespace emnapi {
@@ -159,7 +235,15 @@ declare namespace emnapi {
   export function createContext (): Context
   // ...
 }
+```
 
+<details>
+<summary>emscripten</summary><br />
+
+then call `Module.emnapiInit` after emscripten runtime initialized.
+`Module.emnapiInit` only do initialization once, it will always return the same binding exports after successfully initialized.
+
+```ts
 declare namespace Module {
   interface EmnapiInitOptions {
     context: emnapi.Context
@@ -182,8 +266,6 @@ declare namespace Module {
   export function emnapiInit (options: EmnapiInitOptions): any
 }
 ```
-
-Each context owns isolated Node-API object such as `napi_env`, `napi_value`, `napi_ref`. If you have multiple emnapi modules, you should reuse the same `Context` across them. `Module.emnapiInit` only do initialization once, it will always return the same binding exports after successfully initialized.
 
 ```html
 <script src="node_modules/@tybys/emnapi-runtime/dist/emnapi.min.js"></script>
@@ -237,6 +319,116 @@ Module({ /* Emscripten module init options */ }).then((Module) => {
 })
 ```
 
+</details>
+
+<details>
+<summary>wasi-sdk or clang wasm32</summary><br />
+
+For non-emscripten, you need to use `@tybys/emnapi-core`. The initialization is similar to emscripten.
+
+```html
+<script src="node_modules/@tybys/emnapi-runtime/dist/emnapi.min.js"></script>
+<script src="node_modules/@tybys/emnapi-core/dist/emnapi-core.min.js"></script>
+<script>
+const context = emnapi.createContext()
+const napiModule = emnapiCore.createNapiModule({ context })
+
+fetch('./hello.wasm').then(res => res.arrayBuffer()).then(wasmBuffer => {
+  return WebAssembly.instantiate(wasmBuffer, {
+    env: {
+      ...napiModule.imports.env,
+      // Currently napi-rs imports all symbols from env module
+      ...napiModule.imports.napi,
+      ...napiModule.imports.emnapi
+    },
+    // clang
+    napi: napiModule.imports.napi,
+    emnapi: napiModule.imports.emnapi
+  })
+}).then(({ instance }) => {
+  const binding = napiModule.init(
+    instance, // WebAssembly.Instance
+    instance.exports.memory, // WebAssembly.Memory
+    instance.exports.__indirect_function_table // WebAssembly.Table
+  )
+  // binding === napiModule.exports
+})
+</script>
+```
+
+Using WASI on Node.js
+
+```js
+const { createNapiModule } = require('@tybys/emnapi-core')
+const { createContext } = require('@tybys/emnapi-runtime')
+const { WASI } = require('wasi')
+
+const context = createContext()
+const napiModule = createNapiModule({ context })
+
+const wasi = new WASI({ /* ... */ })
+
+WebAssembly.instantiate(require('fs').readFileSync('./hello.wasm'), {
+  wasi_snapshot_preview1: wasi.wasiImport,
+  env: {
+    ...napiModule.imports.env,
+    // Currently napi-rs imports all symbols from env module
+    ...napiModule.imports.napi,
+    ...napiModule.imports.emnapi
+  },
+  // clang
+  napi: napiModule.imports.napi,
+  emnapi: napiModule.imports.emnapi
+}).then(({ instance }) => {
+  wasi.initialize(instance)
+  const binding = napiModule.init(
+    instance,
+    instance.exports.memory,
+    instance.exports.__indirect_function_table
+  )
+  // binding === napiModule.exports
+})
+```
+
+Using WASI on browser, you can use WASI polyfill in [wasm-util](https://github.com/toyobayashi/wasm-util),
+and [memfs-browser](https://github.com/toyobayashi/memfs-browser)
+
+```js
+import { createNapiModule } from '@tybys/emnapi-core'
+import { createContext } from '@tybys/emnapi-runtime'
+import { WASI } from '@tybys/wasm-util'
+import { Volumn, createFsFromVolume } from 'memfs-browser'
+
+const context = createContext()
+const napiModule = createNapiModule({ context })
+
+const fs = createFsFromVolume(Volume.from({ /* ... */ })
+const wasi = WASI.createSync({ fs, /* ... */ })
+
+WebAssembly.instantiate(wasmBuffer, {
+  wasi_snapshot_preview1: wasi.wasiImport,
+  env: {
+    ...napiModule.imports.env,
+    // Currently napi-rs imports all symbols from env module
+    ...napiModule.imports.napi,
+    ...napiModule.imports.emnapi
+  },
+  // clang
+  napi: napiModule.imports.napi,
+  emnapi: napiModule.imports.emnapi
+}).then(({ instance }) => {
+  wasi.initialize(instance)
+  const binding = napiModule.init(
+    instance,
+    instance.exports.memory,
+    instance.exports.__indirect_function_table
+  )
+  // binding === napiModule.exports
+})
+```
+
+</details>
+
 ### Using C++
 
 Alternatively, you can also use [`node-addon-api`](https://github.com/nodejs/node-addon-api) which is official Node-API C++ wrapper, already shipped ([v5.1.0](https://github.com/nodejs/node-addon-api/releases/tag/v5.1.0)) in this package but without Node.js specific API such as `CallbackScope`.
@@ -264,17 +456,95 @@ NODE_API_MODULE(NODE_GYP_MODULE_NAME, Init)
 
 Compile `hello.cpp` using `em++`. C++ exception is disabled by Emscripten default, so predefine `-DNAPI_DISABLE_CPP_EXCEPTIONS` and `-DNODE_ADDON_API_ENABLE_MAYBE` here. If you would like to enable C++ exception, use `-sDISABLE_EXCEPTION_CATCHING=0` instead and remove `.Check()` call. See official documentation [here](https://github.com/nodejs/node-addon-api/blob/main/doc/error_handling.md).
 
+#### Building
+
+<details>
+<summary>emscripten</summary><br />
+
 ```bash
 em++ -O3 \
      -DNAPI_DISABLE_CPP_EXCEPTIONS \
      -DNODE_ADDON_API_ENABLE_MAYBE \
      -I./node_modules/@tybys/emnapi/include \
+     -L./node_modules/@tybys/emnapi/lib/wasm32-emscripten \
      --js-library=./node_modules/@tybys/emnapi/dist/library_napi.js \
      -sEXPORTED_FUNCTIONS=['_malloc','_free'] \
      -o hello.js \
-     ./node_modules/@tybys/emnapi/src/emnapi.c \
-     hello.cpp
+     hello.c \
+     -lemnapi
 ```
+
+</details>
+
+<details>
+<summary>wasi-sdk</summary><br />
+
+```bash
+clang++ -O3 \
+        -DNAPI_DISABLE_CPP_EXCEPTIONS \
+        -DNODE_ADDON_API_ENABLE_MAYBE \
+        -I./node_modules/@tybys/emnapi/include \
+        -L./node_modules/@tybys/emnapi/lib/wasm32-wasi \
+        --target=wasm32-wasi \
+        --sysroot=$WASI_SDK_PATH/share/wasi-sysroot \
+        -mexec-model=reactor \
+        -Wl,--initial-memory=16777216 \
+        -Wl,--export-dynamic \
+        -Wl,--export=malloc \
+        -Wl,--export=free \
+        -Wl,--export=napi_register_wasm_v1 \
+        -Wl,--import-undefined \
+        -Wl,--export-table \
+        -o hello.wasm \
+        hello.c \
+        -lemnapi
+```
+
+</details>
+
+<details>
+<summary>clang wasm32</summary><br />
+
+```bash
+clang++ -O3 \
+        -DNAPI_DISABLE_CPP_EXCEPTIONS \
+        -DNODE_ADDON_API_ENABLE_MAYBE \
+        -I./node_modules/@tybys/emnapi/include \
+        -L./node_modules/@tybys/emnapi/lib/wasm32 \
+        --target=wasm32 \
+        -nostdlib \
+        -Wl,--no-entry \
+        -Wl,--initial-memory=16777216 \
+        -Wl,--export-dynamic \
+        -Wl,--export=malloc \
+        -Wl,--export=free \
+        -Wl,--export=napi_register_wasm_v1 \
+        -Wl,--import-undefined \
+        -Wl,--export-table \
+        -o hello.wasm \
+        hello.c \
+        -lemnapi \
+        -ldlmalloc
+```
+
+`operator new` and `operator delete`.
+
+```cpp
+#include <stddef.h>
+
+extern "C" void* malloc(size_t size);
+extern "C" void free(void* p);
+
+void* operator new(size_t size) {
+  return malloc(size);
+}
+
+void operator delete(void* p) noexcept {
+  free(p);
+}
+```
+
+</details>
 
 ### Using CMake
 
@@ -288,30 +558,189 @@ project(emnapiexample)
 add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/node_modules/@tybys/emnapi")
 
 add_executable(hello hello.c)
-# or add_executable(hello hello.cpp)
 
 target_link_libraries(hello emnapi)
-target_link_options(hello PRIVATE
-  "-sEXPORTED_FUNCTIONS=['_malloc','_free']"
-)
+if(CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
+  target_link_options(hello PRIVATE
+    "-sEXPORTED_FUNCTIONS=['_malloc','_free']"
+  )
+elseif(CMAKE_SYSTEM_NAME STREQUAL "WASI")
+  target_link_options(hello PRIVATE
+    "-mexec-model=reactor"
+    "-Wl,--export=napi_register_wasm_v1"
+    "-Wl,--initial-memory=16777216,--export-dynamic,--export=malloc,--export=free,--import-undefined,--export-table"
+  )
+elseif((CMAKE_C_COMPILER_TARGET STREQUAL "wasm32") OR (CMAKE_C_COMPILER_TARGET STREQUAL "wasm32-unknown-unknown"))
+  target_link_options(hello PRIVATE
+    "-nostdlib"
+    "-Wl,--export=napi_register_wasm_v1"
+    "-Wl,--no-entry"
+    "-Wl,--initial-memory=16777216,--export-dynamic,--export=malloc,--export=free,--import-undefined,--export-table"
+  )
+  target_link_libraries(hello dlmalloc)
+endif()
 ```
-
-Building with `emcmake`, output `build/hello.js` and `build/hello.wasm`.
 
 ```bash
 mkdir build
 
+# emscripten
 emcmake cmake -DCMAKE_BUILD_TYPE=Release -G Ninja -H. -Bbuild
-# emcmake cmake -DCMAKE_BUILD_TYPE=Release -G "Unix Makefiles" -H. -Bbuild
-# emcmake cmake -DCMAKE_BUILD_TYPE=Release -G "MinGW Makefiles" -H. -Bbuild
-# emcmake cmake -DCMAKE_BUILD_TYPE=Release -G "NMake Makefiles" -H. -Bbuild
+
+# wasi-sdk
+cmake -DCMAKE_TOOLCHAIN_FILE=$WASI_SDK_PATH/share/cmake/wasi-sdk.cmake \
+      -DWASI_SDK_PREFIX=$WASI_SDK_PATH \
+      -DCMAKE_BUILD_TYPE=Release \
+      -G Ninja -H. -Bbuild
+
+# wasm32
+cmake -DCMAKE_TOOLCHAIN_FILE=node_modules/@tybys/emnapi/cmake/wasm32.cmake \
+      -DLLVM_PREFIX=$WASI_SDK_PATH \
+      -DCMAKE_BUILD_TYPE=Release \
+      -G Ninja -H. -Bbuild
 
 cmake --build build
 ```
 
 Output code can run in recent version modern browsers and Node.js latest LTS. IE is not supported.
 
-### Multithread
+### Using Rust (Experimental)
+
+Currently you can use [napi-rs](https://github.com/napi-rs/napi-rs) like this, more work is working in progress.  
+
+Note: WASI target require rust nightly toolchain.
+
+<details>
+<summary>Cargo.toml</summary><br />
+
+```toml
+[package]
+edition = "2021"
+name = "binding"
+version = "0.0.0"
+
+# We should build binary for WASI reactor
+# https://github.com/rust-lang/rust/pull/79997
+# https://github.com/WebAssembly/WASI/issues/24
+# for wasm
+[[bin]]
+name = "binding"
+path = "src/main.rs"
+
+# for native
+# [lib]
+# name = "binding"
+# path = "src/lib.rs"
+# crate-type = ["cdylib"]
+
+[dependencies]
+napi = { version = "2.10.13", default-features = false, features = ["napi8", "compat-mode"] }
+napi-sys = { version = "2.2.3", features = ["napi8"] }
+napi-derive = "2.10.0"
+
+[build-dependencies]
+napi-build = "2.0.1"
+
+[profile.release]
+strip = "symbols"
+```
+
+</details>
+
+<details>
+<summary>.cargo/config.toml</summary><br />
+
+```toml
+[build]
+target = [
+  "wasm32-unknown-unknown",
+  "wasm32-wasi"
+]
+
+[target.wasm32-unknown-unknown]
+rustflags = [
+  "-L./node_modules/@tybys/emnapi/lib/wasm32",
+  "-lemnapi",
+  "-ldlmalloc",
+  "-C", "link-arg=--no-entry",
+  "-C", "link-arg=--initial-memory=16777216",
+  "-C", "link-arg=--export-dynamic",
+  "-C", "link-arg=--export=malloc",
+  "-C", "link-arg=--export=free",
+  "-C", "link-arg=--export=napi_register_wasm_v1",
+  "-C", "link-arg=--export-table",
+  "-C", "link-arg=--import-undefined",
+]
+
+[target.wasm32-wasi]
+rustflags = [
+  "-L./node_modules/@tybys/emnapi/lib/wasm32-wasi",
+  "-lemnapi",
+  "-C", "link-arg=--initial-memory=16777216",
+  "-C", "link-arg=--export-dynamic",
+  "-C", "link-arg=--export=malloc",
+  "-C", "link-arg=--export=free",
+  "-C", "link-arg=--export=napi_register_wasm_v1",
+  "-C", "link-arg=--export-table",
+  "-C", "link-arg=--import-undefined",
+  "-Z", "wasi-exec-model=reactor", # +nightly
+]
+```
+
+</details>
+
+<details>
+<summary>src/main.rs</summary><br />
+
+```rust
+#![no_main]
+
+use napi::*;
+
+#[cfg(target_arch = "wasm32")]
+use napi::bindgen_prelude::*;
+#[cfg(target_arch = "wasm32")]
+use napi_sys::*;
+
+#[macro_use]
+extern crate napi_derive;
+
+fn sum(a: i32, b: i32) -> i32 {
+  a + b
+}
+
+#[js_function(2)]
+fn sum_js(ctx: CallContext) -> napi::Result<napi::JsNumber> {
+  let arg0 = ctx.get::<napi::JsNumber>(0)?.get_int32()?;
+  let arg1 = ctx.get::<napi::JsNumber>(1)?.get_int32()?;
+  let ret = sum(arg0, arg1);
+  ctx.env.create_int32(ret)
+}
+
+fn module_register(_env: napi::Env, mut exports: napi::JsObject) -> napi::Result<()> {
+  exports.create_named_method("sum", sum_js)?;
+
+  Ok(())
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+#[module_exports]
+fn init(exports: napi::JsObject, env: napi::Env) -> napi::Result<()> {
+  module_register(env, exports)
+}
+
+#[cfg(target_arch = "wasm32")]
+#[no_mangle]
+pub unsafe extern "C" fn napi_register_wasm_v1(env: napi_env, exports: napi_value) -> () {
+  let env_object = napi::Env::from_raw(env);
+  let exports_object = napi::JsObject::from_napi_value(env, exports).unwrap();
+  module_register(env_object, exports_object).unwrap();
+}
+```
+
+</details>
+
+### Multithread (Emscripten Only)
 
 If you want to use async work or thread safe functions,
 there are additional C source file need to be compiled and linking.
