@@ -402,7 +402,7 @@ import { Volumn, createFsFromVolume } from 'memfs-browser'
 const context = createContext()
 const napiModule = createNapiModule({ context })
 
-const fs = createFsFromVolume(Volume.from({ /* ... */ })
+const fs = createFsFromVolume(Volume.from({ /* ... */ }))
 const wasi = WASI.createSync({ fs, /* ... */ })
 
 WebAssembly.instantiate(wasmBuffer, {
