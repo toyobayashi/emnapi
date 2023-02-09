@@ -42,18 +42,19 @@ set(DLMALLOC_TARGET_NAME "dlmalloc")
 set(EMMALLOC_TARGET_NAME "emmalloc")
 
 if(IS_WASM32)
+  set(MALLOC_PUBLIC_SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/malloc/sbrk.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/malloc/memcpy.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/malloc/memset.c"
+  )
   add_library(${DLMALLOC_TARGET_NAME} STATIC
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/dlmalloc/dlmalloc.c"
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/dlmalloc/sbrk.c"
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/dlmalloc/memcpy.c"
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/dlmalloc/memset.c"
+    ${MALLOC_PUBLIC_SOURCES}
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/malloc/dlmalloc/dlmalloc.c"
   )
   target_compile_definitions(${DLMALLOC_TARGET_NAME} PRIVATE "PAGESIZE=65536")
   add_library(${EMMALLOC_TARGET_NAME} STATIC
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/dlmalloc/emmalloc.c"
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/dlmalloc/sbrk.c"
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/dlmalloc/memcpy.c"
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/dlmalloc/memset.c"
+    ${MALLOC_PUBLIC_SOURCES}
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/malloc/emmalloc/emmalloc.c"
   )
   target_compile_definitions(${EMMALLOC_TARGET_NAME} PRIVATE "PAGESIZE=65536")
 endif()
@@ -137,6 +138,6 @@ if(EMNAPI_INSTALL_SRC)
     ${CMAKE_CURRENT_SOURCE_DIR}/src/uv
     DESTINATION "src/${PROJECT_NAME}")
   install(DIRECTORY
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/dlmalloc
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/malloc
     DESTINATION "src/${PROJECT_NAME}")
 endif()

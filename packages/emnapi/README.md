@@ -199,7 +199,7 @@ clang -O3 \
 <details>
 <summary>clang wasm32</summary><br />
 
-You can link against `@tybys/emnapi/lib/wasm32/libdlmalloc.a` for `malloc` and `free`.
+Choose `libdlmalloc.a` or `libemmalloc.a` for `malloc` and `free`.
 
 ```bash
 clang -O3 \
@@ -218,7 +218,7 @@ clang -O3 \
       -o hello.wasm \
       hello.c \
       -lemnapi \
-      -ldlmalloc
+      -ldlmalloc # -lemmalloc
 ```
 
 </details>
@@ -526,7 +526,7 @@ clang++ -O3 \
         -o node_api_c_api_only.wasm \
         node_api_c_api_only.cpp \
         -lemnapi \
-        -ldlmalloc
+        -ldlmalloc # -lemmalloc
 ```
 
 `operator new` and `operator delete`.
@@ -580,6 +580,7 @@ elseif((CMAKE_C_COMPILER_TARGET STREQUAL "wasm32") OR (CMAKE_C_COMPILER_TARGET S
     "-Wl,--initial-memory=16777216,--export-dynamic,--export=malloc,--export=free,--import-undefined,--export-table"
   )
   target_link_libraries(hello dlmalloc)
+  # target_link_libraries(hello emmalloc)
 endif()
 ```
 
@@ -664,6 +665,7 @@ rustflags = [
   "-L./node_modules/@tybys/emnapi/lib/wasm32",
   "-lemnapi",
   "-ldlmalloc",
+  # "-lemmalloc",
   "-C", "link-arg=--no-entry",
   "-C", "link-arg=--initial-memory=16777216",
   "-C", "link-arg=--export-dynamic",
