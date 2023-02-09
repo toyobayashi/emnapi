@@ -39,6 +39,7 @@ endif()
 set(EMNAPI_TARGET_NAME "emnapi")
 set(EMNAPI_MT_TARGET_NAME "emnapi-mt")
 set(DLMALLOC_TARGET_NAME "dlmalloc")
+set(EMMALLOC_TARGET_NAME "emmalloc")
 
 if(IS_WASM32)
   add_library(${DLMALLOC_TARGET_NAME} STATIC
@@ -48,6 +49,13 @@ if(IS_WASM32)
     "${CMAKE_CURRENT_SOURCE_DIR}/src/dlmalloc/memset.c"
   )
   target_compile_definitions(${DLMALLOC_TARGET_NAME} PRIVATE "PAGESIZE=65536")
+  add_library(${EMMALLOC_TARGET_NAME} STATIC
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/dlmalloc/emmalloc.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/dlmalloc/sbrk.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/dlmalloc/memcpy.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/dlmalloc/memset.c"
+  )
+  target_compile_definitions(${EMMALLOC_TARGET_NAME} PRIVATE "PAGESIZE=65536")
 endif()
 
 add_library(${EMNAPI_TARGET_NAME} STATIC ${EMNAPI_SRC} ${UV_SRC})
@@ -97,6 +105,7 @@ if(LIB_ARCH)
   endif()
   if(IS_WASM32)
     install(TARGETS ${DLMALLOC_TARGET_NAME} DESTINATION "lib/${LIB_ARCH}")
+    install(TARGETS ${EMMALLOC_TARGET_NAME} DESTINATION "lib/${LIB_ARCH}")
   endif()
 endif()
 
