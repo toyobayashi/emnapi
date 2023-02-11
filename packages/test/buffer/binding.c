@@ -174,6 +174,25 @@ static napi_value malignFinalizerBuffer(napi_env env, napi_callback_info info) {
   return theBuffer;
 }
 
+static napi_value getTypedArrayData(napi_env env, napi_callback_info info) {
+  size_t argc = 1;
+  napi_value args[1];
+  NAPI_CALL(env, napi_get_cb_info(env, info, &argc, args, NULL, NULL));
+  NAPI_ASSERT(env, argc == 1, "Wrong number of arguments");
+  void* data;
+  size_t size;
+  napi_value ret;
+  NAPI_CALL(env, napi_get_typedarray_info(env, args[0], NULL, &size, &data, NULL, NULL));
+  NAPI_CALL(env, napi_create_array_with_length(env, size, &ret));
+  size_t i;
+  napi_value el;
+  for (i = 0; i < size; ++i) {
+    NAPI_CALL(env, napi_create_uint32(env, *((uint8_t*)data + i), &el));
+    NAPI_CALL(env, napi_set_element(env, ret, i, el));
+  }
+  return ret;
+}
+
 static napi_value Init(napi_env env, napi_value exports) {
   napi_value theValue;
 
@@ -191,6 +210,7 @@ static napi_value Init(napi_env env, napi_value exports) {
     DECLARE_NAPI_PROPERTY("bufferInfo", bufferInfo),
     DECLARE_NAPI_PROPERTY("staticBuffer", staticBuffer),
     DECLARE_NAPI_PROPERTY("malignFinalizerBuffer", malignFinalizerBuffer),
+    DECLARE_NAPI_PROPERTY("getTypedArrayData", getTypedArrayData),
   };
 
   NAPI_CALL(env, napi_define_properties(

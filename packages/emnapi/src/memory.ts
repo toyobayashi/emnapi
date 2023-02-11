@@ -53,7 +53,11 @@ const emnapiExternalMemory: {
     }
 
     if (emnapiExternalMemory.table.has(arrayBuffer)) {
-      return emnapiExternalMemory.table.get(arrayBuffer)!
+      const info = emnapiExternalMemory.table.get(arrayBuffer)!
+      if (shouldCopy && info.ownership === Ownership.kRuntime && info.runtimeAllocated === 1) {
+        new Uint8Array(wasmMemory.buffer).set(new Uint8Array(arrayBuffer), info.address)
+      }
+      return info
     }
 
     if (!shouldCopy) {

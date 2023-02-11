@@ -22,4 +22,9 @@ module.exports = load('buffer').then(async binding => {
 
   process.externalBuffer = binding.newExternalBuffer()
   assert.strictEqual(process.externalBuffer.toString(), binding.theText)
+
+  const buffer = Buffer.allocUnsafe(6).fill(66)
+  assert.deepStrictEqual(binding.getTypedArrayData(buffer), Array(6).fill(66))
+  buffer.fill(99)
+  assert.deepStrictEqual(binding.getTypedArrayData(buffer), Array(6).fill(99))
 })
