@@ -8,8 +8,6 @@
     emnapi = require('@tybys/emnapi-runtime');
   }
 
-  var emnapiContext = emnapi.createContext();
-
   if (typeof Module === 'function') {
     Module().then(main);
   } else {
@@ -19,7 +17,7 @@
   }
 
   function main (Module) {
-    var binding = Module.emnapiInit({ context: emnapiContext });
+    var binding = Module.emnapiInit({ context: emnapi.getDefaultContext() });
     Promise.all(Array.from({ length: 4 }, () => binding.async_method()));
   };
 })();

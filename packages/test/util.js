@@ -2,7 +2,7 @@ const { join } = require('path')
 const common = require('./common.js')
 
 const emnapi = require('../runtime')
-const context = emnapi.createContext()
+const context = emnapi.getDefaultContext()
 
 function getEntry (targetName) {
   return join(__dirname, `./.cgenbuild/${common.buildType}/${targetName}.${process.env.EMNAPI_TEST_NATIVE ? 'node' : (process.env.EMNAPI_TEST_WASI || process.env.EMNAPI_TEST_WASM32) ? 'wasm' : 'js'}`)

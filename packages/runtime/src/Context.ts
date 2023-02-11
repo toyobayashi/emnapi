@@ -227,6 +227,15 @@ export class Context {
   }
 }
 
+let defaultContext: Context
+
 export function createContext (): Context {
   return new Context()
+}
+
+export function getDefaultContext (): Context {
+  if (!defaultContext) {
+    defaultContext = createContext()
+  }
+  return defaultContext
 }

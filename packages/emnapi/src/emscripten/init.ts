@@ -43,7 +43,7 @@ function emnapiInit (options: InitOptions): any {
 
   const context = options.context
   if (typeof context !== 'object' || context === null) {
-    throw new TypeError("Invalid `options.context`. You can create a context by `import { createContext } from '@tybys/emnapi-runtime`'")
+    throw new TypeError("Invalid `options.context`. Use `import { getDefaultContext } from '@tybys/emnapi-runtime'`")
   }
 
   emnapiCtx = context

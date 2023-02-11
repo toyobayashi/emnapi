@@ -12,7 +12,7 @@
   <script>
     (async function main () {
       const Module = await emnapitest_pool()
-      const A = Module.emnapiInit({ context: emnapi.createContext() })
+      const A = Module.emnapiInit({ context: emnapi.getDefaultContext() })
 
       await Promise.all(Array.from({ length: 4 }, () => A.async_method()))
       console.log('done')

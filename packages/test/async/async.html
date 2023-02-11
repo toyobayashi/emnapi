@@ -12,7 +12,7 @@
   <script>
     (async function main () {
       const Module = await emnapitest_async()
-      const test_async = Module.emnapiInit({ context: emnapi.createContext() })
+      const test_async = Module.emnapiInit({ context: emnapi.getDefaultContext() })
 
       const testException = 'test_async_cb_exception'
 

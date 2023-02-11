@@ -225,14 +225,17 @@ clang -O3 \
 
 #### Initialization
 
-To initialize emnapi, you need to import the emnapi runtime to create a `Context` by `createContext` first.
+To initialize emnapi, you need to import the emnapi runtime to create a `Context` by `createContext` or `getDefaultContext` first.
 Each context owns isolated Node-API object such as `napi_env`, `napi_value`, `napi_ref`. If you have multiple emnapi modules, you should reuse the same `Context` across them. 
 
 ```ts
 declare namespace emnapi {
   // module '@tybys/emnapi-runtime'
   export class Context { /* ... */ }
+  /** Create a new context */
   export function createContext (): Context
+  /** Create or get */
+  export function getDefaultContext (): Context
   // ...
 }
 ```
@@ -271,12 +274,10 @@ declare namespace Module {
 <script src="node_modules/@tybys/emnapi-runtime/dist/emnapi.min.js"></script>
 <script src="hello.js"></script>
 <script>
-var emnapiContext = emnapi.createContext();
-
 Module.onRuntimeInitialized = function () {
   var binding;
   try {
-    binding = Module.emnapiInit({ context: emnapiContext });
+    binding = Module.emnapiInit({ context: emnapi.getDefaultContext() });
   } catch (err) {
     console.error(err);
     return;
@@ -287,7 +288,7 @@ Module.onRuntimeInitialized = function () {
 
 // if -sMODULARIZE=1
 Module({ /* Emscripten module init options */ }).then(function (Module) {
-  var binding = Module.emnapiInit({ context: emnapiContext });
+  var binding = Module.emnapiInit({ context: emnapi.getDefaultContext() });
 });
 </script>
 ```
@@ -299,12 +300,11 @@ Running on Node.js:
 ```js
 const emnapi = require('@tybys/emnapi-runtime')
 const Module = require('./hello.js')
-const emnapiContext = emnapi.createContext()
 
 Module.onRuntimeInitialized = function () {
   let binding
   try {
-    binding = Module.emnapiInit({ context: emnapiContext })
+    binding = Module.emnapiInit({ context: emnapi.getDefaultContext() })
   } catch (err) {
     console.error(err)
     return
@@ -315,7 +315,7 @@ Module.onRuntimeInitialized = function () {
 
 // if -sMODULARIZE=1
 Module({ /* Emscripten module init options */ }).then((Module) => {
-  const binding = Module.emnapiInit({ context: emnapiContext })
+  const binding = Module.emnapiInit({ context: emnapi.getDefaultContext() })
 })
 ```
 
@@ -330,8 +330,9 @@ For non-emscripten, you need to use `@tybys/emnapi-core`. The initialization is 
 <script src="node_modules/@tybys/emnapi-runtime/dist/emnapi.min.js"></script>
 <script src="node_modules/@tybys/emnapi-core/dist/emnapi-core.min.js"></script>
 <script>
-const context = emnapi.createContext()
-const napiModule = emnapiCore.createNapiModule({ context })
+const napiModule = emnapiCore.createNapiModule({
+  context: emnapi.getDefaultContext()
+})
 
 fetch('./hello.wasm').then(res => res.arrayBuffer()).then(wasmBuffer => {
   return WebAssembly.instantiate(wasmBuffer, {
@@ -360,11 +361,12 @@ Using WASI on Node.js
 
 ```js
 const { createNapiModule } = require('@tybys/emnapi-core')
-const { createContext } = require('@tybys/emnapi-runtime')
+const { getDefaultContext } = require('@tybys/emnapi-runtime')
 const { WASI } = require('wasi')
 
-const context = createContext()
-const napiModule = createNapiModule({ context })
+const napiModule = createNapiModule({
+  context: getDefaultContext()
+})
 
 const wasi = new WASI({ /* ... */ })
 
@@ -395,12 +397,13 @@ and [memfs-browser](https://github.com/toyobayashi/memfs-browser)
 
 ```js
 import { createNapiModule } from '@tybys/emnapi-core'
-import { createContext } from '@tybys/emnapi-runtime'
+import { getDefaultContext } from '@tybys/emnapi-runtime'
 import { WASI } from '@tybys/wasm-util'
 import { Volumn, createFsFromVolume } from 'memfs-browser'
 
-const context = createContext()
-const napiModule = createNapiModule({ context })
+const napiModule = createNapiModule({
+  context: getDefaultContext()
+})
 
 const fs = createFsFromVolume(Volume.from({ /* ... */ }))
 const wasi = WASI.createSync({ fs, /* ... */ })

@@ -192,8 +192,8 @@ function browserMain () {
     { Module: Module2 },
     { Module: Module3 }
   ]) => {
-    const napi = Module2.emnapiInit({ context: window.emnapi.createContext() })
-    const naa = Module3.emnapiInit({ context: window.emnapi.createContext() })
+    const napi = Module2.emnapiInit({ context: window.emnapi.getDefaultContext() })
+    const naa = Module3.emnapiInit({ context: window.emnapi.getDefaultContext() })
     const btnNapi = document.getElementById('testNapi')
     btnNapi.addEventListener('click', () => {
       testEmptyFunction(embind, napi, naa)
@@ -216,8 +216,8 @@ function nodeMain () {
     { Module: Module2 },
     { Module: Module3 }
   ]) => {
-    const napi = Module2.emnapiInit({ context: require('@tybys/emnapi-runtime').createContext() })
-    const naa = Module3.emnapiInit({ context: require('@tybys/emnapi-runtime').createContext() })
+    const napi = Module2.emnapiInit({ context: require('@tybys/emnapi-runtime').getDefaultContext() })
+    const naa = Module3.emnapiInit({ context: require('@tybys/emnapi-runtime').getDefaultContext() })
     testEmptyFunction(embind, napi, naa)
     testReturnParam(embind, napi, naa)
     testConvertInteger(embind, napi, naa)

@@ -1,5 +1,5 @@
 export { CallbackInfo, CallbackInfoStack } from './CallbackInfo'
-export { createContext, Context, type CleanupHookCallbackFunction } from './Context'
+export { createContext, getDefaultContext, Context, type CleanupHookCallbackFunction } from './Context'
 export { Deferred, type IDeferrdValue } from './Deferred'
 export { DeferredStore } from './DeferredStore'
 export { Env, type IReferenceBinding } from './env'
