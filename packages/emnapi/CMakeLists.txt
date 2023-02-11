@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.13)
 project(emnapi)
 
 option(EMNAPI_INSTALL_SRC "EMNAPI_INSTALL_SRC" OFF)
+option(EMNAPI_FIND_NODE_ADDON_API "EMNAPI_FIND_NODE_ADDON_API" OFF)
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
   set(IS_EMSCRIPTEN ON)
@@ -40,6 +41,22 @@ set(EMNAPI_TARGET_NAME "emnapi")
 set(EMNAPI_MT_TARGET_NAME "emnapi-mt")
 set(DLMALLOC_TARGET_NAME "dlmalloc")
 set(EMMALLOC_TARGET_NAME "emmalloc")
+
+if(EMNAPI_FIND_NODE_ADDON_API)
+  execute_process(
+    COMMAND "node" "-p" "require('node-addon-api').include"
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    OUTPUT_VARIABLE OUTPUT_NAA_INCLUDE_DIR
+    ERROR_VARIABLE ERROR_NAA_INCLUDE_DIR
+  )
+  if(NOT (ERROR_NAA_INCLUDE_DIR STREQUAL ""))
+    message(WARNING "Cannot find module 'node-addon-api'")
+  else()
+    string(REGEX REPLACE "(\r?\n)|\"" "" OUTPUT_NAA_INCLUDE_DIR "${OUTPUT_NAA_INCLUDE_DIR}")
+    string(REPLACE "\\" "/" OUTPUT_NAA_INCLUDE_DIR "${OUTPUT_NAA_INCLUDE_DIR}")
+    list(PREPEND EMNAPI_INCLUDE "${OUTPUT_NAA_INCLUDE_DIR}")
+  endif()
+endif()
 
 if(IS_WASM32)
   set(MALLOC_PUBLIC_SOURCES

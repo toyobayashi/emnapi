@@ -12,7 +12,7 @@
 
 #include <algorithm>
 #include <cstring>
-#if defined(__EMSCRIPTEN_PTHREADS__) || defined(_REENTRANT)
+#if NAPI_HAS_THREADS
 #include <mutex>
 #endif
 #include <type_traits>
@@ -203,7 +203,7 @@ struct FinalizeData {
   Hint* hint;
 };
 
-#if (NAPI_VERSION > 3 && (defined(__EMSCRIPTEN_PTHREADS__) || defined(_REENTRANT)))
+#if (NAPI_VERSION > 3 && NAPI_HAS_THREADS)
 template <typename ContextType = void,
           typename Finalizer = std::function<void(Env, void*, ContextType*)>,
           typename FinalizerDataType = void>
@@ -297,7 +297,7 @@ napi_value DefaultCallbackWrapper(napi_env env, Napi::Function cb) {
   return cb;
 }
 #endif  // NAPI_VERSION > 4
-#endif  // NAPI_VERSION > 3 && (defined(__EMSCRIPTEN_PTHREADS__) || defined(_REENTRANT))
+#endif  // NAPI_VERSION > 3 && NAPI_HAS_THREADS
 
 template <typename Getter, typename Setter>
 struct AccessorCallbackData {
@@ -331,9 +331,9 @@ struct AccessorCallbackData {
 
 }  // namespace details
 
-// #ifndef NODE_ADDON_API_DISABLE_DEPRECATED
-// #include "napi-inl.deprecated.h"
-// #endif  // !NODE_ADDON_API_DISABLE_DEPRECATED
+#ifndef NODE_ADDON_API_DISABLE_DEPRECATED
+#include "napi-inl.deprecated.h"
+#endif  // !NODE_ADDON_API_DISABLE_DEPRECATED
 
 ////////////////////////////////////////////////////////////////////////////////
 // Module registration
@@ -1627,6 +1627,19 @@ inline MaybeOrValue<bool> Object::Freeze() const {
 inline MaybeOrValue<bool> Object::Seal() const {
   napi_status status = napi_object_seal(_env, _value);
   NAPI_RETURN_OR_THROW_IF_FAILED(_env, status, status == napi_ok, bool);
+}
+
+inline void Object::TypeTag(const napi_type_tag* type_tag) const {
+  napi_status status = napi_type_tag_object(_env, _value, type_tag);
+  NAPI_THROW_IF_FAILED_VOID(_env, status);
+}
+
+inline bool Object::CheckTypeTag(const napi_type_tag* type_tag) const {
+  bool result;
+  napi_status status =
+      napi_check_object_type_tag(_env, _value, type_tag, &result);
+  NAPI_THROW_IF_FAILED(_env, status, false);
+  return result;
 }
 #endif  // NAPI_VERSION >= 8
 
@@ -4638,35 +4651,35 @@ inline Value EscapableHandleScope::Escape(napi_value escapee) {
   return Value(_env, result);
 }
 
-// #if (NAPI_VERSION > 2)
-// ////////////////////////////////////////////////////////////////////////////////
-// // CallbackScope class
-// ////////////////////////////////////////////////////////////////////////////////
+#if (NAPI_VERSION > 2 && !defined(__wasm__))
+////////////////////////////////////////////////////////////////////////////////
+// CallbackScope class
+////////////////////////////////////////////////////////////////////////////////
 
-// inline CallbackScope::CallbackScope(napi_env env, napi_callback_scope scope)
-//     : _env(env), _scope(scope) {}
+inline CallbackScope::CallbackScope(napi_env env, napi_callback_scope scope)
+    : _env(env), _scope(scope) {}
 
-// inline CallbackScope::CallbackScope(napi_env env, napi_async_context context)
-//     : _env(env) {
-//   napi_status status =
-//       napi_open_callback_scope(_env, Object::New(env), context, &_scope);
-//   NAPI_THROW_IF_FAILED_VOID(_env, status);
-// }
+inline CallbackScope::CallbackScope(napi_env env, napi_async_context context)
+    : _env(env) {
+  napi_status status =
+      napi_open_callback_scope(_env, Object::New(env), context, &_scope);
+  NAPI_THROW_IF_FAILED_VOID(_env, status);
+}
 
-// inline CallbackScope::~CallbackScope() {
-//   napi_status status = napi_close_callback_scope(_env, _scope);
-//   NAPI_FATAL_IF_FAILED(
-//       status, "CallbackScope::~CallbackScope", "napi_close_callback_scope");
-// }
+inline CallbackScope::~CallbackScope() {
+  napi_status status = napi_close_callback_scope(_env, _scope);
+  NAPI_FATAL_IF_FAILED(
+      status, "CallbackScope::~CallbackScope", "napi_close_callback_scope");
+}
 
-// inline CallbackScope::operator napi_callback_scope() const {
-//   return _scope;
-// }
+inline CallbackScope::operator napi_callback_scope() const {
+  return _scope;
+}
 
-// inline Napi::Env CallbackScope::Env() const {
-//   return Napi::Env(_env);
-// }
-// #endif
+inline Napi::Env CallbackScope::Env() const {
+  return Napi::Env(_env);
+}
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////
 // AsyncContext class
@@ -4721,6 +4734,8 @@ inline Napi::Env AsyncContext::Env() const {
 ////////////////////////////////////////////////////////////////////////////////
 // AsyncWorker class
 ////////////////////////////////////////////////////////////////////////////////
+
+#if NAPI_HAS_THREADS
 
 inline AsyncWorker::AsyncWorker(const Function& callback)
     : AsyncWorker(callback, "generic") {}
@@ -4801,29 +4816,6 @@ inline AsyncWorker::~AsyncWorker() {
 
 inline void AsyncWorker::Destroy() {
   delete this;
-}
-
-inline AsyncWorker::AsyncWorker(AsyncWorker&& other) {
-  _env = other._env;
-  other._env = nullptr;
-  _work = other._work;
-  other._work = nullptr;
-  _receiver = std::move(other._receiver);
-  _callback = std::move(other._callback);
-  _error = std::move(other._error);
-  _suppress_destruct = other._suppress_destruct;
-}
-
-inline AsyncWorker& AsyncWorker::operator=(AsyncWorker&& other) {
-  _env = other._env;
-  other._env = nullptr;
-  _work = other._work;
-  other._work = nullptr;
-  _receiver = std::move(other._receiver);
-  _callback = std::move(other._callback);
-  _error = std::move(other._error);
-  _suppress_destruct = other._suppress_destruct;
-  return *this;
 }
 
 inline AsyncWorker::operator napi_async_work() const {
@@ -4923,7 +4915,9 @@ inline void AsyncWorker::OnWorkComplete(Napi::Env /*env*/, napi_status status) {
   }
 }
 
-#if (NAPI_VERSION > 3 && (defined(__EMSCRIPTEN_PTHREADS__) || defined(_REENTRANT)))
+#endif  // NAPI_HAS_THREADS
+
+#if (NAPI_VERSION > 3 && NAPI_HAS_THREADS)
 ////////////////////////////////////////////////////////////////////////////////
 // TypedThreadSafeFunction<ContextType,DataType,CallJs> class
 ////////////////////////////////////////////////////////////////////////////////
@@ -6172,7 +6166,7 @@ inline void AsyncProgressQueueWorker<T>::ExecutionProgress::Send(
     const T* data, size_t count) const {
   _worker->SendProgress_(data, count);
 }
-#endif  // NAPI_VERSION > 3 && (defined(__EMSCRIPTEN_PTHREADS__) || defined(_REENTRANT))
+#endif  // NAPI_VERSION > 3 && NAPI_HAS_THREADS
 
 ////////////////////////////////////////////////////////////////////////////////
 // Memory Management class

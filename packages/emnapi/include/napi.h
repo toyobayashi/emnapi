@@ -1,14 +1,22 @@
 #ifndef SRC_NAPI_H_
 #define SRC_NAPI_H_
 
+#ifndef NAPI_HAS_THREADS
+#if !defined(__wasm__) || (defined(__EMSCRIPTEN_PTHREADS__) ||                 \
+                           (defined(__wasi__) && defined(_REENTRANT)))
+#define NAPI_HAS_THREADS 1
+#else
+#define NAPI_HAS_THREADS 0
+#endif
+#endif
+
 #include <node_api.h>
 #include <functional>
 #include <initializer_list>
 #include <memory>
-#if defined(__EMSCRIPTEN_PTHREADS__) || defined(_REENTRANT)
+#if NAPI_HAS_THREADS
 #include <mutex>
 #endif
-
 #include <string>
 #include <vector>
 
@@ -983,6 +991,9 @@ class Object : public Value {
   /// See
   /// https://tc39.es/ecma262/#sec-proxy-object-internal-methods-and-internal-slots-getprototypeof
   MaybeOrValue<bool> Seal() const;
+
+  void TypeTag(const napi_type_tag* type_tag) const;
+  bool CheckTypeTag(const napi_type_tag* type_tag) const;
 #endif  // NAPI_VERSION >= 8
 };
 
@@ -1794,7 +1805,7 @@ class CallbackInfo {
   Value This() const;
   void* Data() const;
   void SetData(void* data);
-  operator napi_callback_info() const;
+  explicit operator napi_callback_info() const;
 
  private:
   const size_t _staticArgCount = 6;
@@ -2394,25 +2405,25 @@ class EscapableHandleScope {
   napi_escapable_handle_scope _scope;
 };
 
-// #if (NAPI_VERSION > 2)
-// class CallbackScope {
-//  public:
-//   CallbackScope(napi_env env, napi_callback_scope scope);
-//   CallbackScope(napi_env env, napi_async_context context);
-//   virtual ~CallbackScope();
+#if (NAPI_VERSION > 2 && !defined(__wasm__))
+class CallbackScope {
+ public:
+  CallbackScope(napi_env env, napi_callback_scope scope);
+  CallbackScope(napi_env env, napi_async_context context);
+  virtual ~CallbackScope();
 
-//   // Disallow copying to prevent double close of napi_callback_scope
-//   NAPI_DISALLOW_ASSIGN_COPY(CallbackScope)
+  // Disallow copying to prevent double close of napi_callback_scope
+  NAPI_DISALLOW_ASSIGN_COPY(CallbackScope)
 
-//   operator napi_callback_scope() const;
+  operator napi_callback_scope() const;
 
-//   Napi::Env Env() const;
+  Napi::Env Env() const;
 
-//  private:
-//   napi_env _env;
-//   napi_callback_scope _scope;
-// };
-// #endif
+ private:
+  napi_env _env;
+  napi_callback_scope _scope;
+};
+#endif
 
 class AsyncContext {
  public:
@@ -2435,13 +2446,11 @@ class AsyncContext {
   napi_async_context _context;
 };
 
+#if NAPI_HAS_THREADS
 class AsyncWorker {
  public:
   virtual ~AsyncWorker();
 
-  // An async worker can be moved but cannot be copied.
-  AsyncWorker(AsyncWorker&& other);
-  AsyncWorker& operator=(AsyncWorker&& other);
   NAPI_DISALLOW_ASSIGN_COPY(AsyncWorker)
 
   operator napi_async_work() const;
@@ -2500,8 +2509,9 @@ class AsyncWorker {
   std::string _error;
   bool _suppress_destruct;
 };
+#endif  // NAPI_HAS_THREADS
 
-#if (NAPI_VERSION > 3 && (defined(__EMSCRIPTEN_PTHREADS__) || defined(_REENTRANT)))
+#if (NAPI_VERSION > 3 && NAPI_HAS_THREADS)
 class ThreadSafeFunction {
  public:
   // This API may only be called from the main thread.
@@ -3071,7 +3081,7 @@ class AsyncProgressQueueWorker
   void Signal() const;
   void SendProgress_(const T* data, size_t count);
 };
-#endif  // NAPI_VERSION > 3 && (defined(__EMSCRIPTEN_PTHREADS__) || defined(_REENTRANT))
+#endif  // NAPI_VERSION > 3 && NAPI_HAS_THREADS
 
 // Memory management.
 class MemoryManagement {
