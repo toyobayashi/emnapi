@@ -292,15 +292,15 @@ function napi_create_buffer (
 
     const Buffer = emnapiCtx.feature.Buffer!
     let buffer: Uint8Array
-    if (!data) {
-      $from64('size')
+    $from64('size')
+    size = size >>> 0
+    if (!data || (size === 0)) {
       buffer = Buffer.alloc(size)
       value = emnapiCtx.addToCurrentScope(buffer).id
       $makeSetValue('result', 0, 'value', '*')
     } else {
       pointer = $makeMalloc('napi_create_buffer', 'size')
       if (!pointer) throw new Error('Out of memory')
-      $from64('size')
       new Uint8Array(wasmMemory.buffer).subarray(pointer, pointer + size).fill(0)
       const buffer = Buffer.from(wasmMemory.buffer, pointer, size)
       const viewDescriptor: MemoryViewDescriptor = {

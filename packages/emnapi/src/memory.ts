@@ -53,14 +53,23 @@ const emnapiExternalMemory: {
     }
 
     if (emnapiExternalMemory.table.has(arrayBuffer)) {
-      return emnapiExternalMemory.table.get(arrayBuffer)!
+      const info = emnapiExternalMemory.table.get(arrayBuffer)!
+      if (shouldCopy && info.ownership === Ownership.kRuntime && info.runtimeAllocated === 1) {
+        new Uint8Array(wasmMemory.buffer).set(new Uint8Array(arrayBuffer), info.address)
+      }
+      return info
     }
 
     if (!shouldCopy) {
       return { address: 0, ownership: Ownership.kRuntime, runtimeAllocated: 0 }
     }
 
-    const pointer = $makeMalloc('$emnapiExternalMemory.getArrayBufferPointer', 'arrayBuffer.byteLength')
+    const size = arrayBuffer.byteLength
+    if (size === 0) {
+      return { address: 0, ownership: Ownership.kRuntime, runtimeAllocated: 0 }
+    }
+
+    const pointer = $makeMalloc('$emnapiExternalMemory.getArrayBufferPointer', 'size')
     if (!pointer) throw new Error('Out of memory')
     new Uint8Array(wasmMemory.buffer).set(new Uint8Array(arrayBuffer), pointer)
     const pointerInfo: PointerInfo = {
