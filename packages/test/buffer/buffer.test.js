@@ -27,6 +27,11 @@ module.exports = load('buffer').then(async binding => {
   let typedArray
   let dataView
 
+  arrayBuffer = new ArrayBuffer(1)
+  assert.deepStrictEqual(binding.getMemoryDataAsArray(arrayBuffer), [0])
+  new MessageChannel().port1.postMessage(arrayBuffer, [arrayBuffer])
+  assert.deepStrictEqual(binding.getMemoryDataAsArray(arrayBuffer), [])
+
   arrayBuffer = new ArrayBuffer(6)
   typedArray = new Uint8Array(arrayBuffer)
   dataView = new DataView(arrayBuffer)
