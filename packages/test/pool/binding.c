@@ -3,6 +3,9 @@
 #include <stdio.h>
 #include "../common.h"
 
+void* malloc(size_t size);
+void free(void* p);
+
 typedef struct {
   napi_deferred _deferred;
   napi_async_work _request;

@@ -136,7 +136,7 @@ static void CancelExecute(napi_env env, void* data) {
 #else
   sleep(1);
 #endif
-  printf("CancelExecute: 0x%08x\n", (int)data);
+  printf("CancelExecute: %p\n", data);
 }
 
 static napi_value TestCancel(napi_env env, napi_callback_info info) {
