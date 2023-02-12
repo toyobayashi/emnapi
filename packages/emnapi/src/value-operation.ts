@@ -88,6 +88,9 @@ function napi_coerce_to_object (env: napi_env, value: napi_value, result: Pointe
     $CHECK_ARG!(envObject, value)
     $CHECK_ARG!(envObject, result)
     const handle = emnapiCtx.handleStore.get(value)!
+    if (handle.value == null) {
+      throw new TypeError('Cannot convert undefined or null to object')
+    }
     $from64('result')
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars

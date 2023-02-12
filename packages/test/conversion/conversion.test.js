@@ -126,6 +126,8 @@ module.exports = load('conversion').then(test => {
   assert.notDeepStrictEqual(test.toObject(''), '')
   assert.notDeepStrictEqual(test.toObject(0), 0)
   assert.ok(!Number.isNaN(test.toObject(Number.NaN)))
+  assert.throws(() => test.toObject(undefined), TypeError)
+  assert.throws(() => test.toObject(null), TypeError)
 
   assert.strictEqual(test.toString(''), '')
   assert.strictEqual(test.toString('test'), 'test')
