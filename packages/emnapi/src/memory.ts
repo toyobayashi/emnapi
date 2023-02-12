@@ -33,6 +33,7 @@ const emnapiExternalMemory: {
   table: WeakMap<ArrayBuffer, PointerInfo>
   wasmMemoryViewTable: WeakMap<ArrayBufferView, MemoryViewDescriptor>
   init: () => void
+  isDetachedArrayBuffer: (arrayBuffer: ArrayBufferLike) => boolean
   getOrUpdateMemoryView: <T extends ArrayBufferView>(view: T) => T
   getArrayBufferPointer: (arrayBuffer: ArrayBuffer, shouldCopy: boolean) => PointerInfo
   getViewPointer: <T extends ArrayBufferView>(view: T, shouldCopy: boolean) => ViewPointerInfo<T>
@@ -47,6 +48,18 @@ const emnapiExternalMemory: {
     emnapiExternalMemory.wasmMemoryViewTable = new WeakMap()
   },
 
+  isDetachedArrayBuffer: function (arrayBuffer: ArrayBufferLike): boolean {
+    if (arrayBuffer.byteLength === 0) {
+      try {
+        // eslint-disable-next-line no-new
+        new Uint8Array(arrayBuffer)
+      } catch (_) {
+        return true
+      }
+    }
+    return false
+  },
+
   getArrayBufferPointer: function (arrayBuffer: ArrayBuffer, shouldCopy: boolean): PointerInfo {
     if (arrayBuffer === wasmMemory.buffer) {
       return { address: 0, ownership: Ownership.kRuntime, runtimeAllocated: 0 }
@@ -54,10 +67,17 @@ const emnapiExternalMemory: {
 
     if (emnapiExternalMemory.table.has(arrayBuffer)) {
       const info = emnapiExternalMemory.table.get(arrayBuffer)!
+      if (emnapiExternalMemory.isDetachedArrayBuffer(arrayBuffer)) {
+        return { address: 0, ownership: info.ownership, runtimeAllocated: info.runtimeAllocated }
+      }
       if (shouldCopy && info.ownership === Ownership.kRuntime && info.runtimeAllocated === 1) {
         new Uint8Array(wasmMemory.buffer).set(new Uint8Array(arrayBuffer), info.address)
       }
       return info
+    }
+
+    if (emnapiExternalMemory.isDetachedArrayBuffer(arrayBuffer)) {
+      return { address: 0, ownership: Ownership.kRuntime, runtimeAllocated: 0 }
     }
 
     if (!shouldCopy) {
@@ -96,19 +116,7 @@ const emnapiExternalMemory: {
       return view
     }
 
-    const isDetachedArrayBuffer = (arrayBuffer: ArrayBufferLike): boolean => {
-      if (arrayBuffer.byteLength === 0) {
-        try {
-          // eslint-disable-next-line no-new
-          new Uint8Array(arrayBuffer)
-        } catch (_) {
-          return true
-        }
-      }
-      return false
-    }
-
-    if (isDetachedArrayBuffer(view.buffer) && emnapiExternalMemory.wasmMemoryViewTable.has(view)) {
+    if (emnapiExternalMemory.isDetachedArrayBuffer(view.buffer) && emnapiExternalMemory.wasmMemoryViewTable.has(view)) {
       const info = emnapiExternalMemory.wasmMemoryViewTable.get(view)!
       const Ctor = info.Ctor
       let newView: ArrayBufferView
