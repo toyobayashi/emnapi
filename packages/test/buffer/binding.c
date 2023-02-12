@@ -174,7 +174,7 @@ static napi_value malignFinalizerBuffer(napi_env env, napi_callback_info info) {
   return theBuffer;
 }
 
-static napi_value getTypedArrayData(napi_env env, napi_callback_info info) {
+static napi_value getMemoryDataAsArray(napi_env env, napi_callback_info info) {
   size_t argc = 1;
   napi_value args[1];
   NAPI_CALL(env, napi_get_cb_info(env, info, &argc, args, NULL, NULL));
@@ -182,7 +182,22 @@ static napi_value getTypedArrayData(napi_env env, napi_callback_info info) {
   void* data;
   size_t size;
   napi_value ret;
-  NAPI_CALL(env, napi_get_typedarray_info(env, args[0], NULL, &size, &data, NULL, NULL));
+  bool is_arraybuffer, is_typedarray, is_dataview, is_buffer;
+  NAPI_CALL(env, napi_is_arraybuffer(env, args[0], &is_arraybuffer));
+  NAPI_CALL(env, napi_is_typedarray(env, args[0], &is_typedarray));
+  NAPI_CALL(env, napi_is_dataview(env, args[0], &is_dataview));
+  NAPI_CALL(env, napi_is_buffer(env, args[0], &is_buffer));
+  if (is_arraybuffer) {
+    NAPI_CALL(env, napi_get_arraybuffer_info(env, args[0], &data, &size));
+  } else if (is_buffer) {
+    NAPI_CALL(env, napi_get_buffer_info(env, args[0], &data, &size));
+  } else if (is_typedarray) {
+    NAPI_CALL(env, napi_get_typedarray_info(env, args[0], NULL, &size, &data, NULL, NULL));
+  } else if (is_dataview) {
+    NAPI_CALL(env, napi_get_dataview_info(env, args[0], &size, &data, NULL, NULL));
+  } else {
+    NAPI_ASSERT(env, 0, "Invalid argument type");
+  }
   NAPI_CALL(env, napi_create_array_with_length(env, size, &ret));
   size_t i;
   napi_value el;
@@ -210,7 +225,7 @@ static napi_value Init(napi_env env, napi_value exports) {
     DECLARE_NAPI_PROPERTY("bufferInfo", bufferInfo),
     DECLARE_NAPI_PROPERTY("staticBuffer", staticBuffer),
     DECLARE_NAPI_PROPERTY("malignFinalizerBuffer", malignFinalizerBuffer),
-    DECLARE_NAPI_PROPERTY("getTypedArrayData", getTypedArrayData),
+    DECLARE_NAPI_PROPERTY("getMemoryDataAsArray", getMemoryDataAsArray),
   };
 
   NAPI_CALL(env, napi_define_properties(
