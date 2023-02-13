@@ -3,6 +3,7 @@
 
 #include "js_native_api_types.h"
 
+typedef struct napi_callback_scope__* napi_callback_scope;
 typedef struct napi_async_context__* napi_async_context;
 typedef struct napi_async_work__* napi_async_work;
 

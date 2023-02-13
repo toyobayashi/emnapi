@@ -150,6 +150,15 @@ napi_add_env_cleanup_hook(napi_env env, napi_cleanup_hook fun, void* arg);
 NAPI_EXTERN napi_status
 napi_remove_env_cleanup_hook(napi_env env, napi_cleanup_hook fun, void* arg);
 
+NAPI_EXTERN napi_status
+napi_open_callback_scope(napi_env env,
+                         napi_value resource_object,
+                         napi_async_context context,
+                         napi_callback_scope* result);
+
+NAPI_EXTERN napi_status
+napi_close_callback_scope(napi_env env, napi_callback_scope scope);
+
 #endif  // NAPI_VERSION >= 3
 
 #if NAPI_VERSION >= 4
