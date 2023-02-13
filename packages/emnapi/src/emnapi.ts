@@ -193,7 +193,7 @@ function emnapi_sync_memory (env: napi_env, js_to_wasm: bool, arraybuffer_or_vie
   })
 }
 
-function emnapiGetMemoryAddress (arrayBufferOrView: ArrayBuffer | ArrayBufferView): PointerInfo {
+function emnapiGetMemoryAddress (arrayBufferOrView: ArrayBuffer | ArrayBufferView): ArrayBufferPointer {
   const isArrayBuffer = arrayBufferOrView instanceof ArrayBuffer
   const isDataView = arrayBufferOrView instanceof DataView
   const isTypedArray = ArrayBuffer.isView(arrayBufferOrView) && !isDataView
@@ -201,7 +201,7 @@ function emnapiGetMemoryAddress (arrayBufferOrView: ArrayBuffer | ArrayBufferVie
     throw new TypeError('emnapiGetMemoryAddress expect ArrayBuffer or ArrayBufferView as first parameter')
   }
 
-  let info: PointerInfo
+  let info: ArrayBufferPointer
   if (isArrayBuffer) {
     info = emnapiExternalMemory.getArrayBufferPointer(arrayBufferOrView as ArrayBuffer, false)
   } else {
@@ -218,7 +218,7 @@ function emnapiGetMemoryAddress (arrayBufferOrView: ArrayBuffer | ArrayBufferVie
 function emnapi_get_memory_address (env: napi_env, arraybuffer_or_view: napi_value, address: Pointer<void_pp>, ownership: Pointer<int>, runtime_allocated: Pointer<bool>): napi_status {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let p: number, runtimeAllocated: number, ownershipOut: number
-  let info: PointerInfo
+  let info: ArrayBufferPointer
 
   $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, arraybuffer_or_view)
