@@ -125,6 +125,16 @@ function __emnapi_async_destroy_js (async_context: Pointer<int64_t>): napi_statu
   return napi_status.napi_ok
 }
 
+// https://github.com/nodejs/node-addon-api/pull/1283
+
+function napi_open_callback_scope (env: napi_env, ignored: napi_value, async_context_handle: number, result: number): napi_status {
+  throw new Error('napi_open_callback_scope has not been implemented yet')
+}
+
+function napi_close_callback_scope (env: napi_env, scope: number): napi_status {
+  throw new Error('napi_close_callback_scope has not been implemented yet')
+}
+
 // @ts-expect-error
 function napi_make_callback (env: napi_env, async_context: Pointer<int64_t>, recv: napi_value, func: napi_value, argc: size_t, argv: Pointer<napi_value>, result: Pointer<napi_value>): napi_status {
   let i = 0
@@ -186,4 +196,6 @@ emnapiImplementInternal('_emnapi_node_make_callback', 'ipppppddp', __emnapi_node
 emnapiImplementInternal('_emnapi_async_init_js', 'ippp', __emnapi_async_init_js)
 emnapiImplementInternal('_emnapi_async_destroy_js', 'ip', __emnapi_async_destroy_js)
 
+emnapiImplement('napi_open_callback_scope', 'ipppp', napi_open_callback_scope)
+emnapiImplement('napi_close_callback_scope', 'ipp', napi_close_callback_scope)
 emnapiImplement('napi_make_callback', 'ippppppp', napi_make_callback)
