@@ -6,7 +6,7 @@ const assert = require('assert')
 // const { fork } = require('child_process')
 
 async function main () {
-  const loadPromise = load('tsfn', { nodeBinding: require('@tybys/emnapi-node-binding') })
+  const loadPromise = load('tsfn', { nodeBinding: require('@emnapi/node-binding') })
   const binding = await loadPromise
 
   const expectedArray = (function (arrayLength) {

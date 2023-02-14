@@ -18,7 +18,7 @@ function loadPath (request, options) {
 
     if (process.env.EMNAPI_TEST_WASI) {
       const { WASI } = require('wasi')
-      const { createNapiModule } = require('@tybys/emnapi-core')
+      const { createNapiModule } = require('@emnapi/core')
       const wasi = new WASI()
       const napiModule = createNapiModule({
         context,
@@ -49,7 +49,7 @@ function loadPath (request, options) {
     }
 
     if (process.env.EMNAPI_TEST_WASM32) {
-      const { createNapiModule } = require('@tybys/emnapi-core')
+      const { createNapiModule } = require('@emnapi/core')
       const napiModule = createNapiModule({
         context,
         ...(options || {})

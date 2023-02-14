@@ -4,7 +4,7 @@ const assert = require('assert')
 const { load } = require('../util')
 const async_hooks = require('async_hooks')
 
-module.exports = load('make_callback', { nodeBinding: require('@tybys/emnapi-node-binding') }).then(async binding => {
+module.exports = load('make_callback', { nodeBinding: require('@emnapi/node-binding') }).then(async binding => {
   const makeCallback = binding.makeCallback
 
   // Check async hooks integration using async context.

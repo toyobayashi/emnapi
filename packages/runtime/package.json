@@ -1,5 +1,5 @@
 {
-  "name": "@tybys/emnapi-runtime",
+  "name": "@emnapi/runtime",
   "version": "0.30.0",
   "description": "emnapi runtime",
   "main": "index.js",

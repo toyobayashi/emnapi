@@ -97,7 +97,7 @@ var emnapiNodeBinding: NodeBinding
 
 const context = options.context
 if (typeof context !== 'object' || context === null) {
-  throw new TypeError("Invalid `options.context`. Use `import { getDefaultContext } from '@tybys/emnapi-runtime'`")
+  throw new TypeError("Invalid `options.context`. Use `import { getDefaultContext } from '@emnapi/runtime'`")
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -110,7 +110,7 @@ if (typeof options.filename === 'string') {
 if ('nodeBinding' in options) {
   const nodeBinding = options.nodeBinding
   if (typeof nodeBinding !== 'object' || nodeBinding === null) {
-    throw new TypeError('Invalid `options.nodeBinding`. Use @tybys/emnapi-node-binding package')
+    throw new TypeError('Invalid `options.nodeBinding`. Use @emnapi/node-binding package')
   }
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   emnapiNodeBinding = nodeBinding

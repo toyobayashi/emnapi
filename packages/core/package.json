@@ -1,5 +1,5 @@
 {
-  "name": "@tybys/emnapi-core",
+  "name": "@emnapi/core",
   "version": "0.30.0",
   "description": "emnapi core",
   "main": "index.js",

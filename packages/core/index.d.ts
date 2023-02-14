@@ -1,5 +1,5 @@
 export declare interface CreateOptions {
-  context: import('@tybys/emnapi-runtime').Context
+  context: import('@emnapi/runtime').Context
   filename?: string
   nodeBinding?: {
     node: {

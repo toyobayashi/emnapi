@@ -5,7 +5,7 @@
     emnapi = window.emnapi;
   } else {
     Module = require('./build/async.js');
-    emnapi = require('@tybys/emnapi-runtime');
+    emnapi = require('@emnapi/runtime');
   }
 
   if (typeof Module === 'function') {

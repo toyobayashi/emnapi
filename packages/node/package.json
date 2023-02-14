@@ -1,5 +1,5 @@
 {
-  "name": "@tybys/emnapi-node-binding",
+  "name": "@emnapi/node-binding",
   "version": "0.30.0",
   "description": "Bridge connecting emnapi and Node.js native implementation",
   "main": "index.js",
