@@ -84,6 +84,8 @@ npm run rebuild:test
 npm test
 ```
 
+See [CONTRIBUTING](https://github.com/toyobayashi/emnapi/blob/main/CONTRIBUTING.md) for more details.
+
 ## Quick Start
 
 ### NPM Install
