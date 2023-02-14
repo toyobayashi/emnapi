@@ -4,7 +4,7 @@ const { load } = require('../util')
 const common = require('../common')
 const vm = require('vm')
 
-module.exports = load('make_callback', { nodeBinding: require('@tybys/emnapi-node-binding') }).then(binding => {
+module.exports = load('make_callback', { nodeBinding: require('@emnapi/node-binding') }).then(binding => {
   const makeCallback = binding.makeCallback
 
   function myMultiArgFunc (arg1, arg2, arg3) {

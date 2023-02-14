@@ -1,5 +1,5 @@
 {
-  "name": "@tybys/emnapi-test",
+  "name": "@emnapi/test",
   "private": true,
   "version": "0.0.0",
   "description": "emnapi test",

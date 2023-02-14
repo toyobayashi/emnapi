@@ -216,8 +216,8 @@ function nodeMain () {
     { Module: Module2 },
     { Module: Module3 }
   ]) => {
-    const napi = Module2.emnapiInit({ context: require('@tybys/emnapi-runtime').getDefaultContext() })
-    const naa = Module3.emnapiInit({ context: require('@tybys/emnapi-runtime').getDefaultContext() })
+    const napi = Module2.emnapiInit({ context: require('@emnapi/runtime').getDefaultContext() })
+    const naa = Module3.emnapiInit({ context: require('@emnapi/runtime').getDefaultContext() })
     testEmptyFunction(embind, napi, naa)
     testReturnParam(embind, napi, naa)
     testConvertInteger(embind, napi, naa)

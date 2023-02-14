@@ -5,7 +5,7 @@ const common = require('../common')
 const assert = require('assert')
 const async_hooks = require('async_hooks')
 
-module.exports = load('async', { nodeBinding: require('@tybys/emnapi-node-binding') }).then(test_async => {
+module.exports = load('async', { nodeBinding: require('@emnapi/node-binding') }).then(test_async => {
   return new Promise((resolve, reject) => {
     const events = []
     let testId

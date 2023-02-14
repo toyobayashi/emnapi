@@ -1,4 +1,4 @@
-import { getDefaultContext } from '@tybys/emnapi-runtime'
+import { getDefaultContext } from '@emnapi/runtime'
 import initModule from './build/hello.js'
 
 const Module = await initModule()

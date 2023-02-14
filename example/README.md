@@ -1,12 +1,12 @@
 ```bash
-npm install -D @tybys/emnapi
+npm install -D emnapi
 ```
 
 * Use C
 
   ```bash
   mkdir build
-  emcc -O3 -I../packages/emnapi/include --js-library=../packages/emnapi/dist/library_napi.js -sEXPORTED_FUNCTIONS=['_malloc','_free'] -o build/hello.js hello.c ../packages/emnapi/src/emnapi.c
+  emcc -O3 -I../packages/emnapi/include --js-library=../packages/emnapi/dist/library_napi.js -sEXPORTED_FUNCTIONS="['_malloc','_free']" -o build/hello.js hello.c ../packages/emnapi/src/emnapi.c
   node ./index
   ```
 
@@ -22,7 +22,7 @@ npm install -D @tybys/emnapi
   em++ -O3 -I../packages/emnapi/include -DNAPI_DISABLE_CPP_EXCEPTIONS -DNODE_ADDON_API_ENABLE_MAYBE -c -o build/hello.o hello.cpp
 
   # Link
-  em++ -O3 --js-library=../packages/emnapi/dist/library_napi.js -sEXPORTED_FUNCTIONS=['_malloc','_free'] -o build/hello.js ./build/hello.o ./build/emnapi.o
+  em++ -O3 --js-library=../packages/emnapi/dist/library_napi.js -sEXPORTED_FUNCTIONS="['_malloc','_free']" -o build/hello.js ./build/hello.o ./build/emnapi.o
 
   node ./index
   ```

@@ -1,5 +1,5 @@
 {
-  "name": "@tybys/emnapi-bench",
+  "name": "@emnapi/bench",
   "version": "0.0.0",
   "private": true,
   "scripts": {

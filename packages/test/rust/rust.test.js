@@ -5,9 +5,9 @@ module.exports = new Promise((resolve, reject) => {
     wasi = new WASI({ /* ... */ })
   }
 
-  const context = require('@tybys/emnapi-runtime').getDefaultContext()
+  const context = require('@emnapi/runtime').getDefaultContext()
 
-  const { createNapiModule } = require('@tybys/emnapi-core')
+  const { createNapiModule } = require('@emnapi/core')
   const napiModule = createNapiModule({
     context
   })

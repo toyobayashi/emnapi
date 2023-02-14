@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.13)
 project(emnapiexample)
 
 set(EMNAPI_WORKER_POOL_SIZE 2)
-add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/node_modules/@tybys/emnapi")
+add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/node_modules/emnapi")
 
 add_executable(hello
   hello.c

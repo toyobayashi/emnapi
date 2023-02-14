@@ -8,7 +8,7 @@ const common = require('../common')
 
 const { load } = require('../util')
 
-module.exports = load('async_context', { nodeBinding: require('@tybys/emnapi-node-binding') }).then(binding => {
+module.exports = load('async_context', { nodeBinding: require('@emnapi/node-binding') }).then(binding => {
   const { createAsyncResource } = binding
 
   // Test for https://github.com/nodejs/node/issues/27218:

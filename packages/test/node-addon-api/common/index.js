@@ -91,7 +91,7 @@ async function runTest (test, buildType, buildPathRoot = process.env.BUILD_PATH 
   ]/* .map(it => require.resolve(it)) */
 
   for (const item of bindings) {
-    const binding = await load(item, { nodeBinding: require('@tybys/emnapi-node-binding') })
+    const binding = await load(item, { nodeBinding: require('@emnapi/node-binding') })
     console.log('>>>>>>>>' + item)
     await Promise.resolve(test(binding))
       .finally(exports.mustCall())
