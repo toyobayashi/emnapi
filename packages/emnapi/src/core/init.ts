@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/prefer-nullish-coalescing */
 /* eslint-disable no-var */
 
@@ -34,15 +35,12 @@ declare interface INapiModule {
 
 var ENVIRONMENT_IS_NODE = typeof process === 'object' && process !== null && typeof process.versions === 'object' && process.versions !== null && typeof process.versions.node === 'string'
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 var wasmMemory: WebAssembly.Memory
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+
 var wasmTable: WebAssembly.Table
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 var _malloc: any, _free: any
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function abort (msg: string): never {
   if (typeof WebAssembly.RuntimeError === 'function') {
     throw new WebAssembly.RuntimeError(msg)
@@ -50,9 +48,8 @@ function abort (msg: string): never {
   throw Error(msg)
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function runtimeKeepalivePush (): void {}
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+
 function runtimeKeepalivePop (): void {}
 
 // eslint-disable-next-line no-var
@@ -89,7 +86,6 @@ var napiModule: INapiModule = {
     try {
       envObject.callIntoModule((_envObject) => {
         const exports = napiModule.exports
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const exportsHandle = scope.add(exports)
         const napi_register_wasm_v1 = instance.exports.napi_register_wasm_v1 as Function
         const napiValue = napi_register_wasm_v1($to64('_envObject.id'), $to64('exportsHandle.id'))
@@ -117,7 +113,6 @@ if (typeof context !== 'object' || context === null) {
   throw new TypeError("Invalid `options.context`. Use `import { getDefaultContext } from '@emnapi/runtime'`")
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 emnapiCtx = context
 
 if (typeof options.filename === 'string') {
@@ -143,6 +138,5 @@ if ('nodeBinding' in options) {
   if (typeof nodeBinding !== 'object' || nodeBinding === null) {
     throw new TypeError('Invalid `options.nodeBinding`. Use @emnapi/node-binding package')
   }
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   emnapiNodeBinding = nodeBinding
 }
