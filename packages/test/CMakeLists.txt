@@ -33,6 +33,12 @@ else()
   set(IS_WASI OFF)
 endif()
 
+if((CMAKE_SYSTEM_NAME STREQUAL "WASI") AND (CMAKE_C_COMPILER_TARGET STREQUAL "wasm32-wasi-threads"))
+  set(IS_WASI_THREADS ON)
+else()
+  set(IS_WASI_THREADS OFF)
+endif()
+
 if((CMAKE_C_COMPILER_TARGET STREQUAL "wasm32") OR (CMAKE_C_COMPILER_TARGET STREQUAL "wasm32-unknown-unknown"))
   set(IS_WASM32 ON)
 else()
@@ -87,6 +93,13 @@ if(IS_EMSCRIPTEN)
     "-sDEFAULT_PTHREAD_STACK_SIZE=2MB"
     "-sSAFE_HEAP=1"
     "-sMODULARIZE=1"
+  )
+elseif(IS_WASI_THREADS)
+  set(COMMON_LINK_OPTIONS
+    # "-v"
+    "-mexec-model=reactor"
+    # "-Wl,--import-memory"
+    "-Wl,--import-memory,--max-memory=2147483648,--export-dynamic,--export=malloc,--export=free,--import-undefined,--export-table"
   )
 elseif(IS_WASI)
   set(COMMON_LINK_OPTIONS
@@ -213,7 +226,7 @@ endfunction()
 add_test("env" "./env/binding.c" OFF OFF "")
 add_test("hello" "./hello/binding.c" OFF OFF "")
 
-if((NOT IS_WASM) OR (IS_EMSCRIPTEN AND NOT IS_MEMORY64))
+if((NOT IS_WASM) OR (IS_EMSCRIPTEN AND NOT IS_MEMORY64) OR (IS_WASI_THREADS))
   add_test("string_mt" "./string/binding.c" ON ON "")
   add_test("async" "./async/binding.c" OFF ON "")
   if(IS_EMSCRIPTEN)

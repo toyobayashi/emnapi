@@ -75,6 +75,16 @@
       "includePath": ["${includePath}"]
     },
     {
+      "name": "WASI-THREADS",
+      "defines": ["${defines}", "_REENTRANT"],
+      "compilerPath": "${env:WASI_SDK_PATH}/bin/clang",
+      "intelliSenseMode": "clang-x86",
+      "cStandard": "c11",
+      "cppStandard": "c++14",
+      "includePath": ["${includePath}"],
+      "compilerArgs": ["--target=wasm32-wasi-threads"]
+    },
+    {
       "name": "WASM32",
       "defines": ["${defines}", "PAGESIZE=65536"],
       "compilerPath": "${env:WASI_SDK_PATH}/bin/clang",

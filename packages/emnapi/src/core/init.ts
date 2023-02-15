@@ -5,6 +5,9 @@ declare interface CreateOptions {
   context: Context
   filename?: string
   nodeBinding?: NodeBinding
+  onCreateWorker?: () => any
+  print?: () => void
+  printErr?: () => void
 }
 
 // factory parameter
@@ -20,10 +23,16 @@ declare interface INapiModule {
   emnapi: any
   loaded: boolean
   filename: string
+  // PThread: {
+  //   pthreads: any[]
+  // }
   envObject?: Env
 
   init (instance: WebAssembly.Instance, memory?: WebAssembly.Memory, table?: WebAssembly.Table): any
+  spawnThread (startArg: number): number
 }
+
+var ENVIRONMENT_IS_NODE = typeof process === 'object' && process !== null && typeof process.versions === 'object' && process.versions !== null && typeof process.versions.node === 'string'
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 var wasmMemory: WebAssembly.Memory
@@ -57,6 +66,11 @@ var napiModule: INapiModule = {
   emnapi: {},
   loaded: false,
   filename: '',
+
+  // PThread: {
+  //   pthreads: [undefined]
+  // },
+  spawnThread: undefined!,
 
   init (instance: WebAssembly.Instance, memory?: WebAssembly.Memory, table?: WebAssembly.Table) {
     if (napiModule.loaded) return napiModule.exports
@@ -94,6 +108,9 @@ var napiModule: INapiModule = {
 
 var emnapiCtx: Context
 var emnapiNodeBinding: NodeBinding
+var onCreateWorker: () => any
+var out: (str: string) => void
+var err: (str: string) => void
 
 const context = options.context
 if (typeof context !== 'object' || context === null) {
@@ -105,6 +122,20 @@ emnapiCtx = context
 
 if (typeof options.filename === 'string') {
   napiModule.filename = options.filename
+}
+
+if (typeof options.onCreateWorker === 'function') {
+  onCreateWorker = options.onCreateWorker
+}
+if (typeof options.print === 'function') {
+  out = options.print
+} else {
+  out = console.log.bind(console)
+}
+if (typeof options.printErr === 'function') {
+  err = options.printErr
+} else {
+  err = console.warn.bind(console)
 }
 
 if ('nodeBinding' in options) {

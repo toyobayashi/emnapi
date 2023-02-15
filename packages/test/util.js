@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 const { join } = require('path')
 const common = require('./common.js')
 
@@ -18,24 +19,60 @@ function loadPath (request, options) {
 
     if (process.env.EMNAPI_TEST_WASI) {
       const { WASI } = require('wasi')
+      const { Worker } = require('worker_threads')
       const { createNapiModule } = require('@emnapi/core')
       const wasi = new WASI()
       const napiModule = createNapiModule({
         context,
+        filename: request,
+        onCreateWorker () {
+          return new Worker(join(__dirname, './worker.js'), {
+            env: process.env,
+            execArgv: ['--experimental-wasi-unstable-preview1']
+          })
+        },
         ...(options || {})
       })
+      let wasmMemory
+      if (process.env.EMNAPI_TEST_WASI_THREADS) {
+        wasmMemory = new WebAssembly.Memory({
+          initial: 16777216 / 65536,
+          maximum: 2147483648 / 65536,
+          shared: true
+        })
+      }
+      const __imported_wasi_thread_spawn = function (startArg) {
+        return napiModule.spawnThread(startArg, undefined)
+      }
       const p = new Promise((resolve, reject) => {
         WebAssembly.instantiate(require('fs').readFileSync(request), {
           wasi_snapshot_preview1: wasi.wasiImport,
-          env: napiModule.imports.env,
+          env: {
+            ...(process.env.EMNAPI_TEST_WASI_THREADS ? { memory: wasmMemory } : {}),
+            ...napiModule.imports.env
+          },
           napi: napiModule.imports.napi,
-          emnapi: napiModule.imports.emnapi
+          emnapi: napiModule.imports.emnapi,
+          wasi: {
+            'thread-spawn': __imported_wasi_thread_spawn
+          }
         })
           .then(({ instance }) => {
+            if (process.env.EMNAPI_TEST_WASI_THREADS) {
+              instance = {
+                exports: {
+                  ...instance.exports,
+                  memory: wasmMemory
+                }
+              }
+              // Object.defineProperty(instance.exports, 'memory', { value: wasmMemory })
+            } else {
+              wasmMemory = instance.exports.memory
+            }
             wasi.initialize(instance)
             let exports
             try {
-              exports = napiModule.init(instance, instance.exports.memory, instance.exports.__indirect_function_table)
+              exports = napiModule.init(instance, wasmMemory, instance.exports.__indirect_function_table)
             } catch (err) {
               reject(err)
               return

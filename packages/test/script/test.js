@@ -1,3 +1,7 @@
+if (process.env.EMNAPI_TEST_WASI_THREADS) {
+  process.env.EMNAPI_TEST_WASI = 1
+}
+
 const { spawnSync } = require('child_process')
 const path = require('path')
 const glob = require('glob')
@@ -31,7 +35,7 @@ if (process.env.EMNAPI_TEST_NATIVE) {
     'rust/**/*',
     '**/{emnapitest,node-addon-api}/**/*'
   ])]
-} else if (process.env.EMNAPI_TEST_WASI || process.env.EMNAPI_TEST_WASM32) {
+} else if (!process.env.EMNAPI_TEST_WASI_THREADS && (process.env.EMNAPI_TEST_WASI || process.env.EMNAPI_TEST_WASM32)) {
   ignore = [...new Set([
     ...ignore,
     ...pthread
@@ -40,6 +44,14 @@ if (process.env.EMNAPI_TEST_NATIVE) {
   ignore = [...new Set([
     ...ignore,
     'rust/**/*'
+  ])]
+}
+
+if (process.env.EMNAPI_TEST_WASI_THREADS) {
+  // TODO(emnapi): fix memory sync
+  ignore = [...new Set([
+    ...ignore,
+    '**/{emnapitest,node-addon-api}/**/*'
   ])]
 }
 

@@ -13,6 +13,9 @@ export declare interface CreateOptions {
       makeCallback: Function
     }
   }
+  onCreateWorker?: () => any
+  print?: () => void
+  printErr?: () => void
 }
 
 export declare interface PointerInfo {
@@ -41,6 +44,7 @@ export declare interface NapiModule {
   }
 
   init (instance: WebAssembly.Instance, memory?: WebAssembly.Memory, table?: WebAssembly.Table): any
+  spawnThread (startArg: number): number
 }
 
 export function createNapiModule (options: CreateOptions): NapiModule

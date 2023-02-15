@@ -66,13 +66,23 @@ void uv_mutex_destroy(uv_mutex_t* mutex) {
 }
 
 void uv_mutex_lock(uv_mutex_t* mutex) {
+#ifdef __EMSCRIPTEN_PTHREADS__
   if (pthread_mutex_lock(mutex))
     abort();
+#else
+  // ?
+  pthread_mutex_lock(mutex);
+#endif
 }
 
 void uv_mutex_unlock(uv_mutex_t* mutex) {
+#ifdef __EMSCRIPTEN_PTHREADS__
   if (pthread_mutex_unlock(mutex))
     abort();
+#else
+  // ?
+  pthread_mutex_unlock(mutex);
+#endif
 }
 
 int uv_cond_init(uv_cond_t* cond) {
@@ -85,8 +95,13 @@ void uv_cond_signal(uv_cond_t* cond) {
 }
 
 void uv_cond_wait(uv_cond_t* cond, uv_mutex_t* mutex) {
+#ifdef __EMSCRIPTEN_PTHREADS__
   if (pthread_cond_wait(cond, mutex))
     abort();
+#else
+  // ?
+  pthread_cond_wait(cond, mutex);
+#endif
 }
 
 int uv_thread_create_ex(uv_thread_t* tid,
