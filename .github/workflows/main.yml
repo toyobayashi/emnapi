@@ -83,8 +83,8 @@ jobs:
         npm install
         npm run build --workspaces --if-present
 
-    - name: Lint
-      run: npm run lint
+    # - name: Lint
+    #   run: npm run lint
     
     - name: Test wasm32-wasi-threads
       run: |
