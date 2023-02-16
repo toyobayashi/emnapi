@@ -82,10 +82,17 @@ async function main () {
     sysroot
   ], cwd)
 
+  let WASI_THREADS_CMAKE_TOOLCHAIN_FILE = ''
   if (fs.existsSync(path.join(wasiSdkPath, 'share/cmake/wasi-sdk-pthread.cmake'))) {
+    WASI_THREADS_CMAKE_TOOLCHAIN_FILE = `${WASI_SDK_PATH}/share/cmake/wasi-sdk-pthread.cmake`
+  } else if (fs.existsSync(path.join(wasiSdkPath, 'share/cmake/wasi-sdk-threads.cmake'))) {
+    WASI_THREADS_CMAKE_TOOLCHAIN_FILE = `${WASI_SDK_PATH}/share/cmake/wasi-sdk-threads.cmake`
+  }
+
+  if (WASI_THREADS_CMAKE_TOOLCHAIN_FILE) {
     await spawn('cmake', [
       ...generatorOptions,
-      `-DCMAKE_TOOLCHAIN_FILE=${WASI_SDK_PATH}/share/cmake/wasi-sdk-pthread.cmake`,
+      `-DCMAKE_TOOLCHAIN_FILE=${WASI_THREADS_CMAKE_TOOLCHAIN_FILE}`,
       `-DWASI_SDK_PREFIX=${WASI_SDK_PATH}`,
       '-DCMAKE_BUILD_TYPE=Release',
       '-DCMAKE_VERBOSE_MAKEFILE=1',
