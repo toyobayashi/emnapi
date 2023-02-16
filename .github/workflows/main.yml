@@ -20,7 +20,7 @@ jobs:
     name: Build
     runs-on: ${{ matrix.os }}
     env:
-      WASI_VERSION: '20.0+threads'
+      WASI_VERSION: '20+threads'
       WASI_VERSION_FULL: '20.0.threads'
       WASI_SDK_PATH: './wasi-sdk-20.0.threads'
       LLVM_VERSION: '15.0.7'
