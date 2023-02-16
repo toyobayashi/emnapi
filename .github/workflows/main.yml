@@ -88,6 +88,8 @@ jobs:
     
     - name: Test wasm32-wasi-threads
       run: |
+        echo "set(CMAKE_C_COMPILER_WORKS 1)" >> $WASI_SDK_PATH/share/cmake/wasi-sdk-pthread.cmake
+        echo "set(CMAKE_CXX_COMPILER_WORKS 1)" >> $WASI_SDK_PATH/share/cmake/wasi-sdk-pthread.cmake
         npm run rebuild:wt -w packages/test
         npm run test:wt -w packages/test
 
