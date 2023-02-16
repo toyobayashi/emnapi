@@ -50,7 +50,7 @@ if (process.env.EMNAPI_TEST_NATIVE) {
 if (process.env.EMNAPI_TEST_WASI_THREADS) {
   ignore = [...new Set([
     ...ignore,
-    '**/{node-addon-api}/**/*'
+    'node-addon-api/**/*'
   ])]
 }
 
