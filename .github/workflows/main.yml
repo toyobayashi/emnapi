@@ -20,11 +20,11 @@ jobs:
     name: Build
     runs-on: ${{ matrix.os }}
     env:
-      WASI_VERSION: '19'
-      WASI_VERSION_FULL: '19.0'
-      WASI_SDK_PATH: './wasi-sdk-19.0'
+      WASI_VERSION: '20.0+threads'
+      WASI_VERSION_FULL: '20.0.threads'
+      WASI_SDK_PATH: './wasi-sdk-20.0.threads'
       LLVM_VERSION: '15.0.7'
-      LLVM_PATH: './wasi-sdk-19.0'
+      LLVM_PATH: './wasi-sdk-20.0.threads'
     strategy:
       fail-fast: false
       matrix:
@@ -58,7 +58,7 @@ jobs:
       uses: actions/cache@v3
       with:
         path: ${{ env.WASI_SDK_PATH }}
-        key: ${{ runner.os }}-${{ env.WASI_VERSION_FULL }}
+        key: ${{ runner.os }}-${{ env.WASI_VERSION }}-${{ env.WASI_VERSION_FULL }}
 
     - name: Install wasi-sdk
       if: ${{ steps.cache-wasi-sdk.outputs.cache-hit != 'true' }}
@@ -70,7 +70,7 @@ jobs:
 
     - uses: actions/setup-node@v3
       with:
-        node-version: '16.15.0'
+        node-version: '18.12.1'
         registry-url: 'https://registry.npmjs.org'
       env:
         NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -85,6 +85,11 @@ jobs:
 
     - name: Lint
       run: npm run lint
+    
+    - name: Test wasm32-wasi-threads
+      run: |
+        npm run rebuild:wt -w packages/test
+        npm run test:wt -w packages/test
 
     - name: Test wasm32-unknown-emscripten
       run: |
