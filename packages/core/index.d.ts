@@ -1,5 +1,6 @@
-export declare interface CreateOptions {
-  context: import('@emnapi/runtime').Context
+import type { Context } from '@emnapi/runtime'
+
+export declare type CreateOptions = {
   filename?: string
   nodeBinding?: {
     node: {
@@ -16,7 +17,13 @@ export declare interface CreateOptions {
   onCreateWorker?: () => any
   print?: () => void
   printErr?: () => void
-}
+} & ({
+  context: Context
+  childThread?: false
+} | {
+  context?: Context
+  childThread: true
+})
 
 export declare interface PointerInfo {
   address: number

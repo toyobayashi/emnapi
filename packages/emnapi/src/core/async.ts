@@ -1,9 +1,8 @@
 /* eslint-disable @typescript-eslint/restrict-plus-operands */
 // declare const PThread: any
-declare const ENVIRONMENT_IS_PTHREAD: boolean
 
 function __emnapi_worker_unref (pid: number): void {
-  // if (typeof ENVIRONMENT_IS_PTHREAD !== 'undefined' && Boolean(ENVIRONMENT_IS_PTHREAD)) return
+  // if (ENVIRONMENT_IS_PTHREAD) return
   // const worker = napiModule.PThread.pthreads[pid]
   // if (typeof worker.unref === 'function') {
   //   worker.unref()
@@ -15,7 +14,7 @@ function emnapiAddSendListener (worker: any): void {
     worker._emnapiSendListener = function _emnapiSendListener (e: any) {
       const data = ENVIRONMENT_IS_NODE ? e : e.data
       if (data.emnapiAsyncSend) {
-        if (typeof ENVIRONMENT_IS_PTHREAD !== 'undefined' && Boolean(ENVIRONMENT_IS_PTHREAD)) {
+        if (ENVIRONMENT_IS_PTHREAD) {
           postMessage({
             emnapiAsyncSend: data.emnapiAsyncSend
           })
@@ -35,7 +34,7 @@ function emnapiAddSendListener (worker: any): void {
 }
 
 function __emnapi_async_send_js (type: number, callback: number, data: number): void {
-  if (typeof ENVIRONMENT_IS_PTHREAD !== 'undefined' && Boolean(ENVIRONMENT_IS_PTHREAD)) {
+  if (ENVIRONMENT_IS_PTHREAD) {
     postMessage({
       emnapiAsyncSend: {
         callback,
@@ -57,6 +56,16 @@ function ptrToString (ptr: number): string {
 
 let nextTid = 1
 function spawnThread (startArg: number, threadId?: Int32Array): number {
+  if (ENVIRONMENT_IS_PTHREAD) {
+    const threadIdBuffer = new SharedArrayBuffer(4)
+    const id = new Int32Array(threadIdBuffer)
+    Atomics.store(id, 0, -1)
+    postMessage({ cmd: 'thread-spawn', startArg, threadId: id })
+    Atomics.wait(id, 0, -1)
+    const tid = Atomics.load(id, 0)
+    return tid
+  }
+
   if (typeof onCreateWorker !== 'function') {
     throw new TypeError('createNapiModule `options.onCreateWorker` is not provided')
   }

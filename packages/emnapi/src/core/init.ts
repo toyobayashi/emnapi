@@ -6,6 +6,7 @@ declare interface CreateOptions {
   context: Context
   filename?: string
   nodeBinding?: NodeBinding
+  childThread?: boolean
   onCreateWorker?: () => any
   print?: () => void
   printErr?: () => void
@@ -34,6 +35,7 @@ declare interface INapiModule {
 }
 
 var ENVIRONMENT_IS_NODE = typeof process === 'object' && process !== null && typeof process.versions === 'object' && process.versions !== null && typeof process.versions.node === 'string'
+var ENVIRONMENT_IS_PTHREAD = Boolean(options.childThread)
 
 var wasmMemory: WebAssembly.Memory
 
@@ -108,12 +110,15 @@ var onCreateWorker: () => any
 var out: (str: string) => void
 var err: (str: string) => void
 
-const context = options.context
-if (typeof context !== 'object' || context === null) {
-  throw new TypeError("Invalid `options.context`. Use `import { getDefaultContext } from '@emnapi/runtime'`")
+if (!ENVIRONMENT_IS_PTHREAD) {
+  const context = options.context
+  if (typeof context !== 'object' || context === null) {
+    throw new TypeError("Invalid `options.context`. Use `import { getDefaultContext } from '@emnapi/runtime'`")
+  }
+  emnapiCtx = context
+} else {
+  emnapiCtx = options?.context
 }
-
-emnapiCtx = context
 
 if (typeof options.filename === 'string') {
   napiModule.filename = options.filename

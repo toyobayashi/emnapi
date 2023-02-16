@@ -1,4 +1,4 @@
-globalThis.ENVIRONMENT_IS_PTHREAD = true
+// globalThis.ENVIRONMENT_IS_PTHREAD = true
 
 // const log = (...args) => {
 //   const str = require('util').format(...args)
@@ -47,7 +47,7 @@ const { createNapiModule } = require('@emnapi/core')
 function instantiate (wasmMemory, request, tid, arg) {
   const wasi = new WASI()
   const napiModule = createNapiModule({
-    context: require('@emnapi/runtime').getDefaultContext()
+    childThread: true
   })
   const p = new Promise((resolve, reject) => {
     WebAssembly.instantiate(require('fs').readFileSync(request), {
@@ -60,13 +60,7 @@ function instantiate (wasmMemory, request, tid, arg) {
       emnapi: napiModule.imports.emnapi,
       wasi: {
         'thread-spawn': function (startArg) {
-          const threadIdBuffer = new SharedArrayBuffer(4)
-          const threadId = new Int32Array(threadIdBuffer)
-          Atomics.store(threadId, 0, -1)
-          postMessage({ cmd: 'thread-spawn', startArg, threadId })
-          Atomics.wait(threadId, 0, -1)
-          const tid = Atomics.load(threadId, 0)
-          return tid
+          return napiModule.spawnThread(startArg)
         }
       }
     })
