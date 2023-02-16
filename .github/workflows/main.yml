@@ -80,7 +80,7 @@ jobs:
       shell: bash
       run: |
         npm install -g node-gyp
-        npm install --legacy-peer-deps
+        npm install
         npm run build --workspaces --if-present
 
     - name: Lint
