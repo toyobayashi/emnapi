@@ -24,6 +24,10 @@ module.exports = {
     '@typescript-eslint/no-dynamic-delete': 'off',
     '@typescript-eslint/method-signature-style': 'off',
     '@typescript-eslint/prefer-includes': 'off',
+    '@typescript-eslint/ban-ts-comment': 'off',
+    '@typescript-eslint/ban-types': 'off',
+    '@typescript-eslint/consistent-type-imports': 'off',
+    '@typescript-eslint/consistent-generic-constructors': 'off',
     '@typescript-eslint/no-unnecessary-type-assertion': 'off',
     '@typescript-eslint/member-delimiter-style': ['error', {
       multiline: {

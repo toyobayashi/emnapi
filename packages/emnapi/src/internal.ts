@@ -89,7 +89,7 @@ function emnapiDefineProperty (envObject: Env, obj: object, propertyName: string
   }
 }
 
-function emnapiGetHandle (js_object: napi_value): { status: napi_status; handle?: Handle<any>} {
+function emnapiGetHandle (js_object: napi_value): { status: napi_status; handle?: Handle<any> } {
   let handle = emnapiCtx.handleStore.get(js_object)!
   if (!(handle.isObject() || handle.isFunction())) {
     return { status: napi_status.napi_invalid_arg }

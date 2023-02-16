@@ -14,18 +14,18 @@ function emnapiImplement (name: string, sig: string | undefined, compilerTimeFun
 // emnapi_*
 function emnapiImplement2 (...args: Parameters<typeof emnapiImplement>): void
 function emnapiImplement2 (): void {
-  return emnapiImplement.apply(null, arguments as any)
+  emnapiImplement.apply(null, arguments as any)
 }
 
 // _emnapi_*
 function emnapiImplementInternal (...args: Parameters<typeof emnapiImplement>): void
 function emnapiImplementInternal (): void {
-  return emnapiImplement.apply(null, arguments as any)
+  emnapiImplement.apply(null, arguments as any)
 }
 
 // $emnapi*
 function emnapiImplementHelper (name: string, sig: string | undefined, compilerTimeFunction: Function, deps?: string[], _exportName?: string): void {
-  return emnapiImplement(name, sig, compilerTimeFunction, deps)
+  emnapiImplement(name, sig, compilerTimeFunction, deps)
 }
 
 function emnapiDefineVar (name: string, value: any, deps?: string[], postset?: string): void {
