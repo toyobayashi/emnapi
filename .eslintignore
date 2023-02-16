@@ -9,3 +9,4 @@ node_modules
 /packages/emnapi/lib
 /packages/emnapi/transformer/out
 /packages/core/src/index.js
+**/*.d.ts
