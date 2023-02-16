@@ -6,6 +6,15 @@
 #include <time.h>
 #include "uv.h"
 
+// #define CHECK_RET(the_call) \
+//   do { \
+//     int r = (the_call); \
+//     if (r) { \
+//       fprintf(stderr, #the_call ": %d\n", r); \
+//       abort(); \
+//     } \
+//   } while (0)
+
 void uv_sem_post(sem_t* sem) {
   if (sem_post(sem))
     abort();
@@ -39,7 +48,7 @@ void uv_once(pthread_once_t* guard, void (*callback)(void)) {
 }
 
 int uv_mutex_init(uv_mutex_t* mutex) {
-#if defined(NDEBUG) || !defined(PTHREAD_MUTEX_ERRORCHECK)
+#if defined(__wasi__) || defined(NDEBUG) || !defined(PTHREAD_MUTEX_ERRORCHECK)
   return pthread_mutex_init(mutex, NULL);
 #else
   pthread_mutexattr_t attr;
@@ -66,23 +75,13 @@ void uv_mutex_destroy(uv_mutex_t* mutex) {
 }
 
 void uv_mutex_lock(uv_mutex_t* mutex) {
-#ifdef __EMSCRIPTEN_PTHREADS__
   if (pthread_mutex_lock(mutex))
     abort();
-#else
-  // ?
-  pthread_mutex_lock(mutex);
-#endif
 }
 
 void uv_mutex_unlock(uv_mutex_t* mutex) {
-#ifdef __EMSCRIPTEN_PTHREADS__
   if (pthread_mutex_unlock(mutex))
     abort();
-#else
-  // ?
-  pthread_mutex_unlock(mutex);
-#endif
 }
 
 int uv_cond_init(uv_cond_t* cond) {
@@ -95,13 +94,8 @@ void uv_cond_signal(uv_cond_t* cond) {
 }
 
 void uv_cond_wait(uv_cond_t* cond, uv_mutex_t* mutex) {
-#ifdef __EMSCRIPTEN_PTHREADS__
   if (pthread_cond_wait(cond, mutex))
     abort();
-#else
-  // ?
-  pthread_cond_wait(cond, mutex);
-#endif
 }
 
 int uv_thread_create_ex(uv_thread_t* tid,
