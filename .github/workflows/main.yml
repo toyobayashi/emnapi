@@ -18,50 +18,55 @@ on:
 jobs:
   build:
     name: Build
-    runs-on: ${{ matrix.os }}
-    env:
-      WASI_VERSION: '20+threads'
-      WASI_VERSION_FULL: '20.0.threads'
-      WASI_SDK_PATH: './wasi-sdk-20.0.threads'
-      LLVM_VERSION: '15.0.7'
-      LLVM_PATH: './wasi-sdk-20.0.threads'
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
+        target: ['emscripten', 'wasi', 'wasi-threads']
 
     steps:
     - uses: actions/checkout@v3
     - name: Install Ninja
-      if: ${{ matrix.os == 'ubuntu-latest' }}
       run: |
         sudo apt-get update
         sudo apt-get install ninja-build
     - uses: mymindstorm/setup-emsdk@v11
+      if: ${{ matrix.target == 'emscripten' }}
       with:
         version: '3.1.29'
         # no-cache: true
         actions-cache-folder: 'emsdk-cache'
     - uses: actions-rs/toolchain@v1
+      if: ${{ matrix.target == 'wasi' }}
       with:
         toolchain: nightly
         default: true
         target: wasm32-unknown-unknown
     - uses: actions-rs/toolchain@v1
+      if: ${{ matrix.target == 'wasi' }}
       with:
         toolchain: nightly
         default: true
         target: wasm32-wasi
 
-    - name: Cache wasi-sdk
-      id: cache-wasi-sdk
-      uses: actions/cache@v3
-      with:
-        path: ${{ env.WASI_SDK_PATH }}
-        key: ${{ runner.os }}-${{ env.WASI_VERSION }}-${{ env.WASI_VERSION_FULL }}
-
     - name: Install wasi-sdk
-      if: ${{ steps.cache-wasi-sdk.outputs.cache-hit != 'true' }}
+      if: ${{ matrix.target == 'wasi' }}
+      env:
+        WASI_VERSION: '19'
+        WASI_VERSION_FULL: '19.0'
+        WASI_SDK_PATH: './wasi-sdk-19.0'
+      shell: bash
+      run: |
+        wget -q https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${WASI_VERSION}/wasi-sdk-${WASI_VERSION_FULL}-linux.tar.gz
+        mkdir -p $WASI_SDK_PATH
+        tar zxvf wasi-sdk-${WASI_VERSION_FULL}-linux.tar.gz -C $WASI_SDK_PATH --strip 1
+
+    - name: Install wasi-sdk with threads
+      if: ${{ matrix.target == 'wasi-threads' }}
+      env:
+        WASI_VERSION: '20+threads'
+        WASI_VERSION_FULL: '20.0.threads'
+        WASI_SDK_PATH: './wasi-sdk-20.0.threads'
       shell: bash
       run: |
         wget -q https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${WASI_VERSION}/wasi-sdk-${WASI_VERSION_FULL}-linux.tar.gz
@@ -74,31 +79,41 @@ jobs:
         registry-url: 'https://registry.npmjs.org'
       env:
         NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-    - name: Linux build
-      if: ${{ matrix.os == 'ubuntu-latest' }}
+    
+    - name: NPM Install
       shell: bash
       run: |
         npm install -g node-gyp
         npm install
-        npm run build --workspaces --if-present
+
+    - name: NPM Build
+      shell: bash
+      run: npm run build --workspaces --if-present
 
     # - name: Lint
     #   run: npm run lint
     
     - name: Test wasm32-wasi-threads
+      if: ${{ matrix.target == 'wasi-threads' }}
+      env:
+        WASI_VERSION: '20+threads'
+        WASI_VERSION_FULL: '20.0.threads'
+        WASI_SDK_PATH: './wasi-sdk-20.0.threads'
       run: |
         echo "set(CMAKE_C_COMPILER_WORKS 1)" >> $WASI_SDK_PATH/share/cmake/wasi-sdk-pthread.cmake
         echo "set(CMAKE_CXX_COMPILER_WORKS 1)" >> $WASI_SDK_PATH/share/cmake/wasi-sdk-pthread.cmake
+        cp -rpf $WASI_SDK_PATH/share/wasi-sysroot/lib/wasm32-wasi/libc++* $WASI_SDK_PATH/share/wasi-sysroot/lib/wasm32-wasi-threads/
         npm run rebuild:wt -w packages/test
         npm run test:wt -w packages/test
 
     - name: Test wasm32-unknown-emscripten
+      if: ${{ matrix.target == 'emscripten' }}
       run: |
         npm run rebuild -w packages/test
         npm run test -w packages/test
 
     - name: Test wasm64-unknown-emscripten
+      if: ${{ matrix.target == 'emscripten' }}
       env:
         MEMORY64: '1'
       run: |
@@ -106,25 +121,78 @@ jobs:
         npm run test -w packages/test
 
     - name: Test wasm32-wasi
+      if: ${{ matrix.target == 'wasi' }}
+      env:
+        WASI_VERSION: '19'
+        WASI_VERSION_FULL: '19.0'
+        WASI_SDK_PATH: './wasi-sdk-19.0'
       run: |
         npm run rebuild:w -w packages/test
         cd ./packages/test/rust && cargo build --release --target=wasm32-wasi && cd ../../..
         npm run test:w -w packages/test
 
     - name: Test wasm32-unknown-unknown
+      if: ${{ matrix.target == 'wasi' }}
+      env:
+        WASI_VERSION: '19'
+        WASI_VERSION_FULL: '19.0'
+        WASI_SDK_PATH: './wasi-sdk-19.0'
       run: |
         npm run rebuild:wasm32 -w packages/test
         cd ./packages/test/rust && cargo build --release --target=wasm32-unknown-unknown && cd ../../..
         npm run test:wasm32 -w packages/test
+  
+  release:
+    name: Release
+    if: ${{ startsWith(github.event.ref, 'refs/tags') }}
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      WASI_VERSION: '19'
+      WASI_VERSION_FULL: '19.0'
+      WASI_SDK_PATH: './wasi-sdk-19.0'
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Install Ninja
+      run: |
+        sudo apt-get update
+        sudo apt-get install ninja-build
+    - uses: mymindstorm/setup-emsdk@v11
+      if: ${{ matrix.target == 'emscripten' }}
+      with:
+        version: '3.1.29'
+        # no-cache: true
+        actions-cache-folder: 'emsdk-cache'
+    - name: Install wasi-sdk
+      shell: bash
+      run: |
+        wget -q https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${WASI_VERSION}/wasi-sdk-${WASI_VERSION_FULL}-linux.tar.gz
+        mkdir -p $WASI_SDK_PATH
+        tar zxvf wasi-sdk-${WASI_VERSION_FULL}-linux.tar.gz -C $WASI_SDK_PATH --strip 1
+    - uses: actions/setup-node@v3
+      with:
+        node-version: '18.12.1'
+        registry-url: 'https://registry.npmjs.org'
+      env:
+        NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+    - name: NPM Install
+      shell: bash
+      run: |
+        npm install -g node-gyp
+        npm install
+
+    - name: NPM Build
+      shell: bash
+      run: npm run build --workspaces --if-present
 
     - name: Publish
-      if: ${{ startsWith(github.event.ref, 'refs/tags') && matrix.os == 'ubuntu-latest' }}
       run: |
         node ./script/release.js
         npm publish --ignore-scripts -w packages/runtime -w packages/node -w packages/emnapi -w packages/core
 
     - name: Create release
-      if: ${{ startsWith(github.event.ref, 'refs/tags') }}
       uses: toyobayashi/upload-release-assets@v3.0.0
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
