@@ -48,10 +48,9 @@ if (process.env.EMNAPI_TEST_NATIVE) {
 }
 
 if (process.env.EMNAPI_TEST_WASI_THREADS) {
-  // TODO(emnapi): fix memory sync
   ignore = [...new Set([
     ...ignore,
-    '**/{emnapitest,node-addon-api}/**/*'
+    '**/{node-addon-api}/**/*'
   ])]
 }
 
