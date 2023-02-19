@@ -30,13 +30,14 @@ declare interface INapiModule {
   // }
   envObject?: Env
 
-  init (instance: WebAssembly.Instance, memory?: WebAssembly.Memory, table?: WebAssembly.Table): any
+  init (instance: WebAssembly.Instance, module: WebAssembly.Module, memory?: WebAssembly.Memory, table?: WebAssembly.Table): any
   spawnThread (startArg: number): number
 }
 
 var ENVIRONMENT_IS_NODE = typeof process === 'object' && process !== null && typeof process.versions === 'object' && process.versions !== null && typeof process.versions.node === 'string'
 var ENVIRONMENT_IS_PTHREAD = Boolean(options.childThread)
 
+var wasmModule: WebAssembly.Module
 var wasmMemory: WebAssembly.Memory
 
 var wasmTable: WebAssembly.Table
@@ -71,9 +72,10 @@ var napiModule: INapiModule = {
   // },
   spawnThread: undefined!,
 
-  init (instance: WebAssembly.Instance, memory?: WebAssembly.Memory, table?: WebAssembly.Table) {
+  init (instance: WebAssembly.Instance, module: WebAssembly.Module, memory?: WebAssembly.Memory, table?: WebAssembly.Table) {
     if (napiModule.loaded) return napiModule.exports
     wasmMemory = memory || instance.exports.memory as WebAssembly.Memory
+    wasmModule = module
     wasmTable = table || instance.exports.__indirect_function_table as WebAssembly.Table
     _malloc = instance.exports.malloc
     _free = instance.exports.free

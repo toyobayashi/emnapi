@@ -59,7 +59,7 @@ function loadPath (request, options) {
             'thread-spawn': __imported_wasi_thread_spawn
           }
         })
-          .then(({ instance }) => {
+          .then(({ instance, module }) => {
             if (process.env.EMNAPI_TEST_WASI_THREADS) {
               instance = {
                 exports: {
@@ -74,7 +74,7 @@ function loadPath (request, options) {
             wasi.initialize(instance)
             let exports
             try {
-              exports = napiModule.init(instance, wasmMemory, instance.exports.__indirect_function_table)
+              exports = napiModule.init(instance, module, wasmMemory, instance.exports.__indirect_function_table)
             } catch (err) {
               reject(err)
               return
@@ -116,11 +116,11 @@ function loadPath (request, options) {
           napi: napiModule.imports.napi,
           emnapi: napiModule.imports.emnapi
         })
-          .then(({ instance }) => {
+          .then(({ instance, module }) => {
             wasmMemory = instance.exports.memory
             let exports
             try {
-              exports = napiModule.init(instance, instance.exports.memory, instance.exports.__indirect_function_table)
+              exports = napiModule.init(instance, module, instance.exports.memory, instance.exports.__indirect_function_table)
             } catch (err) {
               reject(err)
               return

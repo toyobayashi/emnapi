@@ -111,10 +111,10 @@ function spawnThread (startArg: number, threadId?: Int32Array): number {
   // worker.pthread_ptr = tid
   const payload = {
     cmd: 'load',
-    request: napiModule.filename,
+    wasmModule,
+    wasmMemory,
     tid,
-    arg: startArg,
-    wasmMemory
+    arg: startArg
   }
   // console.log(payload)
   if (threadId) {

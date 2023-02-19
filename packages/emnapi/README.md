@@ -348,9 +348,10 @@ fetch('./hello.wasm').then(res => res.arrayBuffer()).then(wasmBuffer => {
     napi: napiModule.imports.napi,
     emnapi: napiModule.imports.emnapi
   })
-}).then(({ instance }) => {
+}).then(({ instance, module }) => {
   const binding = napiModule.init(
     instance, // WebAssembly.Instance
+    module, // WebAssembly.Module
     instance.exports.memory, // WebAssembly.Memory
     instance.exports.__indirect_function_table // WebAssembly.Table
   )
@@ -383,10 +384,11 @@ WebAssembly.instantiate(require('fs').readFileSync('./hello.wasm'), {
   // clang
   napi: napiModule.imports.napi,
   emnapi: napiModule.imports.emnapi
-}).then(({ instance }) => {
+}).then(({ instance, module }) => {
   wasi.initialize(instance)
   const binding = napiModule.init(
     instance,
+    module,
     instance.exports.memory,
     instance.exports.__indirect_function_table
   )
@@ -421,10 +423,11 @@ WebAssembly.instantiate(wasmBuffer, {
   // clang
   napi: napiModule.imports.napi,
   emnapi: napiModule.imports.emnapi
-}).then(({ instance }) => {
+}).then(({ instance, module }) => {
   wasi.initialize(instance)
   const binding = napiModule.init(
     instance,
+    module,
     instance.exports.memory,
     instance.exports.__indirect_function_table
   )

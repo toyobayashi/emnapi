@@ -50,7 +50,12 @@ export declare interface NapiModule {
     getMemoryAddress (arrayBufferOrView: ArrayBuffer | ArrayBufferView): PointerInfo
   }
 
-  init (instance: WebAssembly.Instance, memory?: WebAssembly.Memory, table?: WebAssembly.Table): any
+  init (
+    instance: WebAssembly.Instance,
+    module: WebAssembly.Module,
+    memory?: WebAssembly.Memory,
+    table?: WebAssembly.Table
+  ): any
   spawnThread (startArg: number): number
 }
 
