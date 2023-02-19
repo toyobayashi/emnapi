@@ -5,7 +5,7 @@
   "description": "emnapi test",
   "main": "index.js",
   "devDependencies": {
-    "@tybys/wasm-util": "^0.6.0",
+    "@tybys/wasm-util": "^0.7.0",
     "chalk": "^4.1.1",
     "cmake-js": "^7.1.1",
     "cross-env": "^7.0.3",

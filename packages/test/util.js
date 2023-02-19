@@ -21,7 +21,7 @@ function loadPath (request, options) {
       const { WASI } = require('./wasi')
       const { Worker } = require('worker_threads')
       const { createNapiModule } = require('@emnapi/core')
-      const wasi = WASI.createSync({
+      const wasi = new WASI({
         fs: require('fs')
       })
       const napiModule = createNapiModule({

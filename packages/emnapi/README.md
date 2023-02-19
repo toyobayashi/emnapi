@@ -408,7 +408,7 @@ const napiModule = createNapiModule({
 })
 
 const fs = createFsFromVolume(Volume.from({ /* ... */ }))
-const wasi = WASI.createSync({ fs, /* ... */ })
+const wasi = new WASI({ fs, /* ... */ })
 
 WebAssembly.instantiate(wasmBuffer, {
   wasi_snapshot_preview1: wasi.wasiImport,

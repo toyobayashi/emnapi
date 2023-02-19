@@ -45,7 +45,7 @@ const { WASI } = require('./wasi')
 const { createNapiModule } = require('@emnapi/core')
 
 function instantiate (wasmMemory, request, tid, arg) {
-  const wasi = WASI.createSync({
+  const wasi = new WASI({
     fs,
     print (...args) {
       const str = require('util').format(...args)
