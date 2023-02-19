@@ -41,16 +41,22 @@ Object.assign(global, {
   }
 })
 
-const { WASI } = require('wasi')
+const { WASI } = require('./wasi')
 const { createNapiModule } = require('@emnapi/core')
 
 function instantiate (wasmMemory, request, tid, arg) {
-  const wasi = new WASI()
+  const wasi = WASI.createSync({
+    fs,
+    print (...args) {
+      const str = require('util').format(...args)
+      fs.writeSync(1, str + '\n')
+    }
+  })
   const napiModule = createNapiModule({
     childThread: true
   })
   const p = new Promise((resolve, reject) => {
-    WebAssembly.instantiate(require('fs').readFileSync(request), {
+    WebAssembly.instantiate(fs.readFileSync(request), {
       wasi_snapshot_preview1: wasi.wasiImport,
       env: {
         memory: wasmMemory,

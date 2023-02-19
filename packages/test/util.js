@@ -18,10 +18,12 @@ function loadPath (request, options) {
     }
 
     if (process.env.EMNAPI_TEST_WASI) {
-      const { WASI } = require('wasi')
+      const { WASI } = require('./wasi')
       const { Worker } = require('worker_threads')
       const { createNapiModule } = require('@emnapi/core')
-      const wasi = new WASI()
+      const wasi = WASI.createSync({
+        fs: require('fs')
+      })
       const napiModule = createNapiModule({
         context,
         filename: request,
