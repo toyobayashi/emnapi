@@ -9,36 +9,48 @@ function __emnapi_worker_unref (pid: number): void {
   // }
 }
 
-function emnapiAddSendListener (worker: any): void {
-  if (worker && !worker._emnapiSendListener) {
-    worker._emnapiSendListener = function _emnapiSendListener (e: any) {
-      const data = ENVIRONMENT_IS_NODE ? e : e.data
-      if (data.emnapiAsyncSend) {
-        if (ENVIRONMENT_IS_PTHREAD) {
-          postMessage({
-            emnapiAsyncSend: data.emnapiAsyncSend
-          })
-        } else {
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          const callback = data.emnapiAsyncSend.callback
-          $makeDynCall('vp', 'callback')(data.emnapiAsyncSend.data)
-        }
+function emnapiAddSendListener (worker: any): boolean {
+  if (!worker) return false
+  if (worker._emnapiSendListener) return true
+  const handler = function (e: any): void {
+    const data = ENVIRONMENT_IS_NODE ? e : e.data
+    const __emnapi__ = data.__emnapi__
+    if (__emnapi__ && __emnapi__.type === 'async-send') {
+      if (ENVIRONMENT_IS_PTHREAD) {
+        postMessage({ __emnapi__ })
+      } else {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const callback = __emnapi__.payload.callback
+        $makeDynCall('vp', 'callback')(__emnapi__.payload.data)
       }
     }
-    if (ENVIRONMENT_IS_NODE) {
-      worker.on('message', worker._emnapiSendListener)
-    } else {
-      worker.addEventListener('message', worker._emnapiSendListener, false)
-    }
   }
+  const dispose = function (): void {
+    if (ENVIRONMENT_IS_NODE) {
+      worker.off('message', handler)
+    } else {
+      worker.removeEventListener('message', handler, false)
+    }
+    delete worker._emnapiSendListener
+  }
+  worker._emnapiSendListener = { handler, dispose }
+  if (ENVIRONMENT_IS_NODE) {
+    worker.on('message', handler)
+  } else {
+    worker.addEventListener('message', handler, false)
+  }
+  return true
 }
 
 function __emnapi_async_send_js (type: number, callback: number, data: number): void {
   if (ENVIRONMENT_IS_PTHREAD) {
     postMessage({
-      emnapiAsyncSend: {
-        callback,
-        data
+      __emnapi__: {
+        type: 'async-send',
+        payload: {
+          callback,
+          data
+        }
       }
     })
   } else {
