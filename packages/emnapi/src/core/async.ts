@@ -72,7 +72,15 @@ function spawnThread (startArg: number, threadId?: Int32Array): number {
     const threadIdBuffer = new SharedArrayBuffer(4)
     const id = new Int32Array(threadIdBuffer)
     Atomics.store(id, 0, -1)
-    postMessage({ cmd: 'thread-spawn', startArg, threadId: id })
+    postMessage({
+      __emnapi__: {
+        type: 'thread-spawn',
+        payload: {
+          startArg,
+          threadId: id
+        }
+      }
+    })
     Atomics.wait(id, 0, -1)
     const tid = Atomics.load(id, 0)
     return tid
@@ -84,16 +92,19 @@ function spawnThread (startArg: number, threadId?: Int32Array): number {
   const worker = onCreateWorker()
 
   worker.onmessage = function (e: any) {
-    if (e.data.cmd === 'loaded') {
-      if (typeof worker.unref === 'function') {
-        worker.unref()
+    if (e.data.__emnapi__) {
+      const type = e.data.__emnapi__.type
+      const payload = e.data.__emnapi__.payload
+      if (type === 'loaded') {
+        if (typeof worker.unref === 'function') {
+          worker.unref()
+        }
+        if (payload.err) {
+          err(payload.err)
+        }
+      } else if (type === 'thread-spawn') {
+        spawnThread(payload.startArg, payload.threadId)
       }
-      if (!e.data.success) {
-        err(e.data.message)
-        err(e.data.stack)
-      }
-    } else if (e.data.cmd === 'thread-spawn') {
-      spawnThread(e.data.startArg, e.data.threadId)
     }
   }
   worker.onerror = (e: any) => {
@@ -121,19 +132,22 @@ function spawnThread (startArg: number, threadId?: Int32Array): number {
   nextTid++
   // napiModule.PThread.pthreads[tid] = worker
   // worker.pthread_ptr = tid
-  const payload = {
-    cmd: 'load',
-    wasmModule,
-    wasmMemory,
-    tid,
-    arg: startArg
+  const msg = {
+    __emnapi__: {
+      type: 'load',
+      payload: {
+        wasmModule,
+        wasmMemory,
+        tid,
+        arg: startArg
+      }
+    }
   }
-  // console.log(payload)
   if (threadId) {
     Atomics.store(threadId, 0, tid)
     Atomics.notify(threadId, 0)
   }
-  worker.postMessage(payload)
+  worker.postMessage(msg)
   return tid
 }
 napiModule.spawnThread = spawnThread

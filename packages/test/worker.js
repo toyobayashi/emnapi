@@ -91,16 +91,32 @@ function instantiate (wasmMemory, wasmModule, tid, arg) {
   })
 
   wasi.initialize(instanceProxy)
-  postMessage({ cmd: 'loaded', success: true })
+  postMessage({
+    __emnapi__: {
+      type: 'loaded',
+      payload: {
+        err: null
+      }
+    }
+  })
   instance.exports.wasi_thread_start(tid, arg)
 }
 
 self.onmessage = function (e) {
-  if (e.data.cmd === 'load') {
-    try {
-      instantiate(e.data.wasmMemory, e.data.wasmModule, e.data.tid, e.data.arg)
-    } catch (err) {
-      postMessage({ cmd: 'loaded', success: false, message: err.message, stack: err.stack })
+  if (e.data.__emnapi__) {
+    const type = e.data.__emnapi__.type
+    const payload = e.data.__emnapi__.payload
+    if (type === 'load') {
+      try {
+        instantiate(payload.wasmMemory, payload.wasmModule, payload.tid, payload.arg)
+      } catch (err) {
+        postMessage({
+          __emnapi__: {
+            type: 'loaded',
+            payload: { err }
+          }
+        })
+      }
     }
   }
 }
