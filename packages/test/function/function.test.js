@@ -43,4 +43,6 @@ module.exports = load('function').then(async test_function => {
     cbIsNull: 'Invalid argument',
     resultIsNull: 'Invalid argument'
   })
+
+  assert.strictEqual(test_function.TestCreateFunctionKeyword().name, 'catch')
 })
