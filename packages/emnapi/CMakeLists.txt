@@ -26,7 +26,13 @@ set(UV_SRC
   "${CMAKE_CURRENT_SOURCE_DIR}/src/uv/unix/core.c"
 )
 
-set(EMNAPI_SRC "${CMAKE_CURRENT_SOURCE_DIR}/src/emnapi.c")
+set(EMNAPI_SRC
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/emnapi.c"
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/async_cleanup_hook.c"
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/async_context.c"
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/async_work.c"
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/threadsafe_function.c"
+)
 set(EMNAPI_INCLUDE "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
 set(EMNAPI_JS_LIB "${CMAKE_CURRENT_SOURCE_DIR}/dist/library_napi.js")
