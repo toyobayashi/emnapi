@@ -26,13 +26,19 @@ set(UV_SRC
   "${CMAKE_CURRENT_SOURCE_DIR}/src/uv/unix/core.c"
 )
 
-set(EMNAPI_SRC
+set(ENAPI_BASIC_SRC
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/js_native_api.c"
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/node_api.c"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/emnapi.c"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/async_cleanup_hook.c"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/async_context.c"
+)
+set(EMNAPI_THREADS_SRC
   "${CMAKE_CURRENT_SOURCE_DIR}/src/async_work.c"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/threadsafe_function.c"
 )
+set(EMNAPI_SRC ${ENAPI_BASIC_SRC} ${EMNAPI_THREADS_SRC})
+
 set(EMNAPI_INCLUDE "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
 set(EMNAPI_JS_LIB "${CMAKE_CURRENT_SOURCE_DIR}/dist/library_napi.js")
@@ -43,6 +49,7 @@ else()
   set(EMNAPI_MT_CFLAGS "-pthread")
 endif()
 
+set(EMNAPI_BASIC_TARGET_NAME "emnapi-basic")
 set(EMNAPI_TARGET_NAME "emnapi")
 set(EMNAPI_MT_TARGET_NAME "emnapi-mt")
 set(DLMALLOC_TARGET_NAME "dlmalloc")
@@ -88,6 +95,12 @@ if(IS_EMSCRIPTEN)
   target_link_options(${EMNAPI_TARGET_NAME} INTERFACE "--js-library=${EMNAPI_JS_LIB}")
 endif()
 
+add_library(${EMNAPI_BASIC_TARGET_NAME} STATIC ${ENAPI_BASIC_SRC})
+target_include_directories(${EMNAPI_BASIC_TARGET_NAME} PUBLIC ${EMNAPI_INCLUDE})
+if(IS_EMSCRIPTEN)
+  target_link_options(${EMNAPI_BASIC_TARGET_NAME} INTERFACE "--js-library=${EMNAPI_JS_LIB}")
+endif()
+
 if(IS_EMSCRIPTEN OR (CMAKE_C_COMPILER_TARGET STREQUAL "wasm32-wasi-threads"))
   set(EMNAPI_BUILD_MT ON)
 else()
@@ -124,6 +137,7 @@ endif()
 # endif()
 if(LIB_ARCH)
   install(TARGETS ${EMNAPI_TARGET_NAME} DESTINATION "lib/${LIB_ARCH}")
+  install(TARGETS ${EMNAPI_BASIC_TARGET_NAME} DESTINATION "lib/${LIB_ARCH}")
   if(EMNAPI_BUILD_MT)
     install(TARGETS ${EMNAPI_MT_TARGET_NAME} DESTINATION "lib/${LIB_ARCH}")
   endif()
@@ -156,6 +170,7 @@ install(FILES
 if(EMNAPI_INSTALL_SRC)
   install(FILES
       ${EMNAPI_SRC}
+      "${CMAKE_CURRENT_SOURCE_DIR}/src/emnapi_common.h"
     DESTINATION "src/${PROJECT_NAME}")
   install(DIRECTORY
     ${CMAKE_CURRENT_SOURCE_DIR}/src/uv

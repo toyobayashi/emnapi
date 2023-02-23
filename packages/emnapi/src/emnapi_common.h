@@ -98,6 +98,12 @@ EMNAPI_INTERNAL_EXTERN void _emnapi_ctx_increase_waiting_request_counter();
 EMNAPI_INTERNAL_EXTERN void _emnapi_ctx_decrease_waiting_request_counter();
 
 #if defined(__EMSCRIPTEN_PTHREADS__) || defined(_REENTRANT)
+#define EMNAPI_HAVE_THREADS 1
+#else
+#define EMNAPI_HAVE_THREADS 0
+#endif
+
+#if EMNAPI_HAVE_THREADS
 
 #define container_of(ptr, type, member) \
   ((type *) ((char *) (ptr) - offsetof(type, member)))

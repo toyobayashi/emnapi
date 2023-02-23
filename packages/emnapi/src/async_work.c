@@ -1,7 +1,7 @@
 #include "node_api.h"
 #include "emnapi_common.h"
 
-#if defined(__EMSCRIPTEN_PTHREADS__) || defined(_REENTRANT)
+#if EMNAPI_HAVE_THREADS
 
 #include <pthread.h>
 #include <errno.h>
@@ -147,7 +147,7 @@ napi_status napi_create_async_work(napi_env env,
                                    napi_async_complete_callback complete,
                                    void* data,
                                    napi_async_work* result) {
-#if defined(__EMSCRIPTEN_PTHREADS__) || defined(_REENTRANT)
+#if EMNAPI_HAVE_THREADS
   CHECK_ENV(env);
   CHECK_ARG(env, execute);
   CHECK_ARG(env, result);
@@ -186,7 +186,7 @@ napi_status napi_create_async_work(napi_env env,
 }
 
 napi_status napi_delete_async_work(napi_env env, napi_async_work work) {
-#if defined(__EMSCRIPTEN_PTHREADS__) || defined(_REENTRANT)
+#if EMNAPI_HAVE_THREADS
   CHECK_ENV(env);
   CHECK_ARG(env, work);
 
@@ -199,7 +199,7 @@ napi_status napi_delete_async_work(napi_env env, napi_async_work work) {
 }
 
 napi_status napi_queue_async_work(napi_env env, napi_async_work work) {
-#if defined(__EMSCRIPTEN_PTHREADS__) || defined(_REENTRANT)
+#if EMNAPI_HAVE_THREADS
   CHECK_ENV(env);
   CHECK_ARG(env, work);
 
@@ -221,7 +221,7 @@ napi_status napi_queue_async_work(napi_env env, napi_async_work work) {
   } while (0)
 
 napi_status napi_cancel_async_work(napi_env env, napi_async_work work) {
-#if defined(__EMSCRIPTEN_PTHREADS__) || defined(_REENTRANT)
+#if EMNAPI_HAVE_THREADS
   CHECK_ENV(env);
   CHECK_ARG(env, work);
 

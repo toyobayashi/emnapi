@@ -3,7 +3,7 @@
 #include "emnapi_common.h"
 #endif
 
-#if NAPI_VERSION >= 4 && (defined(__EMSCRIPTEN_PTHREADS__) || defined(_REENTRANT))
+#if NAPI_VERSION >= 4 && EMNAPI_HAVE_THREADS
 #include <stdatomic.h>
 #include <pthread.h>
 #include <errno.h>
@@ -409,7 +409,7 @@ napi_create_threadsafe_function(napi_env env,
                                 void* context,
                                 napi_threadsafe_function_call_js call_js_cb,
                                 napi_threadsafe_function* result) {
-#if defined(__EMSCRIPTEN_PTHREADS__) || defined(_REENTRANT)
+#if EMNAPI_HAVE_THREADS
   CHECK_ENV(env);
   // CHECK_ARG(env, async_resource_name);
   RETURN_STATUS_IF_FALSE(env, initial_thread_count > 0, napi_invalid_arg);
@@ -476,7 +476,7 @@ napi_create_threadsafe_function(napi_env env,
 napi_status
 napi_get_threadsafe_function_context(napi_threadsafe_function func,
                                      void** result) {
-#if defined(__EMSCRIPTEN_PTHREADS__) || defined(_REENTRANT)
+#if EMNAPI_HAVE_THREADS
   CHECK_NOT_NULL(func);
   CHECK_NOT_NULL(result);
 
@@ -492,7 +492,7 @@ napi_status
 napi_call_threadsafe_function(napi_threadsafe_function func,
                               void* data,
                               napi_threadsafe_function_call_mode mode) {
-#if defined(__EMSCRIPTEN_PTHREADS__) || defined(_REENTRANT)
+#if EMNAPI_HAVE_THREADS
   CHECK_NOT_NULL(func);
   pthread_mutex_lock(&func->mutex);
 
@@ -535,7 +535,7 @@ napi_call_threadsafe_function(napi_threadsafe_function func,
 
 napi_status
 napi_acquire_threadsafe_function(napi_threadsafe_function func) {
-#if defined(__EMSCRIPTEN_PTHREADS__) || defined(_REENTRANT)
+#if EMNAPI_HAVE_THREADS
   CHECK_NOT_NULL(func);
   pthread_mutex_lock(&func->mutex);
 
@@ -556,7 +556,7 @@ napi_acquire_threadsafe_function(napi_threadsafe_function func) {
 napi_status
 napi_release_threadsafe_function(napi_threadsafe_function func,
                                  napi_threadsafe_function_release_mode mode) {
-#if defined(__EMSCRIPTEN_PTHREADS__) || defined(_REENTRANT)
+#if EMNAPI_HAVE_THREADS
   CHECK_NOT_NULL(func);
   pthread_mutex_lock(&func->mutex);
 
@@ -588,7 +588,7 @@ napi_release_threadsafe_function(napi_threadsafe_function func,
 
 napi_status
 napi_unref_threadsafe_function(napi_env env, napi_threadsafe_function func) {
-#if defined(__EMSCRIPTEN_PTHREADS__) || defined(_REENTRANT)
+#if EMNAPI_HAVE_THREADS
   if (func->async_ref) {
     EMNAPI_KEEPALIVE_POP();
     _emnapi_ctx_decrease_waiting_request_counter();
@@ -602,7 +602,7 @@ napi_unref_threadsafe_function(napi_env env, napi_threadsafe_function func) {
 
 napi_status
 napi_ref_threadsafe_function(napi_env env, napi_threadsafe_function func) {
-#if defined(__EMSCRIPTEN_PTHREADS__) || defined(_REENTRANT)
+#if EMNAPI_HAVE_THREADS
   if (!func->async_ref) {
     EMNAPI_KEEPALIVE_PUSH();
     _emnapi_ctx_increase_waiting_request_counter();

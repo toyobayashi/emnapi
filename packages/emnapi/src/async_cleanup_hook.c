@@ -1,8 +1,6 @@
 #include "emnapi_common.h"
 #include "node_api.h"
 
-#if NAPI_VERSION >= 8
-
 EXTERN_C_START
 
 typedef void (*async_cleanup_hook)(void* arg, void(*)(void*), void*);
@@ -126,5 +124,3 @@ napi_remove_async_cleanup_hook(napi_async_cleanup_hook_handle remove_handle) {
 }
 
 EXTERN_C_END
-
-#endif
