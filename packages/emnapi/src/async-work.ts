@@ -18,25 +18,42 @@ declare interface AsyncWork {
   data: number
 }
 
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+function emnapiCreateIdGenerator () {
+  const obj = {
+    nextId: 1,
+    list: [] as number[],
+    generate: function (): number {
+      let id: number
+      if (obj.list.length) {
+        id = obj.list.shift()!
+      } else {
+        id = obj.nextId
+        obj.nextId++
+      }
+      return id
+    },
+    reuse: function (id: number) {
+      obj.list.push(id)
+    }
+  }
+  return obj
+}
+
 const emnapiAsyncWork = {
-  nextId: 1,
-  values: {} as const as Record<number, AsyncWork>,
+  idGen: {} as unknown as ReturnType<typeof emnapiCreateIdGenerator>,
+  values: [undefined] as unknown as AsyncWork[],
   queued: new Set<number>(),
   pending: [] as number[],
 
   init: function () {
-    emnapiAsyncWork.nextId = 1
-    emnapiAsyncWork.values = {}
+    emnapiAsyncWork.idGen = emnapiCreateIdGenerator()
+    emnapiAsyncWork.values = [undefined!]
     emnapiAsyncWork.queued = new Set<number>()
     emnapiAsyncWork.pending = []
   },
 
   create: function (env: napi_env, resource: object, resourceName: string, execute: number, complete: number, data: number): number {
-    // $from64('env')
-    // $from64('execute')
-    // $from64('complete')
-    // $from64('data')
-
     let asyncId = 0
     let triggerAsyncId = 0
     if (emnapiNodeBinding) {
@@ -45,8 +62,7 @@ const emnapiAsyncWork = {
       triggerAsyncId = asyncContext.triggerAsyncId
     }
 
-    const id = emnapiAsyncWork.nextId
-    emnapiAsyncWork.nextId++
+    const id = emnapiAsyncWork.idGen.generate()
     emnapiAsyncWork.values[id] = {
       env,
       id,
@@ -64,6 +80,7 @@ const emnapiAsyncWork = {
 
   queue: function (id: number): void {
     const work = emnapiAsyncWork.values[id]
+    if (!work) return
     if (work.status === 0) {
       const id = work.id
       work.status = 1
@@ -120,7 +137,7 @@ const emnapiAsyncWork = {
     const index = emnapiAsyncWork.pending.indexOf(id)
     if (index !== -1) {
       const work = emnapiAsyncWork.values[id]
-      if (work.status === 1) {
+      if (work && (work.status === 1)) {
         work.status = 4
         emnapiAsyncWork.pending.splice(index, 1)
         const env = work.env
@@ -165,15 +182,17 @@ const emnapiAsyncWork = {
     return napi_status.napi_generic_failure
   },
 
-  remove: function (id: number) {
+  remove: function (id: number): void {
     const work = emnapiAsyncWork.values[id]
+    if (!work) return
     if (emnapiNodeBinding) {
       emnapiNodeBinding.node.emitAsyncDestroy({
         asyncId: work.asyncId,
         triggerAsyncId: work.triggerAsyncId
       })
     }
-    delete emnapiAsyncWork.values[id]
+    emnapiAsyncWork.values[id] = undefined!
+    emnapiAsyncWork.idGen.reuse(id)
   }
 }
 
@@ -228,7 +247,8 @@ function _napi_cancel_async_work (env: napi_env, work: number): napi_status {
   return envObject.setLastError(status)
 }
 
-emnapiDefineVar('$emnapiAsyncWork', emnapiAsyncWork, [], 'emnapiAsyncWork.init();')
+emnapiImplementHelper('$emnapiCreateIdGenerator', undefined, emnapiCreateIdGenerator, [])
+emnapiDefineVar('$emnapiAsyncWork', emnapiAsyncWork, ['$emnapiCreateIdGenerator'], 'emnapiAsyncWork.init();')
 
 emnapiImplement('napi_create_async_work', 'ippppppp', _napi_create_async_work, ['$emnapiAsyncWork'])
 emnapiImplement('napi_delete_async_work', 'ipp', _napi_delete_async_work, ['$emnapiAsyncWork'])
