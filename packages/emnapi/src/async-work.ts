@@ -82,7 +82,6 @@ const emnapiAsyncWork = {
     const work = emnapiAsyncWork.values[id]
     if (!work) return
     if (work.status === 0) {
-      const id = work.id
       work.status = 1
       if (emnapiAsyncWork.queued.size >= 4) {
         emnapiAsyncWork.pending.push(id)
