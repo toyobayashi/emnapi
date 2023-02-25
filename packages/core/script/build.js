@@ -101,6 +101,16 @@ function build () {
         exports: 'named',
         strict: false
       }
+    },
+    {
+      input: createInput('es5', false, { resolveOnly: [/^(?!(tslib)).*?$/] }),
+      output: {
+        file: path.join(dist, 'emnapi-core.esm-bundler.js'),
+        format: 'esm',
+        name: 'emnapiCore',
+        exports: 'named',
+        strict: false
+      }
     }
   ]).map(conf => {
     return rollup.rollup(conf.input).then(bundle => bundle.write(conf.output))
