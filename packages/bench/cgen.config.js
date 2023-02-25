@@ -49,7 +49,15 @@ module.exports = function (_options, { isDebug, isEmscripten }) {
       {
         type: 'lib',
         name: 'emnapi',
-        sources: ['../emnapi/src/emnapi.c'],
+        sources: [
+          '../emnapi/src/js_native_api.c',
+          '../emnapi/src/node_api.c',
+          '../emnapi/src/emnapi.c',
+          '../emnapi/src/async_cleanup_hook.c',
+          '../emnapi/src/async_context.c',
+          '../emnapi/src/async_work.c',
+          '../emnapi/src/threadsafe_function.c',
+        ],
         publicIncludePaths: ['../emnapi/include'],
         compileOptions: [...compilerFlags],
         publicLinkOptions: [`--js-library=${require('path').join(__dirname, '../emnapi/dist/library_napi.js')}`]

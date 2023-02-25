@@ -17,7 +17,7 @@ async function main () {
     if (!process.env.EMNAPI_TEST_NATIVE) {
       process.on('uncaughtException', function (ex) {
         // suppress ExitStatus exceptions from showing an error
-        if (!(ex instanceof loadPromise.Module.ExitStatus)) {
+        if (!loadPromise.Module || !loadPromise.Module.ExitStatus || !(ex instanceof loadPromise.Module.ExitStatus)) {
           throw ex
         }
       })
@@ -28,7 +28,11 @@ async function main () {
     return
   }
   const p = child_process.spawnSync(
-    process.execPath, [__filename, 'child'])
+    process.execPath, [
+      ...(process.env.EMNAPI_TEST_WASI ? ['--experimental-wasi-unstable-preview1'] : []),
+      __filename,
+      'child'
+    ])
   assert.ifError(p.error)
   const stderr = p.stderr.toString()
   assert.ok(stderr.includes(testException))
