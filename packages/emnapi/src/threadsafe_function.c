@@ -1,7 +1,5 @@
-#if NAPI_VERSION >= 4
 #include "node_api.h"
 #include "emnapi_common.h"
-#endif
 
 #if NAPI_VERSION >= 4 && EMNAPI_HAVE_THREADS
 #include <stdatomic.h>
