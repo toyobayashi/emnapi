@@ -23,12 +23,17 @@ module.exports = new Promise((resolve, reject) => {
       ...napiModule.imports.napi,
       ...napiModule.imports.emnapi
     }
-  }).then(({ instance }) => {
+  }).then(({ instance, module }) => {
     console.log(instance.exports)
     if (process.env.EMNAPI_TEST_WASI) {
       wasi.initialize(instance)
     }
-    const binding = napiModule.init(instance, instance.exports.memory, instance.exports.__indirect_function_table)
+    const binding = napiModule.init({
+      instance,
+      module,
+      memory: instance.exports.memory,
+      table: instance.exports.__indirect_function_table
+    })
     require('assert').strictEqual(binding.sum(1, 2), 3)
     resolve()
   }).catch(reject)

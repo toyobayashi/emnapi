@@ -1,5 +1,7 @@
+import type { Context } from '@emnapi/runtime'
+
 export declare interface CreateOptions {
-  context: import('@emnapi/runtime').Context
+  context: Context
   filename?: string
   nodeBinding?: {
     node: {
@@ -21,6 +23,13 @@ export declare interface PointerInfo {
   runtimeAllocated: 0 | 1
 }
 
+export declare interface InitOptions {
+  instance: WebAssembly.Instance
+  module: WebAssembly.Module
+  memory?: WebAssembly.Memory
+  table?: WebAssembly.Table
+}
+
 export declare interface NapiModule {
   imports: {
     env: any
@@ -40,7 +49,7 @@ export declare interface NapiModule {
     getMemoryAddress (arrayBufferOrView: ArrayBuffer | ArrayBufferView): PointerInfo
   }
 
-  init (instance: WebAssembly.Instance, memory?: WebAssembly.Memory, table?: WebAssembly.Table): any
+  init (options: InitOptions): any
 }
 
 export function createNapiModule (options: CreateOptions): NapiModule
