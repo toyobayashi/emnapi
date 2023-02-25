@@ -189,7 +189,10 @@ jobs:
     - name: Publish
       run: |
         node ./script/release.js
-        npm publish --ignore-scripts -w packages/runtime -w packages/node -w packages/emnapi -w packages/core
+        cd ./packages/runtime && npm publish --ignore-scripts && cd ../..
+        cd ./packages/node && npm publish --ignore-scripts && cd ../..
+        cd ./packages/emnapi && npm publish --ignore-scripts && cd ../..
+        cd ./packages/core && npm publish --ignore-scripts && cd ../..
 
     - name: Create release
       uses: toyobayashi/upload-release-assets@v3.0.0
