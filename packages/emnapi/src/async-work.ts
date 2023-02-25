@@ -78,6 +78,33 @@ const emnapiAsyncWork = {
     return id
   },
 
+  callComplete: function (work: AsyncWork, status: napi_status): void {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const complete = work.complete
+    const env = work.env
+    const data = work.data
+    const callback = (): void => {
+      const envObject = emnapiCtx.envStore.get(env)!
+      const scope = emnapiCtx.openScope(envObject)
+      try {
+        envObject.callIntoModule(() => {
+          $makeDynCall('vpip', 'complete')(env, status, data)
+        })
+      } finally {
+        emnapiCtx.closeScope(envObject, scope)
+      }
+    }
+
+    if (emnapiNodeBinding) {
+      emnapiNodeBinding.node.makeCallback(work.resource, callback, [], {
+        asyncId: work.asyncId,
+        triggerAsyncId: work.triggerAsyncId
+      })
+    } else {
+      callback()
+    }
+  },
+
   queue: function (id: number): void {
     const work = emnapiAsyncWork.values[id]
     if (!work) return
@@ -92,36 +119,13 @@ const emnapiAsyncWork = {
       const data = work.data
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const execute = work.execute
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const complete = work.complete
       work.status = 2
       emnapiCtx.feature.setImmediate(() => {
         $makeDynCall('vpp', 'execute')(env, data)
         emnapiAsyncWork.queued.delete(id)
         work.status = 3
 
-        const callback = (): void => {
-          const envObject = emnapiCtx.envStore.get(env)!
-          const scope = emnapiCtx.openScope(envObject)
-          try {
-            envObject.callIntoModule(() => {
-              $makeDynCall('vpip', 'complete')(env, napi_status.napi_ok, data)
-            })
-          } catch (err) {
-            emnapiCtx.closeScope(envObject, scope)
-            throw err
-          }
-          emnapiCtx.closeScope(envObject, scope)
-        }
-
-        if (emnapiNodeBinding) {
-          emnapiNodeBinding.node.makeCallback(work.resource, callback, [], {
-            asyncId: work.asyncId,
-            triggerAsyncId: work.triggerAsyncId
-          })
-        } else {
-          callback()
-        }
+        emnapiAsyncWork.callComplete(work, napi_status.napi_ok)
 
         if (emnapiAsyncWork.pending.length > 0) {
           const nextWorkId = emnapiAsyncWork.pending.shift()!
@@ -139,39 +143,8 @@ const emnapiAsyncWork = {
       if (work && (work.status === 1)) {
         work.status = 4
         emnapiAsyncWork.pending.splice(index, 1)
-        const env = work.env
-        const data = work.data
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const complete = work.complete
 
-        const callback = (): void => {
-          const envObject = emnapiCtx.envStore.get(env)!
-          const scope = emnapiCtx.openScope(envObject)
-          try {
-            envObject.callIntoModule(() => {
-              $makeDynCall('vpip', 'complete')(env, napi_status.napi_cancelled, data)
-            })
-          } catch (err) {
-            emnapiCtx.closeScope(envObject, scope)
-            throw err
-          }
-          emnapiCtx.closeScope(envObject, scope)
-        }
-
-        if (emnapiNodeBinding) {
-          emnapiNodeBinding.node.makeCallback(work.resource, callback, [], {
-            asyncId: work.asyncId,
-            triggerAsyncId: work.triggerAsyncId
-          })
-        } else {
-          callback()
-        }
-
-        if (emnapiAsyncWork.pending.length > 0) {
-          const nextWorkId = emnapiAsyncWork.pending.shift()!
-          emnapiAsyncWork.values[nextWorkId].status = 0
-          emnapiAsyncWork.queue(nextWorkId)
-        }
+        emnapiAsyncWork.callComplete(work, napi_status.napi_cancelled)
 
         return napi_status.napi_ok
       } else {
