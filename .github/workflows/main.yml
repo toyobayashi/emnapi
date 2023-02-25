@@ -24,9 +24,11 @@ jobs:
       fail-fast: false
       matrix:
         target:
-        - 'emscripten'
-        - 'wasi'
-        # - 'wasi-threads'
+        - 'wasm32-unknown-emscripten'
+        - 'wasm64-unknown-emscripten'
+        - 'wasm32-unknown-unknown'
+        - 'wasm32-wasi'
+        # - 'wasm32-wasi-threads'
 
     steps:
     - uses: actions/checkout@v3
@@ -35,26 +37,20 @@ jobs:
         sudo apt-get update
         sudo apt-get install ninja-build
     - uses: mymindstorm/setup-emsdk@v11
-      if: ${{ matrix.target == 'emscripten' }}
+      if: ${{ contains(matrix.target, 'emscripten') }}
       with:
         version: '3.1.32'
         # no-cache: true
         actions-cache-folder: 'emsdk-cache'
     - uses: actions-rs/toolchain@v1
-      if: ${{ matrix.target == 'wasi' }}
+      if: ${{ matrix.target == 'wasm32-unknown-unknown' || matrix.target == 'wasm32-wasi' }}
       with:
         toolchain: nightly
         default: true
-        target: wasm32-unknown-unknown
-    - uses: actions-rs/toolchain@v1
-      if: ${{ matrix.target == 'wasi' }}
-      with:
-        toolchain: nightly
-        default: true
-        target: wasm32-wasi
+        target: ${{ matrix.target }}
 
     - name: Install wasi-sdk
-      if: ${{ matrix.target == 'wasi' }}
+      if: ${{ matrix.target == 'wasm32-wasi' }}
       env:
         WASI_VERSION: '19'
         WASI_VERSION_FULL: '19.0'
@@ -66,7 +62,7 @@ jobs:
         tar zxvf wasi-sdk-${WASI_VERSION_FULL}-linux.tar.gz -C $WASI_SDK_PATH --strip 1
 
     - name: Install wasi-sdk with threads
-      if: ${{ matrix.target == 'wasi-threads' }}
+      if: ${{ matrix.target == 'wasm32-wasi-threads' }}
       env:
         WASI_VERSION: '20+threads'
         WASI_VERSION_FULL: '20.0.threads'
@@ -79,7 +75,7 @@ jobs:
 
     - uses: actions/setup-node@v3
       with:
-        node-version: ${{ (matrix.target == 'emscripten' && '20.0.0-v8-canary202302081604228b65') || '18.12.1' }}
+        node-version: ${{ (contains(matrix.target, 'emscripten') && '20.0.0-v8-canary202302081604228b65') || '18.12.1' }}
         registry-url: 'https://registry.npmjs.org'
       env:
         NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -98,7 +94,7 @@ jobs:
     #   run: npm run lint
 
     - name: Test wasm32-wasi-threads
-      if: ${{ matrix.target == 'wasi-threads' }}
+      if: ${{ matrix.target == 'wasm32-wasi-threads' }}
       env:
         WASI_VERSION: '20+threads'
         WASI_VERSION_FULL: '20.0.threads'
@@ -111,13 +107,13 @@ jobs:
         npm run test:wt -w packages/test
 
     - name: Test wasm32-unknown-emscripten
-      if: ${{ matrix.target == 'emscripten' }}
+      if: ${{ matrix.target == 'wasm32-unknown-emscripten' }}
       run: |
         npm run rebuild -w packages/test
         npm run test -w packages/test
 
     - name: Test wasm64-unknown-emscripten
-      if: ${{ matrix.target == 'emscripten' }}
+      if: ${{ matrix.target == 'wasm64-unknown-emscripten' }}
       env:
         MEMORY64: '1'
       run: |
@@ -125,7 +121,7 @@ jobs:
         npm run test -w packages/test
 
     - name: Test wasm32-wasi
-      if: ${{ matrix.target == 'wasi' }}
+      if: ${{ matrix.target == 'wasm32-wasi' }}
       env:
         WASI_VERSION: '19'
         WASI_VERSION_FULL: '19.0'
@@ -136,7 +132,7 @@ jobs:
         npm run test:w -w packages/test
 
     - name: Test wasm32-unknown-unknown
-      if: ${{ matrix.target == 'wasi' }}
+      if: ${{ matrix.target == 'wasm32-unknown-unknown' }}
       env:
         WASI_VERSION: '19'
         WASI_VERSION_FULL: '19.0'
@@ -163,7 +159,6 @@ jobs:
         sudo apt-get update
         sudo apt-get install ninja-build
     - uses: mymindstorm/setup-emsdk@v11
-      if: ${{ matrix.target == 'emscripten' }}
       with:
         version: '3.1.32'
         # no-cache: true
