@@ -16,13 +16,6 @@ const pthread = [
   'string/string-pthread.test.js'
 ]
 
-if (process.env.MEMORY64) {
-  ignore = [...new Set([
-    ...ignore,
-    ...pthread
-  ])]
-}
-
 if (process.env.EMNAPI_TEST_NATIVE) {
   ignore = [...new Set([
     ...ignore,

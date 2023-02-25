@@ -7,7 +7,13 @@ module.exports = new Promise((resolve, reject) => {
   const w = new Worker(`
     const { load } = require(${JSON.stringify(require.resolve('../util.js'))})
     load('async_cleanup_hook')
-  `, { eval: true, env: process.env, execArgv: process.env.EMNAPI_TEST_WASI ? ['--experimental-wasi-unstable-preview1'] : [] })
+  `, {
+    eval: true,
+    env: process.env,
+    execArgv: [
+      ...(process.env.EMNAPI_TEST_WASI ? ['--experimental-wasi-unstable-preview1'] : [])
+    ]
+  })
   w.on('exit', common.mustCall((code) => {
     console.log('Worker exit')
     if (code !== 0) {

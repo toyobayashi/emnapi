@@ -82,7 +82,7 @@ if(IS_EMSCRIPTEN)
     "-sNODEJS_CATCH_EXIT=0"
     "-sWASM_BIGINT=1"
     "-sALLOW_MEMORY_GROWTH=1"
-    "-sMIN_CHROME_VERSION=67"
+    "-sMIN_CHROME_VERSION=84"
     "-sSTACK_SIZE=2MB"
     "-sDEFAULT_PTHREAD_STACK_SIZE=2MB"
     "-sSAFE_HEAP=1"
@@ -221,11 +221,11 @@ endfunction()
 add_test("env" "./env/binding.c" OFF OFF "")
 add_test("hello" "./hello/binding.c" OFF OFF "")
 
-if((NOT IS_WASM) OR IS_WASI OR (IS_EMSCRIPTEN AND NOT IS_MEMORY64))
+if((NOT IS_WASM) OR IS_WASI OR IS_EMSCRIPTEN)
   add_test("async" "./async/binding.c" OFF ON "")
 endif()
 
-if((NOT IS_WASM) OR (IS_EMSCRIPTEN AND NOT IS_MEMORY64))
+if((NOT IS_WASM) OR IS_EMSCRIPTEN)
   add_test("string_mt" "./string/binding.c" ON ON "")
   if(IS_EMSCRIPTEN)
   add_test("pool" "./pool/binding.c" OFF ON "--pre-js=../pool/pre.js")
@@ -281,11 +281,13 @@ add_test("version" "./version/binding.c" OFF OFF "")
 add_test("make_callback" "./make_callback/binding.c" OFF OFF "")
 add_test("async_context" "./async_context/binding.c" OFF OFF "")
 
-if(IS_EMSCRIPTEN AND NOT IS_MEMORY64)
+if(IS_EMSCRIPTEN)
   file(GLOB_RECURSE naa_binding_SRC
     "./node-addon-api/*.cc")
 
+  if(NOT IS_MEMORY64)
   add_naa_test("naa_binding" "${naa_binding_SRC}" "" ON)
+  endif()
   add_naa_test("naa_binding_noexcept" "${naa_binding_SRC}" "" OFF)
   add_naa_test("naa_binding_noexcept_maybe" "${naa_binding_SRC}" "NODE_ADDON_API_ENABLE_MAYBE" OFF)
   add_naa_test("naa_binding_custom_namespace" "${naa_binding_SRC}" "NAPI_CPP_CUSTOM_NAMESPACE=cstm" OFF)

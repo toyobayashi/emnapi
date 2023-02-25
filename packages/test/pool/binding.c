@@ -11,15 +11,16 @@ typedef struct {
   napi_async_work _request;
 } carrier;
 
-static void F(void* data) {
+static void* F(void* data) {
   uv_sleep(1000);
+  return NULL;
 }
 
 static void some_method() {
   uv_thread_t pid[3];
   printf("some_method()\n");
   for (int i = 0; i < 3; ++i) {
-    uv_thread_create(pid + i, F, NULL);
+    uv_thread_create(pid + i, (uv_thread_cb)F, NULL);
   }
   for (int i = 0; i < 3; ++i) {
     uv_thread_join(pid + i);

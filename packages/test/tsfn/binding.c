@@ -30,17 +30,18 @@ static ts_fn_hint ts_info;
 // Thread data to transmit to JS
 static int ints[ARRAY_LENGTH];
 
-static void secondary_thread(void* data) {
+static void* secondary_thread(void* data) {
   napi_threadsafe_function ts_fn = data;
 
   if (napi_release_threadsafe_function(ts_fn, napi_tsfn_release) != napi_ok) {
     napi_fatal_error("secondary_thread", NAPI_AUTO_LENGTH,
         "napi_release_threadsafe_function failed", NAPI_AUTO_LENGTH);
   }
+  return NULL;
 }
 
 // Source thread producing the data
-static void data_source_thread(void* data) {
+static void* data_source_thread(void* data) {
   napi_threadsafe_function ts_fn = data;
   int index;
   void* hint;
@@ -67,7 +68,7 @@ static void data_source_thread(void* data) {
         "napi_acquire_threadsafe_function failed", NAPI_AUTO_LENGTH);
     }
 
-    if (uv_thread_create(&uv_threads[1], secondary_thread, ts_fn) != 0) {
+    if (uv_thread_create(&uv_threads[1], (uv_thread_cb)secondary_thread, ts_fn) != 0) {
       napi_fatal_error("data_source_thread", NAPI_AUTO_LENGTH,
         "failed to start secondary thread", NAPI_AUTO_LENGTH);
     }
@@ -126,6 +127,7 @@ static void data_source_thread(void* data) {
     napi_fatal_error("data_source_thread", NAPI_AUTO_LENGTH,
         "napi_release_threadsafe_function failed", NAPI_AUTO_LENGTH);
   }
+  return NULL;
 }
 
 // Getting the data into JS
@@ -239,7 +241,7 @@ static napi_value StartThreadInternal(napi_env env,
       napi_get_value_bool(env, argv[2], &(ts_info.start_secondary)));
 
   NAPI_ASSERT(env,
-      (uv_thread_create(&uv_threads[0], data_source_thread, ts_fn) == 0),
+      (uv_thread_create(&uv_threads[0], (uv_thread_cb)data_source_thread, ts_fn) == 0),
       "Thread creation");
 
   return NULL;

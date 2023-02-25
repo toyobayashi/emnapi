@@ -37,7 +37,7 @@ jobs:
     - uses: mymindstorm/setup-emsdk@v11
       if: ${{ matrix.target == 'emscripten' }}
       with:
-        version: '3.1.29'
+        version: '3.1.32'
         # no-cache: true
         actions-cache-folder: 'emsdk-cache'
     - uses: actions-rs/toolchain@v1
@@ -79,7 +79,7 @@ jobs:
 
     - uses: actions/setup-node@v3
       with:
-        node-version: '18.12.1'
+        node-version: ${{ (matrix.target == 'emscripten' && '20.0.0-v8-canary202302081604228b65') || '18.12.1' }}
         registry-url: 'https://registry.npmjs.org'
       env:
         NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -165,7 +165,7 @@ jobs:
     - uses: mymindstorm/setup-emsdk@v11
       if: ${{ matrix.target == 'emscripten' }}
       with:
-        version: '3.1.29'
+        version: '3.1.32'
         # no-cache: true
         actions-cache-folder: 'emsdk-cache'
     - name: Install wasi-sdk

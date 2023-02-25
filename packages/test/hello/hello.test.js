@@ -20,7 +20,9 @@ module.exports = new Promise((resolve, reject) => {
   load('hello').then((binding) => { const msg = binding.hello(); parentPort.postMessage(msg) });`, {
         eval: true,
         env: process.env,
-        execArgv: process.env.EMNAPI_TEST_WASI ? ['--experimental-wasi-unstable-preview1'] : []
+        execArgv: [
+          ...(process.env.EMNAPI_TEST_WASI ? ['--experimental-wasi-unstable-preview1'] : [])
+        ]
       })
         .on('message', common.mustCall((msg) => {
           try {
