@@ -50,7 +50,7 @@ jobs:
         target: ${{ matrix.target }}
 
     - name: Install wasi-sdk
-      if: ${{ matrix.target == 'wasm32-wasi' }}
+      if: ${{ matrix.target == 'wasm32-unknown-unknown' || matrix.target == 'wasm32-wasi' }}
       env:
         WASI_VERSION: '19'
         WASI_VERSION_FULL: '19.0'
