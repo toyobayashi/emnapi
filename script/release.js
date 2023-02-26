@@ -137,7 +137,7 @@ async function main () {
 
   const { stderr: llvmClangVersion } = spawnSync(path.join(LLVM_PATH, 'bin/clang' + (process.platform === 'win32' ? '.exe' : '')), ['-v', '--target=wasm32'])
   const { stderr: wasiSdkClangVersion } = spawnSync(path.join(WASI_SDK_PATH, 'bin/clang' + (process.platform === 'win32' ? '.exe' : '')), ['-v'])
-  const { stderr: emccVersion } = spawnSync(path.join(process.env.EMSDK, 'upstream/emscripten/emcc' + (process.platform === 'win32' ? '.exe' : '')), ['-v'])
+  const { stderr: emccVersion } = spawnSync(path.join(process.env.EMSDK, 'upstream/emscripten/emcc' + (process.platform === 'win32' ? '.bat' : '')), ['-v'])
 
   fs.writeFileSync(path.join(sysroot, 'lib/emnapi', 'wasm32.txt'), llvmClangVersion)
   fs.writeFileSync(path.join(sysroot, 'lib/emnapi', 'wasm32-wasi.txt'), wasiSdkClangVersion)

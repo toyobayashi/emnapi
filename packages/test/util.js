@@ -74,7 +74,12 @@ function loadPath (request, options) {
             wasi.initialize(instance)
             let exports
             try {
-              exports = napiModule.init(instance, module, wasmMemory, instance.exports.__indirect_function_table)
+              exports = napiModule.init({
+                instance,
+                module,
+                memory: instance.exports.memory,
+                table: instance.exports.__indirect_function_table
+              })
             } catch (err) {
               reject(err)
               return
@@ -120,7 +125,12 @@ function loadPath (request, options) {
             wasmMemory = instance.exports.memory
             let exports
             try {
-              exports = napiModule.init(instance, module, instance.exports.memory, instance.exports.__indirect_function_table)
+              exports = napiModule.init({
+                instance,
+                module,
+                memory: instance.exports.memory,
+                table: instance.exports.__indirect_function_table
+              })
             } catch (err) {
               reject(err)
               return

@@ -35,12 +35,18 @@ function emnapiCreateFunction<F extends (...args: any[]) => any> (envObject: Env
 
 // #if DYNAMIC_EXECUTION
     if (emnapiCtx.feature.supportNewFunction) {
-      f = (new Function('_',
-        'return function ' + functionName + '(){' +
-          '"use strict";' +
-          'return _.apply(this,arguments);' +
-        '};'
-      ))(makeFunction())
+      const _ = makeFunction()
+      try {
+        f = (new Function('_',
+          'return function ' + functionName + '(){' +
+            '"use strict";' +
+            'return _.apply(this,arguments);' +
+          '};'
+        ))(_)
+      } catch (_err) {
+        f = makeFunction() as F
+        if (emnapiCtx.feature.canSetFunctionName) Object.defineProperty(f, 'name', { value: functionName })
+      }
     } else {
       f = makeFunction() as F
       if (emnapiCtx.feature.canSetFunctionName) Object.defineProperty(f, 'name', { value: functionName })

@@ -153,6 +153,17 @@ static napi_value MakeTrackedFunction(napi_env env, napi_callback_info info) {
   return result;
 }
 
+static napi_value TestCreateFunctionKeyword(napi_env env, napi_callback_info info) {
+  napi_value result;
+  NAPI_CALL(env, napi_create_function(env,
+                                      "catch",
+                                      NAPI_AUTO_LENGTH,
+                                      TestFunctionName,
+                                      NULL,
+                                      &result));
+  return result;
+}
+
 EXTERN_C_START
 napi_value Init(napi_env env, napi_value exports) {
   napi_value fn1;
@@ -183,6 +194,14 @@ napi_value Init(napi_env env, napi_value exports) {
                                       NULL,
                                       &fn5));
 
+  napi_value fn6;
+  NAPI_CALL(env, napi_create_function(env,
+                                      "TestCreateFunctionKeyword",
+                                      NAPI_AUTO_LENGTH,
+                                      TestCreateFunctionKeyword,
+                                      NULL,
+                                      &fn6));
+
   NAPI_CALL(env, napi_set_named_property(env, exports, "TestCall", fn1));
   NAPI_CALL(env, napi_set_named_property(env, exports, "TestName", fn2));
   NAPI_CALL(env, napi_set_named_property(env, exports, "TestNameShort", fn3));
@@ -195,6 +214,11 @@ napi_value Init(napi_env env, napi_value exports) {
                                          exports,
                                          "TestCreateFunctionParameters",
                                          fn5));
+
+  NAPI_CALL(env, napi_set_named_property(env,
+                                         exports,
+                                         "TestCreateFunctionKeyword",
+                                         fn6));
 
   return exports;
 }

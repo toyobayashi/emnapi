@@ -349,12 +349,12 @@ fetch('./hello.wasm').then(res => res.arrayBuffer()).then(wasmBuffer => {
     emnapi: napiModule.imports.emnapi
   })
 }).then(({ instance, module }) => {
-  const binding = napiModule.init(
+  const binding = napiModule.init({
     instance, // WebAssembly.Instance
     module, // WebAssembly.Module
-    instance.exports.memory, // WebAssembly.Memory
-    instance.exports.__indirect_function_table // WebAssembly.Table
-  )
+    memory: instance.exports.memory, // WebAssembly.Memory
+    table: instance.exports.__indirect_function_table // WebAssembly.Table
+  })
   // binding === napiModule.exports
 })
 </script>
@@ -386,12 +386,12 @@ WebAssembly.instantiate(require('fs').readFileSync('./hello.wasm'), {
   emnapi: napiModule.imports.emnapi
 }).then(({ instance, module }) => {
   wasi.initialize(instance)
-  const binding = napiModule.init(
+  const binding = napiModule.init({
     instance,
     module,
-    instance.exports.memory,
-    instance.exports.__indirect_function_table
-  )
+    memory: instance.exports.memory,
+    table: instance.exports.__indirect_function_table
+  })
   // binding === napiModule.exports
 })
 ```
@@ -425,12 +425,12 @@ WebAssembly.instantiate(wasmBuffer, {
   emnapi: napiModule.imports.emnapi
 }).then(({ instance, module }) => {
   wasi.initialize(instance)
-  const binding = napiModule.init(
+  const binding = napiModule.init({
     instance,
     module,
-    instance.exports.memory,
-    instance.exports.__indirect_function_table
-  )
+    memory: instance.exports.memory,
+    table: instance.exports.__indirect_function_table
+  })
   // binding === napiModule.exports
 })
 ```

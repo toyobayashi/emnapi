@@ -6,7 +6,6 @@
 node_modules
 !example/node_modules
 /include/node_api_full.h
-/dist
 package-lock.json
 /example/build
 out

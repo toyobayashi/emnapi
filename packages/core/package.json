@@ -1,14 +1,14 @@
 {
   "name": "@emnapi/core",
-  "version": "0.31.0",
+  "version": "0.32.2",
   "description": "emnapi core",
   "main": "index.js",
-  "module": "./src/index.js",
+  "module": "./dist/emnapi-core.esm-bundler.js",
   "types": "./index.d.ts",
   "sideEffects": false,
   "exports": {
     ".": {
-      "module": "./src/index.js",
+      "module": "./dist/emnapi-core.esm-bundler.js",
       "import": "./dist/emnapi-core.mjs",
       "require": "./index.js",
       "types": "./index.d.ts"

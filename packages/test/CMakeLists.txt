@@ -88,7 +88,7 @@ if(IS_EMSCRIPTEN)
     "-sNODEJS_CATCH_EXIT=0"
     "-sWASM_BIGINT=1"
     "-sALLOW_MEMORY_GROWTH=1"
-    "-sMIN_CHROME_VERSION=67"
+    "-sMIN_CHROME_VERSION=84"
     "-sSTACK_SIZE=2MB"
     "-sDEFAULT_PTHREAD_STACK_SIZE=2MB"
     "-sSAFE_HEAP=1"
@@ -157,9 +157,13 @@ function(add_test NAME SOURCE_LIST NEED_ENTRY PTHREAD LINKOPTIONS)
   target_link_libraries(${NAME} PRIVATE "testcommon")
   if(IS_WASM)
     if(PTHREAD)
-      target_link_libraries(${NAME} PRIVATE "emnapi-mt")
-      target_compile_options(${NAME} PRIVATE "-pthread")
-      target_link_options(${NAME} PRIVATE "-pthread")
+      if(IS_WASI OR IS_WASM32)
+        target_link_libraries(${NAME} PRIVATE "emnapi-basic")
+      else()
+        target_link_libraries(${NAME} PRIVATE "emnapi-mt")
+        target_compile_options(${NAME} PRIVATE "-pthread")
+        target_link_options(${NAME} PRIVATE "-pthread")
+      endif()
       if(IS_EMSCRIPTEN)
         target_link_options(${NAME} PRIVATE "-sPTHREAD_POOL_SIZE=${PTHREAD_POOL_SIZE}" "-sPTHREAD_POOL_SIZE_STRICT=2")
       endif()
@@ -198,9 +202,13 @@ function(add_naa_test NAME SOURCE_LIST DEFINES ENABLE_EXCEPTION)
   set_target_properties(${NAME} PROPERTIES
     BUILD_RPATH "$ORIGIN")
   if(IS_WASM)
-    target_link_libraries(${NAME} PRIVATE "emnapi-mt")
-    target_compile_options(${NAME} PRIVATE "-pthread")
-    target_link_options(${NAME} PRIVATE "-pthread")
+    if(IS_WASI OR IS_WASM32)
+      target_link_libraries(${NAME} PRIVATE "emnapi-basic")
+    else()
+      target_link_libraries(${NAME} PRIVATE "emnapi-mt")
+      target_compile_options(${NAME} PRIVATE "-pthread")
+      target_link_options(${NAME} PRIVATE "-pthread")
+    endif()
     if(IS_EMSCRIPTEN)
       target_link_options(${NAME} PRIVATE "-sPTHREAD_POOL_SIZE=${PTHREAD_POOL_SIZE}" "-sPTHREAD_POOL_SIZE_STRICT=2")
     endif()
@@ -226,9 +234,12 @@ endfunction()
 add_test("env" "./env/binding.c" OFF OFF "")
 add_test("hello" "./hello/binding.c" OFF OFF "")
 
-if((NOT IS_WASM) OR (IS_EMSCRIPTEN AND NOT IS_MEMORY64) OR (IS_WASI_THREADS))
-  add_test("string_mt" "./string/binding.c" ON ON "")
+if((NOT IS_WASM) OR IS_WASI OR IS_EMSCRIPTEN OR IS_WASI_THREADS)
   add_test("async" "./async/binding.c" OFF ON "")
+endif()
+
+if((NOT IS_WASM) OR IS_EMSCRIPTEN OR IS_WASI_THREADS)
+  add_test("string_mt" "./string/binding.c" ON ON "")
   if(IS_EMSCRIPTEN)
   add_test("pool" "./pool/binding.c" OFF ON "--pre-js=../pool/pre.js")
   else()
@@ -283,11 +294,13 @@ add_test("version" "./version/binding.c" OFF OFF "")
 add_test("make_callback" "./make_callback/binding.c" OFF OFF "")
 add_test("async_context" "./async_context/binding.c" OFF OFF "")
 
-if(IS_EMSCRIPTEN AND NOT IS_MEMORY64)
+if(IS_EMSCRIPTEN)
   file(GLOB_RECURSE naa_binding_SRC
     "./node-addon-api/*.cc")
 
+  if(NOT IS_MEMORY64)
   add_naa_test("naa_binding" "${naa_binding_SRC}" "" ON)
+  endif()
   add_naa_test("naa_binding_noexcept" "${naa_binding_SRC}" "" OFF)
   add_naa_test("naa_binding_noexcept_maybe" "${naa_binding_SRC}" "NODE_ADDON_API_ENABLE_MAYBE" OFF)
   add_naa_test("naa_binding_custom_namespace" "${naa_binding_SRC}" "NAPI_CPP_CUSTOM_NAMESPACE=cstm" OFF)

@@ -20,13 +20,6 @@ const pthread = [
   'string/string-pthread.test.js'
 ]
 
-if (process.env.MEMORY64) {
-  ignore = [...new Set([
-    ...ignore,
-    ...pthread
-  ])]
-}
-
 if (process.env.EMNAPI_TEST_NATIVE) {
   ignore = [...new Set([
     ...ignore,
@@ -38,7 +31,7 @@ if (process.env.EMNAPI_TEST_NATIVE) {
 } else if (!process.env.EMNAPI_TEST_WASI_THREADS && (process.env.EMNAPI_TEST_WASI || process.env.EMNAPI_TEST_WASM32)) {
   ignore = [...new Set([
     ...ignore,
-    ...pthread
+    ...(process.env.EMNAPI_TEST_WASI ? pthread.filter(item => (item !== 'async/**/*')) : pthread)
   ])]
 } else {
   ignore = [...new Set([
