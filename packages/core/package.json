@@ -27,6 +27,7 @@
     "tslib": "^2.4.0"
   },
   "devDependencies": {
+    "@tybys/wasm-util": "^0.8.0",
     "@rollup/plugin-node-resolve": "^13.3.0",
     "@rollup/plugin-replace": "^5.0.2",
     "rollup": "^2.77.2",

@@ -1,93 +1,4 @@
-/* eslint-disable camelcase */
-
-/** @type {typeof WebAssembly} */
-const _WebAssembly = typeof WebAssembly !== 'undefined'
-  ? WebAssembly
-  : typeof WXWebAssembly !== 'undefined'
-    // eslint-disable-next-line no-undef
-    ? WXWebAssembly
-    : undefined
-
-function validateImports (imports) {
-  if (imports && typeof imports !== 'object') {
-    throw new TypeError('imports must be an object or undefined')
-  }
-}
-
-function fetchWasm (strOrUrl, imports) {
-  if (typeof wx !== 'undefined' && typeof __wxConfig !== 'undefined') {
-    return _WebAssembly.instantiate(strOrUrl, imports)
-  }
-  return fetch(strOrUrl)
-    .then(response => response.arrayBuffer())
-    .then(buffer => _WebAssembly.instantiate(buffer, imports))
-}
-
-/**
- * @param {string | URL | BufferSource | WebAssembly.Module} wasmInput
- * @param {WebAssembly.Imports=} imports
- * @returns {Promise<WebAssembly.WebAssemblyInstantiatedSource>}
- */
-function load (wasmInput, imports) {
-  validateImports(imports)
-  imports = imports != null ? imports : {}
-
-  if ((wasmInput instanceof ArrayBuffer) || ArrayBuffer.isView(wasmInput)) {
-    return _WebAssembly.instantiate(wasmInput, imports)
-  }
-
-  if (wasmInput instanceof _WebAssembly.Module) {
-    return _WebAssembly.instantiate(wasmInput, imports).then((instance) => {
-      return { instance, module: wasmInput }
-    })
-  }
-
-  if (typeof wasmInput !== 'string' && !(wasmInput instanceof URL)) {
-    throw new TypeError('Invalid source')
-  }
-
-  let source
-  if (typeof _WebAssembly.instantiateStreaming === 'function') {
-    let responsePromise
-    try {
-      responsePromise = fetch(wasmInput)
-      source = _WebAssembly.instantiateStreaming(responsePromise, imports).catch(() => {
-        return fetchWasm(wasmInput, imports)
-      })
-    } catch (_) {
-      source = fetchWasm(wasmInput, imports)
-    }
-  } else {
-    source = fetchWasm(wasmInput, imports)
-  }
-  return source
-}
-
-/**
- * @param {BufferSource | WebAssembly.Module} wasmInput
- * @param {WebAssembly.Imports=} imports
- * @returns {WebAssembly.WebAssemblyInstantiatedSource}
- */
-function loadSync (wasmInput, imports) {
-  validateImports(imports)
-  imports = imports != null ? imports : {}
-
-  /** @type {WebAssembly.Module} */
-  let module
-
-  if ((wasmInput instanceof ArrayBuffer) || ArrayBuffer.isView(wasmInput)) {
-    module = new _WebAssembly.Module(wasmInput)
-  } else if (wasmInput instanceof WebAssembly.Module) {
-    module = wasmInput
-  } else {
-    throw new TypeError('Invalid source')
-  }
-
-  const instance = new _WebAssembly.Instance(module, imports)
-  const source = { instance, module }
-
-  return source
-}
+import { load, loadSync } from '@tybys/wasm-util'
 
 function loadNapiModuleImpl (loadFn, napiModule, wasmInput, options) {
   if (!napiModule) {
@@ -154,8 +65,9 @@ function loadNapiModuleImpl (loadFn, napiModule, wasmInput, options) {
     }
 
     let instance = source.instance
-    const exportMemory = source.instance.exports.memory instanceof _WebAssembly.Memory
-    const importMemory = importObject.env.memory instanceof _WebAssembly.Memory
+
+    const exportMemory = 'memory' in source.instance.exports
+    const importMemory = 'memory' in importObject.env
     /** @type {WebAssembly.Memory} */
     const memory = exportMemory ? source.instance.exports.memory : importMemory ? importObject.env.memory : undefined
     if (!memory) {
