@@ -17,6 +17,7 @@ function emnapiAddSendListener (worker: any): boolean {
     const __emnapi__ = data.__emnapi__
     if (__emnapi__ && __emnapi__.type === 'async-send') {
       if (ENVIRONMENT_IS_PTHREAD) {
+        const postMessage = napiModule.postMessage!
         postMessage({ __emnapi__ })
       } else {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -44,6 +45,7 @@ function emnapiAddSendListener (worker: any): boolean {
 
 function __emnapi_async_send_js (type: number, callback: number, data: number): void {
   if (ENVIRONMENT_IS_PTHREAD) {
+    const postMessage = napiModule.postMessage!
     postMessage({
       __emnapi__: {
         type: 'async-send',
@@ -72,6 +74,7 @@ function spawnThread (startArg: number, threadId?: Int32Array): number {
     const threadIdBuffer = new SharedArrayBuffer(4)
     const id = new Int32Array(threadIdBuffer)
     Atomics.store(id, 0, -1)
+    const postMessage = napiModule.postMessage!
     postMessage({
       __emnapi__: {
         type: 'thread-spawn',

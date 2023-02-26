@@ -10,6 +10,7 @@ declare interface CreateOptions {
   onCreateWorker?: () => any
   print?: () => void
   printErr?: () => void
+  postMessage?: (msg: any) => any
 }
 
 declare interface InitOptions {
@@ -40,6 +41,7 @@ declare interface INapiModule {
 
   init (options: InitOptions): any
   spawnThread (startArg: number): number
+  postMessage?: (msg: any) => any
 }
 
 var ENVIRONMENT_IS_NODE = typeof process === 'object' && process !== null && typeof process.versions === 'object' && process.versions !== null && typeof process.versions.node === 'string'
@@ -139,6 +141,16 @@ if (!ENVIRONMENT_IS_PTHREAD) {
   emnapiCtx = context
 } else {
   emnapiCtx = options?.context
+
+  const postMsg = typeof options.postMessage === 'function'
+    ? options.postMessage
+    : typeof postMessage === 'function'
+      ? postMessage
+      : undefined
+  if (typeof postMsg !== 'function') {
+    throw new TypeError('No postMessage found')
+  }
+  napiModule.postMessage = postMsg
 }
 
 if (typeof options.filename === 'string') {

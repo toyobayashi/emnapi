@@ -22,6 +22,7 @@ export declare type CreateOptions = {
   childThread?: false
 } | {
   context?: Context
+  postMessage?: (msg: any) => any
   childThread: true
 })
 
@@ -59,6 +60,8 @@ export declare interface NapiModule<ChildThread extends boolean> {
   }
 
   init (options: InitOptions): any
+  spawnThread (startArg: number): number
+  postMessage?: (msg: any) => any
 }
 
 export declare function createNapiModule<T extends CreateOptions> (
@@ -72,7 +75,6 @@ export declare type LoadOptions<ChildThread extends boolean> = {
     getImportObject? (): any
   }
   overwriteImports?: (importObject: WebAssembly.Imports) => WebAssembly.Imports
-  postMessage?: (msg: any) => any
 } & (
   [ChildThread] extends [true]
     ? {

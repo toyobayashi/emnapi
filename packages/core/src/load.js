@@ -136,16 +136,11 @@ function loadNapiModuleImpl (loadFn, napiModule, wasmInput, options) {
     }
   }
 
-  const postMsg = typeof options.postMessage === 'function'
-    ? typeof options.postMessage
-    : typeof postMessage === 'function'
-      ? postMessage
-      : function () {}
-
   return loadFn(wasmInput, importObject, (err, source) => {
     if (err) {
       if (napiModule.childThread) {
-        postMsg({
+        const postMessage = napiModule.postMessage
+        postMessage({
           __emnapi__: {
             type: 'loaded',
             payload: {
@@ -176,6 +171,7 @@ function loadNapiModuleImpl (loadFn, napiModule, wasmInput, options) {
       if (napiModule.childThread) {
         // https://github.com/nodejs/help/issues/4102
         const noop = () => {}
+        const exports = instance.exports
         const exportsProxy = new Proxy({}, {
           get (t, p, r) {
             if (p === 'memory') {
@@ -184,7 +180,7 @@ function loadNapiModuleImpl (loadFn, napiModule, wasmInput, options) {
             if (p === '_initialize') {
               return noop
             }
-            return Reflect.get(instance.exports, p, r)
+            return Reflect.get(exports, p, r)
           }
         })
         instance = new Proxy(instance, {
@@ -200,7 +196,8 @@ function loadNapiModuleImpl (loadFn, napiModule, wasmInput, options) {
     }
 
     if (napiModule.childThread) {
-      postMsg({
+      const postMessage = napiModule.postMessage
+      postMessage({
         __emnapi__: {
           type: 'loaded',
           payload: {
