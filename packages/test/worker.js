@@ -61,10 +61,7 @@ function instantiate (wasmMemory, wasmModule, tid, arg) {
       importObject.env.memory = wasmMemory
     },
     tid,
-    arg,
-    postMessage (msg) {
-      parentPort.postMessage(msg)
-    }
+    arg
   })
 }
 
