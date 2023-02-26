@@ -1,5 +1,6 @@
 /* eslint-disable camelcase */
 const { join } = require('path')
+const fs = require('fs')
 const common = require('./common.js')
 
 const emnapi = require('../runtime')
@@ -20,9 +21,9 @@ function loadPath (request, options) {
     if (process.env.EMNAPI_TEST_WASI) {
       const { WASI } = require('./wasi')
       const { Worker } = require('worker_threads')
-      const { createNapiModule } = require('@emnapi/core')
+      const { createNapiModule, loadNapiModule } = require('@emnapi/core')
       const wasi = new WASI({
-        fs: require('fs')
+        fs
       })
       const napiModule = createNapiModule({
         context,
@@ -43,57 +44,65 @@ function loadPath (request, options) {
           shared: true
         })
       }
-      const __imported_wasi_thread_spawn = function (startArg) {
-        return napiModule.spawnThread(startArg, undefined)
-      }
+
       const p = new Promise((resolve, reject) => {
-        WebAssembly.instantiate(require('fs').readFileSync(request), {
-          wasi_snapshot_preview1: wasi.wasiImport,
-          env: {
-            ...(process.env.EMNAPI_TEST_WASI_THREADS ? { memory: wasmMemory } : {}),
-            ...napiModule.imports.env
-          },
-          napi: napiModule.imports.napi,
-          emnapi: napiModule.imports.emnapi,
-          wasi: {
-            'thread-spawn': __imported_wasi_thread_spawn
-          }
-        })
-          .then(({ instance, module }) => {
+        loadNapiModule(napiModule, fs.readFileSync(request), {
+          wasi,
+          overwriteImports (importObject) {
             if (process.env.EMNAPI_TEST_WASI_THREADS) {
-              instance = {
-                exports: {
-                  ...instance.exports,
-                  memory: wasmMemory
-                }
-              }
-              // Object.defineProperty(instance.exports, 'memory', { value: wasmMemory })
-            } else {
-              wasmMemory = instance.exports.memory
+              importObject.env.memory = wasmMemory
             }
-            wasi.initialize(instance)
-            let exports
-            try {
-              exports = napiModule.init({
-                instance,
-                module,
-                memory: instance.exports.memory,
-                table: instance.exports.__indirect_function_table
-              })
-            } catch (err) {
-              reject(err)
-              return
-            }
-            resolve(exports)
-          })
-          .catch(reject)
+          }
+        }).then(() => {
+          resolve(napiModule.exports)
+        }).catch(reject)
+        // WebAssembly.instantiate(require('fs').readFileSync(request), {
+        //   wasi_snapshot_preview1: wasi.wasiImport,
+        //   env: {
+        //     ...(process.env.EMNAPI_TEST_WASI_THREADS ? { memory: wasmMemory } : {}),
+        //     ...napiModule.imports.env
+        //   },
+        //   napi: napiModule.imports.napi,
+        //   emnapi: napiModule.imports.emnapi,
+        //   wasi: {
+        //     'thread-spawn': __imported_wasi_thread_spawn
+        //   }
+        // })
+        //   .then(({ instance, module }) => {
+        //     if (process.env.EMNAPI_TEST_WASI_THREADS) {
+        //       instance = {
+        //         exports: {
+        //           ...instance.exports,
+        //           memory: wasmMemory
+        //         }
+        //       }
+        //       // Object.defineProperty(instance.exports, 'memory', { value: wasmMemory })
+        //     } else {
+        //       wasmMemory = instance.exports.memory
+        //     }
+        //     wasi.initialize(instance)
+        //     let exports
+        //     try {
+        //       exports = napiModule.init({
+        //         instance,
+        //         module,
+        //         memory: instance.exports.memory,
+        //         table: instance.exports.__indirect_function_table
+        //       })
+        //     } catch (err) {
+        //       reject(err)
+        //       return
+        //     }
+        //     resolve(exports)
+        //   })
+        //   .catch(reject)
       })
       p.Module = napiModule
       return p
     }
 
     if (process.env.EMNAPI_TEST_WASM32) {
-      const { createNapiModule } = require('@emnapi/core')
+      const { createNapiModule, loadNapiModule } = require('@emnapi/core')
       const napiModule = createNapiModule({
         context,
         ...(options || {})
@@ -109,35 +118,47 @@ function loadPath (request, options) {
           const shared = (typeof SharedArrayBuffer === 'function') && (wasmMemory.buffer instanceof SharedArrayBuffer)
           return new TextDecoder().decode(shared ? HEAPU8.slice(ptr, end) : HEAPU8.subarray(ptr, end))
         }
-        WebAssembly.instantiate(require('fs').readFileSync(request), {
-          env: {
-            ...napiModule.imports.env,
-            console_log (fmt, ...args) {
+        loadNapiModule(napiModule, fs.readFileSync(request), {
+          overwriteImports (importObject) {
+            importObject.env.console_log = function (fmt, ...args) {
               const fmtString = UTF8ToString(fmt)
               console.log(fmtString, ...args)
               return 0
             }
-          },
-          napi: napiModule.imports.napi,
-          emnapi: napiModule.imports.emnapi
-        })
-          .then(({ instance, module }) => {
-            wasmMemory = instance.exports.memory
-            let exports
-            try {
-              exports = napiModule.init({
-                instance,
-                module,
-                memory: instance.exports.memory,
-                table: instance.exports.__indirect_function_table
-              })
-            } catch (err) {
-              reject(err)
-              return
-            }
-            resolve(exports)
-          })
-          .catch(reject)
+          }
+        }).then(({ instance }) => {
+          wasmMemory = instance.exports.memory
+          resolve(napiModule.exports)
+        }).catch(reject)
+        // WebAssembly.instantiate(require('fs').readFileSync(request), {
+        //   env: {
+        //     ...napiModule.imports.env,
+        //     console_log (fmt, ...args) {
+        //       const fmtString = UTF8ToString(fmt)
+        //       console.log(fmtString, ...args)
+        //       return 0
+        //     }
+        //   },
+        //   napi: napiModule.imports.napi,
+        //   emnapi: napiModule.imports.emnapi
+        // })
+        //   .then(({ instance, module }) => {
+        //     wasmMemory = instance.exports.memory
+        //     let exports
+        //     try {
+        //       exports = napiModule.init({
+        //         instance,
+        //         module,
+        //         memory: instance.exports.memory,
+        //         table: instance.exports.__indirect_function_table
+        //       })
+        //     } catch (err) {
+        //       reject(err)
+        //       return
+        //     }
+        //     resolve(exports)
+        //   })
+        //   .catch(reject)
       })
       p.Module = napiModule
       return p

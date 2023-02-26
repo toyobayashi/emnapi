@@ -38,7 +38,7 @@ export declare interface InitOptions {
   table?: WebAssembly.Table
 }
 
-export declare interface NapiModule {
+export declare interface NapiModule<ChildThread extends boolean> {
   imports: {
     env: any
     napi: any
@@ -47,6 +47,7 @@ export declare interface NapiModule {
   exports: any
   loaded: boolean
   filename: string
+  childThread: ChildThread
   emnapi: {
     syncMemory<T extends ArrayBuffer | ArrayBufferView> (
       js_to_wasm: boolean,
@@ -60,4 +61,46 @@ export declare interface NapiModule {
   init (options: InitOptions): any
 }
 
-export function createNapiModule (options: CreateOptions): NapiModule
+export declare function createNapiModule<T extends CreateOptions> (
+  options: T
+): NapiModule<[T['childThread']] extends [boolean] ? T['childThread'] : false>
+
+export declare type LoadOptions<ChildThread extends boolean> = {
+  wasi?: {
+    readonly wasiImport?: Record<string, any>
+    initialize (instance: object): void
+    getImportObject? (): any
+  }
+  overwriteImports?: (importObject: WebAssembly.Imports) => WebAssembly.Imports
+  postMessage?: (msg: any) => any
+} & (
+  [ChildThread] extends [true]
+    ? {
+        tid: number
+        arg: number
+      }
+    : {})
+
+export declare function loadNapiModule (
+  napiModule: NapiModule<false>,
+  wasmInput: string | URL | BufferSource | WebAssembly.Module,
+  options?: LoadOptions<false>
+): Promise<WebAssembly.WebAssemblyInstantiatedSource>
+export declare function loadNapiModule (
+  napiModule: NapiModule<true>,
+  wasmInput: string | URL | BufferSource | WebAssembly.Module,
+  options: LoadOptions<true>
+): Promise<WebAssembly.WebAssemblyInstantiatedSource>
+
+export declare function loadNapiModuleSync (
+  napiModule: NapiModule<false>,
+  wasmInput: string | URL | BufferSource | WebAssembly.Module,
+  options?: LoadOptions<false>
+): WebAssembly.WebAssemblyInstantiatedSource
+export declare function loadNapiModuleSync (
+  napiModule: NapiModule<true>,
+  wasmInput: string | URL | BufferSource | WebAssembly.Module,
+  options: LoadOptions<true>
+): WebAssembly.WebAssemblyInstantiatedSource
+
+export declare function handleMessage (msg: { data: any }, callback: (type: string, payload: any) => any): void

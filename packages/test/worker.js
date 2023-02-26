@@ -42,7 +42,7 @@ Object.assign(global, {
 })
 
 const { WASI } = require('./wasi')
-const { createNapiModule } = require('@emnapi/core')
+const { createNapiModule, loadNapiModuleSync, handleMessage } = require('@emnapi/core')
 
 function instantiate (wasmMemory, wasmModule, tid, arg) {
   const wasi = new WASI({
@@ -55,68 +55,84 @@ function instantiate (wasmMemory, wasmModule, tid, arg) {
   const napiModule = createNapiModule({
     childThread: true
   })
-  const instance = new WebAssembly.Instance(wasmModule, {
-    wasi_snapshot_preview1: wasi.wasiImport,
-    env: {
-      memory: wasmMemory,
-      ...napiModule.imports.env
+  loadNapiModuleSync(napiModule, wasmModule, {
+    wasi,
+    overwriteImports (importObject) {
+      importObject.env.memory = wasmMemory
     },
-    napi: napiModule.imports.napi,
-    emnapi: napiModule.imports.emnapi,
-    wasi: {
-      'thread-spawn': function (startArg) {
-        return napiModule.spawnThread(startArg)
-      }
+    tid,
+    arg,
+    postMessage (msg) {
+      parentPort.postMessage(msg)
     }
   })
-  const noop = () => {}
-  const exportsProxy = new Proxy({}, {
-    get (t, p, r) {
-      if (p === 'memory') {
-        return wasmMemory
-      }
-      if (p === '_initialize') {
-        return noop
-      }
-      return Reflect.get(instance.exports, p, r)
-    }
-  })
-  const instanceProxy = new Proxy(instance, {
-    get (target, p, receiver) {
-      if (p === 'exports') {
-        return exportsProxy
-      }
-      return Reflect.get(target, p, receiver)
-    }
-  })
+  // const instance = new WebAssembly.Instance(wasmModule, {
+  //   wasi_snapshot_preview1: wasi.wasiImport,
+  //   env: {
+  //     memory: wasmMemory,
+  //     ...napiModule.imports.env
+  //   },
+  //   napi: napiModule.imports.napi,
+  //   emnapi: napiModule.imports.emnapi,
+  //   wasi: {
+  //     'thread-spawn': function (startArg) {
+  //       return napiModule.spawnThread(startArg)
+  //     }
+  //   }
+  // })
+  // const noop = () => {}
+  // const exportsProxy = new Proxy({}, {
+  //   get (t, p, r) {
+  //     if (p === 'memory') {
+  //       return wasmMemory
+  //     }
+  //     if (p === '_initialize') {
+  //       return noop
+  //     }
+  //     return Reflect.get(instance.exports, p, r)
+  //   }
+  // })
+  // const instanceProxy = new Proxy(instance, {
+  //   get (target, p, receiver) {
+  //     if (p === 'exports') {
+  //       return exportsProxy
+  //     }
+  //     return Reflect.get(target, p, receiver)
+  //   }
+  // })
 
-  wasi.initialize(instanceProxy)
-  postMessage({
-    __emnapi__: {
-      type: 'loaded',
-      payload: {
-        err: null
-      }
-    }
-  })
-  instance.exports.wasi_thread_start(tid, arg)
+  // wasi.initialize(instanceProxy)
+  // postMessage({
+  //   __emnapi__: {
+  //     type: 'loaded',
+  //     payload: {
+  //       err: null
+  //     }
+  //   }
+  // })
+  // instance.exports.wasi_thread_start(tid, arg)
 }
 
 self.onmessage = function (e) {
-  if (e.data.__emnapi__) {
-    const type = e.data.__emnapi__.type
-    const payload = e.data.__emnapi__.payload
+  handleMessage(e, (type, payload) => {
     if (type === 'load') {
-      try {
-        instantiate(payload.wasmMemory, payload.wasmModule, payload.tid, payload.arg)
-      } catch (err) {
-        postMessage({
-          __emnapi__: {
-            type: 'loaded',
-            payload: { err }
-          }
-        })
-      }
+      instantiate(payload.wasmMemory, payload.wasmModule, payload.tid, payload.arg)
     }
-  }
+  })
+  // if (e.data.__emnapi__) {
+  //   const type = e.data.__emnapi__.type
+  //   const payload = e.data.__emnapi__.payload
+  //   if (type === 'load') {
+  //     try {
+  //       instantiate(payload.wasmMemory, payload.wasmModule, payload.tid, payload.arg)
+  //     } catch (err) {
+  //       postMessage({
+  //         __emnapi__: {
+  //           type: 'loaded',
+  //           payload: { err }
+  //         }
+  //       })
+  //     }
+  //   }
+  // }
 }

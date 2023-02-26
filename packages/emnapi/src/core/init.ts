@@ -32,6 +32,7 @@ declare interface INapiModule {
   emnapi: any
   loaded: boolean
   filename: string
+  childThread: boolean
   // PThread: {
   //   pthreads: any[]
   // }
@@ -73,6 +74,7 @@ var napiModule: INapiModule = {
   emnapi: {},
   loaded: false,
   filename: '',
+  childThread: Boolean(options.childThread),
 
   // PThread: {
   //   pthreads: [undefined]
