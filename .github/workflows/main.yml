@@ -141,51 +141,6 @@ jobs:
         npm run rebuild:wasm32 -w packages/test
         cd ./packages/test/rust && cargo build --release --target=wasm32-unknown-unknown && cd ../../..
         npm run test:wasm32 -w packages/test
-  
-  release:
-    name: Release
-    if: ${{ startsWith(github.event.ref, 'refs/tags') }}
-    needs: build
-    runs-on: ubuntu-latest
-    env:
-      WASI_VERSION: '19'
-      WASI_VERSION_FULL: '19.0'
-      WASI_SDK_PATH: './wasi-sdk-19.0'
-
-    steps:
-    - uses: actions/checkout@v3
-    - name: Install Ninja
-      run: |
-        sudo apt-get update
-        sudo apt-get install ninja-build
-    - uses: mymindstorm/setup-emsdk@v11
-      if: ${{ matrix.target == 'emscripten' }}
-      with:
-        version: '3.1.29'
-        # no-cache: true
-        actions-cache-folder: 'emsdk-cache'
-    - name: Install wasi-sdk
-      shell: bash
-      run: |
-        wget -q https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${WASI_VERSION}/wasi-sdk-${WASI_VERSION_FULL}-linux.tar.gz
-        mkdir -p $WASI_SDK_PATH
-        tar zxvf wasi-sdk-${WASI_VERSION_FULL}-linux.tar.gz -C $WASI_SDK_PATH --strip 1
-    - uses: actions/setup-node@v3
-      with:
-        node-version: '18.12.1'
-        registry-url: 'https://registry.npmjs.org'
-      env:
-        NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-    - name: NPM Install
-      shell: bash
-      run: |
-        npm install -g node-gyp
-        npm install
-
-    - name: NPM Build
-      shell: bash
-      run: npm run build --workspaces --if-present
 
   release:
     name: Release
