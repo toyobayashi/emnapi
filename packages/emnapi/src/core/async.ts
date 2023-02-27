@@ -73,7 +73,6 @@ function spawnThread (startArg: number, threadId?: Int32Array): number {
   if (ENVIRONMENT_IS_PTHREAD) {
     const threadIdBuffer = new SharedArrayBuffer(4)
     const id = new Int32Array(threadIdBuffer)
-    Atomics.store(id, 0, -1)
     const postMessage = napiModule.postMessage!
     postMessage({
       __emnapi__: {
@@ -84,15 +83,27 @@ function spawnThread (startArg: number, threadId?: Int32Array): number {
         }
       }
     })
-    Atomics.wait(id, 0, -1)
+    Atomics.wait(id, 0, 0)
     const tid = Atomics.load(id, 0)
     return tid
   }
 
-  if (typeof onCreateWorker !== 'function') {
-    throw new TypeError('createNapiModule `options.onCreateWorker` is not provided')
+  let worker: any
+  try {
+    if (typeof onCreateWorker !== 'function') {
+      throw new TypeError('createNapiModule `options.onCreateWorker` is not provided')
+    }
+    worker = onCreateWorker()
+  } catch (err) {
+    const EAGAIN = 6
+    const ret = -EAGAIN
+    if (threadId) {
+      Atomics.store(threadId, 0, ret)
+      Atomics.notify(threadId, 0)
+    }
+    err(err.message)
+    return ret
   }
-  const worker = onCreateWorker()
 
   worker.onmessage = function (e: any) {
     if (e.data.__emnapi__) {
