@@ -29,6 +29,10 @@
 #include "uv-common.h"
 #include "common.h"
 
+#if defined(__wasi__) && defined(_REENTRANT)
+#define __EMNAPI_WASI_THREADS__
+#endif
+
 #define MAX_THREADPOOL_SIZE 1024
 
 static uv_once_t once = UV_ONCE_INIT;
@@ -61,8 +65,9 @@ static void* worker(void* arg) {
   struct uv__work* w;
   QUEUE* q;
   int is_slow_work;
-
+#ifndef __EMNAPI_WASI_THREADS__
   uv_sem_post((uv_sem_t*) arg);
+#endif
   arg = NULL;
 
   uv_mutex_lock(&mutex);
@@ -199,7 +204,9 @@ static void init_threads(void) {
 #if !defined(EMNAPI_WORKER_POOL_SIZE) || !(EMNAPI_WORKER_POOL_SIZE > 0)
   const char* val;
 #endif
+#ifndef __EMNAPI_WASI_THREADS__
   uv_sem_t sem;
+#endif
 
 #if defined(EMNAPI_WORKER_POOL_SIZE) && EMNAPI_WORKER_POOL_SIZE > 0
   nthreads = EMNAPI_WORKER_POOL_SIZE;
@@ -233,13 +240,22 @@ static void init_threads(void) {
   QUEUE_INIT(&slow_io_pending_wq);
   QUEUE_INIT(&run_slow_work_message);
 
+#ifndef __EMNAPI_WASI_THREADS__
   if (uv_sem_init(&sem, 0))
     abort();
+#endif
 
+#ifndef __EMNAPI_WASI_THREADS__
   for (i = 0; i < nthreads; i++)
     if (uv_thread_create(threads + i, (uv_thread_cb) worker, &sem))
       abort();
+#else
+  for (i = 0; i < nthreads; i++)
+    if (uv_thread_create(threads + i, (uv_thread_cb) worker, NULL))
+      abort();
+#endif
 
+#ifndef __EMNAPI_WASI_THREADS__
   for (i = 0; i < nthreads; i++)
     uv_sem_wait(&sem);
 
@@ -247,6 +263,7 @@ static void init_threads(void) {
 
   for (i = 0; i < nthreads; i++)
     _emnapi_worker_unref(*(threads + i));
+#endif
 }
 
 
