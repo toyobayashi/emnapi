@@ -10,6 +10,7 @@
     "cmake-js": "^7.1.1",
     "cross-env": "^7.0.3",
     "glob": "^7.2.0",
+    "memfs-browser": "^3.4.13000",
     "node-addon-api": "6.0.0",
     "why-is-node-running": "^2.2.2"
   },

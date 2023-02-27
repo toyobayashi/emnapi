@@ -1,73 +1,89 @@
-// globalThis.ENVIRONMENT_IS_PTHREAD = true
+/* eslint-disable no-eval */
+/* eslint-disable no-undef */
 
-// const log = (...args) => {
-//   const str = require('util').format(...args)
-//   require('fs').writeSync(1, str + '\n')
-// }
-// const error = (...args) => {
-//   const str = require('util').format(...args)
-//   require('fs').writeSync(2, str + '\n')
-// }
+(function () {
+  // const log = (...args) => {
+  //   const str = require('util').format(...args)
+  //   require('fs').writeSync(1, str + '\n')
+  // }
+  // const error = (...args) => {
+  //   const str = require('util').format(...args)
+  //   require('fs').writeSync(2, str + '\n')
+  // }
+  let fs, WASI
 
-const nodeWorkerThreads = require('worker_threads')
+  const ENVIRONMENT_IS_NODE =
+    typeof process === 'object' && process !== null &&
+    typeof process.versions === 'object' && process.versions !== null &&
+    typeof process.versions.node === 'string'
 
-const parentPort = nodeWorkerThreads.parentPort
+  if (ENVIRONMENT_IS_NODE) {
+    const nodeWorkerThreads = require('worker_threads')
 
-parentPort.on('message', (data) => {
-  onmessage({ data })
-})
+    const parentPort = nodeWorkerThreads.parentPort
 
-const fs = require('fs')
+    parentPort.on('message', (data) => {
+      globalThis.onmessage({ data })
+    })
 
-Object.assign(global, {
-  self: global,
-  require,
-  // Module,
-  location: {
-    href: __filename
-  },
-  Worker: nodeWorkerThreads.Worker,
-  importScripts: function (f) {
-    // eslint-disable-next-line no-eval
-    (0, eval)(fs.readFileSync(f, 'utf8') + '//# sourceURL=' + f)
-  },
-  postMessage: function (msg) {
-    parentPort.postMessage(msg)
-  },
-  performance: global.performance || {
-    now: function () {
-      return Date.now()
-    }
+    fs = require('fs')
+
+    Object.assign(globalThis, {
+      self: globalThis,
+      require,
+      Worker: nodeWorkerThreads.Worker,
+      importScripts: function (f) {
+        (0, eval)(fs.readFileSync(f, 'utf8') + '//# sourceURL=' + f)
+      },
+      postMessage: function (msg) {
+        parentPort.postMessage(msg)
+      }
+    })
+
+    WASI = require('./wasi').WASI
+  } else {
+    importScripts('../../node_modules/memfs-browser/dist/memfs.js')
+    importScripts('../../node_modules/@tybys/wasm-util/dist/wasm-util.js')
+
+    const { Volume, createFsFromVolume } = memfs
+    fs = createFsFromVolume(Volume.from({
+      '/': null
+    }))
+
+    WASI = globalThis.wasmUtil.WASI
   }
-})
 
-const { WASI } = require('./wasi')
-const { loadNapiModuleSync, handleMessage } = require('@emnapi/core')
+  importScripts('../../node_modules/@emnapi/core/dist/emnapi-core.js')
 
-function instantiate (wasmMemory, wasmModule, tid, arg) {
-  const wasi = new WASI({
-    fs,
-    print (...args) {
-      const str = require('util').format(...args)
-      fs.writeSync(1, str + '\n')
-    }
-  })
+  const { loadNapiModuleSync, handleMessage } = globalThis.emnapiCore
 
-  loadNapiModuleSync(wasmModule, {
-    childThread: true,
-    wasi,
-    overwriteImports (importObject) {
-      importObject.env.memory = wasmMemory
-    },
-    tid,
-    arg
-  })
-}
+  function onLoad (payload) {
+    const wasi = new WASI({
+      fs,
+      print: ENVIRONMENT_IS_NODE
+        ? (...args) => {
+            const str = require('util').format(...args)
+            fs.writeSync(1, str + '\n')
+          }
+        : function () { console.log.apply(console, arguments) }
+    })
 
-self.onmessage = function (e) {
-  handleMessage(e, (type, payload) => {
-    if (type === 'load') {
-      instantiate(payload.wasmMemory, payload.wasmModule, payload.tid, payload.arg)
-    }
-  })
-}
+    loadNapiModuleSync(payload.wasmModule, {
+      childThread: true,
+      wasi,
+      overwriteImports (importObject) {
+        importObject.env.memory = payload.wasmMemory
+      },
+      tid: payload.tid,
+      arg: payload.arg
+    })
+  }
+
+  globalThis.onmessage = function (e) {
+    handleMessage(e, (type, payload) => {
+      if (type === 'load') {
+        onLoad(payload)
+      }
+    })
+  }
+})()
