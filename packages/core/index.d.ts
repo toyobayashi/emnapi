@@ -1,6 +1,6 @@
 import type { Context } from '@emnapi/runtime'
 
-export declare type CreateOptions = {
+export declare interface BaseCreateOptions {
   filename?: string
   nodeBinding?: {
     node: {
@@ -17,7 +17,9 @@ export declare type CreateOptions = {
   onCreateWorker?: () => any
   print?: () => void
   printErr?: () => void
-} & ({
+}
+
+export declare type CreateOptions = BaseCreateOptions & ({
   context: Context
   childThread?: false
 } | {
@@ -64,45 +66,78 @@ export declare interface NapiModule<ChildThread extends boolean> {
   postMessage?: (msg: any) => any
 }
 
+export declare type ToBoolean<T> = [T] extends [never]
+  ? false
+  : [T] extends [boolean]
+      ? T
+      : T extends 0
+        ? false
+        : T extends ''
+          ? false
+          : T extends null
+            ? false
+            : T extends undefined
+              ? false
+              // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
+              : T extends void
+                ? false
+                : true
+
 export declare function createNapiModule<T extends CreateOptions> (
   options: T
-): NapiModule<[T['childThread']] extends [boolean] ? T['childThread'] : false>
+): NapiModule<ToBoolean<T['childThread']>>
 
-export declare type LoadOptions<ChildThread extends boolean> = {
+export declare interface BaseLoadOptions {
   wasi?: {
     readonly wasiImport?: Record<string, any>
     initialize (instance: object): void
     getImportObject? (): any
   }
   overwriteImports?: (importObject: WebAssembly.Imports) => WebAssembly.Imports
-} & (
-  [ChildThread] extends [true]
-    ? {
-        tid: number
-        arg: number
-      }
-    : {})
+}
 
-export declare function loadNapiModule (
-  napiModule: NapiModule<false>,
-  wasmInput: string | URL | BufferSource | WebAssembly.Module,
-  options?: LoadOptions<false>
-): Promise<WebAssembly.WebAssemblyInstantiatedSource>
-export declare function loadNapiModule (
-  napiModule: NapiModule<true>,
-  wasmInput: string | URL | BufferSource | WebAssembly.Module,
-  options: LoadOptions<true>
-): Promise<WebAssembly.WebAssemblyInstantiatedSource>
+export declare type LoadOptions = BaseLoadOptions & (
+  (BaseCreateOptions & ({
+    context: Context
+    childThread?: false
+  } | {
+    context?: Context
+    postMessage?: (msg: any) => any
+    childThread: true
+    tid: number
+    arg: number
+  })) |
+  ({
+    napiModule: NapiModule<false>
+  } | {
+    napiModule: NapiModule<true>
+    tid: number
+    arg: number
+  })
+)
 
-export declare function loadNapiModuleSync (
-  napiModule: NapiModule<false>,
+export declare type LoadInChildThread<T> = T extends LoadOptions
+  ? 'napiModule' extends keyof T
+    ? T['napiModule'] extends NapiModule<infer R>
+      ? R
+      : never
+    : 'childThread' extends keyof T
+      ? T['childThread']
+      : never
+  : never
+
+export declare interface LoadResult<ChildThread extends boolean> extends WebAssembly.WebAssemblyInstantiatedSource {
+  napiModule: NapiModule<ChildThread>
+}
+
+export declare function loadNapiModule<T extends LoadOptions> (
   wasmInput: string | URL | BufferSource | WebAssembly.Module,
-  options?: LoadOptions<false>
-): WebAssembly.WebAssemblyInstantiatedSource
-export declare function loadNapiModuleSync (
-  napiModule: NapiModule<true>,
+  options: T
+): Promise<LoadResult<ToBoolean<LoadInChildThread<T>>>>
+
+export declare function loadNapiModuleSync<T extends LoadOptions> (
   wasmInput: string | URL | BufferSource | WebAssembly.Module,
-  options: LoadOptions<true>
-): WebAssembly.WebAssemblyInstantiatedSource
+  options: T
+): LoadResult<ToBoolean<LoadInChildThread<T>>>
 
 export declare function handleMessage (msg: { data: any }, callback: (type: string, payload: any) => any): void

@@ -46,7 +46,8 @@ function loadPath (request, options) {
       }
 
       const p = new Promise((resolve, reject) => {
-        loadNapiModule(napiModule, fs.readFileSync(request), {
+        loadNapiModule(fs.readFileSync(request), {
+          napiModule,
           wasi,
           overwriteImports (importObject) {
             if (process.env.EMNAPI_TEST_WASI_THREADS) {
@@ -78,7 +79,8 @@ function loadPath (request, options) {
           const shared = (typeof SharedArrayBuffer === 'function') && (wasmMemory.buffer instanceof SharedArrayBuffer)
           return new TextDecoder().decode(shared ? HEAPU8.slice(ptr, end) : HEAPU8.subarray(ptr, end))
         }
-        loadNapiModule(napiModule, fs.readFileSync(request), {
+        loadNapiModule(fs.readFileSync(request), {
+          napiModule,
           overwriteImports (importObject) {
             importObject.env.console_log = function (fmt, ...args) {
               const fmtString = UTF8ToString(fmt)

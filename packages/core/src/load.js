@@ -1,11 +1,19 @@
 import { load, loadSync } from '@tybys/wasm-util'
+import { createNapiModule } from './module.js'
 
-function loadNapiModuleImpl (loadFn, napiModule, wasmInput, options) {
-  if (!napiModule) {
-    throw new TypeError('Invalid napiModule')
+function loadNapiModuleImpl (loadFn, wasmInput, options) {
+  options = options == null ? {} : options
+  const userNapiModule = options.napiModule
+  let napiModule
+  if (typeof userNapiModule === 'object' && userNapiModule !== null) {
+    if (userNapiModule.loaded) {
+      throw new Error('napiModule has already loaded')
+    }
+    napiModule = userNapiModule
+  } else {
+    napiModule = createNapiModule(options)
   }
 
-  options = options == null ? {} : options
   const wasi = options.wasi
   const env = Object.assign({}, napiModule.imports.env, napiModule.imports.napi, napiModule.imports.emnapi)
   let importObject = {
@@ -13,6 +21,7 @@ function loadNapiModuleImpl (loadFn, napiModule, wasmInput, options) {
     napi: napiModule.imports.napi,
     emnapi: napiModule.imports.emnapi,
     wasi: {
+      // eslint-disable-next-line camelcase
       'thread-spawn': function __imported_wasi_thread_spawn (startArg) {
         return napiModule.spawnThread(startArg, undefined)
       }
@@ -128,33 +137,21 @@ function loadNapiModuleImpl (loadFn, napiModule, wasmInput, options) {
       })
     }
 
-    return { instance, module }
+    return { instance, module, napiModule }
   })
 }
 
-/**
- * @param {import('@emnapi/core').NapiModule} napiModule
- * @param {string | URL | BufferSource | WebAssembly.Module} wasmInput
- * @param {any} options
- * @returns {Promise<WebAssembly.WebAssemblyInstantiatedSource>}
- */
-export function loadNapiModule (napiModule, wasmInput, options) {
+export function loadNapiModule (wasmInput, options) {
   return loadNapiModuleImpl((wasmInput, importObject, callback) => {
     return load(wasmInput, importObject).then((source) => {
       return callback(null, source)
     }, err => {
       return callback(err)
     })
-  }, napiModule, wasmInput, options)
+  }, wasmInput, options)
 }
 
-/**
- * @param {import('@emnapi/core').NapiModule} napiModule
- * @param {BufferSource | WebAssembly.Module} wasmInput
- * @param {any} options
- * @returns {WebAssembly.WebAssemblyInstantiatedSource}
- */
-export function loadNapiModuleSync (napiModule, wasmInput, options) {
+export function loadNapiModuleSync (wasmInput, options) {
   return loadNapiModuleImpl((wasmInput, importObject, callback) => {
     let source
     try {
@@ -163,5 +160,5 @@ export function loadNapiModuleSync (napiModule, wasmInput, options) {
       return callback(err)
     }
     return callback(null, source)
-  }, napiModule, wasmInput, options)
+  }, wasmInput, options)
 }

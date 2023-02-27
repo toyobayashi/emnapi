@@ -42,7 +42,7 @@ Object.assign(global, {
 })
 
 const { WASI } = require('./wasi')
-const { createNapiModule, loadNapiModuleSync, handleMessage } = require('@emnapi/core')
+const { loadNapiModuleSync, handleMessage } = require('@emnapi/core')
 
 function instantiate (wasmMemory, wasmModule, tid, arg) {
   const wasi = new WASI({
@@ -52,10 +52,9 @@ function instantiate (wasmMemory, wasmModule, tid, arg) {
       fs.writeSync(1, str + '\n')
     }
   })
-  const napiModule = createNapiModule({
-    childThread: true
-  })
-  loadNapiModuleSync(napiModule, wasmModule, {
+
+  loadNapiModuleSync(wasmModule, {
+    childThread: true,
     wasi,
     overwriteImports (importObject) {
       importObject.env.memory = wasmMemory
