@@ -8,8 +8,8 @@ declare interface CreateOptions {
   nodeBinding?: NodeBinding
   childThread?: boolean
   onCreateWorker?: () => any
-  print?: () => void
-  printErr?: () => void
+  print?: (str: string) => void
+  printErr?: (str: string) => void
   postMessage?: (msg: any) => any
 }
 
@@ -34,9 +34,6 @@ declare interface INapiModule {
   loaded: boolean
   filename: string
   childThread: boolean
-  // PThread: {
-  //   pthreads: any[]
-  // }
   envObject?: Env
 
   init (options: InitOptions): any
@@ -78,9 +75,6 @@ var napiModule: INapiModule = {
   filename: '',
   childThread: Boolean(options.childThread),
 
-  // PThread: {
-  //   pthreads: [undefined]
-  // },
   spawnThread: undefined!,
 
   init (options: InitOptions) {

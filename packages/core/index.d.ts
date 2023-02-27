@@ -15,8 +15,8 @@ export declare interface BaseCreateOptions {
     }
   }
   onCreateWorker?: () => any
-  print?: () => void
-  printErr?: () => void
+  print?: (str: string) => void
+  printErr?: (str: string) => void
 }
 
 export declare type CreateOptions = BaseCreateOptions & ({
