@@ -55,7 +55,7 @@
 
   importScripts('../../node_modules/@emnapi/core/dist/emnapi-core.js')
 
-  const { loadNapiModuleSync, handleMessage } = globalThis.emnapiCore
+  const { instantiateNapiModuleSync, handleMessage } = globalThis.emnapiCore
 
   function onLoad (payload) {
     const wasi = new WASI({
@@ -68,7 +68,7 @@
         : function () { console.log.apply(console, arguments) }
     })
 
-    loadNapiModuleSync(payload.wasmModule, {
+    instantiateNapiModuleSync(payload.wasmModule, {
       childThread: true,
       wasi,
       overwriteImports (importObject) {

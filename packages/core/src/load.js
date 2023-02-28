@@ -1,11 +1,11 @@
 import { load, loadSync } from '@tybys/wasm-util'
 import { createNapiModule } from './module.js'
 
-function loadNapiModuleImpl (loadFn, wasmInput, options) {
+function loadNapiModuleImpl (loadFn, userNapiModule, wasmInput, options) {
   options = options == null ? {} : options
-  const userNapiModule = options.napiModule
   let napiModule
-  if (typeof userNapiModule === 'object' && userNapiModule !== null) {
+  const isLoad = typeof userNapiModule === 'object' && userNapiModule !== null
+  if (isLoad) {
     if (userNapiModule.loaded) {
       throw new Error('napiModule has already loaded')
     }
@@ -137,28 +137,50 @@ function loadNapiModuleImpl (loadFn, wasmInput, options) {
       })
     }
 
-    return { instance, module, napiModule }
+    const ret = { instance, module }
+    if (!isLoad) {
+      ret.napiModule = napiModule
+    }
+    return ret
   })
 }
 
-export function loadNapiModule (wasmInput, options) {
-  return loadNapiModuleImpl((wasmInput, importObject, callback) => {
-    return load(wasmInput, importObject).then((source) => {
-      return callback(null, source)
-    }, err => {
-      return callback(err)
-    })
-  }, wasmInput, options)
+function loadCallback (wasmInput, importObject, callback) {
+  return load(wasmInput, importObject).then((source) => {
+    return callback(null, source)
+  }, err => {
+    return callback(err)
+  })
 }
 
-export function loadNapiModuleSync (wasmInput, options) {
-  return loadNapiModuleImpl((wasmInput, importObject, callback) => {
-    let source
-    try {
-      source = loadSync(wasmInput, importObject)
-    } catch (err) {
-      return callback(err)
-    }
-    return callback(null, source)
-  }, wasmInput, options)
+function loadSyncCallback (wasmInput, importObject, callback) {
+  let source
+  try {
+    source = loadSync(wasmInput, importObject)
+  } catch (err) {
+    return callback(err)
+  }
+  return callback(null, source)
+}
+
+export function loadNapiModule (napiModule, wasmInput, options) {
+  if (typeof napiModule !== 'object' || napiModule === null) {
+    throw new TypeError('Invalid napiModule')
+  }
+  return loadNapiModuleImpl(loadCallback, napiModule, wasmInput, options)
+}
+
+export function loadNapiModuleSync (napiModule, wasmInput, options) {
+  if (typeof napiModule !== 'object' || napiModule === null) {
+    throw new TypeError('Invalid napiModule')
+  }
+  return loadNapiModuleImpl(loadSyncCallback, napiModule, wasmInput, options)
+}
+
+export function instantiateNapiModule (wasmInput, options) {
+  return loadNapiModuleImpl(loadCallback, undefined, wasmInput, options)
+}
+
+export function instantiateNapiModuleSync (wasmInput, options) {
+  return loadNapiModuleImpl(loadSyncCallback, undefined, wasmInput, options)
 }
