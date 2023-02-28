@@ -114,7 +114,7 @@ function spawnThread (startArg: number, threadId?: Int32Array): number {
           worker.unref()
         }
         if (payload.err) {
-          err(payload.err)
+          err('failed to load in child thread: ' + (payload.err.message || payload.err))
         }
       } else if (type === 'thread-spawn') {
         spawnThread(payload.startArg, payload.threadId)
