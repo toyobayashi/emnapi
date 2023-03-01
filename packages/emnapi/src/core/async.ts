@@ -69,9 +69,10 @@ function ptrToString (ptr: number): string {
 }
 
 let nextTid = 1
-function spawnThread (startArg: number, threadId?: Int32Array): number {
+function spawnThread (startArg: number, errorOrTid: number, threadId?: Int32Array): number {
+  errorOrTid = errorOrTid || 0
   if (ENVIRONMENT_IS_PTHREAD) {
-    const threadIdBuffer = new SharedArrayBuffer(4)
+    const threadIdBuffer = new SharedArrayBuffer(8)
     const id = new Int32Array(threadIdBuffer)
     const postMessage = napiModule.postMessage!
     postMessage({
@@ -79,13 +80,21 @@ function spawnThread (startArg: number, threadId?: Int32Array): number {
         type: 'thread-spawn',
         payload: {
           startArg,
+          errorOrTid,
           threadId: id
         }
       }
     })
-    Atomics.wait(id, 0, 0)
-    const tid = Atomics.load(id, 0)
-    return tid
+    Atomics.wait(id, 1, 0)
+    if (errorOrTid) {
+      const HEAPU32 = new Uint32Array(wasmMemory.buffer, errorOrTid, 2)
+      const isError = Atomics.load(id, 0)
+      const result = Atomics.load(id, 1)
+      Atomics.store(HEAPU32, 0, isError)
+      Atomics.store(HEAPU32, 1, result < 0 ? -result : result)
+      return isError
+    }
+    return Atomics.load(id, 1)
   }
 
   let worker: any
@@ -98,10 +107,17 @@ function spawnThread (startArg: number, threadId?: Int32Array): number {
     const EAGAIN = 6
     const ret = -EAGAIN
     if (threadId) {
-      Atomics.store(threadId, 0, ret)
-      Atomics.notify(threadId, 0)
+      Atomics.store(threadId, 0, 1)
+      Atomics.store(threadId, 1, ret)
+      Atomics.notify(threadId, 1)
     }
     err(err.message)
+    if (errorOrTid) {
+      const HEAPU32 = new Uint32Array(wasmMemory.buffer, errorOrTid, 2)
+      Atomics.store(HEAPU32, 0, 1)
+      Atomics.store(HEAPU32, 1, EAGAIN)
+      return 1
+    }
     return ret
   }
 
@@ -117,7 +133,7 @@ function spawnThread (startArg: number, threadId?: Int32Array): number {
           err('failed to load in child thread: ' + (payload.err.message || payload.err))
         }
       } else if (type === 'thread-spawn') {
-        spawnThread(payload.startArg, payload.threadId)
+        spawnThread(payload.startArg, payload.errorOrTid, payload.threadId)
       }
     }
   }
@@ -158,10 +174,17 @@ function spawnThread (startArg: number, threadId?: Int32Array): number {
     }
   }
   if (threadId) {
-    Atomics.store(threadId, 0, tid)
-    Atomics.notify(threadId, 0)
+    Atomics.store(threadId, 0, 0)
+    Atomics.store(threadId, 1, tid)
+    Atomics.notify(threadId, 1)
   }
   worker.postMessage(msg)
+  if (errorOrTid) {
+    const HEAPU32 = new Uint32Array(wasmMemory.buffer, errorOrTid, 2)
+    Atomics.store(HEAPU32, 0, 0)
+    Atomics.store(HEAPU32, 1, tid)
+    return 0
+  }
   return tid
 }
 napiModule.spawnThread = spawnThread

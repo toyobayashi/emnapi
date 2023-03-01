@@ -37,7 +37,7 @@ declare interface INapiModule {
   envObject?: Env
 
   init (options: InitOptions): any
-  spawnThread (startArg: number): number
+  spawnThread (startArg: number, errorOrTid?: number): number
   postMessage?: (msg: any) => any
 }
 
@@ -92,32 +92,36 @@ var napiModule: INapiModule = {
     wasmModule = module
     wasmMemory = memory
     wasmTable = table
-    if (typeof exports.malloc !== 'function') throw new TypeError('malloc is not exported')
-    if (typeof exports.free !== 'function') throw new TypeError('free is not exported')
-    _malloc = exports.malloc
-    _free = exports.free
 
-    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
-    const envObject = napiModule.envObject || (napiModule.envObject = emnapiCtx.createEnv(
-      (cb: Ptr) => $makeDynCall('vppp', 'cb'),
-      (cb: Ptr) => $makeDynCall('vp', 'cb')
-    ))
+    if (!napiModule.childThread) {
+      // main thread only
+      if (typeof exports.malloc !== 'function') throw new TypeError('malloc is not exported')
+      if (typeof exports.free !== 'function') throw new TypeError('free is not exported')
+      _malloc = exports.malloc
+      _free = exports.free
 
-    const scope = emnapiCtx.openScope(envObject)
-    try {
-      envObject.callIntoModule((_envObject) => {
-        const exports = napiModule.exports
-        const exportsHandle = scope.add(exports)
-        const napi_register_wasm_v1 = instance.exports.napi_register_wasm_v1 as Function
-        const napiValue = napi_register_wasm_v1($to64('_envObject.id'), $to64('exportsHandle.id'))
-        napiModule.exports = (!napiValue) ? exports : emnapiCtx.handleStore.get(napiValue)!.value
-      })
-    } finally {
-      emnapiCtx.closeScope(envObject, scope)
+      // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+      const envObject = napiModule.envObject || (napiModule.envObject = emnapiCtx.createEnv(
+        (cb: Ptr) => $makeDynCall('vppp', 'cb'),
+        (cb: Ptr) => $makeDynCall('vp', 'cb')
+      ))
+
+      const scope = emnapiCtx.openScope(envObject)
+      try {
+        envObject.callIntoModule((_envObject) => {
+          const exports = napiModule.exports
+          const exportsHandle = scope.add(exports)
+          const napi_register_wasm_v1 = instance.exports.napi_register_wasm_v1 as Function
+          const napiValue = napi_register_wasm_v1($to64('_envObject.id'), $to64('exportsHandle.id'))
+          napiModule.exports = (!napiValue) ? exports : emnapiCtx.handleStore.get(napiValue)!.value
+        })
+      } finally {
+        emnapiCtx.closeScope(envObject, scope)
+      }
+      napiModule.loaded = true
+      delete napiModule.envObject
+      return napiModule.exports
     }
-    napiModule.loaded = true
-    delete napiModule.envObject
-    return napiModule.exports
   }
 }
 

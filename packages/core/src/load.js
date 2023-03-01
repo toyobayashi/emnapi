@@ -22,8 +22,8 @@ function loadNapiModuleImpl (loadFn, userNapiModule, wasmInput, options) {
     emnapi: napiModule.imports.emnapi,
     wasi: {
       // eslint-disable-next-line camelcase
-      'thread-spawn': function __imported_wasi_thread_spawn (startArg) {
-        return napiModule.spawnThread(startArg, undefined)
+      'thread-spawn': function __imported_wasi_thread_spawn (startArg, errorOrTid) {
+        return napiModule.spawnThread(startArg, errorOrTid)
       }
     }
   }
@@ -116,6 +116,13 @@ function loadNapiModuleImpl (loadFn, userNapiModule, wasmInput, options) {
       wasi.initialize(instance)
     }
 
+    napiModule.init({
+      instance,
+      module,
+      memory,
+      table: instance.exports.__indirect_function_table
+    })
+
     if (napiModule.childThread) {
       const postMessage = napiModule.postMessage
       postMessage({
@@ -128,13 +135,6 @@ function loadNapiModuleImpl (loadFn, userNapiModule, wasmInput, options) {
         }
       })
       instance.exports.wasi_thread_start(tid, arg)
-    } else {
-      napiModule.init({
-        instance,
-        module,
-        memory,
-        table: instance.exports.__indirect_function_table
-      })
     }
 
     const ret = { instance, module }

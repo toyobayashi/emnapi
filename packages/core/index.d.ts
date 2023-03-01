@@ -64,7 +64,7 @@ export declare interface NapiModule {
   }
 
   init (options: InitOptions): any
-  spawnThread (startArg: number): number
+  spawnThread (startArg: number, errorOrTid?: number): number
   postMessage?: (msg: any) => any
 }
 
