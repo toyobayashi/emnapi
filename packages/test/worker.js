@@ -43,10 +43,10 @@
     WASI = require('./wasi').WASI
   } else {
     importScripts('../../node_modules/memfs-browser/dist/memfs.js')
-    importScripts('../../node_modules/@tybys/wasm-util/dist/wasm-util.js')
+    importScripts('../../node_modules/@tybys/wasm-util/dist/wasm-util.min.js')
 
     const { Volume, createFsFromVolume } = memfs
-    fs = createFsFromVolume(Volume.from({
+    fs = createFsFromVolume(Volume.fromJSON({
       '/': null
     }))
 

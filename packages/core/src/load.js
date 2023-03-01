@@ -135,6 +135,14 @@ function loadNapiModuleImpl (loadFn, userNapiModule, wasmInput, options) {
         }
       })
       instance.exports.wasi_thread_start(tid, arg)
+      postMessage({
+        __emnapi__: {
+          type: 'cleanup-thread',
+          payload: {
+            tid
+          }
+        }
+      })
     }
 
     const ret = { instance, module }

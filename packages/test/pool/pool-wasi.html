@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>pool</title>
+</head>
+<body>
+  <script src="../../../node_modules/@tybys/wasm-util/dist/wasm-util.min.js"></script>
+  <script src="../../core/dist/emnapi-core.js"></script>
+  <script src="../../runtime/dist/emnapi.js"></script>
+  <script>
+    (async function main () {
+      const init = function () {
+        const { WASI } = wasmUtil
+        const { createNapiModule, loadNapiModule } = emnapiCore
+        const { getDefaultContext } = emnapi
+        const wasi = new WASI()
+        const napiModule = createNapiModule({
+          context: getDefaultContext(),
+          onCreateWorker () {
+            return new Worker('../worker.js')
+          }
+        })
+        const wasmMemory = new WebAssembly.Memory({
+          initial: 16777216 / 65536,
+          maximum: 2147483648 / 65536,
+          shared: true
+        })
+
+        const p = new Promise((resolve, reject) => {
+          loadNapiModule(napiModule, '../.cgenbuild/Debug/pool.wasm', {
+            wasi,
+            overwriteImports (importObject) {
+              importObject.env.memory = wasmMemory
+            }
+          }).then(() => {
+            resolve(napiModule.exports)
+          }).catch(reject)
+        })
+        p.Module = napiModule
+        return p
+      }
+      const A = await init()
+
+      await Promise.all(Array.from({ length: 4 }, () => A.async_method()))
+      console.log('done')
+    })()
+  </script>
+</body>
+</html>

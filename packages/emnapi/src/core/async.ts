@@ -68,7 +68,7 @@ function ptrToString (ptr: number): string {
   return '0x' + ('00000000' + ptr.toString(16)).slice(-8)
 }
 
-let nextTid = 1
+let nextTid = 43
 function spawnThread (startArg: number, errorOrTid: number, threadId?: Int32Array): number {
   errorOrTid = errorOrTid || 0
   if (ENVIRONMENT_IS_PTHREAD) {
@@ -77,7 +77,7 @@ function spawnThread (startArg: number, errorOrTid: number, threadId?: Int32Arra
     const postMessage = napiModule.postMessage!
     postMessage({
       __emnapi__: {
-        type: 'thread-spawn',
+        type: 'spawn-thread',
         payload: {
           startArg,
           errorOrTid,
@@ -132,8 +132,10 @@ function spawnThread (startArg: number, errorOrTid: number, threadId?: Int32Arra
         if (payload.err) {
           err('failed to load in child thread: ' + (payload.err.message || payload.err))
         }
-      } else if (type === 'thread-spawn') {
+      } else if (type === 'spawn-thread') {
         spawnThread(payload.startArg, payload.errorOrTid, payload.threadId)
+      } else if (type === 'cleanup-thread') {
+        worker.terminate()
       }
     }
   }
