@@ -34,6 +34,7 @@ declare interface INapiModule {
   loaded: boolean
   filename: string
   childThread: boolean
+  pthreads: Record<string, any>
   envObject?: Env
 
   init (options: InitOptions): any
@@ -74,6 +75,7 @@ var napiModule: INapiModule = {
   loaded: false,
   filename: '',
   childThread: Boolean(options.childThread),
+  pthreads: Object.create(null),
 
   spawnThread: undefined!,
 

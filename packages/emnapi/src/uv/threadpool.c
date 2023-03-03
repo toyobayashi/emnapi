@@ -261,9 +261,9 @@ static void init_threads(void) {
 
   uv_sem_destroy(&sem);
 
+#endif
   for (i = 0; i < nthreads; i++)
     _emnapi_worker_unref(*(threads + i));
-#endif
 }
 
 

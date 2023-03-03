@@ -1,12 +1,15 @@
 /* eslint-disable @typescript-eslint/restrict-plus-operands */
 // declare const PThread: any
 
-function __emnapi_worker_unref (pid: number): void {
-  // if (ENVIRONMENT_IS_PTHREAD) return
-  // const worker = napiModule.PThread.pthreads[pid]
-  // if (typeof worker.unref === 'function') {
-  //   worker.unref()
-  // }
+function __emnapi_worker_unref (pthreadPtr: number): void {
+  if (ENVIRONMENT_IS_PTHREAD) return
+  const view = new DataView(wasmMemory.buffer)
+  const tidOffset = 20 // wasi-sdk-20.0+threads
+  const tid = view.getInt32(pthreadPtr + tidOffset, true)
+  const worker = napiModule.pthreads[tid]
+  if (worker && typeof worker.unref === 'function') {
+    worker.unref()
+  }
 }
 
 function emnapiAddSendListener (worker: any): boolean {
@@ -64,9 +67,9 @@ function __emnapi_async_send_js (type: number, callback: number, data: number): 
   }
 }
 
-function ptrToString (ptr: number): string {
-  return '0x' + ('00000000' + ptr.toString(16)).slice(-8)
-}
+// function ptrToString (ptr: number): string {
+//   return '0x' + ('00000000' + ptr.toString(16)).slice(-8)
+// }
 
 let nextTid = 43
 function spawnThread (startArg: number, errorOrTid: number, threadId?: Int32Array): number {
@@ -126,24 +129,22 @@ function spawnThread (startArg: number, errorOrTid: number, threadId?: Int32Arra
       const type = e.data.__emnapi__.type
       const payload = e.data.__emnapi__.payload
       if (type === 'loaded') {
-        if (typeof worker.unref === 'function') {
-          worker.unref()
-        }
         if (payload.err) {
           err('failed to load in child thread: ' + (payload.err.message || payload.err))
         }
       } else if (type === 'spawn-thread') {
         spawnThread(payload.startArg, payload.errorOrTid, payload.threadId)
       } else if (type === 'cleanup-thread') {
+        delete napiModule.pthreads[payload.tid]
         worker.terminate()
       }
     }
   }
   worker.onerror = (e: any) => {
-    let message = 'worker sent an error!'
-    if (worker.pthread_ptr) {
-      message = 'Pthread ' + ptrToString(worker.pthread_ptr) + ' sent an error!'
-    }
+    const message = 'worker sent an error!'
+    // if (worker.pthread_ptr) {
+    //   message = 'Pthread ' + ptrToString(worker.pthread_ptr) + ' sent an error!'
+    // }
     err(message + ' ' + e.message)
     throw e
   }
@@ -162,7 +163,7 @@ function spawnThread (startArg: number, errorOrTid: number, threadId?: Int32Arra
   emnapiAddSendListener(worker)
   const tid = nextTid
   nextTid++
-  // napiModule.PThread.pthreads[tid] = worker
+  napiModule.pthreads[tid] = worker
   // worker.pthread_ptr = tid
   const msg = {
     __emnapi__: {
