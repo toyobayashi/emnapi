@@ -10,7 +10,7 @@
   //   const str = require('util').format(...args)
   //   require('fs').writeSync(2, str + '\n')
   // }
-  let fs, WASI
+  let fs, WASI, emnapiCore
 
   const ENVIRONMENT_IS_NODE =
     typeof process === 'object' && process !== null &&
@@ -41,9 +41,12 @@
     })
 
     WASI = require('./wasi').WASI
+    emnapiCore = require('@emnapi/core')
   } else {
     importScripts('../../node_modules/memfs-browser/dist/memfs.js')
     importScripts('../../node_modules/@tybys/wasm-util/dist/wasm-util.min.js')
+    importScripts('../../node_modules/@emnapi/core/dist/emnapi-core.js')
+    emnapiCore = globalThis.emnapiCore
 
     const { Volume, createFsFromVolume } = memfs
     fs = createFsFromVolume(Volume.fromJSON({
@@ -53,9 +56,7 @@
     WASI = globalThis.wasmUtil.WASI
   }
 
-  importScripts('../../node_modules/@emnapi/core/dist/emnapi-core.js')
-
-  const { instantiateNapiModuleSync, handleMessage } = globalThis.emnapiCore
+  const { instantiateNapiModuleSync, handleMessage } = emnapiCore
 
   function onLoad (payload) {
     const wasi = new WASI({
