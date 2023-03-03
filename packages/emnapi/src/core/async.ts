@@ -192,11 +192,6 @@ function spawnThread (startArg: number, errorOrTid: number, threadId?: Int32Arra
 }
 napiModule.spawnThread = spawnThread
 
-function _pthread_atfork (): number {
-  return 0
-}
-
-emnapiImplementInternal('pthread_atfork', 'ippp', _pthread_atfork)
 emnapiImplementInternal('_emnapi_worker_unref', 'vp', __emnapi_worker_unref)
 emnapiImplementInternal('_emnapi_async_send_js', 'vipp', __emnapi_async_send_js)
 emnapiImplementHelper('$emnapiAddSendListener', undefined, emnapiAddSendListener, undefined, 'addSendListener')

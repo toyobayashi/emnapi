@@ -267,7 +267,7 @@ static void init_threads(void) {
 }
 
 
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(__wasi__)
 static void reset_once(void) {
   uv_once_t child_once = UV_ONCE_INIT;
   memcpy(&once, &child_once, sizeof(child_once));
@@ -276,7 +276,7 @@ static void reset_once(void) {
 
 
 static void init_once(void) {
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(__wasi__)
   /* Re-initialize the threadpool after fork.
    * Note that this discards the global mutex and condition as well
    * as the work queue.
