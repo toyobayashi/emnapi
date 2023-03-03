@@ -7,9 +7,9 @@
 // declare const process: any
 // declare const __webpack_public_path__: any
 
-declare let emnapiCtx: Context
+declare var emnapiCtx: Context
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-declare let emnapiNodeBinding: NodeBinding
+declare var emnapiNodeBinding: NodeBinding
 
 declare function _napi_register_wasm_v1 (env: Ptr, exports: Ptr): napi_value
 

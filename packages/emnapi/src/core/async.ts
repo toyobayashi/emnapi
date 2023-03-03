@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-floating-promises */
-/* eslint-disable no-var */
 /* eslint-disable @typescript-eslint/restrict-plus-operands */
 
 function terminateWorker (worker: any): void {

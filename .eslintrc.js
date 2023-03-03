@@ -12,6 +12,7 @@ module.exports = {
     'spaced-comment': 'off',
     'no-new-func': 'off',
     'no-implied-eval': 'off',
+    'no-var': 'off',
     '@typescript-eslint/no-implied-eval': 'off',
     '@typescript-eslint/no-unused-vars': 'error',
     '@typescript-eslint/no-namespace': 'off',

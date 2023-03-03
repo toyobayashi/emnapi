@@ -1,4 +1,3 @@
-/* eslint-disable no-var */
 /* eslint-disable @typescript-eslint/indent */
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars

@@ -1,4 +1,4 @@
-declare const PThread: any
+declare var PThread: any
 
 mergeInto(LibraryManager.library, {
   _emnapi_worker_unref__sig: 'vp',

@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/prefer-nullish-coalescing */
-/* eslint-disable no-var */
 
 declare interface CreateOptions {
   context: Context
@@ -53,7 +52,8 @@ var wasmMemory: WebAssembly.Memory
 
 var wasmTable: WebAssembly.Table
 
-var _malloc: any, _free: any
+var _malloc: any
+var _free: any
 
 function abort (msg: string): never {
   if (typeof WebAssembly.RuntimeError === 'function') {
@@ -66,7 +66,6 @@ function runtimeKeepalivePush (): void {}
 
 function runtimeKeepalivePop (): void {}
 
-// eslint-disable-next-line no-var
 var napiModule: INapiModule = {
   imports: {
     env: {},
