@@ -83,16 +83,21 @@ function __emnapi_async_send_js (type: number, callback: number, data: number): 
 //   return '0x' + ('00000000' + ptr.toString(16)).slice(-8)
 // }
 
-let nextTid = 43
+let tidCount = 0
 function spawnThread (startArg: number, errorOrTid: number): number {
   const isNewABI = errorOrTid !== undefined
+  let struct: Int32Array
   if (!isNewABI) {
     errorOrTid = $makeMalloc('spawnThread', '8')
     if (!errorOrTid) {
       return -48 /* ENOMEM */
     }
+    struct = new Int32Array(wasmMemory.buffer, errorOrTid, 2)
+    Atomics.store(struct, 0, 0)
+    Atomics.store(struct, 1, 0)
+  } else {
+    struct = new Int32Array(wasmMemory.buffer, errorOrTid, 2)
   }
-  const struct = new Int32Array(wasmMemory.buffer, errorOrTid, 2)
 
   if (ENVIRONMENT_IS_PTHREAD) {
     const postMessage = napiModule.postMessage!
@@ -173,8 +178,8 @@ function spawnThread (startArg: number, errorOrTid: number): number {
   }
   // napiModule.emnapi.addSendListener(worker)
   emnapiAddSendListener(worker)
-  const tid = nextTid
-  nextTid++
+  const tid = tidCount + 43
+  tidCount = (tidCount + 1) % (0xffffffff - 42)
   napiModule.pthreads[tid] = worker
   // worker.pthread_ptr = tid
   const msg = {
