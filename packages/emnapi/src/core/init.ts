@@ -94,13 +94,13 @@ var napiModule: INapiModule = {
     wasmModule = module
     wasmMemory = memory
     wasmTable = table
+    if (typeof exports.malloc !== 'function') throw new TypeError('malloc is not exported')
+    if (typeof exports.free !== 'function') throw new TypeError('free is not exported')
+    _malloc = exports.malloc
+    _free = exports.free
 
     if (!napiModule.childThread) {
       // main thread only
-      if (typeof exports.malloc !== 'function') throw new TypeError('malloc is not exported')
-      if (typeof exports.free !== 'function') throw new TypeError('free is not exported')
-      _malloc = exports.malloc
-      _free = exports.free
 
       // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
       const envObject = napiModule.envObject || (napiModule.envObject = emnapiCtx.createEnv(

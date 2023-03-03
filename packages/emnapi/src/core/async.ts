@@ -4,7 +4,19 @@
 function __emnapi_worker_unref (pthreadPtr: number): void {
   if (ENVIRONMENT_IS_PTHREAD) return
   const view = new DataView(wasmMemory.buffer)
-  const tidOffset = 20 // wasi-sdk-20.0+threads
+  /**
+   * wasi-sdk-20.0+threads
+   *
+   * struct pthread {
+   *   struct pthread *self;        // 0
+   *   struct pthread *prev, *next; // 4, 8
+   *   uintptr_t sysinfo;           // 12
+   *   uintptr_t canary;            // 16
+   *   int tid;                     // 20
+   *   // ...
+   * }
+   */
+  const tidOffset = 20
   const tid = view.getInt32(pthreadPtr + tidOffset, true)
   const worker = napiModule.pthreads[tid]
   if (worker && typeof worker.unref === 'function') {
@@ -72,32 +84,35 @@ function __emnapi_async_send_js (type: number, callback: number, data: number): 
 // }
 
 let nextTid = 43
-function spawnThread (startArg: number, errorOrTid: number, threadId?: Int32Array): number {
-  errorOrTid = errorOrTid || 0
+function spawnThread (startArg: number, errorOrTid: number): number {
+  const isNewABI = errorOrTid !== undefined
+  if (!isNewABI) {
+    errorOrTid = $makeMalloc('spawnThread', '8')
+    if (!errorOrTid) {
+      return -48 /* ENOMEM */
+    }
+  }
+  const struct = new Int32Array(wasmMemory.buffer, errorOrTid, 2)
+
   if (ENVIRONMENT_IS_PTHREAD) {
-    const threadIdBuffer = new SharedArrayBuffer(8)
-    const id = new Int32Array(threadIdBuffer)
     const postMessage = napiModule.postMessage!
     postMessage({
       __emnapi__: {
         type: 'spawn-thread',
         payload: {
           startArg,
-          errorOrTid,
-          threadId: id
+          errorOrTid
         }
       }
     })
-    Atomics.wait(id, 1, 0)
-    if (errorOrTid) {
-      const HEAPU32 = new Uint32Array(wasmMemory.buffer, errorOrTid, 2)
-      const isError = Atomics.load(id, 0)
-      const result = Atomics.load(id, 1)
-      Atomics.store(HEAPU32, 0, isError)
-      Atomics.store(HEAPU32, 1, result < 0 ? -result : result)
+    Atomics.wait(struct, 1, 0)
+    const isError = Atomics.load(struct, 0)
+    const result = Atomics.load(struct, 1)
+    if (isNewABI) {
       return isError
     }
-    return Atomics.load(id, 1)
+    _free($to64('errorOrTid'))
+    return isError ? -result : result
   }
 
   let worker: any
@@ -108,20 +123,17 @@ function spawnThread (startArg: number, errorOrTid: number, threadId?: Int32Arra
     worker = onCreateWorker()
   } catch (err) {
     const EAGAIN = 6
-    const ret = -EAGAIN
-    if (threadId) {
-      Atomics.store(threadId, 0, 1)
-      Atomics.store(threadId, 1, ret)
-      Atomics.notify(threadId, 1)
-    }
+
+    Atomics.store(struct, 0, 1)
+    Atomics.store(struct, 1, EAGAIN)
+    Atomics.notify(struct, 1)
+
     err(err.message)
-    if (errorOrTid) {
-      const HEAPU32 = new Uint32Array(wasmMemory.buffer, errorOrTid, 2)
-      Atomics.store(HEAPU32, 0, 1)
-      Atomics.store(HEAPU32, 1, EAGAIN)
+    if (isNewABI) {
       return 1
     }
-    return ret
+    _free($to64('errorOrTid'))
+    return -EAGAIN
   }
 
   worker.onmessage = function (e: any) {
@@ -133,7 +145,7 @@ function spawnThread (startArg: number, errorOrTid: number, threadId?: Int32Arra
           err('failed to load in child thread: ' + (payload.err.message || payload.err))
         }
       } else if (type === 'spawn-thread') {
-        spawnThread(payload.startArg, payload.errorOrTid, payload.threadId)
+        spawnThread(payload.startArg, payload.errorOrTid)
       } else if (type === 'cleanup-thread') {
         delete napiModule.pthreads[payload.tid]
         worker.terminate()
@@ -176,18 +188,15 @@ function spawnThread (startArg: number, errorOrTid: number, threadId?: Int32Arra
       }
     }
   }
-  if (threadId) {
-    Atomics.store(threadId, 0, 0)
-    Atomics.store(threadId, 1, tid)
-    Atomics.notify(threadId, 1)
-  }
+
+  Atomics.store(struct, 0, 0)
+  Atomics.store(struct, 1, tid)
+  Atomics.notify(struct, 1)
   worker.postMessage(msg)
-  if (errorOrTid) {
-    const HEAPU32 = new Uint32Array(wasmMemory.buffer, errorOrTid, 2)
-    Atomics.store(HEAPU32, 0, 0)
-    Atomics.store(HEAPU32, 1, tid)
+  if (isNewABI) {
     return 0
   }
+  _free($to64('errorOrTid'))
   return tid
 }
 napiModule.spawnThread = spawnThread
