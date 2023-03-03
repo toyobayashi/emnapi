@@ -19,6 +19,7 @@
         const wasi = new WASI()
         const napiModule = createNapiModule({
           context: getDefaultContext(),
+          reuseWorker: true,
           onCreateWorker () {
             return new Worker('../worker.js')
           }

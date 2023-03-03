@@ -45,31 +45,20 @@ function loadNapiModuleImpl (loadFn, userNapiModule, wasmInput, options) {
     }
   }
 
-  const tid = options.tid
-  const arg = options.arg
-  if (napiModule.childThread) {
-    if (typeof tid !== 'number') {
-      throw new TypeError('options.tid is not a number')
-    }
-    if (typeof arg !== 'number') {
-      throw new TypeError('options.arg is not a number')
-    }
-  }
-
   return loadFn(wasmInput, importObject, (err, source) => {
     if (err) {
-      if (napiModule.childThread) {
-        const postMessage = napiModule.postMessage
-        postMessage({
-          __emnapi__: {
-            type: 'loaded',
-            payload: {
-              tid,
-              err
-            }
-          }
-        })
-      }
+      // if (napiModule.childThread) {
+      //   const postMessage = napiModule.postMessage
+      //   postMessage({
+      //     __emnapi__: {
+      //       type: 'loaded',
+      //       payload: {
+      //         tid,
+      //         err
+      //       }
+      //     }
+      //   })
+      // }
       throw err
     }
 
@@ -128,19 +117,7 @@ function loadNapiModuleImpl (loadFn, userNapiModule, wasmInput, options) {
       postMessage({
         __emnapi__: {
           type: 'loaded',
-          payload: {
-            tid,
-            err: null
-          }
-        }
-      })
-      instance.exports.wasi_thread_start(tid, arg)
-      postMessage({
-        __emnapi__: {
-          type: 'cleanup-thread',
-          payload: {
-            tid
-          }
+          payload: {}
         }
       })
     }

@@ -7,6 +7,7 @@ declare interface CreateOptions {
   filename?: string
   nodeBinding?: NodeBinding
   childThread?: boolean
+  reuseWorker?: boolean
   onCreateWorker?: () => any
   print?: (str: string) => void
   printErr?: (str: string) => void
@@ -34,17 +35,19 @@ declare interface INapiModule {
   loaded: boolean
   filename: string
   childThread: boolean
-  pthreads: Record<string, any>
   envObject?: Env
 
   init (options: InitOptions): any
   spawnThread (startArg: number, errorOrTid?: number): number
+  startThread (tid: number, startArg: number): void
   postMessage?: (msg: any) => any
 }
 
 var ENVIRONMENT_IS_NODE = typeof process === 'object' && process !== null && typeof process.versions === 'object' && process.versions !== null && typeof process.versions.node === 'string'
 var ENVIRONMENT_IS_PTHREAD = Boolean(options.childThread)
+var reuseWorker = Boolean(options.reuseWorker)
 
+var wasmInstance: WebAssembly.Instance
 var wasmModule: WebAssembly.Module
 var wasmMemory: WebAssembly.Memory
 
@@ -75,15 +78,16 @@ var napiModule: INapiModule = {
   loaded: false,
   filename: '',
   childThread: Boolean(options.childThread),
-  pthreads: Object.create(null),
 
   spawnThread: undefined!,
+  startThread: undefined!,
 
   init (options: InitOptions) {
     if (napiModule.loaded) return napiModule.exports
     if (!options) throw new TypeError('Invalid napi init options')
     const instance = options.instance
     if (!instance?.exports) throw new TypeError('Invalid wasm instance')
+    wasmInstance = instance
     const exports = instance.exports
     const module = options.module
     const memory = options.memory || exports.memory
@@ -123,6 +127,10 @@ var napiModule: INapiModule = {
       napiModule.loaded = true
       delete napiModule.envObject
       return napiModule.exports
+    } else {
+      if (typeof exports.wasi_thread_start !== 'function') {
+        throw new TypeError('wasi_thread_start is not exported')
+      }
     }
   }
 }

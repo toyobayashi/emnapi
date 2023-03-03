@@ -69,21 +69,23 @@
         : function () { console.log.apply(console, arguments) }
     })
 
-    instantiateNapiModuleSync(payload.wasmModule, {
+    return instantiateNapiModuleSync(payload.wasmModule, {
       childThread: true,
       wasi,
       overwriteImports (importObject) {
         importObject.env.memory = payload.wasmMemory
-      },
-      tid: payload.tid,
-      arg: payload.arg
+      }
     })
   }
+
+  let napiModule
 
   globalThis.onmessage = function (e) {
     handleMessage(e, (type, payload) => {
       if (type === 'load') {
-        onLoad(payload)
+        napiModule = onLoad(payload).napiModule
+      } else if (type === 'start') {
+        napiModule.startThread(payload.tid, payload.arg)
       }
     })
   }

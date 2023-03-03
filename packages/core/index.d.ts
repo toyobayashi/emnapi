@@ -16,6 +16,7 @@ export declare interface NodeBinding {
 export declare type BaseCreateOptions = {
   filename?: string
   nodeBinding?: NodeBinding
+  reuseWorker?: boolean
   onCreateWorker?: () => any
   print?: (str: string) => void
   printErr?: (str: string) => void
@@ -65,6 +66,7 @@ export declare interface NapiModule {
 
   init (options: InitOptions): any
   spawnThread (startArg: number, errorOrTid?: number): number
+  startThread (tid: number, startArg: number): void
   postMessage?: (msg: any) => any
 }
 
@@ -81,10 +83,6 @@ export declare interface ReactorWASI {
 export declare interface LoadOptions {
   wasi?: ReactorWASI
   overwriteImports?: (importObject: WebAssembly.Imports) => WebAssembly.Imports
-  /** Required if in child thread */
-  tid?: number
-  /** Required if in child thread */
-  arg?: number
 }
 
 export declare type InstantiateOptions = CreateOptions & LoadOptions

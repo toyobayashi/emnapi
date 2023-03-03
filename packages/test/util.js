@@ -28,6 +28,7 @@ function loadPath (request, options) {
       const napiModule = createNapiModule({
         context,
         filename: request,
+        reuseWorker: true,
         onCreateWorker () {
           return new Worker(join(__dirname, './worker.js'), {
             env: process.env,
