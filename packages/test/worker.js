@@ -56,37 +56,32 @@
     WASI = globalThis.wasmUtil.WASI
   }
 
-  const { instantiateNapiModuleSync, handleMessage } = emnapiCore
+  const { instantiateNapiModuleSync, MessageHandler } = emnapiCore
 
-  function onLoad (payload) {
-    const wasi = new WASI({
-      fs,
-      print: ENVIRONMENT_IS_NODE
-        ? (...args) => {
-            const str = require('util').format(...args)
-            fs.writeSync(1, str + '\n')
-          }
-        : function () { console.log.apply(console, arguments) }
-    })
+  const handler = new MessageHandler({
+    onLoad ({ wasmModule, wasmMemory }) {
+      const wasi = new WASI({
+        fs,
+        print: ENVIRONMENT_IS_NODE
+          ? (...args) => {
+              const str = require('util').format(...args)
+              fs.writeSync(1, str + '\n')
+            }
+          : function () { console.log.apply(console, arguments) }
+      })
 
-    return instantiateNapiModuleSync(payload.wasmModule, {
-      childThread: true,
-      wasi,
-      overwriteImports (importObject) {
-        importObject.env.memory = payload.wasmMemory
-      }
-    })
-  }
-
-  let napiModule
+      return instantiateNapiModuleSync(wasmModule, {
+        childThread: true,
+        wasi,
+        overwriteImports (importObject) {
+          importObject.env.memory = wasmMemory
+        }
+      })
+    }
+  })
 
   globalThis.onmessage = function (e) {
-    handleMessage(e, (type, payload) => {
-      if (type === 'load') {
-        napiModule = onLoad(payload).napiModule
-      } else if (type === 'start') {
-        napiModule.startThread(payload.tid, payload.arg)
-      }
-    })
+    handler.handle(e)
+    // handle other messages
   }
 })()

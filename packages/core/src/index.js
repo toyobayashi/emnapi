@@ -6,6 +6,6 @@ export {
   instantiateNapiModuleSync
 } from './load.js'
 
-export { handleMessage } from './worker.js'
+export { MessageHandler } from './worker.js'
 
 export const version = __VERSION__

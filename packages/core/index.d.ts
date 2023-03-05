@@ -83,6 +83,8 @@ export declare interface ReactorWASI {
 export declare interface LoadOptions {
   wasi?: ReactorWASI
   overwriteImports?: (importObject: WebAssembly.Imports) => WebAssembly.Imports
+  getMemory?: (exports: WebAssembly.Exports) => WebAssembly.Memory
+  getTable?: (exports: WebAssembly.Exports) => WebAssembly.Table
 }
 
 export declare type InstantiateOptions = CreateOptions & LoadOptions
@@ -117,4 +119,16 @@ export declare function instantiateNapiModuleSync (
   options: InstantiateOptions
 ): InstantiatedSource
 
-export declare function handleMessage (msg: { data: any }, callback: (type: string, payload: any) => any): void
+export declare interface OnLoadData {
+  wasmModule: WebAssembly.Module
+  wasmMemory: WebAssembly.Memory
+}
+
+export declare interface HandleOptions {
+  onLoad (data: OnLoadData): InstantiatedSource | Promise<InstantiatedSource>
+}
+
+export declare class MessageHandler {
+  constructor (options: HandleOptions)
+  handle (e: { data: any }): void
+}

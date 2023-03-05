@@ -3,6 +3,16 @@ import { createNapiModule } from './module.js'
 
 function loadNapiModuleImpl (loadFn, userNapiModule, wasmInput, options) {
   options = options == null ? {} : options
+
+  const getMemory = options.getMemory
+  const getTable = options.getTable
+  if (getMemory != null && typeof getMemory !== 'function') {
+    throw new TypeError('options.getMemory is not a function')
+  }
+  if (getTable != null && typeof getTable !== 'function') {
+    throw new TypeError('options.getTable is not a function')
+  }
+
   let napiModule
   const isLoad = typeof userNapiModule === 'object' && userNapiModule !== null
   if (isLoad) {
@@ -47,33 +57,29 @@ function loadNapiModuleImpl (loadFn, userNapiModule, wasmInput, options) {
 
   return loadFn(wasmInput, importObject, (err, source) => {
     if (err) {
-      // if (napiModule.childThread) {
-      //   const postMessage = napiModule.postMessage
-      //   postMessage({
-      //     __emnapi__: {
-      //       type: 'loaded',
-      //       payload: {
-      //         tid,
-      //         err
-      //       }
-      //     }
-      //   })
-      // }
       throw err
     }
 
     let instance = source.instance
+    const exports = instance.exports
 
-    const exportMemory = 'memory' in source.instance.exports
+    const exportMemory = 'memory' in exports
     const importMemory = 'memory' in importObject.env
     /** @type {WebAssembly.Memory} */
-    const memory = exportMemory ? source.instance.exports.memory : importMemory ? importObject.env.memory : undefined
+    const memory = getMemory
+      ? getMemory(exports)
+      : exportMemory
+        ? exports.memory
+        : importMemory
+          ? importObject.env.memory
+          : undefined
     if (!memory) {
       throw new Error('memory is neither exported nor imported')
     }
-    if (wasi && !exportMemory && importMemory) {
+    const table = getTable ? getTable(exports) : exports.__indirect_function_table
+    if (wasi && !exportMemory) {
       instance = {
-        exports: Object.assign({}, source.instance.exports, { memory })
+        exports: Object.assign({}, exports, { memory })
       }
     }
     const module = source.module
@@ -81,7 +87,6 @@ function loadNapiModuleImpl (loadFn, userNapiModule, wasmInput, options) {
       if (napiModule.childThread) {
         // https://github.com/nodejs/help/issues/4102
         const noop = () => {}
-        const exports = instance.exports
         const exportsProxy = new Proxy({}, {
           get (t, p, r) {
             if (p === 'memory') {
@@ -109,18 +114,8 @@ function loadNapiModuleImpl (loadFn, userNapiModule, wasmInput, options) {
       instance,
       module,
       memory,
-      table: instance.exports.__indirect_function_table
+      table
     })
-
-    if (napiModule.childThread) {
-      const postMessage = napiModule.postMessage
-      postMessage({
-        __emnapi__: {
-          type: 'loaded',
-          payload: {}
-        }
-      })
-    }
 
     const ret = { instance, module }
     if (!isLoad) {
