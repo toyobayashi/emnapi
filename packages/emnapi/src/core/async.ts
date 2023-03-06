@@ -113,8 +113,7 @@ var PThread = {
   }
 }
 
-function __emnapi_worker_unref (pthreadPtr: number): void {
-  if (ENVIRONMENT_IS_PTHREAD) return
+function emnapiGetWorkerByPthreadPtr (pthreadPtr: number): any {
   const view = new DataView(wasmMemory.buffer)
   /**
    * wasi-sdk-20.0+threads
@@ -131,6 +130,12 @@ function __emnapi_worker_unref (pthreadPtr: number): void {
   const tidOffset = 20
   const tid = view.getInt32(pthreadPtr + tidOffset, true)
   const worker = PThread.pthreads[tid]
+  return worker
+}
+
+function __emnapi_worker_unref (pthreadPtr: number): void {
+  if (ENVIRONMENT_IS_PTHREAD) return
+  const worker = emnapiGetWorkerByPthreadPtr(pthreadPtr)
   if (worker && typeof worker.unref === 'function') {
     worker.unref()
   }
@@ -307,6 +312,72 @@ function startThread (tid: number, startArg: number): void {
 napiModule.spawnThread = spawnThread
 napiModule.startThread = startThread
 
+var uvThreadpoolReadyResolve: () => void
+var uvThreadpoolReady: Promise<void> & { ready: boolean } = new Promise<void>((resolve) => {
+  uvThreadpoolReadyResolve = function () {
+    uvThreadpoolReady.ready = true
+    resolve()
+  }
+}) as any
+uvThreadpoolReady.ready = false
+
+function __emnapi_is_main_browser_thread (): number {
+  return (typeof window !== 'undefined' && typeof document !== 'undefined' && !ENVIRONMENT_IS_NODE) ? 1 : 0
+}
+
+function __emnapi_after_uvthreadpool_ready (callback: number, q: number, type: number): void {
+  if (uvThreadpoolReady.ready) {
+    $makeDynCall('vpi', 'callback')($to64('q'), type)
+  } else {
+    uvThreadpoolReady.then(() => {
+      $makeDynCall('vpi', 'callback')($to64('q'), type)
+    })
+  }
+}
+
+function __emnapi_tell_js_uvthreadpool (threads: number, size: number): void {
+  const p = []
+  for (let i = 0; i < size; i++) {
+    const pthreadPtr = $makeGetValue('threads', 'i * ' + POINTER_SIZE, '*')
+    const worker = emnapiGetWorkerByPthreadPtr(pthreadPtr)
+    p.push(new Promise<void>((resolve) => {
+      const handler = function (e: any): void {
+        const data = ENVIRONMENT_IS_NODE ? e : e.data
+        const __emnapi__ = data.__emnapi__
+        if (__emnapi__ && __emnapi__.type === 'async-thread-ready') {
+          resolve()
+          if (ENVIRONMENT_IS_NODE) {
+            worker.off('message', handler)
+          } else {
+            worker.removeEventListener('message', handler)
+          }
+        }
+      }
+      if (ENVIRONMENT_IS_NODE) {
+        worker.on('message', handler)
+      } else {
+        worker.addEventListener('message', handler)
+      }
+    }))
+  }
+  Promise.all(p).then(uvThreadpoolReadyResolve)
+}
+
+function __emnapi_emit_async_thread_ready (): void {
+  if (!ENVIRONMENT_IS_PTHREAD) return
+  const postMessage = napiModule.postMessage!
+  postMessage({
+    __emnapi__: {
+      type: 'async-thread-ready',
+      payload: {}
+    }
+  })
+}
+
+emnapiImplementInternal('_emnapi_is_main_browser_thread', 'i', __emnapi_is_main_browser_thread)
+emnapiImplementInternal('_emnapi_after_uvthreadpool_ready', 'vppi', __emnapi_after_uvthreadpool_ready)
+emnapiImplementInternal('_emnapi_tell_js_uvthreadpool', 'vpi', __emnapi_tell_js_uvthreadpool)
+emnapiImplementInternal('_emnapi_emit_async_thread_ready', 'v', __emnapi_emit_async_thread_ready)
 emnapiImplementInternal('_emnapi_worker_unref', 'vp', __emnapi_worker_unref)
 emnapiImplementInternal('_emnapi_async_send_js', 'vipp', __emnapi_async_send_js)
 emnapiImplementHelper('$emnapiAddSendListener', undefined, emnapiAddSendListener, undefined, 'addSendListener')

@@ -58,6 +58,15 @@ static void uv__cancelled(struct uv__work* w) {
 
 EMNAPI_INTERNAL_EXTERN void _emnapi_worker_unref(uv_thread_t pid);
 
+#ifdef __EMNAPI_WASI_THREADS__
+EMNAPI_INTERNAL_EXTERN
+void _emnapi_after_uvthreadpool_ready(void (*callback)(QUEUE* w, enum uv__work_kind kind),
+                                      QUEUE* w,
+                                      enum uv__work_kind kind);
+EMNAPI_INTERNAL_EXTERN void _emnapi_tell_js_uvthreadpool(uv_thread_t* threads, unsigned int n);
+EMNAPI_INTERNAL_EXTERN void _emnapi_emit_async_thread_ready();
+#endif
+
 /* To avoid deadlock with uv_cancel() it's crucial that the worker
  * never holds the global mutex and the loop-local mutex at the same time.
  */
@@ -67,6 +76,8 @@ static void* worker(void* arg) {
   int is_slow_work;
 #ifndef __EMNAPI_WASI_THREADS__
   uv_sem_post((uv_sem_t*) arg);
+#else
+  _emnapi_emit_async_thread_ready();
 #endif
   arg = NULL;
 
@@ -245,22 +256,21 @@ static void init_threads(void) {
     abort();
 #endif
 
+  for (i = 0; i < nthreads; i++)
 #ifndef __EMNAPI_WASI_THREADS__
-  for (i = 0; i < nthreads; i++)
     if (uv_thread_create(threads + i, (uv_thread_cb) worker, &sem))
-      abort();
 #else
-  for (i = 0; i < nthreads; i++)
     if (uv_thread_create(threads + i, (uv_thread_cb) worker, NULL))
-      abort();
 #endif
+      abort();
 
 #ifndef __EMNAPI_WASI_THREADS__
   for (i = 0; i < nthreads; i++)
     uv_sem_wait(&sem);
 
   uv_sem_destroy(&sem);
-
+#else
+  _emnapi_tell_js_uvthreadpool(threads, nthreads);
 #endif
   for (i = 0; i < nthreads; i++)
     _emnapi_worker_unref(*(threads + i));
@@ -297,7 +307,11 @@ void uv__work_submit(uv_loop_t* loop,
   w->loop = loop;
   w->work = work;
   w->done = done;
+#ifdef __EMNAPI_WASI_THREADS__
+  _emnapi_after_uvthreadpool_ready(post, &w->wq, kind);
+#else
   post(&w->wq, kind);
+#endif
 }
 
 
