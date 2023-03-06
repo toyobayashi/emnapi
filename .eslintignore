@@ -1,4 +1,5 @@
 **/dist
+**/lib
 node_modules
 /lib/typings
 .eslintrc.js
@@ -9,3 +10,4 @@ node_modules
 /packages/emnapi/lib
 /packages/emnapi/transformer/out
 /packages/core/src/index.js
+/out

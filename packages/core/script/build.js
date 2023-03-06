@@ -5,8 +5,24 @@ const rollupNodeResolve = require('@rollup/plugin-node-resolve').default
 const rollupReplace = require('@rollup/plugin-replace').default
 const rollupTerser = require('rollup-plugin-terser').terser
 const dist = path.join(__dirname, '../dist')
+const { compile } = require('@tybys/tsapi')
 
 function build () {
+  compile(path.join(__dirname, '../tsconfig.json'), {
+    optionsToExtend: {
+      target: require('typescript').ScriptTarget.ES5,
+      outDir: path.join(__dirname, '../lib/es5')
+    }
+  })
+  compile(path.join(__dirname, '../tsconfig.json'), {
+    optionsToExtend: {
+      target: require('typescript').ScriptTarget.ES2019,
+      outDir: path.join(__dirname, '../lib/es2019'),
+      removeComments: true,
+      downlevelIteration: false
+    }
+  })
+
   /**
    * @param {'es5' | 'es2019'} esversion
    * @param {boolean=} minify
@@ -14,7 +30,7 @@ function build () {
    */
   function createInput (esversion, minify, options) {
     return {
-      input: path.join(__dirname, '../src/index.js'),
+      input: path.join(__dirname, '../lib', esversion, 'index.js'),
       plugins: [
         rollupNodeResolve({
           mainFields: ['module', 'main'],
