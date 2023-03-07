@@ -307,11 +307,11 @@ void uv__work_submit(uv_loop_t* loop,
   w->loop = loop;
   w->work = work;
   w->done = done;
-#ifdef __EMNAPI_WASI_THREADS__
-  _emnapi_after_uvthreadpool_ready(post, &w->wq, kind);
-#else
+// #ifdef __EMNAPI_WASI_THREADS__
+//   _emnapi_after_uvthreadpool_ready(post, &w->wq, kind);
+// #else
   post(&w->wq, kind);
-#endif
+// #endif
 }
 
 

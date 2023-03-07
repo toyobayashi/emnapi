@@ -95,6 +95,7 @@ if(IS_EMSCRIPTEN)
     "-sMODULARIZE=1"
   )
 elseif(IS_WASI_THREADS)
+  add_compile_options("-fno-exceptions")
   set(COMMON_LINK_OPTIONS
     # "-v"
     "-mexec-model=reactor"
@@ -294,11 +295,12 @@ add_test("version" "./version/binding.c" OFF OFF "")
 add_test("make_callback" "./make_callback/binding.c" OFF OFF "")
 add_test("async_context" "./async_context/binding.c" OFF OFF "")
 
+# TODO(wasm32-wasi-threads): Remove this
 if(IS_EMSCRIPTEN)
   file(GLOB_RECURSE naa_binding_SRC
     "./node-addon-api/*.cc")
 
-  if(NOT IS_MEMORY64)
+  if(NOT IS_MEMORY64 AND NOT IS_WASI_THREADS)
   add_naa_test("naa_binding" "${naa_binding_SRC}" "" ON)
   endif()
   add_naa_test("naa_binding_noexcept" "${naa_binding_SRC}" "" OFF)
