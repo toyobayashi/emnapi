@@ -269,11 +269,11 @@ static void init_threads(void) {
     uv_sem_wait(&sem);
 
   uv_sem_destroy(&sem);
+  for (i = 0; i < nthreads; i++)
+    _emnapi_worker_unref(*(threads + i));
 #else
   _emnapi_tell_js_uvthreadpool(threads, nthreads);
 #endif
-  for (i = 0; i < nthreads; i++)
-    _emnapi_worker_unref(*(threads + i));
 }
 
 

@@ -5,9 +5,10 @@ export class MessageHandler {
       throw new TypeError('options.onLoad is not a function')
     }
     this.onLoad = onLoad
-    // this.instance = undefined
+    this.instance = undefined
     // this.module = undefined
     this.napiModule = undefined
+    this.messagesBeforeLoad = []
   }
 
   handle (e) {
@@ -17,6 +18,7 @@ export class MessageHandler {
 
       const onLoad = this.onLoad
       if (type === 'load') {
+        if (this.instance !== undefined) return
         const source = onLoad(payload)
         const then = source && source.then
         if (typeof then === 'function') {
@@ -29,27 +31,49 @@ export class MessageHandler {
           onLoaded.call(this, source)
         }
       } else if (type === 'start') {
-        this.napiModule.startThread(payload.tid, payload.arg)
+        handleAfterLoad.call(this, e, () => {
+          this.napiModule.startThread(payload.tid, payload.arg)
+        })
       }
     }
   }
 }
 
+function handleAfterLoad (e, f) {
+  if (this.instance !== undefined) {
+    f.call(this, e)
+  } else {
+    this.messagesBeforeLoad.push(e.data)
+  }
+}
+
 function onLoaded (source) {
+  if (source == null) {
+    throw new TypeError('onLoad should return an object')
+  }
+
+  const instance = source.instance
   const napiModule = source.napiModule
 
-  if (!napiModule) throw new TypeError('onLoad should return a napiModule')
+  if (!instance) throw new TypeError('onLoad should return an object which includes "instance"')
+  if (!napiModule) throw new TypeError('onLoad should return an object which includes "napiModule"')
   if (!napiModule.childThread) throw new Error('napiModule should be created with `childThread: true`')
 
+  this.instance = instance
   this.napiModule = napiModule
 
-  if (napiModule.childThread) {
-    const postMessage = napiModule.postMessage
-    postMessage({
-      __emnapi__: {
-        type: 'loaded',
-        payload: {}
-      }
-    })
+  const postMessage = napiModule.postMessage
+  postMessage({
+    __emnapi__: {
+      type: 'loaded',
+      payload: {}
+    }
+  })
+
+  const messages = this.messagesBeforeLoad
+  this.messagesBeforeLoad = []
+  for (let i = 0; i < messages.length; i++) {
+    const data = messages[i]
+    this.handle({ data })
   }
 }

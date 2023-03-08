@@ -268,7 +268,7 @@ function spawnThread (startArg: number, errorOrTid: number): number {
     worker.ref()
   }
 
-  const startMsg = {
+  worker.postMessage({
     __emnapi__: {
       type: 'start',
       payload: {
@@ -276,15 +276,8 @@ function spawnThread (startArg: number, errorOrTid: number): number {
         arg: startArg
       }
     }
-  }
+  })
 
-  if (worker.loaded) {
-    worker.postMessage(startMsg)
-  } else {
-    worker.whenLoaded.then(() => {
-      worker.postMessage(startMsg)
-    })
-  }
   if (isNewABI) {
     return 0
   }
@@ -336,7 +329,7 @@ function __emnapi_after_uvthreadpool_ready (callback: number, q: number, type: n
 }
 
 function __emnapi_tell_js_uvthreadpool (threads: number, size: number): void {
-  const p = []
+  const p = [] as Array<Promise<void>>
   for (let i = 0; i < size; i++) {
     const pthreadPtr = $makeGetValue('threads', 'i * ' + POINTER_SIZE, '*')
     const worker = emnapiGetWorkerByPthreadPtr(pthreadPtr)
@@ -346,6 +339,9 @@ function __emnapi_tell_js_uvthreadpool (threads: number, size: number): void {
         const __emnapi__ = data.__emnapi__
         if (__emnapi__ && __emnapi__.type === 'async-thread-ready') {
           resolve()
+          if (worker && typeof worker.unref === 'function') {
+            worker.unref()
+          }
           if (ENVIRONMENT_IS_NODE) {
             worker.off('message', handler)
           } else {
