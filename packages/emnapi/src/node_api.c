@@ -1,4 +1,4 @@
-#include "emnapi_common.h"
+#include "emnapi_internal.h"
 #include "node_api.h"
 
 #if EMNAPI_HAVE_THREADS

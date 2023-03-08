@@ -170,7 +170,7 @@ install(FILES
 if(EMNAPI_INSTALL_SRC)
   install(FILES
       ${EMNAPI_SRC}
-      "${CMAKE_CURRENT_SOURCE_DIR}/src/emnapi_common.h"
+      "${CMAKE_CURRENT_SOURCE_DIR}/src/emnapi_internal.h"
     DESTINATION "src/${PROJECT_NAME}")
   install(DIRECTORY
     ${CMAKE_CURRENT_SOURCE_DIR}/src/uv
