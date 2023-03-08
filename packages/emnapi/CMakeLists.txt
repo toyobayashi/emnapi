@@ -148,7 +148,7 @@ if(LIB_ARCH)
 endif()
 
 install(FILES
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/common.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/emnapi_common.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/emnapi.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/js_native_api_types.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/js_native_api.h

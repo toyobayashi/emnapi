@@ -27,7 +27,7 @@
 #include <errno.h>
 #include <string.h>
 #include "uv-common.h"
-#include "common.h"
+#include "emnapi_common.h"
 
 #if defined(__wasi__) && defined(_REENTRANT)
 #define __EMNAPI_WASI_THREADS__

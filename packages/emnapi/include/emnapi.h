@@ -2,7 +2,7 @@
 #define EMNAPI_INCLUDE_EMNAPI_H_
 
 #include "js_native_api.h"
-#include "common.h"
+#include "emnapi_common.h"
 
 typedef enum {
   emnapi_runtime,
