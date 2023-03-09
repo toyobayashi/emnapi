@@ -25,9 +25,8 @@ function loadNapiModuleImpl (loadFn, userNapiModule, wasmInput, options) {
   }
 
   const wasi = options.wasi
-  const env = Object.assign({}, napiModule.imports.env, napiModule.imports.napi, napiModule.imports.emnapi)
   let importObject = {
-    env,
+    env: napiModule.imports.env,
     napi: napiModule.imports.napi,
     emnapi: napiModule.imports.emnapi,
     wasi: {
