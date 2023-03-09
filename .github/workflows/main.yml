@@ -28,7 +28,7 @@ jobs:
         - 'wasm64-unknown-emscripten'
         - 'wasm32-unknown-unknown'
         - 'wasm32-wasi'
-        # - 'wasm32-wasi-threads'
+        - 'wasm32-wasi-threads'
 
     steps:
     - uses: actions/checkout@v3

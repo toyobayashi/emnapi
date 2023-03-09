@@ -84,7 +84,7 @@ async function runTest (test, buildType, buildPathRoot = process.env.BUILD_PATH 
     // path.join(buildPathRoot, `../build/${buildType}/binding_noexcept.node`),
     // path.join(buildPathRoot, `../build/${buildType}/binding_noexcept_maybe.node`),
     // path.join(buildPathRoot, `../build/${buildType}/binding_custom_namespace.node`)
-    ...(!process.env.MEMORY64 ? ['naa_binding'] : []),
+    ...((!process.env.MEMORY64 && !process.env.EMNAPI_TEST_WASI_THREADS) ? ['naa_binding'] : []),
     'naa_binding_noexcept',
     'naa_binding_noexcept_maybe',
     'naa_binding_custom_namespace'
@@ -111,7 +111,7 @@ async function runTestWithBindingPath (test, buildType, buildPathRoot = process.
     // path.join(buildPathRoot, `../build/${buildType}/binding_noexcept.node`),
     // path.join(buildPathRoot, `../build/${buildType}/binding_noexcept_maybe.node`),
     // path.join(buildPathRoot, `../build/${buildType}/binding_custom_namespace.node`)
-    ...(!process.env.MEMORY64 ? [getEntry('naa_binding')] : []),
+    ...((!process.env.MEMORY64 && !process.env.EMNAPI_TEST_WASI_THREADS) ? [getEntry('naa_binding')] : []),
     getEntry('naa_binding_noexcept'),
     getEntry('naa_binding_noexcept_maybe'),
     getEntry('naa_binding_custom_namespace')

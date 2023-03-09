@@ -33,6 +33,12 @@ else()
   set(IS_WASI OFF)
 endif()
 
+if((CMAKE_SYSTEM_NAME STREQUAL "WASI") AND (CMAKE_C_COMPILER_TARGET STREQUAL "wasm32-wasi-threads"))
+  set(IS_WASI_THREADS ON)
+else()
+  set(IS_WASI_THREADS OFF)
+endif()
+
 if((CMAKE_C_COMPILER_TARGET STREQUAL "wasm32") OR (CMAKE_C_COMPILER_TARGET STREQUAL "wasm32-unknown-unknown"))
   set(IS_WASM32 ON)
 else()
@@ -88,7 +94,16 @@ if(IS_EMSCRIPTEN)
     "-sSAFE_HEAP=1"
     "-sMODULARIZE=1"
   )
+elseif(IS_WASI_THREADS)
+  add_compile_options("-fno-exceptions")
+  set(COMMON_LINK_OPTIONS
+    # "-v"
+    "-mexec-model=reactor"
+    # "-Wl,--import-memory"
+    "-Wl,--import-memory,--max-memory=2147483648,--export-dynamic,--export=malloc,--export=free,--import-undefined,--export-table"
+  )
 elseif(IS_WASI)
+  add_compile_options("-fno-exceptions")
   set(COMMON_LINK_OPTIONS
     # "-v"
     "-mexec-model=reactor"
@@ -96,6 +111,7 @@ elseif(IS_WASI)
     "-Wl,--initial-memory=16777216,--export-dynamic,--export=malloc,--export=free,--import-undefined,--export-table"
   )
 elseif(IS_WASM32)
+  add_compile_options("-fno-exceptions")
   set(COMMON_LINK_OPTIONS
     # "-v"
     "-nostdlib"
@@ -144,7 +160,7 @@ function(add_test NAME SOURCE_LIST NEED_ENTRY PTHREAD LINKOPTIONS)
   target_link_libraries(${NAME} PRIVATE "testcommon")
   if(IS_WASM)
     if(PTHREAD)
-      if(IS_WASI OR IS_WASM32)
+      if((IS_WASI AND NOT IS_WASI_THREADS) OR IS_WASM32)
         target_link_libraries(${NAME} PRIVATE "emnapi-basic")
       else()
         target_link_libraries(${NAME} PRIVATE "emnapi-mt")
@@ -189,7 +205,7 @@ function(add_naa_test NAME SOURCE_LIST DEFINES ENABLE_EXCEPTION)
   set_target_properties(${NAME} PROPERTIES
     BUILD_RPATH "$ORIGIN")
   if(IS_WASM)
-    if(IS_WASI OR IS_WASM32)
+    if((IS_WASI AND NOT IS_WASI_THREADS) OR IS_WASM32)
       target_link_libraries(${NAME} PRIVATE "emnapi-basic")
     else()
       target_link_libraries(${NAME} PRIVATE "emnapi-mt")
@@ -221,11 +237,11 @@ endfunction()
 add_test("env" "./env/binding.c" OFF OFF "")
 add_test("hello" "./hello/binding.c" OFF OFF "")
 
-if((NOT IS_WASM) OR IS_WASI OR IS_EMSCRIPTEN)
+if((NOT IS_WASM) OR IS_WASI OR IS_EMSCRIPTEN OR IS_WASI_THREADS)
   add_test("async" "./async/binding.c" OFF ON "")
 endif()
 
-if((NOT IS_WASM) OR IS_EMSCRIPTEN)
+if((NOT IS_WASM) OR IS_EMSCRIPTEN OR IS_WASI_THREADS)
   add_test("string_mt" "./string/binding.c" ON ON "")
   if(IS_EMSCRIPTEN)
   add_test("pool" "./pool/binding.c" OFF ON "--pre-js=../pool/pre.js")
@@ -281,11 +297,12 @@ add_test("version" "./version/binding.c" OFF OFF "")
 add_test("make_callback" "./make_callback/binding.c" OFF OFF "")
 add_test("async_context" "./async_context/binding.c" OFF OFF "")
 
+# TODO(wasm32-wasi-threads): OR IS_WASI_THREADS
 if(IS_EMSCRIPTEN)
   file(GLOB_RECURSE naa_binding_SRC
     "./node-addon-api/*.cc")
 
-  if(NOT IS_MEMORY64)
+  if(NOT IS_MEMORY64 AND NOT IS_WASI_THREADS)
   add_naa_test("naa_binding" "${naa_binding_SRC}" "" ON)
   endif()
   add_naa_test("naa_binding_noexcept" "${naa_binding_SRC}" "" OFF)

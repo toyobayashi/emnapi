@@ -22,7 +22,7 @@
 #endif
 
 #include "js_native_api_types.h"
-#include "common.h"
+#include "emnapi_common.h"
 
 #define NAPI_AUTO_LENGTH SIZE_MAX
 

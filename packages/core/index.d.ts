@@ -1,21 +1,35 @@
 import type { Context } from '@emnapi/runtime'
 
-export declare interface CreateOptions {
-  context: Context
-  filename?: string
-  nodeBinding?: {
-    node: {
-      emitAsyncInit: Function
-      emitAsyncDestroy: Function
-      makeCallback: Function
-    }
-    napi: {
-      asyncInit: Function
-      asyncDestroy: Function
-      makeCallback: Function
-    }
+export declare interface NodeBinding {
+  node: {
+    emitAsyncInit: Function
+    emitAsyncDestroy: Function
+    makeCallback: Function
+  }
+  napi: {
+    asyncInit: Function
+    asyncDestroy: Function
+    makeCallback: Function
   }
 }
+
+export declare type BaseCreateOptions = {
+  filename?: string
+  nodeBinding?: NodeBinding
+  reuseWorker?: boolean
+  onCreateWorker?: () => any
+  print?: (str: string) => void
+  printErr?: (str: string) => void
+  postMessage?: (msg: any) => any
+}
+
+export declare type CreateOptions = BaseCreateOptions & ({
+  context: Context
+  childThread?: boolean
+} | {
+  context?: Context
+  childThread: true
+})
 
 export declare interface PointerInfo {
   address: number
@@ -39,6 +53,7 @@ export declare interface NapiModule {
   exports: any
   loaded: boolean
   filename: string
+  childThread: boolean
   emnapi: {
     syncMemory<T extends ArrayBuffer | ArrayBufferView> (
       js_to_wasm: boolean,
@@ -50,6 +65,70 @@ export declare interface NapiModule {
   }
 
   init (options: InitOptions): any
+  spawnThread (startArg: number, errorOrTid?: number): number
+  startThread (tid: number, startArg: number): void
+  postMessage?: (msg: any) => any
 }
 
-export function createNapiModule (options: CreateOptions): NapiModule
+export declare function createNapiModule (
+  options: CreateOptions
+): NapiModule
+
+export declare interface ReactorWASI {
+  readonly wasiImport?: Record<string, any>
+  initialize (instance: object): void
+  getImportObject? (): any
+}
+
+export declare interface LoadOptions {
+  wasi?: ReactorWASI
+  overwriteImports?: (importObject: WebAssembly.Imports) => WebAssembly.Imports
+  getMemory?: (exports: WebAssembly.Exports) => WebAssembly.Memory
+  getTable?: (exports: WebAssembly.Exports) => WebAssembly.Table
+}
+
+export declare type InstantiateOptions = CreateOptions & LoadOptions
+
+export declare interface InstantiatedSource extends WebAssembly.WebAssemblyInstantiatedSource {
+  napiModule: NapiModule
+}
+
+export declare type InputType = string | URL | Response | BufferSource | WebAssembly.Module
+
+export declare function loadNapiModule (
+  napiModule: NapiModule,
+  /** Only support `BufferSource` or `WebAssembly.Module` on Node.js */
+  wasmInput: InputType | Promise<InputType>,
+  options?: LoadOptions
+): Promise<WebAssembly.WebAssemblyInstantiatedSource>
+
+export declare function loadNapiModuleSync (
+  napiModule: NapiModule,
+  wasmInput: BufferSource | WebAssembly.Module,
+  options?: LoadOptions
+): WebAssembly.WebAssemblyInstantiatedSource
+
+export declare function instantiateNapiModule (
+  /** Only support `BufferSource` or `WebAssembly.Module` on Node.js */
+  wasmInput: InputType | Promise<InputType>,
+  options: InstantiateOptions
+): Promise<InstantiatedSource>
+
+export declare function instantiateNapiModuleSync (
+  wasmInput: BufferSource | WebAssembly.Module,
+  options: InstantiateOptions
+): InstantiatedSource
+
+export declare interface OnLoadData {
+  wasmModule: WebAssembly.Module
+  wasmMemory: WebAssembly.Memory
+}
+
+export declare interface HandleOptions {
+  onLoad (data: OnLoadData): InstantiatedSource | Promise<InstantiatedSource>
+}
+
+export declare class MessageHandler {
+  constructor (options: HandleOptions)
+  handle (e: { data: any }): void
+}

@@ -3,12 +3,12 @@ declare const LibraryManager: {
   library: any
 }
 
-declare function mergeInto (target: any, source: { [key: string]: any }): void
+declare function mergeInto (target: any, source: Record<string, any>): void
 
 // runtime
-declare const wasmMemory: WebAssembly.Memory
-declare const ENVIRONMENT_IS_NODE: boolean
-declare const ENVIRONMENT_IS_PTHREAD: boolean
+declare var wasmMemory: WebAssembly.Memory
+declare var ENVIRONMENT_IS_NODE: boolean
+declare var ENVIRONMENT_IS_PTHREAD: boolean
 
 declare function UTF8ToString (ptr: const_char_p, maxRead?: number): string
 declare function UTF16ToString (ptr: const_char16_t_p, maxRead?: number): string

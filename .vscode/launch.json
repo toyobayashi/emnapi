@@ -14,10 +14,12 @@
       "request": "launch",
       "name": "Launch Program",
       "env": {
-        "EMNAPI_TEST_WASI": "1"
+        "NODE_TEST_KNOWN_GLOBALS": "0",
+        "EMNAPI_TEST_WASI": "1",
+        "EMNAPI_TEST_WASI_THREADS": "1"
       },
       "runtimeArgs": ["--experimental-wasi-unstable-preview1", "--expose-gc"],
-      "program": "${workspaceFolder}/packages/test/arg/arg.test.js",
+      "program": "${workspaceFolder}/packages/test/node-addon-api/async_worker.test.js",
       "args": []
     },
     {

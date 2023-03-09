@@ -7,33 +7,24 @@ module.exports = new Promise((resolve, reject) => {
 
   const context = require('@emnapi/runtime').getDefaultContext()
 
-  const { createNapiModule } = require('@emnapi/core')
-  const napiModule = createNapiModule({
-    context
-  })
+  const { instantiateNapiModule } = require('@emnapi/core')
 
   const wasmBuffer = process.env.EMNAPI_TEST_WASI
     ? require('fs').readFileSync(require('path').join(__dirname, './target/wasm32-wasi/release/binding.wasm'))
     : require('fs').readFileSync(require('path').join(__dirname, './target/wasm32-unknown-unknown/release/binding.wasm'))
 
-  WebAssembly.instantiate(wasmBuffer, {
-    ...(process.env.EMNAPI_TEST_WASI ? { wasi_snapshot_preview1: wasi.wasiImport } : {}),
-    env: {
-      ...napiModule.imports.env,
-      ...napiModule.imports.napi,
-      ...napiModule.imports.emnapi
+  instantiateNapiModule(wasmBuffer, {
+    context,
+    wasi,
+    overwriteImports (importObject) {
+      importObject.env = {
+        ...importObject.env,
+        ...importObject.napi,
+        ...importObject.emnapi
+      }
     }
-  }).then(({ instance, module }) => {
-    console.log(instance.exports)
-    if (process.env.EMNAPI_TEST_WASI) {
-      wasi.initialize(instance)
-    }
-    const binding = napiModule.init({
-      instance,
-      module,
-      memory: instance.exports.memory,
-      table: instance.exports.__indirect_function_table
-    })
+  }).then(({ napiModule }) => {
+    const binding = napiModule.exports
     require('assert').strictEqual(binding.sum(1, 2), 3)
     resolve()
   }).catch(reject)

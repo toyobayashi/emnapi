@@ -27,7 +27,11 @@
 #include <errno.h>
 #include <string.h>
 #include "uv-common.h"
-#include "common.h"
+#include "emnapi_common.h"
+
+#if defined(__wasi__) && defined(_REENTRANT)
+#define __EMNAPI_WASI_THREADS__
+#endif
 
 #define MAX_THREADPOOL_SIZE 1024
 
@@ -54,6 +58,15 @@ static void uv__cancelled(struct uv__work* w) {
 
 EMNAPI_INTERNAL_EXTERN void _emnapi_worker_unref(uv_thread_t pid);
 
+#ifdef __EMNAPI_WASI_THREADS__
+EMNAPI_INTERNAL_EXTERN
+void _emnapi_after_uvthreadpool_ready(void (*callback)(QUEUE* w, enum uv__work_kind kind),
+                                      QUEUE* w,
+                                      enum uv__work_kind kind);
+EMNAPI_INTERNAL_EXTERN void _emnapi_tell_js_uvthreadpool(uv_thread_t* threads, unsigned int n);
+EMNAPI_INTERNAL_EXTERN void _emnapi_emit_async_thread_ready();
+#endif
+
 /* To avoid deadlock with uv_cancel() it's crucial that the worker
  * never holds the global mutex and the loop-local mutex at the same time.
  */
@@ -61,8 +74,11 @@ static void* worker(void* arg) {
   struct uv__work* w;
   QUEUE* q;
   int is_slow_work;
-
+#ifndef __EMNAPI_WASI_THREADS__
   uv_sem_post((uv_sem_t*) arg);
+#else
+  _emnapi_emit_async_thread_ready();
+#endif
   arg = NULL;
 
   uv_mutex_lock(&mutex);
@@ -199,7 +215,9 @@ static void init_threads(void) {
 #if !defined(EMNAPI_WORKER_POOL_SIZE) || !(EMNAPI_WORKER_POOL_SIZE > 0)
   const char* val;
 #endif
+#ifndef __EMNAPI_WASI_THREADS__
   uv_sem_t sem;
+#endif
 
 #if defined(EMNAPI_WORKER_POOL_SIZE) && EMNAPI_WORKER_POOL_SIZE > 0
   nthreads = EMNAPI_WORKER_POOL_SIZE;
@@ -233,24 +251,33 @@ static void init_threads(void) {
   QUEUE_INIT(&slow_io_pending_wq);
   QUEUE_INIT(&run_slow_work_message);
 
+#ifndef __EMNAPI_WASI_THREADS__
   if (uv_sem_init(&sem, 0))
     abort();
+#endif
 
   for (i = 0; i < nthreads; i++)
+#ifndef __EMNAPI_WASI_THREADS__
     if (uv_thread_create(threads + i, (uv_thread_cb) worker, &sem))
+#else
+    if (uv_thread_create(threads + i, (uv_thread_cb) worker, NULL))
+#endif
       abort();
 
+#ifndef __EMNAPI_WASI_THREADS__
   for (i = 0; i < nthreads; i++)
     uv_sem_wait(&sem);
 
   uv_sem_destroy(&sem);
-
   for (i = 0; i < nthreads; i++)
     _emnapi_worker_unref(*(threads + i));
+#else
+  _emnapi_tell_js_uvthreadpool(threads, nthreads);
+#endif
 }
 
 
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(__wasi__)
 static void reset_once(void) {
   uv_once_t child_once = UV_ONCE_INIT;
   memcpy(&once, &child_once, sizeof(child_once));
@@ -259,7 +286,7 @@ static void reset_once(void) {
 
 
 static void init_once(void) {
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(__wasi__)
   /* Re-initialize the threadpool after fork.
    * Note that this discards the global mutex and condition as well
    * as the work queue.
@@ -280,7 +307,11 @@ void uv__work_submit(uv_loop_t* loop,
   w->loop = loop;
   w->work = work;
   w->done = done;
+// #ifdef __EMNAPI_WASI_THREADS__
+//   _emnapi_after_uvthreadpool_ready(post, &w->wq, kind);
+// #else
   post(&w->wq, kind);
+// #endif
 }
 
 

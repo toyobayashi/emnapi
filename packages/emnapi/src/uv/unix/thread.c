@@ -6,6 +6,15 @@
 #include <time.h>
 #include "uv.h"
 
+// #define CHECK_RET(the_call) \
+//   do { \
+//     int r = (the_call); \
+//     if (r) { \
+//       fprintf(stderr, #the_call ": %d\n", r); \
+//       abort(); \
+//     } \
+//   } while (0)
+
 void uv_sem_post(sem_t* sem) {
   if (sem_post(sem))
     abort();
@@ -39,7 +48,7 @@ void uv_once(pthread_once_t* guard, void (*callback)(void)) {
 }
 
 int uv_mutex_init(uv_mutex_t* mutex) {
-#if defined(NDEBUG) || !defined(PTHREAD_MUTEX_ERRORCHECK)
+#if defined(__wasi__) || defined(NDEBUG) || !defined(PTHREAD_MUTEX_ERRORCHECK)
   return pthread_mutex_init(mutex, NULL);
 #else
   pthread_mutexattr_t attr;

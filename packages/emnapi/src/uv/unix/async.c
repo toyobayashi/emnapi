@@ -27,7 +27,7 @@
 #include <stdlib.h>
 #include <sched.h>
 #include "../uv-common.h"
-#include "common.h"
+#include "emnapi_common.h"
 
 #if defined(__clang__) ||                                                     \
     defined(__GNUC__) ||                                                      \

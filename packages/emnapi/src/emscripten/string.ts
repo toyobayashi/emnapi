@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/indent */
 
-declare let emnapiUtf8Decoder: { decode: (input: BufferSource) => string }
-declare let emnapiUtf16leDecoder: { decode: (input: BufferSource) => string }
+declare var emnapiUtf8Decoder: { decode: (input: BufferSource) => string }
+declare var emnapiUtf16leDecoder: { decode: (input: BufferSource) => string }
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 declare function emnapiUtf8ToString (ptr: void_p, length: int): string
 // eslint-disable-next-line @typescript-eslint/no-unused-vars

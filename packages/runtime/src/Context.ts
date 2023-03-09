@@ -184,7 +184,7 @@ export class Context {
   }
 
   closeScope (envObject: Env, _scope?: HandleScope): void {
-    return this.scopeStore.closeScope(envObject)
+    this.scopeStore.closeScope(envObject)
   }
 
   ensureHandle<S> (value: S): Handle<S> {

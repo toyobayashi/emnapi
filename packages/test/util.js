@@ -1,4 +1,6 @@
+/* eslint-disable camelcase */
 const { join } = require('path')
+const fs = require('fs')
 const common = require('./common.js')
 
 const emnapi = require('../runtime')
@@ -17,44 +19,51 @@ function loadPath (request, options) {
     }
 
     if (process.env.EMNAPI_TEST_WASI) {
-      const { WASI } = require('wasi')
-      const { createNapiModule } = require('@emnapi/core')
-      const wasi = new WASI()
+      const { WASI } = require('./wasi')
+      const { Worker } = require('worker_threads')
+      const { createNapiModule, loadNapiModule } = require('@emnapi/core')
+      const wasi = new WASI({
+        fs
+      })
       const napiModule = createNapiModule({
         context,
+        filename: request,
+        reuseWorker: true,
+        onCreateWorker () {
+          return new Worker(join(__dirname, './worker.js'), {
+            env: process.env,
+            execArgv: ['--experimental-wasi-unstable-preview1']
+          })
+        },
         ...(options || {})
       })
-      const p = new Promise((resolve, reject) => {
-        WebAssembly.instantiate(require('fs').readFileSync(request), {
-          wasi_snapshot_preview1: wasi.wasiImport,
-          env: napiModule.imports.env,
-          napi: napiModule.imports.napi,
-          emnapi: napiModule.imports.emnapi
+      let wasmMemory
+      if (process.env.EMNAPI_TEST_WASI_THREADS) {
+        wasmMemory = new WebAssembly.Memory({
+          initial: 16777216 / 65536,
+          maximum: 2147483648 / 65536,
+          shared: true
         })
-          .then(({ instance, module }) => {
-            wasi.initialize(instance)
-            let exports
-            try {
-              exports = napiModule.init({
-                instance,
-                module,
-                memory: instance.exports.memory,
-                table: instance.exports.__indirect_function_table
-              })
-            } catch (err) {
-              reject(err)
-              return
+      }
+
+      const p = new Promise((resolve, reject) => {
+        loadNapiModule(napiModule, fs.readFileSync(request), {
+          wasi,
+          overwriteImports (importObject) {
+            if (process.env.EMNAPI_TEST_WASI_THREADS) {
+              importObject.env.memory = wasmMemory
             }
-            resolve(exports)
-          })
-          .catch(reject)
+          }
+        }).then(() => {
+          resolve(napiModule.exports)
+        }).catch(reject)
       })
       p.Module = napiModule
       return p
     }
 
     if (process.env.EMNAPI_TEST_WASM32) {
-      const { createNapiModule } = require('@emnapi/core')
+      const { createNapiModule, loadNapiModule } = require('@emnapi/core')
       const napiModule = createNapiModule({
         context,
         ...(options || {})
@@ -70,35 +79,18 @@ function loadPath (request, options) {
           const shared = (typeof SharedArrayBuffer === 'function') && (wasmMemory.buffer instanceof SharedArrayBuffer)
           return new TextDecoder().decode(shared ? HEAPU8.slice(ptr, end) : HEAPU8.subarray(ptr, end))
         }
-        WebAssembly.instantiate(require('fs').readFileSync(request), {
-          env: {
-            ...napiModule.imports.env,
-            console_log (fmt, ...args) {
+        loadNapiModule(napiModule, fs.readFileSync(request), {
+          overwriteImports (importObject) {
+            importObject.env.console_log = function (fmt, ...args) {
               const fmtString = UTF8ToString(fmt)
               console.log(fmtString, ...args)
               return 0
             }
-          },
-          napi: napiModule.imports.napi,
-          emnapi: napiModule.imports.emnapi
-        })
-          .then(({ instance, module }) => {
-            wasmMemory = instance.exports.memory
-            let exports
-            try {
-              exports = napiModule.init({
-                instance,
-                module,
-                memory: instance.exports.memory,
-                table: instance.exports.__indirect_function_table
-              })
-            } catch (err) {
-              reject(err)
-              return
-            }
-            resolve(exports)
-          })
-          .catch(reject)
+          }
+        }).then(({ instance }) => {
+          wasmMemory = instance.exports.memory
+          resolve(napiModule.exports)
+        }).catch(reject)
       })
       p.Module = napiModule
       return p

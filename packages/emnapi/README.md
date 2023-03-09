@@ -6,9 +6,7 @@
 
 [![Build](https://github.com/toyobayashi/emnapi/actions/workflows/main.yml/badge.svg?branch=main)](https://github.com/toyobayashi/emnapi/actions/workflows/main.yml)
 
-[Node-API](https://nodejs.org/docs/latest/api/n-api.html) implementation for [Emscripten](https://emscripten.org/index.html), [wasi-sdk](https://github.com/WebAssembly/wasi-sdk) and clang `wasm32-unknown-unknown` target, [napi-rs support is comming soon](https://github.com/napi-rs/napi-rs/issues/796).
-
-Emscripten is the first class support target, currently thread related APIs are unavailable on `wasm32-unknown-unknown` and `wasm32-wasi` target.
+[Node-API](https://nodejs.org/docs/latest/api/n-api.html) implementation for [Emscripten](https://emscripten.org/index.html), [wasi-sdk](https://github.com/WebAssembly/wasi-sdk) and clang with wasm support. [napi-rs support is comming soon](https://github.com/napi-rs/napi-rs/tree/emnapi).
 
 This project aims to
 
@@ -26,6 +24,16 @@ See documentation for more details:
 [Full API List](https://toyobayashi.github.io/emnapi-docs/reference/list.html)
 
 [How to build Node-API official examples](https://github.com/toyobayashi/node-addon-examples)
+
+Emscripten is the first class support target. If your target is running addon on browser,
+we strongly recommend you to use Emscripten instead of wasi-sdk. Async works and threadsafe
+functions related APIs are only available on Emscripten or `wasm32-wasi-threads` target since
+they are relying on pthread. Though today we have [WASI browser polyfill](https://github.com/toyobayashi/wasm-util),
+`wasm32-wasi-threads` is in very early stage and WASI itself is not designed for browser.
+There are some limitations on browser about wasi-libc's pthread implementation, for example
+`pthread_mutex_lock` may call `__builtin_wasm_memory_atomic_wait32`(`memory.atomic.wait32`)
+which is disallowed in browser JS main thread. While Emscripten's pthread implementation
+has considered usage in browser.
 
 ## Prerequests
 
@@ -332,30 +340,19 @@ For non-emscripten, you need to use `@emnapi/core`. The initialization is simila
 <script src="node_modules/@emnapi/runtime/dist/emnapi.min.js"></script>
 <script src="node_modules/@emnapi/core/dist/emnapi-core.min.js"></script>
 <script>
-const napiModule = emnapiCore.createNapiModule({
-  context: emnapi.getDefaultContext()
-})
-
-fetch('./hello.wasm').then(res => res.arrayBuffer()).then(wasmBuffer => {
-  return WebAssembly.instantiate(wasmBuffer, {
-    env: {
-      ...napiModule.imports.env,
-      // Currently napi-rs imports all symbols from env module
-      ...napiModule.imports.napi,
-      ...napiModule.imports.emnapi
-    },
-    // clang
-    napi: napiModule.imports.napi,
-    emnapi: napiModule.imports.emnapi
-  })
-}).then(({ instance, module }) => {
-  const binding = napiModule.init({
-    instance, // WebAssembly.Instance
-    module, // WebAssembly.Module
-    memory: instance.exports.memory, // WebAssembly.Memory
-    table: instance.exports.__indirect_function_table // WebAssembly.Table
-  })
-  // binding === napiModule.exports
+emnapiCore.instantiateNapiModule(fetch('./hello.wasm'), {
+  context: emnapi.getDefaultContext(),
+  overwriteImports (importObject) {
+    // importObject.env = {
+    //   ...importObject.env,
+    //   ...importObject.napi,
+    //   ...importObject.emnapi,
+    //   // ...
+    // }
+  }
+}).then(({ instance, module, napiModule }) => {
+  const binding = napiModule.exports
+  // ...
 })
 </script>
 ```
@@ -363,36 +360,25 @@ fetch('./hello.wasm').then(res => res.arrayBuffer()).then(wasmBuffer => {
 Using WASI on Node.js
 
 ```js
-const { createNapiModule } = require('@emnapi/core')
+const { instantiateNapiModule } = require('@emnapi/core')
 const { getDefaultContext } = require('@emnapi/runtime')
 const { WASI } = require('wasi')
+const fs = require('fs')
 
-const napiModule = createNapiModule({
-  context: getDefaultContext()
-})
-
-const wasi = new WASI({ /* ... */ })
-
-WebAssembly.instantiate(require('fs').readFileSync('./hello.wasm'), {
-  wasi_snapshot_preview1: wasi.wasiImport,
-  env: {
-    ...napiModule.imports.env,
-    // Currently napi-rs imports all symbols from env module
-    ...napiModule.imports.napi,
-    ...napiModule.imports.emnapi
-  },
-  // clang
-  napi: napiModule.imports.napi,
-  emnapi: napiModule.imports.emnapi
-}).then(({ instance, module }) => {
-  wasi.initialize(instance)
-  const binding = napiModule.init({
-    instance,
-    module,
-    memory: instance.exports.memory,
-    table: instance.exports.__indirect_function_table
-  })
-  // binding === napiModule.exports
+instantiateNapiModule(fs.promises.readFile('./hello.wasm'), {
+  wasi: new WASI({ /* ... */ }),
+  context: getDefaultContext(),
+  overwriteImports (importObject) {
+    // importObject.env = {
+    //   ...importObject.env,
+    //   ...importObject.napi,
+    //   ...importObject.emnapi,
+    //   // ...
+    // }
+  }
+}).then(({ instance, module, napiModule }) => {
+  const binding = napiModule.exports
+  // ...
 })
 ```
 
@@ -400,38 +386,26 @@ Using WASI on browser, you can use WASI polyfill in [wasm-util](https://github.c
 and [memfs-browser](https://github.com/toyobayashi/memfs-browser)
 
 ```js
-import { createNapiModule } from '@emnapi/core'
+import { instantiateNapiModule } from '@emnapi/core'
 import { getDefaultContext } from '@emnapi/runtime'
 import { WASI } from '@tybys/wasm-util'
-import { Volumn, createFsFromVolume } from 'memfs-browser'
+import { Volume, createFsFromVolume } from 'memfs-browser'
 
-const napiModule = createNapiModule({
-  context: getDefaultContext()
-})
-
-const fs = createFsFromVolume(Volume.from({ /* ... */ }))
-const wasi = new WASI({ fs, /* ... */ })
-
-WebAssembly.instantiate(wasmBuffer, {
-  wasi_snapshot_preview1: wasi.wasiImport,
-  env: {
-    ...napiModule.imports.env,
-    // Currently napi-rs imports all symbols from env module
-    ...napiModule.imports.napi,
-    ...napiModule.imports.emnapi
-  },
-  // clang
-  napi: napiModule.imports.napi,
-  emnapi: napiModule.imports.emnapi
-}).then(({ instance, module }) => {
-  wasi.initialize(instance)
-  const binding = napiModule.init({
-    instance,
-    module,
-    memory: instance.exports.memory,
-    table: instance.exports.__indirect_function_table
-  })
-  // binding === napiModule.exports
+const fs = createFsFromVolume(Volume.fromJSON({ /* ... */ }))
+return instantiateNapiModule(fetch('./hello.wasm'), {
+  wasi: new WASI({ fs, /* ... */ })
+  context: getDefaultContext(),
+  overwriteImports (importObject) {
+    // importObject.env = {
+    //   ...importObject.env,
+    //   ...importObject.napi,
+    //   ...importObject.emnapi,
+    //   // ...
+    // }
+  }
+}).then(({ instance, module, napiModule }) => {
+  const binding = napiModule.exports
+  // ...
 })
 ```
 
@@ -495,6 +469,7 @@ clang++ -O3 \
         -L./node_modules/emnapi/lib/wasm32-wasi \
         --target=wasm32-wasi \
         --sysroot=$WASI_SDK_PATH/share/wasi-sysroot \
+        -fno-exceptions \
         -mexec-model=reactor \
         -Wl,--initial-memory=16777216 \
         -Wl,--export-dynamic \
@@ -522,6 +497,7 @@ clang++ -O3 \
         -I./node_modules/emnapi/include \
         -L./node_modules/emnapi/lib/wasm32 \
         --target=wasm32 \
+        -fno-exceptions \
         -nostdlib \
         -Wl,--no-entry \
         -Wl,--initial-memory=16777216 \
@@ -752,11 +728,13 @@ pub unsafe extern "C" fn napi_register_wasm_v1(env: napi_env, exports: napi_valu
 
 </details>
 
-### Multithread (Emscripten Only)
+### Multithread
 
 If you want to use async work or thread safe functions,
 there are additional C source file need to be compiled and linking.
 Recommend use CMake directly.
+
+**This is EXPERIMENTAL on non-emscripten.**
 
 ```cmake
 add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/node_modules/emnapi")
@@ -764,21 +742,152 @@ add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/node_modules/emnapi")
 add_executable(hello hello.c)
 
 target_link_libraries(hello emnapi-mt)
-target_compile_options(hello PRIVATE "-sUSE_PTHREADS=1")
-target_link_options(hello PRIVATE
-  "-sALLOW_MEMORY_GROWTH=1"
-  "-sEXPORTED_FUNCTIONS=['_malloc','_free']"
-  "-sUSE_PTHREADS=1"
-  "-sPTHREAD_POOL_SIZE=4"
-  # try to specify stack size if you experience pthread errors
-  "-sSTACK_SIZE=2MB"
-  "-sDEFAULT_PTHREAD_STACK_SIZE=2MB"
-)
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
+  target_compile_options(hello PRIVATE "-sUSE_PTHREADS=1")
+  target_link_options(hello PRIVATE
+    "-sALLOW_MEMORY_GROWTH=1"
+    "-sEXPORTED_FUNCTIONS=['_malloc','_free']"
+    "-sUSE_PTHREADS=1"
+    "-sPTHREAD_POOL_SIZE=4"
+    # try to specify stack size if you experience pthread errors
+    "-sSTACK_SIZE=2MB"
+    "-sDEFAULT_PTHREAD_STACK_SIZE=2MB"
+  )
+elseif(CMAKE_C_COMPILER_TARGET STREQUAL "wasm32-wasi-threads")
+  # Experimental
+  target_compile_options(hello PRIVATE "-fno-exceptions" "-pthread")
+  target_link_options(hello PRIVATE
+    "-pthread"
+    "-mexec-model=reactor"
+    "-Wl,--import-memory"
+    "-Wl,--max-memory=2147483648"
+    "-Wl,--export-dynamic"
+    "-Wl,--export=malloc"
+    "-Wl,--export=free"
+    "-Wl,--import-undefined"
+    "-Wl,--export-table"
+  )
+endif()
 ```
 
 ```bash
+# emscripten
 emcmake cmake -DCMAKE_BUILD_TYPE=Release -DEMNAPI_WORKER_POOL_SIZE=4 -G Ninja -H. -Bbuild
+
+# wasi-sdk with thread support (Experimental)
+cmake -DCMAKE_TOOLCHAIN_FILE=$WASI_SDK_PATH/share/cmake/wasi-sdk-pthread.cmake \
+      -DWASI_SDK_PREFIX=$WASI_SDK_PATH \
+      -DCMAKE_BUILD_TYPE=Release \
+      -G Ninja -H. -Bbuild
+
 cmake --build build
+```
+
+And additional work is required during instantiating wasm compiled with non-emscripten.
+
+```js
+// emnapi main thread (could be in a Worker)
+instantiateNapiModule(input, {
+  context: getDefaultContext(),
+  wasi: new WASI(/* ... */),
+  // reuseWorker: true,
+  onCreateWorker () {
+    return new Worker('./worker.js')
+    // Node.js
+    // return new Worker(join(__dirname, './worker.js'), {
+    //   env: process.env,
+    //   execArgv: ['--experimental-wasi-unstable-preview1']
+    // })
+  },
+  overwriteImports (importObject) {
+    importObject.env.memory = new WebAssembly.Memory({
+      initial: 16777216 / 65536,
+      maximum: 2147483648 / 65536,
+      shared: true
+    })
+  }
+})
+```
+
+```js
+// worker.js
+(function () {
+  let fs, WASI, emnapiCore
+
+  const ENVIRONMENT_IS_NODE =
+    typeof process === 'object' && process !== null &&
+    typeof process.versions === 'object' && process.versions !== null &&
+    typeof process.versions.node === 'string'
+
+  if (ENVIRONMENT_IS_NODE) {
+    const nodeWorkerThreads = require('worker_threads')
+
+    const parentPort = nodeWorkerThreads.parentPort
+
+    parentPort.on('message', (data) => {
+      globalThis.onmessage({ data })
+    })
+
+    fs = require('fs')
+
+    Object.assign(globalThis, {
+      self: globalThis,
+      require,
+      Worker: nodeWorkerThreads.Worker,
+      importScripts: function (f) {
+        (0, eval)(fs.readFileSync(f, 'utf8') + '//# sourceURL=' + f)
+      },
+      postMessage: function (msg) {
+        parentPort.postMessage(msg)
+      }
+    })
+
+    WASI = require('./wasi').WASI
+    emnapiCore = require('@emnapi/core')
+  } else {
+    importScripts('./node_modules/memfs-browser/dist/memfs.js')
+    importScripts('./node_modules/@tybys/wasm-util/dist/wasm-util.min.js')
+    importScripts('./node_modules/@emnapi/core/dist/emnapi-core.js')
+    emnapiCore = globalThis.emnapiCore
+
+    const { Volume, createFsFromVolume } = memfs
+    fs = createFsFromVolume(Volume.fromJSON({
+      '/': null
+    }))
+
+    WASI = globalThis.wasmUtil.WASI
+  }
+
+  const { instantiateNapiModuleSync, MessageHandler } = emnapiCore
+
+  const handler = new MessageHandler({
+    onLoad ({ wasmModule, wasmMemory }) {
+      const wasi = new WASI({
+        fs,
+        print: ENVIRONMENT_IS_NODE
+          ? (...args) => {
+              const str = require('util').format(...args)
+              fs.writeSync(1, str + '\n')
+            }
+          : function () { console.log.apply(console, arguments) }
+      })
+
+      return instantiateNapiModuleSync(wasmModule, {
+        childThread: true,
+        wasi,
+        overwriteImports (importObject) {
+          importObject.env.memory = wasmMemory
+        }
+      })
+    }
+  })
+
+  globalThis.onmessage = function (e) {
+    handler.handle(e)
+    // handle other messages
+  }
+})()
 ```
 
 ## Preprocess Macro Options
@@ -794,6 +903,13 @@ Module.preRun.push(function () {
     ENV.UV_THREADPOOL_SIZE = '2';
   }
 });
+
+// wasi
+new WASI({
+  env: {
+    UV_THREADPOOL_SIZE: '2'
+  }
+})
 ```
 
 It represent max of `EMNAPI_WORKER_POOL_SIZE` async work (`napi_queue_async_work`) can be executed in parallel. Default is not defined, read `UV_THREADPOOL_SIZE` at runtime.
@@ -818,7 +934,7 @@ Tell emnapi how to delay async work in `uv_async_send` / `uv__async_close`.
 
 ### `-DEMNAPI_USE_PROXYING=1`
 
-This option only has effect if you use `-sUSE_PTHREADS`. Default is `1` if emscripten version `>= 3.1.9`, else `0`.
+This option only has effect if you use emscripten `-sUSE_PTHREADS`. Default is `1` if emscripten version `>= 3.1.9`, else `0`.
 
 - `0`
 

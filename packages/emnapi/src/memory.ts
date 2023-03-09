@@ -118,7 +118,9 @@ const emnapiExternalMemory: {
       return view
     }
 
-    if (emnapiExternalMemory.isDetachedArrayBuffer(view.buffer) && emnapiExternalMemory.wasmMemoryViewTable.has(view)) {
+    const maybeOldWasmMemory = emnapiExternalMemory.isDetachedArrayBuffer(view.buffer) ||
+      ((typeof SharedArrayBuffer === 'function') && (view.buffer instanceof SharedArrayBuffer))
+    if (maybeOldWasmMemory && emnapiExternalMemory.wasmMemoryViewTable.has(view)) {
       const info = emnapiExternalMemory.wasmMemoryViewTable.get(view)!
       const Ctor = info.Ctor
       let newView: ArrayBufferView

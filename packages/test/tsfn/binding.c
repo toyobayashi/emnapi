@@ -6,10 +6,28 @@
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
 #endif
+
+#ifdef __wasi__
+#include <time.h>
+#endif
+
 #include <uv.h>
 #include <node_api.h>
 #include <stdio.h>
 #include "../common.h"
+
+double now() {
+#if defined(__EMSCRIPTEN__)
+  return emscripten_get_now();
+#elif defined(__wasi__)
+  struct timespec t;
+  timespec_get(&t, TIME_UTC);
+  return ((double)t.tv_sec * 1000) + ((double)t.tv_nsec / 1000000);
+#else
+  uint64_t start = uv_hrtime();
+  return (double)(start / 1000000);
+#endif
+}
 
 #define ARRAY_LENGTH 10000
 #define MAX_QUEUE_SIZE 2
@@ -80,13 +98,8 @@ static void* data_source_thread(void* data) {
     if (ts_fn_info->max_queue_size == 0 && (index % 1000 == 0)) {
       // Let's make this thread really busy for 200 ms to give the main thread a
       // chance to abort.
-#ifdef __EMSCRIPTEN__
-      double start = emscripten_get_now();
-      for (; emscripten_get_now() - start < 200.0;);
-#else
-      uint64_t start = uv_hrtime();
-      for (; uv_hrtime() - start < 200000000;);
-#endif
+      double start = now();
+      for (; now() - start < 200.0;);
     }
     switch (status) {
       case napi_queue_full:
@@ -127,6 +140,7 @@ static void* data_source_thread(void* data) {
     napi_fatal_error("data_source_thread", NAPI_AUTO_LENGTH,
         "napi_release_threadsafe_function failed", NAPI_AUTO_LENGTH);
   }
+
   return NULL;
 }
 
