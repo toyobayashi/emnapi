@@ -103,6 +103,7 @@ elseif(IS_WASI_THREADS)
     "-Wl,--import-memory,--max-memory=2147483648,--export-dynamic,--export=malloc,--export=free,--import-undefined,--export-table"
   )
 elseif(IS_WASI)
+  add_compile_options("-fno-exceptions")
   set(COMMON_LINK_OPTIONS
     # "-v"
     "-mexec-model=reactor"
@@ -110,6 +111,7 @@ elseif(IS_WASI)
     "-Wl,--initial-memory=16777216,--export-dynamic,--export=malloc,--export=free,--import-undefined,--export-table"
   )
 elseif(IS_WASM32)
+  add_compile_options("-fno-exceptions")
   set(COMMON_LINK_OPTIONS
     # "-v"
     "-nostdlib"
@@ -295,7 +297,7 @@ add_test("version" "./version/binding.c" OFF OFF "")
 add_test("make_callback" "./make_callback/binding.c" OFF OFF "")
 add_test("async_context" "./async_context/binding.c" OFF OFF "")
 
-# TODO(wasm32-wasi-threads): Remove this
+# TODO(wasm32-wasi-threads): OR IS_WASI_THREADS
 if(IS_EMSCRIPTEN)
   file(GLOB_RECURSE naa_binding_SRC
     "./node-addon-api/*.cc")
