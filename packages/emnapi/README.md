@@ -756,8 +756,9 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
   )
 elseif(CMAKE_C_COMPILER_TARGET STREQUAL "wasm32-wasi-threads")
   # Experimental
-  target_compile_options(hello PRIVATE "-fno-exceptions")
+  target_compile_options(hello PRIVATE "-fno-exceptions" "-pthread")
   target_link_options(hello PRIVATE
+    "-pthread"
     "-mexec-model=reactor"
     "-Wl,--import-memory"
     "-Wl,--max-memory=2147483648"
