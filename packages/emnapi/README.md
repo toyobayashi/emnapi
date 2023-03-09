@@ -728,11 +728,13 @@ pub unsafe extern "C" fn napi_register_wasm_v1(env: napi_env, exports: napi_valu
 
 </details>
 
-### Multithread (Emscripten Only)
+### Multithread
 
 If you want to use async work or thread safe functions,
 there are additional C source file need to be compiled and linking.
 Recommend use CMake directly.
+
+**This is EXPERIMENTAL on non-emscripten.**
 
 ```cmake
 add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/node_modules/emnapi")
@@ -740,21 +742,151 @@ add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/node_modules/emnapi")
 add_executable(hello hello.c)
 
 target_link_libraries(hello emnapi-mt)
-target_compile_options(hello PRIVATE "-sUSE_PTHREADS=1")
-target_link_options(hello PRIVATE
-  "-sALLOW_MEMORY_GROWTH=1"
-  "-sEXPORTED_FUNCTIONS=['_malloc','_free']"
-  "-sUSE_PTHREADS=1"
-  "-sPTHREAD_POOL_SIZE=4"
-  # try to specify stack size if you experience pthread errors
-  "-sSTACK_SIZE=2MB"
-  "-sDEFAULT_PTHREAD_STACK_SIZE=2MB"
-)
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
+  target_compile_options(hello PRIVATE "-sUSE_PTHREADS=1")
+  target_link_options(hello PRIVATE
+    "-sALLOW_MEMORY_GROWTH=1"
+    "-sEXPORTED_FUNCTIONS=['_malloc','_free']"
+    "-sUSE_PTHREADS=1"
+    "-sPTHREAD_POOL_SIZE=4"
+    # try to specify stack size if you experience pthread errors
+    "-sSTACK_SIZE=2MB"
+    "-sDEFAULT_PTHREAD_STACK_SIZE=2MB"
+  )
+elseif(CMAKE_C_COMPILER_TARGET STREQUAL "wasm32-wasi-threads")
+  # Experimental
+  target_compile_options(hello PRIVATE "-fno-exceptions")
+  target_link_options(hello PRIVATE
+    "-mexec-model=reactor"
+    "-Wl,--import-memory"
+    "-Wl,--max-memory=2147483648"
+    "-Wl,--export-dynamic"
+    "-Wl,--export=malloc"
+    "-Wl,--export=free"
+    "-Wl,--import-undefined"
+    "-Wl,--export-table"
+  )
+endif()
 ```
 
 ```bash
+# emscripten
 emcmake cmake -DCMAKE_BUILD_TYPE=Release -DEMNAPI_WORKER_POOL_SIZE=4 -G Ninja -H. -Bbuild
+
+# wasi-sdk with thread support (Experimental)
+cmake -DCMAKE_TOOLCHAIN_FILE=$WASI_SDK_PATH/share/cmake/wasi-sdk-pthread.cmake \
+      -DWASI_SDK_PREFIX=$WASI_SDK_PATH \
+      -DCMAKE_BUILD_TYPE=Release \
+      -G Ninja -H. -Bbuild
+
 cmake --build build
+```
+
+And additional work is required during instantiating wasm compiled with non-emscripten.
+
+```js
+// emnapi main thread (could be in a Worker)
+instantiateNapiModule(input, {
+  context: getDefaultContext(),
+  wasi: new WASI(/* ... */),
+  // reuseWorker: true,
+  onCreateWorker () {
+    return new Worker('./worker.js')
+    // Node.js
+    // return new Worker(join(__dirname, './worker.js'), {
+    //   env: process.env,
+    //   execArgv: ['--experimental-wasi-unstable-preview1']
+    // })
+  },
+  overwriteImports (importObject) {
+    importObject.env.memory = new WebAssembly.Memory({
+      initial: 16777216 / 65536,
+      maximum: 2147483648 / 65536,
+      shared: true
+    })
+  }
+})
+```
+
+```js
+// worker.js
+(function () {
+  let fs, WASI, emnapiCore
+
+  const ENVIRONMENT_IS_NODE =
+    typeof process === 'object' && process !== null &&
+    typeof process.versions === 'object' && process.versions !== null &&
+    typeof process.versions.node === 'string'
+
+  if (ENVIRONMENT_IS_NODE) {
+    const nodeWorkerThreads = require('worker_threads')
+
+    const parentPort = nodeWorkerThreads.parentPort
+
+    parentPort.on('message', (data) => {
+      globalThis.onmessage({ data })
+    })
+
+    fs = require('fs')
+
+    Object.assign(globalThis, {
+      self: globalThis,
+      require,
+      Worker: nodeWorkerThreads.Worker,
+      importScripts: function (f) {
+        (0, eval)(fs.readFileSync(f, 'utf8') + '//# sourceURL=' + f)
+      },
+      postMessage: function (msg) {
+        parentPort.postMessage(msg)
+      }
+    })
+
+    WASI = require('./wasi').WASI
+    emnapiCore = require('@emnapi/core')
+  } else {
+    importScripts('./node_modules/memfs-browser/dist/memfs.js')
+    importScripts('./node_modules/@tybys/wasm-util/dist/wasm-util.min.js')
+    importScripts('./node_modules/@emnapi/core/dist/emnapi-core.js')
+    emnapiCore = globalThis.emnapiCore
+
+    const { Volume, createFsFromVolume } = memfs
+    fs = createFsFromVolume(Volume.fromJSON({
+      '/': null
+    }))
+
+    WASI = globalThis.wasmUtil.WASI
+  }
+
+  const { instantiateNapiModuleSync, MessageHandler } = emnapiCore
+
+  const handler = new MessageHandler({
+    onLoad ({ wasmModule, wasmMemory }) {
+      const wasi = new WASI({
+        fs,
+        print: ENVIRONMENT_IS_NODE
+          ? (...args) => {
+              const str = require('util').format(...args)
+              fs.writeSync(1, str + '\n')
+            }
+          : function () { console.log.apply(console, arguments) }
+      })
+
+      return instantiateNapiModuleSync(wasmModule, {
+        childThread: true,
+        wasi,
+        overwriteImports (importObject) {
+          importObject.env.memory = wasmMemory
+        }
+      })
+    }
+  })
+
+  globalThis.onmessage = function (e) {
+    handler.handle(e)
+    // handle other messages
+  }
+})()
 ```
 
 ## Preprocess Macro Options
@@ -770,6 +902,13 @@ Module.preRun.push(function () {
     ENV.UV_THREADPOOL_SIZE = '2';
   }
 });
+
+// wasi
+new WASI({
+  env: {
+    UV_THREADPOOL_SIZE: '2'
+  }
+})
 ```
 
 It represent max of `EMNAPI_WORKER_POOL_SIZE` async work (`napi_queue_async_work`) can be executed in parallel. Default is not defined, read `UV_THREADPOOL_SIZE` at runtime.
@@ -794,7 +933,7 @@ Tell emnapi how to delay async work in `uv_async_send` / `uv__async_close`.
 
 ### `-DEMNAPI_USE_PROXYING=1`
 
-This option only has effect if you use `-sUSE_PTHREADS`. Default is `1` if emscripten version `>= 3.1.9`, else `0`.
+This option only has effect if you use emscripten `-sUSE_PTHREADS`. Default is `1` if emscripten version `>= 3.1.9`, else `0`.
 
 - `0`
 
