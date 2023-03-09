@@ -239,14 +239,14 @@ function spawnThread (startArg: number, errorOrTid: number): number {
     if (!worker) {
       throw new Error('failed to get new worker')
     }
-  } catch (err) {
+  } catch (e) {
     const EAGAIN = 6
 
     Atomics.store(struct, 0, 1)
     Atomics.store(struct, 1, EAGAIN)
     Atomics.notify(struct, 1)
 
-    err(err.message)
+    err(e.message)
     if (isNewABI) {
       return 1
     }
