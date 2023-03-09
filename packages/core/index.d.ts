@@ -93,29 +93,29 @@ export declare interface InstantiatedSource extends WebAssembly.WebAssemblyInsta
   napiModule: NapiModule
 }
 
+export declare type InputType = string | URL | Response | BufferSource | WebAssembly.Module
+
 export declare function loadNapiModule (
   napiModule: NapiModule,
   /** Only support `BufferSource` or `WebAssembly.Module` on Node.js */
-  wasmInput: string | URL | BufferSource | WebAssembly.Module,
+  wasmInput: InputType | Promise<InputType>,
   options?: LoadOptions
 ): Promise<WebAssembly.WebAssemblyInstantiatedSource>
 
 export declare function loadNapiModuleSync (
   napiModule: NapiModule,
-  /** Only support `BufferSource` or `WebAssembly.Module` on Node.js */
-  wasmInput: string | URL | BufferSource | WebAssembly.Module,
+  wasmInput: BufferSource | WebAssembly.Module,
   options?: LoadOptions
 ): WebAssembly.WebAssemblyInstantiatedSource
 
 export declare function instantiateNapiModule (
   /** Only support `BufferSource` or `WebAssembly.Module` on Node.js */
-  wasmInput: string | URL | BufferSource | WebAssembly.Module,
+  wasmInput: InputType | Promise<InputType>,
   options: InstantiateOptions
 ): Promise<InstantiatedSource>
 
 export declare function instantiateNapiModuleSync (
-  /** Only support `BufferSource` or `WebAssembly.Module` on Node.js */
-  wasmInput: string | URL | BufferSource | WebAssembly.Module,
+  wasmInput: BufferSource | WebAssembly.Module,
   options: InstantiateOptions
 ): InstantiatedSource
 

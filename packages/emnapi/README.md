@@ -340,18 +340,16 @@ For non-emscripten, you need to use `@emnapi/core`. The initialization is simila
 <script src="node_modules/@emnapi/runtime/dist/emnapi.min.js"></script>
 <script src="node_modules/@emnapi/core/dist/emnapi-core.min.js"></script>
 <script>
-fetch('./hello.wasm').then(res => res.arrayBuffer()).then(wasmBuffer => {
-  return emnapiCore.instantiateNapiModule(wasmBuffer, {
-    context: emnapi.getDefaultContext(),
-    overwriteImports (importObject) {
-      // importObject.env = {
-      //   ...importObject.env,
-      //   ...importObject.napi,
-      //   ...importObject.emnapi,
-      //   // ...
-      // }
-    }
-  })
+emnapiCore.instantiateNapiModule(fetch('./hello.wasm'), {
+  context: emnapi.getDefaultContext(),
+  overwriteImports (importObject) {
+    // importObject.env = {
+    //   ...importObject.env,
+    //   ...importObject.napi,
+    //   ...importObject.emnapi,
+    //   // ...
+    // }
+  }
 }).then(({ instance, module, napiModule }) => {
   const binding = napiModule.exports
   // ...
@@ -367,19 +365,17 @@ const { getDefaultContext } = require('@emnapi/runtime')
 const { WASI } = require('wasi')
 const fs = require('fs')
 
-fs.promises.readFile('./hello.wasm').then(wasmBuffer => {
-  return instantiateNapiModule(wasmBuffer, {
-    wasi: new WASI({ /* ... */ }),
-    context: getDefaultContext(),
-    overwriteImports (importObject) {
-      // importObject.env = {
-      //   ...importObject.env,
-      //   ...importObject.napi,
-      //   ...importObject.emnapi,
-      //   // ...
-      // }
-    }
-  })
+instantiateNapiModule(fs.promises.readFile('./hello.wasm'), {
+  wasi: new WASI({ /* ... */ }),
+  context: getDefaultContext(),
+  overwriteImports (importObject) {
+    // importObject.env = {
+    //   ...importObject.env,
+    //   ...importObject.napi,
+    //   ...importObject.emnapi,
+    //   // ...
+    // }
+  }
 }).then(({ instance, module, napiModule }) => {
   const binding = napiModule.exports
   // ...
@@ -395,20 +391,18 @@ import { getDefaultContext } from '@emnapi/runtime'
 import { WASI } from '@tybys/wasm-util'
 import { Volume, createFsFromVolume } from 'memfs-browser'
 
-fetch('./hello.wasm').then(res => res.arrayBuffer()).then(wasmBuffer => {
-  const fs = createFsFromVolume(Volume.fromJSON({ /* ... */ }))
-  return instantiateNapiModule(wasmBuffer, {
-    wasi: new WASI({ fs, /* ... */ })
-    context: getDefaultContext(),
-    overwriteImports (importObject) {
-      // importObject.env = {
-      //   ...importObject.env,
-      //   ...importObject.napi,
-      //   ...importObject.emnapi,
-      //   // ...
-      // }
-    }
-  })
+const fs = createFsFromVolume(Volume.fromJSON({ /* ... */ }))
+return instantiateNapiModule(fetch('./hello.wasm'), {
+  wasi: new WASI({ fs, /* ... */ })
+  context: getDefaultContext(),
+  overwriteImports (importObject) {
+    // importObject.env = {
+    //   ...importObject.env,
+    //   ...importObject.napi,
+    //   ...importObject.emnapi,
+    //   // ...
+    // }
+  }
 }).then(({ instance, module, napiModule }) => {
   const binding = napiModule.exports
   // ...

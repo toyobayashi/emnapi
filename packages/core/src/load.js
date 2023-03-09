@@ -1,4 +1,4 @@
-import { load, loadSync } from '@tybys/wasm-util'
+import { load, loadSync } from './util.js'
 import { createNapiModule } from './module.js'
 
 function loadNapiModuleImpl (loadFn, userNapiModule, wasmInput, options) {

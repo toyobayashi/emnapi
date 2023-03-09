@@ -67,7 +67,9 @@ async function build () {
   })
   const parsedCode = compiler.parseCode(coreCode)
   fs.writeFileSync(path.join(__dirname, '../../core/src/module.js'),
-`export function createNapiModule (options) {
+`import { _WebAssembly as WebAssembly } from './util.js'
+
+export function createNapiModule (options) {
   ${parsedCode}
   return napiModule;
 }
