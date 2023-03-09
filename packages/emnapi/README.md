@@ -551,12 +551,14 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
     "-sEXPORTED_FUNCTIONS=['_malloc','_free']"
   )
 elseif(CMAKE_SYSTEM_NAME STREQUAL "WASI")
+  set_target_properties(hello PROPERTIES SUFFIX ".wasm")
   target_link_options(hello PRIVATE
     "-mexec-model=reactor"
     "-Wl,--export=napi_register_wasm_v1"
     "-Wl,--initial-memory=16777216,--export-dynamic,--export=malloc,--export=free,--import-undefined,--export-table"
   )
 elseif((CMAKE_C_COMPILER_TARGET STREQUAL "wasm32") OR (CMAKE_C_COMPILER_TARGET STREQUAL "wasm32-unknown-unknown"))
+  set_target_properties(hello PROPERTIES SUFFIX ".wasm")
   target_link_options(hello PRIVATE
     "-nostdlib"
     "-Wl,--export=napi_register_wasm_v1"
@@ -744,11 +746,11 @@ add_executable(hello hello.c)
 target_link_libraries(hello emnapi-mt)
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
-  target_compile_options(hello PRIVATE "-sUSE_PTHREADS=1")
+  target_compile_options(hello PRIVATE "-pthread")
   target_link_options(hello PRIVATE
     "-sALLOW_MEMORY_GROWTH=1"
     "-sEXPORTED_FUNCTIONS=['_malloc','_free']"
-    "-sUSE_PTHREADS=1"
+    "-pthread"
     "-sPTHREAD_POOL_SIZE=4"
     # try to specify stack size if you experience pthread errors
     "-sSTACK_SIZE=2MB"
@@ -756,6 +758,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
   )
 elseif(CMAKE_C_COMPILER_TARGET STREQUAL "wasm32-wasi-threads")
   # Experimental
+  set_target_properties(hello PROPERTIES SUFFIX ".wasm")
   target_compile_options(hello PRIVATE "-fno-exceptions" "-pthread")
   target_link_options(hello PRIVATE
     "-pthread"
@@ -795,6 +798,7 @@ instantiateNapiModule(input, {
   onCreateWorker () {
     return new Worker('./worker.js')
     // Node.js
+    // const { Worker } = require('worker_threads')
     // return new Worker(join(__dirname, './worker.js'), {
     //   env: process.env,
     //   execArgv: ['--experimental-wasi-unstable-preview1']
@@ -863,15 +867,7 @@ instantiateNapiModule(input, {
 
   const handler = new MessageHandler({
     onLoad ({ wasmModule, wasmMemory }) {
-      const wasi = new WASI({
-        fs,
-        print: ENVIRONMENT_IS_NODE
-          ? (...args) => {
-              const str = require('util').format(...args)
-              fs.writeSync(1, str + '\n')
-            }
-          : function () { console.log.apply(console, arguments) }
-      })
+      const wasi = new WASI({ fs })
 
       return instantiateNapiModuleSync(wasmModule, {
         childThread: true,
@@ -918,7 +914,7 @@ You can set both `PTHREAD_POOL_SIZE` and `EMNAPI_WORKER_POOL_SIZE` to `number of
 If you use another library function which may create `N` child threads in async work,
 then you need to set `PTHREAD_POOL_SIZE` to `EMNAPI_WORKER_POOL_SIZE * (N + 1)`.
 
-This option only has effect if you use `-sUSE_PTHREADS`.
+This option only has effect if you use `-pthread`.
 Emnapi will create `EMNAPI_WORKER_POOL_SIZE` threads when initializing,
 it will throw error if `PTHREAD_POOL_SIZE < EMNAPI_WORKER_POOL_SIZE && PTHREAD_POOL_SIZE_STRICT == 2`.
 
@@ -926,7 +922,7 @@ See [Issue #8](https://github.com/toyobayashi/emnapi/issues/8) for more detail.
 
 ### `-DEMNAPI_NEXTTICK_TYPE=0`
 
-This option only has effect if you use `-sUSE_PTHREADS`, Default is `0`.
+This option only has effect if you use `-pthread`, Default is `0`.
 Tell emnapi how to delay async work in `uv_async_send` / `uv__async_close`.
 
 - `0`: Use `setImmediate()` (Node.js native `setImmediate` or browser `MessageChannel` and `port.postMessage`)
@@ -934,7 +930,7 @@ Tell emnapi how to delay async work in `uv_async_send` / `uv__async_close`.
 
 ### `-DEMNAPI_USE_PROXYING=1`
 
-This option only has effect if you use emscripten `-sUSE_PTHREADS`. Default is `1` if emscripten version `>= 3.1.9`, else `0`.
+This option only has effect if you use emscripten `-pthread`. Default is `1` if emscripten version `>= 3.1.9`, else `0`.
 
 - `0`
 

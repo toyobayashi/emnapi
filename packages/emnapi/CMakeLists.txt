@@ -44,7 +44,7 @@ set(EMNAPI_INCLUDE "${CMAKE_CURRENT_SOURCE_DIR}/include")
 set(EMNAPI_JS_LIB "${CMAKE_CURRENT_SOURCE_DIR}/dist/library_napi.js")
 
 if(IS_EMSCRIPTEN)
-  set(EMNAPI_MT_CFLAGS "-sUSE_PTHREADS=1" "-sWASM_WORKERS=1")
+  set(EMNAPI_MT_CFLAGS "-pthread" "-sWASM_WORKERS=1")
 else()
   set(EMNAPI_MT_CFLAGS "-pthread")
 endif()
