@@ -86,18 +86,45 @@ function loadNapiModuleImpl (loadFn, userNapiModule, wasmInput, options) {
     if (wasi) {
       if (napiModule.childThread) {
         // https://github.com/nodejs/help/issues/4102
-        const noop = () => {}
-        const exportsProxy = new Proxy({}, {
-          get (t, p, r) {
-            if (p === 'memory') {
-              return memory
+        const createHandler = function (target) {
+          const handlers = [
+            'apply',
+            'construct',
+            'defineProperty',
+            'deleteProperty',
+            'get',
+            'getOwnPropertyDescriptor',
+            'getPrototypeOf',
+            'has',
+            'isExtensible',
+            'ownKeys',
+            'preventExtensions',
+            'set',
+            'setPrototypeOf'
+          ]
+          const handler = {}
+          for (let i = 0; i < handlers.length; i++) {
+            const name = handlers[i]
+            handler[name] = function () {
+              const args = Array.prototype.slice.call(arguments, 1)
+              args.unshift(target)
+              return Reflect[name].apply(Reflect, args)
             }
-            if (p === '_initialize') {
-              return noop
-            }
-            return Reflect.get(exports, p, r)
           }
-        })
+          return handler
+        }
+        const handler = createHandler(exports)
+        const noop = () => {}
+        handler.get = function (target, p, receiver) {
+          if (p === 'memory') {
+            return memory
+          }
+          if (p === '_initialize') {
+            return noop
+          }
+          return Reflect.get(exports, p, receiver)
+        }
+        const exportsProxy = new Proxy(Object.create(null), handler)
         instance = new Proxy(instance, {
           get (target, p, receiver) {
             if (p === 'exports') {
