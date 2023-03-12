@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-floating-promises */
-/* eslint-disable @typescript-eslint/restrict-plus-operands */
 
 function terminateWorker (worker: any): void {
   const tid = worker.__emnapi_tid

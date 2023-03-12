@@ -218,7 +218,7 @@ function napi_create_typedarray (
           return envObject.setLastError(napi_status.napi_generic_failure)
         }
       }
-      // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
+
       if (((length * size_of_element) + byte_offset) > buffer.byteLength) {
         const err: RangeError & { code?: string } = new RangeError('Invalid typed array length')
         err.code = 'ERR_NAPI_INVALID_TYPEDARRAY_LENGTH'
