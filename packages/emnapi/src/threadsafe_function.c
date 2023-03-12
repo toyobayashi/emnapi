@@ -362,7 +362,7 @@ static void _emnapi_tsfn_send(napi_threadsafe_function func) {
   if ((current_state & kDispatchRunning) == kDispatchRunning) {
     return;
   }
-  uv_async_send(&func->async);
+  CHECK_EQ(0, uv_async_send(&func->async));
 }
 
 // only main thread
@@ -373,7 +373,7 @@ static void _emnapi_tsfn_dispatch(napi_threadsafe_function func) {
   // starvation. See `src/node_messaging.cc` for an inspiration.
   unsigned int iterations_left = kMaxIterationCount;
   while (has_more && --iterations_left != 0) {
-    func->dispatch_state = kDispatchRunning;
+    atomic_store(&func->dispatch_state, kDispatchRunning);
     has_more = _emnapi_tsfn_dispatch_one(func);
 
     // Send() was called while we were executing the JS function
@@ -409,7 +409,7 @@ napi_create_threadsafe_function(napi_env env,
                                 napi_threadsafe_function* result) {
 #if EMNAPI_HAVE_THREADS
   CHECK_ENV(env);
-  // CHECK_ARG(env, async_resource_name);
+  CHECK_ARG(env, async_resource_name);
   RETURN_STATUS_IF_FALSE(env, initial_thread_count > 0, napi_invalid_arg);
   CHECK_ARG(env, result);
 
@@ -439,7 +439,6 @@ napi_create_threadsafe_function(napi_env env,
     if (status != napi_ok) return status;
   }
 
-  CHECK_ARG(env, async_resource_name);
   status = napi_coerce_to_string(env, async_resource_name, &resource_name);
   if (status != napi_ok) return status;
 
