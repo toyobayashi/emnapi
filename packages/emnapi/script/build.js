@@ -62,7 +62,8 @@ async function build () {
       DYNAMIC_EXECUTION: 1,
       TEXTDECODER: 1,
       LEGACY_RUNTIME: 1,
-      WASM_BIGINT: 1
+      WASM_BIGINT: 1,
+      MEMORY64: 0
     }
   })
   const parsedCode = compiler.parseCode(coreCode)
