@@ -78,6 +78,9 @@ var PThread = {
       }
       // napiModule.emnapi.addSendListener(worker)
       emnapiAddSendListener(worker)
+      if (typeof emnapiTSFN !== 'undefined') {
+        emnapiTSFN.addListener(worker)
+      }
       worker.postMessage({
         __emnapi__: {
           type: 'load',
