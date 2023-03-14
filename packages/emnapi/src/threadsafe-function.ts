@@ -535,13 +535,13 @@ const emnapiTSFN = {
         envObject.callIntoModule(() => {
           const callJsCb = emnapiTSFN.getCallJSCb(func)
           const ref = emnapiTSFN.getRef(func)
-          const js_callback = emnapiCtx.refStore.get(ref)!.get()
+          const js_callback = ref ? emnapiCtx.refStore.get(ref)!.get() : 0
           if (callJsCb) {
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const context = emnapiTSFN.getContext(func)
             $makeDynCall('vpppp', 'callJsCb')($to64('env'), $to64('js_callback'), $to64('context'), $to64('data'))
           } else {
-            const jsCallback = ref ? emnapiCtx.handleStore.get(js_callback)!.value : null
+            const jsCallback = js_callback ? emnapiCtx.handleStore.get(js_callback)!.value : null
             if (typeof jsCallback === 'function') {
               jsCallback()
             }
@@ -635,7 +635,7 @@ function _napi_create_threadsafe_function (
   $from64('call_js_cb')
   max_queue_size = max_queue_size >>> 0
   initial_thread_count = initial_thread_count >>> 0
-  if (max_queue_size === 0) {
+  if (initial_thread_count === 0) {
     return envObject.setLastError(napi_status.napi_invalid_arg)
   }
   $CHECK_ARG!(envObject, result)
