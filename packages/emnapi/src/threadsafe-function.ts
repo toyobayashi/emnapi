@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/indent */
 
 const emnapiTSFN = {
-  queue: Object.create(null) as any,
   offset: {
     /* napi_ref */ resource: 0,
     /* double */ async_id: 1 * $POINTER_SIZE,
@@ -25,7 +24,6 @@ const emnapiTSFN = {
     end: 11 * $POINTER_SIZE + 40
   },
   init () {
-    emnapiTSFN.queue = Object.create(null)
   },
   addListener (worker: any) {
     if (!worker) return false
@@ -61,32 +59,54 @@ const emnapiTSFN = {
     }
     return true
   },
-  pushQueue (func: number, data: number): void {
-    if (ENVIRONMENT_IS_PTHREAD) {
-      // TODO: deadlock
-      const sab = new SharedArrayBuffer(4)
-      const i32a = new Int32Array(sab)
-      postMessage({
-        __emnapi__: {
-          type: 'tsfn-push-queue',
-          payload: {
-            i32a,
-            tsfn: func,
-            data
-          }
-        }
-      })
-      Atomics.wait(i32a, 0, 0)
-      return
+  initQueue (func: number): boolean {
+    const size = 2 * $POINTER_SIZE
+    const queue = $makeMalloc('emnapiTSFN.initQueue', 'size')
+    if (!queue) return false
+    new Uint8Array(wasmMemory.buffer, queue, size).fill(0)
+    emnapiTSFN.storeSizeTypeValue(func + emnapiTSFN.offset.queue, queue, false)
+    return true
+  },
+  destroyQueue (func: number) {
+    const queue = emnapiTSFN.loadSizeTypeValue(func + emnapiTSFN.offset.queue, false)
+    if (queue) {
+      _free($to64('queue') as number)
     }
-    emnapiTSFN.queue[func] = emnapiTSFN.queue[func] || []
-    emnapiTSFN.queue[func].push(data)
+  },
+  pushQueue (func: number, data: number): void {
+    const queue = emnapiTSFN.loadSizeTypeValue(func + emnapiTSFN.offset.queue, false)
+    const head = emnapiTSFN.loadSizeTypeValue(queue, false)
+    const tail = emnapiTSFN.loadSizeTypeValue(queue + $POINTER_SIZE, false)
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const size = 2 * $POINTER_SIZE
+    const node = $makeMalloc('emnapiTSFN.pushQueue', 'size')
+    if (!node) throw new Error('OOM')
+    emnapiTSFN.storeSizeTypeValue(node, data, false)
+    emnapiTSFN.storeSizeTypeValue(node + $POINTER_SIZE, 0, false)
+    if (head === 0 && tail === 0) {
+      emnapiTSFN.storeSizeTypeValue(queue, node, false)
+      emnapiTSFN.storeSizeTypeValue(queue + $POINTER_SIZE, node, false)
+    } else {
+      emnapiTSFN.storeSizeTypeValue(tail + $POINTER_SIZE, node, false)
+      emnapiTSFN.storeSizeTypeValue(queue + $POINTER_SIZE, node, false)
+    }
     emnapiTSFN.addQueueSize(func)
   },
   shiftQueue (func: number): number {
-    const r = emnapiTSFN.queue[func].shift()
+    const queue = emnapiTSFN.loadSizeTypeValue(func + emnapiTSFN.offset.queue, false)
+    const head = emnapiTSFN.loadSizeTypeValue(queue, false)
+    if (head === 0) return 0
+    const node = head
+    const next = emnapiTSFN.loadSizeTypeValue(head + $POINTER_SIZE, false)
+    emnapiTSFN.storeSizeTypeValue(queue, next, false)
+    if (next === 0) {
+      emnapiTSFN.storeSizeTypeValue(queue + $POINTER_SIZE, 0, false)
+    }
+    emnapiTSFN.storeSizeTypeValue(node + $POINTER_SIZE, 0, false)
+    const value = emnapiTSFN.loadSizeTypeValue(node, false)
+    _free($to64('node') as number)
     emnapiTSFN.subQueueSize(func)
-    return r
+    return value
   },
   push (func: number, data: number, mode: napi_threadsafe_function_call_mode) {
     const mutex = emnapiTSFN.getMutex(func)
@@ -356,6 +376,7 @@ const emnapiTSFN = {
     }
   },
   destroy (func: number) {
+    emnapiTSFN.destroyQueue(func)
     const env = emnapiTSFN.getEnv(func)
     const envObject = emnapiCtx.envStore.get(env)!
     const ref = emnapiTSFN.getRef(func)
@@ -386,21 +407,18 @@ const emnapiTSFN = {
     }
 
     _free($to64('func') as number)
-    delete emnapiTSFN.queue[func]
   },
   emptyQueueAndDelete (func: number) {
     const callJsCb = emnapiTSFN.getCallJSCb(func)
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const context = emnapiTSFN.getContext(func)
-    const q = emnapiTSFN.queue[func]
     let data: number
-    while (q.length > 0) {
+    while (emnapiTSFN.getQueueSize(func) > 0) {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      data = q.shift()!
+      data = emnapiTSFN.shiftQueue(func)
       if (callJsCb) {
         $makeDynCall('vpppp', 'callJsCb')($to64('0'), $to64('0'), $to64('context'), $to64('data'))
       }
-      emnapiTSFN.subQueueSize(func)
     }
     emnapiTSFN.destroy(func)
   },
@@ -484,15 +502,15 @@ const emnapiTSFN = {
       if (emnapiTSFN.getIsClosing(func)) {
         emnapiTSFN.closeHandlesAndMaybeDelete(func, 0)
       } else {
-        const size = emnapiTSFN.getQueueSize(func)
+        let size = emnapiTSFN.getQueueSize(func)
         if (size > 0) {
-          data = emnapiTSFN.queue[func].shift()
+          data = emnapiTSFN.shiftQueue(func)
           popped_value = true
           const maxQueueSize = emnapiTSFN.getMaxQueueSize(func)
           if (size === maxQueueSize && maxQueueSize > 0) {
             cond.signal()
           }
-          emnapiTSFN.subQueueSize(func)
+          size--
         }
         if (size === 0) {
           if (emnapiTSFN.getThreadCount(func) === 0) {
@@ -679,9 +697,15 @@ function _napi_create_threadsafe_function (
   const tsfn = $makeMalloc('napi_create_threadsafe_function', 'sizeofTSFN')
   if (!tsfn) return envObject.setLastError(napi_status.napi_generic_failure)
   new Uint8Array(wasmMemory.buffer).subarray(tsfn, tsfn + sizeofTSFN).fill(0)
+  const resourceRef = emnapiCtx.createReference(envObject, resource, 1, Ownership.kUserland as any)
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const resource_ = emnapiCtx.createReference(envObject, resource, 1, Ownership.kUserland as any).id
+  const resource_ = resourceRef.id
   $makeSetValue('tsfn', 0, 'resource_', '*')
+  if (!emnapiTSFN.initQueue(tsfn)) {
+    _free($to64('tsfn') as number)
+    resourceRef.dispose()
+    return envObject.setLastError(napi_status.napi_generic_failure)
+  }
   __emnapi_node_emit_async_init(resource, resource_name, -1, tsfn + emnapiTSFN.offset.async_id)
   $makeSetValue('tsfn', 'emnapiTSFN.offset.thread_count', 'initial_thread_count', SIZE_TYPE)
   $makeSetValue('tsfn', 'emnapiTSFN.offset.context', 'context', '*')
