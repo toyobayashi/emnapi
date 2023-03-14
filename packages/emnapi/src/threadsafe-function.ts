@@ -399,11 +399,9 @@ const emnapiTSFN = {
 
     if (emnapiNodeBinding) {
       const view = new DataView(wasmMemory.buffer)
-      const asyncId = view.getFloat64((func + emnapiTSFN.offset.async_id) >> 3, true)
-      const triggerAsyncId = view.getFloat64((func + emnapiTSFN.offset.trigger_async_id) >> 3, true)
-      emnapiNodeBinding.node.emitAsyncDestroy({
-        asyncId, triggerAsyncId
-      })
+      const asyncId = view.getFloat64(func + emnapiTSFN.offset.async_id, true)
+      const triggerAsyncId = view.getFloat64(func + emnapiTSFN.offset.trigger_async_id, true)
+      __emnapi_node_emit_async_destroy(asyncId, triggerAsyncId)
     }
 
     _free($to64('func') as number)
@@ -448,8 +446,8 @@ const emnapiTSFN = {
           const resource_value = emnapiCtx.refStore.get(resource)!.get()
           const resourceObject = emnapiCtx.handleStore.get(resource_value)!.value
           const view = new DataView(wasmMemory.buffer)
-          const asyncId = view.getFloat64((func + emnapiTSFN.offset.async_id) >> 3, true)
-          const triggerAsyncId = view.getFloat64((func + emnapiTSFN.offset.trigger_async_id) >> 3, true)
+          const asyncId = view.getFloat64(func + emnapiTSFN.offset.async_id, true)
+          const triggerAsyncId = view.getFloat64(func + emnapiTSFN.offset.trigger_async_id, true)
           emnapiNodeBinding.node.makeCallback(resourceObject, f, [], {
             asyncId,
             triggerAsyncId
@@ -556,8 +554,8 @@ const emnapiTSFN = {
           const resourceObject = emnapiCtx.handleStore.get(resource_value)!.value
           const view = new DataView(wasmMemory.buffer)
           emnapiNodeBinding.node.makeCallback(resourceObject, f, [], {
-            asyncId: view.getFloat64((func + emnapiTSFN.offset.async_id) >> 3, true),
-            triggerAsyncId: view.getFloat64((func + emnapiTSFN.offset.trigger_async_id) >> 3, true)
+            asyncId: view.getFloat64(func + emnapiTSFN.offset.async_id, true),
+            triggerAsyncId: view.getFloat64(func + emnapiTSFN.offset.trigger_async_id, true)
           })
         } else {
           f()
@@ -834,7 +832,15 @@ function _napi_ref_threadsafe_function (env: napi_env, func: number): napi_statu
   return napi_status.napi_ok
 }
 
-emnapiDefineVar('$emnapiTSFN', emnapiTSFN, ['_emnapi_runtime_keepalive_pop', '_emnapi_node_emit_async_destroy'],
+emnapiDefineVar(
+  '$emnapiTSFN',
+  emnapiTSFN,
+  [
+    '_emnapi_node_emit_async_init',
+    '_emnapi_node_emit_async_destroy',
+    '_emnapi_runtime_keepalive_pop',
+    '_emnapi_runtime_keepalive_push'
+  ],
   'emnapiTSFN.init();' +
   'if (typeof PThread !== "undefined") {' +
     'PThread.unusedWorkers.forEach(emnapiTSFN.addListener);' +
@@ -847,14 +853,10 @@ emnapiDefineVar('$emnapiTSFN', emnapiTSFN, ['_emnapi_runtime_keepalive_pop', '_e
   '}'
 )
 
-emnapiImplement('napi_create_threadsafe_function', 'ippppppppppp', _napi_create_threadsafe_function, [
-  '$emnapiTSFN',
-  '_emnapi_node_emit_async_init',
-  '_emnapi_runtime_keepalive_push'
-])
+emnapiImplement('napi_create_threadsafe_function', 'ippppppppppp', _napi_create_threadsafe_function, ['$emnapiTSFN'])
 emnapiImplement('napi_get_threadsafe_function_context', 'ipp', _napi_get_threadsafe_function_context, ['$emnapiTSFN'])
 emnapiImplement('napi_call_threadsafe_function', 'ippi', _napi_call_threadsafe_function, ['$emnapiTSFN'])
 emnapiImplement('napi_acquire_threadsafe_function', 'ip', _napi_acquire_threadsafe_function, ['$emnapiTSFN'])
 emnapiImplement('napi_release_threadsafe_function', 'ipi', _napi_release_threadsafe_function, ['$emnapiTSFN'])
-emnapiImplement('napi_unref_threadsafe_function', 'ipp', _napi_unref_threadsafe_function, ['$emnapiTSFN', '_emnapi_runtime_keepalive_pop'])
-emnapiImplement('napi_ref_threadsafe_function', 'ipp', _napi_ref_threadsafe_function, ['$emnapiTSFN', '_emnapi_runtime_keepalive_push'])
+emnapiImplement('napi_unref_threadsafe_function', 'ipp', _napi_unref_threadsafe_function, ['$emnapiTSFN'])
+emnapiImplement('napi_ref_threadsafe_function', 'ipp', _napi_ref_threadsafe_function, ['$emnapiTSFN'])
