@@ -2,6 +2,28 @@
 
 const emnapiTSFN = {
   queue: Object.create(null) as any,
+  offset: {
+    /* napi_ref */ resource: 0,
+    /* double */ async_id: 1 * $POINTER_SIZE,
+    /* double */ trigger_async_id: 1 * $POINTER_SIZE + 8,
+    /* size_t */ queue_size: 1 * $POINTER_SIZE + 16,
+    /* void* */ queue: 2 * $POINTER_SIZE + 16,
+    /* size_t */ thread_count: 3 * $POINTER_SIZE + 16,
+    /* bool */ is_closing: 4 * $POINTER_SIZE + 16,
+    /* atomic_uchar */ dispatch_state: 4 * $POINTER_SIZE + 20,
+    /* void* */ context: 4 * $POINTER_SIZE + 24,
+    /* size_t */ max_queue_size: 5 * $POINTER_SIZE + 24,
+    /* napi_ref */ ref: 6 * $POINTER_SIZE + 24,
+    /* napi_env */ env: 7 * $POINTER_SIZE + 24,
+    /* void* */ finalize_data: 8 * $POINTER_SIZE + 24,
+    /* napi_finalize */ finalize_cb: 9 * $POINTER_SIZE + 24,
+    /* napi_threadsafe_function_call_js */ call_js_cb: 10 * $POINTER_SIZE + 24,
+    /* bool */ handles_closing: 11 * $POINTER_SIZE + 24,
+    /* bool */ async_ref: 11 * $POINTER_SIZE + 28,
+    /* int32_t */ mutex: 11 * $POINTER_SIZE + 32,
+    /* int32_t */ cond: 11 * $POINTER_SIZE + 36,
+    end: 11 * $POINTER_SIZE + 40
+  },
   init () {
     emnapiTSFN.queue = Object.create(null)
   },
@@ -99,7 +121,7 @@ const emnapiTSFN = {
     })
   },
   getMutex (func: number) {
-    const index = func + $POINTER_SIZE * 10 + 32
+    const index = func + emnapiTSFN.offset.mutex
     const mutex = {
       lock () {
         const i32a = new Int32Array(wasmMemory.buffer, index, 1)
@@ -166,7 +188,7 @@ const emnapiTSFN = {
     return mutex
   },
   getCond (func: number) {
-    const index = func + $POINTER_SIZE * 10 + 36
+    const index = func + emnapiTSFN.offset.cond
     const mutex = emnapiTSFN.getMutex(func)
     const cond = {
       wait () {
@@ -196,10 +218,10 @@ const emnapiTSFN = {
     return cond
   },
   getQueueSize (func: number): number {
-    return emnapiTSFN.loadSizeTypeValue(func + $POINTER_SIZE * 1 + 16, true)
+    return emnapiTSFN.loadSizeTypeValue(func + emnapiTSFN.offset.queue_size, true)
   },
   addQueueSize (func: number): void {
-    const offset = $POINTER_SIZE * 1 + 16
+    const offset = emnapiTSFN.offset.queue_size
     let arr: any, index: number
 // #if MEMORY64
     arr = new BigUint64Array(wasmMemory.buffer)
@@ -211,7 +233,7 @@ const emnapiTSFN = {
     Atomics.add(arr, index, $to64('1') as any)
   },
   subQueueSize (func: number): void {
-    const offset = $POINTER_SIZE * 1 + 16
+    const offset = emnapiTSFN.offset.queue_size
     let arr: any, index: number
 // #if MEMORY64
     arr = new BigUint64Array(wasmMemory.buffer)
@@ -223,10 +245,10 @@ const emnapiTSFN = {
     Atomics.sub(arr, index, $to64('1') as any)
   },
   getThreadCount (func: number): number {
-    return emnapiTSFN.loadSizeTypeValue(func + $POINTER_SIZE * 2 + 16, true)
+    return emnapiTSFN.loadSizeTypeValue(func + emnapiTSFN.offset.thread_count, true)
   },
   addThreadCount (func: number): void {
-    const offset = $POINTER_SIZE * 2 + 16
+    const offset = emnapiTSFN.offset.thread_count
     let arr: any, index: number
 // #if MEMORY64
     arr = new BigUint64Array(wasmMemory.buffer)
@@ -238,7 +260,7 @@ const emnapiTSFN = {
     Atomics.add(arr, index, $to64('1') as any)
   },
   subThreadCount (func: number): void {
-    const offset = $POINTER_SIZE * 2 + 16
+    const offset = emnapiTSFN.offset.thread_count
     let arr: any, index: number
 // #if MEMORY64
     arr = new BigUint64Array(wasmMemory.buffer)
@@ -250,43 +272,43 @@ const emnapiTSFN = {
     Atomics.sub(arr, index, $to64('1') as any)
   },
   getIsClosing (func: number): number {
-    return Atomics.load(new Int32Array(wasmMemory.buffer), (func + $POINTER_SIZE * 3 + 16) >> 2)
+    return Atomics.load(new Int32Array(wasmMemory.buffer), (func + emnapiTSFN.offset.is_closing) >> 2)
   },
   setIsClosing (func: number, value: 0 | 1): void {
-    Atomics.store(new Int32Array(wasmMemory.buffer), (func + $POINTER_SIZE * 3 + 16) >> 2, value)
+    Atomics.store(new Int32Array(wasmMemory.buffer), (func + emnapiTSFN.offset.is_closing) >> 2, value)
   },
   getHandlesClosing (func: number): number {
-    return Atomics.load(new Int32Array(wasmMemory.buffer), (func + $POINTER_SIZE * 10 + 24) >> 2)
+    return Atomics.load(new Int32Array(wasmMemory.buffer), (func + emnapiTSFN.offset.handles_closing) >> 2)
   },
   setHandlesClosing (func: number, value: 0 | 1): void {
-    Atomics.store(new Int32Array(wasmMemory.buffer), (func + $POINTER_SIZE * 10 + 24) >> 2, value)
+    Atomics.store(new Int32Array(wasmMemory.buffer), (func + emnapiTSFN.offset.handles_closing) >> 2, value)
   },
   getDispatchState (func: number): number {
-    return Atomics.load(new Uint32Array(wasmMemory.buffer), (func + $POINTER_SIZE * 3 + 20) >> 2)
+    return Atomics.load(new Uint32Array(wasmMemory.buffer), (func + emnapiTSFN.offset.dispatch_state) >> 2)
   },
   getContext (func: number): number {
-    return emnapiTSFN.loadSizeTypeValue(func + $POINTER_SIZE * 3 + 24, false)
+    return emnapiTSFN.loadSizeTypeValue(func + emnapiTSFN.offset.context, false)
   },
   getMaxQueueSize (func: number): number {
-    return emnapiTSFN.loadSizeTypeValue(func + $POINTER_SIZE * 4 + 24, true)
+    return emnapiTSFN.loadSizeTypeValue(func + emnapiTSFN.offset.max_queue_size, true)
   },
   getEnv (func: number): number {
-    return emnapiTSFN.loadSizeTypeValue(func + $POINTER_SIZE * 6 + 24, false)
+    return emnapiTSFN.loadSizeTypeValue(func + emnapiTSFN.offset.env, false)
   },
   getCallJSCb (func: number): number {
-    return emnapiTSFN.loadSizeTypeValue(func + $POINTER_SIZE * 9 + 24, false)
+    return emnapiTSFN.loadSizeTypeValue(func + emnapiTSFN.offset.call_js_cb, false)
   },
   getRef (func: number): number {
-    return emnapiTSFN.loadSizeTypeValue(func + $POINTER_SIZE * 5 + 24, false)
+    return emnapiTSFN.loadSizeTypeValue(func + emnapiTSFN.offset.ref, false)
   },
   getResource (func: number): number {
-    return emnapiTSFN.loadSizeTypeValue(func, false)
+    return emnapiTSFN.loadSizeTypeValue(func + emnapiTSFN.offset.resource, false)
   },
   getFinalizeCb (func: number): number {
-    return emnapiTSFN.loadSizeTypeValue(func + $POINTER_SIZE * 8 + 24, false)
+    return emnapiTSFN.loadSizeTypeValue(func + emnapiTSFN.offset.finalize_cb, false)
   },
   getFinalizeData (func: number): number {
-    return emnapiTSFN.loadSizeTypeValue(func + $POINTER_SIZE * 7 + 24, false)
+    return emnapiTSFN.loadSizeTypeValue(func + emnapiTSFN.offset.finalize_data, false)
   },
   loadSizeTypeValue (offset: number, unsigned: boolean): number {
     let ret: any
@@ -343,7 +365,7 @@ const emnapiTSFN = {
     emnapiCtx.removeCleanupHook(envObject, emnapiTSFN.cleanup, func)
     envObject.unref()
 
-    const asyncRefOffset = (func + $POINTER_SIZE * 10 + 28) >> 2
+    const asyncRefOffset = (func + emnapiTSFN.offset.async_ref) >> 2
     const arr = new Int32Array(wasmMemory.buffer)
     if (Atomics.load(arr, asyncRefOffset)) {
       Atomics.store(arr, asyncRefOffset, 0)
@@ -356,8 +378,8 @@ const emnapiTSFN = {
 
     if (emnapiNodeBinding) {
       const view = new DataView(wasmMemory.buffer)
-      const asyncId = view.getFloat64((func + $POINTER_SIZE * 1) >> 3, true)
-      const triggerAsyncId = view.getFloat64((func + $POINTER_SIZE * 1 + 8) >> 3, true)
+      const asyncId = view.getFloat64((func + emnapiTSFN.offset.async_id) >> 3, true)
+      const triggerAsyncId = view.getFloat64((func + emnapiTSFN.offset.trigger_async_id) >> 3, true)
       emnapiNodeBinding.node.emitAsyncDestroy({
         asyncId, triggerAsyncId
       })
@@ -408,8 +430,8 @@ const emnapiTSFN = {
           const resource_value = emnapiCtx.refStore.get(resource)!.get()
           const resourceObject = emnapiCtx.handleStore.get(resource_value)!.value
           const view = new DataView(wasmMemory.buffer)
-          const asyncId = view.getFloat64((func + $POINTER_SIZE * 1) >> 3, true)
-          const triggerAsyncId = view.getFloat64((func + $POINTER_SIZE * 1 + 8) >> 3, true)
+          const asyncId = view.getFloat64((func + emnapiTSFN.offset.async_id) >> 3, true)
+          const triggerAsyncId = view.getFloat64((func + emnapiTSFN.offset.trigger_async_id) >> 3, true)
           emnapiNodeBinding.node.makeCallback(resourceObject, f, [], {
             asyncId,
             triggerAsyncId
@@ -516,8 +538,8 @@ const emnapiTSFN = {
           const resourceObject = emnapiCtx.handleStore.get(resource_value)!.value
           const view = new DataView(wasmMemory.buffer)
           emnapiNodeBinding.node.makeCallback(resourceObject, f, [], {
-            asyncId: view.getFloat64((func + $POINTER_SIZE * 1) >> 3, true),
-            triggerAsyncId: view.getFloat64((func + $POINTER_SIZE * 1 + 8) >> 3, true)
+            asyncId: view.getFloat64((func + emnapiTSFN.offset.async_id) >> 3, true),
+            triggerAsyncId: view.getFloat64((func + emnapiTSFN.offset.trigger_async_id) >> 3, true)
           })
         } else {
           f()
@@ -534,7 +556,7 @@ const emnapiTSFN = {
 
     let iterations_left = 1000
     const ui32a = new Uint32Array(wasmMemory.buffer)
-    const index = (func + $POINTER_SIZE * 3 + 20) >> 2
+    const index = (func + emnapiTSFN.offset.dispatch_state) >> 2
     while (has_more && --iterations_left !== 0) {
       Atomics.store(ui32a, index, 1)
       has_more = emnapiTSFN.dispatchOne(func)
@@ -549,7 +571,7 @@ const emnapiTSFN = {
     }
   },
   send (func: number): void {
-    const current_state = Atomics.or(new Uint32Array(wasmMemory.buffer), (func + $POINTER_SIZE * 3 + 20) >> 2, 1 << 1)
+    const current_state = Atomics.or(new Uint32Array(wasmMemory.buffer), (func + emnapiTSFN.offset.dispatch_state) >> 2, 1 << 1)
     if ((current_state & 1) === 1) {
       return
     }
@@ -653,28 +675,28 @@ function _napi_create_threadsafe_function (
   //   int32_t mutex;                                // 10 * PS + 32
   //   int32_t cond;                                 // 10 * PS + 36
   // }
-  const sizeofTSFN = 10 * $POINTER_SIZE + 40
+  const sizeofTSFN = emnapiTSFN.offset.end
   const tsfn = $makeMalloc('napi_create_threadsafe_function', 'sizeofTSFN')
   if (!tsfn) return envObject.setLastError(napi_status.napi_generic_failure)
   new Uint8Array(wasmMemory.buffer).subarray(tsfn, tsfn + sizeofTSFN).fill(0)
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const resource_ = emnapiCtx.createReference(envObject, resource, 1, Ownership.kUserland as any).id
   $makeSetValue('tsfn', 0, 'resource_', '*')
-  __emnapi_node_emit_async_init(resource, resource_name, -1, $POINTER_SIZE * 1)
-  $makeSetValue('tsfn', '16 + 2 * ' + POINTER_SIZE, 'initial_thread_count', SIZE_TYPE)
-  $makeSetValue('tsfn', '24 + 3 * ' + POINTER_SIZE, 'context', '*')
-  $makeSetValue('tsfn', '24 + 4 * ' + POINTER_SIZE, 'max_queue_size', SIZE_TYPE)
-  $makeSetValue('tsfn', '24 + 5 * ' + POINTER_SIZE, 'ref', '*')
-  $makeSetValue('tsfn', '24 + 6 * ' + POINTER_SIZE, 'env', '*')
-  $makeSetValue('tsfn', '24 + 7 * ' + POINTER_SIZE, 'thread_finalize_data', '*')
-  $makeSetValue('tsfn', '24 + 8 * ' + POINTER_SIZE, 'thread_finalize_cb', '*')
-  $makeSetValue('tsfn', '24 + 9 * ' + POINTER_SIZE, 'call_js_cb', '*')
+  __emnapi_node_emit_async_init(resource, resource_name, -1, tsfn + emnapiTSFN.offset.async_id)
+  $makeSetValue('tsfn', 'emnapiTSFN.offset.thread_count', 'initial_thread_count', SIZE_TYPE)
+  $makeSetValue('tsfn', 'emnapiTSFN.offset.context', 'context', '*')
+  $makeSetValue('tsfn', 'emnapiTSFN.offset.max_queue_size', 'max_queue_size', SIZE_TYPE)
+  $makeSetValue('tsfn', 'emnapiTSFN.offset.ref', 'ref', '*')
+  $makeSetValue('tsfn', 'emnapiTSFN.offset.env', 'env', '*')
+  $makeSetValue('tsfn', 'emnapiTSFN.offset.finalize_data', 'thread_finalize_data', '*')
+  $makeSetValue('tsfn', 'emnapiTSFN.offset.finalize_cb', 'thread_finalize_cb', '*')
+  $makeSetValue('tsfn', 'emnapiTSFN.offset.call_js_cb', 'call_js_cb', '*')
   emnapiCtx.addCleanupHook(envObject, emnapiTSFN.cleanup, tsfn)
   envObject.ref()
 
   __emnapi_runtime_keepalive_push()
   emnapiCtx.increaseWaitingRequestCounter()
-  $makeSetValue('tsfn', '28 + 10 * ' + POINTER_SIZE, '1', 'i32')
+  $makeSetValue('tsfn', 'emnapiTSFN.offset.async_ref', '1', 'i32')
 
   $from64('result')
   $makeSetValue('result', 0, 'tsfn', '*')
@@ -762,7 +784,7 @@ function _napi_unref_threadsafe_function (env: napi_env, func: number): napi_sta
     return napi_status.napi_invalid_arg
   }
   $from64('func')
-  const asyncRefOffset = (func + $POINTER_SIZE * 10 + 28) >> 2
+  const asyncRefOffset = (func + emnapiTSFN.offset.async_ref) >> 2
   const arr = new Int32Array(wasmMemory.buffer)
   if (Atomics.load(arr, asyncRefOffset)) {
     Atomics.store(arr, asyncRefOffset, 0)
@@ -778,7 +800,7 @@ function _napi_ref_threadsafe_function (env: napi_env, func: number): napi_statu
     return napi_status.napi_invalid_arg
   }
   $from64('func')
-  const asyncRefOffset = (func + $POINTER_SIZE * 10 + 28) >> 2
+  const asyncRefOffset = (func + emnapiTSFN.offset.async_ref) >> 2
   const arr = new Int32Array(wasmMemory.buffer)
   if (!Atomics.load(arr, asyncRefOffset)) {
     Atomics.store(arr, asyncRefOffset, 1)
