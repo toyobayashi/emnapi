@@ -15,10 +15,9 @@ const emnapiTSFN = {
         const type = __emnapi__.type
         const payload = __emnapi__.payload
         if (type === 'tsfn-push-queue') {
-          const func = payload.tsfn
-          emnapiTSFN.queue[func] = emnapiTSFN.queue[func] || []
-          emnapiTSFN.queue[func].push(payload.data)
-          // Atomics.notify(payload.i32a, 0)
+          // TODO
+          emnapiTSFN.pushQueue(payload.tsfn, payload.data)
+          Atomics.notify(payload.i32a, 0)
         } else if (type === 'tsfn-send') {
           emnapiTSFN.dispatch(payload.tsfn)
         }
@@ -42,20 +41,20 @@ const emnapiTSFN = {
   },
   pushQueue (func: number, data: number): void {
     if (ENVIRONMENT_IS_PTHREAD) {
-      emnapiTSFN.addQueueSize(func)
-      // const sab = new SharedArrayBuffer(4)
-      // const i32a = new Int32Array(sab)
+      // TODO: deadlock
+      const sab = new SharedArrayBuffer(4)
+      const i32a = new Int32Array(sab)
       postMessage({
         __emnapi__: {
           type: 'tsfn-push-queue',
           payload: {
-            // i32a,
+            i32a,
             tsfn: func,
             data
           }
         }
       })
-      // Atomics.wait(i32a, 0, 0)
+      Atomics.wait(i32a, 0, 0)
       return
     }
     emnapiTSFN.queue[func] = emnapiTSFN.queue[func] || []
