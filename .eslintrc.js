@@ -14,6 +14,7 @@ module.exports = {
     'no-implied-eval': 'off',
     'no-var': 'off',
     '@typescript-eslint/no-implied-eval': 'off',
+    '@typescript-eslint/restrict-plus-operands': 'off',
     '@typescript-eslint/no-unused-vars': 'error',
     '@typescript-eslint/no-namespace': 'off',
     '@typescript-eslint/no-var-requires': 'off',

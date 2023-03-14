@@ -167,3 +167,13 @@ declare const enum emnapi_memory_view_type {
   emnapi_data_view = -1,
   emnapi_buffer = -2
 }
+
+declare const enum napi_threadsafe_function_call_mode {
+  napi_tsfn_nonblocking,
+  napi_tsfn_blocking
+}
+
+declare const enum napi_threadsafe_function_release_mode {
+  napi_tsfn_release,
+  napi_tsfn_abort
+}

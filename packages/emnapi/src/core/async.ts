@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-floating-promises */
-/* eslint-disable @typescript-eslint/restrict-plus-operands */
 
 function terminateWorker (worker: any): void {
   const tid = worker.__emnapi_tid
@@ -79,6 +78,9 @@ var PThread = {
       }
       // napiModule.emnapi.addSendListener(worker)
       emnapiAddSendListener(worker)
+      if (typeof emnapiTSFN !== 'undefined') {
+        emnapiTSFN.addListener(worker)
+      }
       worker.postMessage({
         __emnapi__: {
           type: 'load',

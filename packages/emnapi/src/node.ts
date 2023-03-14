@@ -59,7 +59,6 @@ function __emnapi_node_make_callback (env: napi_env, async_resource: napi_value,
   size = size >>> 0
   const arr = Array(size)
   for (; i < size; i++) {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/restrict-plus-operands
     const argVal = $makeGetValue('argv', 'i * ' + POINTER_SIZE, '*')
     arr[i] = emnapiCtx.handleStore.get(argVal)!.value
   }
@@ -166,7 +165,6 @@ function napi_make_callback (env: napi_env, async_context: Pointer<int64_t>, rec
     argc = argc >>> 0
     const arr = Array(argc)
     for (; i < argc; i++) {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/restrict-plus-operands
       const argVal = $makeGetValue('argv', 'i * ' + POINTER_SIZE, '*')
       arr[i] = emnapiCtx.handleStore.get(argVal)!.value
     }

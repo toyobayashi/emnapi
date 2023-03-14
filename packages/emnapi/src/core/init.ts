@@ -55,7 +55,7 @@ var wasmTable: WebAssembly.Table
 var _malloc: any
 var _free: any
 
-function abort (msg: string): never {
+function abort (msg?: string): never {
   if (typeof WebAssembly.RuntimeError === 'function') {
     throw new WebAssembly.RuntimeError(msg)
   }
