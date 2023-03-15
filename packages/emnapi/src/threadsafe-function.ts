@@ -24,6 +24,16 @@ const emnapiTSFN = {
     end: 10 * $POINTER_SIZE + 48
   },
   init () {
+    if (typeof PThread !== 'undefined') {
+      PThread.unusedWorkers.forEach(emnapiTSFN.addListener)
+      PThread.runningWorkers.forEach(emnapiTSFN.addListener)
+      const __original_getNewWorker = PThread.getNewWorker
+      PThread.getNewWorker = function () {
+        const r = __original_getNewWorker.apply(this, arguments as any)
+        emnapiTSFN.addListener(r)
+        return r
+      }
+    }
   },
   addListener (worker: any) {
     if (!worker) return false
@@ -828,21 +838,14 @@ emnapiDefineVar(
   '$emnapiTSFN',
   emnapiTSFN,
   [
+    '$emnapiInit',
+    '$PThread',
     '_emnapi_node_emit_async_init',
     '_emnapi_node_emit_async_destroy',
     '_emnapi_runtime_keepalive_pop',
     '_emnapi_runtime_keepalive_push'
   ],
-  'emnapiTSFN.init();' +
-  'if (typeof PThread !== "undefined") {' +
-    'PThread.unusedWorkers.forEach(emnapiTSFN.addListener);' +
-    'PThread.runningWorkers.forEach(emnapiTSFN.addListener);' +
-    '(function () { var __original_getNewWorker = PThread.getNewWorker; PThread.getNewWorker = function () {' +
-      'var r = __original_getNewWorker.apply(this, arguments);' +
-      'emnapiTSFN.addListener(r);' +
-      'return r;' +
-    '}; })();' +
-  '}'
+  'emnapiTSFN.init();'
 )
 
 emnapiImplement('napi_create_threadsafe_function', 'ippppppppppp', _napi_create_threadsafe_function, ['$emnapiTSFN'])
