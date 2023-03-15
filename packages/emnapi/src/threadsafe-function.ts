@@ -44,11 +44,7 @@ const emnapiTSFN = {
       if (__emnapi__) {
         const type = __emnapi__.type
         const payload = __emnapi__.payload
-        if (type === 'tsfn-push-queue') {
-          // TODO
-          emnapiTSFN.pushQueue(payload.tsfn, payload.data)
-          Atomics.notify(payload.i32a, 0)
-        } else if (type === 'tsfn-send') {
+        if (type === 'tsfn-send') {
           emnapiTSFN.dispatch(payload.tsfn)
         }
       }
