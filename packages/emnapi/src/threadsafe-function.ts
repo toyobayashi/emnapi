@@ -117,12 +117,23 @@ const emnapiTSFN = {
       const isClosing = emnapiTSFN.getIsClosing(func)
       return queueSize >= maxSize && maxSize > 0 && !isClosing
     }
+    const isBrowserMain = typeof window !== 'undefined' && typeof document !== 'undefined' && !ENVIRONMENT_IS_NODE
     return mutex.execute(() => {
       while (waitCondition()) {
         if (mode === napi_threadsafe_function_call_mode.napi_tsfn_nonblocking) {
           return napi_status.napi_queue_full
         }
 
+        /**
+         * Browser JS main thread can not use `Atomics.wait`
+         *
+         * Related:
+         * https://github.com/nodejs/node/pull/32689
+         * https://github.com/nodejs/node/pull/33453
+         */
+        if (isBrowserMain) {
+          return napi_status.napi_would_deadlock
+        }
         cond.wait()
       }
 
@@ -144,8 +155,9 @@ const emnapiTSFN = {
     const index = func + emnapiTSFN.offset.mutex
     const mutex = {
       lock () {
+        const isBrowserMain = typeof window !== 'undefined' && typeof document !== 'undefined' && !ENVIRONMENT_IS_NODE
         const i32a = new Int32Array(wasmMemory.buffer, index, 1)
-        if (typeof window !== 'undefined' && typeof document !== 'undefined' && !ENVIRONMENT_IS_NODE) {
+        if (isBrowserMain) {
           while (true) {
             const oldValue = Atomics.compareExchange(i32a, 0, 0, 1)
             if (oldValue === 0) {
@@ -162,7 +174,7 @@ const emnapiTSFN = {
           }
         }
       },
-      lockAsync () {
+      /* lockAsync () {
         return new Promise<void>(resolve => {
           const again = (): void => { fn() }
           const fn = (): void => {
@@ -176,7 +188,7 @@ const emnapiTSFN = {
           }
           fn()
         })
-      },
+      }, */
       unlock () {
         const i32a = new Int32Array(wasmMemory.buffer, index, 1)
         const oldValue = Atomics.compareExchange(i32a, 0, 1, 0)
@@ -193,7 +205,7 @@ const emnapiTSFN = {
         } finally {
           mutex.unlock()
         }
-      },
+      }/* ,
       executeAsync<T> (fn: () => Promise<T>): Promise<T> {
         return mutex.lockAsync().then(() => {
           const r = fn()
@@ -203,7 +215,7 @@ const emnapiTSFN = {
           mutex.unlock()
           throw err
         })
-      }
+      } */
     }
     return mutex
   },
@@ -218,7 +230,7 @@ const emnapiTSFN = {
         Atomics.wait(i32a, 0, value)
         mutex.lock()
       },
-      waitAsync () {
+      /* waitAsync () {
         const i32a = new Int32Array(wasmMemory.buffer, index, 1)
         const value = Atomics.load(i32a, 0)
         mutex.unlock()
@@ -228,7 +240,7 @@ const emnapiTSFN = {
         } catch (err) {
           return lock()
         }
-      },
+      }, */
       signal () {
         const i32a = new Int32Array(wasmMemory.buffer, index, 1)
         Atomics.add(i32a, 0, 1)
@@ -671,26 +683,6 @@ function _napi_create_threadsafe_function (
   const resource_name = envObject.ensureHandleId(asyncResourceName)
 
   // tsfn create
-  // struct napi_threadsafe_function__ {
-  //   napi_ref resource_                            // 0
-  //   double async_id;                              // 1 * PS
-  //   double trigger_async_id;                      // 1 * PS + 8
-  //   size_t queue_size                             // 1 * PS + 16
-  //   size_t thread_count;                          // 2 * PS + 16
-  //   bool is_closing;                              // 3 * PS + 16
-  //   atomic_uchar dispatch_state;                  // 3 * PS + 20
-  //   void* context;                                // 3 * PS + 24
-  //   size_t max_queue_size;                        // 4 * PS + 24
-  //   napi_ref ref;                                 // 5 * PS + 24
-  //   napi_env env;                                 // 6 * PS + 24
-  //   void* finalize_data;                          // 7 * PS + 24
-  //   napi_finalize finalize_cb;                    // 8 * PS + 24
-  //   napi_threadsafe_function_call_js call_js_cb;  // 9 * PS + 24
-  //   bool handles_closing;                         // 10 * PS + 24
-  //   bool async_ref;                               // 10 * PS + 28
-  //   int32_t mutex;                                // 10 * PS + 32
-  //   int32_t cond;                                 // 10 * PS + 36
-  // }
   const sizeofTSFN = emnapiTSFN.offset.end
   const tsfn = $makeMalloc('napi_create_threadsafe_function', 'sizeofTSFN')
   if (!tsfn) return envObject.setLastError(napi_status.napi_generic_failure)
