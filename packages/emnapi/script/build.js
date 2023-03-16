@@ -41,7 +41,7 @@ async function build () {
 
   const transformerTsconfigPath = path.join(__dirname, '../transformer/tsconfig.json')
   compile(transformerTsconfigPath)
-  const coreTsconfigPath = path.join(__dirname, '../tsconfig.core.json')
+  const coreTsconfigPath = path.join(__dirname, '../src/core/tsconfig.json')
   compile(coreTsconfigPath, {
     customTransformersAfter: (program) => {
       return {
