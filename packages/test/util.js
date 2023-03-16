@@ -29,6 +29,7 @@ function loadPath (request, options) {
         context,
         filename: request,
         reuseWorker: true,
+        singleThreadAsyncWork: true,
         onCreateWorker () {
           return new Worker(join(__dirname, './worker.js'), {
             env: process.env,

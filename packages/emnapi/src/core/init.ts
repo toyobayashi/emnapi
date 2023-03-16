@@ -7,6 +7,7 @@ declare interface CreateOptions {
   nodeBinding?: NodeBinding
   childThread?: boolean
   reuseWorker?: boolean
+  singleThreadAsyncWork?: boolean
   onCreateWorker?: () => any
   print?: (str: string) => void
   printErr?: (str: string) => void
@@ -45,6 +46,7 @@ declare interface INapiModule {
 var ENVIRONMENT_IS_NODE = typeof process === 'object' && process !== null && typeof process.versions === 'object' && process.versions !== null && typeof process.versions.node === 'string'
 var ENVIRONMENT_IS_PTHREAD = Boolean(options.childThread)
 var reuseWorker = Boolean(options.reuseWorker)
+var singleThreadAsyncWork = Boolean(options.singleThreadAsyncWork)
 
 var wasmInstance: WebAssembly.Instance
 var wasmModule: WebAssembly.Module
