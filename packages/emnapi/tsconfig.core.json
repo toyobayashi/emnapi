@@ -15,6 +15,7 @@
     "../runtime/src/typings/**/*.d.ts",
     "./src/typings/**/*.d.ts",
     "./src/*.ts",
-    "./src/value/**/*.ts"
+    "./src/value/**/*.ts",
+    "./src/core/async-work.ts"
   ]
 }
