@@ -18,36 +18,36 @@ declare interface AsyncWork {
   data: number
 }
 
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-function emnapiCreateIdGenerator () {
-  const obj = {
-    nextId: 1,
-    list: [] as number[],
-    generate: function (): number {
-      let id: number
-      if (obj.list.length) {
-        id = obj.list.shift()!
-      } else {
-        id = obj.nextId
-        obj.nextId++
-      }
-      return id
-    },
-    reuse: function (id: number) {
-      obj.list.push(id)
-    }
-  }
-  return obj
-}
-
 const emnapiAWST = {
-  idGen: {} as unknown as ReturnType<typeof emnapiCreateIdGenerator>,
+  idGen: {} as unknown as {
+    nextId: number
+    list: number[]
+    generate: () => number
+    reuse: (id: number) => void
+  },
   values: [undefined] as unknown as AsyncWork[],
   queued: new Set<number>(),
   pending: [] as number[],
 
   init: function () {
-    emnapiAWST.idGen = emnapiCreateIdGenerator()
+    const idGen = {
+      nextId: 1,
+      list: [] as number[],
+      generate: function (): number {
+        let id: number
+        if (idGen.list.length) {
+          id = idGen.list.shift()!
+        } else {
+          id = idGen.nextId
+          idGen.nextId++
+        }
+        return id
+      },
+      reuse: function (id: number) {
+        idGen.list.push(id)
+      }
+    }
+    emnapiAWST.idGen = idGen
     emnapiAWST.values = [undefined!]
     emnapiAWST.queued = new Set<number>()
     emnapiAWST.pending = []
@@ -219,8 +219,7 @@ function _napi_cancel_async_work (env: napi_env, work: number): napi_status {
   return envObject.setLastError(status)
 }
 
-emnapiImplementHelper('$emnapiCreateIdGenerator', undefined, emnapiCreateIdGenerator, [])
-emnapiDefineVar('$emnapiAWST', emnapiAWST, ['$emnapiCreateIdGenerator'], 'emnapiAWST.init();')
+emnapiDefineVar('$emnapiAWST', emnapiAWST, [], 'emnapiAWST.init();')
 
 emnapiImplement('napi_create_async_work', 'ippppppp', _napi_create_async_work, ['$emnapiAWST'])
 emnapiImplement('napi_delete_async_work', 'ipp', _napi_delete_async_work, ['$emnapiAWST'])
