@@ -40,7 +40,7 @@ declare interface INapiModule {
   init (options: InitOptions): any
   spawnThread (startArg: number, errorOrTid?: number): number
   startThread (tid: number, startArg: number): void
-  startAsyncWork (arg: number): void
+  initWorker (arg: number): void
   executeAsyncWork (work: number): void
   postMessage?: (msg: any) => any
 }
@@ -88,7 +88,7 @@ var napiModule: INapiModule = {
 
   spawnThread: undefined!,
   startThread: undefined!,
-  startAsyncWork: undefined!,
+  initWorker: undefined!,
   executeAsyncWork: undefined!,
 
   init (options: InitOptions) {

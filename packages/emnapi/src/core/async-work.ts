@@ -87,7 +87,7 @@ var emnapiAWMT = {
         worker.threadBlockBase = arg
         worker.postMessage({
           __emnapi__: {
-            type: 'async-work-start',
+            type: 'async-worker-init',
             payload: { arg }
           }
         })
@@ -337,7 +337,7 @@ function _napi_cancel_async_work (env: napi_env, work: number): napi_status {
   return envObject.setLastError(status)
 }
 
-function startAsyncWork (startArg: number): void {
+function initWorker (startArg: number): void {
   if (napiModule.childThread) {
     if (typeof wasmInstance.exports.emnapi_async_worker_init !== 'function') {
       throw new TypeError('emnapi_async_worker_init is not exported')
@@ -362,7 +362,7 @@ function executeAsyncWork (work: number): void {
     }
   })
 }
-napiModule.startAsyncWork = startAsyncWork
+napiModule.initWorker = initWorker
 napiModule.executeAsyncWork = executeAsyncWork
 
 emnapiImplement('napi_create_async_work', 'ippppppp', _napi_create_async_work)
