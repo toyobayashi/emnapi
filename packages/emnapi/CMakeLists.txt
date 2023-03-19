@@ -54,7 +54,9 @@ set(EMNAPI_BASIC_MT_TARGET_NAME "emnapi-basic-mt")
 set(EMNAPI_TARGET_NAME "emnapi")
 set(EMNAPI_MT_TARGET_NAME "emnapi-mt")
 set(DLMALLOC_TARGET_NAME "dlmalloc")
+set(DLMALLOC_MT_TARGET_NAME "dlmalloc-mt")
 set(EMMALLOC_TARGET_NAME "emmalloc")
+set(EMMALLOC_MT_TARGET_NAME "emmalloc-mt")
 
 if(EMNAPI_FIND_NODE_ADDON_API)
   execute_process(
@@ -83,11 +85,26 @@ if(IS_WASM32)
     "${CMAKE_CURRENT_SOURCE_DIR}/src/malloc/dlmalloc/dlmalloc.c"
   )
   target_compile_definitions(${DLMALLOC_TARGET_NAME} PRIVATE "PAGESIZE=65536")
+
+  add_library(${DLMALLOC_MT_TARGET_NAME} STATIC
+    ${MALLOC_PUBLIC_SOURCES}
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/malloc/dlmalloc/dlmalloc.c"
+  )
+  target_compile_options(${DLMALLOC_MT_TARGET_NAME} PUBLIC "-matomics" "-mbulk-memory")
+  target_compile_definitions(${DLMALLOC_MT_TARGET_NAME} PRIVATE "PAGESIZE=65536" "USE_LOCKS=1")
+
   add_library(${EMMALLOC_TARGET_NAME} STATIC
     ${MALLOC_PUBLIC_SOURCES}
     "${CMAKE_CURRENT_SOURCE_DIR}/src/malloc/emmalloc/emmalloc.c"
   )
   target_compile_definitions(${EMMALLOC_TARGET_NAME} PRIVATE "PAGESIZE=65536")
+
+  add_library(${EMMALLOC_MT_TARGET_NAME} STATIC
+    ${MALLOC_PUBLIC_SOURCES}
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/malloc/emmalloc/emmalloc.c"
+  )
+  target_compile_options(${EMMALLOC_MT_TARGET_NAME} PUBLIC "-matomics" "-mbulk-memory")
+  target_compile_definitions(${EMMALLOC_MT_TARGET_NAME} PRIVATE "PAGESIZE=65536" "__EMSCRIPTEN_SHARED_MEMORY__=1")
 endif()
 
 add_library(${EMNAPI_TARGET_NAME} STATIC ${EMNAPI_SRC} ${UV_SRC})
@@ -163,7 +180,9 @@ if(LIB_ARCH)
   endif()
   if(IS_WASM32)
     install(TARGETS ${DLMALLOC_TARGET_NAME} DESTINATION "lib/${LIB_ARCH}")
+    install(TARGETS ${DLMALLOC_MT_TARGET_NAME} DESTINATION "lib/${LIB_ARCH}")
     install(TARGETS ${EMMALLOC_TARGET_NAME} DESTINATION "lib/${LIB_ARCH}")
+    install(TARGETS ${EMMALLOC_MT_TARGET_NAME} DESTINATION "lib/${LIB_ARCH}")
   endif()
 endif()
 
