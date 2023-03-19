@@ -99,7 +99,6 @@ elseif(IS_WASI_THREADS)
   set(COMMON_LINK_OPTIONS
     # "-v"
     "-mexec-model=reactor"
-    # "-Wl,--import-memory"
     "-Wl,--import-memory,--max-memory=2147483648,--export-dynamic,--export=malloc,--export=free,--import-undefined,--export-table"
   )
 elseif(IS_WASI)
@@ -107,7 +106,6 @@ elseif(IS_WASI)
   set(COMMON_LINK_OPTIONS
     # "-v"
     "-mexec-model=reactor"
-    # "-Wl,--import-memory"
     "-Wl,--initial-memory=16777216,--export-dynamic,--export=malloc,--export=free,--import-undefined,--export-table"
   )
 elseif(IS_WASM32)
@@ -115,8 +113,7 @@ elseif(IS_WASM32)
   set(COMMON_LINK_OPTIONS
     # "-v"
     "-nostdlib"
-    # "-Wl,--import-memory"
-    "-Wl,--no-entry,--initial-memory=16777216,--export-dynamic,--export=malloc,--export=free,--import-undefined,--export-table"
+    "-Wl,--no-entry,--export-dynamic,--export=malloc,--export=free,--import-undefined,--export-table"
   )
 else()
   set(COMMON_LINK_OPTIONS "")
@@ -161,7 +158,12 @@ function(add_test NAME SOURCE_LIST NEED_ENTRY PTHREAD LINKOPTIONS)
   if(IS_WASM)
     if(PTHREAD)
       if((IS_WASI AND NOT IS_WASI_THREADS) OR IS_WASM32)
-        target_link_libraries(${NAME} PRIVATE "emnapi-basic")
+        if(IS_WASM32)
+          target_link_libraries(${NAME} PRIVATE "emnapi-basic-mt")
+          target_link_options(${NAME} PRIVATE "-Wl,--import-memory,--shared-memory,--max-memory=2147483648,--export=emnapi_async_worker_create,--export=emnapi_async_worker_init")
+        else()
+          target_link_libraries(${NAME} PRIVATE "emnapi-basic")
+        endif()
       else()
         target_link_libraries(${NAME} PRIVATE "emnapi-mt")
         target_compile_options(${NAME} PRIVATE "-pthread")
@@ -171,7 +173,10 @@ function(add_test NAME SOURCE_LIST NEED_ENTRY PTHREAD LINKOPTIONS)
         target_link_options(${NAME} PRIVATE "-sPTHREAD_POOL_SIZE=${PTHREAD_POOL_SIZE}" "-sPTHREAD_POOL_SIZE_STRICT=2")
       endif()
     else()
-      target_link_libraries(${NAME} PRIVATE "emnapi")
+      target_link_libraries(${NAME} PRIVATE "emnapi-basic")
+      if(IS_WASM32)
+        target_link_options(${NAME} PRIVATE "-Wl,--initial-memory=16777216")
+      endif()
     endif()
   endif()
   target_link_options(${NAME} PRIVATE ${COMMON_LINK_OPTIONS})
@@ -206,7 +211,12 @@ function(add_naa_test NAME SOURCE_LIST DEFINES ENABLE_EXCEPTION)
     BUILD_RPATH "$ORIGIN")
   if(IS_WASM)
     if((IS_WASI AND NOT IS_WASI_THREADS) OR IS_WASM32)
-      target_link_libraries(${NAME} PRIVATE "emnapi-basic")
+      if(IS_WASM32)
+        target_link_libraries(${NAME} PRIVATE "emnapi-basic-mt")
+        target_link_options(${NAME} PRIVATE "-Wl,--import-memory,--shared-memory,--max-memory=2147483648,--export=emnapi_async_worker_create,--export=emnapi_async_worker_init")
+      else()
+        target_link_libraries(${NAME} PRIVATE "emnapi-basic")
+      endif()
     else()
       target_link_libraries(${NAME} PRIVATE "emnapi-mt")
       target_compile_options(${NAME} PRIVATE "-pthread")
@@ -237,9 +247,7 @@ endfunction()
 add_test("env" "./env/binding.c" OFF OFF "")
 add_test("hello" "./hello/binding.c" OFF OFF "")
 
-if((NOT IS_WASM) OR IS_WASI OR IS_EMSCRIPTEN OR IS_WASI_THREADS)
-  add_test("async" "./async/binding.c" OFF ON "")
-endif()
+add_test("async" "./async/binding.c" OFF ON "")
 
 if((NOT IS_WASM) OR IS_EMSCRIPTEN OR IS_WASI_THREADS)
   add_test("string_mt" "./string/binding.c" ON ON "")

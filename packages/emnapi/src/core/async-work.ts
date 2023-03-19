@@ -1,4 +1,8 @@
 var emnapiAWMT = {
+  unusedWorkers: [] as any[],
+  runningWorkers: [] as any[],
+  workQueue: [] as number[],
+  workerReady: null as (Promise<any> & { ready: boolean }) | null,
   offset: {
     /* napi_ref */ resource: 0,
     /* double */ async_id: 8,
@@ -7,12 +11,215 @@ var emnapiAWMT = {
     /* void* */ data: 1 * $POINTER_SIZE + 24,
     /* napi_async_execute_callback */ execute: 2 * $POINTER_SIZE + 24,
     /* napi_async_complete_callback */ complete: 3 * $POINTER_SIZE + 24,
-    /* int32_t */ status: 4 * $POINTER_SIZE + 24,
-    end: 5 * $POINTER_SIZE + 24
+    end: 4 * $POINTER_SIZE + 24
   },
-  init () {},
+  init () {
+    emnapiAWMT.unusedWorkers = []
+    emnapiAWMT.runningWorkers = []
+    emnapiAWMT.workQueue = []
+    emnapiAWMT.workerReady = null
+  },
+  addListener (worker: any) {
+    if (!worker) return false
+    if (worker._emnapiAWMTListener) return true
+    const handler = function (e: any): void {
+      const data = ENVIRONMENT_IS_NODE ? e : e.data
+      const __emnapi__ = data.__emnapi__
+      if (__emnapi__) {
+        const type = __emnapi__.type
+        const payload = __emnapi__.payload
+        if (type === 'async-work-complete') {
+          __emnapi_runtime_keepalive_pop()
+          emnapiCtx.decreaseWaitingRequestCounter()
+          emnapiAWMT.runningWorkers.splice(emnapiAWMT.runningWorkers.indexOf(worker), 1)
+          emnapiAWMT.unusedWorkers.push(worker)
+          emnapiAWMT.checkIdleWorker()
+          emnapiAWMT.callComplete(payload.work, napi_status.napi_ok)
+        } else if (type === 'async-work-queue') {
+          emnapiAWMT.scheduleWork(payload.work)
+        } else if (type === 'async-work-cancel') {
+          emnapiAWMT.cancelWork(payload.work)
+        }
+      }
+    }
+    const dispose = function (): void {
+      if (ENVIRONMENT_IS_NODE) {
+        worker.off('message', handler)
+      } else {
+        worker.removeEventListener('message', handler, false)
+      }
+      delete worker._emnapiAWMTListener
+    }
+    worker._emnapiAWMTListener = { handler, dispose }
+    if (ENVIRONMENT_IS_NODE) {
+      worker.on('message', handler)
+    } else {
+      worker.addEventListener('message', handler, false)
+    }
+    return true
+  },
+  initWorkers (n: number): Promise<any> {
+    if (ENVIRONMENT_IS_PTHREAD) {
+      // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+      return emnapiAWMT.workerReady || (emnapiAWMT.workerReady = Promise.resolve() as any)
+    }
+    if (emnapiAWMT.workerReady) return emnapiAWMT.workerReady
+    if (typeof onCreateWorker !== 'function') {
+      throw new TypeError('`options.onCreateWorker` is not a function')
+    }
+    const promises = [] as Array<Promise<void>>
+    const args = [] as number[]
+    for (let i = 0; i < n; ++i) {
+      args.push((wasmInstance.exports as any).emnapi_async_worker_create())
+    }
+    try {
+      for (let i = 0; i < n; ++i) {
+        const worker = onCreateWorker({ type: 'async-work' })
+        const p = PThread.loadWasmModuleToWorker(worker)
+        emnapiAWMT.addListener(worker)
+        promises.push(p.then(() => {
+          if (typeof worker.unref === 'function') {
+            worker.unref()
+          }
+        }))
+        emnapiAWMT.unusedWorkers.push(worker)
+        const arg = args[i]
+        worker.threadBlockBase = arg
+        worker.postMessage({
+          __emnapi__: {
+            type: 'async-work-start',
+            payload: { arg }
+          }
+        })
+      }
+    } catch (err) {
+      for (let i = 0; i < n; ++i) {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const arg = args[i]
+        _free($to64('arg'))
+      }
+      throw err
+    }
+    emnapiAWMT.workerReady = Promise.all(promises) as any
+    return emnapiAWMT.workerReady as Promise<any>
+  },
+  checkIdleWorker () {
+    if (emnapiAWMT.unusedWorkers.length > 0 && emnapiAWMT.workQueue.length > 0) {
+      const worker = emnapiAWMT.unusedWorkers.shift()!
+      const work = emnapiAWMT.workQueue.shift()!
+      emnapiAWMT.runningWorkers.push(worker)
+      worker.postMessage({
+        __emnapi__: {
+          type: 'async-work-execute',
+          payload: { work }
+        }
+      })
+    }
+  },
   getResource (work: number): number {
     return emnapiTSFN.loadSizeTypeValue(work + emnapiAWMT.offset.resource, false)
+  },
+  getExecute (work: number): number {
+    return emnapiTSFN.loadSizeTypeValue(work + emnapiAWMT.offset.execute, false)
+  },
+  getComplete (work: number): number {
+    return emnapiTSFN.loadSizeTypeValue(work + emnapiAWMT.offset.complete, false)
+  },
+  getEnv (work: number): number {
+    return emnapiTSFN.loadSizeTypeValue(work + emnapiAWMT.offset.env, false)
+  },
+  getData (work: number): number {
+    return emnapiTSFN.loadSizeTypeValue(work + emnapiAWMT.offset.data, false)
+  },
+  scheduleWork: function (work: number) {
+    if (ENVIRONMENT_IS_PTHREAD) {
+      const postMessage = napiModule.postMessage!
+      postMessage({
+        __emnapi__: {
+          type: 'async-work-queue',
+          payload: { work }
+        }
+      })
+      return
+    }
+    __emnapi_runtime_keepalive_push()
+    emnapiCtx.increaseWaitingRequestCounter()
+    emnapiAWMT.workQueue.push(work)
+    if (emnapiAWMT.workerReady?.ready) {
+      emnapiAWMT.checkIdleWorker()
+    } else {
+      const fail = (err: any): void => {
+        __emnapi_runtime_keepalive_pop()
+        emnapiCtx.decreaseWaitingRequestCounter()
+        throw err
+      }
+      try {
+        emnapiAWMT.initWorkers(asyncWorkPoolSize).then(() => {
+          emnapiAWMT.workerReady!.ready = true
+          emnapiAWMT.checkIdleWorker()
+        }, fail)
+      } catch (err) {
+        fail(err)
+      }
+    }
+  },
+  cancelWork (work: number) {
+    if (ENVIRONMENT_IS_PTHREAD) {
+      const postMessage = napiModule.postMessage!
+      postMessage({
+        __emnapi__: {
+          type: 'async-work-cancel',
+          payload: { work }
+        }
+      })
+      return napi_status.napi_ok
+    }
+    const index = emnapiAWMT.workQueue.indexOf(work)
+    if (index !== -1) {
+      emnapiAWMT.workQueue.splice(index, 1)
+
+      emnapiCtx.feature.setImmediate(() => {
+        __emnapi_runtime_keepalive_pop()
+        emnapiCtx.decreaseWaitingRequestCounter()
+        emnapiAWMT.checkIdleWorker()
+        emnapiAWMT.callComplete(work, napi_status.napi_cancelled)
+      })
+
+      return napi_status.napi_ok
+    }
+    return napi_status.napi_generic_failure
+  },
+  callComplete: function (work: number, status: napi_status): void {
+    const complete = emnapiAWMT.getComplete(work)
+    const env = emnapiAWMT.getEnv(work)
+    const data = emnapiAWMT.getData(work)
+    const envObject = emnapiCtx.envStore.get(env)!
+    const scope = emnapiCtx.openScope(envObject)
+    const callback = (): void => {
+      if (!complete) return
+      envObject.callIntoModule(() => {
+        $makeDynCall('vpip', 'complete')(env, status, data)
+      })
+    }
+
+    try {
+      if (emnapiNodeBinding) {
+        const resource = emnapiAWMT.getResource(work)
+        const resource_value = emnapiCtx.refStore.get(resource)!.get()
+        const resourceObject = emnapiCtx.handleStore.get(resource_value)!.value
+        const view = new DataView(wasmMemory.buffer)
+        const asyncId = view.getFloat64(work + emnapiAWMT.offset.async_id, true)
+        const triggerAsyncId = view.getFloat64(work + emnapiAWMT.offset.trigger_async_id, true)
+        emnapiNodeBinding.node.makeCallback(resourceObject, callback, [], {
+          asyncId,
+          triggerAsyncId
+        })
+      } else {
+        callback()
+      }
+    } finally {
+      emnapiCtx.closeScope(envObject, scope)
+    }
   }
 }
 
@@ -83,23 +290,80 @@ function _napi_delete_async_work (env: napi_env, work: number): napi_status {
 }
 
 function _napi_queue_async_work (env: napi_env, work: number): napi_status {
+  if (ENVIRONMENT_IS_PTHREAD) {
+    $CHECK_ENV!(env)
+    if (!work) return napi_status.napi_invalid_arg
+    const postMessage = napiModule.postMessage!
+    postMessage({
+      __emnapi__: {
+        type: 'async-work-queue',
+        payload: { work }
+      }
+    })
+    return napi_status.napi_ok
+  }
+
   $CHECK_ENV!(env)
   const envObject = emnapiCtx.envStore.get(env)!
   $CHECK_ARG!(envObject, work)
 
-  emnapiAWST.queue(work)
+  if (singleThreadAsyncWork) {
+    emnapiAWST.queue(work)
+  } else {
+    emnapiAWMT.scheduleWork(work)
+  }
   return envObject.clearLastError()
 }
 
 function _napi_cancel_async_work (env: napi_env, work: number): napi_status {
+  if (ENVIRONMENT_IS_PTHREAD) {
+    $CHECK_ENV!(env)
+    if (!work) return napi_status.napi_invalid_arg
+    return napi_status.napi_ok
+  }
+
   $CHECK_ENV!(env)
   const envObject = emnapiCtx.envStore.get(env)!
   $CHECK_ARG!(envObject, work)
 
-  const status = emnapiAWST.cancel(work)
+  if (singleThreadAsyncWork) {
+    const status = emnapiAWST.cancel(work)
+    if (status === napi_status.napi_ok) return envObject.clearLastError()
+    return envObject.setLastError(status)
+  }
+
+  const status = emnapiAWMT.cancelWork(work)
   if (status === napi_status.napi_ok) return envObject.clearLastError()
   return envObject.setLastError(status)
 }
+
+function startAsyncWork (startArg: number): void {
+  if (napiModule.childThread) {
+    if (typeof wasmInstance.exports.emnapi_async_worker_init !== 'function') {
+      throw new TypeError('emnapi_async_worker_init is not exported')
+    }
+    ;(wasmInstance.exports.emnapi_async_worker_init as Function)(startArg)
+  } else {
+    throw new Error('startThread is only available in child threads')
+  }
+}
+function executeAsyncWork (work: number): void {
+  if (!ENVIRONMENT_IS_PTHREAD) return
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const execute = emnapiAWMT.getExecute(work)
+  const env = emnapiAWMT.getEnv(work)
+  const data = emnapiAWMT.getData(work)
+  $makeDynCall('vpp', 'execute')(env, data)
+  const postMessage = napiModule.postMessage!
+  postMessage({
+    __emnapi__: {
+      type: 'async-work-complete',
+      payload: { work }
+    }
+  })
+}
+napiModule.startAsyncWork = startAsyncWork
+napiModule.executeAsyncWork = executeAsyncWork
 
 emnapiImplement('napi_create_async_work', 'ippppppp', _napi_create_async_work)
 emnapiImplement('napi_delete_async_work', 'ipp', _napi_delete_async_work)

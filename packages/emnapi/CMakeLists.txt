@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.13)
 
-project(emnapi)
+project(emnapi LANGUAGES C ASM)
 
 option(EMNAPI_INSTALL_SRC "EMNAPI_INSTALL_SRC" OFF)
 option(EMNAPI_FIND_NODE_ADDON_API "EMNAPI_FIND_NODE_ADDON_API" OFF)
@@ -50,6 +50,7 @@ else()
 endif()
 
 set(EMNAPI_BASIC_TARGET_NAME "emnapi-basic")
+set(EMNAPI_BASIC_MT_TARGET_NAME "emnapi-basic-mt")
 set(EMNAPI_TARGET_NAME "emnapi")
 set(EMNAPI_MT_TARGET_NAME "emnapi-mt")
 set(DLMALLOC_TARGET_NAME "dlmalloc")
@@ -101,6 +102,22 @@ if(IS_EMSCRIPTEN)
   target_link_options(${EMNAPI_BASIC_TARGET_NAME} INTERFACE "--js-library=${EMNAPI_JS_LIB}")
 endif()
 
+if(IS_WASM32 OR (CMAKE_C_COMPILER_TARGET STREQUAL "wasm32-wasi") OR (CMAKE_C_COMPILER_TARGET STREQUAL "wasm32-wasi-threads"))
+  set(EMNAPI_BUILD_BASIC_MT ON)
+else()
+  set(EMNAPI_BUILD_BASIC_MT OFF)
+endif()
+
+if(EMNAPI_BUILD_BASIC_MT)
+  add_library(${EMNAPI_BASIC_MT_TARGET_NAME} STATIC
+    ${ENAPI_BASIC_SRC}
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/thread/async_worker_create.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/thread/async_worker_init.S"
+  )
+  target_compile_options(${EMNAPI_BASIC_MT_TARGET_NAME} PUBLIC "-matomics" "-mbulk-memory")
+  target_include_directories(${EMNAPI_BASIC_MT_TARGET_NAME} PUBLIC ${EMNAPI_INCLUDE})
+endif()
+
 if(IS_EMSCRIPTEN OR (CMAKE_C_COMPILER_TARGET STREQUAL "wasm32-wasi-threads"))
   set(EMNAPI_BUILD_MT ON)
 else()
@@ -141,6 +158,9 @@ if(LIB_ARCH)
   if(EMNAPI_BUILD_MT)
     install(TARGETS ${EMNAPI_MT_TARGET_NAME} DESTINATION "lib/${LIB_ARCH}")
   endif()
+  if(EMNAPI_BUILD_BASIC_MT)
+    install(TARGETS ${EMNAPI_BASIC_MT_TARGET_NAME} DESTINATION "lib/${LIB_ARCH}")
+  endif()
   if(IS_WASM32)
     install(TARGETS ${DLMALLOC_TARGET_NAME} DESTINATION "lib/${LIB_ARCH}")
     install(TARGETS ${EMMALLOC_TARGET_NAME} DESTINATION "lib/${LIB_ARCH}")
@@ -177,5 +197,8 @@ if(EMNAPI_INSTALL_SRC)
     DESTINATION "src/${PROJECT_NAME}")
   install(DIRECTORY
     ${CMAKE_CURRENT_SOURCE_DIR}/src/malloc
+    DESTINATION "src/${PROJECT_NAME}")
+  install(DIRECTORY
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/thread
     DESTINATION "src/${PROJECT_NAME}")
 endif()

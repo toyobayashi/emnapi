@@ -81,23 +81,33 @@ var PThread = {
       if (typeof emnapiTSFN !== 'undefined') {
         emnapiTSFN.addListener(worker)
       }
-      worker.postMessage({
-        __emnapi__: {
-          type: 'load',
-          payload: {
-            wasmModule,
-            wasmMemory
+      try {
+        worker.postMessage({
+          __emnapi__: {
+            type: 'load',
+            payload: {
+              wasmModule,
+              wasmMemory
+            }
           }
+        })
+      } catch (err) {
+        if (typeof SharedArrayBuffer === 'undefined' || !(wasmMemory.buffer instanceof SharedArrayBuffer)) {
+          throw new Error(
+            'Multithread features require shared wasm memory. ' +
+            'Try to compile with `-matomics -mbulk-memory` and use `--import-memory --shared-memory` during linking'
+          )
         }
-      })
+        throw err
+      }
     })
     return worker.whenLoaded
   },
   allocateUnusedWorker () {
     if (typeof onCreateWorker !== 'function') {
-      throw new TypeError('createNapiModule `options.onCreateWorker` is not provided')
+      throw new TypeError('`options.onCreateWorker` is not provided')
     }
-    const worker = onCreateWorker()
+    const worker = onCreateWorker({ type: 'pthread' })
     PThread.unusedWorkers.push(worker)
     return worker
   },
@@ -289,6 +299,9 @@ function spawnThread (startArg: number, errorOrTid: number): number {
 
 function startThread (tid: number, startArg: number): void {
   if (napiModule.childThread) {
+    if (typeof wasmInstance.exports.wasi_thread_start !== 'function') {
+      throw new TypeError('wasi_thread_start is not exported')
+    }
     const postMessage = napiModule.postMessage!
     ;(wasmInstance.exports.wasi_thread_start as Function)(tid, startArg)
     postMessage({

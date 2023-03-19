@@ -1,6 +1,7 @@
 /* eslint-disable camelcase */
 const { join } = require('path')
 const fs = require('fs')
+const { Worker } = require('worker_threads')
 const common = require('./common.js')
 
 const emnapi = require('../runtime')
@@ -20,7 +21,6 @@ function loadPath (request, options) {
 
     if (process.env.EMNAPI_TEST_WASI) {
       const { WASI } = require('./wasi')
-      const { Worker } = require('worker_threads')
       const { createNapiModule, loadNapiModule } = require('@emnapi/core')
       const wasi = new WASI({
         fs
@@ -29,7 +29,6 @@ function loadPath (request, options) {
         context,
         filename: request,
         reuseWorker: true,
-        singleThreadAsyncWork: true,
         onCreateWorker () {
           return new Worker(join(__dirname, './worker.js'), {
             env: process.env,
@@ -38,21 +37,17 @@ function loadPath (request, options) {
         },
         ...(options || {})
       })
-      let wasmMemory
-      if (process.env.EMNAPI_TEST_WASI_THREADS) {
-        wasmMemory = new WebAssembly.Memory({
-          initial: 16777216 / 65536,
-          maximum: 2147483648 / 65536,
-          shared: true
-        })
-      }
 
       const p = new Promise((resolve, reject) => {
         loadNapiModule(napiModule, fs.readFileSync(request), {
           wasi,
           overwriteImports (importObject) {
             if (process.env.EMNAPI_TEST_WASI_THREADS) {
-              importObject.env.memory = wasmMemory
+              importObject.env.memory = new WebAssembly.Memory({
+                initial: 16777216 / 65536,
+                maximum: 2147483648 / 65536,
+                shared: true
+              })
             }
           }
         }).then(() => {
@@ -67,6 +62,12 @@ function loadPath (request, options) {
       const { createNapiModule, loadNapiModule } = require('@emnapi/core')
       const napiModule = createNapiModule({
         context,
+        asyncWorkPoolSize: process.env.UV_THREADPOOL_SIZE || 4,
+        onCreateWorker () {
+          return new Worker(join(__dirname, './worker.js'), {
+            env: process.env
+          })
+        },
         ...(options || {})
       })
       const p = new Promise((resolve, reject) => {
@@ -80,16 +81,28 @@ function loadPath (request, options) {
           const shared = (typeof SharedArrayBuffer === 'function') && (wasmMemory.buffer instanceof SharedArrayBuffer)
           return new TextDecoder().decode(shared ? HEAPU8.slice(ptr, end) : HEAPU8.subarray(ptr, end))
         }
+        const sharedMemory = new WebAssembly.Memory({
+          initial: 16777216 / 65536,
+          maximum: 2147483648 / 65536,
+          shared: true
+        })
         loadNapiModule(napiModule, fs.readFileSync(request), {
           overwriteImports (importObject) {
+            importObject.env.memory = sharedMemory
             importObject.env.console_log = function (fmt, ...args) {
               const fmtString = UTF8ToString(fmt)
               console.log(fmtString, ...args)
               return 0
             }
+            importObject.env.sleep = function (n) {
+              const end = Date.now() + n * 1000
+              while (Date.now() < end) {
+                // ignore
+              }
+            }
           }
         }).then(({ instance }) => {
-          wasmMemory = instance.exports.memory
+          wasmMemory = instance.exports.memory || sharedMemory
           resolve(napiModule.exports)
         }).catch(reject)
       })

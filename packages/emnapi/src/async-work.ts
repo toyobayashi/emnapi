@@ -82,6 +82,7 @@ var emnapiAWST = {
     const env = work.env
     const data = work.data
     const callback = (): void => {
+      if (!complete) return
       const envObject = emnapiCtx.envStore.get(env)!
       const scope = emnapiCtx.openScope(envObject)
       try {
@@ -142,7 +143,9 @@ var emnapiAWST = {
         work.status = 4
         emnapiAWST.pending.splice(index, 1)
 
-        emnapiAWST.callComplete(work, napi_status.napi_cancelled)
+        emnapiCtx.feature.setImmediate(() => {
+          emnapiAWST.callComplete(work, napi_status.napi_cancelled)
+        })
 
         return napi_status.napi_ok
       } else {

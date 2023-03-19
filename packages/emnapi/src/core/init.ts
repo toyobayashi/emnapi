@@ -7,7 +7,7 @@ declare interface CreateOptions {
   nodeBinding?: NodeBinding
   childThread?: boolean
   reuseWorker?: boolean
-  singleThreadAsyncWork?: boolean
+  asyncWorkPoolSize?: number
   onCreateWorker?: () => any
   print?: (str: string) => void
   printErr?: (str: string) => void
@@ -40,13 +40,19 @@ declare interface INapiModule {
   init (options: InitOptions): any
   spawnThread (startArg: number, errorOrTid?: number): number
   startThread (tid: number, startArg: number): void
+  startAsyncWork (arg: number): void
+  executeAsyncWork (work: number): void
   postMessage?: (msg: any) => any
 }
 
 var ENVIRONMENT_IS_NODE = typeof process === 'object' && process !== null && typeof process.versions === 'object' && process.versions !== null && typeof process.versions.node === 'string'
 var ENVIRONMENT_IS_PTHREAD = Boolean(options.childThread)
 var reuseWorker = Boolean(options.reuseWorker)
-var singleThreadAsyncWork = Boolean(options.singleThreadAsyncWork)
+var asyncWorkPoolSize = 'asyncWorkPoolSize' in options ? (Number(options.asyncWorkPoolSize) || 0) : 0
+if (asyncWorkPoolSize < 0) {
+  throw new RangeError('options.asyncWorkPoolSize must be a non-negative integer')
+}
+var singleThreadAsyncWork = asyncWorkPoolSize === 0
 
 var wasmInstance: WebAssembly.Instance
 var wasmModule: WebAssembly.Module
@@ -82,6 +88,8 @@ var napiModule: INapiModule = {
 
   spawnThread: undefined!,
   startThread: undefined!,
+  startAsyncWork: undefined!,
+  executeAsyncWork: undefined!,
 
   init (options: InitOptions) {
     if (napiModule.loaded) return napiModule.exports
@@ -128,17 +136,13 @@ var napiModule: INapiModule = {
       napiModule.loaded = true
       delete napiModule.envObject
       return napiModule.exports
-    } else {
-      if (typeof exports.wasi_thread_start !== 'function') {
-        throw new TypeError('wasi_thread_start is not exported')
-      }
     }
   }
 }
 
 var emnapiCtx: Context
 var emnapiNodeBinding: NodeBinding
-var onCreateWorker: () => any
+var onCreateWorker: (info: { type: 'pthread' | 'async-work' }) => any
 var out: (str: string) => void
 var err: (str: string) => void
 

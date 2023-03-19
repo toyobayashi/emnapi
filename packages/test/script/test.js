@@ -13,7 +13,6 @@ let ignore = []
 
 const pthread = [
   'node-addon-api/**/*',
-  'async/**/*',
   'pool/**/*',
   'tsfn/**/*',
   'async_cleanup_hook/**/*',
@@ -31,7 +30,7 @@ if (process.env.EMNAPI_TEST_NATIVE) {
 } else if (!process.env.EMNAPI_TEST_WASI_THREADS && (process.env.EMNAPI_TEST_WASI || process.env.EMNAPI_TEST_WASM32)) {
   ignore = [...new Set([
     ...ignore,
-    ...(process.env.EMNAPI_TEST_WASI ? pthread.filter(item => (item !== 'async/**/*')) : pthread)
+    ...pthread
   ])]
 } else {
   ignore = [...new Set([

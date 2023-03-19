@@ -34,6 +34,14 @@ export class MessageHandler {
         handleAfterLoad.call(this, e, () => {
           this.napiModule.startThread(payload.tid, payload.arg)
         })
+      } else if (type === 'async-work-start') {
+        handleAfterLoad.call(this, e, () => {
+          this.napiModule.startAsyncWork(payload.arg)
+        })
+      } else if (type === 'async-work-execute') {
+        handleAfterLoad.call(this, e, () => {
+          this.napiModule.executeAsyncWork(payload.work)
+        })
       }
     }
   }

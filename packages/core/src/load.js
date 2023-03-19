@@ -54,9 +54,18 @@ function loadNapiModuleImpl (loadFn, userNapiModule, wasmInput, options) {
     }
   }
 
+  let onInstantiated
+  if (('onInstantiated' in options) && typeof options.onInstantiated === 'function') {
+    onInstantiated = options.onInstantiated
+  }
+
   return loadFn(wasmInput, importObject, (err, source) => {
     if (err) {
       throw err
+    }
+
+    if (onInstantiated) {
+      onInstantiated(source.instance, source.module)
     }
 
     let instance = source.instance
