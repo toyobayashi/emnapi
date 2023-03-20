@@ -145,7 +145,7 @@ class Transform {
       const result = ts.visitEachChild(node, this.visitor, this.ctx)
       this.functionDeclarations.pop()
       const statements = result.body?.statements ?? []
-      if (this.injectDataViewDecl) {
+      if (this.injectDataViewDecl && this.functionDeclarations.length === 0) {
         this.injectDataViewDecl = false
         const decl = this.ctx.factory.createVariableStatement(
           undefined,
