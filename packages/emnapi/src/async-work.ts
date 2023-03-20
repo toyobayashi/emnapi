@@ -126,13 +126,13 @@ var emnapiAWST = {
 
         emnapiCtx.feature.setImmediate(() => {
           emnapiAWST.callComplete(work, napi_status.napi_ok)
-
-          if (emnapiAWST.pending.length > 0) {
-            const nextWorkId = emnapiAWST.pending.shift()!
-            emnapiAWST.values[nextWorkId].status = 0
-            emnapiAWST.queue(nextWorkId)
-          }
         })
+
+        if (emnapiAWST.pending.length > 0) {
+          const nextWorkId = emnapiAWST.pending.shift()!
+          emnapiAWST.values[nextWorkId].status = 0
+          emnapiAWST.queue(nextWorkId)
+        }
       })
     }
   },
