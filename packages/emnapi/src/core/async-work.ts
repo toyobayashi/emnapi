@@ -223,22 +223,22 @@ var emnapiAWMT = {
   }
 }
 
-function _napi_create_async_work (env: napi_env, resource: napi_value, resource_name: napi_value, execute: number, complete: number, data: number, result: number): napi_status {
-  $CHECK_ENV!(env)
-  const envObject = emnapiCtx.envStore.get(env)!
-  $CHECK_ARG!(envObject, execute)
-  $CHECK_ARG!(envObject, result)
+var _napi_create_async_work = singleThreadAsyncWork
+  ? function (env: napi_env, resource: napi_value, resource_name: napi_value, execute: number, complete: number, data: number, result: number): napi_status {
+    $CHECK_ENV!(env)
+    const envObject = emnapiCtx.envStore.get(env)!
+    $CHECK_ARG!(envObject, execute)
+    $CHECK_ARG!(envObject, result)
 
-  let resourceObject: any
-  if (resource) {
-    resourceObject = Object(emnapiCtx.handleStore.get(resource)!.value)
-  } else {
-    resourceObject = {}
-  }
+    let resourceObject: any
+    if (resource) {
+      resourceObject = Object(emnapiCtx.handleStore.get(resource)!.value)
+    } else {
+      resourceObject = {}
+    }
 
-  $CHECK_ARG!(envObject, resource_name)
+    $CHECK_ARG!(envObject, resource_name)
 
-  if (singleThreadAsyncWork) {
     const resourceName = String(emnapiCtx.handleStore.get(resource_name)!.value)
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -246,34 +246,54 @@ function _napi_create_async_work (env: napi_env, resource: napi_value, resource_
     $makeSetValue('result', 0, 'id', '*')
     return envObject.clearLastError()
   }
+  : function (env: napi_env, resource: napi_value, resource_name: napi_value, execute: number, complete: number, data: number, result: number): napi_status {
+    $CHECK_ENV!(env)
+    const envObject = emnapiCtx.envStore.get(env)!
+    $CHECK_ARG!(envObject, execute)
+    $CHECK_ARG!(envObject, result)
 
-  const sizeofAW = emnapiAWMT.offset.end
-  const aw = $makeMalloc('napi_create_async_work', 'sizeofAW')
-  if (!aw) return envObject.setLastError(napi_status.napi_generic_failure)
-  new Uint8Array(wasmMemory.buffer).subarray(aw, aw + sizeofAW).fill(0)
-  const s = envObject.ensureHandleId(resourceObject)
-  const resourceRef = emnapiCtx.createReference(envObject, s, 1, Ownership.kUserland as any)
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const resource_ = resourceRef.id
-  $makeSetValue('aw', 0, 'resource_', '*')
-  __emnapi_node_emit_async_init(s, resource_name, -1, aw + emnapiAWMT.offset.async_id)
-  $makeSetValue('aw', 'emnapiAWMT.offset.env', 'env', '*')
-  $makeSetValue('aw', 'emnapiAWMT.offset.execute', 'execute', '*')
-  $makeSetValue('aw', 'emnapiAWMT.offset.complete', 'complete', '*')
-  $makeSetValue('aw', 'emnapiAWMT.offset.data', 'data', '*')
-  $from64('result')
-  $makeSetValue('result', 0, 'aw', '*')
-  return envObject.clearLastError()
-}
+    let resourceObject: any
+    if (resource) {
+      resourceObject = Object(emnapiCtx.handleStore.get(resource)!.value)
+    } else {
+      resourceObject = {}
+    }
 
-function _napi_delete_async_work (env: napi_env, work: number): napi_status {
-  $CHECK_ENV!(env)
-  const envObject = emnapiCtx.envStore.get(env)!
-  $CHECK_ARG!(envObject, work)
+    $CHECK_ARG!(envObject, resource_name)
 
-  if (singleThreadAsyncWork) {
+    const sizeofAW = emnapiAWMT.offset.end
+    const aw = $makeMalloc('napi_create_async_work', 'sizeofAW')
+    if (!aw) return envObject.setLastError(napi_status.napi_generic_failure)
+    new Uint8Array(wasmMemory.buffer).subarray(aw, aw + sizeofAW).fill(0)
+    const s = envObject.ensureHandleId(resourceObject)
+    const resourceRef = emnapiCtx.createReference(envObject, s, 1, Ownership.kUserland as any)
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const resource_ = resourceRef.id
+    $makeSetValue('aw', 0, 'resource_', '*')
+    __emnapi_node_emit_async_init(s, resource_name, -1, aw + emnapiAWMT.offset.async_id)
+    $makeSetValue('aw', 'emnapiAWMT.offset.env', 'env', '*')
+    $makeSetValue('aw', 'emnapiAWMT.offset.execute', 'execute', '*')
+    $makeSetValue('aw', 'emnapiAWMT.offset.complete', 'complete', '*')
+    $makeSetValue('aw', 'emnapiAWMT.offset.data', 'data', '*')
+    $from64('result')
+    $makeSetValue('result', 0, 'aw', '*')
+    return envObject.clearLastError()
+  }
+
+var _napi_delete_async_work = singleThreadAsyncWork
+  ? function (env: napi_env, work: number): napi_status {
+    $CHECK_ENV!(env)
+    const envObject = emnapiCtx.envStore.get(env)!
+    $CHECK_ARG!(envObject, work)
+
     emnapiAWST.remove(work)
-  } else {
+    return envObject.clearLastError()
+  }
+  : function (env: napi_env, work: number): napi_status {
+    $CHECK_ENV!(env)
+    const envObject = emnapiCtx.envStore.get(env)!
+    $CHECK_ARG!(envObject, work)
+
     const resource = emnapiAWMT.getResource(work)
     emnapiCtx.refStore.get(resource)!.dispose()
 
@@ -285,57 +305,46 @@ function _napi_delete_async_work (env: napi_env, work: number): napi_status {
     }
 
     _free($to64('work') as number)
+    return envObject.clearLastError()
   }
-  return envObject.clearLastError()
-}
 
-function _napi_queue_async_work (env: napi_env, work: number): napi_status {
-  if (ENVIRONMENT_IS_PTHREAD) {
+var _napi_queue_async_work = singleThreadAsyncWork
+  ? function (env: napi_env, work: number): napi_status {
     $CHECK_ENV!(env)
-    if (!work) return napi_status.napi_invalid_arg
-    const postMessage = napiModule.postMessage!
-    postMessage({
-      __emnapi__: {
-        type: 'async-work-queue',
-        payload: { work }
-      }
-    })
-    return napi_status.napi_ok
-  }
+    const envObject = emnapiCtx.envStore.get(env)!
+    $CHECK_ARG!(envObject, work)
 
-  $CHECK_ENV!(env)
-  const envObject = emnapiCtx.envStore.get(env)!
-  $CHECK_ARG!(envObject, work)
-
-  if (singleThreadAsyncWork) {
     emnapiAWST.queue(work)
-  } else {
-    emnapiAWMT.scheduleWork(work)
+    return envObject.clearLastError()
   }
-  return envObject.clearLastError()
-}
-
-function _napi_cancel_async_work (env: napi_env, work: number): napi_status {
-  if (ENVIRONMENT_IS_PTHREAD) {
+  : function (env: napi_env, work: number): napi_status {
     $CHECK_ENV!(env)
-    if (!work) return napi_status.napi_invalid_arg
-    return napi_status.napi_ok
+    const envObject = emnapiCtx.envStore.get(env)!
+    $CHECK_ARG!(envObject, work)
+
+    emnapiAWMT.scheduleWork(work)
+    return envObject.clearLastError()
   }
 
-  $CHECK_ENV!(env)
-  const envObject = emnapiCtx.envStore.get(env)!
-  $CHECK_ARG!(envObject, work)
+var _napi_cancel_async_work = singleThreadAsyncWork
+  ? function (env: napi_env, work: number): napi_status {
+    $CHECK_ENV!(env)
+    const envObject = emnapiCtx.envStore.get(env)!
+    $CHECK_ARG!(envObject, work)
 
-  if (singleThreadAsyncWork) {
     const status = emnapiAWST.cancel(work)
     if (status === napi_status.napi_ok) return envObject.clearLastError()
     return envObject.setLastError(status)
   }
+  : function (env: napi_env, work: number): napi_status {
+    $CHECK_ENV!(env)
+    const envObject = emnapiCtx.envStore.get(env)!
+    $CHECK_ARG!(envObject, work)
 
-  const status = emnapiAWMT.cancelWork(work)
-  if (status === napi_status.napi_ok) return envObject.clearLastError()
-  return envObject.setLastError(status)
-}
+    const status = emnapiAWMT.cancelWork(work)
+    if (status === napi_status.napi_ok) return envObject.clearLastError()
+    return envObject.setLastError(status)
+  }
 
 function initWorker (startArg: number): void {
   if (napiModule.childThread) {
