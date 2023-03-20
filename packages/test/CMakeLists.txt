@@ -252,6 +252,7 @@ add_test("env" "./env/binding.c" OFF OFF "")
 add_test("hello" "./hello/binding.c" OFF OFF "")
 
 add_test("async" "./async/binding.c" OFF ON "")
+add_test("tsfn2" "./tsfn2/binding.c" OFF ON "")
 
 if((NOT IS_WASM) OR IS_EMSCRIPTEN OR IS_WASI_THREADS)
   add_test("string_mt" "./string/binding.c" ON ON "")
