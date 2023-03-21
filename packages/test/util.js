@@ -62,7 +62,7 @@ function loadPath (request, options) {
       const { createNapiModule, loadNapiModule } = require('@emnapi/core')
       const napiModule = createNapiModule({
         context,
-        asyncWorkPoolSize: process.env.UV_THREADPOOL_SIZE || 4,
+        asyncWorkPoolSize: ('UV_THREADPOOL_SIZE' in process.env) ? Number(process.env.UV_THREADPOOL_SIZE) : 4,
         onCreateWorker () {
           return new Worker(join(__dirname, './worker.js'), {
             env: process.env
