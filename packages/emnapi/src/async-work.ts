@@ -109,7 +109,7 @@ var emnapiAWST = {
     if (!work) return
     if (work.status === 0) {
       work.status = 1
-      if (emnapiAWST.queued.size >= 4) {
+      if (emnapiAWST.queued.size >= (Math.abs(emnapiAsyncWorkPoolSize) || 4)) {
         emnapiAWST.pending.push(id)
         return
       }
@@ -171,4 +171,4 @@ var emnapiAWST = {
   }
 }
 
-emnapiDefineVar('$emnapiAWST', emnapiAWST, [], 'emnapiAWST.init();')
+emnapiDefineVar('$emnapiAWST', emnapiAWST, ['$emnapiAsyncWorkPoolSize'], 'emnapiAWST.init();')

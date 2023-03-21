@@ -10,6 +10,7 @@
 declare var emnapiCtx: Context
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 declare var emnapiNodeBinding: NodeBinding
+declare var emnapiAsyncWorkPoolSize: number
 
 declare function _napi_register_wasm_v1 (env: Ptr, exports: Ptr): napi_value
 
@@ -23,6 +24,7 @@ declare const emnapiModule: {
 declare interface InitOptions {
   context: Context
   filename?: string
+  asyncWorkPoolSize?: number
   nodeBinding?: NodeBinding
 }
 
@@ -33,6 +35,7 @@ emnapiDefineVar('$emnapiModule', {
   loaded: false,
   filename: ''
 })
+emnapiDefineVar('$emnapiAsyncWorkPoolSize', 0)
 
 function emnapiInit (options: InitOptions): any {
   if (emnapiModule.loaded) return emnapiModule.exports
@@ -58,6 +61,18 @@ function emnapiInit (options: InitOptions): any {
       throw new TypeError('Invalid `options.nodeBinding`. Use @emnapi/node-binding package')
     }
     emnapiNodeBinding = nodeBinding
+  }
+
+  if ('asyncWorkPoolSize' in options) {
+    if (typeof options.asyncWorkPoolSize !== 'number' || options.asyncWorkPoolSize === 0) {
+      throw new TypeError('options.asyncWorkPoolSize must be a non-zero integer')
+    }
+    emnapiAsyncWorkPoolSize = options.asyncWorkPoolSize >> 0
+    if (emnapiAsyncWorkPoolSize > 1024) {
+      emnapiAsyncWorkPoolSize = 1024
+    } else if (emnapiAsyncWorkPoolSize < -1024) {
+      emnapiAsyncWorkPoolSize = -1024
+    }
   }
 
   // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
@@ -89,5 +104,11 @@ emnapiImplementHelper(
   '$emnapiInit',
   undefined,
   emnapiInit,
-  ['$emnapiModule', '$emnapiCtx', '$emnapiNodeBinding', 'napi_register_wasm_v1']
+  ['$emnapiModule', '$emnapiCtx', '$emnapiNodeBinding', '$emnapiAsyncWorkPoolSize', 'napi_register_wasm_v1']
 )
+
+function __emnapi_async_work_pool_size (): number {
+  return Math.abs(emnapiAsyncWorkPoolSize)
+}
+
+emnapiImplementInternal('_emnapi_async_work_pool_size', 'i', __emnapi_async_work_pool_size, ['$emnapiAsyncWorkPoolSize'])

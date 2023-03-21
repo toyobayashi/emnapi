@@ -48,11 +48,6 @@ declare interface INapiModule {
 var ENVIRONMENT_IS_NODE = typeof process === 'object' && process !== null && typeof process.versions === 'object' && process.versions !== null && typeof process.versions.node === 'string'
 var ENVIRONMENT_IS_PTHREAD = Boolean(options.childThread)
 var reuseWorker = Boolean(options.reuseWorker)
-var asyncWorkPoolSize = 'asyncWorkPoolSize' in options ? (Number(options.asyncWorkPoolSize) || 0) : 0
-if (asyncWorkPoolSize < 0) {
-  throw new RangeError('options.asyncWorkPoolSize must be a non-negative integer')
-}
-var singleThreadAsyncWork = asyncWorkPoolSize === 0
 
 var wasmInstance: WebAssembly.Instance
 var wasmModule: WebAssembly.Module
@@ -191,3 +186,23 @@ if ('nodeBinding' in options) {
   }
   emnapiNodeBinding = nodeBinding
 }
+
+var emnapiAsyncWorkPoolSize = 0
+if ('asyncWorkPoolSize' in options) {
+  if (typeof options.asyncWorkPoolSize !== 'number' || options.asyncWorkPoolSize === 0) {
+    throw new TypeError('options.asyncWorkPoolSize must be a non-zero integer')
+  }
+  emnapiAsyncWorkPoolSize = options.asyncWorkPoolSize >> 0
+  if (emnapiAsyncWorkPoolSize > 1024) {
+    emnapiAsyncWorkPoolSize = 1024
+  } else if (emnapiAsyncWorkPoolSize < -1024) {
+    emnapiAsyncWorkPoolSize = -1024
+  }
+}
+var singleThreadAsyncWork = emnapiAsyncWorkPoolSize <= 0
+
+function __emnapi_async_work_pool_size (): number {
+  return Math.abs(emnapiAsyncWorkPoolSize)
+}
+
+emnapiImplementInternal('_emnapi_async_work_pool_size', 'i', __emnapi_async_work_pool_size)

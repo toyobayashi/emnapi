@@ -154,7 +154,7 @@ var emnapiAWMT = {
         throw err
       }
       try {
-        emnapiAWMT.initWorkers(asyncWorkPoolSize).then(() => {
+        emnapiAWMT.initWorkers(__emnapi_async_work_pool_size()).then(() => {
           emnapiAWMT.workerReady!.ready = true
           emnapiAWMT.checkIdleWorker()
         }, fail)
