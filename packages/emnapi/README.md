@@ -6,7 +6,7 @@
 
 [![Build](https://github.com/toyobayashi/emnapi/actions/workflows/main.yml/badge.svg?branch=main)](https://github.com/toyobayashi/emnapi/actions/workflows/main.yml)
 
-[Node-API](https://nodejs.org/docs/latest/api/n-api.html) implementation for [Emscripten](https://emscripten.org/index.html), [wasi-sdk](https://github.com/WebAssembly/wasi-sdk) and clang with wasm support. [napi-rs support is comming soon](https://github.com/napi-rs/napi-rs/tree/emnapi).
+[Node-API](https://nodejs.org/docs/latest/api/n-api.html) implementation for [Emscripten](https://emscripten.org/index.html), [wasi-sdk](https://github.com/WebAssembly/wasi-sdk) and clang with wasm support. napi-rs support is comming soon.
 
 This project aims to
 
@@ -890,17 +890,30 @@ instantiateNapiModule(input, {
 
 ### `-DEMNAPI_WORKER_POOL_SIZE=4`
 
-This is [`UV_THREADPOOL_SIZE`](http://docs.libuv.org/en/v1.x/threadpool.html?highlight=UV_THREADPOOL_SIZE) equivalent at compile time, if not predefined, emnapi will read `UV_THREADPOOL_SIZE` from Emscripten [environment variable](https://emscripten.org/docs/porting/connecting_cpp_and_javascript/Interacting-with-code.html#interacting-with-code-environment-variables) at runtime, you can set `UV_THREADPOOL_SIZE` like this:
+This is [`UV_THREADPOOL_SIZE`](http://docs.libuv.org/en/v1.x/threadpool.html?highlight=UV_THREADPOOL_SIZE) equivalent at compile time, if not predefined, emnapi will read `asyncWorkPoolSize` option or `UV_THREADPOOL_SIZE` from Emscripten [environment variable](https://emscripten.org/docs/porting/connecting_cpp_and_javascript/Interacting-with-code.html#interacting-with-code-environment-variables) at runtime:
 
 ```js
+Module.init({
+  // ...
+  asyncWorkPoolSize: 2
+})
+
+// if asyncWorkPoolSize is not specified
 Module.preRun = Module.preRun || [];
 Module.preRun.push(function () {
   if (typeof ENV !== 'undefined') {
     ENV.UV_THREADPOOL_SIZE = '2';
   }
 });
+```
 
+```js
 // wasi
+instantiateNapiModule({
+  // ...
+  asyncWorkPoolSize: 2
+})
+// if asyncWorkPoolSize is not specified
 new WASI({
   env: {
     UV_THREADPOOL_SIZE: '2'
@@ -908,7 +921,7 @@ new WASI({
 })
 ```
 
-It represent max of `EMNAPI_WORKER_POOL_SIZE` async work (`napi_queue_async_work`) can be executed in parallel. Default is not defined, read `UV_THREADPOOL_SIZE` at runtime.
+It represent max of `EMNAPI_WORKER_POOL_SIZE` async work (`napi_queue_async_work`) can be executed in parallel. Default is not defined.
 
 You can set both `PTHREAD_POOL_SIZE` and `EMNAPI_WORKER_POOL_SIZE` to `number of CPU cores` in general.
 If you use another library function which may create `N` child threads in async work,
