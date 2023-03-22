@@ -20,9 +20,7 @@ async function main () {
     console.log(status, out)
     assert.strictEqual(status, 0)
     assert.strictEqual(out, result)
-    setImmediate(() => {
-      assert.deepStrictEqual(actual, progressData)
-    })
+    assert.deepStrictEqual(actual, progressData)
   }, 1), common.mustCall(function (current) {
     actual.push(current)
     console.log(current)

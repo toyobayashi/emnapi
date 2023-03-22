@@ -22,6 +22,7 @@ void free(void* p);
 struct ctx {
   int in;
   int count;
+  napi_async_work work;
   napi_ref ok_callback;
   napi_threadsafe_function progress_callback;
   int out;
@@ -30,7 +31,7 @@ struct ctx {
 
 static void Execute(napi_env env, void* user_data) {
   struct ctx* data = (struct ctx*) user_data;
-  for (uint32_t i = 0; i < data->count; ++i) {
+  for (int i = 0; i < data->count; ++i) {
 #if defined _WIN32
     Sleep(1000);
 #else
@@ -39,23 +40,23 @@ static void Execute(napi_env env, void* user_data) {
     int* index = (int*)malloc(sizeof(int));
     data->out++;
     *index = data->out;
-    if (napi_ok != napi_call_threadsafe_function(data->progress_callback, index, napi_tsfn_nonblocking)) {
+    if (napi_ok != napi_call_threadsafe_function(data->progress_callback, index, napi_tsfn_blocking)) {
       data->status = 1;
       return;
     }
-  }
-  if (napi_ok != napi_release_threadsafe_function(data->progress_callback, napi_tsfn_release)) {
-    data->status = 2;
   }
 }
 
 static void Complete(napi_env env, napi_status status, void* user_data) {
   struct ctx* data = (struct ctx*) user_data;
-  // int in = data->in;
+  NAPI_CALL_RETURN_VOID(env, napi_release_threadsafe_function(data->progress_callback, napi_tsfn_release));
+}
+
+static void tsfn_finalize(napi_env env, void* user_data, void* hint) {
+  struct ctx* data = (struct ctx*) user_data;
   int out = data->out;
-  // int count = data->count;
   napi_ref ok_callback = data->ok_callback;
-  // napi_threadsafe_function progress_callback = data->progress_callback;
+  napi_async_work work = data->work;
   int s = data->status;
   free(data);
   napi_value callback, undefined;
@@ -67,6 +68,7 @@ static void Complete(napi_env env, napi_status status, void* user_data) {
   NAPI_CALL_RETURN_VOID(env, napi_get_undefined(env, &undefined));
   NAPI_CALL_RETURN_VOID(env, napi_call_function(env, undefined, callback, 2, argv, NULL));
   NAPI_CALL_RETURN_VOID(env, napi_delete_reference(env, ok_callback));
+  NAPI_CALL_RETURN_VOID(env, napi_delete_async_work(env, work));
 }
 
 static void call_js(napi_env env, napi_value cb, void* hint, void* data) {
@@ -92,15 +94,10 @@ static napi_value Test(napi_env env, napi_callback_info info) {
 
   int32_t in, count;
   napi_ref ok_callback;
-  napi_threadsafe_function progress_callback;
   
   NAPI_CALL(env, napi_get_value_int32(env, argv[0], &in));
   NAPI_CALL(env, napi_get_value_int32(env, argv[1], &count));
   NAPI_CALL(env, napi_create_reference(env, argv[2], 1, &ok_callback));
-  // NAPI_CALL(env, napi_create_reference(env, argv[3], 1, &progress_callback));
-  NAPI_CALL(env, napi_create_threadsafe_function(env,
-    argv[3], NULL, resname1, 0, 1,
-    NULL, NULL, NULL, call_js, &progress_callback));
 
   struct ctx* data = (struct ctx*)malloc(sizeof(struct ctx));
   if (!data) {
@@ -110,13 +107,14 @@ static napi_value Test(napi_env env, napi_callback_info info) {
   data->in = in;
   data->count = count;
   data->ok_callback = ok_callback;
-  data->progress_callback = progress_callback;
   data->out = in;
   data->status = 0;
 
-  napi_async_work w;
-  NAPI_CALL(env, napi_create_async_work(env, NULL, resname2, Execute, Complete, data, &w));
-  NAPI_CALL(env, napi_queue_async_work(env, w));
+  NAPI_CALL(env, napi_create_async_work(env, NULL, resname2, Execute, Complete, data, &data->work));
+  NAPI_CALL(env, napi_create_threadsafe_function(env,
+    argv[3], NULL, resname1, 0, 1,
+    data, tsfn_finalize, NULL, call_js, &data->progress_callback));
+  NAPI_CALL(env, napi_queue_async_work(env, data->work));
   return NULL;
 }
 
