@@ -108,6 +108,22 @@ npm install @emnapi/core
 
 Each package should match the same version.
 
+### About Prebuilt Libraries
+
+Prebuilt libraries can be found in the `lib` directory in `emnapi` npm package.
+
+| Library              | Description                                                                                                                                                                                                                                                   | `wasm32-emscripten` | `wasm32` | `wasm32-wasi` | `wasm32-wasi-threads`                   |
+|----------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------|----------|---------------|-----------------------------------------|
+| libemnapi.a          | no atomics feature<br/> no libuv port<br/> `napi_*_async_work` and `napi_*_threadsafe_function` always return `napi_generic_failure`                                                                                                                          | ✅                   | ✅        | ✅             | waiting wasi-sdk release thread support |
+| libemnapi-mt.a       | atomics feature enabled<br/> `napi_*_async_work` and `napi_*_threadsafe_function` are based on pthread and libuv port                                                                                                                                         | ✅                   | ❌        | ❌             | waiting wasi-sdk release thread support |
+| libemnapi-basic.a    | no atomics feature<br/> no libuv port<br/> `napi_*_async_work` and `napi_*_threadsafe_function` are imported from JavaScript land                                                                                                                             | ✅                   | ✅        | ✅             | waiting wasi-sdk release thread support |
+| libemnapi-basic-mt.a | atomics feature enabled<br/> no libuv port<br/> `napi_*_async_work` and `napi_*_threadsafe_function` are imported from JavaScript land<br/> include `emnapi_async_worker_create` and `emnapi_async_worker_init` for WebWorker based async work implementation | ❌                   | ✅        | ✅             | waiting wasi-sdk release thread support |
+| libdlmalloc.a        | no atomics feature, no thread safe garanteed                                                                                                                                                                                                                  | ❌                   | ✅        | ❌             | ❌                                       |
+| libdlmalloc-mt.a     | atomics feature enabled, thread safe                                                                                                                                                                                                                          | ❌                   | ✅        | ❌             | ❌                                       |
+| libemmalloc.a        | no atomics feature, no thread safe garanteed                                                                                                                                                                                                                  | ❌                   | ✅        | ❌             | ❌                                       |
+| libemmalloc-mt.a     | atomics feature enabled, thread safe                                                                                                                                                                                                                          | ❌                   | ✅        | ❌             | ❌                                       |
+
+
 ### Using C
 
 Create `hello.c`.
