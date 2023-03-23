@@ -64,8 +64,8 @@ function emnapiInit (options: InitOptions): any {
   }
 
   if ('asyncWorkPoolSize' in options) {
-    if (typeof options.asyncWorkPoolSize !== 'number' || options.asyncWorkPoolSize === 0) {
-      throw new TypeError('options.asyncWorkPoolSize must be a non-zero integer')
+    if (typeof options.asyncWorkPoolSize !== 'number') {
+      throw new TypeError('options.asyncWorkPoolSize must be a integer')
     }
     emnapiAsyncWorkPoolSize = options.asyncWorkPoolSize >> 0
     if (emnapiAsyncWorkPoolSize > 1024) {

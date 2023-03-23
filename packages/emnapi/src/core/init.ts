@@ -189,8 +189,8 @@ if ('nodeBinding' in options) {
 
 var emnapiAsyncWorkPoolSize = 0
 if ('asyncWorkPoolSize' in options) {
-  if (typeof options.asyncWorkPoolSize !== 'number' || options.asyncWorkPoolSize === 0) {
-    throw new TypeError('options.asyncWorkPoolSize must be a non-zero integer')
+  if (typeof options.asyncWorkPoolSize !== 'number') {
+    throw new TypeError('options.asyncWorkPoolSize must be a integer')
   }
   emnapiAsyncWorkPoolSize = options.asyncWorkPoolSize >> 0
   if (emnapiAsyncWorkPoolSize > 1024) {
@@ -199,7 +199,7 @@ if ('asyncWorkPoolSize' in options) {
     emnapiAsyncWorkPoolSize = -1024
   }
 }
-var singleThreadAsyncWork = emnapiAsyncWorkPoolSize <= 0
+var singleThreadAsyncWork = ENVIRONMENT_IS_PTHREAD ? false : (emnapiAsyncWorkPoolSize <= 0)
 
 function __emnapi_async_work_pool_size (): number {
   return Math.abs(emnapiAsyncWorkPoolSize)
