@@ -1,0 +1,21 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outFile": "../../dist/emnapi-core.js",
+    "plugins": [
+      { "transform": "ts-macros" }
+    ]
+  },
+  "include": [
+    "./init.ts",
+    "./async.ts",
+    "./miscellaneous.ts",
+    "./string.ts",
+    "./util.ts",
+    "../../../runtime/src/typings/**/*.d.ts",
+    "../typings/**/*.d.ts",
+    "../*.ts",
+    "../value/**/*.ts",
+    "./async-work.ts"
+  ]
+}

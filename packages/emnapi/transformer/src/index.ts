@@ -13,6 +13,8 @@ import type {
   Node,
   VisitResult,
   FunctionDeclaration,
+  FunctionExpression,
+  MethodDeclaration,
   Statement
 } from 'typescript'
 
@@ -125,7 +127,7 @@ function byteOffsetParameter (factory: NodeFactory, defines: Record<string, any>
 
 class Transform {
   ctx: TransformationContext
-  functionDeclarations: FunctionDeclaration[]
+  functionDeclarations: Array<FunctionDeclaration | FunctionExpression | MethodDeclaration>
   injectDataViewDecl: boolean
   defines: Record<string, any>
 
@@ -138,12 +140,12 @@ class Transform {
   }
 
   visitor (node: Node): VisitResult<Node> {
-    if (ts.isFunctionDeclaration(node)) {
+    if (ts.isFunctionDeclaration(node) || ts.isFunctionExpression(node) || ts.isMethodDeclaration(node)) {
       this.functionDeclarations.push(node)
       const result = ts.visitEachChild(node, this.visitor, this.ctx)
       this.functionDeclarations.pop()
       const statements = result.body?.statements ?? []
-      if (this.injectDataViewDecl) {
+      if (this.injectDataViewDecl && this.functionDeclarations.length === 0) {
         this.injectDataViewDecl = false
         const decl = this.ctx.factory.createVariableStatement(
           undefined,
@@ -164,21 +166,45 @@ class Transform {
             ts.NodeFlags.None
           )
         )
-        return this.ctx.factory.updateFunctionDeclaration(
-          result,
-          ts.getModifiers(result)!,
-          result.asteriskToken,
-          result.name,
-          result.typeParameters,
-          result.parameters,
-          result.type,
-          this.ctx.factory.createBlock(
-            this.ctx.factory.createNodeArray([
-              decl,
-              ...statements
-            ]),
-            true
+        const modifiers = ts.getModifiers(result)!
+        const asteriskToken = result.asteriskToken
+        const name = result.name!
+        const questionToken = result.questionToken
+        const typeParameters = result.typeParameters
+        const parameters = result.parameters
+        const type = result.type
+        const body = this.ctx.factory.createBlock(
+          this.ctx.factory.createNodeArray([
+            decl,
+            ...statements
+          ]),
+          true
+        )
+        if (ts.isMethodDeclaration(node)) {
+          return this.ctx.factory.updateMethodDeclaration(
+            result as MethodDeclaration,
+            modifiers,
+            asteriskToken,
+            name,
+            questionToken,
+            typeParameters,
+            parameters,
+            type,
+            body
           )
+        }
+        const method = ts.isFunctionDeclaration(node)
+          ? 'updateFunctionDeclaration'
+          : 'updateFunctionExpression'
+        return this.ctx.factory[method](
+          result as any,
+          modifiers,
+          asteriskToken,
+          name as any,
+          typeParameters,
+          parameters,
+          type,
+          body
         )
       }
       return result

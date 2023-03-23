@@ -7,6 +7,7 @@ declare interface CreateOptions {
   nodeBinding?: NodeBinding
   childThread?: boolean
   reuseWorker?: boolean
+  asyncWorkPoolSize?: number
   onCreateWorker?: () => any
   print?: (str: string) => void
   printErr?: (str: string) => void
@@ -39,6 +40,8 @@ declare interface INapiModule {
   init (options: InitOptions): any
   spawnThread (startArg: number, errorOrTid?: number): number
   startThread (tid: number, startArg: number): void
+  initWorker (arg: number): void
+  executeAsyncWork (work: number): void
   postMessage?: (msg: any) => any
 }
 
@@ -80,6 +83,8 @@ var napiModule: INapiModule = {
 
   spawnThread: undefined!,
   startThread: undefined!,
+  initWorker: undefined!,
+  executeAsyncWork: undefined!,
 
   init (options: InitOptions) {
     if (napiModule.loaded) return napiModule.exports
@@ -126,17 +131,13 @@ var napiModule: INapiModule = {
       napiModule.loaded = true
       delete napiModule.envObject
       return napiModule.exports
-    } else {
-      if (typeof exports.wasi_thread_start !== 'function') {
-        throw new TypeError('wasi_thread_start is not exported')
-      }
     }
   }
 }
 
 var emnapiCtx: Context
 var emnapiNodeBinding: NodeBinding
-var onCreateWorker: () => any
+var onCreateWorker: (info: { type: 'pthread' | 'async-work' }) => any
 var out: (str: string) => void
 var err: (str: string) => void
 
@@ -185,3 +186,23 @@ if ('nodeBinding' in options) {
   }
   emnapiNodeBinding = nodeBinding
 }
+
+var emnapiAsyncWorkPoolSize = 0
+if ('asyncWorkPoolSize' in options) {
+  if (typeof options.asyncWorkPoolSize !== 'number') {
+    throw new TypeError('options.asyncWorkPoolSize must be a integer')
+  }
+  emnapiAsyncWorkPoolSize = options.asyncWorkPoolSize >> 0
+  if (emnapiAsyncWorkPoolSize > 1024) {
+    emnapiAsyncWorkPoolSize = 1024
+  } else if (emnapiAsyncWorkPoolSize < -1024) {
+    emnapiAsyncWorkPoolSize = -1024
+  }
+}
+var singleThreadAsyncWork = ENVIRONMENT_IS_PTHREAD ? false : (emnapiAsyncWorkPoolSize <= 0)
+
+function __emnapi_async_work_pool_size (): number {
+  return Math.abs(emnapiAsyncWorkPoolSize)
+}
+
+emnapiImplementInternal('_emnapi_async_work_pool_size', 'i', __emnapi_async_work_pool_size)

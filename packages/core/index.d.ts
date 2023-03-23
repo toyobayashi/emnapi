@@ -13,11 +13,16 @@ export declare interface NodeBinding {
   }
 }
 
+export declare interface CreateWorkerInfo {
+  type: 'pthread' | 'async-work'
+}
+
 export declare type BaseCreateOptions = {
   filename?: string
   nodeBinding?: NodeBinding
   reuseWorker?: boolean
-  onCreateWorker?: () => any
+  asyncWorkPoolSize?: number
+  onCreateWorker?: (info: CreateWorkerInfo) => any
   print?: (str: string) => void
   printErr?: (str: string) => void
   postMessage?: (msg: any) => any
@@ -67,6 +72,8 @@ export declare interface NapiModule {
   init (options: InitOptions): any
   spawnThread (startArg: number, errorOrTid?: number): number
   startThread (tid: number, startArg: number): void
+  initWorker (arg: number): void
+  executeAsyncWork (work: number): void
   postMessage?: (msg: any) => any
 }
 
@@ -83,6 +90,7 @@ export declare interface ReactorWASI {
 export declare interface LoadOptions {
   wasi?: ReactorWASI
   overwriteImports?: (importObject: WebAssembly.Imports) => WebAssembly.Imports
+  onInstantiated?: (instance: WebAssembly.Instance, module: WebAssembly.Module) => void
   getMemory?: (exports: WebAssembly.Exports) => WebAssembly.Memory
   getTable?: (exports: WebAssembly.Exports) => WebAssembly.Table
 }

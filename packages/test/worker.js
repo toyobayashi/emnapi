@@ -70,11 +70,32 @@
           : function () { console.log.apply(console, arguments) }
       })
 
+      const UTF8ToString = (ptr) => {
+        ptr >>>= 0
+        if (!ptr) return ''
+        const HEAPU8 = new Uint8Array(wasmMemory.buffer)
+        let end
+        for (end = ptr; HEAPU8[end];) ++end
+        const shared = (typeof SharedArrayBuffer === 'function') && (wasmMemory.buffer instanceof SharedArrayBuffer)
+        return new TextDecoder().decode(shared ? HEAPU8.slice(ptr, end) : HEAPU8.subarray(ptr, end))
+      }
+
       return instantiateNapiModuleSync(wasmModule, {
         childThread: true,
         wasi,
         overwriteImports (importObject) {
           importObject.env.memory = wasmMemory
+          importObject.env.console_log = function (fmt, ...args) {
+            const fmtString = UTF8ToString(fmt)
+            console.log(fmtString, ...args)
+            return 0
+          }
+          importObject.env.sleep = function (n) {
+            const end = Date.now() + n * 1000
+            while (Date.now() < end) {
+              // ignore
+            }
+          }
         }
       })
     }

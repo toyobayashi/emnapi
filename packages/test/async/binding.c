@@ -1,13 +1,19 @@
-#include <assert.h>
+#if !defined(__wasm__) || (defined(__EMSCRIPTEN__) || defined(__wasi__))
 #include <stdio.h>
+#else
+int console_log(const char* fmt, void* a);
+#endif
 #include <node_api.h>
 #include "../common.h"
-#include <stdio.h>
 
 #if defined _WIN32
 #include <windows.h>
 #else
+#if !defined(__wasm__) || (defined(__EMSCRIPTEN__) || defined(__wasi__))
 #include <unistd.h>
+#else
+void sleep(int s);
+#endif
 #endif
 
 // this needs to be greater than the thread pool size
@@ -31,7 +37,9 @@ static void Execute(napi_env env, void* data) {
 #endif
   carrier* c = (carrier*)(data);
 
-  assert(c == &the_carrier);
+  if (c != &the_carrier) {
+    __builtin_trap();
+  }
 
   c->_output = c->_input * 2;
 }
@@ -136,7 +144,12 @@ static void CancelExecute(napi_env env, void* data) {
 #else
   sleep(1);
 #endif
+
+#if !defined(__wasm__) || (defined(__EMSCRIPTEN__) || defined(__wasi__))
   printf("CancelExecute: %p\n", data);
+#else
+  console_log("CancelExecute: %d", data);
+#endif
 }
 
 static napi_value TestCancel(napi_env env, napi_callback_info info) {

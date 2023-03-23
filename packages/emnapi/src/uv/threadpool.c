@@ -209,6 +209,7 @@ static void post(QUEUE* q, enum uv__work_kind kind) {
 //   nthreads = 0;
 // }
 
+EMNAPI_EXTERN int _emnapi_async_work_pool_size();
 
 static void init_threads(void) {
   unsigned int i;
@@ -223,9 +224,14 @@ static void init_threads(void) {
   nthreads = EMNAPI_WORKER_POOL_SIZE;
 #else
   nthreads = ARRAY_SIZE(default_threads);
-  val = getenv("UV_THREADPOOL_SIZE");
-  if (val != NULL)
-    nthreads = atoi(val);
+  int async_work_pool_size = _emnapi_async_work_pool_size();
+  if (async_work_pool_size > 0) {
+    nthreads = (unsigned int) async_work_pool_size;
+  } else {
+    val = getenv("UV_THREADPOOL_SIZE");
+    if (val != NULL)
+      nthreads = atoi(val);
+  }
 #endif
   if (nthreads == 0)
     nthreads = 1;
