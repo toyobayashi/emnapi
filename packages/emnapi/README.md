@@ -734,26 +734,26 @@ They are available in emnapi, but you need to know more details before you start
 Now emnapi has 3 implementations of async work and 2 implementations of TSFN:
 
 - Async work
-    - 1) Libuv threadpool and pthread based implementation in C
-    - 2) Single thread mock in JavaScript
-    - 3) Web worker based implementation in C (stack allocation) and JavaScript
+    - A. Libuv threadpool and pthread based implementation in C
+    - B. Single thread mock in JavaScript
+    - C. Web worker based implementation in C (stack allocation) and JavaScript
 - TSFN
-    - 4) Libuv and pthread based implementation in C
-    - 5) Web worker based implementation in JavaScript
+    - D. Libuv and pthread based implementation in C
+    - E. Web worker based implementation in JavaScript
 
 |   | Library to Link        | `wasm32-emscripten` | `wasm32` | `wasm32-wasi` | `wasm32-wasi-threads` |
 |---|------------------------|---------------------|----------|---------------|-----------------------|
-| 1 | libemnapi-mt.a         | ✅                   | ❌        | ❌             | ✅                     |
-| 2 | libemnapi-basic(-mt).a | ✅                   | ✅        | ✅             | ✅                     |
-| 3 | libemnapi-basic-mt.a   | ❌                   | ✅        | ❌             | ✅                     |
-| 4 | libemnapi-mt.a         | ✅                   | ❌        | ❌             | ✅                     |
-| 5 | libemnapi-basic-mt.a   | ✅                   | ✅        | ✅             | ✅                     |
+| A | libemnapi-mt.a         | ✅                   | ❌        | ❌             | ✅                     |
+| B | libemnapi-basic(-mt).a | ✅                   | ✅        | ✅             | ✅                     |
+| C | libemnapi-basic-mt.a   | ❌                   | ✅        | ❌             | ✅                     |
+| D | libemnapi-mt.a         | ✅                   | ❌        | ❌             | ✅                     |
+| E | libemnapi-basic-mt.a   | ✅                   | ✅        | ✅             | ✅                     |
 
 There are some limitations on browser about wasi-libc's pthread implementation, for example
 `pthread_mutex_lock` may call `__builtin_wasm_memory_atomic_wait32`(`memory.atomic.wait32`)
 which is disallowed in browser JS main thread. While Emscripten's pthread implementation
 has considered usage in browser. If you need to run your addon with multithreaded features on browser,
-we recommend you use Emscripten 1) & 4), or bare wasm32 3) & 5).
+we recommend you use Emscripten A & D, or bare wasm32 C & E.
 
 #### About Prebuilt Libraries
 
