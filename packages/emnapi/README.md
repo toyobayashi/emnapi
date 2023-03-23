@@ -25,16 +25,6 @@ See documentation for more details:
 
 [How to build Node-API official examples](https://github.com/toyobayashi/node-addon-examples)
 
-Emscripten is the first class support target. If your target is running addon on browser,
-we strongly recommend you to use Emscripten instead of wasi-sdk. Async works and threadsafe
-functions related APIs are only available on Emscripten or `wasm32-wasi-threads` target since
-they are relying on pthread. Though today we have [WASI browser polyfill](https://github.com/toyobayashi/wasm-util),
-`wasm32-wasi-threads` is in very early stage and WASI itself is not designed for browser.
-There are some limitations on browser about wasi-libc's pthread implementation, for example
-`pthread_mutex_lock` may call `__builtin_wasm_memory_atomic_wait32`(`memory.atomic.wait32`)
-which is disallowed in browser JS main thread. While Emscripten's pthread implementation
-has considered usage in browser.
-
 ## Prerequests
 
 You will need to install:
@@ -107,22 +97,6 @@ npm install @emnapi/core
 ```
 
 Each package should match the same version.
-
-### About Prebuilt Libraries
-
-Prebuilt libraries can be found in the `lib` directory in `emnapi` npm package.
-
-| Library              | Description                                                                                                                                                                                                                                                   | `wasm32-emscripten` | `wasm32` | `wasm32-wasi` | `wasm32-wasi-threads`                   |
-|----------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------|----------|---------------|-----------------------------------------|
-| libemnapi.a          | no atomics feature.<br/><br/> no libuv port.<br/><br/> `napi_*_async_work` and `napi_*_threadsafe_function` always return `napi_generic_failure`.                                                                                                                         | ✅                   | ✅        | ✅             | waiting wasi-sdk release thread support |
-| libemnapi-mt.a       | atomics feature enabled.<br/><br/> `napi_*_async_work` and `napi_*_threadsafe_function` are based on pthread and libuv port.                                                                                                                                        | ✅                   | ❌        | ❌             | waiting wasi-sdk release thread support |
-| libemnapi-basic.a    | no atomics feature.<br/><br/> no libuv port.<br/><br/> `napi_*_async_work` and `napi_*_threadsafe_function` are imported from JavaScript land.                                                                                                                            | ✅                   | ✅        | ✅             | waiting wasi-sdk release thread support |
-| libemnapi-basic-mt.a | atomics feature enabled.<br/><br/> no libuv port.<br/><br/> `napi_*_async_work` and `napi_*_threadsafe_function` are imported from JavaScript land.<br/><br/> include `emnapi_async_worker_create` and `emnapi_async_worker_init` for WebWorker based async work implementation. | ❌                   | ✅        | ✅             | waiting wasi-sdk release thread support |
-| libdlmalloc.a        | no atomics feature, no thread safe garanteed.                                                                                                                                                                                                                 | ❌                   | ✅        | ❌             | ❌                                       |
-| libdlmalloc-mt.a     | atomics feature enabled, thread safe.                                                                                                                                                                                                                         | ❌                   | ✅        | ❌             | ❌                                       |
-| libemmalloc.a        | no atomics feature, no thread safe garanteed.                                                                                                                                                                                                                 | ❌                   | ✅        | ❌             | ❌                                       |
-| libemmalloc-mt.a     | atomics feature enabled, thread safe.                                                                                                                                                                                                                         | ❌                   | ✅        | ❌             | ❌                                       |
-
 
 ### Using C
 
@@ -291,6 +265,9 @@ declare namespace Module {
      * napi_create_async_work and napi_create_threadsafe_function
      */
     nodeBinding?: typeof import('@emnapi/node-binding')
+
+    /** See Multithread part */
+    asyncWorkPoolSize?: number
   }
   export function emnapiInit (options: EmnapiInitOptions): any
 }
@@ -748,20 +725,60 @@ pub unsafe extern "C" fn napi_register_wasm_v1(env: napi_env, exports: napi_valu
 
 ### Multithread
 
-If you want to use async work or thread safe functions,
-there are additional C source file need to be compiled and linking.
-Recommend use CMake directly.
+Related API:
 
-**This is EXPERIMENTAL on non-emscripten.**
+- [napi_*_async_work](https://nodejs.org/dist/latest/docs/api/n-api.html#napi_create_async_work)
+- [napi_*_threadsafe_function](https://nodejs.org/dist/latest/docs/api/n-api.html#asynchronous-thread-safe-function-calls)
+
+They are available in emnapi, but you need to know more details before you start to use them.
+Now emnapi has 3 implementations of async work and 2 implementations of TSFN:
+
+- Async work
+    - 1) Libuv threadpool and pthread based implementation in C
+    - 2) Single thread mock in JavaScript
+    - 3) Web worker based implementation in C (stack allocation) and JavaScript
+- TSFN
+    - 4) Libuv and pthread based implementation in C
+    - 5) Web worker based implementation in JavaScript
+
+|   | Library to Link        | `wasm32-emscripten` | `wasm32` | `wasm32-wasi` | `wasm32-wasi-threads` |
+|---|------------------------|---------------------|----------|---------------|-----------------------|
+| 1 | libemnapi-mt.a         | ✅                   | ❌        | ❌             | ✅                     |
+| 2 | libemnapi-basic(-mt).a | ✅                   | ✅        | ✅             | ✅                     |
+| 3 | libemnapi-basic-mt.a   | ❌                   | ✅        | ❌             | ✅                     |
+| 4 | libemnapi-mt.a         | ✅                   | ❌        | ❌             | ✅                     |
+| 5 | libemnapi-basic-mt.a   | ✅                   | ✅        | ✅             | ✅                     |
+
+There are some limitations on browser about wasi-libc's pthread implementation, for example
+`pthread_mutex_lock` may call `__builtin_wasm_memory_atomic_wait32`(`memory.atomic.wait32`)
+which is disallowed in browser JS main thread. While Emscripten's pthread implementation
+has considered usage in browser. If you need to run your addon with multithreaded features on browser,
+we recommend you use Emscripten 1) & 4), or bare wasm32 3) & 5).
+
+#### About Prebuilt Libraries
+
+Prebuilt libraries can be found in the `lib` directory in `emnapi` npm package.
+
+| Library              | Description                                                                                                                                                                                                                                                   | `wasm32-emscripten` | `wasm32` | `wasm32-wasi` | `wasm32-wasi-threads`                   |
+|----------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------|----------|---------------|-----------------------------------------|
+| libemnapi.a          | no atomics feature.<br/><br/> no libuv port.<br/><br/> `napi_*_async_work` and `napi_*_threadsafe_function` always return `napi_generic_failure`.                                                                                                                         | ✅                   | ✅        | ✅             | waiting wasi-sdk release thread support |
+| libemnapi-mt.a       | atomics feature enabled.<br/><br/> `napi_*_async_work` and `napi_*_threadsafe_function` are based on pthread and libuv port.                                                                                                                                        | ✅                   | ❌        | ❌             | waiting wasi-sdk release thread support |
+| libemnapi-basic.a    | no atomics feature.<br/><br/> no libuv port.<br/><br/> `napi_*_async_work` and `napi_*_threadsafe_function` are imported from JavaScript land.                                                                                                                            | ✅                   | ✅        | ✅             | waiting wasi-sdk release thread support |
+| libemnapi-basic-mt.a | atomics feature enabled.<br/><br/> no libuv port.<br/><br/> `napi_*_async_work` and `napi_*_threadsafe_function` are imported from JavaScript land.<br/><br/> include `emnapi_async_worker_create` and `emnapi_async_worker_init` for WebWorker based async work implementation. | ❌                   | ✅        | ✅             | waiting wasi-sdk release thread support |
+| libdlmalloc.a        | no atomics feature, no thread safe garanteed.                                                                                                                                                                                                                 | ❌                   | ✅        | ❌             | ❌                                       |
+| libdlmalloc-mt.a     | atomics feature enabled, thread safe.                                                                                                                                                                                                                         | ❌                   | ✅        | ❌             | ❌                                       |
+| libemmalloc.a        | no atomics feature, no thread safe garanteed.                                                                                                                                                                                                                 | ❌                   | ✅        | ❌             | ❌                                       |
+| libemmalloc-mt.a     | atomics feature enabled, thread safe.                                                                                                                                                                                                                         | ❌                   | ✅        | ❌             | ❌                                       |
+
+#### Usage
 
 ```cmake
 add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/node_modules/emnapi")
 
 add_executable(hello hello.c)
 
-target_link_libraries(hello emnapi-mt)
-
 if(CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
+  target_link_libraries(hello emnapi-mt)
   target_compile_options(hello PRIVATE "-pthread")
   target_link_options(hello PRIVATE
     "-sALLOW_MEMORY_GROWTH=1"
@@ -774,6 +791,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
   )
 elseif(CMAKE_C_COMPILER_TARGET STREQUAL "wasm32-wasi-threads")
   # Experimental
+  target_link_libraries(hello emnapi-mt)
   set_target_properties(hello PROPERTIES SUFFIX ".wasm")
   target_compile_options(hello PRIVATE "-fno-exceptions" "-pthread")
   target_link_options(hello PRIVATE
@@ -786,6 +804,19 @@ elseif(CMAKE_C_COMPILER_TARGET STREQUAL "wasm32-wasi-threads")
     "-Wl,--export=free"
     "-Wl,--import-undefined"
     "-Wl,--export-table"
+  )
+elseif((CMAKE_C_COMPILER_TARGET STREQUAL "wasm32") OR (CMAKE_C_COMPILER_TARGET STREQUAL "wasm32-unknown-unknown"))
+  target_link_libraries(hello emnapi-basic-mt)
+  set_target_properties(hello PROPERTIES SUFFIX ".wasm")
+  target_compile_options(hello PRIVATE "-fno-exceptions" "-matomics" "-mbulk-memory")
+  target_link_options(hello PRIVATE
+    "-nostdlib"
+    "-Wl,--no-entry"
+    "-Wl,--export=napi_register_wasm_v1"
+    "-Wl,--export=emnapi_async_worker_create"
+    "-Wl,--export=emnapi_async_worker_init"
+    "-Wl,--import-memory,--shared-memory,--max-memory=2147483648,--import-undefined"
+    "-Wl,--export-dynamic,--export=malloc,--export=free,--export-table"
   )
 endif()
 ```
@@ -800,6 +831,11 @@ cmake -DCMAKE_TOOLCHAIN_FILE=$WASI_SDK_PATH/share/cmake/wasi-sdk-pthread.cmake \
       -DCMAKE_BUILD_TYPE=Release \
       -G Ninja -H. -Bbuild
 
+cmake -DCMAKE_TOOLCHAIN_FILE=node_modules/emnapi/cmake/wasm32.cmake \
+      -DWASI_SDK_PREFIX=$WASI_SDK_PATH \
+      -DCMAKE_BUILD_TYPE=Release \
+      -G Ninja -H. -Bbuild
+
 cmake --build build
 ```
 
@@ -809,6 +845,15 @@ And additional work is required during instantiating wasm compiled with non-emsc
 // emnapi main thread (could be in a Worker)
 instantiateNapiModule(input, {
   context: getDefaultContext(),
+  /**
+   * emscripten
+   *   0: no effect
+   *   > 0: the same effect to UV_THREADPOOL_SIZE
+   * non-emscripten
+   *   0: single thread mock
+   *   > 0 schedule async work in web worker
+   */
+  asyncWorkPoolSize: 4, // 0: single thread mock, > 0: schedule async work in web worker
   wasi: new WASI(/* ... */),
   // reuseWorker: true,
   onCreateWorker () {
