@@ -164,7 +164,7 @@ emcc -O3 \
      -I./node_modules/emnapi/include \
      -L./node_modules/emnapi/lib/wasm32-emscripten \
      --js-library=./node_modules/emnapi/dist/library_napi.js \
-     -sEXPORTED_FUNCTIONS="['_malloc','_free']" \
+     -sEXPORTED_FUNCTIONS="['_napi_register_wasm_v1','_malloc','_free']" \
      -o hello.js \
      hello.c \
      -lemnapi
@@ -385,7 +385,7 @@ import { WASI } from '@tybys/wasm-util'
 import { Volume, createFsFromVolume } from 'memfs-browser'
 
 const fs = createFsFromVolume(Volume.fromJSON({ /* ... */ }))
-return instantiateNapiModule(fetch('./hello.wasm'), {
+instantiateNapiModule(fetch('./hello.wasm'), {
   wasi: new WASI({ fs, /* ... */ })
   context: getDefaultContext(),
   overwriteImports (importObject) {
@@ -443,7 +443,7 @@ em++ -O3 \
      -I./node_modules/emnapi/include \
      -L./node_modules/emnapi/lib/wasm32-emscripten \
      --js-library=./node_modules/emnapi/dist/library_napi.js \
-     -sEXPORTED_FUNCTIONS="['_malloc','_free']" \
+     -sEXPORTED_FUNCTIONS="['_napi_register_wasm_v1','_malloc','_free']" \
      -o hello.js \
      hello.cpp \
      -lemnapi
@@ -541,7 +541,7 @@ add_executable(hello hello.c)
 target_link_libraries(hello emnapi)
 if(CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
   target_link_options(hello PRIVATE
-    "-sEXPORTED_FUNCTIONS=['_malloc','_free']"
+    "-sEXPORTED_FUNCTIONS=['_napi_register_wasm_v1','_malloc','_free']"
   )
 elseif(CMAKE_SYSTEM_NAME STREQUAL "WASI")
   set_target_properties(hello PROPERTIES SUFFIX ".wasm")
@@ -782,7 +782,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
   target_compile_options(hello PRIVATE "-pthread")
   target_link_options(hello PRIVATE
     "-sALLOW_MEMORY_GROWTH=1"
-    "-sEXPORTED_FUNCTIONS=['_malloc','_free']"
+    "-sEXPORTED_FUNCTIONS=['_napi_register_wasm_v1','_malloc','_free']"
     "-pthread"
     "-sPTHREAD_POOL_SIZE=4"
     # try to specify stack size if you experience pthread errors
