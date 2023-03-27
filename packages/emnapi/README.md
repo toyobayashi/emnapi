@@ -832,7 +832,7 @@ cmake -DCMAKE_TOOLCHAIN_FILE=$WASI_SDK_PATH/share/cmake/wasi-sdk-pthread.cmake \
       -G Ninja -H. -Bbuild
 
 cmake -DCMAKE_TOOLCHAIN_FILE=node_modules/emnapi/cmake/wasm32.cmake \
-      -DWASI_SDK_PREFIX=$WASI_SDK_PATH \
+      -DLLVM_PREFIX=$WASI_SDK_PATH \
       -DCMAKE_BUILD_TYPE=Release \
       -G Ninja -H. -Bbuild
 
