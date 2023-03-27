@@ -16,10 +16,12 @@ endif()
 
 set(CMAKE_C_COMPILER ${LLVM_PREFIX}/bin/clang${WASM_HOST_EXE_SUFFIX})
 set(CMAKE_CXX_COMPILER ${LLVM_PREFIX}/bin/clang++${WASM_HOST_EXE_SUFFIX})
+set(CMAKE_ASM_COMPILER ${LLVM_PREFIX}/bin/clang${WASI_HOST_EXE_SUFFIX})
 set(CMAKE_AR ${LLVM_PREFIX}/bin/llvm-ar${WASM_HOST_EXE_SUFFIX})
 set(CMAKE_RANLIB ${LLVM_PREFIX}/bin/llvm-ranlib${WASM_HOST_EXE_SUFFIX})
 set(CMAKE_C_COMPILER_TARGET ${triple})
 set(CMAKE_CXX_COMPILER_TARGET ${triple})
+set(CMAKE_ASM_COMPILER_TARGET ${triple})
 
 # Don't look in the sysroot for executables to run during the build
 set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
