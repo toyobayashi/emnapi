@@ -57,6 +57,7 @@ EMNAPI_INTERNAL_EXTERN void _emnapi_next_tick(void (*callback)(void*), void* dat
 #endif
 
 #if EMNAPI_USE_PROXYING
+#include <emscripten.h>
 #include <emscripten/threading.h>
 #include <emscripten/proxying.h>
 #include <errno.h>
@@ -151,9 +152,21 @@ static void uv__async_io(uv_loop_t* loop) {
   }
 }
 
+#if EMNAPI_USE_PROXYING
+__attribute__((weak))
+pthread_t emscripten_main_runtime_thread_id(void) {
+#if __EMSCRIPTEN_major__ * 10000 + __EMSCRIPTEN_minor__ * 100 + __EMSCRIPTEN_tiny__ >= 30133
+  return NULL;
+#else
+  return emscripten_main_browser_thread_id();
+#endif
+}
+#endif
+
 static void uv__async_send(uv_loop_t* loop) {
 #if EMNAPI_USE_PROXYING
-  pthread_t main_thread = emscripten_main_browser_thread_id();
+  pthread_t main_thread = emscripten_main_runtime_thread_id();
+  assert(main_thread != NULL);
   if (pthread_equal(main_thread, pthread_self())) {
     NEXT_TICK((void (*)(void *))uv__async_io, loop);
   } else {
