@@ -60,17 +60,21 @@ function napi_create_double (env: napi_env, value: double, result: Pointer<napi_
 function napi_create_string_latin1 (env: napi_env, str: const_char_p, length: size_t, result: Pointer<napi_value>): napi_status {
   $CHECK_ENV!(env)
   const envObject = emnapiCtx.envStore.get(env)!
+  $from64('length')
+  const autoLength = length === -1
+  length = length >>> 0
+  if (length !== 0) {
+    $CHECK_ARG!(envObject, str)
+  }
   $CHECK_ARG!(envObject, result)
   $from64('str')
-  $from64('length')
-  length = length >>> 0
-  if (!((length === 0xffffffff) || (length <= 2147483647)) || (!str)) {
+  if (!(autoLength || (length <= 2147483647))) {
     return envObject.setLastError(napi_status.napi_invalid_arg)
   }
 
   let latin1String = ''
   let len = 0
-  if (length === -1) {
+  if (autoLength) {
     while (true) {
       const ch = $makeGetValue('str', 0, 'u8') as number
       if (!ch) break
@@ -96,11 +100,16 @@ function napi_create_string_latin1 (env: napi_env, str: const_char_p, length: si
 function napi_create_string_utf16 (env: napi_env, str: const_char16_t_p, length: size_t, result: Pointer<napi_value>): napi_status {
   $CHECK_ENV!(env)
   const envObject = emnapiCtx.envStore.get(env)!
+  $from64('length')
+  const autoLength = length === -1
+  const sizelength = length >>> 0
+  if (length !== 0) {
+    $CHECK_ARG!(envObject, str)
+  }
   $CHECK_ARG!(envObject, result)
   $from64('str')
-  $from64('length')
 
-  if (((length < -1) || (length > 2147483647)) || (!str)) {
+  if (!(autoLength || (sizelength <= 2147483647))) {
     return envObject.setLastError(napi_status.napi_invalid_arg)
   }
 
@@ -115,11 +124,16 @@ function napi_create_string_utf16 (env: napi_env, str: const_char16_t_p, length:
 function napi_create_string_utf8 (env: napi_env, str: const_char_p, length: size_t, result: Pointer<napi_value>): napi_status {
   $CHECK_ENV!(env)
   const envObject = emnapiCtx.envStore.get(env)!
+  $from64('length')
+  const autoLength = length === -1
+  const sizelength = length >>> 0
+  if (length !== 0) {
+    $CHECK_ARG!(envObject, str)
+  }
   $CHECK_ARG!(envObject, result)
   $from64('str')
-  $from64('length')
 
-  if (((length < -1) || (length > 2147483647)) || (!str)) {
+  if (!(autoLength || (sizelength <= 2147483647))) {
     return envObject.setLastError(napi_status.napi_invalid_arg)
   }
   const utf8String = emnapiUtf8ToString(str, length)

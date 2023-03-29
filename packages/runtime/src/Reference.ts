@@ -1,5 +1,4 @@
 import type { IStoreValue } from './Store'
-import { isReferenceType } from './util'
 import type { Env } from './env'
 import { RefBase } from './RefBase'
 import { Persistent } from './Persistent'
@@ -22,12 +21,9 @@ export class Reference extends RefBase implements IStoreValue {
     finalize_hint: void_p = 0
   ): Reference {
     const handle = envObject.ctx.handleStore.get(handle_id)!
-    if (!isReferenceType(handle.value)) {
-      throw new TypeError('Invalid reference value')
-    }
     const ref = new Reference(envObject, initialRefcount, ownership, finalize_callback, finalize_data, finalize_hint)
     envObject.ctx.refStore.add(ref)
-    ref.persistent = new Persistent<object>(handle.value)
+    ref.persistent = new Persistent(handle.value)
 
     if (initialRefcount === 0) {
       ref._setWeak()

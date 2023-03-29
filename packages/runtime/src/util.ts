@@ -70,6 +70,18 @@ export const canSetFunctionName = /*#__PURE__*/ (function () {
 
 export const supportReflect = typeof Reflect === 'object'
 export const supportFinalizer = (typeof FinalizationRegistry !== 'undefined') && (typeof WeakRef !== 'undefined')
+export const supportWeakSymbol = /*#__PURE__*/ (function () {
+  try {
+    // eslint-disable-next-line symbol-description
+    const sym = Symbol()
+    // eslint-disable-next-line no-new
+    new WeakRef(sym as any)
+    new WeakMap().set(sym as any, undefined)
+  } catch (_) {
+    return false
+  }
+  return true
+})()
 export const supportBigInt = typeof BigInt !== 'undefined'
 
 export function isReferenceType (v: any): v is object {

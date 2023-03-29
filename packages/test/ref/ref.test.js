@@ -5,6 +5,8 @@
 const assert = require('assert')
 const { load } = require('../util')
 const { gcUntil } = require('../common')
+const emnapi = require('../../runtime')
+const context = emnapi.getDefaultContext()
 
 const p = load('ref')
 module.exports = p.then(test_reference => {
@@ -16,31 +18,38 @@ module.exports = p.then(test_reference => {
   // Run each test function in sequence,
   // with an async delay and GC call between each.
   async function runTests () {
-    // emnapi can not create reference on a symbol
-    // https://github.com/tc39/proposal-symbols-as-weakmap-keys
+    const symbolAsWeakMapKeys = () => {
+      // https://github.com/tc39/proposal-symbols-as-weakmap-keys
+      console.log('test symbolAsWeakMapKeys');
+      (() => {
+        const symbol = test_reference.createSymbol('testSym')
+        test_reference.createReference(symbol, 0)
+        assert.strictEqual(test_reference.referenceValue, symbol)
+      })()
+      test_reference.deleteReference();
 
-    // (() => {
-    //   const symbol = test_reference.createSymbol('testSym')
-    //   test_reference.createReference(symbol, 0)
-    //   assert.strictEqual(test_reference.referenceValue, symbol)
-    // })()
-    // test_reference.deleteReference();
+      (() => {
+        const symbol = test_reference.createSymbolFor('testSymFor')
+        test_reference.createReference(symbol, 0)
+        assert.strictEqual(test_reference.referenceValue, symbol)
+        assert.strictEqual(test_reference.referenceValue, Symbol.for('testSymFor'))
+      })()
+      test_reference.deleteReference();
 
-    // (() => {
-    //   const symbol = test_reference.createSymbolFor('testSymFor')
-    //   test_reference.createReference(symbol, 0)
-    //   assert.strictEqual(test_reference.referenceValue, symbol)
-    //   assert.strictEqual(test_reference.referenceValue, Symbol.for('testSymFor'))
-    // })()
-    // test_reference.deleteReference();
+      (() => {
+        const symbol = test_reference.createSymbolForEmptyString()
+        test_reference.createReference(symbol, 0)
+        assert.strictEqual(test_reference.referenceValue, symbol)
+        assert.strictEqual(test_reference.referenceValue, Symbol.for(''))
+      })()
+      test_reference.deleteReference()
+    }
 
-    // (() => {
-    //   const symbol = test_reference.createSymbolForEmptyString()
-    //   test_reference.createReference(symbol, 0)
-    //   assert.strictEqual(test_reference.referenceValue, symbol)
-    //   assert.strictEqual(test_reference.referenceValue, Symbol.for(''))
-    // })()
-    // test_reference.deleteReference()
+    if (context.feature.supportWeakSymbol) {
+      symbolAsWeakMapKeys()
+    } else {
+      assert.throws(symbolAsWeakMapKeys, /Invalid argument/)
+    }
 
     assert.throws(() => test_reference.createSymbolForIncorrectLength(),
       /Invalid argument/);
