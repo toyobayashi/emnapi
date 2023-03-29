@@ -153,9 +153,7 @@ static void uv__async_io(uv_loop_t* loop) {
 
 #if EMNAPI_USE_PROXYING
 
-#ifdef emscripten_main_browser_thread_id
 #undef emscripten_main_browser_thread_id
-#endif
 
 __attribute__((weak))
 pthread_t emscripten_main_browser_thread_id(void) {
