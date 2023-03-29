@@ -616,9 +616,9 @@ path = "src/main.rs"
 # crate-type = ["cdylib"]
 
 [dependencies]
-napi = { version = "2.10.13", default-features = false, features = ["napi8", "compat-mode"] }
+napi = { version = "2.12.1", default-features = false, features = ["napi8"] }
 napi-sys = { version = "2.2.3", features = ["napi8"] }
-napi-derive = "2.10.0"
+napi-derive = "2.12.2"
 
 [build-dependencies]
 napi-build = "2.0.1"
@@ -678,47 +678,61 @@ rustflags = [
 ```rust
 #![no_main]
 
-use napi::*;
+use napi_derive::napi;
 
-#[cfg(target_arch = "wasm32")]
-use napi::bindgen_prelude::*;
-#[cfg(target_arch = "wasm32")]
-use napi_sys::*;
+#[napi]
+fn fibonacci(n: u32) -> u32 {
+  match n {
+    1 | 2 => 1,
+    _ => fibonacci(n - 1) + fibonacci(n - 2),
+  }
+}
+```
 
-#[macro_use]
-extern crate napi_derive;
+</details>
 
-fn sum(a: i32, b: i32) -> i32 {
-  a + b
+<details>
+<summary>index.js</summary><br />
+
+```js
+const fs = require('fs')
+const path = require('path')
+const useWASI = false
+
+let wasi
+if (useWASI) {
+  const { WASI } = require('wasi')
+  wasi = new WASI({ /* ... */ })
 }
 
-#[js_function(2)]
-fn sum_js(ctx: CallContext) -> napi::Result<napi::JsNumber> {
-  let arg0 = ctx.get::<napi::JsNumber>(0)?.get_int32()?;
-  let arg1 = ctx.get::<napi::JsNumber>(1)?.get_int32()?;
-  let ret = sum(arg0, arg1);
-  ctx.env.create_int32(ret)
-}
+const { instantiateNapiModule } = require('@emnapi/core')
 
-fn module_register(_env: napi::Env, mut exports: napi::JsObject) -> napi::Result<()> {
-  exports.create_named_method("sum", sum_js)?;
+const wasmBuffer = useWASI
+  ? fs.readFileSync(path.join(__dirname, './target/wasm32-wasi/release/binding.wasm'))
+  : fs.readFileSync(path.join(__dirname, './target/wasm32-unknown-unknown/release/binding.wasm'))
 
-  Ok(())
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-#[module_exports]
-fn init(exports: napi::JsObject, env: napi::Env) -> napi::Result<()> {
-  module_register(env, exports)
-}
-
-#[cfg(target_arch = "wasm32")]
-#[no_mangle]
-pub unsafe extern "C" fn napi_register_wasm_v1(env: napi_env, exports: napi_value) -> () {
-  let env_object = napi::Env::from_raw(env);
-  let exports_object = napi::JsObject::from_napi_value(env, exports).unwrap();
-  module_register(env_object, exports_object).unwrap();
-}
+instantiateNapiModule(wasmBuffer, {
+  context: require('@emnapi/runtime').getDefaultContext(),
+  wasi,
+  onInstantiated (instance) {
+    for (const sym in instance.exports) {
+      if (sym.startsWith('__napi_register__')) {
+        instance.exports[sym]()
+      }
+    }
+  },
+  overwriteImports (importObject) {
+    importObject.env = {
+      ...importObject.env,
+      ...importObject.napi,
+      ...importObject.emnapi
+    }
+  }
+}).then(({ instance, napiModule }) => {
+  const binding = napiModule.exports
+  // output: 5
+  console.log(binding.fibonacci(5))
+})
 ```
 
 </details>
