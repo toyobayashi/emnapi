@@ -195,6 +195,7 @@ function emnapiUtf8ToString (ptr: number, length: number): string {
     return UTF8ToString(ptr)
   }
   length = length >>> 0
+  if (!length) return ''
   const HEAPU8 = new Uint8Array(wasmMemory.buffer)
   const shared = (typeof SharedArrayBuffer === 'function') && (wasmMemory.buffer instanceof SharedArrayBuffer)
   return emnapiUtf8Decoder.decode(shared ? HEAPU8.slice(ptr, ptr + length) : HEAPU8.subarray(ptr, ptr + length))
@@ -225,6 +226,7 @@ function emnapiUtf16ToString (ptr: number, length: number): string {
     return UTF16ToString(ptr)
   }
   length = length >>> 0
+  if (!length) return ''
   const HEAPU8 = new Uint8Array(wasmMemory.buffer)
   const shared = (typeof SharedArrayBuffer === 'function') && (wasmMemory.buffer instanceof SharedArrayBuffer)
   return emnapiUtf16leDecoder.decode(shared ? HEAPU8.slice(ptr, ptr + length * 2) : HEAPU8.subarray(ptr, ptr + length * 2))

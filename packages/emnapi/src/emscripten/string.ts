@@ -90,6 +90,7 @@ mergeInto(LibraryManager.library, {
       return UTF8ToString(ptr)
     }
     length = length >>> 0
+    if (!length) return ''
     return emnapiUtf8Decoder.decode($getUnsharedTextDecoderView('HEAPU8', 'ptr', 'ptr + length'))
   },
 
@@ -135,6 +136,7 @@ mergeInto(LibraryManager.library, {
       return UTF16ToString(ptr)
     }
     length = length >>> 0
+    if (!length) return ''
     return emnapiUtf16leDecoder.decode($getUnsharedTextDecoderView('HEAPU8', 'ptr', 'ptr + length * 2'))
   }
 })

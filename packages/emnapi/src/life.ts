@@ -76,8 +76,8 @@ function napi_create_reference (
   $CHECK_ARG!(envObject, result)
 
   const handle = emnapiCtx.handleStore.get(value)!
-  if (!(handle.isObject() || handle.isFunction())) {
-    return envObject.setLastError(napi_status.napi_object_expected)
+  if (!(handle.isObject() || handle.isFunction() || handle.isSymbol())) {
+    return envObject.setLastError(napi_status.napi_invalid_arg)
   }
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const ref = emnapiCtx.createReference(envObject, handle.id, initial_refcount >>> 0, Ownership.kUserland as any)

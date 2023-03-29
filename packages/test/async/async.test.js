@@ -90,6 +90,8 @@ async function main () {
       throw new Error('uncaught')
     }))
   })
+
+  process.exitCode = 0
 }
 
 module.exports = main()

@@ -10,6 +10,7 @@ import {
   _global,
   supportReflect,
   supportFinalizer,
+  supportWeakSymbol,
   supportBigInt,
   supportNewFunction,
   canSetFunctionName,
@@ -115,6 +116,7 @@ export class Context {
   public feature = {
     supportReflect,
     supportFinalizer,
+    supportWeakSymbol,
     supportBigInt,
     supportNewFunction,
     canSetFunctionName,
