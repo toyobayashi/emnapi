@@ -6,11 +6,15 @@ function loadNapiModuleImpl (loadFn, userNapiModule, wasmInput, options) {
 
   const getMemory = options.getMemory
   const getTable = options.getTable
+  const beforeInit = options.beforeInit
   if (getMemory != null && typeof getMemory !== 'function') {
     throw new TypeError('options.getMemory is not a function')
   }
   if (getTable != null && typeof getTable !== 'function') {
     throw new TypeError('options.getTable is not a function')
+  }
+  if (beforeInit != null && typeof beforeInit !== 'function') {
+    throw new TypeError('options.beforeInit is not a function')
   }
 
   let napiModule
@@ -54,41 +58,33 @@ function loadNapiModuleImpl (loadFn, userNapiModule, wasmInput, options) {
     }
   }
 
-  let onInstantiated
-  if (('onInstantiated' in options) && typeof options.onInstantiated === 'function') {
-    onInstantiated = options.onInstantiated
-  }
-
   return loadFn(wasmInput, importObject, (err, source) => {
     if (err) {
       throw err
     }
 
-    if (onInstantiated) {
-      onInstantiated(source.instance, source.module)
-    }
+    const originalInstance = source.instance
+    let instance = originalInstance
+    const originalExports = originalInstance.exports
 
-    let instance = source.instance
-    const exports = instance.exports
-
-    const exportMemory = 'memory' in exports
+    const exportMemory = 'memory' in originalExports
     const importMemory = 'memory' in importObject.env
     /** @type {WebAssembly.Memory} */
     const memory = getMemory
-      ? getMemory(exports)
+      ? getMemory(originalExports)
       : exportMemory
-        ? exports.memory
+        ? originalExports.memory
         : importMemory
           ? importObject.env.memory
           : undefined
     if (!memory) {
       throw new Error('memory is neither exported nor imported')
     }
-    const table = getTable ? getTable(exports) : exports.__indirect_function_table
+    const table = getTable ? getTable(originalExports) : originalExports.__indirect_function_table
     if (wasi && !exportMemory) {
-      instance = {
-        exports: Object.assign({}, exports, { memory })
-      }
+      const exports = Object.create(null)
+      Object.assign(exports, originalExports, { memory })
+      instance = { exports }
     }
     const module = source.module
     if (wasi) {
@@ -121,7 +117,7 @@ function loadNapiModuleImpl (loadFn, userNapiModule, wasmInput, options) {
           }
           return handler
         }
-        const handler = createHandler(exports)
+        const handler = createHandler(originalExports)
         const noop = () => {}
         handler.get = function (target, p, receiver) {
           if (p === 'memory') {
@@ -130,7 +126,7 @@ function loadNapiModuleImpl (loadFn, userNapiModule, wasmInput, options) {
           if (p === '_initialize') {
             return noop
           }
-          return Reflect.get(exports, p, receiver)
+          return Reflect.get(originalExports, p, receiver)
         }
         const exportsProxy = new Proxy(Object.create(null), handler)
         instance = new Proxy(instance, {
@@ -145,6 +141,13 @@ function loadNapiModuleImpl (loadFn, userNapiModule, wasmInput, options) {
       wasi.initialize(instance)
     }
 
+    if (beforeInit) {
+      beforeInit({
+        instance: originalInstance,
+        module
+      })
+    }
+
     napiModule.init({
       instance,
       module,
@@ -152,7 +155,7 @@ function loadNapiModuleImpl (loadFn, userNapiModule, wasmInput, options) {
       table
     })
 
-    const ret = { instance, module }
+    const ret = { instance: originalInstance, module }
     if (!isLoad) {
       ret.napiModule = napiModule
     }

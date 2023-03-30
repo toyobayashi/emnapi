@@ -90,7 +90,7 @@ export declare interface ReactorWASI {
 export declare interface LoadOptions {
   wasi?: ReactorWASI
   overwriteImports?: (importObject: WebAssembly.Imports) => WebAssembly.Imports
-  onInstantiated?: (instance: WebAssembly.Instance, module: WebAssembly.Module) => void
+  beforeInit?: (source: WebAssembly.WebAssemblyInstantiatedSource) => void
   getMemory?: (exports: WebAssembly.Exports) => WebAssembly.Memory
   getTable?: (exports: WebAssembly.Exports) => WebAssembly.Table
 }
