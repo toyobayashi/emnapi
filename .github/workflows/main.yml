@@ -192,12 +192,12 @@ jobs:
         npm publish --ignore-scripts -w packages/runtime -w packages/node -w packages/emnapi -w packages/core
 
     - name: Create release
-      uses: toyobayashi/upload-release-assets@v3.0.0
+      uses: softprops/action-gh-release@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         tag_name: ${{ github.event.after }}
-        release_name: ${{ github.event.after }}
+        name: ${{ github.event.after }}
         draft: true
         prerelease: false
-        assets: ./script/emnapi.zip
+        files: ./script/emnapi.zip
