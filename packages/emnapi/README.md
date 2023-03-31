@@ -728,7 +728,7 @@ instantiateNapiModule(wasmBuffer, {
       ...importObject.emnapi
     }
   }
-}).then(({ instance, napiModule }) => {
+}).then(({ napiModule }) => {
   const binding = napiModule.exports
   // output: 5
   console.log(binding.fibonacci(5))
@@ -778,16 +778,18 @@ Cross-Origin-Embedder-Policy: require-corp
 Cross-Origin-Opener-Policy: same-origin
 ```
 
+If you would like to avoid `SharedArrayBuffer` and cross-origin isolation, please use B & E (link against `libemnapi-basic.a`), see the following table for more details.
+
 #### About Prebuilt Libraries
 
 Prebuilt libraries can be found in the `lib` directory in `emnapi` npm package.
 
 | Library              | Description                                                                                                                                                                                                                                                   | `wasm32-emscripten` | `wasm32` | `wasm32-wasi` | `wasm32-wasi-threads`                   |
 |----------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------|----------|---------------|-----------------------------------------|
-| libemnapi.a          | no atomics feature.<br/><br/> no libuv port.<br/><br/> `napi_*_async_work` and `napi_*_threadsafe_function` always return `napi_generic_failure`.                                                                                                                         | ✅                   | ✅        | ✅             | waiting wasi-sdk release thread support |
-| libemnapi-mt.a       | atomics feature enabled.<br/><br/> `napi_*_async_work` and `napi_*_threadsafe_function` are based on pthread and libuv port.                                                                                                                                        | ✅                   | ❌        | ❌             | waiting wasi-sdk release thread support |
-| libemnapi-basic.a    | no atomics feature.<br/><br/> no libuv port.<br/><br/> `napi_*_async_work` and `napi_*_threadsafe_function` are imported from JavaScript land.                                                                                                                            | ✅                   | ✅        | ✅             | waiting wasi-sdk release thread support |
-| libemnapi-basic-mt.a | atomics feature enabled.<br/><br/> no libuv port.<br/><br/> `napi_*_async_work` and `napi_*_threadsafe_function` are imported from JavaScript land.<br/><br/> include `emnapi_async_worker_create` and `emnapi_async_worker_init` for WebWorker based async work implementation. | ❌                   | ✅        | ✅             | waiting wasi-sdk release thread support |
+| libemnapi.a          | no atomics feature.<br/><br/> no libuv port.<br/><br/> `napi_*_async_work` and `napi_*_threadsafe_function` always return `napi_generic_failure`.                                                                                                                         | ✅                   | ✅        | ✅             | ✅ |
+| libemnapi-mt.a       | atomics feature enabled.<br/><br/> `napi_*_async_work` and `napi_*_threadsafe_function` are based on pthread and libuv port.                                                                                                                                        | ✅                   | ❌        | ❌             | ✅ |
+| libemnapi-basic.a    | no atomics feature.<br/><br/> no libuv port.<br/><br/> `napi_*_async_work` and `napi_*_threadsafe_function` are imported from JavaScript land.                                                                                                                            | ✅                   | ✅        | ✅             | ✅ |
+| libemnapi-basic-mt.a | atomics feature enabled.<br/><br/> no libuv port.<br/><br/> `napi_*_async_work` and `napi_*_threadsafe_function` are imported from JavaScript land.<br/><br/> include `emnapi_async_worker_create` and `emnapi_async_worker_init` for WebWorker based async work implementation. | ❌                   | ✅        | ✅             | ✅ |
 | libdlmalloc.a        | no atomics feature, no thread safe garanteed.                                                                                                                                                                                                                 | ❌                   | ✅        | ❌             | ❌                                       |
 | libdlmalloc-mt.a     | atomics feature enabled, thread safe.                                                                                                                                                                                                                         | ❌                   | ✅        | ❌             | ❌                                       |
 | libemmalloc.a        | no atomics feature, no thread safe garanteed.                                                                                                                                                                                                                 | ❌                   | ✅        | ❌             | ❌                                       |
