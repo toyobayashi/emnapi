@@ -1,6 +1,8 @@
 name: Build
 
 on:
+  create:
+    tags:
   push:
     paths:
     - .github/workflows/**
@@ -183,8 +185,8 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: ${{ github.event.after }}
-        name: ${{ github.event.after }}
+        tag_name: ${{ github.ref }}
+        name: ${{ github.ref }}
         draft: true
         prerelease: false
         generate_release_notes: true
