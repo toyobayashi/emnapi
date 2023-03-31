@@ -1,8 +1,6 @@
 name: Build
 
 on:
-  create:
-    tags:
   push:
     paths:
     - .github/workflows/**
@@ -17,6 +15,7 @@ on:
     - '!example/**'
     branches:
     - main
+    tags:
   pull_request:
   workflow_dispatch:
 
@@ -185,8 +184,8 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: ${{ github.ref }}
-        name: ${{ github.ref }}
+        tag_name: ${{ github.ref_name }}
+        name: ${{ github.ref_name }}
         draft: true
         prerelease: false
         generate_release_notes: true
