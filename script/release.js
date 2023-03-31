@@ -163,6 +163,9 @@ async function main () {
   fs.copySync(path.join(sysroot, 'lib/wasm32-emscripten'), path.join(__dirname, '../packages/emnapi/lib/wasm32-emscripten'))
   fs.copySync(path.join(sysroot, 'lib/wasm32-wasi'), path.join(__dirname, '../packages/emnapi/lib/wasm32-wasi'))
   fs.copySync(path.join(sysroot, 'lib/wasm32'), path.join(__dirname, '../packages/emnapi/lib/wasm32'))
+  if (WASI_THREADS_CMAKE_TOOLCHAIN_FILE) {
+    fs.copySync(path.join(sysroot, 'lib/wasm32-wasi-threads'), path.join(__dirname, '../packages/emnapi/lib/wasm32-wasi-threads'))
+  }
 
   crossZip.zipSync(sysroot, path.join(__dirname, 'emnapi.zip'))
   // fs.rmSync(sysroot, { force: true, recursive: true })
