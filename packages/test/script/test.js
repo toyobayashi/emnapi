@@ -39,14 +39,6 @@ if (process.env.EMNAPI_TEST_NATIVE) {
   ])]
 }
 
-// # TODO(wasm32-wasi-threads): Remove this
-if (process.env.EMNAPI_TEST_WASI_THREADS) {
-  ignore = [...new Set([
-    ...ignore,
-    'node-addon-api/**/*'
-  ])]
-}
-
 let files = glob.sync(subdir
   ? subdir.endsWith('.js')
     ? subdir
