@@ -13,6 +13,8 @@ on:
     - '!packages/bench/**'
     - '!script/**'
     - '!example/**'
+    branches:
+    - main
   pull_request:
   workflow_dispatch:
 
@@ -50,23 +52,11 @@ jobs:
         target: ${{ matrix.target }}
 
     - name: Install wasi-sdk
-      if: ${{ matrix.target == 'wasm32-unknown-unknown' || matrix.target == 'wasm32-wasi' }}
+      if: ${{ matrix.target == 'wasm32-unknown-unknown' || matrix.target == 'wasm32-wasi' || matrix.target == 'wasm32-wasi-threads' }}
       env:
-        WASI_VERSION: '19'
-        WASI_VERSION_FULL: '19.0'
-        WASI_SDK_PATH: './wasi-sdk-19.0'
-      shell: bash
-      run: |
-        wget -q https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${WASI_VERSION}/wasi-sdk-${WASI_VERSION_FULL}-linux.tar.gz
-        mkdir -p $WASI_SDK_PATH
-        tar zxvf wasi-sdk-${WASI_VERSION_FULL}-linux.tar.gz -C $WASI_SDK_PATH --strip 1
-
-    - name: Install wasi-sdk with threads
-      if: ${{ matrix.target == 'wasm32-wasi-threads' }}
-      env:
-        WASI_VERSION: '20+threads'
-        WASI_VERSION_FULL: '20.0.threads'
-        WASI_SDK_PATH: './wasi-sdk-20.0.threads'
+        WASI_VERSION: '20'
+        WASI_VERSION_FULL: '20.0'
+        WASI_SDK_PATH: './wasi-sdk-20.0'
       shell: bash
       run: |
         wget -q https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${WASI_VERSION}/wasi-sdk-${WASI_VERSION_FULL}-linux.tar.gz
@@ -96,13 +86,10 @@ jobs:
     - name: Test wasm32-wasi-threads
       if: ${{ matrix.target == 'wasm32-wasi-threads' }}
       env:
-        WASI_VERSION: '20+threads'
-        WASI_VERSION_FULL: '20.0.threads'
-        WASI_SDK_PATH: './wasi-sdk-20.0.threads'
+        WASI_VERSION: '20'
+        WASI_VERSION_FULL: '20.0'
+        WASI_SDK_PATH: './wasi-sdk-20.0'
       run: |
-        echo "set(CMAKE_C_COMPILER_WORKS 1)" >> $WASI_SDK_PATH/share/cmake/wasi-sdk-pthread.cmake
-        echo "set(CMAKE_CXX_COMPILER_WORKS 1)" >> $WASI_SDK_PATH/share/cmake/wasi-sdk-pthread.cmake
-        cp -rpf $WASI_SDK_PATH/share/wasi-sysroot/lib/wasm32-wasi/libc++* $WASI_SDK_PATH/share/wasi-sysroot/lib/wasm32-wasi-threads/
         npm run rebuild:wt -w packages/test
         npm run test:wt -w packages/test
 
@@ -123,9 +110,9 @@ jobs:
     - name: Test wasm32-wasi
       if: ${{ matrix.target == 'wasm32-wasi' }}
       env:
-        WASI_VERSION: '19'
-        WASI_VERSION_FULL: '19.0'
-        WASI_SDK_PATH: './wasi-sdk-19.0'
+        WASI_VERSION: '20'
+        WASI_VERSION_FULL: '20.0'
+        WASI_SDK_PATH: './wasi-sdk-20.0'
       run: |
         npm run rebuild:w -w packages/test
         cd ./packages/test/rust && cargo build --release --target=wasm32-wasi && cd ../../..
@@ -134,9 +121,9 @@ jobs:
     - name: Test wasm32-unknown-unknown
       if: ${{ matrix.target == 'wasm32-unknown-unknown' }}
       env:
-        WASI_VERSION: '19'
-        WASI_VERSION_FULL: '19.0'
-        WASI_SDK_PATH: './wasi-sdk-19.0'
+        WASI_VERSION: '20'
+        WASI_VERSION_FULL: '20.0'
+        WASI_SDK_PATH: './wasi-sdk-20.0'
       run: |
         npm run rebuild:wasm32 -w packages/test
         cd ./packages/test/rust && cargo build --release --target=wasm32-unknown-unknown && cd ../../..
@@ -148,9 +135,9 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     env:
-      WASI_VERSION: '19'
-      WASI_VERSION_FULL: '19.0'
-      WASI_SDK_PATH: './wasi-sdk-19.0'
+      WASI_VERSION: '20'
+      WASI_VERSION_FULL: '20.0'
+      WASI_SDK_PATH: './wasi-sdk-20.0'
 
     steps:
     - uses: actions/checkout@v3
