@@ -1,6 +1,6 @@
 {
   "name": "@emnapi/node-binding",
-  "version": "0.36.0",
+  "version": "0.36.1",
   "description": "Bridge connecting emnapi and Node.js native implementation",
   "main": "index.js",
   "types": "index.d.ts",
