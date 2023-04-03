@@ -286,7 +286,7 @@ function napi_set_named_property (env: napi_env, object: napi_value, cname: cons
       return envObject.setLastError(napi_status.napi_invalid_arg)
     }
     $from64('cname')
-    emnapiCtx.handleStore.get(object)!.value[UTF8ToString(cname)] = emnapiCtx.handleStore.get(value)!.value
+    emnapiCtx.handleStore.get(object)!.value[emnapiString.UTF8ToString(cname, -1)] = emnapiCtx.handleStore.get(value)!.value
     return napi_status.napi_ok
   })
 }
@@ -315,7 +315,7 @@ function napi_has_named_property (env: napi_env, object: napi_value, utf8name: c
     $from64('utf8name')
     $from64('result')
 
-    r = UTF8ToString(utf8name) in v
+    r = emnapiString.UTF8ToString(utf8name, -1) in v
     $makeSetValue('result', 0, 'r ? 1 : 0', 'i8')
     return envObject.getReturnStatus()
   })
@@ -346,7 +346,7 @@ function napi_get_named_property (env: napi_env, object: napi_value, utf8name: c
     $from64('result')
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    value = envObject.ensureHandleId(v[UTF8ToString(utf8name)])
+    value = envObject.ensureHandleId(v[emnapiString.UTF8ToString(utf8name, -1)])
     $makeSetValue('result', 0, 'value', '*')
     return envObject.getReturnStatus()
   })
@@ -487,7 +487,7 @@ function napi_define_properties (
       const data = $makeGetValue('propPtr', POINTER_SIZE * 7, '*')
 
       if (utf8Name) {
-        propertyName = UTF8ToString(utf8Name)
+        propertyName = emnapiString.UTF8ToString(utf8Name, -1)
       } else {
         if (!name) {
           return envObject.setLastError(napi_status.napi_name_expected)
@@ -538,13 +538,13 @@ emnapiImplement('napi_has_property', 'ipppp', napi_has_property)
 emnapiImplement('napi_get_property', 'ipppp', napi_get_property)
 emnapiImplement('napi_delete_property', 'ipppp', napi_delete_property)
 emnapiImplement('napi_has_own_property', 'ipppp', napi_has_own_property)
-emnapiImplement('napi_set_named_property', 'ipppp', napi_set_named_property)
-emnapiImplement('napi_has_named_property', 'ipppp', napi_has_named_property)
-emnapiImplement('napi_get_named_property', 'ipppp', napi_get_named_property)
+emnapiImplement('napi_set_named_property', 'ipppp', napi_set_named_property, ['$emnapiString'])
+emnapiImplement('napi_has_named_property', 'ipppp', napi_has_named_property, ['$emnapiString'])
+emnapiImplement('napi_get_named_property', 'ipppp', napi_get_named_property, ['$emnapiString'])
 emnapiImplement('napi_set_element', 'ippip', napi_set_element)
 emnapiImplement('napi_has_element', 'ippip', napi_has_element)
 emnapiImplement('napi_get_element', 'ippip', napi_get_element)
 emnapiImplement('napi_delete_element', 'ippip', napi_delete_element)
-emnapiImplement('napi_define_properties', 'ipppp', napi_define_properties, ['$emnapiDefineProperty'])
+emnapiImplement('napi_define_properties', 'ipppp', napi_define_properties, ['$emnapiDefineProperty', '$emnapiString'])
 emnapiImplement('napi_object_freeze', 'ipp', napi_object_freeze)
 emnapiImplement('napi_object_seal', 'ipp', napi_object_seal)

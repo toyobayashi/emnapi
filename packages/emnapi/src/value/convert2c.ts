@@ -492,11 +492,11 @@ function napi_get_value_string_utf8 (env: napi_env, value: napi_value, buf: char
   if (!buf) {
     if (!result) return envObject.setLastError(napi_status.napi_invalid_arg)
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const strLength = lengthBytesUTF8(handle.value)
+    const strLength = emnapiString.lengthBytesUTF8(handle.value)
     $makeSetValue('result', 0, 'strLength', SIZE_TYPE)
   } else if (buf_size !== 0) {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const copied = stringToUTF8(handle.value, buf, buf_size)
+    const copied = emnapiString.stringToUTF8(handle.value, buf, buf_size)
     if (result) {
       $makeSetValue('result', 0, 'copied', SIZE_TYPE)
     }
@@ -524,7 +524,7 @@ function napi_get_value_string_utf16 (env: napi_env, value: napi_value, buf: cha
     $makeSetValue('result', 0, 'handle.value.length', SIZE_TYPE)
   } else if (buf_size !== 0) {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const copied = stringToUTF16(handle.value, buf, buf_size * 2)
+    const copied = emnapiString.stringToUTF16(handle.value, buf, buf_size * 2)
     if (result) {
       $makeSetValue('result', 0, 'copied / 2', SIZE_TYPE)
     }
@@ -564,12 +564,8 @@ emnapiImplement('napi_get_value_external', 'ippp', napi_get_value_external)
 emnapiImplement('napi_get_value_int32', 'ippp', napi_get_value_int32)
 emnapiImplement('napi_get_value_int64', 'ippp', napi_get_value_int64)
 emnapiImplement('napi_get_value_string_latin1', 'ippppp', napi_get_value_string_latin1)
-emnapiImplement('napi_get_value_string_utf8', 'ippppp', napi_get_value_string_utf8)
+emnapiImplement('napi_get_value_string_utf8', 'ippppp', napi_get_value_string_utf8, ['$emnapiString'])
 
-// #if typeof LEGACY_RUNTIME !== 'undefined' && !LEGACY_RUNTIME
-emnapiImplement('napi_get_value_string_utf16', 'ippppp', napi_get_value_string_utf16, ['$stringToUTF16'])
-// #else
-emnapiImplement('napi_get_value_string_utf16', 'ippppp', napi_get_value_string_utf16)
-// #endif
+emnapiImplement('napi_get_value_string_utf16', 'ippppp', napi_get_value_string_utf16, ['$emnapiString'])
 
 emnapiImplement('napi_get_value_uint32', 'ippp', napi_get_value_uint32)

@@ -34,7 +34,7 @@ function napi_throw_error (env: napi_env, code: const_char_p, msg: const_char_p)
     $from64('code')
     $from64('msg')
 
-    const error: Error & { code?: string } = new Error(UTF8ToString(msg))
+    const error: Error & { code?: string } = new Error(emnapiString.UTF8ToString(msg, -1))
     $INLINE_SET_ERROR_CODE!(envObject, error, 0, code)
 
     envObject.tryCatch.setError(error)
@@ -49,7 +49,7 @@ function napi_throw_type_error (env: napi_env, code: const_char_p, msg: const_ch
     $from64('code')
     $from64('msg')
 
-    const error: TypeError & { code?: string } = new TypeError(UTF8ToString(msg))
+    const error: TypeError & { code?: string } = new TypeError(emnapiString.UTF8ToString(msg, -1))
     $INLINE_SET_ERROR_CODE!(envObject, error, 0, code)
 
     envObject.tryCatch.setError(error)
@@ -64,7 +64,7 @@ function napi_throw_range_error (env: napi_env, code: const_char_p, msg: const_c
     $from64('code')
     $from64('msg')
 
-    const error: RangeError & { code?: string } = new RangeError(UTF8ToString(msg))
+    const error: RangeError & { code?: string } = new RangeError(emnapiString.UTF8ToString(msg, -1))
     $INLINE_SET_ERROR_CODE!(envObject, error, 0, code)
 
     envObject.tryCatch.setError(error)
@@ -79,7 +79,7 @@ function node_api_throw_syntax_error (env: napi_env, code: const_char_p, msg: co
     $from64('code')
     $from64('msg')
 
-    const error: SyntaxError & { code?: string } = new SyntaxError(UTF8ToString(msg))
+    const error: SyntaxError & { code?: string } = new SyntaxError(emnapiString.UTF8ToString(msg, -1))
     $INLINE_SET_ERROR_CODE!(envObject, error, 0, code)
 
     envObject.tryCatch.setError(error)
@@ -203,9 +203,9 @@ function napi_fatal_error (location: const_char_p, location_len: size_t, message
   $from64('message_len')
 
   abort('FATAL ERROR: ' +
-    emnapiUtf8ToString(location, location_len) +
+    emnapiString.UTF8ToString(location, location_len) +
     ' ' +
-    emnapiUtf8ToString(message, message_len)
+    emnapiString.UTF8ToString(message, message_len)
   )
 }
 
@@ -226,14 +226,14 @@ emnapiImplementInternal('_emnapi_get_last_error_info', 'vpppp', __emnapi_get_las
 
 emnapiImplement('napi_get_and_clear_last_exception', 'ipp', napi_get_and_clear_last_exception)
 emnapiImplement('napi_throw', 'ipp', napi_throw)
-emnapiImplement('napi_throw_error', 'ippp', napi_throw_error)
-emnapiImplement('napi_throw_type_error', 'ippp', napi_throw_type_error)
-emnapiImplement('napi_throw_range_error', 'ippp', napi_throw_range_error)
-emnapiImplement('node_api_throw_syntax_error', 'ippp', node_api_throw_syntax_error)
-emnapiImplement('napi_create_error', 'ipppp', napi_create_error)
-emnapiImplement('napi_create_type_error', 'ipppp', napi_create_type_error)
-emnapiImplement('napi_create_range_error', 'ipppp', napi_create_range_error)
-emnapiImplement('node_api_create_syntax_error', 'ipppp', node_api_create_syntax_error)
+emnapiImplement('napi_throw_error', 'ippp', napi_throw_error, ['$emnapiString'])
+emnapiImplement('napi_throw_type_error', 'ippp', napi_throw_type_error, ['$emnapiString'])
+emnapiImplement('napi_throw_range_error', 'ippp', napi_throw_range_error, ['$emnapiString'])
+emnapiImplement('node_api_throw_syntax_error', 'ippp', node_api_throw_syntax_error, ['$emnapiString'])
+emnapiImplement('napi_create_error', 'ipppp', napi_create_error, ['$emnapiString'])
+emnapiImplement('napi_create_type_error', 'ipppp', napi_create_type_error, ['$emnapiString'])
+emnapiImplement('napi_create_range_error', 'ipppp', napi_create_range_error, ['$emnapiString'])
+emnapiImplement('node_api_create_syntax_error', 'ipppp', node_api_create_syntax_error, ['$emnapiString'])
 emnapiImplement('napi_is_exception_pending', 'ipp', napi_is_exception_pending)
-emnapiImplement('napi_fatal_error', 'vpppp', napi_fatal_error, ['$emnapiUtf8ToString'])
+emnapiImplement('napi_fatal_error', 'vpppp', napi_fatal_error, ['$emnapiString'])
 emnapiImplement('napi_fatal_exception', 'ipp', napi_fatal_exception)
