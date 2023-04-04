@@ -261,6 +261,34 @@ class Transform {
           this.ctx.factory.createNodeArray(arr, node.arguments.hasTrailingComma)
         )
       }
+      if (functionName === 'emnapiDefineVar') {
+        const arr = node.arguments.slice()
+        if (arr.length > 2) {
+          arr[2] = this.ctx.factory.createIdentifier('undefined')
+        }
+        if (ts.isStringLiteral(arr[3])) {
+          const factory = this.ctx.factory
+          const source = ts.createSourceFile('/emnapiDefineVar_' + (arr[0] as StringLiteral).text, (arr[3] as StringLiteral).text, ts.ScriptTarget.ES5, true, ts.ScriptKind.JS)
+          arr[3] = factory.createFunctionExpression(
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            [],
+            undefined,
+            factory.createBlock(
+              [...source.statements],
+              true
+            )
+          )
+        }
+        return this.ctx.factory.updateCallExpression(
+          node,
+          node.expression,
+          node.typeArguments,
+          this.ctx.factory.createNodeArray(arr, node.arguments.hasTrailingComma)
+        )
+      }
       return ts.visitEachChild(node, this.visitor, this.ctx)
     }
     if (ts.isIdentifier(node) && node.text === '$POINTER_SIZE') {

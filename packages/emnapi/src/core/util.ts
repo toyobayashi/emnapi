@@ -21,10 +21,8 @@ function emnapiImplementHelper (_name: string, _sig: string | undefined, compile
   }
 }
 
-function emnapiDefineVar (name: string, value: any, deps?: string[], postset?: string): void {
-  if (typeof value === 'function' && postset) {
-    value()
-  } else if (typeof value === 'object' && value !== null && postset) {
-    value.init()
+function emnapiDefineVar (_name: string, _value: any, _deps?: string[], postset?: string): void {
+  if (typeof postset === 'function') {
+    (postset as () => void)()
   }
 }
