@@ -239,6 +239,9 @@ class Transform {
         if (functionName === '$makeDynCall') {
           return this.expandMakeDynCall(node)
         }
+        if (functionName === '$getUnsharedTextDecoderView') {
+          return this.expandGetUnsharedTextDecoderView(node)
+        }
       }
       const removeDeps = [
         'emnapiImplement',
@@ -413,6 +416,72 @@ class Transform {
           : this.ctx.factory.createNumericLiteral(argv1.text)
       ]
     ))
+  }
+
+  expandGetUnsharedTextDecoderView (node: CallExpression): Expression {
+    const argv = node.arguments
+    if (argv.length !== 3) {
+      throw new Error('$getUnsharedTextDecoderView argument length != 3')
+    }
+
+    const argv0 = argv[0]
+    const argv1 = argv[1]
+    const argv2 = argv[2]
+
+    if (!ts.isStringLiteral(argv0) ||
+        !ts.isStringLiteral(argv1) ||
+        !ts.isStringLiteral(argv2)
+    ) {
+      throw new Error('$getUnsharedTextDecoderView arguments include non string literal')
+    }
+
+    const heap = argv0.text
+    const start = argv1.text
+    const end = argv2.text
+
+    const factory = this.ctx.factory
+    return factory.createConditionalExpression(
+      factory.createBinaryExpression(
+        factory.createBinaryExpression(
+          factory.createTypeOfExpression(factory.createIdentifier('SharedArrayBuffer')),
+          factory.createToken(ts.SyntaxKind.EqualsEqualsEqualsToken),
+          factory.createStringLiteral('function')
+        ),
+        factory.createToken(ts.SyntaxKind.AmpersandAmpersandToken),
+        factory.createBinaryExpression(
+          factory.createPropertyAccessExpression(
+            factory.createIdentifier(heap),
+            factory.createIdentifier('buffer')
+          ),
+          factory.createToken(ts.SyntaxKind.InstanceOfKeyword),
+          factory.createIdentifier('SharedArrayBuffer')
+        )
+      ),
+      factory.createToken(ts.SyntaxKind.QuestionToken),
+      factory.createCallExpression(
+        factory.createPropertyAccessExpression(
+          factory.createIdentifier(heap),
+          factory.createIdentifier('slice')
+        ),
+        undefined,
+        [
+          factory.createIdentifier(start),
+          factory.createIdentifier(end)
+        ]
+      ),
+      factory.createToken(ts.SyntaxKind.ColonToken),
+      factory.createCallExpression(
+        factory.createPropertyAccessExpression(
+          factory.createIdentifier(heap),
+          factory.createIdentifier('subarray')
+        ),
+        undefined,
+        [
+          factory.createIdentifier(start),
+          factory.createIdentifier(end)
+        ]
+      )
+    )
   }
 }
 
