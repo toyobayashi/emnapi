@@ -438,7 +438,7 @@ function node_api_symbol_for (env: napi_env, utf8description: const_char_p, leng
     return envObject.setLastError(napi_status.napi_invalid_arg)
   }
 
-  const descriptionString = emnapiUtf8ToString(utf8description, length)
+  const descriptionString = emnapiString.UTF8ToString(utf8description, length)
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const value = emnapiCtx.addToCurrentScope(Symbol.for(descriptionString)).id
@@ -461,4 +461,4 @@ emnapiImplement('napi_create_object', 'ipp', napi_create_object)
 emnapiImplement('napi_create_symbol', 'ippp', napi_create_symbol)
 emnapiImplement('napi_create_typedarray', 'ipipppp', napi_create_typedarray, ['$emnapiExternalMemory'])
 emnapiImplement('napi_create_dataview', 'ippppp', napi_create_dataview, ['$emnapiExternalMemory'])
-emnapiImplement('node_api_symbol_for', 'ipppp', node_api_symbol_for, ['$emnapiUtf8ToString'])
+emnapiImplement('node_api_symbol_for', 'ipppp', node_api_symbol_for, ['$emnapiString'])

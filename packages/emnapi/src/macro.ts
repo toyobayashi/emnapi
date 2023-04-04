@@ -43,7 +43,7 @@ function $INLINE_SET_ERROR_CODE (
       }
       error.code = codeValue
     } else if (code_string) {
-      error.code = UTF8ToString(code_string)
+      error.code = emnapiString.UTF8ToString(code_string, -1)
     }
   })
 }

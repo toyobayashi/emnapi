@@ -113,7 +113,7 @@ function napi_create_string_utf16 (env: napi_env, str: const_char16_t_p, length:
     return envObject.setLastError(napi_status.napi_invalid_arg)
   }
 
-  const utf16String = emnapiUtf16ToString(str, length)
+  const utf16String = emnapiString.UTF16ToString(str, length)
   $from64('result')
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const value = emnapiCtx.addToCurrentScope(utf16String).id
@@ -136,7 +136,7 @@ function napi_create_string_utf8 (env: napi_env, str: const_char_p, length: size
   if (!(autoLength || (sizelength <= 2147483647))) {
     return envObject.setLastError(napi_status.napi_invalid_arg)
   }
-  const utf8String = emnapiUtf8ToString(str, length)
+  const utf8String = emnapiString.UTF8ToString(str, length)
   $from64('result')
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const value = emnapiCtx.addToCurrentScope(utf8String).id
@@ -243,6 +243,6 @@ emnapiImplement('napi_create_bigint_uint64', 'ipjp', napi_create_bigint_uint64)
 emnapiImplement('napi_create_bigint_words', 'ipippp', napi_create_bigint_words)
 emnapiImplement('napi_create_string_latin1', 'ipppp', napi_create_string_latin1)
 
-emnapiImplement('napi_create_string_utf16', 'ipppp', napi_create_string_utf16, ['$emnapiUtf16ToString'])
+emnapiImplement('napi_create_string_utf16', 'ipppp', napi_create_string_utf16, ['$emnapiString'])
 
-emnapiImplement('napi_create_string_utf8', 'ipppp', napi_create_string_utf8, ['$emnapiUtf8ToString'])
+emnapiImplement('napi_create_string_utf8', 'ipppp', napi_create_string_utf8, ['$emnapiString'])

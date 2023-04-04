@@ -47,7 +47,7 @@ function napi_define_class (
       const data = $makeGetValue('propPtr', POINTER_SIZE * 7, '*')
 
       if (utf8Name) {
-        propertyName = UTF8ToString(utf8Name)
+        propertyName = emnapiString.UTF8ToString(utf8Name, -1)
       } else {
         if (!name) {
           return envObject.setLastError(napi_status.napi_name_expected)
@@ -200,7 +200,7 @@ function _napi_add_finalizer (env: napi_env, js_object: napi_value, finalize_dat
   return envObject.clearLastError()
 }
 
-emnapiImplement('napi_define_class', 'ipppppppp', napi_define_class, ['$emnapiCreateFunction', '$emnapiDefineProperty'])
+emnapiImplement('napi_define_class', 'ipppppppp', napi_define_class, ['$emnapiCreateFunction', '$emnapiDefineProperty', '$emnapiString'])
 emnapiImplement('napi_wrap', 'ipppppp', napi_wrap, ['$emnapiWrap'])
 emnapiImplement('napi_unwrap', 'ippp', napi_unwrap, ['$emnapiUnwrap'])
 emnapiImplement('napi_remove_wrap', 'ippp', napi_remove_wrap, ['$emnapiUnwrap'])

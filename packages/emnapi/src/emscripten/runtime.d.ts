@@ -10,12 +10,6 @@ declare var wasmMemory: WebAssembly.Memory
 declare var ENVIRONMENT_IS_NODE: boolean
 declare var ENVIRONMENT_IS_PTHREAD: boolean
 
-declare function UTF8ToString (ptr: const_char_p, maxRead?: number): string
-declare function UTF16ToString (ptr: const_char16_t_p, maxRead?: number): string
-declare function stringToUTF8 (ptr: string, outPtr: char_p, maxBytesToWrite?: number): number
-declare function stringToUTF16 (ptr: string, outPtr: char16_t_p, maxBytesToWrite?: number): number
-declare function lengthBytesUTF8 (str: string): number
-
 // declare type I64Type = 'i64'
 // declare type I32Type = 'i1' | 'i8' | 'i16' | 'i32' | 'float' | 'double'
 // declare type ValueType = I32Type | I64Type

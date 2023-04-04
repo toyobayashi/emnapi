@@ -5,7 +5,7 @@
 function emnapiCreateFunction<F extends (...args: any[]) => any> (envObject: Env, utf8name: Pointer<const_char>, length: size_t, cb: napi_callback, data: void_p): { status: napi_status; f: F } {
   $from64('utf8name')
 
-  const functionName = (!utf8name || !length) ? '' : (emnapiUtf8ToString(utf8name, length))
+  const functionName = (!utf8name || !length) ? '' : (emnapiString.UTF8ToString(utf8name, length))
 
   let f: F
 
@@ -180,7 +180,7 @@ function emnapiUnwrap (env: napi_env, js_object: napi_value, result: void_pp, ac
   })
 }
 
-emnapiImplementHelper('$emnapiCreateFunction', undefined, emnapiCreateFunction, ['$emnapiUtf8ToString'])
+emnapiImplementHelper('$emnapiCreateFunction', undefined, emnapiCreateFunction, ['$emnapiString'])
 emnapiImplementHelper('$emnapiDefineProperty', undefined, emnapiDefineProperty, ['$emnapiCreateFunction'])
 emnapiImplementHelper('$emnapiGetHandle', undefined, emnapiGetHandle)
 emnapiImplementHelper('$emnapiWrap', undefined, emnapiWrap, ['$emnapiGetHandle'])
