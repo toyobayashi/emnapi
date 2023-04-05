@@ -71,9 +71,13 @@ function _emnapi_create_memory_view (
       case emnapi_memory_view_type.emnapi_data_view:
         viewDescriptor = { Ctor: DataView, address: external_data, length: byte_length, ownership: Ownership.kUserland, runtimeAllocated: 0 }
         break
-      case emnapi_memory_view_type.emnapi_buffer:
+      case emnapi_memory_view_type.emnapi_buffer: {
+        if (!emnapiCtx.feature.Buffer) {
+          throw emnapiCtx.createNotSupportBufferError('emnapi_create_memory_view', '')
+        }
         viewDescriptor = { Ctor: emnapiCtx.feature.Buffer!, address: external_data, length: byte_length, ownership: Ownership.kUserland, runtimeAllocated: 0 }
         break
+      }
       default: return envObject.setLastError(napi_status.napi_invalid_arg)
     }
     const Ctor = viewDescriptor.Ctor
