@@ -2,17 +2,6 @@ name: Build
 
 on:
   push:
-    paths:
-    - .github/workflows/**
-    - '**.ts'
-    - '**.js'
-    - '**.c'
-    - '**.cc'
-    - '**.cpp'
-    - '**.h'
-    - '!packages/bench/**'
-    - '!script/**'
-    - '!example/**'
     branches:
     - main
     tags:
