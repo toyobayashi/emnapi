@@ -1,6 +1,6 @@
 const path = require('path')
 const fs = require('fs')
-const { spawn } = require('../../../script/spawn.js')
+const { spawn, ChildProcessError } = require('../../../script/spawn.js')
 const { which } = require('../../../script/which.js')
 
 async function main () {
@@ -18,24 +18,32 @@ async function main () {
   }
   WASI_SDK_PATH = WASI_SDK_PATH.replace(/\\/g, '/')
 
-  await spawn('cmake', [
-    ...(
-      which('ninja')
-        ? ['-G', 'Ninja']
-        : (process.platform === 'win32' ? ['-G', 'MinGW Makefiles', '-DCMAKE_MAKE_PROGRAM=make'] : [])
-    ),
-    `-DCMAKE_TOOLCHAIN_FILE=${WASI_SDK_PATH}/share/cmake/wasi-sdk.cmake`,
-    `-DWASI_SDK_PREFIX=${WASI_SDK_PATH}`,
-    `-DCMAKE_BUILD_TYPE=${process.argv[2] || 'Debug'}`,
-    // '-DCMAKE_VERBOSE_MAKEFILE=1',
-    '-H.',
-    '-B', buildDir
-  ], cwd)
+  try {
+    await spawn('cmake', [
+      ...(
+        which('ninja')
+          ? ['-G', 'Ninja']
+          : (process.platform === 'win32' ? ['-G', 'MinGW Makefiles', '-DCMAKE_MAKE_PROGRAM=make'] : [])
+      ),
+      `-DCMAKE_TOOLCHAIN_FILE=${WASI_SDK_PATH}/share/cmake/wasi-sdk.cmake`,
+      `-DWASI_SDK_PREFIX=${WASI_SDK_PATH}`,
+      `-DCMAKE_BUILD_TYPE=${process.argv[2] || 'Debug'}`,
+      // '-DCMAKE_VERBOSE_MAKEFILE=1',
+      '-H.',
+      '-B', buildDir
+    ], cwd)
 
-  await spawn('cmake', [
-    '--build',
-    buildDir
-  ], cwd)
+    await spawn('cmake', [
+      '--build',
+      buildDir
+    ], cwd)
+  } catch (err) {
+    if (err instanceof ChildProcessError) {
+      process.exit(err.code)
+    } else {
+      throw err
+    }
+  }
 }
 
 main()

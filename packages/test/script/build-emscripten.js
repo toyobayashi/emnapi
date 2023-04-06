@@ -9,24 +9,19 @@ async function main () {
 
   fs.rmSync(buildDir, { force: true, recursive: true })
   fs.mkdirSync(buildDir, { recursive: true })
-  let WASI_SDK_PATH = process.env.WASI_SDK_PATH
-  if (!WASI_SDK_PATH) {
-    throw new Error('process.env.WASI_SDK_PATH is falsy value')
+  let emcmake = process.platform === 'win32' ? 'emcmake.bat' : 'emcmake'
+  if (process.env.EMSDK) {
+    emcmake = path.join(process.env.EMSDK, 'upstream/emscripten', emcmake)
   }
-  if (!path.isAbsolute(WASI_SDK_PATH)) {
-    WASI_SDK_PATH = path.join(__dirname, '../../..', WASI_SDK_PATH)
-  }
-  WASI_SDK_PATH = WASI_SDK_PATH.replace(/\\/g, '/')
 
   try {
-    await spawn('cmake', [
+    await spawn(emcmake, [
+      'cmake',
       ...(
         which('ninja')
           ? ['-G', 'Ninja']
           : (process.platform === 'win32' ? ['-G', 'MinGW Makefiles', '-DCMAKE_MAKE_PROGRAM=make'] : [])
       ),
-      `-DCMAKE_TOOLCHAIN_FILE=${WASI_SDK_PATH}/share/cmake/wasi-sdk-pthread.cmake`,
-      `-DWASI_SDK_PREFIX=${WASI_SDK_PATH}`,
       `-DCMAKE_BUILD_TYPE=${process.argv[2] || 'Debug'}`,
       // '-DCMAKE_VERBOSE_MAKEFILE=1',
       '-H.',
@@ -35,7 +30,8 @@ async function main () {
 
     await spawn('cmake', [
       '--build',
-      buildDir
+      buildDir,
+      '--clean-first'
     ], cwd)
   } catch (err) {
     if (err instanceof ChildProcessError) {

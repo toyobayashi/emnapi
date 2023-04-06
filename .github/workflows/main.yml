@@ -8,6 +8,11 @@ on:
   pull_request:
   workflow_dispatch:
 
+env:
+  WASI_VERSION: '20'
+  WASI_VERSION_FULL: '20.0'
+  WASI_SDK_PATH: './wasi-sdk-20.0'
+
 jobs:
   build:
     name: Build
@@ -43,10 +48,6 @@ jobs:
 
     - name: Install wasi-sdk
       if: ${{ matrix.target == 'wasm32-unknown-unknown' || matrix.target == 'wasm32-wasi' || matrix.target == 'wasm32-wasi-threads' }}
-      env:
-        WASI_VERSION: '20'
-        WASI_VERSION_FULL: '20.0'
-        WASI_SDK_PATH: './wasi-sdk-20.0'
       shell: bash
       run: |
         wget -q https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${WASI_VERSION}/wasi-sdk-${WASI_VERSION_FULL}-linux.tar.gz
@@ -55,7 +56,7 @@ jobs:
 
     - uses: actions/setup-node@v3
       with:
-        node-version: ${{ (contains(matrix.target, 'emscripten') && '20.0.0-v8-canary202302081604228b65') || '18.12.1' }}
+        node-version: ${{ (contains(matrix.target, 'emscripten') && matrix.target == 'wasm64-unknown-emscripten' && '20.0.0-v8-canary202302081604228b65') || '18.14.0' }}
         registry-url: 'https://registry.npmjs.org'
       env:
         NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -75,10 +76,6 @@ jobs:
 
     - name: Test wasm32-wasi-threads
       if: ${{ matrix.target == 'wasm32-wasi-threads' }}
-      env:
-        WASI_VERSION: '20'
-        WASI_VERSION_FULL: '20.0'
-        WASI_SDK_PATH: './wasi-sdk-20.0'
       run: |
         npm run rebuild:wt -w packages/test
         npm run test:wt -w packages/test
@@ -93,16 +90,14 @@ jobs:
       if: ${{ matrix.target == 'wasm64-unknown-emscripten' }}
       env:
         MEMORY64: '1'
+        UV_THREADPOOL_SIZE: '2'
+        NODE_TEST_KNOWN_GLOBALS: '0'
       run: |
-        npm run rebuild -w packages/test
-        npm run test -w packages/test
+        node ./packages/test/script/build-emscripten.js Debug
+        node ./packages/test/script/test.js
 
     - name: Test wasm32-wasi
       if: ${{ matrix.target == 'wasm32-wasi' }}
-      env:
-        WASI_VERSION: '20'
-        WASI_VERSION_FULL: '20.0'
-        WASI_SDK_PATH: './wasi-sdk-20.0'
       run: |
         npm run rebuild:w -w packages/test
         cd ./packages/test/rust && cargo build --release --target=wasm32-wasi && cd ../../..
@@ -110,10 +105,6 @@ jobs:
 
     - name: Test wasm32-unknown-unknown
       if: ${{ matrix.target == 'wasm32-unknown-unknown' }}
-      env:
-        WASI_VERSION: '20'
-        WASI_VERSION_FULL: '20.0'
-        WASI_SDK_PATH: './wasi-sdk-20.0'
       run: |
         npm run rebuild:wasm32 -w packages/test
         cd ./packages/test/rust && cargo build --release --target=wasm32-unknown-unknown && cd ../../..
@@ -124,10 +115,6 @@ jobs:
     if: ${{ startsWith(github.event.ref, 'refs/tags') }}
     needs: build
     runs-on: ubuntu-latest
-    env:
-      WASI_VERSION: '20'
-      WASI_VERSION_FULL: '20.0'
-      WASI_SDK_PATH: './wasi-sdk-20.0'
 
     steps:
     - uses: actions/checkout@v3
@@ -148,7 +135,7 @@ jobs:
         tar zxvf wasi-sdk-${WASI_VERSION_FULL}-linux.tar.gz -C $WASI_SDK_PATH --strip 1
     - uses: actions/setup-node@v3
       with:
-        node-version: '18.12.1'
+        node-version: '18.14.0'
         registry-url: 'https://registry.npmjs.org'
       env:
         NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

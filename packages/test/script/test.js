@@ -71,7 +71,7 @@ function test (f) {
     './script/test-entry.js',
     f
   ], { cwd, env: process.env, stdio: 'inherit' })
-  if (r.status !== 0) {
+  if (r.status) {
     process.exit(r.status)
   }
   console.log()

@@ -1,3 +1,11 @@
+class ChildProcessError extends Error {
+  constructor (message, code) {
+    super(message)
+    this.code = code
+    this.name = 'ChildProcessError'
+  }
+}
+
 /**
  * @param {string} command
  * @param {string[]} args
@@ -19,7 +27,10 @@ function spawn (command, args, cwdPath, stdin) {
       if (code === 0) {
         resolve()
       } else {
-        reject(new Error(`Child process exit: ${code}. Reason: ${reason}\n\n${command} ${argsString}\n`))
+        reject(new ChildProcessError(
+          `Child process exit: ${code}. Reason: ${reason}\n\n${command} ${argsString}\n`,
+          code
+        ))
       }
     })
   })
@@ -31,11 +42,19 @@ function spawnSync (command, args, cwdPath) {
   const argsString = args.map(a => a.indexOf(' ') !== -1 ? ('"' + a + '"') : a).join(' ')
   const cwd = cwdPath || process.cwd()
   console.log(`[spawn] ${cwd}${process.platform === 'win32' ? '>' : '$'} ${command} ${argsString}`)
-  return require('child_process').spawnSync(command, args, {
+  const result = require('child_process').spawnSync(command, args, {
     env: process.env,
     cwd
   })
+  if (result.status) {
+    throw new ChildProcessError(
+      `Child process exit: ${result.status}. Reason: ${result.signal}\n\n${command} ${argsString}\n`,
+      result.status
+    )
+  }
+  return result
 }
 
 exports.spawn = spawn
 exports.spawnSync = spawnSync
+exports.ChildProcessError = ChildProcessError
