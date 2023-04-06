@@ -1,12 +1,14 @@
 #ifndef SRC_NODE_API_H_
 #define SRC_NODE_API_H_
 
+#ifdef EMNAPI_UNMODIFIED_UPSTREAM
 #ifdef BUILDING_NODE_EXTENSION
 #ifdef _WIN32
 // Building native addon against node
 #define NAPI_EXTERN __declspec(dllimport)
 #elif defined(__wasm32__)
 #define NAPI_EXTERN __attribute__((__import_module__("napi")))
+#endif
 #endif
 #endif
 #include "js_native_api.h"
@@ -17,7 +19,15 @@ struct uv_loop_s;  // Forward declaration.
 #ifdef _WIN32
 #define NAPI_MODULE_EXPORT __declspec(dllexport)
 #else
+#ifdef EMNAPI_UNMODIFIED_UPSTREAM
 #define NAPI_MODULE_EXPORT __attribute__((visibility("default")))
+#else
+#ifdef __EMSCRIPTEN__
+#define NAPI_MODULE_EXPORT __attribute__((visibility("default"))) __attribute__((used))
+#else
+#define NAPI_MODULE_EXPORT __attribute__((visibility("default")))
+#endif
+#endif
 #endif
 
 #if defined(__GNUC__)
@@ -48,10 +58,18 @@ typedef struct napi_module {
   NAPI_MODULE_INITIALIZER_X_HELPER(base, version)
 #define NAPI_MODULE_INITIALIZER_X_HELPER(base, version) base##version
 
+#ifdef EMNAPI_UNMODIFIED_UPSTREAM
 #ifdef __wasm32__
 #define NAPI_MODULE_INITIALIZER_BASE napi_register_wasm_v
 #else
 #define NAPI_MODULE_INITIALIZER_BASE napi_register_module_v
+#endif
+#else
+#ifdef __wasm__
+#define NAPI_MODULE_INITIALIZER_BASE napi_register_wasm_v
+#else
+#define NAPI_MODULE_INITIALIZER_BASE napi_register_module_v
+#endif
 #endif
 
 #define NAPI_MODULE_INITIALIZER                                                \
@@ -132,8 +150,7 @@ NAPI_EXTERN napi_status NAPI_CDECL napi_get_buffer_info(napi_env env,
                                                         napi_value value,
                                                         void** data,
                                                         size_t* length);
-
-#ifndef __wasm32__
+#if !defined(EMNAPI_UNMODIFIED_UPSTREAM) || (defined(EMNAPI_UNMODIFIED_UPSTREAM) && !defined(__wasm32__))
 // Methods to manage simple async operations
 NAPI_EXTERN napi_status NAPI_CDECL
 napi_create_async_work(napi_env env,
@@ -187,7 +204,7 @@ napi_close_callback_scope(napi_env env, napi_callback_scope scope);
 
 #if NAPI_VERSION >= 4
 
-#ifndef __wasm32__
+#if !defined(EMNAPI_UNMODIFIED_UPSTREAM) || (defined(EMNAPI_UNMODIFIED_UPSTREAM) && !defined(__wasm32__))
 // Calling into JS from other threads
 NAPI_EXTERN napi_status NAPI_CDECL
 napi_create_threadsafe_function(napi_env env,
