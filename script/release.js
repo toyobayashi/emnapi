@@ -2,9 +2,10 @@ const fs = require('fs-extra')
 const path = require('path')
 const crossZip = require('@tybys/cross-zip')
 const { which } = require('./which.js')
-const { spawn, spawnSync } = require('./spawn.js')
+const { spawn, spawnSync, ChildProcessError } = require('./spawn.js')
 
 async function main () {
+  await Promise.resolve()
   const sysroot = path.join(__dirname, '../out')
 
   fs.rmSync(sysroot, { force: true, recursive: true })
@@ -171,4 +172,11 @@ async function main () {
   // fs.rmSync(sysroot, { force: true, recursive: true })
 }
 
-main()
+main().catch(err => {
+  if (err instanceof ChildProcessError) {
+    process.exit(err.code)
+  } else {
+    console.error(err)
+    process.exit(1)
+  }
+})

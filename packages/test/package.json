@@ -15,8 +15,8 @@
     "why-is-node-running": "^2.2.2"
   },
   "scripts": {
-    "rebuild": "node ./script/rm .cgenbuild && cross-env UV_THREADPOOL_SIZE=2 emcmake cmake -G Ninja -DCMAKE_BUILD_TYPE=Debug -H. -B.cgenbuild && cmake --build .cgenbuild --clean-first",
-    "rebuild:r": "node ./script/rm .cgenbuild && cross-env UV_THREADPOOL_SIZE=2 emcmake cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -H. -B.cgenbuild && cmake --build .cgenbuild --clean-first",
+    "rebuild": "cross-env UV_THREADPOOL_SIZE=2 node ./script/build-emscripten.js Debug",
+    "rebuild:r": "cross-env UV_THREADPOOL_SIZE=2 node ./script/build-emscripten.js Release",
     "rebuild:w": "cross-env UV_THREADPOOL_SIZE=2 node ./script/build-wasi.js Debug",
     "rebuild:wr": "cross-env UV_THREADPOOL_SIZE=2 node ./script/build-wasi.js Release",
     "rebuild:wt": "cross-env UV_THREADPOOL_SIZE=2 node ./script/build-wasi-threads.js Debug",
