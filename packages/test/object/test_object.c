@@ -610,13 +610,23 @@ static napi_value TestSeal(napi_env env,
 }
 
 // We create two type tags. They are basically 128-bit UUIDs.
-static const napi_type_tag type_tags[5] = {
-  { 0xdaf987b3cc62481a, 0xb745b0497f299531 },
-  { 0xbb7936c374084d9b, 0xa9548d0762eeedb9 },
-  { 0xa5ed9ce2e4c00c38, 0 },
-  { 0, 0 },
-  { 0xa5ed9ce2e4c00c38, 0xdaf987b3cc62481a },
+#define TYPE_TAG_COUNT 5
+static const napi_type_tag type_tags[TYPE_TAG_COUNT] = {
+    {0xdaf987b3cc62481a, 0xb745b0497f299531},
+    {0xbb7936c374084d9b, 0xa9548d0762eeedb9},
+    {0xa5ed9ce2e4c00c38, 0},
+    {0, 0},
+    {0xa5ed9ce2e4c00c38, 0xdaf987b3cc62481a},
 };
+#define VALIDATE_TYPE_INDEX(env, type_index)                                   \
+  do {                                                                         \
+    if ((type_index) >= TYPE_TAG_COUNT) {                                      \
+      NAPI_CALL((env),                                                         \
+                    napi_throw_range_error((env),                              \
+                                           "NODE_API_TEST_INVALID_TYPE_INDEX", \
+                                           "Invalid type index"));             \
+    }                                                                          \
+  } while (0)
 
 static napi_value
 TypeTaggedInstance(napi_env env, napi_callback_info info) {
@@ -626,8 +636,38 @@ TypeTaggedInstance(napi_env env, napi_callback_info info) {
 
   NAPI_CALL(env, napi_get_cb_info(env, info, &argc, &which_type, NULL, NULL));
   NAPI_CALL(env, napi_get_value_uint32(env, which_type, &type_index));
+  VALIDATE_TYPE_INDEX(env, type_index);
   NAPI_CALL(env, napi_create_object(env, &instance));
   NAPI_CALL(env, napi_type_tag_object(env, instance, &type_tags[type_index]));
+
+  return instance;
+}
+
+// V8 will not allowe us to construct an external with a NULL data value.
+#define IN_LIEU_OF_NULL ((void*)0x1)
+
+static napi_value PlainExternal(napi_env env, napi_callback_info info) {
+  napi_value instance;
+
+  NAPI_CALL(
+      env, napi_create_external(env, IN_LIEU_OF_NULL, NULL, NULL, &instance));
+
+  return instance;
+}
+
+static napi_value TypeTaggedExternal(napi_env env, napi_callback_info info) {
+  size_t argc = 1;
+  uint32_t type_index;
+  napi_value instance, which_type;
+
+  NAPI_CALL(env,
+            napi_get_cb_info(env, info, &argc, &which_type, NULL, NULL));
+  NAPI_CALL(env, napi_get_value_uint32(env, which_type, &type_index));
+  VALIDATE_TYPE_INDEX(env, type_index);
+  NAPI_CALL(
+      env, napi_create_external(env, IN_LIEU_OF_NULL, NULL, NULL, &instance));
+  NAPI_CALL(env,
+            napi_type_tag_object(env, instance, &type_tags[type_index]));
 
   return instance;
 }
@@ -641,6 +681,7 @@ CheckTypeTag(napi_env env, napi_callback_info info) {
 
   NAPI_CALL(env, napi_get_cb_info(env, info, &argc, argv, NULL, NULL));
   NAPI_CALL(env, napi_get_value_uint32(env, argv[0], &type_index));
+  VALIDATE_TYPE_INDEX(env, type_index);
   NAPI_CALL(env, napi_check_object_type_tag(env,
                                             argv[1],
                                             &type_tags[type_index],
@@ -657,10 +698,13 @@ napi_value Init(napi_env env, napi_value exports) {
     DECLARE_NAPI_PROPERTY("GetNamed", GetNamed),
     DECLARE_NAPI_PROPERTY("GetPropertyNames", GetPropertyNames),
     DECLARE_NAPI_PROPERTY("GetSymbolNames", GetSymbolNames),
-    DECLARE_NAPI_PROPERTY("GetEnumerableWritableNames", GetEnumerableWritableNames),
+    DECLARE_NAPI_PROPERTY("GetEnumerableWritableNames",
+                              GetEnumerableWritableNames),
     DECLARE_NAPI_PROPERTY("GetOwnWritableNames", GetOwnWritableNames),
-    DECLARE_NAPI_PROPERTY("GetEnumerableConfigurableNames", GetEnumerableConfigurableNames),
-    DECLARE_NAPI_PROPERTY("GetOwnConfigurableNames", GetOwnConfigurableNames),
+    DECLARE_NAPI_PROPERTY("GetEnumerableConfigurableNames",
+                              GetEnumerableConfigurableNames),
+    DECLARE_NAPI_PROPERTY("GetOwnConfigurableNames",
+                              GetOwnConfigurableNames),
     DECLARE_NAPI_PROPERTY("Set", Set),
     DECLARE_NAPI_PROPERTY("SetNamed", SetNamed),
     DECLARE_NAPI_PROPERTY("Has", Has),
@@ -674,6 +718,8 @@ napi_value Init(napi_env env, napi_value exports) {
     DECLARE_NAPI_PROPERTY("TestSetProperty", TestSetProperty),
     DECLARE_NAPI_PROPERTY("TestHasProperty", TestHasProperty),
     DECLARE_NAPI_PROPERTY("TypeTaggedInstance", TypeTaggedInstance),
+    DECLARE_NAPI_PROPERTY("TypeTaggedExternal", TypeTaggedExternal),
+    DECLARE_NAPI_PROPERTY("PlainExternal", PlainExternal),
     DECLARE_NAPI_PROPERTY("CheckTypeTag", CheckTypeTag),
     DECLARE_NAPI_PROPERTY("TestGetProperty", TestGetProperty),
     DECLARE_NAPI_PROPERTY("TestFreeze", TestFreeze),
