@@ -91,7 +91,7 @@ const emnapiExternalMemory: {
       return info
     }
 
-    const pointer = $makeMalloc('$emnapiExternalMemory.getArrayBufferPointer', 'arrayBuffer.byteLength')
+    const pointer = _malloc($to64('arrayBuffer.byteLength'))
     if (!pointer) throw new Error('Out of memory')
     new Uint8Array(wasmMemory.buffer).set(new Uint8Array(arrayBuffer), pointer)
 

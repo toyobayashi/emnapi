@@ -299,7 +299,7 @@ function napi_create_buffer (
       value = emnapiCtx.addToCurrentScope(buffer).id
       $makeSetValue('result', 0, 'value', '*')
     } else {
-      pointer = $makeMalloc('napi_create_buffer', 'size')
+      pointer = _malloc($to64('size'))
       if (!pointer) throw new Error('Out of memory')
       new Uint8Array(wasmMemory.buffer).subarray(pointer, pointer + size).fill(0)
       const buffer = Buffer.from(wasmMemory.buffer, pointer, size)

@@ -24,6 +24,7 @@ declare const Module: any
 
 // declare function allocateUTF8 (str: string): char_p
 declare function _free (ptr: void_p): void
+declare function _malloc (size: number | bigint): void_p
 
 // declare type LifecycleCallback<Arg> = {
 //   func: (arg: Arg) => void

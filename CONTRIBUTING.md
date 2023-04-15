@@ -17,7 +17,7 @@ This doc will explain the structure of this project and some points need to note
     and all function body string will be inlined to runtime code, so the module system and closures are not
     available.
 
-    For example, the `$makeMalloc(...)` in TypeScript source code will be transformed to `{{{ makeMalloc(...) }}}`
+    For example, the `$makeSetValue(...)` in TypeScript source code will be transformed to `{{{ makeSetValue(...) }}}`
 
 - `packages/core` (`dependencies`)
 

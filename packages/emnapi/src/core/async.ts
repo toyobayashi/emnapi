@@ -215,7 +215,7 @@ function __emnapi_async_send_js (type: number, callback: number, data: number): 
 function spawnThread (startArg: number, errorOrTid: number): number {
   const isNewABI = errorOrTid !== undefined
   if (!isNewABI) {
-    errorOrTid = $makeMalloc('spawnThread', '8')
+    errorOrTid = _malloc($to64('8'))
     if (!errorOrTid) {
       return -48 /* ENOMEM */
     }
