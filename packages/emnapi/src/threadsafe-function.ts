@@ -67,7 +67,7 @@ const emnapiTSFN = {
   },
   initQueue (func: number): boolean {
     const size = 2 * $POINTER_SIZE
-    const queue = $makeMalloc('emnapiTSFN.initQueue', 'size')
+    const queue = _malloc($to64('size'))
     if (!queue) return false
     new Uint8Array(wasmMemory.buffer, queue, size).fill(0)
     emnapiTSFN.storeSizeTypeValue(func + emnapiTSFN.offset.queue, queue, false)
@@ -85,7 +85,7 @@ const emnapiTSFN = {
     const tail = emnapiTSFN.loadSizeTypeValue(queue + $POINTER_SIZE, false)
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const size = 2 * $POINTER_SIZE
-    const node = $makeMalloc('emnapiTSFN.pushQueue', 'size')
+    const node = _malloc($to64('size'))
     if (!node) throw new Error('OOM')
     emnapiTSFN.storeSizeTypeValue(node, data, false)
     emnapiTSFN.storeSizeTypeValue(node + $POINTER_SIZE, 0, false)
@@ -690,7 +690,7 @@ function _napi_create_threadsafe_function (
 
   // tsfn create
   const sizeofTSFN = emnapiTSFN.offset.end
-  const tsfn = $makeMalloc('napi_create_threadsafe_function', 'sizeofTSFN')
+  const tsfn = _malloc($to64('sizeofTSFN'))
   if (!tsfn) return envObject.setLastError(napi_status.napi_generic_failure)
   new Uint8Array(wasmMemory.buffer).subarray(tsfn, tsfn + sizeofTSFN).fill(0)
   const resourceRef = emnapiCtx.createReference(envObject, resource, 1, Ownership.kUserland as any)
@@ -836,6 +836,8 @@ emnapiDefineVar(
   [
     '$emnapiInit',
     '$PThread',
+    'malloc',
+    'free',
     '_emnapi_node_emit_async_init',
     '_emnapi_node_emit_async_destroy',
     '_emnapi_runtime_keepalive_pop',

@@ -262,7 +262,7 @@ var _napi_create_async_work = singleThreadAsyncWork
     $CHECK_ARG!(envObject, resource_name)
 
     const sizeofAW = emnapiAWMT.offset.end
-    const aw = $makeMalloc('napi_create_async_work', 'sizeofAW')
+    const aw = _malloc($to64('sizeofAW'))
     if (!aw) return envObject.setLastError(napi_status.napi_generic_failure)
     new Uint8Array(wasmMemory.buffer).subarray(aw, aw + sizeofAW).fill(0)
     const s = envObject.ensureHandleId(resourceObject)

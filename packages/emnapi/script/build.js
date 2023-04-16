@@ -16,7 +16,7 @@ function replaceParseTool (code) {
     .replace(/\$(makeGetValue\(.*?\))/g, '{{{ $1 }}}')
     .replace(/\$(makeSetValue\(.*?\))/g, '{{{ $1 }}}')
     .replace(/\$(makeDynCall\(.*?\))/g, '{{{ $1 }}}')
-    .replace(/\$(makeMalloc\(.*?\))/g, '{{{ $1 }}}')
+    // .replace(/\$(makeMalloc\(.*?\))/g, '{{{ $1 }}}')
     .replace(/\$(getUnsharedTextDecoderView\(.*?\))/g, '{{{ $1 }}}')
 }
 

@@ -1,6 +1,6 @@
 // fake
 declare function $makeDynCall (sig: string, ptr: string): (...args: any[]) => any
-declare function $makeMalloc (source: string, size: string | number): void_p
+// declare function $makeMalloc (source: string, size: string | number): void_p
 
 declare type Bit = '8' | '16' | '32' | '64'
 declare type Sign = 'i' | 'u'

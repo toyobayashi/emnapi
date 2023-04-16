@@ -233,9 +233,9 @@ class Transform {
         if (functionName === '$makeSetValue') {
           return this.expandMakeSetValue(node)
         }
-        if (functionName === '$makeMalloc') {
-          return this.expandMakeMalloc(node)
-        }
+        // if (functionName === '$makeMalloc') {
+        //   return this.expandMakeMalloc(node)
+        // }
         if (functionName === '$makeDynCall') {
           return this.expandMakeDynCall(node)
         }
