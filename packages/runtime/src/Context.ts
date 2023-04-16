@@ -18,7 +18,7 @@ import {
   Buffer
 } from './util'
 import { CallbackInfoStack } from './CallbackInfo'
-import { NotSupportWeakRefError, NotSupportBigIntError } from './errors'
+import { NotSupportWeakRefError, NotSupportBigIntError, NotSupportBufferError } from './errors'
 import { Reference } from './Reference'
 import { type IDeferrdValue, Deferred } from './Deferred'
 
@@ -140,6 +140,10 @@ export class Context {
 
   createNotSupportBigIntError (api: string, message: string): NotSupportBigIntError {
     return new NotSupportBigIntError(api, message)
+  }
+
+  createNotSupportBufferError (api: string, message: string): NotSupportBufferError {
+    return new NotSupportBufferError(api, message)
   }
 
   public createReference (

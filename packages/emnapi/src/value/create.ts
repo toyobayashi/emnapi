@@ -288,9 +288,12 @@ function napi_create_buffer (
   $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, result)
 
+    const Buffer = emnapiCtx.feature.Buffer
+    if (!Buffer) {
+      throw emnapiCtx.createNotSupportBufferError('napi_create_buffer', '')
+    }
     $from64('result')
 
-    const Buffer = emnapiCtx.feature.Buffer!
     let buffer: Uint8Array
     $from64('size')
     size = size >>> 0
@@ -336,8 +339,11 @@ function napi_create_buffer_copy (
 
   $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, result)
-    const arrayBuffer = emnapiCreateArrayBuffer(length, result_data)
     const Buffer = emnapiCtx.feature.Buffer!
+    if (!Buffer) {
+      throw emnapiCtx.createNotSupportBufferError('napi_create_buffer_copy', '')
+    }
+    const arrayBuffer = emnapiCreateArrayBuffer(length, result_data)
     const buffer = Buffer.from(arrayBuffer)
     $from64('data')
     $from64('length')
