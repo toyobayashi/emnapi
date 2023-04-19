@@ -3,6 +3,7 @@
 // #include <stdlib.h>
 #include <js_native_api.h>
 #include "../common.h"
+#include "test_null.h"
 
 void* memset(void* dst, int c, size_t n);
 void* malloc(size_t size);
@@ -303,6 +304,8 @@ napi_value Init(napi_env env, napi_value exports) {
     DECLARE_NAPI_PROPERTY("TestMemoryCorruption", TestMemoryCorruption),
     DECLARE_NAPI_PROPERTY("TestUtf8Large", TestUtf8Large),
   };
+
+  init_test_null(env, exports);
 
   NAPI_CALL(env, napi_define_properties(
       env, exports, sizeof(properties) / sizeof(*properties), properties));
