@@ -5,6 +5,7 @@
 #include "uv.h"
 #include "../common.h"
 
+static int cleanup_hook_count = 0;
 static void MustNotCall(napi_async_cleanup_hook_handle hook, void* arg) {
   assert(0);
 }
@@ -22,6 +23,7 @@ static struct AsyncData* CreateAsyncData() {
 }
 
 static void AfterCleanupHookTwo(uv_handle_t* handle) {
+  cleanup_hook_count++;
   printf("AfterCleanupHookTwo\n");
   struct AsyncData* data = (struct AsyncData*) handle->data;
   napi_status status = napi_remove_async_cleanup_hook(data->handle);
@@ -30,11 +32,13 @@ static void AfterCleanupHookTwo(uv_handle_t* handle) {
 }
 
 static void AfterCleanupHookOne(uv_async_t* async) {
+  cleanup_hook_count++;
   printf("AfterCleanupHookOne\n");
   uv_close((uv_handle_t*) async, AfterCleanupHookTwo);
 }
 
 static void AsyncCleanupHook(napi_async_cleanup_hook_handle handle, void* arg) {
+  cleanup_hook_count++;
   printf("AsyncCleanupHook\n");
   struct AsyncData* data = (struct AsyncData*) arg;
   uv_loop_t* loop;
@@ -48,7 +52,31 @@ static void AsyncCleanupHook(napi_async_cleanup_hook_handle handle, void* arg) {
   uv_async_send(&data->async);
 }
 
+static void ObjectFinalizer(napi_env env, void* data, void* hint) {
+  // AsyncCleanupHook and its subsequent callbacks are called twice.
+  assert(cleanup_hook_count == 6);
+
+  napi_ref* ref = data;
+  NAPI_CALL_RETURN_VOID(env, napi_delete_reference(env, *ref));
+  free(ref);
+}
+
+static void CreateObjectWrap(napi_env env) {
+  napi_value js_obj;
+  napi_ref* ref = malloc(sizeof(*ref));
+  NAPI_CALL_RETURN_VOID(env, napi_create_object(env, &js_obj));
+  NAPI_CALL_RETURN_VOID(
+      env, napi_wrap(env, js_obj, ref, ObjectFinalizer, NULL, ref));
+  // create a strong reference so that the finalizer is called at shutdown.
+  NAPI_CALL_RETURN_VOID(env, napi_reference_ref(env, *ref, NULL));
+}
+
 static napi_value Init(napi_env env, napi_value exports) {
+  // Reinitialize the static variable to be compatible with musl libc.
+  cleanup_hook_count = 0;
+  // Create object wrap before cleanup hooks.
+  CreateObjectWrap(env);
+
   {
     struct AsyncData* data = CreateAsyncData();
     data->env = env;
@@ -67,6 +95,9 @@ static napi_value Init(napi_env env, napi_value exports) {
         env, MustNotCall, NULL, &must_not_call_handle);
     napi_remove_async_cleanup_hook(must_not_call_handle);
   }
+
+  // Create object wrap after cleanup hooks.
+  CreateObjectWrap(env);
 
   return NULL;
 }

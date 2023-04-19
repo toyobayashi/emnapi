@@ -8,7 +8,7 @@ if (process.argv[2] === 'child') {
   load('cleanup_hook')
 } else {
   module.exports = new Promise((resolve) => {
-    const { stdout } =
+    const { stdout, status, signal } =
       child_process.spawnSync(process.execPath, [
         '--expose-gc',
         ...(process.env.EMNAPI_TEST_WASI ? ['--experimental-wasi-unstable-preview1'] : []),
@@ -16,6 +16,7 @@ if (process.argv[2] === 'child') {
         __filename,
         'child'
       ])
+    assert.strictEqual(status, 0, `process exited with status(${status}) and signal(${signal})`)
     assert.strictEqual(stdout.toString().trim(), 'cleanup(42)')
     resolve()
   })
