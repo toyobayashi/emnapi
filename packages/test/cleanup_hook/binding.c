@@ -3,6 +3,7 @@
 #include <assert.h>
 #include <stdlib.h>
 #else
+#include <stddef.h>
 int console_log(const char* fmt, int a);
 void* malloc(size_t size);
 void free(void* p);
