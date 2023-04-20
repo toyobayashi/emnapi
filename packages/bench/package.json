@@ -3,10 +3,9 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "rebuild": "cgen rebuild -e"
+    "rebuild": "emcmake cmake -DCMAKE_BUILD_TYPE=Release -H. -B.build && cmake --build .build"
   },
   "devDependencies": {
-    "@tybys/cgen": "^0.14.1",
     "node-addon-api": "6.0.0",
     "benchmark": "^2.1.4"
   }

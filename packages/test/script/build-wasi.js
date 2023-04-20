@@ -4,7 +4,7 @@ const { spawn, ChildProcessError } = require('../../../script/spawn.js')
 const { which } = require('../../../script/which.js')
 
 async function main () {
-  const buildDir = path.join(__dirname, '../.cgenbuild')
+  const buildDir = path.join(__dirname, '../.build/wasm32-wasi')
   const cwd = path.join(__dirname, '..')
 
   fs.rmSync(buildDir, { force: true, recursive: true })

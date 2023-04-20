@@ -1,4 +1,4 @@
-.cgenbuild
+.build
 node_modules
 /emnapi
 /rust/target

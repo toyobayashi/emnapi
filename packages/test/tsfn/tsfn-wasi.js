@@ -25,7 +25,7 @@ if (typeof self !== 'undefined') {
     })
 
     const p = new Promise((resolve, reject) => {
-      loadNapiModule(napiModule, '../.cgenbuild/Debug/tsfn.wasm', {
+      loadNapiModule(napiModule, '../.build/wasm32-wasi-threads/Debug/tsfn.wasm', {
         wasi,
         overwriteImports (importObject) {
           importObject.env.memory = wasmMemory
