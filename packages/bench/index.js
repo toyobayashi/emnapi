@@ -184,13 +184,13 @@ function browserMain () {
   console.log('')
 
   Promise.all([
-    window.embindcpp.default(),
-    window.emnapic.default(),
-    window.emnapicpp.default()
+    window.embindcpp(),
+    window.emnapic(),
+    window.emnapicpp()
   ]).then(([
-    { Module: embind },
-    { Module: Module2 },
-    { Module: Module3 }
+    embind,
+    Module2,
+    Module3
   ]) => {
     const napi = Module2.emnapiInit({ context: window.emnapi.getDefaultContext() })
     const naa = Module3.emnapiInit({ context: window.emnapi.getDefaultContext() })
@@ -208,13 +208,13 @@ function browserMain () {
 
 function nodeMain () {
   Promise.all([
-    require('./.cgenbuild/Release/embindcpp').default(),
-    require('./.cgenbuild/Release/emnapic').default(),
-    require('./.cgenbuild/Release/emnapicpp').default()
+    require('./.build/Release/embindcpp')(),
+    require('./.build/Release/emnapic')(),
+    require('./.build/Release/emnapicpp')()
   ]).then(([
-    { Module: embind },
-    { Module: Module2 },
-    { Module: Module3 }
+    embind,
+    Module2,
+    Module3
   ]) => {
     const napi = Module2.emnapiInit({ context: require('@emnapi/runtime').getDefaultContext() })
     const naa = Module3.emnapiInit({ context: require('@emnapi/runtime').getDefaultContext() })

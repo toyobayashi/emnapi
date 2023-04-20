@@ -1,4 +1,3 @@
-.cgenbuild
 .build
 /test/CMakeLists.txt
 /test/cmake_install.cmake

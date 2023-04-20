@@ -4,7 +4,6 @@ node_modules
 /lib/typings
 .eslintrc.js
 /example
-/test/.cgenbuild
 /test/.build
 /test/CMakeFiles
 /packages/runtime/lib
