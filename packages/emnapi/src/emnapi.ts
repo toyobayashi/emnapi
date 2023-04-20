@@ -261,5 +261,5 @@ emnapiImplement2('emnapi_is_support_bigint', 'i', emnapi_is_support_bigint)
 emnapiImplement2('emnapi_is_node_binding_available', 'i', emnapi_is_node_binding_available)
 
 emnapiImplement2('emnapi_create_memory_view', 'ipippppp', _emnapi_create_memory_view, ['napi_add_finalizer', '$emnapiExternalMemory'])
-emnapiImplement2('emnapi_sync_memory', 'ipppppi', emnapi_sync_memory, ['$emnapiSyncMemory'])
+emnapiImplement2('emnapi_sync_memory', 'ipippp', emnapi_sync_memory, ['$emnapiSyncMemory'])
 emnapiImplement2('emnapi_get_memory_address', 'ipppp', emnapi_get_memory_address, ['$emnapiGetMemoryAddress'])
