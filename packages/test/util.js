@@ -8,7 +8,19 @@ const emnapi = require('../runtime')
 const context = emnapi.getDefaultContext()
 
 function getEntry (targetName) {
-  return join(__dirname, `./.cgenbuild/${common.buildType}/${targetName}.${process.env.EMNAPI_TEST_NATIVE ? 'node' : (process.env.EMNAPI_TEST_WASI || process.env.EMNAPI_TEST_WASM32) ? 'wasm' : 'js'}`)
+  let buildDir
+  if ('EMNAPI_TEST_WASI_THREADS' in process.env) {
+    buildDir = process.env.MEMORY64 ? '.build/wasm64-wasi-threads' : '.build/wasm32-wasi-threads'
+  } else if ('EMNAPI_TEST_WASI' in process.env) {
+    buildDir = process.env.MEMORY64 ? '.build/wasm64-wasi' : '.build/wasm32-wasi'
+  } else if ('EMNAPI_TEST_WASM32' in process.env) {
+    buildDir = process.env.MEMORY64 ? '.build/wasm64-unknown-unknown' : '.build/wasm32-unknown-unknown'
+  } else if ('EMNAPI_TEST_NATIVE' in process.env) {
+    buildDir = `.build/${process.arch}-${process.platform}`
+  } else {
+    buildDir = process.env.MEMORY64 ? '.build/wasm64-unknown-emscripten' : '.build/wasm32-unknown-emscripten'
+  }
+  return join(__dirname, `./${buildDir}/${common.buildType}/${targetName}.${process.env.EMNAPI_TEST_NATIVE ? 'node' : (process.env.EMNAPI_TEST_WASI || process.env.EMNAPI_TEST_WASM32) ? 'wasm' : 'js'}`)
 }
 
 exports.getEntry = getEntry
