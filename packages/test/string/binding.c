@@ -287,6 +287,18 @@ static napi_value TestUtf8Large(napi_env env, napi_callback_info info) {
   return output;
 }
 
+static napi_value TestUtf16Large(napi_env env, napi_callback_info info) {
+  size_t size = 128 * 1024 * 1024;
+  uint16_t* buffer = (uint16_t*)malloc(size * sizeof(uint16_t));
+  memset(buffer, 97, size * sizeof(uint16_t));
+
+  napi_value output;
+  NAPI_CALL(env, napi_create_string_utf16(env, buffer, size, &output));
+  free(buffer);
+
+  return output;
+}
+
 EXTERN_C_START
 napi_value Init(napi_env env, napi_value exports) {
   napi_property_descriptor properties[] = {
@@ -303,6 +315,7 @@ napi_value Init(napi_env env, napi_value exports) {
     DECLARE_NAPI_PROPERTY("TestLargeUtf16", TestLargeUtf16),
     DECLARE_NAPI_PROPERTY("TestMemoryCorruption", TestMemoryCorruption),
     DECLARE_NAPI_PROPERTY("TestUtf8Large", TestUtf8Large),
+    DECLARE_NAPI_PROPERTY("TestUtf16Large", TestUtf16Large),
   };
 
   init_test_null(env, exports);
