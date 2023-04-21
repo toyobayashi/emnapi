@@ -43,7 +43,7 @@ jobs:
       uses: actions/cache@v3
       with:
         path: ${{env.EM_CACHE_FOLDER}}
-        key: ${{env.EM_VERSION}}-${{ runner.os }}
+        key: ${{env.EM_VERSION}}-${{ runner.os }}-${{ matrix.target }}
     - uses: mymindstorm/setup-emsdk@v12
       if: ${{ contains(matrix.target, 'emscripten') }}
       with:
