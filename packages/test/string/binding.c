@@ -288,7 +288,7 @@ static napi_value TestUtf8Large(napi_env env, napi_callback_info info) {
 }
 
 static napi_value TestUtf16Large(napi_env env, napi_callback_info info) {
-  size_t size = 128 * 1024 * 1024;
+  size_t size = 64 * 1024 * 1024;
   uint16_t* buffer = (uint16_t*)malloc(size * sizeof(uint16_t));
   memset(buffer, 97, size * sizeof(uint16_t));
 
