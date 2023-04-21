@@ -6,7 +6,7 @@
     "rebuild": "emcmake cmake -DCMAKE_BUILD_TYPE=Release -H. -B.build && cmake --build .build"
   },
   "devDependencies": {
-    "node-addon-api": "6.0.0",
+    "node-addon-api": "6.1.0",
     "benchmark": "^2.1.4"
   }
 }

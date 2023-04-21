@@ -1062,47 +1062,48 @@ This option only has effect if you use emscripten `-pthread`. Default is `1` if 
 
 See source code [here](https://github.com/toyobayashi/emnapi/tree/main/packages/bench)
 
-- OS: Windows_NT x64 10.0.22621.963
-- CPU: 11th Gen Intel(R) Core(TM) i7-11800H @ 2.30GHz   2.30 GHz
-- Memory: 16.0 GB
-- Chrome: 108.0.5359.125
-- Emscripten: 3.1.28
-- emnapi: 0.22.0
+- OS: macOS 13.3.1 22E261 arm64
+- CPU: Apple M2 Pro
+- Memory: 32.0 GB
+- Chrome: 112.0.5615.137
+- Emscripten: 3.1.36
+- emnapi: 0.38.0
+- node-addon-api 6.1.0
 
 ```
 binding: function () {}
-                 embind #emptyFunction x 37,148,158 ops/sec ±0.39% (67 runs sampled)
-                 emnapi #emptyFunction x 40,207,668 ops/sec ±0.79% (67 runs sampled)
-node-addon-api + emnapi #emptyFunction x 13,871,523 ops/sec ±0.35% (67 runs sampled)
+                 embind #emptyFunction x 49,956,250 ops/sec ±0.32% (68 runs sampled)
+                 emnapi #emptyFunction x 57,543,501 ops/sec ±0.76% (67 runs sampled)
+node-addon-api + emnapi #emptyFunction x 21,352,147 ops/sec ±0.62% (66 runs sampled)
 Fastest is emnapi #emptyFunction
 
 binding: function (obj) { return obj }
-                 embind #returnParam x 19,230,099 ops/sec ±0.59% (68 runs sampled)
-                 emnapi #returnParam x 14,930,264 ops/sec ±0.68% (64 runs sampled)
-node-addon-api + emnapi #returnParam x 11,402,133 ops/sec ±0.47% (67 runs sampled)
-Fastest is embind #returnParam
+                 embind #returnParam x 21,426,261 ops/sec ±0.67% (67 runs sampled)
+                 emnapi #returnParam x 25,111,317 ops/sec ±0.40% (68 runs sampled)
+node-addon-api + emnapi #returnParam x 17,811,804 ops/sec ±0.24% (68 runs sampled)
+Fastest is emnapi #returnParam
 
 binding: function (int) { return copy(int) }
-                 embind #convertInteger x 9,178,287 ops/sec ±0.67% (67 runs sampled)
-                 emnapi #convertInteger x 9,898,681 ops/sec ±0.56% (66 runs sampled)
-node-addon-api + emnapi #convertInteger x 7,888,491 ops/sec ±0.79% (67 runs sampled)
+                 embind #convertInteger x 9,748,310 ops/sec ±0.52% (68 runs sampled)
+                 emnapi #convertInteger x 16,128,395 ops/sec ±0.38% (70 runs sampled)
+node-addon-api + emnapi #convertInteger x 11,692,687 ops/sec ±0.41% (67 runs sampled)
 Fastest is emnapi #convertInteger
 
 binding: function (str) { return copy(str) }
-                 embind #convertString x 2,574,960 ops/sec ±0.46% (66 runs sampled)
-                 emnapi #convertString x 3,412,941 ops/sec ±0.66% (68 runs sampled)
-node-addon-api + emnapi #convertString x 2,913,797 ops/sec ±0.62% (67 runs sampled)
+                 embind #convertString x 3,681,066 ops/sec ±0.24% (69 runs sampled)
+                 emnapi #convertString x 4,555,446 ops/sec ±0.40% (69 runs sampled)
+node-addon-api + emnapi #convertString x 3,826,496 ops/sec ±0.24% (68 runs sampled)
 Fastest is emnapi #convertString
 
 binding: function (param) { return param.length }
-                 embind #ObjectGet x 6,192,531 ops/sec ±0.73% (67 runs sampled)
-                 emnapi #ObjectGet x 5,268,653 ops/sec ±0.59% (66 runs sampled)
-node-addon-api + emnapi #ObjectGet x 4,828,204 ops/sec ±0.57% (67 runs sampled)
-Fastest is embind #ObjectGet
+                 embind #ObjectGet x 6,874,783 ops/sec ±0.39% (68 runs sampled)
+                 emnapi #ObjectGet x 6,926,130 ops/sec ±0.34% (69 runs sampled)
+node-addon-api + emnapi #ObjectGet x 6,075,822 ops/sec ±0.41% (68 runs sampled)
+Fastest is emnapi #ObjectGet
 
 binding: function (obj, key, value) { obj[key] = value }
-                 embind #ObjectSet x 11,467,433 ops/sec ±0.55% (67 runs sampled)
-                 emnapi #ObjectSet x 9,476,512 ops/sec ±0.91% (66 runs sampled)
-node-addon-api + emnapi #ObjectSet x 7,647,341 ops/sec ±0.36% (66 runs sampled)
-Fastest is embind #ObjectSet
+                 embind #ObjectSet x 11,184,221 ops/sec ±0.35% (66 runs sampled)
+                 emnapi #ObjectSet x 15,812,566 ops/sec ±0.64% (66 runs sampled)
+node-addon-api + emnapi #ObjectSet x 12,022,909 ops/sec ±0.51% (66 runs sampled)
+Fastest is emnapi #ObjectSet
 ```

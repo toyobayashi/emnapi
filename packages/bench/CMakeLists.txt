@@ -26,6 +26,7 @@ add_link_options(
 
 add_library(fib STATIC "${CMAKE_CURRENT_SOURCE_DIR}/src/fib.c")
 
+set(EMNAPI_FIND_NODE_ADDON_API ON)
 add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/../emnapi" "${CMAKE_CURRENT_BINARY_DIR}/emnapi")
 
 add_executable(embindcpp "${CMAKE_CURRENT_SOURCE_DIR}/src/bind.cpp")
