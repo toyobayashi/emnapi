@@ -35,6 +35,7 @@ You will need to install:
 - (Optional) CMake `>= v3.13`
 - (Optional) ninja
 - (Optional) make
+- (Optional) [node-addon-api](https://github.com/nodejs/node-addon-api) `>= 6.1.0`
 
 There are several choices to get `make` for Windows user
 
@@ -94,6 +95,9 @@ npm install @emnapi/runtime
 
 # for non-emscripten
 npm install @emnapi/core
+
+# if you use node-addon-api
+npm install node-addon-api
 ```
 
 Each package should match the same version.
@@ -404,9 +408,13 @@ instantiateNapiModule(fetch('./hello.wasm'), {
 
 </details>
 
-### Using C++
+### Using C++ and node-addon-api
 
-Alternatively, you can also use [`node-addon-api`](https://github.com/nodejs/node-addon-api) which is official Node-API C++ wrapper, already shipped ([v6.0.0](https://github.com/nodejs/node-addon-api/releases/tag/v6.0.0)) in this package but without Node.js specific API such as `CallbackScope`.
+Require [`node-addon-api`](https://github.com/nodejs/node-addon-api) `>= 6.1.0`
+
+```bash
+npm install node-addon-api
+```
 
 **Note: C++ wrapper can only be used to target Node.js v14.6.0+ and modern browsers those support `FinalizationRegistry` and `WeakRef` ([v8 engine v8.4+](https://v8.dev/blog/v8-release-84))!**
 
@@ -441,6 +449,7 @@ em++ -O3 \
      -DNAPI_DISABLE_CPP_EXCEPTIONS \
      -DNODE_ADDON_API_ENABLE_MAYBE \
      -I./node_modules/emnapi/include \
+     -I./node_modules/node-addon-api \
      -L./node_modules/emnapi/lib/wasm32-emscripten \
      --js-library=./node_modules/emnapi/dist/library_napi.js \
      -sEXPORTED_FUNCTIONS="['_napi_register_wasm_v1','_malloc','_free']" \
@@ -459,6 +468,7 @@ clang++ -O3 \
         -DNAPI_DISABLE_CPP_EXCEPTIONS \
         -DNODE_ADDON_API_ENABLE_MAYBE \
         -I./node_modules/emnapi/include \
+        -I./node_modules/node-addon-api \
         -L./node_modules/emnapi/lib/wasm32-wasi \
         --target=wasm32-wasi \
         --sysroot=$WASI_SDK_PATH/share/wasi-sysroot \
@@ -563,15 +573,20 @@ elseif((CMAKE_C_COMPILER_TARGET STREQUAL "wasm32") OR (CMAKE_C_COMPILER_TARGET S
 endif()
 ```
 
+If you use node-addon-api, you can use `-DEMNAPI_FIND_NODE_ADDON_API=ON` or manually add node-addon-api directory to the include dir via `include_directories()` or `target_include_directories()`.
+
 ```bash
 mkdir build
 
 # emscripten
-emcmake cmake -DCMAKE_BUILD_TYPE=Release -G Ninja -H. -Bbuild
+emcmake cmake -DCMAKE_BUILD_TYPE=Release \
+              -DEMNAPI_FIND_NODE_ADDON_API=ON \
+              -G Ninja -H. -Bbuild
 
 # wasi-sdk
 cmake -DCMAKE_TOOLCHAIN_FILE=$WASI_SDK_PATH/share/cmake/wasi-sdk.cmake \
       -DWASI_SDK_PREFIX=$WASI_SDK_PATH \
+      -DEMNAPI_FIND_NODE_ADDON_API=ON \
       -DCMAKE_BUILD_TYPE=Release \
       -G Ninja -H. -Bbuild
 
@@ -848,11 +863,15 @@ endif()
 
 ```bash
 # emscripten
-emcmake cmake -DCMAKE_BUILD_TYPE=Release -DEMNAPI_WORKER_POOL_SIZE=4 -G Ninja -H. -Bbuild
+emcmake cmake -DCMAKE_BUILD_TYPE=Release \
+              -DEMNAPI_FIND_NODE_ADDON_API=ON \
+              -DEMNAPI_WORKER_POOL_SIZE=4 \
+              -G Ninja -H. -Bbuild
 
 # wasi-sdk with thread support (Experimental)
 cmake -DCMAKE_TOOLCHAIN_FILE=$WASI_SDK_PATH/share/cmake/wasi-sdk-pthread.cmake \
       -DWASI_SDK_PREFIX=$WASI_SDK_PATH \
+      -DEMNAPI_FIND_NODE_ADDON_API=ON \
       -DCMAKE_BUILD_TYPE=Release \
       -G Ninja -H. -Bbuild
 

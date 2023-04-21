@@ -70,7 +70,7 @@ if(EMNAPI_FIND_NODE_ADDON_API)
   else()
     string(REGEX REPLACE "(\r?\n)|\"" "" OUTPUT_NAA_INCLUDE_DIR "${OUTPUT_NAA_INCLUDE_DIR}")
     string(REPLACE "\\" "/" OUTPUT_NAA_INCLUDE_DIR "${OUTPUT_NAA_INCLUDE_DIR}")
-    list(PREPEND EMNAPI_INCLUDE "${OUTPUT_NAA_INCLUDE_DIR}")
+    list(APPEND EMNAPI_INCLUDE "${OUTPUT_NAA_INCLUDE_DIR}")
   endif()
 endif()
 
@@ -191,8 +191,6 @@ install(FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/include/emnapi.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/js_native_api_types.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/js_native_api.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/napi-inl.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/napi.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/node_api_types.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/node_api.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/uv.h

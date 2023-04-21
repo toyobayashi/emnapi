@@ -3,6 +3,14 @@
   "version": "0.37.0",
   "description": "Node-API implementation for Emscripten",
   "main": "index.js",
+  "peerDependencies": {
+    "node-addon-api": ">= 6.1.0"
+  },
+  "peerDependenciesMeta": {
+    "node-addon-api": {
+      "optional": true
+    }
+  },
   "devDependencies": {
     "ts-macros": "2.0.1"
   },
