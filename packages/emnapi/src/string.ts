@@ -1,21 +1,18 @@
 /* eslint-disable @typescript-eslint/indent */
 
+declare interface Decoder {
+  decode (input: Uint8Array): string
+}
+
 var emnapiString = {
-  utf8Decoder: undefined! as { decode (input: BufferSource): string },
-  utf16Decoder: undefined! as { decode (input: BufferSource): string },
+  utf8Decoder: undefined! as Decoder,
+  utf16Decoder: undefined! as Decoder,
   init () {
 // #if !TEXTDECODER || TEXTDECODER == 1
     const fallbackDecoder = {
-      decode (input: BufferSource) {
-        const isArrayBuffer = input instanceof ArrayBuffer
-        const isView = ArrayBuffer.isView(input)
-        if (!isArrayBuffer && !isView) {
-          throw new TypeError('The "input" argument must be an instance of ArrayBuffer or ArrayBufferView')
-        }
-        let bytes = isArrayBuffer ? new Uint8Array(input) : new Uint8Array(input.buffer, input.byteOffset, input.byteLength)
-
+      decode (bytes: Uint8Array) {
         let inputIndex = 0
-        const pendingSize = Math.min(256 * 256, bytes.length + 1)
+        const pendingSize = Math.min(0x1000, bytes.length + 1)
         const pending = new Uint16Array(pendingSize)
         const chunks = []
         let pendingIndex = 0
@@ -60,7 +57,7 @@ var emnapiString = {
             }
             pending[pendingIndex++] = codepoint
           } else {
-          // invalid
+            // invalid
           }
         }
       }
@@ -78,18 +75,19 @@ var emnapiString = {
 
 // #if !TEXTDECODER || TEXTDECODER == 1
     const fallbackDecoder2 = {
-      decode (input: BufferSource) {
-        const isArrayBuffer = input instanceof ArrayBuffer
-        const isView = ArrayBuffer.isView(input)
-        if (!isArrayBuffer && !isView) {
-          throw new TypeError('The "input" argument must be an instance of ArrayBuffer or ArrayBufferView')
+      decode (input: Uint8Array) {
+        const bytes = new Uint16Array(input.buffer, input.byteOffset, input.byteLength / 2)
+        if (bytes.length <= 0x1000) {
+          return String.fromCharCode.apply(null, bytes as any)
         }
-        const bytes = isArrayBuffer ? new Uint16Array(input) : new Uint16Array(input.buffer, input.byteOffset, input.byteLength / 2)
-        const wcharArray = Array(bytes.length)
-        for (let i = 0; i < bytes.length; ++i) {
-          wcharArray[i] = String.fromCharCode(bytes[i])
+        const chunks = [] as string[]
+        let i = 0
+        let len = 0
+        for (; i < bytes.length; i += len) {
+          len = Math.min(0x1000, bytes.length - i)
+          chunks.push(String.fromCharCode.apply(null, bytes.subarray(i, i + len) as any))
         }
-        return wcharArray.join('')
+        return chunks.join('')
       }
     }
 // #endif
@@ -121,8 +119,8 @@ var emnapiString = {
     return len
   },
   UTF8ToString (ptr: void_p, length: int): string {
-    ptr >>>= 0
     if (!ptr || !length) return ''
+    ptr >>>= 0
     const HEAPU8 = new Uint8Array(wasmMemory.buffer)
     let end = ptr
     if (length === -1) {
@@ -130,7 +128,34 @@ var emnapiString = {
     } else {
       end = ptr + (length >>> 0)
     }
-    return emnapiString.utf8Decoder.decode($getUnsharedTextDecoderView('HEAPU8', 'ptr', 'end'))
+// #if TEXTDECODER != 2
+    length = end - ptr
+    if (length <= 16) {
+      let idx = ptr
+      var str = ''
+      while (idx < end) {
+        var u0 = HEAPU8[idx++]
+        if (!(u0 & 0x80)) { str += String.fromCharCode(u0); continue }
+        var u1 = HEAPU8[idx++] & 63
+        if ((u0 & 0xE0) === 0xC0) { str += String.fromCharCode(((u0 & 31) << 6) | u1); continue }
+        var u2 = HEAPU8[idx++] & 63
+        if ((u0 & 0xF0) === 0xE0) {
+          u0 = ((u0 & 15) << 12) | (u1 << 6) | u2
+        } else {
+          u0 = ((u0 & 7) << 18) | (u1 << 12) | (u2 << 6) | (HEAPU8[idx++] & 63)
+        }
+
+        if (u0 < 0x10000) {
+          str += String.fromCharCode(u0)
+        } else {
+          var ch = u0 - 0x10000
+          str += String.fromCharCode(0xD800 | (ch >> 10), 0xDC00 | (ch & 0x3FF))
+        }
+      }
+      return str
+    }
+// #endif
+    return emnapiString.utf8Decoder.decode($getUnsharedTextDecoderView('HEAPU8', 'ptr', 'end') as Uint8Array)
   },
   stringToUTF8 (str: string, outPtr: number, maxBytesToWrite: number): number {
     const HEAPU8 = new Uint8Array(wasmMemory.buffer)
@@ -170,8 +195,8 @@ var emnapiString = {
     return outIdx - startIdx
   },
   UTF16ToString (ptr: number, length: number): string {
-    ptr >>>= 0
     if (!ptr || !length) return ''
+    ptr >>>= 0
     let end = ptr
     if (length === -1) {
       let idx = end >> 1
@@ -181,9 +206,15 @@ var emnapiString = {
     } else {
       end = ptr + (length >>> 0) * 2
     }
+// #if TEXTDECODER != 2
+    length = end - ptr
+    if (length <= 32) {
+      return String.fromCharCode.apply(null, new Uint16Array(wasmMemory.buffer, ptr, length / 2) as any)
+    }
+// #endif
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const HEAPU8 = new Uint8Array(wasmMemory.buffer)
-    return emnapiString.utf16Decoder.decode($getUnsharedTextDecoderView('HEAPU8', 'ptr', 'end'))
+    return emnapiString.utf16Decoder.decode($getUnsharedTextDecoderView('HEAPU8', 'ptr', 'end') as Uint8Array)
   },
   stringToUTF16 (str: string, outPtr: number, maxBytesToWrite: number): number {
     if (maxBytesToWrite === undefined) {

@@ -82,4 +82,5 @@ module.exports = function test (test_string) {
 
   test_string.TestMemoryCorruption(' '.repeat(64 * 1024))
   assert.strictEqual(test_string.TestUtf8Large(), 'a'.repeat(256 * 1024 * 1024))
+  assert.strictEqual(test_string.TestUtf16Large(), '慡'.repeat(64 * 1024 * 1024))
 }
