@@ -1,7 +1,7 @@
-#if NAPI_VERSION >= 8
-
 #include "emnapi_internal.h"
 #include "node_api.h"
+
+#if NAPI_VERSION >= 8
 
 EXTERN_C_START
 
