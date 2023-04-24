@@ -1,6 +1,6 @@
 {
   "name": "@emnapi/core",
-  "version": "0.38.1",
+  "version": "0.38.2",
   "description": "emnapi core",
   "main": "index.js",
   "module": "./dist/emnapi-core.esm-bundler.js",
