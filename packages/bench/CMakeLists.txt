@@ -16,7 +16,6 @@ project(emnapibench)
 add_compile_definitions(
   "NAPI_VERSION=9"
   "NAPI_DISABLE_CPP_EXCEPTIONS"
-  "NODE_ADDON_API_ENABLE_MAYBE"
 )
 add_link_options(
   "-sMIN_CHROME_VERSION=84"
@@ -24,24 +23,22 @@ add_link_options(
   "-sMODULARIZE=1"
 )
 
-add_library(fib STATIC "${CMAKE_CURRENT_SOURCE_DIR}/src/fib.c")
-
 set(EMNAPI_FIND_NODE_ADDON_API ON)
 add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/../emnapi" "${CMAKE_CURRENT_BINARY_DIR}/emnapi")
 
-add_executable(embindcpp "${CMAKE_CURRENT_SOURCE_DIR}/src/bind.cpp")
-target_link_libraries(embindcpp PRIVATE embind fib)
+add_executable(embindcpp "${CMAKE_CURRENT_SOURCE_DIR}/src/embind.cpp")
+target_link_libraries(embindcpp PRIVATE embind)
 target_link_options(embindcpp PRIVATE "-sEXPORT_NAME=embindcpp")
 
-add_executable(emnapic "${CMAKE_CURRENT_SOURCE_DIR}/src/lib.c")
-target_link_libraries(emnapic PRIVATE emnapi-basic fib)
+add_executable(emnapic "${CMAKE_CURRENT_SOURCE_DIR}/src/node-api.cpp")
+target_link_libraries(emnapic PRIVATE emnapi-basic)
 target_link_options(emnapic PRIVATE
   "-sEXPORTED_FUNCTIONS=['_napi_register_wasm_v1','_malloc','_free']"
   "-sEXPORT_NAME=emnapic"
 )
 
-add_executable(emnapicpp "${CMAKE_CURRENT_SOURCE_DIR}/src/lib.cpp")
-target_link_libraries(emnapicpp PRIVATE emnapi-basic fib)
+add_executable(emnapicpp "${CMAKE_CURRENT_SOURCE_DIR}/src/node-addon-api.cpp")
+target_link_libraries(emnapicpp PRIVATE emnapi-basic)
 target_link_options(emnapicpp PRIVATE
   "-sEXPORTED_FUNCTIONS=['_napi_register_wasm_v1','_malloc','_free']"
   "-sEXPORT_NAME=emnapicpp"

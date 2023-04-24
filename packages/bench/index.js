@@ -1,25 +1,26 @@
+let emnapi, embindcpp, emnapic, emnapicpp
 if (typeof require === 'function') {
   // eslint-disable-next-line no-var
   var Benchmark = require('benchmark')
+  emnapi = require('@emnapi/runtime')
+  embindcpp = require('./.build/Release/embindcpp')
+  emnapic = require('./.build/Release/emnapic')
+  emnapicpp = require('./.build/Release/emnapicpp')
+} else {
+  emnapi = window.emnapi
+  embindcpp = window.embindcpp
+  emnapic = window.emnapic
+  emnapicpp = window.emnapicpp
 }
 
 const embindPrefix = '                 embind #'
 const emnapiPrefix = '                 emnapi #'
 const nodeaaPrefix = 'node-addon-api + emnapi #'
 
-if (typeof window !== 'undefined') {
-  browserMain()
-} else {
-  nodeMain()
-}
-
 function testEmptyFunction (embind, napi, naa) {
   console.log('binding: function () {}')
   const name = 'emptyFunction'
   const suite = new Benchmark.Suite(name)
-  // suite.add('raw#emptyFunction', function () {
-  //   embind._empty_function()
-  // })
   suite.add(embindPrefix + name, function () {
     embind.emptyFunction()
   })
@@ -28,6 +29,82 @@ function testEmptyFunction (embind, napi, naa) {
   })
   suite.add(nodeaaPrefix + name, function () {
     naa.emptyFunction()
+  })
+  suite.on('cycle', function (event) {
+    console.log(String(event.target))
+  })
+  suite.on('complete', function () {
+    console.log('Fastest is ' + this.filter('fastest').map('name')[0].trim())
+    console.log('')
+  })
+  suite.run({ async: false })
+}
+
+function testIncrementCounter (embind, napi, naa) {
+  console.log('binding: incrementCounter () { ++counter }')
+  const name = 'incrementCounter'
+  const suite = new Benchmark.Suite(name)
+
+  suite.add(embindPrefix + name, function () {
+    embind.incrementCounter()
+  })
+  suite.add(emnapiPrefix + name, function () {
+    napi.incrementCounter()
+  })
+  suite.add(nodeaaPrefix + name, function () {
+    naa.incrementCounter()
+  })
+  suite.on('cycle', function (event) {
+    console.log(String(event.target))
+  })
+  suite.on('complete', function () {
+    console.log('Fastest is ' + this.filter('fastest').map('name')[0].trim())
+    console.log('')
+  })
+  suite.run({ async: false })
+}
+
+function testSumI32 (embind, napi, naa) {
+  console.log('binding: sumI32 (v1 ... v9) { return v1 + ... + v9 }')
+  const name = 'sumI32'
+  const suite = new Benchmark.Suite(name)
+  console.log(embind.sumI32(1, 2, 3, 4, 5, 6, 7, 8, 9))
+  console.log(napi.sumI32(1, 2, 3, 4, 5, 6, 7, 8, 9))
+  console.log(naa.sumI32(1, 2, 3, 4, 5, 6, 7, 8, 9))
+  suite.add(embindPrefix + name, function () {
+    embind.sumI32(1, 2, 3, 4, 5, 6, 7, 8, 9)
+  })
+  suite.add(emnapiPrefix + name, function () {
+    napi.sumI32(1, 2, 3, 4, 5, 6, 7, 8, 9)
+  })
+  suite.add(nodeaaPrefix + name, function () {
+    naa.sumI32(1, 2, 3, 4, 5, 6, 7, 8, 9)
+  })
+  suite.on('cycle', function (event) {
+    console.log(String(event.target))
+  })
+  suite.on('complete', function () {
+    console.log('Fastest is ' + this.filter('fastest').map('name')[0].trim())
+    console.log('')
+  })
+  suite.run({ async: false })
+}
+
+function testSumDouble (embind, napi, naa) {
+  console.log('binding: sumDouble (v1 ... v9) { return v1 + ... + v9 }')
+  const name = 'sumDouble'
+  const suite = new Benchmark.Suite(name)
+  console.log(embind.sumDouble(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9))
+  console.log(napi.sumDouble(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9))
+  console.log(naa.sumDouble(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9))
+  suite.add(embindPrefix + name, function () {
+    embind.sumDouble(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9)
+  })
+  suite.add(emnapiPrefix + name, function () {
+    napi.sumDouble(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9)
+  })
+  suite.add(nodeaaPrefix + name, function () {
+    naa.sumDouble(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9)
   })
   suite.on('cycle', function (event) {
     console.log(String(event.target))
@@ -63,18 +140,18 @@ function testReturnParam (embind, napi, naa) {
   suite.run({ async: false })
 }
 
-function testConvertInteger (embind, napi, naa) {
+function testReturnsInputI32 (embind, napi, naa) {
   console.log('binding: function (int) { return copy(int) }')
-  const name = 'convertInteger'
+  const name = 'returnsInputI32'
   const suite = new Benchmark.Suite(name)
   suite.add(embindPrefix + name, function () {
-    embind.convertInteger(1)
+    embind.returnsInputI32(1)
   })
   suite.add(emnapiPrefix + name, function () {
-    napi.convertInteger(1)
+    napi.returnsInputI32(1)
   })
   suite.add(nodeaaPrefix + name, function () {
-    naa.convertInteger(1)
+    naa.returnsInputI32(1)
   })
   suite.on('cycle', function (event) {
     console.log(String(event.target))
@@ -86,23 +163,99 @@ function testConvertInteger (embind, napi, naa) {
   suite.run({ async: false })
 }
 
-function testConvertString (embind, napi, naa) {
+function testReturnsInputString (embind, napi, naa) {
   console.log('binding: function (str) { return copy(str) }')
-  const name = 'convertString'
+  const name = 'returnsInputString'
   const suite = new Benchmark.Suite(name)
   suite.add(embindPrefix + name, function () {
-    embind.convertString('node-api')
+    embind.returnsInputString('node-api')
   })
   suite.add(emnapiPrefix + name, function () {
-    napi.convertString('node-api')
+    napi.returnsInputString('node-api')
   })
   suite.add(nodeaaPrefix + name, function () {
-    naa.convertString('node-api')
+    naa.returnsInputString('node-api')
   })
   suite.on('cycle', function (event) {
     console.log(String(event.target))
   })
   suite.on('complete', function () {
+    console.log('Fastest is ' + this.filter('fastest').map('name')[0].trim())
+    console.log('')
+  })
+  suite.run({ async: false })
+}
+
+function testCallback (embind, napi, naa) {
+  console.log('binding: function (f) { f() }')
+  const name = 'callJavaScriptFunction'
+  const suite = new Benchmark.Suite(name)
+  const f = () => {}
+  suite.add(embindPrefix + name, function () {
+    embind.callJavaScriptFunction(f)
+  })
+  suite.add(emnapiPrefix + name, function () {
+    napi.callJavaScriptFunction(f)
+  })
+  suite.add(nodeaaPrefix + name, function () {
+    naa.callJavaScriptFunction(f)
+  })
+  suite.on('cycle', function (event) {
+    console.log(String(event.target))
+  })
+  suite.on('complete', function () {
+    console.log('Fastest is ' + this.filter('fastest').map('name')[0].trim())
+    console.log('')
+  })
+  suite.run({ async: false })
+}
+
+function testCreateTypedMemoryView (embind, napi, naa) {
+  console.log('binding: function () { return new Uint8Array(wasm memory) }')
+  const name = 'createTypedMemoryView'
+  const suite = new Benchmark.Suite(name)
+  suite.add(embindPrefix + name, function () {
+    embind.createTypedMemoryView()
+  })
+  suite.add(emnapiPrefix + name, function () {
+    napi.createTypedMemoryView()
+  })
+  suite.add(nodeaaPrefix + name, function () {
+    naa.createTypedMemoryView()
+  })
+  suite.on('cycle', function (event) {
+    console.log(String(event.target))
+  })
+  suite.on('complete', function () {
+    console.log('Fastest is ' + this.filter('fastest').map('name')[0].trim())
+    console.log('')
+  })
+  suite.run({ async: false })
+}
+
+function testClassMethod (embind, napi, naa) {
+  console.log('binding: class Foo { incrClassCounter () {} }')
+  const name = 'Foo.prototype.incrClassCounter'
+  const suite = new Benchmark.Suite(name)
+  const foo1 = new embind.Foo()
+  const foo2 = new napi.Foo()
+  const foo3 = new naa.Foo()
+  suite.add(embindPrefix + name, function () {
+    foo1.incrClassCounter()
+  })
+  suite.add(emnapiPrefix + name, function () {
+    foo2.incrClassCounter()
+  })
+  suite.add(nodeaaPrefix + name, function () {
+    foo3.incrClassCounter()
+  })
+  suite.on('cycle', function (event) {
+    console.log(String(event.target))
+  })
+  suite.on('complete', function () {
+    foo1.delete()
+    foo2.delete()
+    foo3.delete()
     console.log('Fastest is ' + this.filter('fastest').map('name')[0].trim())
     console.log('')
   })
@@ -157,72 +310,50 @@ function testObjectSet (embind, napi, naa) {
   suite.run({ async: false })
 }
 
-/* function testFib (embind, napi, naa) {
-  const name = 'fib'
-  const suite = new Benchmark.Suite(name)
-  suite.add(embindPrefix + name, function () {
-    embind.fib(24)
-  })
-  suite.add(emnapiPrefix + name, function () {
-    napi.fib(24)
-  })
-  suite.add(nodeaaPrefix + name, function () {
-    naa.fib(24)
-  })
-  suite.on('cycle', function (event) {
-    console.log(String(event.target))
-  })
-  suite.on('complete', function () {
-    console.log('Fastest is ' + this.filter('fastest').map('name')[0].trim())
+function test (embind, napi, naa) {
+  // testEmptyFunction(embind, napi, naa)
+  // testIncrementCounter(embind, napi, naa)
+  // testSumI32(embind, napi, naa)
+  // testSumDouble(embind, napi, naa)
+  // testReturnsInputI32(embind, napi, naa)
+  // testReturnsInputString(embind, napi, naa)
+  // testCallback(embind, napi, naa)
+  // testCreateTypedMemoryView(embind, napi, naa)
+  testClassMethod(embind, napi, naa)
+  // testReturnParam(embind, napi, naa)
+  // testConvertInteger(embind, napi, naa)
+  // testConvertString(embind, napi, naa)
+  // testObjectGet(embind, napi, naa)
+  // testObjectSet(embind, napi, naa)
+}
+
+function main () {
+  if (typeof require !== 'function') {
+    console.log(navigator.userAgent)
     console.log('')
-  })
-  suite.run({ async: false })
-} */
+  }
 
-function browserMain () {
-  console.log(navigator.userAgent)
-  console.log('')
-
-  Promise.all([
-    window.embindcpp(),
-    window.emnapic(),
-    window.emnapicpp()
+  return Promise.all([
+    embindcpp(),
+    emnapic(),
+    emnapicpp()
   ]).then(([
     embind,
     Module2,
     Module3
   ]) => {
-    const napi = Module2.emnapiInit({ context: window.emnapi.getDefaultContext() })
-    const naa = Module3.emnapiInit({ context: window.emnapi.getDefaultContext() })
-    const btnNapi = document.getElementById('testNapi')
-    btnNapi.addEventListener('click', () => {
-      testEmptyFunction(embind, napi, naa)
-      testReturnParam(embind, napi, naa)
-      testConvertInteger(embind, napi, naa)
-      testConvertString(embind, napi, naa)
-      testObjectGet(embind, napi, naa)
-      testObjectSet(embind, napi, naa)
-    })
+    const context = emnapi.getDefaultContext()
+    const napi = Module2.emnapiInit({ context })
+    const naa = Module3.emnapiInit({ context })
+    if (typeof require !== 'function') {
+      const btnNapi = document.getElementById('testNapi')
+      btnNapi.addEventListener('click', () => {
+        test(embind, napi, naa)
+      })
+    } else {
+      test(embind, napi, naa)
+    }
   })
 }
 
-function nodeMain () {
-  Promise.all([
-    require('./.build/Release/embindcpp')(),
-    require('./.build/Release/emnapic')(),
-    require('./.build/Release/emnapicpp')()
-  ]).then(([
-    embind,
-    Module2,
-    Module3
-  ]) => {
-    const napi = Module2.emnapiInit({ context: require('@emnapi/runtime').getDefaultContext() })
-    const naa = Module3.emnapiInit({ context: require('@emnapi/runtime').getDefaultContext() })
-    testEmptyFunction(embind, napi, naa)
-    testReturnParam(embind, napi, naa)
-    testConvertInteger(embind, napi, naa)
-    testConvertString(embind, napi, naa)
-    testObjectGet(embind, napi, naa)
-    testObjectSet(embind, napi, naa)
-  })
-}
+main()
