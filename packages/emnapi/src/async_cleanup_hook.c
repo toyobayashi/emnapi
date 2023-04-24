@@ -1,3 +1,5 @@
+#if NAPI_VERSION >= 8
+
 #include "emnapi_internal.h"
 #include "node_api.h"
 
@@ -124,3 +126,5 @@ napi_remove_async_cleanup_hook(napi_async_cleanup_hook_handle remove_handle) {
 }
 
 EXTERN_C_END
+
+#endif

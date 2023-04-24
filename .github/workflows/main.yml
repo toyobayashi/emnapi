@@ -94,6 +94,7 @@ jobs:
     - name: Test wasm32-unknown-emscripten
       if: ${{ matrix.target == 'wasm32-unknown-emscripten' }}
       run: |
+        npm run test:version
         npm run rebuild -w packages/test
         npm run test -w packages/test
 
