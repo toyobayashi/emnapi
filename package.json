@@ -9,6 +9,7 @@
     "build:node": "npm run build -w packages/node",
     "rebuild:test": "npm run rebuild -w packages/test",
     "test": "npm run test -w packages/test",
+    "test:version": "node ./packages/test/script/test-build-all-napi-version.js",
     "release": "node ./script/release.js",
     "lint": "eslint \"packages/**/*.ts\""
   },

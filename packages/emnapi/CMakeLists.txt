@@ -107,6 +107,10 @@ if(IS_WASM32)
   target_compile_definitions(${EMMALLOC_MT_TARGET_NAME} PRIVATE "PAGESIZE=65536" "__EMSCRIPTEN_SHARED_MEMORY__=1")
 endif()
 
+if(NAPI_VERSION)
+  add_compile_definitions("NAPI_VERSION=${NAPI_VERSION}")
+endif()
+
 add_library(${EMNAPI_TARGET_NAME} STATIC ${EMNAPI_SRC} ${UV_SRC})
 target_include_directories(${EMNAPI_TARGET_NAME} PUBLIC ${EMNAPI_INCLUDE})
 if(IS_EMSCRIPTEN)
