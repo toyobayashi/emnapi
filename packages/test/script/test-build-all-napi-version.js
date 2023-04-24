@@ -29,30 +29,30 @@ async function main () {
       `-DNAPI_VERSION=${version}`,
       `-H${path.join(__dirname, '../../emnapi')}`,
       '-B', buildDir
-    ], cwd, 'pipe')
+    ], cwd)
 
     const buildPromise = spawn('cmake', [
       '--build',
       buildDir,
       '--', '--quiet'
-    ], cwd, 'pipe')
+    ], cwd)
 
-    const stdoutPromise = new Promise((resolve) => {
-      const stdoutBuffers = []
-      buildPromise.cp.stdout.on('data', (data) => {
-        stdoutBuffers.push(data)
-      })
-      buildPromise.cp.stdout.on('end', () => {
-        resolve(Buffer.concat(stdoutBuffers).toString())
-      })
-    })
+    // const stdoutPromise = new Promise((resolve) => {
+    //   const stdoutBuffers = []
+    //   buildPromise.cp.stdout.on('data', (data) => {
+    //     stdoutBuffers.push(data)
+    //   })
+    //   buildPromise.cp.stdout.on('end', () => {
+    //     resolve(Buffer.concat(stdoutBuffers).toString())
+    //   })
+    // })
 
-    try {
-      await buildPromise
-    } catch (err) {
-      err.stdout = await stdoutPromise
-      throw err
-    }
+    // try {
+    await buildPromise
+    // } catch (err) {
+    //   err.stdout = await stdoutPromise
+    //   throw err
+    // }
   })).then(res => {
     let failed = false
     for (let i = 0; i < testVersions.length; ++i) {
@@ -61,9 +61,10 @@ async function main () {
         console.log(chalk.greenBright(`✔  NAPI_VERSION: ${testVersions[i]}`))
       } else if (result.status === 'rejected') {
         failed = true
-        console.log('::group::' + chalk.redBright(`❌ NAPI_VERSION: ${testVersions[i]}`))
-        console.log(result.reason.stdout)
-        console.log('::endgroup::')
+        console.log(chalk.redBright(`❌ NAPI_VERSION: ${testVersions[i]}`))
+        // console.log('::group::' + chalk.redBright(`❌ NAPI_VERSION: ${testVersions[i]}`))
+        // console.log(result.reason.stdout)
+        // console.log('::endgroup::')
       }
     }
     if (failed) {
