@@ -15,7 +15,8 @@ import {
   supportNewFunction,
   canSetFunctionName,
   _setImmediate,
-  Buffer
+  _Buffer,
+  _MessageChannel
 } from './util'
 import { CallbackInfoStack } from './CallbackInfo'
 import { NotSupportWeakRefError, NotSupportBigIntError, NotSupportBufferError } from './errors'
@@ -83,7 +84,7 @@ class NodejsWaitingRequestCounter {
   private count: number
 
   constructor () {
-    this.refHandle = new MessageChannel().port1 as unknown as import('worker_threads').MessagePort
+    this.refHandle = new _MessageChannel!().port1 as unknown as import('worker_threads').MessagePort
     this.count = 0
   }
 
@@ -121,7 +122,8 @@ export class Context {
     supportNewFunction,
     canSetFunctionName,
     setImmediate: _setImmediate,
-    Buffer
+    Buffer: _Buffer,
+    MessageChannel: _MessageChannel
   }
 
   public constructor () {

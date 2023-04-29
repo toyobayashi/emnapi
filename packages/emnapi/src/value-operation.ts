@@ -266,7 +266,8 @@ function napi_detach_arraybuffer (env: napi_env, arraybuffer: napi_value): napi_
   }
 
   try {
-    const messageChannel = new MessageChannel()
+    const MessageChannel = emnapiCtx.feature.MessageChannel
+    const messageChannel = new MessageChannel!()
     messageChannel.port1.postMessage(value, [value])
   } catch (err) {
     envObject.tryCatch.setError(err)

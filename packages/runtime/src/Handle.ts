@@ -1,5 +1,5 @@
 import type { Env } from './env'
-import { isReferenceType, _global, Buffer } from './util'
+import { isReferenceType, _global, _Buffer } from './util'
 
 export class Handle<S> {
   public constructor (
@@ -57,7 +57,7 @@ export class Handle<S> {
   }
 
   public isBuffer (): boolean {
-    return !this.isEmpty() && typeof Buffer === 'function' && Buffer.isBuffer(this.value)
+    return !this.isEmpty() && typeof _Buffer === 'function' && _Buffer.isBuffer(this.value)
   }
 
   public isDataView (): boolean {

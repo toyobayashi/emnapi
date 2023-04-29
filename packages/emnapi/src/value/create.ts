@@ -120,8 +120,11 @@ function napi_create_external_arraybuffer (
     }
     const arrayBuffer = new ArrayBuffer(byte_length)
     if (byte_length === 0) {
-      const messageChannel = new MessageChannel()
-      messageChannel.port1.postMessage(arrayBuffer, [arrayBuffer])
+      try {
+        const MessageChannel = emnapiCtx.feature.MessageChannel
+        const messageChannel = new MessageChannel!()
+        messageChannel.port1.postMessage(arrayBuffer, [arrayBuffer])
+      } catch (_) {}
     } else {
       const u8arr = new Uint8Array(arrayBuffer)
       u8arr.set(new Uint8Array(wasmMemory.buffer).subarray(external_data, external_data + byte_length))
