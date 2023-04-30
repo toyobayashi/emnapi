@@ -88,19 +88,6 @@ export function isReferenceType (v: any): v is object {
   return (typeof v === 'object' && v !== null) || typeof v === 'function'
 }
 
-export const _setImmediate = typeof setImmediate === 'function'
-  ? setImmediate
-  : function (f: () => void): void {
-    if (typeof f !== 'function') return
-    let channel = new MessageChannel()
-    channel.port1.onmessage = function () {
-      channel.port1.onmessage = null
-      channel = undefined!
-      f()
-    }
-    channel.port2.postMessage(null)
-  }
-
 const _require = /*#__PURE__*/ (function () {
   let nativeRequire
 
@@ -117,12 +104,41 @@ const _require = /*#__PURE__*/ (function () {
   return nativeRequire
 })()
 
-export const Buffer: BufferCtor | undefined = /*#__PURE__*/ (function () {
-  if (typeof _global.Buffer === 'function') return _global.Buffer
+export const _MessageChannel: typeof MessageChannel | undefined = typeof MessageChannel === 'function'
+  ? MessageChannel
+  : /*#__PURE__*/ (function () {
+      try {
+        return _require!('worker_threads').MessageChannel
+      } catch (_) {}
 
-  try {
-    return _require!('buffer').Buffer
-  } catch (_) {}
+      return undefined
+    })()
 
-  return undefined
-})()
+export const _setImmediate = typeof setImmediate === 'function'
+  ? setImmediate
+  : function (callback: () => void): void {
+    if (typeof callback !== 'function') {
+      throw new TypeError('The "callback" argument must be of type function')
+    }
+    if (_MessageChannel) {
+      let channel = new _MessageChannel()
+      channel.port1.onmessage = function () {
+        channel.port1.onmessage = null
+        channel = undefined!
+        callback()
+      }
+      channel.port2.postMessage(null)
+    } else {
+      setTimeout(callback, 0)
+    }
+  }
+
+export const _Buffer: BufferCtor | undefined = typeof Buffer === 'function'
+  ? Buffer
+  : /*#__PURE__*/ (function () {
+      try {
+        return _require!('buffer').Buffer
+      } catch (_) {}
+
+      return undefined
+    })()
