@@ -77,7 +77,6 @@ export class Env implements IStoreValue {
     public makeDynCall_vp: (cb: Ptr) => (a: Ptr) => void
   ) {
     this.id = 0
-    this.moduleApiVersion = moduleApiVersion
   }
 
   public ref (): void {
