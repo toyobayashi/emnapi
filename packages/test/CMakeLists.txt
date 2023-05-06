@@ -84,7 +84,7 @@ if(IS_EMSCRIPTEN)
   endif()
 
   set(COMMON_LINK_OPTIONS
-    "-sEXPORTED_FUNCTIONS=['_malloc','_free']"
+    "-sEXPORTED_FUNCTIONS=['_malloc','_free','_napi_register_wasm_v1','_node_api_module_get_api_version_v1']"
     "-sNODEJS_CATCH_EXIT=0"
     "-sWASM_BIGINT=1"
     "-sALLOW_MEMORY_GROWTH=1"
@@ -99,21 +99,21 @@ elseif(IS_WASI_THREADS)
   set(COMMON_LINK_OPTIONS
     # "-v"
     "-mexec-model=reactor"
-    "-Wl,--import-memory,--max-memory=2147483648,--export-dynamic,--export=malloc,--export=free,--import-undefined,--export-table"
+    "-Wl,--import-memory,--max-memory=2147483648,--export-dynamic,--export=malloc,--export=free,--export=napi_register_wasm_v1,--export-if-defined=node_api_module_get_api_version_v1,--import-undefined,--export-table"
   )
 elseif(IS_WASI)
   add_compile_options("-fno-exceptions")
   set(COMMON_LINK_OPTIONS
     # "-v"
     "-mexec-model=reactor"
-    "-Wl,--initial-memory=16777216,--export-dynamic,--export=malloc,--export=free,--import-undefined,--export-table"
+    "-Wl,--initial-memory=16777216,--export-dynamic,--export=malloc,--export=free,--export=napi_register_wasm_v1,--export-if-defined=node_api_module_get_api_version_v1,--import-undefined,--export-table"
   )
 elseif(IS_WASM32)
   add_compile_options("-fno-exceptions")
   set(COMMON_LINK_OPTIONS
     # "-v"
     "-nostdlib"
-    "-Wl,--no-entry,--export-dynamic,--export=malloc,--export=free,--import-undefined,--export-table"
+    "-Wl,--no-entry,--export-dynamic,--export=malloc,--export=free,--export=napi_register_wasm_v1,--export-if-defined=node_api_module_get_api_version_v1,--import-undefined,--export-table"
   )
 else()
   set(COMMON_LINK_OPTIONS "")
