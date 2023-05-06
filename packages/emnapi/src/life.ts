@@ -76,7 +76,7 @@ function napi_create_reference (
   $CHECK_ARG!(envObject, result)
 
   const handle = emnapiCtx.handleStore.get(value)!
-  if (envObject.moduleApiVersion <= 8) {
+  if (!('moduleApiVersion' in envObject) || (envObject.moduleApiVersion <= 8)) {
     if (!(handle.isObject() || handle.isFunction() || handle.isSymbol())) {
       return envObject.setLastError(napi_status.napi_invalid_arg)
     }
