@@ -42,18 +42,30 @@ export class Persistent<T> {
     if (!supportFinalizer || this._ref === undefined || this._ref instanceof WeakRef) return
     const value = this._ref.deref()
     try {
-      // try {
       Persistent._registry.register(value as any, this, this)
       const weakRef = new WeakRef<any>(value)
       this._ref.dispose()
       this._ref = weakRef
-      // } catch (_) {
-      //   Persistent._registry.register(this._ref, this, this)
-      //   this._ref = new WeakRef<any>(this._ref)
-      // }
       this._param = param
       this._callback = callback
-    } catch (_) {}
+    } catch (err) {
+      if (typeof value === 'symbol') {
+        // Currently ignore symbols, remain them strong reference
+
+        // may change to this in the future:
+        /*
+        if (supportWeakSymbol) {
+          // global symbols (created by `Symbol.for`) throw
+          throw err
+        } else {
+          // weakly reference symbol failed
+          // ignored, remain strong reference
+        }
+        */
+      } else {
+        throw err
+      }
+    }
   }
 
   clearWeak (): void {

@@ -19,7 +19,7 @@ if(MSVC AND CMAKE_JS_NODELIB_DEF AND CMAKE_JS_NODELIB_TARGET)
   execute_process(COMMAND ${CMAKE_AR} /def:${CMAKE_JS_NODELIB_DEF} /out:${CMAKE_JS_NODELIB_TARGET} ${CMAKE_STATIC_LINKER_FLAGS})
 endif()
 
-add_compile_definitions("NAPI_VERSION=8")
+# add_compile_definitions("NAPI_VERSION=8")
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
   set(IS_EMSCRIPTEN ON)
@@ -212,6 +212,8 @@ function(add_naa_test NAME SOURCE_LIST DEFINES ENABLE_EXCEPTION)
     target_link_libraries(${NAME} PRIVATE ${CMAKE_JS_LIB})
   endif()
 
+  target_compile_definitions(${NAME} PRIVATE "NAPI_VERSION=8")
+
   set_target_properties(${NAME} PROPERTIES
     BUILD_RPATH "$ORIGIN")
   if(IS_WASM)
@@ -298,6 +300,11 @@ add_test("typedarray" "./typedarray/binding.c" ON OFF "")
 add_test("buffer" "./buffer/binding.c" OFF OFF "")
 add_test("fatal_exception" "./fatal_exception/binding.c" OFF OFF "")
 add_test("cleanup_hook" "./cleanup_hook/binding.c" OFF OFF "")
+
+add_test("reference_obj_only" "./ref_by_node_api_version/binding.c" OFF OFF "")
+target_compile_definitions("reference_obj_only" PRIVATE "NAPI_VERSION=8")
+add_test("reference_all_types" "./ref_by_node_api_version/binding.c" OFF OFF "")
+target_compile_definitions("reference_all_types" PRIVATE "NAPI_EXPERIMENTAL")
 
 if(IS_WASM)
   if(IS_EMSCRIPTEN)

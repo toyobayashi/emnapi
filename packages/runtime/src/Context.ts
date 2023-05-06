@@ -16,7 +16,11 @@ import {
   canSetFunctionName,
   _setImmediate,
   _Buffer,
-  _MessageChannel
+  _MessageChannel,
+  version,
+  NAPI_VERSION,
+  NAPI_VERSION_EXPERIMENTAL,
+  NODE_API_DEFAULT_MODULE_API_VERSION
 } from './util'
 import { CallbackInfoStack } from './CallbackInfo'
 import { NotSupportWeakRefError, NotSupportBigIntError, NotSupportBufferError } from './errors'
@@ -136,6 +140,16 @@ export class Context {
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+  getRuntimeVersions () {
+    return {
+      version,
+      NAPI_VERSION,
+      NAPI_VERSION_EXPERIMENTAL,
+      NODE_API_DEFAULT_MODULE_API_VERSION
+    }
+  }
+
   createNotSupportWeakRefError (api: string, message: string): NotSupportWeakRefError {
     return new NotSupportWeakRefError(api, message)
   }
@@ -173,10 +187,12 @@ export class Context {
   }
 
   createEnv (
+    filename: string,
+    moduleApiVersion: number,
     makeDynCall_vppp: (cb: Ptr) => (a: Ptr, b: Ptr, c: Ptr) => void,
     makeDynCall_vp: (cb: Ptr) => (a: Ptr) => void
   ): Env {
-    return Env.create(this, makeDynCall_vppp, makeDynCall_vp)
+    return Env.create(this, filename, moduleApiVersion, makeDynCall_vppp, makeDynCall_vp)
   }
 
   getCurrentScope (): HandleScope | null {

@@ -51,9 +51,8 @@ function emnapiInit (options: InitOptions): any {
 
   emnapiCtx = context
 
-  if (typeof options.filename === 'string') {
-    emnapiModule.filename = options.filename
-  }
+  const filename = typeof options.filename === 'string' ? options.filename : ''
+  emnapiModule.filename = filename
 
   if ('nodeBinding' in options) {
     const nodeBinding = options.nodeBinding
@@ -75,8 +74,15 @@ function emnapiInit (options: InitOptions): any {
     }
   }
 
+  let moduleApiVersion = emnapiCtx.getRuntimeVersions().NODE_API_DEFAULT_MODULE_API_VERSION
+  if (typeof Module._node_api_module_get_api_version_v1 === 'function') {
+    moduleApiVersion = Module._node_api_module_get_api_version_v1()
+  }
+
   // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
   const envObject = emnapiModule.envObject || (emnapiModule.envObject = emnapiCtx.createEnv(
+    filename,
+    moduleApiVersion,
     (cb: Ptr) => $makeDynCall('vppp', 'cb'),
     (cb: Ptr) => $makeDynCall('vp', 'cb')
   ))

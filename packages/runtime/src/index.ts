@@ -18,9 +18,9 @@ export { Store, type IStoreValue } from './Store'
 
 export {
   isReferenceType,
-  TryCatch
+  TryCatch,
+  version,
+  NAPI_VERSION,
+  NAPI_VERSION_EXPERIMENTAL,
+  NODE_API_DEFAULT_MODULE_API_VERSION
 } from './util'
-
-declare const __VERSION__: string
-
-export const version = __VERSION__
