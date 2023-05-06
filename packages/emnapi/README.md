@@ -168,7 +168,7 @@ emcc -O3 \
      -I./node_modules/emnapi/include \
      -L./node_modules/emnapi/lib/wasm32-emscripten \
      --js-library=./node_modules/emnapi/dist/library_napi.js \
-     -sEXPORTED_FUNCTIONS="['_napi_register_wasm_v1','_malloc','_free']" \
+     -sEXPORTED_FUNCTIONS="['_malloc','_free','_napi_register_wasm_v1','_node_api_module_get_api_version_v1']" \
      -o hello.js \
      hello.c \
      -lemnapi
@@ -191,6 +191,7 @@ clang -O3 \
       -Wl,--export=malloc \
       -Wl,--export=free \
       -Wl,--export=napi_register_wasm_v1 \
+      -Wl,--export-if-defined=node_api_module_get_api_version_v1 \
       -Wl,--import-undefined \
       -Wl,--export-table \
       -o hello.wasm \
@@ -217,6 +218,7 @@ clang -O3 \
       -Wl,--export=malloc \
       -Wl,--export=free \
       -Wl,--export=napi_register_wasm_v1 \
+      -Wl,--export-if-defined=node_api_module_get_api_version_v1 \
       -Wl,--import-undefined \
       -Wl,--export-table \
       -o hello.wasm \
@@ -452,7 +454,7 @@ em++ -O3 \
      -I./node_modules/node-addon-api \
      -L./node_modules/emnapi/lib/wasm32-emscripten \
      --js-library=./node_modules/emnapi/dist/library_napi.js \
-     -sEXPORTED_FUNCTIONS="['_napi_register_wasm_v1','_malloc','_free']" \
+     -sEXPORTED_FUNCTIONS="['_malloc','_free','_napi_register_wasm_v1','_node_api_module_get_api_version_v1']" \
      -o hello.js \
      hello.cpp \
      -lemnapi
@@ -479,6 +481,7 @@ clang++ -O3 \
         -Wl,--export=malloc \
         -Wl,--export=free \
         -Wl,--export=napi_register_wasm_v1 \
+        -Wl,--export-if-defined=node_api_module_get_api_version_v1 \
         -Wl,--import-undefined \
         -Wl,--export-table \
         -o hello.wasm \
@@ -508,6 +511,7 @@ clang++ -O3 \
         -Wl,--export=malloc \
         -Wl,--export=free \
         -Wl,--export=napi_register_wasm_v1 \
+        -Wl,--export-if-defined=node_api_module_get_api_version_v1 \
         -Wl,--import-undefined \
         -Wl,--export-table \
         -o node_api_c_api_only.wasm \
@@ -551,13 +555,14 @@ add_executable(hello hello.c)
 target_link_libraries(hello emnapi)
 if(CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
   target_link_options(hello PRIVATE
-    "-sEXPORTED_FUNCTIONS=['_napi_register_wasm_v1','_malloc','_free']"
+    "-sEXPORTED_FUNCTIONS=['_malloc','_free','_napi_register_wasm_v1','_node_api_module_get_api_version_v1']"
   )
 elseif(CMAKE_SYSTEM_NAME STREQUAL "WASI")
   set_target_properties(hello PROPERTIES SUFFIX ".wasm")
   target_link_options(hello PRIVATE
     "-mexec-model=reactor"
     "-Wl,--export=napi_register_wasm_v1"
+    "-Wl,--export-if-defined=node_api_module_get_api_version_v1"
     "-Wl,--initial-memory=16777216,--export-dynamic,--export=malloc,--export=free,--import-undefined,--export-table"
   )
 elseif((CMAKE_C_COMPILER_TARGET STREQUAL "wasm32") OR (CMAKE_C_COMPILER_TARGET STREQUAL "wasm32-unknown-unknown"))
@@ -565,6 +570,7 @@ elseif((CMAKE_C_COMPILER_TARGET STREQUAL "wasm32") OR (CMAKE_C_COMPILER_TARGET S
   target_link_options(hello PRIVATE
     "-nostdlib"
     "-Wl,--export=napi_register_wasm_v1"
+    "-Wl,--export-if-defined=node_api_module_get_api_version_v1"
     "-Wl,--no-entry"
     "-Wl,--initial-memory=16777216,--export-dynamic,--export=malloc,--export=free,--import-undefined,--export-table"
   )
@@ -666,6 +672,7 @@ rustflags = [
   "-C", "link-arg=--export=malloc",
   "-C", "link-arg=--export=free",
   "-C", "link-arg=--export=napi_register_wasm_v1",
+  "-C", "link-arg=--export-if-defined=node_api_module_get_api_version_v1",
   "-C", "link-arg=--export-table",
   "-C", "link-arg=--import-undefined",
 ]
@@ -679,6 +686,7 @@ rustflags = [
   "-C", "link-arg=--export=malloc",
   "-C", "link-arg=--export=free",
   "-C", "link-arg=--export=napi_register_wasm_v1",
+  "-C", "link-arg=--export-if-defined=node_api_module_get_api_version_v1",
   "-C", "link-arg=--export-table",
   "-C", "link-arg=--import-undefined",
   "-Z", "wasi-exec-model=reactor", # +nightly
@@ -822,7 +830,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
   target_compile_options(hello PRIVATE "-pthread")
   target_link_options(hello PRIVATE
     "-sALLOW_MEMORY_GROWTH=1"
-    "-sEXPORTED_FUNCTIONS=['_napi_register_wasm_v1','_malloc','_free']"
+    "-sEXPORTED_FUNCTIONS=['_malloc','_free','_napi_register_wasm_v1','_node_api_module_get_api_version_v1']"
     "-pthread"
     "-sPTHREAD_POOL_SIZE=4"
     # try to specify stack size if you experience pthread errors
@@ -840,6 +848,8 @@ elseif(CMAKE_C_COMPILER_TARGET STREQUAL "wasm32-wasi-threads")
     "-Wl,--import-memory"
     "-Wl,--max-memory=2147483648"
     "-Wl,--export-dynamic"
+    "-Wl,--export=napi_register_wasm_v1"
+    "-Wl,--export-if-defined=node_api_module_get_api_version_v1"
     "-Wl,--export=malloc"
     "-Wl,--export=free"
     "-Wl,--import-undefined"
@@ -853,6 +863,7 @@ elseif((CMAKE_C_COMPILER_TARGET STREQUAL "wasm32") OR (CMAKE_C_COMPILER_TARGET S
     "-nostdlib"
     "-Wl,--no-entry"
     "-Wl,--export=napi_register_wasm_v1"
+    "-Wl,--export-if-defined=node_api_module_get_api_version_v1"
     "-Wl,--export=emnapi_async_worker_create"
     "-Wl,--export=emnapi_async_worker_init"
     "-Wl,--import-memory,--shared-memory,--max-memory=2147483648,--import-undefined"
