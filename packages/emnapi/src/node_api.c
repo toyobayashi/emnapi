@@ -42,7 +42,7 @@ napi_status napi_get_uv_event_loop(napi_env env,
 #endif
 }
 
-EMNAPI_INTERNAL_EXTERN int _emnapi_get_filename(char* buf, int len);
+EMNAPI_INTERNAL_EXTERN int _emnapi_get_filename(napi_env env, char* buf, int len);
 
 napi_status node_api_get_module_file_name(napi_env env,
                                           const char** result) {
@@ -57,12 +57,12 @@ napi_status node_api_get_module_file_name(napi_env env,
     filename = NULL;
   }
 
-  int len = _emnapi_get_filename(NULL, 0);
+  int len = _emnapi_get_filename(env, NULL, 0);
   if (len == 0) {
     *result = empty_string;
   } else {
     filename = (char*) malloc(len + 1);
-    len = _emnapi_get_filename(filename, len + 1);
+    len = _emnapi_get_filename(env, filename, len + 1);
     *(filename + len) = '\0';
     *result = filename;
   }
