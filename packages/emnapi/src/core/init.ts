@@ -109,7 +109,7 @@ var napiModule: INapiModule = {
 
     if (!napiModule.childThread) {
       // main thread only
-      let moduleApiVersion = emnapiCtx.getRuntimeVersions().NODE_API_DEFAULT_MODULE_API_VERSION
+      let moduleApiVersion = Version.NODE_API_DEFAULT_MODULE_API_VERSION
       const node_api_module_get_api_version_v1 = instance.exports.node_api_module_get_api_version_v1
       if (typeof node_api_module_get_api_version_v1 === 'function') {
         moduleApiVersion = node_api_module_get_api_version_v1()
