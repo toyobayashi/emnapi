@@ -82,7 +82,8 @@ function emnapiInit (options: InitOptions): any {
     filename,
     moduleApiVersion,
     (cb: Ptr) => $makeDynCall('vppp', 'cb'),
-    (cb: Ptr) => $makeDynCall('vp', 'cb')
+    (cb: Ptr) => $makeDynCall('vp', 'cb'),
+    abort
   ))
 
   const scope = emnapiCtx.openScope(envObject)

@@ -18,6 +18,7 @@ function $PREAMBLE (env: number, fn: (envObject: Env) => napi_status): napi_stat
   $CHECK_ENV!(env)
   const envObject = emnapiCtx.envStore.get(env)!
   if (envObject.tryCatch.hasCaught()) return envObject.setLastError(napi_status.napi_pending_exception)
+  // if (!envObject.canCallIntoJs()) return envObject.setLastError(napi_status.napi_cannot_run_js)
   envObject.clearLastError()
   try {
     return $$escape!(fn as any) as napi_status

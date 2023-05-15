@@ -77,7 +77,7 @@ static napi_value async_work_after_cb(napi_env env, napi_callback_info info) {
   void* data = NULL;
   EMNAPI_ASSERT_CALL(napi_get_cb_info(env, info, NULL, NULL, NULL, &data));
   complete_wrap_t* wrap = (complete_wrap_t*) data;
-  _emnapi_call_into_module(env, async_work_on_complete, wrap, 1);
+  _emnapi_callback_into_module(1, env, async_work_on_complete, wrap, 1);
   return NULL;
 }
 
@@ -103,7 +103,7 @@ static void async_work_after_thread_pool_work(napi_async_work work, int status) 
                               work->async_context_.trigger_async_id,
                               NULL);
   } else {
-    _emnapi_call_into_module(env, async_work_on_complete, wrap, 1);
+    _emnapi_callback_into_module(1, env, async_work_on_complete, wrap, 1);
   }
   EMNAPI_ASSERT_CALL(napi_close_handle_scope(env, scope));
 }

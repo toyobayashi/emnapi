@@ -190,9 +190,10 @@ export class Context {
     filename: string,
     moduleApiVersion: number,
     makeDynCall_vppp: (cb: Ptr) => (a: Ptr, b: Ptr, c: Ptr) => void,
-    makeDynCall_vp: (cb: Ptr) => (a: Ptr) => void
+    makeDynCall_vp: (cb: Ptr) => (a: Ptr) => void,
+    abort: (msg?: string) => never
   ): Env {
-    return Env.create(this, filename, moduleApiVersion, makeDynCall_vppp, makeDynCall_vp)
+    return Env.create(this, filename, moduleApiVersion, makeDynCall_vppp, makeDynCall_vp, abort)
   }
 
   getCurrentScope (): HandleScope | null {
@@ -245,6 +246,10 @@ export class Context {
   public decreaseWaitingRequestCounter (): void {
     this.refCounter?.decrease()
   }
+
+  // canCallIntoJs (): boolean {
+  //   return true
+  // }
 
   dispose (): void {
     this.runCleanup()

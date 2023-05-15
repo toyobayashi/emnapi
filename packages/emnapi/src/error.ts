@@ -213,12 +213,13 @@ function napi_fatal_error (location: const_char_p, location_len: size_t, message
 function napi_fatal_exception (env: napi_env, err: napi_value): napi_status {
   $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, err)
-    if (typeof process === 'object' && process !== null && typeof process._fatalException === 'function') {
-      const error = envObject.ctx.handleStore.get(err)!
-      process._fatalException(error.value)
-      return envObject.clearLastError()
+    const error = envObject.ctx.handleStore.get(err)!
+    try {
+      envObject.triggerFatalException(error.value)
+    } catch (_) {
+      return envObject.setLastError(napi_status.napi_generic_failure)
     }
-    return envObject.setLastError(napi_status.napi_generic_failure)
+    return envObject.clearLastError()
   })
 }
 
