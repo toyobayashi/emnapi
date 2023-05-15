@@ -25,3 +25,9 @@ declare const enum Ownership {
   kRuntime,
   kUserland
 }
+
+declare const enum Version {
+  NAPI_VERSION = 8,
+  NODE_API_DEFAULT_MODULE_API_VERSION = 8,
+  NAPI_VERSION_EXPERIMENTAL = 2147483647 // INT_MAX
+}

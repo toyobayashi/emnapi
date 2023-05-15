@@ -19,7 +19,7 @@ if(MSVC AND CMAKE_JS_NODELIB_DEF AND CMAKE_JS_NODELIB_TARGET)
   execute_process(COMMAND ${CMAKE_AR} /def:${CMAKE_JS_NODELIB_DEF} /out:${CMAKE_JS_NODELIB_TARGET} ${CMAKE_STATIC_LINKER_FLAGS})
 endif()
 
-add_compile_definitions("NAPI_VERSION=8")
+# add_compile_definitions("NAPI_VERSION=8")
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
   set(IS_EMSCRIPTEN ON)
@@ -84,7 +84,7 @@ if(IS_EMSCRIPTEN)
   endif()
 
   set(COMMON_LINK_OPTIONS
-    "-sEXPORTED_FUNCTIONS=['_malloc','_free']"
+    "-sEXPORTED_FUNCTIONS=['_malloc','_free','_napi_register_wasm_v1','_node_api_module_get_api_version_v1']"
     "-sNODEJS_CATCH_EXIT=0"
     "-sWASM_BIGINT=1"
     "-sALLOW_MEMORY_GROWTH=1"
@@ -99,21 +99,21 @@ elseif(IS_WASI_THREADS)
   set(COMMON_LINK_OPTIONS
     # "-v"
     "-mexec-model=reactor"
-    "-Wl,--import-memory,--max-memory=2147483648,--export-dynamic,--export=malloc,--export=free,--import-undefined,--export-table"
+    "-Wl,--import-memory,--max-memory=2147483648,--export-dynamic,--export=malloc,--export=free,--export=napi_register_wasm_v1,--export-if-defined=node_api_module_get_api_version_v1,--import-undefined,--export-table"
   )
 elseif(IS_WASI)
   add_compile_options("-fno-exceptions")
   set(COMMON_LINK_OPTIONS
     # "-v"
     "-mexec-model=reactor"
-    "-Wl,--initial-memory=16777216,--export-dynamic,--export=malloc,--export=free,--import-undefined,--export-table"
+    "-Wl,--initial-memory=16777216,--export-dynamic,--export=malloc,--export=free,--export=napi_register_wasm_v1,--export-if-defined=node_api_module_get_api_version_v1,--import-undefined,--export-table"
   )
 elseif(IS_WASM32)
   add_compile_options("-fno-exceptions")
   set(COMMON_LINK_OPTIONS
     # "-v"
     "-nostdlib"
-    "-Wl,--no-entry,--export-dynamic,--export=malloc,--export=free,--import-undefined,--export-table"
+    "-Wl,--no-entry,--export-dynamic,--export=malloc,--export=free,--export=napi_register_wasm_v1,--export-if-defined=node_api_module_get_api_version_v1,--import-undefined,--export-table"
   )
 else()
   set(COMMON_LINK_OPTIONS "")
@@ -212,6 +212,8 @@ function(add_naa_test NAME SOURCE_LIST DEFINES ENABLE_EXCEPTION)
     target_link_libraries(${NAME} PRIVATE ${CMAKE_JS_LIB})
   endif()
 
+  target_compile_definitions(${NAME} PRIVATE "NAPI_VERSION=8")
+
   set_target_properties(${NAME} PROPERTIES
     BUILD_RPATH "$ORIGIN")
   if(IS_WASM)
@@ -298,6 +300,11 @@ add_test("typedarray" "./typedarray/binding.c" ON OFF "")
 add_test("buffer" "./buffer/binding.c" OFF OFF "")
 add_test("fatal_exception" "./fatal_exception/binding.c" OFF OFF "")
 add_test("cleanup_hook" "./cleanup_hook/binding.c" OFF OFF "")
+
+add_test("reference_obj_only" "./ref_by_node_api_version/binding.c" OFF OFF "")
+target_compile_definitions("reference_obj_only" PRIVATE "NAPI_VERSION=8")
+add_test("reference_all_types" "./ref_by_node_api_version/binding.c" OFF OFF "")
+target_compile_definitions("reference_all_types" PRIVATE "NAPI_EXPERIMENTAL")
 
 if(IS_WASM)
   if(IS_EMSCRIPTEN)

@@ -159,3 +159,16 @@ exports.load = function (targetName, options) {
   const request = getEntry(targetName)
   return loadPath(request, options)
 }
+
+exports.supportWeakSymbol = /*#__PURE__*/ (function () {
+  try {
+    // eslint-disable-next-line symbol-description
+    const sym = Symbol()
+    // eslint-disable-next-line no-new
+    new WeakRef(sym)
+    new WeakMap().set(sym, undefined)
+  } catch (_) {
+    return false
+  }
+  return true
+})()

@@ -2,14 +2,20 @@ import type { IStoreValue } from './Store'
 import type { Env } from './env'
 import { RefBase } from './RefBase'
 import { Persistent } from './Persistent'
+import type { Handle } from './Handle'
 
 function weakCallback (ref: Reference): void {
   ref.persistent.reset()
   ref.envObject.enqueueFinalizer(ref)
 }
 
+function canBeHeldWeakly (value: Handle<any>): boolean {
+  return value.isObject() || value.isFunction() || value.isSymbol()
+}
+
 export class Reference extends RefBase implements IStoreValue {
   public id: number
+  private canBeWeak!: boolean
 
   public static create (
     envObject: Env,
@@ -23,6 +29,7 @@ export class Reference extends RefBase implements IStoreValue {
     const handle = envObject.ctx.handleStore.get(handle_id)!
     const ref = new Reference(envObject, initialRefcount, ownership, finalize_callback, finalize_data, finalize_hint)
     envObject.ctx.refStore.add(ref)
+    ref.canBeWeak = canBeHeldWeakly(handle)
     ref.persistent = new Persistent(handle.value)
 
     if (initialRefcount === 0) {
@@ -52,11 +59,8 @@ export class Reference extends RefBase implements IStoreValue {
 
     const count = super.ref()
 
-    if (count === 1) {
-      const obj = this.persistent.deref()
-      if (obj) {
-        this.persistent.clearWeak()
-      }
+    if (count === 1 && this.canBeWeak) {
+      this.persistent.clearWeak()
     }
 
     return count
@@ -70,25 +74,26 @@ export class Reference extends RefBase implements IStoreValue {
     const oldRefcount = this.refCount()
     const refcount = super.unref()
     if (oldRefcount === 1 && refcount === 0) {
-      const obj = this.persistent.deref()
-      if (obj) {
-        this._setWeak()
-      }
+      this._setWeak()
     }
     return refcount
   }
 
   public get (): napi_value {
-    const obj = this.persistent.deref()
-    if (obj) {
-      const handle = this.envObject.ensureHandle(obj)
-      return handle.id
+    if (this.persistent.isEmpty()) {
+      return 0
     }
-    return 0
+    const obj = this.persistent.deref()
+    const handle = this.envObject.ensureHandle(obj)
+    return handle.id
   }
 
   private _setWeak (): void {
-    this.persistent.setWeak(this, weakCallback)
+    if (this.canBeWeak) {
+      this.persistent.setWeak(this, weakCallback)
+    } else {
+      this.persistent.reset()
+    }
   }
 
   public override finalize (): void {

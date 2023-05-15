@@ -1,9 +1,23 @@
 import type { Handle } from './Handle'
 import type { Context } from './Context'
 import type { IStoreValue } from './Store'
-import { TryCatch, _setImmediate } from './util'
+import {
+  TryCatch,
+  _setImmediate,
+  NAPI_VERSION,
+  NAPI_VERSION_EXPERIMENTAL,
+  NODE_API_DEFAULT_MODULE_API_VERSION
+} from './util'
 import { RefTracker } from './RefTracker'
 import { RefBase } from './RefBase'
+
+function throwNodeApiVersionError (moduleName: string, moduleApiVersion: number): never {
+  const errorMessage = `${
+    moduleName} requires Node-API version ${
+      moduleApiVersion}, but this version of Node.js only supports version ${
+        NAPI_VERSION} add-ons.`
+  throw new Error(errorMessage)
+}
 
 export interface IReferenceBinding {
   wrapped: number // wrapped Reference id
@@ -37,10 +51,19 @@ export class Env implements IStoreValue {
 
   public static create (
     ctx: Context,
+    filename: string,
+    moduleApiVersion: number,
     makeDynCall_vppp: (cb: Ptr) => (a: Ptr, b: Ptr, c: Ptr) => void,
     makeDynCall_vp: (cb: Ptr) => (a: Ptr) => void
   ): Env {
-    const env = new Env(ctx, makeDynCall_vppp, makeDynCall_vp)
+    moduleApiVersion = typeof moduleApiVersion !== 'number' ? NODE_API_DEFAULT_MODULE_API_VERSION : moduleApiVersion
+    // Validate module_api_version.
+    if (moduleApiVersion < NODE_API_DEFAULT_MODULE_API_VERSION) {
+      moduleApiVersion = NODE_API_DEFAULT_MODULE_API_VERSION
+    } else if (moduleApiVersion > NAPI_VERSION && moduleApiVersion !== NAPI_VERSION_EXPERIMENTAL) {
+      throwNodeApiVersionError(filename, moduleApiVersion)
+    }
+    const env = new Env(ctx, filename, moduleApiVersion, makeDynCall_vppp, makeDynCall_vp)
     ctx.envStore.add(env)
     ctx.addCleanupHook(env, () => { env.unref() }, 0)
     return env
@@ -48,6 +71,8 @@ export class Env implements IStoreValue {
 
   private constructor (
     public readonly ctx: Context,
+    public filename: string,
+    public moduleApiVersion: number,
     public makeDynCall_vppp: (cb: Ptr) => (a: Ptr, b: Ptr, c: Ptr) => void,
     public makeDynCall_vp: (cb: Ptr) => (a: Ptr) => void
   ) {

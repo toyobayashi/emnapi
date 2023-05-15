@@ -16,6 +16,7 @@ rustflags = [
   "-C", "link-arg=--export=malloc",
   "-C", "link-arg=--export=free",
   "-C", "link-arg=--export=napi_register_wasm_v1",
+  "-C", "link-arg=--export-if-defined=node_api_module_get_api_version_v1",
   "-C", "link-arg=--export-table",
   "-C", "link-arg=--import-undefined",
 ]
@@ -30,6 +31,7 @@ rustflags = [
   "-C", "link-arg=--export=malloc",
   "-C", "link-arg=--export=free",
   "-C", "link-arg=--export=napi_register_wasm_v1",
+  "-C", "link-arg=--export-if-defined=node_api_module_get_api_version_v1",
   "-C", "link-arg=--export-table",
   "-C", "link-arg=--import-undefined",
   "-Z", "wasi-exec-model=reactor", # +nightly

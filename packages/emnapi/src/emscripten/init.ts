@@ -13,6 +13,7 @@ declare var emnapiNodeBinding: NodeBinding
 declare var emnapiAsyncWorkPoolSize: number
 
 declare function _napi_register_wasm_v1 (env: Ptr, exports: Ptr): napi_value
+declare function _node_api_module_get_api_version_v1 (): number
 
 declare const emnapiModule: {
   exports: any
@@ -51,9 +52,8 @@ function emnapiInit (options: InitOptions): any {
 
   emnapiCtx = context
 
-  if (typeof options.filename === 'string') {
-    emnapiModule.filename = options.filename
-  }
+  const filename = typeof options.filename === 'string' ? options.filename : ''
+  emnapiModule.filename = filename
 
   if ('nodeBinding' in options) {
     const nodeBinding = options.nodeBinding
@@ -75,8 +75,12 @@ function emnapiInit (options: InitOptions): any {
     }
   }
 
+  const moduleApiVersion = _node_api_module_get_api_version_v1()
+
   // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
   const envObject = emnapiModule.envObject || (emnapiModule.envObject = emnapiCtx.createEnv(
+    filename,
+    moduleApiVersion,
     (cb: Ptr) => $makeDynCall('vppp', 'cb'),
     (cb: Ptr) => $makeDynCall('vp', 'cb')
   ))
@@ -104,7 +108,7 @@ emnapiImplementHelper(
   '$emnapiInit',
   undefined,
   emnapiInit,
-  ['$emnapiModule', '$emnapiCtx', '$emnapiNodeBinding', '$emnapiAsyncWorkPoolSize', 'napi_register_wasm_v1']
+  ['$emnapiModule', '$emnapiCtx', '$emnapiNodeBinding', '$emnapiAsyncWorkPoolSize', 'napi_register_wasm_v1', 'node_api_module_get_api_version_v1']
 )
 
 function __emnapi_async_work_pool_size (): number {
