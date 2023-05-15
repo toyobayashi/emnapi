@@ -5,7 +5,7 @@ import { DeferredStore } from './DeferredStore'
 import { HandleStore } from './Handle'
 import type { Handle } from './Handle'
 import type { HandleScope } from './HandleScope'
-import { Env } from './env'
+import { Env, newEnv } from './env'
 import {
   _global,
   supportReflect,
@@ -193,7 +193,7 @@ export class Context {
     makeDynCall_vp: (cb: Ptr) => (a: Ptr) => void,
     abort: (msg?: string) => never
   ): Env {
-    return Env.create(this, filename, moduleApiVersion, makeDynCall_vppp, makeDynCall_vp, abort)
+    return newEnv(this, filename, moduleApiVersion, makeDynCall_vppp, makeDynCall_vp, abort)
   }
 
   getCurrentScope (): HandleScope | null {

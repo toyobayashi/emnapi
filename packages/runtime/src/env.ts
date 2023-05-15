@@ -46,8 +46,6 @@ export class Env implements IStoreValue {
   public reflist = new RefTracker()
   public finalizing_reflist = new RefTracker()
 
-  private destructing: boolean = false
-  public finalizationScheduled: boolean = false
   public pendingFinalizers: RefTracker[] = []
 
   public lastError = {
@@ -56,30 +54,8 @@ export class Env implements IStoreValue {
     engineReserved: 0 as Ptr
   }
 
-  public static create (
-    ctx: Context,
-    filename: string,
-    moduleApiVersion: number,
-    makeDynCall_vppp: (cb: Ptr) => (a: Ptr, b: Ptr, c: Ptr) => void,
-    makeDynCall_vp: (cb: Ptr) => (a: Ptr) => void,
-    abort: (msg?: string) => never
-  ): Env {
-    moduleApiVersion = typeof moduleApiVersion !== 'number' ? NODE_API_DEFAULT_MODULE_API_VERSION : moduleApiVersion
-    // Validate module_api_version.
-    if (moduleApiVersion < NODE_API_DEFAULT_MODULE_API_VERSION) {
-      moduleApiVersion = NODE_API_DEFAULT_MODULE_API_VERSION
-    } else if (moduleApiVersion > NAPI_VERSION && moduleApiVersion !== NAPI_VERSION_EXPERIMENTAL) {
-      throwNodeApiVersionError(filename, moduleApiVersion)
-    }
-    const env = new Env(ctx, filename, moduleApiVersion, makeDynCall_vppp, makeDynCall_vp, abort)
-    ctx.envStore.add(env)
-    ctx.addCleanupHook(env, () => { env.unref() }, 0)
-    return env
-  }
-
-  private constructor (
+  public constructor (
     public readonly ctx: Context,
-    public filename: string,
     public moduleApiVersion: number,
     public makeDynCall_vppp: (cb: Ptr) => (a: Ptr, b: Ptr, c: Ptr) => void,
     public makeDynCall_vp: (cb: Ptr) => (a: Ptr) => void,
@@ -88,8 +64,9 @@ export class Env implements IStoreValue {
     this.id = 0
   }
 
+  // /** @virtual */
   // public canCallIntoJs (): boolean {
-  //   return this.ctx.canCallIntoJs()
+  //   return true
   // }
 
   // public terminatedOrTerminating (): boolean {
@@ -136,18 +113,6 @@ export class Env implements IStoreValue {
     return !this.tryCatch.hasCaught() ? napi_status.napi_ok : this.setLastError(napi_status.napi_pending_exception)
   }
 
-  public triggerFatalException (err: any): void {
-    if (typeof process === 'object' && process !== null && typeof (process as any)._fatalException === 'function') {
-      const handled = (process as any)._fatalException(err)
-      if (!handled) {
-        console.error(err)
-        process.exit(1)
-      }
-    } else {
-      throw err
-    }
-  }
-
   public callIntoModule<T> (fn: (env: Env) => T, handleException?: (envObject: Env, value: any) => void): T
   public callIntoModule<T> (fn: (env: Env) => T, handleException = handleThrow): T {
     const openHandleScopesBefore = this.openHandleScopes
@@ -163,54 +128,26 @@ export class Env implements IStoreValue {
     return r
   }
 
-  public callbackIntoModule<T> (enforceUncaughtExceptionPolicy: boolean, fn: (env: Env) => T): T {
-    return this.callIntoModule(fn, (envObject, err) => {
-      // if (envObject.terminatedOrTerminating()) {
-      //   return
-      // }
-      const hasProcess = typeof process === 'object' && process !== null
-      const hasForceFlag = hasProcess ? Boolean(process.execArgv && (process.execArgv.indexOf('--force-node-api-uncaught-exceptions-policy') !== -1)) : false
-      if (!hasForceFlag && !enforceUncaughtExceptionPolicy) {
-        if (hasProcess && typeof process.emitWarning === 'function') {
-          process.emitWarning(
-            'Uncaught N-API callback exception detected, please run node with option --force-node-api-uncaught-exceptions-policy=true to handle those exceptions properly.',
-            'DeprecationWarning',
-            'DEP0168'
-          )
-        } else {
-          throw err
-        }
-      }
-      envObject.triggerFatalException(err)
-    })
-  }
-
-  public callFinalizer (forceUncaught: int, cb: napi_finalize, data: void_p, hint: void_p): void {
+  /** @virtual */
+  public callFinalizer (cb: napi_finalize, data: void_p, hint: void_p): void {
     const f = this.makeDynCall_vppp(cb)
     const env: napi_env = this.id
     const scope = this.ctx.openScope(this)
     try {
-      this.callbackIntoModule(Boolean(forceUncaught), () => { f(env, data, hint) })
+      this.callIntoModule(() => { f(env, data, hint) })
     } finally {
       this.ctx.closeScope(this, scope)
     }
   }
 
+  /** @virtual */
   public enqueueFinalizer (finalizer: RefTracker): void {
     if (this.pendingFinalizers.indexOf(finalizer) === -1) {
       this.pendingFinalizers.push(finalizer)
     }
-    if (!this.finalizationScheduled && !this.destructing) {
-      this.finalizationScheduled = true
-      this.ref()
-      _setImmediate(() => {
-        this.finalizationScheduled = false
-        this.unref()
-        this.drainFinalizerQueue()
-      })
-    }
   }
 
+  /** @virtual */
   public dequeueFinalizer (finalizer: RefTracker): void {
     const index = this.pendingFinalizers.indexOf(finalizer)
     if (index !== -1) {
@@ -218,23 +155,18 @@ export class Env implements IStoreValue {
     }
   }
 
-  public drainFinalizerQueue (): void {
-    while (this.pendingFinalizers.length > 0) {
-      const refTracker = this.pendingFinalizers.shift()!
-      refTracker.finalize()
-    }
-  }
-
-  public dispose (): void {
-    if (this.id === 0) return
-    this.destructing = true
-    this.drainFinalizerQueue()
-
+  /** @virtual */
+  public deleteMe (): void {
     RefBase.finalizeAll(this.finalizing_reflist)
     RefBase.finalizeAll(this.reflist)
 
     this.tryCatch.extractException()
     this.ctx.envStore.remove(this.id)
+  }
+
+  public dispose (): void {
+    if (this.id === 0) return
+    this.deleteMe()
     this.id = 0
   }
 
@@ -257,14 +189,130 @@ export class Env implements IStoreValue {
     return this.initObjectBinding(value)
   }
 
-  setInstanceData (data: number, finalize_cb: number, finalize_hint: number): void {
+  public setInstanceData (data: number, finalize_cb: number, finalize_hint: number): void {
     if (this.instanceData) {
       this.instanceData.dispose()
     }
     this.instanceData = new RefBase(this, 0, Ownership.kRuntime, finalize_cb, data, finalize_hint)
   }
 
-  getInstanceData (): number {
+  public getInstanceData (): number {
     return this.instanceData ? this.instanceData.data() : 0
   }
+}
+
+export class NodeEnv extends Env {
+  public destructing: boolean = false
+  public finalizationScheduled: boolean = false
+
+  public constructor (
+    ctx: Context,
+    public filename: string,
+    moduleApiVersion: number,
+    makeDynCall_vppp: (cb: Ptr) => (a: Ptr, b: Ptr, c: Ptr) => void,
+    makeDynCall_vp: (cb: Ptr) => (a: Ptr) => void,
+    abort: (msg?: string) => never
+  ) {
+    super(ctx, moduleApiVersion, makeDynCall_vppp, makeDynCall_vp, abort)
+  }
+
+  public override deleteMe (): void {
+    this.destructing = true
+    this.drainFinalizerQueue()
+    super.deleteMe()
+  }
+
+  // public canCallIntoJs (): boolean {
+  //   return this.ctx.canCallIntoJs()
+  // }
+
+  public triggerFatalException (err: any): void {
+    if (typeof process === 'object' && process !== null && typeof (process as any)._fatalException === 'function') {
+      const handled = (process as any)._fatalException(err)
+      if (!handled) {
+        console.error(err)
+        process.exit(1)
+      }
+    } else {
+      throw err
+    }
+  }
+
+  public callbackIntoModule<T> (enforceUncaughtExceptionPolicy: boolean, fn: (env: Env) => T): T {
+    return this.callIntoModule(fn, (envObject, err) => {
+      // if (envObject.terminatedOrTerminating()) {
+      //   return
+      // }
+      const hasProcess = typeof process === 'object' && process !== null
+      const hasForceFlag = hasProcess ? Boolean(process.execArgv && (process.execArgv.indexOf('--force-node-api-uncaught-exceptions-policy') !== -1)) : false
+      if (!hasForceFlag && !enforceUncaughtExceptionPolicy) {
+        if (hasProcess && typeof process.emitWarning === 'function') {
+          process.emitWarning(
+            'Uncaught N-API callback exception detected, please run node with option --force-node-api-uncaught-exceptions-policy=true to handle those exceptions properly.',
+            'DeprecationWarning',
+            'DEP0168'
+          )
+        } else {
+          throw err
+        }
+      }
+      (envObject as NodeEnv).triggerFatalException(err)
+    })
+  }
+
+  public override callFinalizer (cb: napi_finalize, data: void_p, hint: void_p): void {
+    this.callFinalizerInternal(1, cb, data, hint)
+  }
+
+  public callFinalizerInternal (forceUncaught: int, cb: napi_finalize, data: void_p, hint: void_p): void {
+    const f = this.makeDynCall_vppp(cb)
+    const env: napi_env = this.id
+    const scope = this.ctx.openScope(this)
+    try {
+      this.callbackIntoModule(Boolean(forceUncaught), () => { f(env, data, hint) })
+    } finally {
+      this.ctx.closeScope(this, scope)
+    }
+  }
+
+  public override enqueueFinalizer (finalizer: RefTracker): void {
+    super.enqueueFinalizer(finalizer)
+    if (!this.finalizationScheduled && !this.destructing) {
+      this.finalizationScheduled = true
+      this.ref()
+      _setImmediate(() => {
+        this.finalizationScheduled = false
+        this.unref()
+        this.drainFinalizerQueue()
+      })
+    }
+  }
+
+  public drainFinalizerQueue (): void {
+    while (this.pendingFinalizers.length > 0) {
+      const refTracker = this.pendingFinalizers.shift()!
+      refTracker.finalize()
+    }
+  }
+}
+
+export function newEnv (
+  ctx: Context,
+  filename: string,
+  moduleApiVersion: number,
+  makeDynCall_vppp: (cb: Ptr) => (a: Ptr, b: Ptr, c: Ptr) => void,
+  makeDynCall_vp: (cb: Ptr) => (a: Ptr) => void,
+  abort: (msg?: string) => never
+): Env {
+  moduleApiVersion = typeof moduleApiVersion !== 'number' ? NODE_API_DEFAULT_MODULE_API_VERSION : moduleApiVersion
+  // Validate module_api_version.
+  if (moduleApiVersion < NODE_API_DEFAULT_MODULE_API_VERSION) {
+    moduleApiVersion = NODE_API_DEFAULT_MODULE_API_VERSION
+  } else if (moduleApiVersion > NAPI_VERSION && moduleApiVersion !== NAPI_VERSION_EXPERIMENTAL) {
+    throwNodeApiVersionError(filename, moduleApiVersion)
+  }
+  const env = new NodeEnv(ctx, filename, moduleApiVersion, makeDynCall_vppp, makeDynCall_vp, abort)
+  ctx.envStore.add(env)
+  ctx.addCleanupHook(env, () => { env.unref() }, 0)
+  return env
 }

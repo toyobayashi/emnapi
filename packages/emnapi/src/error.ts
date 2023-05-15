@@ -215,7 +215,7 @@ function napi_fatal_exception (env: napi_env, err: napi_value): napi_status {
     $CHECK_ARG!(envObject, err)
     const error = envObject.ctx.handleStore.get(err)!
     try {
-      envObject.triggerFatalException(error.value)
+      (envObject as NodeEnv).triggerFatalException(error.value)
     } catch (_) {
       return envObject.setLastError(napi_status.napi_generic_failure)
     }

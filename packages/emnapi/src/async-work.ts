@@ -86,7 +86,7 @@ var emnapiAWST = {
       const envObject = emnapiCtx.envStore.get(env)!
       const scope = emnapiCtx.openScope(envObject)
       try {
-        envObject.callbackIntoModule(true, () => {
+        (envObject as NodeEnv).callbackIntoModule(true, () => {
           $makeDynCall('vpip', 'complete')(env, status, data)
         })
       } finally {

@@ -82,7 +82,7 @@ export class RefBase extends Finalizer {
     if (finalize_callback) {
       const fini = Number(finalize_callback)
       try {
-        this.envObject.callFinalizer(1, fini, finalize_data, finalize_hint)
+        this.envObject.callFinalizer(fini, finalize_data, finalize_hint)
       } catch (err) {
         caught = true
         error = err

@@ -197,7 +197,7 @@ var emnapiAWMT = {
     const scope = emnapiCtx.openScope(envObject)
     const callback = (): void => {
       if (!complete) return
-      envObject.callbackIntoModule(true, () => {
+      (envObject as NodeEnv).callbackIntoModule(true, () => {
         $makeDynCall('vpip', 'complete')(env, status, data)
       })
     }

@@ -63,7 +63,7 @@ function __emnapi_callback_into_module (forceUncaught: int, env: napi_env, callb
   const envObject = emnapiCtx.envStore.get(env)!
   const scope = emnapiCtx.openScope(envObject)
   try {
-    envObject.callbackIntoModule(Boolean(forceUncaught), () => {
+    (envObject as NodeEnv).callbackIntoModule(Boolean(forceUncaught), () => {
       $makeDynCall('vpp', 'callback')(env, data)
     })
   } catch (err) {
@@ -79,7 +79,7 @@ function __emnapi_callback_into_module (forceUncaught: int, env: napi_env, callb
 function __emnapi_call_finalizer (forceUncaught: int, env: napi_env, callback: number, data: number, hint: number): void {
   const envObject = emnapiCtx.envStore.get(env)!
   $from64('callback')
-  envObject.callFinalizer(forceUncaught, callback, data, hint)
+  ;(envObject as NodeEnv).callFinalizerInternal(forceUncaught, callback, data, hint)
 }
 
 function __emnapi_ctx_increase_waiting_request_counter (): void {
