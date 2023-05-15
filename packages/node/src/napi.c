@@ -109,6 +109,37 @@ static napi_value napi_make_callback_js(napi_env env, napi_callback_info info) {
   return ret;
 } */
 
+static napi_value napi_fatal_error_js(napi_env env, napi_callback_info info) {
+  napi_value argv[2];
+  size_t argc = 2;
+  NAPI_ASSERT(napi_get_cb_info(env, info, &argc, argv, NULL, NULL));
+  
+  char *location;
+  size_t location_len;
+  char *message;
+  size_t message_len;
+
+  NAPI_ASSERT(napi_get_value_string_utf8(env, argv[0], NULL, 0, &location_len));
+  NAPI_ASSERT(napi_get_value_string_utf8(env, argv[1], NULL, 0, &message_len));
+  location = (char*)malloc(location_len + 1);
+  assert(location != NULL);
+  NAPI_ASSERT(napi_get_value_string_utf8(env, argv[0], location, location_len + 1, &location_len));
+  message = (char*)malloc(message_len + 1);
+  assert(location != NULL);
+  NAPI_ASSERT(napi_get_value_string_utf8(env, argv[1], message, message_len + 1, &message_len));
+
+  napi_fatal_error(location, location_len, message, message_len);
+  return NULL;
+}
+
+static napi_value napi_fatal_exception_js(napi_env env, napi_callback_info info) {
+  napi_value argv;
+  size_t argc = 1;
+  NAPI_ASSERT(napi_get_cb_info(env, info, &argc, &argv, NULL, NULL));
+  NAPI_ASSERT(napi_fatal_exception(env, argv));
+  return NULL;
+}
+
 NAPI_MODULE_INIT() {
   napi_value ai;
   NAPI_ASSERT(napi_create_function(env, "asyncInit", NAPI_AUTO_LENGTH, napi_async_init_js, NULL, &ai));
@@ -125,6 +156,14 @@ NAPI_MODULE_INIT() {
   /* napi_value ocs;
   napi_create_function(env, "napiOpenCallbackScope", NAPI_AUTO_LENGTH, napi_open_callback_scope_js, NULL, &ocs);
   napi_set_named_property(env, exports, "napiOpenCallbackScope", ocs); */
+
+  napi_value fatal_error;
+  NAPI_ASSERT(napi_create_function(env, "fatalError", NAPI_AUTO_LENGTH, napi_fatal_error_js, NULL, &fatal_error));
+  NAPI_ASSERT(napi_set_named_property(env, exports, "fatalError", fatal_error));
+
+  napi_value fatal_exception;
+  NAPI_ASSERT(napi_create_function(env, "fatalException", NAPI_AUTO_LENGTH, napi_fatal_exception_js, NULL, &fatal_exception));
+  NAPI_ASSERT(napi_set_named_property(env, exports, "fatalException", fatal_exception));
 
   return exports;
 }

@@ -202,11 +202,13 @@ function napi_fatal_error (location: const_char_p, location_len: size_t, message
   $from64('message')
   $from64('message_len')
 
-  abort('FATAL ERROR: ' +
-    emnapiString.UTF8ToString(location, location_len) +
-    ' ' +
-    emnapiString.UTF8ToString(message, message_len)
-  )
+  const locationStr = emnapiString.UTF8ToString(location, location_len)
+  const messageStr = emnapiString.UTF8ToString(message, message_len)
+  if (emnapiNodeBinding) {
+    emnapiNodeBinding.napi.fatalError(locationStr, messageStr)
+  } else {
+    abort('FATAL ERROR: ' + locationStr + ' ' + messageStr)
+  }
 }
 
 // @ts-expect-error

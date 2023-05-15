@@ -120,7 +120,8 @@ var napiModule: INapiModule = {
         moduleApiVersion,
         (cb: Ptr) => $makeDynCall('vppp', 'cb'),
         (cb: Ptr) => $makeDynCall('vp', 'cb'),
-        abort
+        abort,
+        emnapiNodeBinding
       ))
 
       const scope = emnapiCtx.openScope(envObject)

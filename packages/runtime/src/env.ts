@@ -211,7 +211,8 @@ export class NodeEnv extends Env {
     moduleApiVersion: number,
     makeDynCall_vppp: (cb: Ptr) => (a: Ptr, b: Ptr, c: Ptr) => void,
     makeDynCall_vp: (cb: Ptr) => (a: Ptr) => void,
-    abort: (msg?: string) => never
+    abort: (msg?: string) => never,
+    private readonly nodeBinding?: any
   ) {
     super(ctx, moduleApiVersion, makeDynCall_vppp, makeDynCall_vp, abort)
   }
@@ -227,14 +228,18 @@ export class NodeEnv extends Env {
   // }
 
   public triggerFatalException (err: any): void {
-    if (typeof process === 'object' && process !== null && typeof (process as any)._fatalException === 'function') {
-      const handled = (process as any)._fatalException(err)
-      if (!handled) {
-        console.error(err)
-        process.exit(1)
-      }
+    if (this.nodeBinding) {
+      this.nodeBinding.napi.fatalException(err)
     } else {
-      throw err
+      if (typeof process === 'object' && process !== null && typeof (process as any)._fatalException === 'function') {
+        const handled = (process as any)._fatalException(err)
+        if (!handled) {
+          console.error(err)
+          process.exit(1)
+        }
+      } else {
+        throw err
+      }
     }
   }
 
@@ -302,7 +307,8 @@ export function newEnv (
   moduleApiVersion: number,
   makeDynCall_vppp: (cb: Ptr) => (a: Ptr, b: Ptr, c: Ptr) => void,
   makeDynCall_vp: (cb: Ptr) => (a: Ptr) => void,
-  abort: (msg?: string) => never
+  abort: (msg?: string) => never,
+  nodeBinding?: any
 ): Env {
   moduleApiVersion = typeof moduleApiVersion !== 'number' ? NODE_API_DEFAULT_MODULE_API_VERSION : moduleApiVersion
   // Validate module_api_version.
@@ -311,7 +317,7 @@ export function newEnv (
   } else if (moduleApiVersion > NAPI_VERSION && moduleApiVersion !== NAPI_VERSION_EXPERIMENTAL) {
     throwNodeApiVersionError(filename, moduleApiVersion)
   }
-  const env = new NodeEnv(ctx, filename, moduleApiVersion, makeDynCall_vppp, makeDynCall_vp, abort)
+  const env = new NodeEnv(ctx, filename, moduleApiVersion, makeDynCall_vppp, makeDynCall_vp, abort, nodeBinding)
   ctx.envStore.add(env)
   ctx.addCleanupHook(env, () => { env.unref() }, 0)
   return env

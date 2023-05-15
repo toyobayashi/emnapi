@@ -191,9 +191,10 @@ export class Context {
     moduleApiVersion: number,
     makeDynCall_vppp: (cb: Ptr) => (a: Ptr, b: Ptr, c: Ptr) => void,
     makeDynCall_vp: (cb: Ptr) => (a: Ptr) => void,
-    abort: (msg?: string) => never
+    abort: (msg?: string) => never,
+    nodeBinding?: any
   ): Env {
-    return newEnv(this, filename, moduleApiVersion, makeDynCall_vppp, makeDynCall_vp, abort)
+    return newEnv(this, filename, moduleApiVersion, makeDynCall_vppp, makeDynCall_vp, abort, nodeBinding)
   }
 
   getCurrentScope (): HandleScope | null {
