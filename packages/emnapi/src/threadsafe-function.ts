@@ -450,7 +450,8 @@ const emnapiTSFN = {
     const context = emnapiTSFN.getContext(func)
 
     const f = (): void => {
-      envObject.callFinalizer(
+      (envObject as NodeEnv).callFinalizerInternal(
+        0,
         $to64('finalize') as number,
         $to64('data') as number,
         $to64('context') as number
@@ -548,7 +549,7 @@ const emnapiTSFN = {
       emnapiCtx.openScope(envObject)
 
       const f = (): void => {
-        envObject.callIntoModule(() => {
+        (envObject as NodeEnv).callbackIntoModule(false, () => {
           const callJsCb = emnapiTSFN.getCallJSCb(func)
           const ref = emnapiTSFN.getRef(func)
           const js_callback = ref ? emnapiCtx.refStore.get(ref)!.get() : 0

@@ -5,7 +5,7 @@ import { DeferredStore } from './DeferredStore'
 import { HandleStore } from './Handle'
 import type { Handle } from './Handle'
 import type { HandleScope } from './HandleScope'
-import { Env } from './env'
+import { Env, newEnv } from './env'
 import {
   _global,
   supportReflect,
@@ -190,9 +190,11 @@ export class Context {
     filename: string,
     moduleApiVersion: number,
     makeDynCall_vppp: (cb: Ptr) => (a: Ptr, b: Ptr, c: Ptr) => void,
-    makeDynCall_vp: (cb: Ptr) => (a: Ptr) => void
+    makeDynCall_vp: (cb: Ptr) => (a: Ptr) => void,
+    abort: (msg?: string) => never,
+    nodeBinding?: any
   ): Env {
-    return Env.create(this, filename, moduleApiVersion, makeDynCall_vppp, makeDynCall_vp)
+    return newEnv(this, filename, moduleApiVersion, makeDynCall_vppp, makeDynCall_vp, abort, nodeBinding)
   }
 
   getCurrentScope (): HandleScope | null {
@@ -245,6 +247,10 @@ export class Context {
   public decreaseWaitingRequestCounter (): void {
     this.refCounter?.decrease()
   }
+
+  // canCallIntoJs (): boolean {
+  //   return true
+  // }
 
   dispose (): void {
     this.runCleanup()

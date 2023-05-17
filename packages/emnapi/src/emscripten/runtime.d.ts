@@ -33,7 +33,7 @@ declare function _malloc (size: number | bigint): void_p
 // declare const __ATINIT__: Array<(Module: any) => void>
 // declare function addOnInit (callback: number | ((Module: any) => void) | LifecycleCallback<any>): void
 // declare function addOnExit (callback: number | ((Module: any) => void) | LifecycleCallback<any>): void
-declare function abort (msg?: string): void
+declare function abort (msg?: string): never
 
 declare function runtimeKeepalivePush (): void
 declare function runtimeKeepalivePop (): void

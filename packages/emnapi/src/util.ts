@@ -59,11 +59,11 @@ function __emnapi_next_tick (callback: number, data: number): void {
   })
 }
 
-function __emnapi_call_into_module (env: napi_env, callback: number, data: number, close_scope_if_throw: int): void {
+function __emnapi_callback_into_module (forceUncaught: int, env: napi_env, callback: number, data: number, close_scope_if_throw: int): void {
   const envObject = emnapiCtx.envStore.get(env)!
   const scope = emnapiCtx.openScope(envObject)
   try {
-    envObject.callIntoModule(() => {
+    (envObject as NodeEnv).callbackIntoModule(Boolean(forceUncaught), () => {
       $makeDynCall('vpp', 'callback')(env, data)
     })
   } catch (err) {
@@ -76,10 +76,10 @@ function __emnapi_call_into_module (env: napi_env, callback: number, data: numbe
   emnapiCtx.closeScope(envObject, scope)
 }
 
-function __emnapi_call_finalizer (env: napi_env, callback: number, data: number, hint: number): void {
+function __emnapi_call_finalizer (forceUncaught: int, env: napi_env, callback: number, data: number, hint: number): void {
   const envObject = emnapiCtx.envStore.get(env)!
   $from64('callback')
-  envObject.callFinalizer(callback, data, hint)
+  ;(envObject as NodeEnv).callFinalizerInternal(forceUncaught, callback, data, hint)
 }
 
 function __emnapi_ctx_increase_waiting_request_counter (): void {
@@ -92,7 +92,7 @@ function __emnapi_ctx_decrease_waiting_request_counter (): void {
 
 emnapiImplementInternal('_emnapi_set_immediate', 'vpp', __emnapi_set_immediate)
 emnapiImplementInternal('_emnapi_next_tick', 'vpp', __emnapi_next_tick)
-emnapiImplementInternal('_emnapi_call_into_module', 'vpppi', __emnapi_call_into_module)
-emnapiImplementInternal('_emnapi_call_finalizer', 'vpppp', __emnapi_call_finalizer)
+emnapiImplementInternal('_emnapi_callback_into_module', 'vipppi', __emnapi_callback_into_module)
+emnapiImplementInternal('_emnapi_call_finalizer', 'vipppp', __emnapi_call_finalizer)
 emnapiImplementInternal('_emnapi_ctx_increase_waiting_request_counter', 'v', __emnapi_ctx_increase_waiting_request_counter)
 emnapiImplementInternal('_emnapi_ctx_decrease_waiting_request_counter', 'v', __emnapi_ctx_decrease_waiting_request_counter)

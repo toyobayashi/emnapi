@@ -5,7 +5,7 @@ const { load } = require('../util')
 const common = require('../common')
 
 module.exports = new Promise((resolve, reject) => {
-  load('fatal_exception').then((test_fatal) => {
+  load('fatal_exception', { nodeBinding: require('@emnapi/node-binding') }).then((test_fatal) => {
     process.on('uncaughtException', common.mustCall(function (err) {
       console.error(err.message)
       try {

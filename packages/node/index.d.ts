@@ -26,4 +26,6 @@ export declare namespace napi {
     func: (...args: P) => T,
     argv: P
   ): NapiResult<T>
+  export function fatalError (location: string, message: string): void
+  export function fatalException (err: any): void
 }

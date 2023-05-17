@@ -202,23 +202,26 @@ function napi_fatal_error (location: const_char_p, location_len: size_t, message
   $from64('message')
   $from64('message_len')
 
-  abort('FATAL ERROR: ' +
-    emnapiString.UTF8ToString(location, location_len) +
-    ' ' +
-    emnapiString.UTF8ToString(message, message_len)
-  )
+  const locationStr = emnapiString.UTF8ToString(location, location_len)
+  const messageStr = emnapiString.UTF8ToString(message, message_len)
+  if (emnapiNodeBinding) {
+    emnapiNodeBinding.napi.fatalError(locationStr, messageStr)
+  } else {
+    abort('FATAL ERROR: ' + locationStr + ' ' + messageStr)
+  }
 }
 
 // @ts-expect-error
 function napi_fatal_exception (env: napi_env, err: napi_value): napi_status {
   $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, err)
-    if (typeof process === 'object' && process !== null && typeof process._fatalException === 'function') {
-      const error = envObject.ctx.handleStore.get(err)!
-      process._fatalException(error.value)
-      return envObject.clearLastError()
+    const error = envObject.ctx.handleStore.get(err)!
+    try {
+      (envObject as NodeEnv).triggerFatalException(error.value)
+    } catch (_) {
+      return envObject.setLastError(napi_status.napi_generic_failure)
     }
-    return envObject.setLastError(napi_status.napi_generic_failure)
+    return envObject.clearLastError()
   })
 }
 

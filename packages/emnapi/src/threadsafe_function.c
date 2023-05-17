@@ -11,7 +11,7 @@
 
 EXTERN_C_START
 
-EMNAPI_INTERNAL_EXTERN void _emnapi_call_finalizer(napi_env env, napi_finalize cb, void* data, void* hint);
+EMNAPI_INTERNAL_EXTERN void _emnapi_call_finalizer(int force_uncaught, napi_env env, napi_finalize cb, void* data, void* hint);
 
 static const unsigned char kDispatchIdle = 0;
 static const unsigned char kDispatchRunning = 1 << 0;
@@ -205,7 +205,7 @@ static napi_value _emnapi_tsfn_finalize_in_callback_scope(napi_env env, napi_cal
   void* data = NULL;
   EMNAPI_ASSERT_CALL(napi_get_cb_info(env, info, NULL, NULL, NULL, &data));
   napi_threadsafe_function func = (napi_threadsafe_function) data;
-  _emnapi_call_finalizer(func->env, func->finalize_cb, func->finalize_data, func->context);
+  _emnapi_call_finalizer(0, func->env, func->finalize_cb, func->finalize_data, func->context);
   return NULL;
 }
 
@@ -226,7 +226,7 @@ static void _emnapi_tsfn_finalize(napi_threadsafe_function func) {
                                 func->async_context_.trigger_async_id,
                                 NULL);
     } else {
-      _emnapi_call_finalizer(func->env, func->finalize_cb, func->finalize_data, func->context);
+      _emnapi_call_finalizer(0, func->env, func->finalize_cb, func->finalize_data, func->context);
     }
   }
   _emnapi_tsfn_empty_queue_and_delete(func);
@@ -275,7 +275,7 @@ static void _emnapi_tsfn_call_js_cb(napi_env env, void* arg) {
 static napi_value _emnapi_tsfn_call_js_cb_in_callback_scope(napi_env env, napi_callback_info info) {
   void* data = NULL;
   EMNAPI_ASSERT_CALL(napi_get_cb_info(env, info, NULL, NULL, NULL, &data));
-  _emnapi_call_into_module(env, _emnapi_tsfn_call_js_cb, data, 1);
+  _emnapi_callback_into_module(0, env, _emnapi_tsfn_call_js_cb, data, 1);
   return NULL;
 }
 
@@ -347,7 +347,7 @@ static bool _emnapi_tsfn_dispatch_one(napi_threadsafe_function func) {
                                 func->async_context_.trigger_async_id,
                                 NULL);
     } else {
-      _emnapi_call_into_module(func->env, _emnapi_tsfn_call_js_cb, jscb_data, 1);
+      _emnapi_callback_into_module(0, func->env, _emnapi_tsfn_call_js_cb, jscb_data, 1);
     }
     EMNAPI_ASSERT_CALL(napi_close_handle_scope(func->env, scope));
   }

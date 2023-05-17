@@ -110,10 +110,11 @@ EMNAPI_INTERNAL_EXTERN void _emnapi_ctx_decrease_waiting_request_counter();
 
 typedef void (*_emnapi_call_into_module_callback)(napi_env env, void* args);
 EMNAPI_INTERNAL_EXTERN
-void _emnapi_call_into_module(napi_env env,
-                              _emnapi_call_into_module_callback callback,
-                              void* args,
-                              int close_scope_if_throw);
+void _emnapi_callback_into_module(int force_uncaught,
+                                  napi_env env,
+                                  _emnapi_call_into_module_callback callback,
+                                  void* args,
+                                  int close_scope_if_throw);
 
 #endif
 
