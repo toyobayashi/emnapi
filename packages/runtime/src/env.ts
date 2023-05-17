@@ -94,18 +94,18 @@ export class Env implements IStoreValue {
 
   public clearLastError (): napi_status {
     const lastError = this.lastError
-    lastError.errorCode = napi_status.napi_ok
-    lastError.engineErrorCode = 0
-    lastError.engineReserved = 0
+    if (lastError.errorCode !== napi_status.napi_ok) lastError.errorCode = napi_status.napi_ok
+    if (lastError.engineErrorCode !== 0) lastError.engineErrorCode = 0
+    if (lastError.engineReserved !== 0) lastError.engineReserved = 0
 
     return napi_status.napi_ok
   }
 
   public setLastError (error_code: napi_status, engine_error_code: uint32_t = 0, engine_reserved: void_p = 0): napi_status {
     const lastError = this.lastError
-    lastError.errorCode = error_code
-    lastError.engineErrorCode = engine_error_code
-    lastError.engineReserved = engine_reserved
+    if (lastError.errorCode !== error_code) lastError.errorCode = error_code
+    if (lastError.engineErrorCode !== engine_error_code) lastError.engineErrorCode = engine_error_code
+    if (lastError.engineReserved !== engine_reserved) lastError.engineReserved = engine_reserved
     return error_code
   }
 
@@ -119,7 +119,7 @@ export class Env implements IStoreValue {
     this.clearLastError()
     const r = fn(this)
     if (openHandleScopesBefore !== this.openHandleScopes) {
-      this.abort()
+      this.abort('open_handle_scopes != open_handle_scopes_before')
     }
     if (this.tryCatch.hasCaught()) {
       const err = this.tryCatch.extractException()!

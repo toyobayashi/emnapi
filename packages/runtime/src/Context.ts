@@ -1,7 +1,4 @@
-import { EnvStore } from './EnvStore'
 import { ScopeStore } from './ScopeStore'
-import { RefStore } from './RefStore'
-import { DeferredStore } from './DeferredStore'
 import { HandleStore } from './Handle'
 import type { Handle } from './Handle'
 import type { HandleScope } from './HandleScope'
@@ -26,6 +23,7 @@ import { CallbackInfoStack } from './CallbackInfo'
 import { NotSupportWeakRefError, NotSupportBigIntError, NotSupportBufferError } from './errors'
 import { Reference } from './Reference'
 import { type IDeferrdValue, Deferred } from './Deferred'
+import { Store } from './Store'
 
 export type CleanupHookCallbackFunction = number | ((arg: number) => void)
 
@@ -109,10 +107,10 @@ class NodejsWaitingRequestCounter {
 }
 
 export class Context {
-  public envStore = new EnvStore()
+  public envStore = new Store<Env>()
   public scopeStore = new ScopeStore()
-  public refStore = new RefStore()
-  public deferredStore = new DeferredStore()
+  public refStore = new Store<Reference>()
+  public deferredStore = new Store<Deferred>()
   public handleStore = new HandleStore()
   public cbinfoStack = new CallbackInfoStack()
   private readonly refCounter?: NodejsWaitingRequestCounter

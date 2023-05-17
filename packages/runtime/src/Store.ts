@@ -13,9 +13,9 @@ export class Store<V extends IStoreValue> {
   private _freeList: number[]
   private _size: number
 
-  public constructor (capacity: number) {
+  public constructor () {
     this._values = [undefined]
-    this._values.length = capacity
+    this._values.length = 4
     this._size = 1
     this._freeList = []
   }
@@ -29,7 +29,7 @@ export class Store<V extends IStoreValue> {
       this._size++
       const capacity = this._values.length
       if (id >= capacity) {
-        this._values.length = Math.ceil(capacity * 1.5)
+        this._values.length = capacity + (capacity >> 1) + 16
       }
     }
     value.id = id

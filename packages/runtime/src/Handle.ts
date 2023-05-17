@@ -7,90 +7,79 @@ export class Handle<S> {
     public value: S
   ) {}
 
-  public init (id: number, value: S): void {
-    this.id = id
-    this.value = value
-  }
-
   public data (envObject: Env): void_p {
     return envObject.getObjectBinding(this.value as any).data
   }
 
-  public isEmpty (): boolean {
-    return this.id === 0
-  }
-
   public isNumber (): boolean {
-    return !this.isEmpty() && typeof this.value === 'number'
+    return typeof this.value === 'number'
   }
 
   public isBigInt (): boolean {
-    return !this.isEmpty() && typeof this.value === 'bigint'
+    return typeof this.value === 'bigint'
   }
 
   public isString (): boolean {
-    return !this.isEmpty() && typeof this.value === 'string'
+    return typeof this.value === 'string'
   }
 
   public isFunction (): boolean {
-    return !this.isEmpty() && typeof this.value === 'function'
+    return typeof this.value === 'function'
   }
 
   public isExternal (): boolean {
-    return !this.isEmpty() && (isReferenceType(this.value) && Object.getPrototypeOf(this.value) === null)
+    return (isReferenceType(this.value) && Object.getPrototypeOf(this.value) === null)
   }
 
   public isObject (): boolean {
-    return !this.isEmpty() && typeof this.value === 'object' && this.value !== null
+    return typeof this.value === 'object' && this.value !== null
   }
 
   public isArray (): boolean {
-    return !this.isEmpty() && Array.isArray(this.value)
+    return Array.isArray(this.value)
   }
 
   public isArrayBuffer (): boolean {
-    return !this.isEmpty() && (this.value instanceof ArrayBuffer)
+    return (this.value instanceof ArrayBuffer)
   }
 
   public isTypedArray (): boolean {
-    return !this.isEmpty() && (ArrayBuffer.isView(this.value)) && !(this.value instanceof DataView)
+    return (ArrayBuffer.isView(this.value)) && !(this.value instanceof DataView)
   }
 
   public isBuffer (): boolean {
-    return !this.isEmpty() && typeof _Buffer === 'function' && _Buffer.isBuffer(this.value)
+    return typeof _Buffer === 'function' && _Buffer.isBuffer(this.value)
   }
 
   public isDataView (): boolean {
-    return !this.isEmpty() && (this.value instanceof DataView)
+    return (this.value instanceof DataView)
   }
 
   public isDate (): boolean {
-    return !this.isEmpty() && (this.value instanceof Date)
+    return (this.value instanceof Date)
   }
 
   public isPromise (): boolean {
-    return !this.isEmpty() && (this.value instanceof Promise)
+    return (this.value instanceof Promise)
   }
 
   public isBoolean (): boolean {
-    return !this.isEmpty() && typeof this.value === 'boolean'
+    return typeof this.value === 'boolean'
   }
 
   public isUndefined (): boolean {
-    return !this.isEmpty() && this.value === undefined
+    return this.value === undefined
   }
 
   public isSymbol (): boolean {
-    return !this.isEmpty() && typeof this.value === 'symbol'
+    return typeof this.value === 'symbol'
   }
 
   public isNull (): boolean {
-    return !this.isEmpty() && this.value === null
+    return this.value === null
   }
 
   public dispose (): void {
-    if (this.id === 0) return
-    this.id = 0
     this.value = undefined!
   }
 }
@@ -134,7 +123,7 @@ export class HandleStore {
     const values = this._values
     if (next < values.length) {
       h = values[next]
-      h.init(next, value)
+      h.value = value
     } else {
       h = new Handle(next, value)
       values[next] = h
