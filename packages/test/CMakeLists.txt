@@ -306,6 +306,11 @@ target_compile_definitions("reference_obj_only" PRIVATE "NAPI_VERSION=8")
 add_test("reference_all_types" "./ref_by_node_api_version/binding.c" OFF OFF "")
 target_compile_definitions("reference_all_types" PRIVATE "NAPI_EXPERIMENTAL")
 
+add_test("runjs_pe" "./runjs/binding.c;./runjs/entry_point.c" OFF OFF "")
+target_compile_definitions("runjs_pe" PRIVATE "NAPI_VERSION=8")
+add_test("runjs_cnrj" "./runjs/binding.c;./runjs/entry_point.c" OFF OFF "")
+target_compile_definitions("runjs_cnrj" PRIVATE "NAPI_EXPERIMENTAL")
+
 if(IS_WASM)
   if(IS_EMSCRIPTEN)
     add_test("emnapitest" "./emnapitest/binding.c" ON OFF "-sEXPORTED_RUNTIME_METHODS=['emnapiSyncMemory']")

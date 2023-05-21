@@ -29,7 +29,8 @@ static const char* emnapi_error_messages[] = {
   "An arraybuffer was expected",
   "A detachable arraybuffer was expected",
   "Main thread would deadlock",
-  "External buffers are not allowed"
+  "External buffers are not allowed",
+  "Cannot run JavaScript",
 };
 
 EMNAPI_INTERNAL_EXTERN void _emnapi_get_last_error_info(napi_env env,
@@ -43,9 +44,9 @@ napi_status napi_get_last_error_info(
   CHECK_ENV(env);
   CHECK_ARG(env, result);
 
-  const int last_status = napi_no_external_buffers_allowed;
+  const int last_status = napi_cannot_run_js;
 
-  static_assert((sizeof(emnapi_error_messages) / sizeof(const char*)) == napi_no_external_buffers_allowed + 1,
+  static_assert((sizeof(emnapi_error_messages) / sizeof(const char*)) == napi_cannot_run_js + 1,
                 "Count of error messages must match count of error values");
 
   _emnapi_get_last_error_info(env,

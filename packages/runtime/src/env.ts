@@ -19,10 +19,10 @@ function throwNodeApiVersionError (moduleName: string, moduleApiVersion: number)
   throw new Error(errorMessage)
 }
 
-function handleThrow (_envObject: Env, value: any): void {
-  // if (envObject.terminatedOrTerminating()) {
-  //   return
-  // }
+function handleThrow (envObject: Env, value: any): void {
+  if (envObject.terminatedOrTerminating()) {
+    return
+  }
   throw value
 }
 
@@ -64,14 +64,14 @@ export class Env implements IStoreValue {
     this.id = 0
   }
 
-  // /** @virtual */
-  // public canCallIntoJs (): boolean {
-  //   return true
-  // }
+  /** @virtual */
+  public canCallIntoJs (): boolean {
+    return true
+  }
 
-  // public terminatedOrTerminating (): boolean {
-  //   return !this.canCallIntoJs()
-  // }
+  public terminatedOrTerminating (): boolean {
+    return !this.canCallIntoJs()
+  }
 
   public ref (): void {
     this.refs++
@@ -223,9 +223,9 @@ export class NodeEnv extends Env {
     super.deleteMe()
   }
 
-  // public canCallIntoJs (): boolean {
-  //   return this.ctx.canCallIntoJs()
-  // }
+  public override canCallIntoJs (): boolean {
+    return this.ctx.canCallIntoJs()
+  }
 
   public triggerFatalException (err: any): void {
     if (this.nodeBinding) {
@@ -245,9 +245,9 @@ export class NodeEnv extends Env {
 
   public callbackIntoModule<T> (enforceUncaughtExceptionPolicy: boolean, fn: (env: Env) => T): T {
     return this.callIntoModule(fn, (envObject, err) => {
-      // if (envObject.terminatedOrTerminating()) {
-      //   return
-      // }
+      if (envObject.terminatedOrTerminating()) {
+        return
+      }
       const hasProcess = typeof process === 'object' && process !== null
       const hasForceFlag = hasProcess ? Boolean(process.execArgv && (process.execArgv.indexOf('--force-node-api-uncaught-exceptions-policy') !== -1)) : false
       if (!hasForceFlag && !enforceUncaughtExceptionPolicy) {

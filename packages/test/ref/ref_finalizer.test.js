@@ -28,7 +28,9 @@ module.exports = new Promise((resolve) => {
             throw new Error('finalizer error')
           }))
       }
-      global.gc()
+      setImmediate(() => {
+        global.gc()
+      })
     }, reject).then(common.mustCall(resolve))
   })
 
