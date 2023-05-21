@@ -1,6 +1,14 @@
 #include <js_native_api.h>
 #include "../common.h"
+#if !defined(__wasm__) || (defined(__EMSCRIPTEN__) || defined(__wasi__))
 #include "stdlib.h"
+#else
+void* malloc(size_t size);
+void free(void* p);
+void abort() {
+  __builtin_trap();
+}
+#endif
 
 static void Finalize(napi_env env, void* data, void* hint) {
   napi_value global, set_timeout;
