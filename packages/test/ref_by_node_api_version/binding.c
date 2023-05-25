@@ -1,6 +1,11 @@
 #include <node_api.h>
 #include "../common.h"
+#if !defined(__wasm__) || (defined(__EMSCRIPTEN__) || defined(__wasi__))
 #include "stdlib.h"
+#else
+void* malloc(size_t size);
+void free(void* p);
+#endif
 
 #define NAPI_ASSERT_STATUS(env, assertion, message)                        \
   NAPI_ASSERT_BASE(env, assertion, message, napi_generic_failure)

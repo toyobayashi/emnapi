@@ -63,6 +63,9 @@ function test (f) {
   if (f.includes('async_context')) {
     additionalFlags.push('--gc-interval=100', '--gc-global')
   }
+  if (f.endsWith('ref_finalizer.test.js')) {
+    additionalFlags.push('--force-node-api-uncaught-exceptions-policy')
+  }
   const r = spawnSync('node', [
     '--expose-gc',
     ...additionalFlags,

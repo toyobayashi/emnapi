@@ -107,6 +107,9 @@ class NodejsWaitingRequestCounter {
 }
 
 export class Context {
+  private _isStopping = false
+  private _canCallIntoJs = true
+
   public envStore = new Store<Env>()
   public scopeStore = new ScopeStore()
   public refStore = new Store<Reference>()
@@ -133,7 +136,7 @@ export class Context {
     if (typeof process === 'object' && process !== null && typeof process.once === 'function') {
       this.refCounter = new NodejsWaitingRequestCounter()
       process.once('beforeExit', () => {
-        this.runCleanup()
+        this.destroy()
       })
     }
   }
@@ -246,11 +249,21 @@ export class Context {
     this.refCounter?.decrease()
   }
 
-  // canCallIntoJs (): boolean {
-  //   return true
-  // }
+  public setCanCallIntoJs (value: boolean): void {
+    this._canCallIntoJs = value
+  }
 
-  dispose (): void {
+  public setStopping (value: boolean): void {
+    this._isStopping = value
+  }
+
+  public canCallIntoJs (): boolean {
+    return this._canCallIntoJs && !this._isStopping
+  }
+
+  public destroy (): void {
+    this.setStopping(true)
+    this.setCanCallIntoJs(false)
     this.runCleanup()
   }
 }
