@@ -232,6 +232,56 @@ var emnapiString = {
     }
     $makeSetValue('outPtr', 0, '0', 'i16')
     return outPtr - startPtr
+  },
+  newString (env: napi_env,
+    str: number,
+    length: size_t,
+    result: Pointer<napi_value>,
+    stringMaker: (autoLength: boolean, sizeLength: number) => string
+  ) {
+    $CHECK_ENV!(env)
+    const envObject = emnapiCtx.envStore.get(env)!
+    $from64('length')
+    const autoLength = length === -1
+    const sizelength = length >>> 0
+    if (length !== 0) {
+      $CHECK_ARG!(envObject, str)
+    }
+    $CHECK_ARG!(envObject, result)
+    $from64('str')
+
+    if (!(autoLength || (sizelength <= 2147483647))) {
+      return envObject.setLastError(napi_status.napi_invalid_arg)
+    }
+    const strValue = stringMaker(autoLength, sizelength)
+    $from64('result')
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const value = emnapiCtx.addToCurrentScope(strValue).id
+    $makeSetValue('result', 0, 'value', '*')
+    return envObject.clearLastError()
+  },
+  newExternalString (
+    env: napi_env,
+    str: number,
+    length: size_t,
+    finalize_callback: napi_finalize,
+    finalize_hint: void_p,
+    result: Pointer<napi_value>,
+    copied: Pointer<bool>,
+    createApi: (env: napi_env, str: number, length: size_t, result: Pointer<napi_value>) => napi_status,
+    stringMaker: (autoLength: boolean, sizeLength: number) => string
+  ) {
+    const status = createApi(env, str, length, result)
+    if (status === napi_status.napi_ok) {
+      if (copied) {
+        $makeSetValue('copied', 0, '1', 'i8')
+      }
+      if (finalize_callback) {
+        const envObject = emnapiCtx.envStore.get(env)!
+        envObject.callFinalizer(finalize_callback, str, finalize_hint)
+      }
+    }
+    return status
   }
 }
 

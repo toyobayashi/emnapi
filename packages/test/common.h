@@ -55,6 +55,17 @@
 #define NAPI_CALL_RETURN_VOID(env, the_call)                             \
   NAPI_CALL_BASE(env, the_call, NAPI_RETVAL_NOTHING)
 
+#define NAPI_CHECK_STATUS(the_call)                                            \
+  do {                                                                         \
+    napi_status status = (the_call);                                           \
+    if (status != napi_ok) {                                                   \
+      return status;                                                           \
+    }                                                                          \
+  } while (0)
+
+#define NAPI_ASSERT_STATUS(env, assertion, message)                        \
+  NAPI_ASSERT_BASE(env, assertion, message, napi_generic_failure)
+
 #define DECLARE_NAPI_PROPERTY(name, func)                                \
   { (name), NULL, (func), NULL, NULL, NULL, napi_default, NULL }
 
