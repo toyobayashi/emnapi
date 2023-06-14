@@ -57,91 +57,84 @@ function napi_create_double (env: napi_env, value: double, result: Pointer<napi_
   return envObject.clearLastError()
 }
 
-function napi_create_string_latin1 (env: napi_env, str: const_char_p, length: size_t, result: Pointer<napi_value>): napi_status {
-  $CHECK_ENV!(env)
-  const envObject = emnapiCtx.envStore.get(env)!
-  $from64('length')
-  const autoLength = length === -1
-  length = length >>> 0
-  if (length !== 0) {
-    $CHECK_ARG!(envObject, str)
-  }
-  $CHECK_ARG!(envObject, result)
-  $from64('str')
-  if (!(autoLength || (length <= 2147483647))) {
-    return envObject.setLastError(napi_status.napi_invalid_arg)
-  }
-
-  let latin1String = ''
-  let len = 0
-  if (autoLength) {
-    while (true) {
-      const ch = $makeGetValue('str', 0, 'u8') as number
-      if (!ch) break
-      latin1String += String.fromCharCode(ch)
-      str++
+function _napi_create_string_latin1 (env: napi_env, str: const_char_p, length: size_t, result: Pointer<napi_value>): napi_status {
+  return emnapiString.newString(env, str, length, result, (autoLength, sizeLength) => {
+    let latin1String = ''
+    let len = 0
+    if (autoLength) {
+      while (true) {
+        const ch = $makeGetValue('str', 0, 'u8') as number
+        if (!ch) break
+        latin1String += String.fromCharCode(ch)
+        str++
+      }
+    } else {
+      while (len < sizeLength) {
+        const ch = $makeGetValue('str', 0, 'u8') as number
+        if (!ch) break
+        latin1String += String.fromCharCode(ch)
+        len++
+        str++
+      }
     }
-  } else {
-    while (len < length) {
-      const ch = $makeGetValue('str', 0, 'u8') as number
-      if (!ch) break
-      latin1String += String.fromCharCode(ch)
-      len++
-      str++
-    }
-  }
-  $from64('result')
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const value = emnapiCtx.addToCurrentScope(latin1String).id
-  $makeSetValue('result', 0, 'value', '*')
-  return envObject.clearLastError()
+    return latin1String
+  })
 }
 
-function napi_create_string_utf16 (env: napi_env, str: const_char16_t_p, length: size_t, result: Pointer<napi_value>): napi_status {
-  $CHECK_ENV!(env)
-  const envObject = emnapiCtx.envStore.get(env)!
-  $from64('length')
-  const autoLength = length === -1
-  const sizelength = length >>> 0
-  if (length !== 0) {
-    $CHECK_ARG!(envObject, str)
-  }
-  $CHECK_ARG!(envObject, result)
-  $from64('str')
-
-  if (!(autoLength || (sizelength <= 2147483647))) {
-    return envObject.setLastError(napi_status.napi_invalid_arg)
-  }
-
-  const utf16String = emnapiString.UTF16ToString(str, length)
-  $from64('result')
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const value = emnapiCtx.addToCurrentScope(utf16String).id
-  $makeSetValue('result', 0, 'value', '*')
-  return envObject.clearLastError()
+function _napi_create_string_utf16 (env: napi_env, str: const_char16_t_p, length: size_t, result: Pointer<napi_value>): napi_status {
+  return emnapiString.newString(env, str, length, result, () => {
+    return emnapiString.UTF16ToString(str, length)
+  })
 }
 
 function napi_create_string_utf8 (env: napi_env, str: const_char_p, length: size_t, result: Pointer<napi_value>): napi_status {
-  $CHECK_ENV!(env)
-  const envObject = emnapiCtx.envStore.get(env)!
-  $from64('length')
-  const autoLength = length === -1
-  const sizelength = length >>> 0
-  if (length !== 0) {
-    $CHECK_ARG!(envObject, str)
-  }
-  $CHECK_ARG!(envObject, result)
-  $from64('str')
+  return emnapiString.newString(env, str, length, result, () => {
+    return emnapiString.UTF8ToString(str, length)
+  })
+}
 
-  if (!(autoLength || (sizelength <= 2147483647))) {
-    return envObject.setLastError(napi_status.napi_invalid_arg)
-  }
-  const utf8String = emnapiString.UTF8ToString(str, length)
-  $from64('result')
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const value = emnapiCtx.addToCurrentScope(utf8String).id
-  $makeSetValue('result', 0, 'value', '*')
-  return envObject.clearLastError()
+function node_api_create_external_string_latin1 (
+  env: napi_env,
+  str: number,
+  length: size_t,
+  finalize_callback: napi_finalize,
+  finalize_hint: void_p,
+  result: Pointer<napi_value>,
+  copied: Pointer<bool>
+): napi_status {
+  return emnapiString.newExternalString(
+    env,
+    str,
+    length,
+    finalize_callback,
+    finalize_hint,
+    result,
+    copied,
+    _napi_create_string_latin1,
+    undefined!
+  )
+}
+
+function node_api_create_external_string_utf16 (
+  env: napi_env,
+  str: number,
+  length: size_t,
+  finalize_callback: napi_finalize,
+  finalize_hint: void_p,
+  result: Pointer<napi_value>,
+  copied: Pointer<bool>
+): napi_status {
+  return emnapiString.newExternalString(
+    env,
+    str,
+    length,
+    finalize_callback,
+    finalize_hint,
+    result,
+    copied,
+    _napi_create_string_utf16,
+    undefined!
+  )
 }
 
 function napi_create_bigint_int64 (env: napi_env, low: int32_t, high: int32_t, result: Pointer<napi_value>): napi_status {
@@ -241,8 +234,8 @@ emnapiImplement('napi_create_double', 'ipdp', napi_create_double)
 emnapiImplement('napi_create_bigint_int64', 'ipjp', napi_create_bigint_int64)
 emnapiImplement('napi_create_bigint_uint64', 'ipjp', napi_create_bigint_uint64)
 emnapiImplement('napi_create_bigint_words', 'ipippp', napi_create_bigint_words)
-emnapiImplement('napi_create_string_latin1', 'ipppp', napi_create_string_latin1)
-
-emnapiImplement('napi_create_string_utf16', 'ipppp', napi_create_string_utf16, ['$emnapiString'])
-
+emnapiImplement('napi_create_string_latin1', 'ipppp', _napi_create_string_latin1, ['$emnapiString'])
+emnapiImplement('napi_create_string_utf16', 'ipppp', _napi_create_string_utf16, ['$emnapiString'])
 emnapiImplement('napi_create_string_utf8', 'ipppp', napi_create_string_utf8, ['$emnapiString'])
+emnapiImplement('node_api_create_external_string_latin1', 'ippppppp', node_api_create_external_string_latin1, ['$emnapiString', 'napi_create_string_latin1'])
+emnapiImplement('node_api_create_external_string_utf16', 'ippppppp', node_api_create_external_string_utf16, ['$emnapiString', 'napi_create_string_utf16'])
