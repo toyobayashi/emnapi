@@ -21,6 +21,9 @@ function replaceParseTool (code) {
 }
 
 async function build () {
+  const transformerTsconfigPath = path.join(__dirname, '../transformer/tsconfig.json')
+  compile(transformerTsconfigPath)
+
   const libTsconfigPath = path.join(__dirname, '../tsconfig.json')
   compile(libTsconfigPath)
   const libTsconfig = JSON.parse(fs.readFileSync(libTsconfigPath, 'utf8'))
@@ -39,20 +42,8 @@ async function build () {
     'utf8'
   )
 
-  const transformerTsconfigPath = path.join(__dirname, '../transformer/tsconfig.json')
-  compile(transformerTsconfigPath)
   const coreTsconfigPath = path.join(__dirname, '../src/core/tsconfig.json')
-  compile(coreTsconfigPath, {
-    customTransformersAfter: (program) => {
-      return {
-        before: [require('../transformer/out/index').default(program, {
-          defines: {
-            MEMORY64: 0
-          }
-        })]
-      }
-    }
-  })
+  compile(coreTsconfigPath)
   const coreTsconfig = JSON.parse(fs.readFileSync(coreTsconfigPath, 'utf8'))
   const coreOut = path.join(path.dirname(coreTsconfigPath), coreTsconfig.compilerOptions.outFile)
   const coreCode = fs.readFileSync(coreOut, 'utf8')

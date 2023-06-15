@@ -3,7 +3,15 @@
   "compilerOptions": {
     "outFile": "../../dist/emnapi-core.js",
     "plugins": [
-      { "transform": "ts-macros" }
+      {
+        "transform": "../../transformer/out/macro.js"
+      },
+      {
+        "transform": "../../transformer/out/index.js",
+        "defines": {
+          "MEMORY64": 0
+        }
+      }
     ]
   },
   "include": [

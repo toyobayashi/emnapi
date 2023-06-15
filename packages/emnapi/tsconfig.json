@@ -3,7 +3,7 @@
   "compilerOptions": {
     "outFile": "./dist/library_napi.js",
     "plugins": [
-      { "transform": "ts-macros" }
+      { "transform": "./transformer/out/macro.js" }
     ]
   },
   "include": [
