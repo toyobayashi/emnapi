@@ -2,14 +2,10 @@ import type {
   TransformerFactory,
   SourceFile,
   // Visitor,
-  Program,
   CallExpression,
   TransformationContext,
   Node,
   VisitResult,
-  FunctionDeclaration,
-  FunctionExpression,
-  MethodDeclaration,
   NonNullExpression,
   Identifier
 } from 'typescript'
@@ -48,10 +44,6 @@ function $PREAMBLE (env: number, fn: (envObject: Env) => napi_status): napi_stat
 
 */
 
-export interface DefineOptions {
-  defines?: Record<string, any>
-}
-
 function isMacroCall (node: Node): node is CallExpression {
   return ts.isCallExpression(node) &&
     ts.isNonNullExpression(node.expression) &&
@@ -62,15 +54,9 @@ function isMacroCall (node: Node): node is CallExpression {
 
 class Transform {
   ctx: TransformationContext
-  functionDeclarations: Array<FunctionDeclaration | FunctionExpression | MethodDeclaration>
-  injectDataViewDecl: boolean
-  defines: Record<string, any>
 
-  constructor (context: TransformationContext, defines: Record<string, any>) {
+  constructor (context: TransformationContext) {
     this.ctx = context
-    this.functionDeclarations = []
-    this.injectDataViewDecl = false
-    this.defines = defines
     this.visitor = this.visitor.bind(this)
   }
 
@@ -270,12 +256,11 @@ class Transform {
   }
 }
 
-function createTransformerFactory (_program: Program, config: DefineOptions): TransformerFactory<SourceFile> {
-  const defines = config.defines ?? {}
+function createTransformerFactory (/* _program: Program, config: unknown */): TransformerFactory<SourceFile> {
   // const defineKeys = Object.keys(defines)
   // const typeChecker = program.getTypeChecker()
   return (context) => {
-    const transform = new Transform(context, defines)
+    const transform = new Transform(context)
 
     return (src) => {
       if (src.isDeclarationFile) return src
