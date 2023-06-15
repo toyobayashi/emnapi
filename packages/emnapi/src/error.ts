@@ -35,7 +35,7 @@ function napi_throw_error (env: napi_env, code: const_char_p, msg: const_char_p)
     $from64('msg')
 
     const error: Error & { code?: string } = new Error(emnapiString.UTF8ToString(msg, -1))
-    $INLINE_SET_ERROR_CODE!(envObject, error, 0, code)
+    if (code) error.code = emnapiString.UTF8ToString(code, -1)
 
     envObject.tryCatch.setError(error)
     return envObject.clearLastError()
@@ -50,7 +50,7 @@ function napi_throw_type_error (env: napi_env, code: const_char_p, msg: const_ch
     $from64('msg')
 
     const error: TypeError & { code?: string } = new TypeError(emnapiString.UTF8ToString(msg, -1))
-    $INLINE_SET_ERROR_CODE!(envObject, error, 0, code)
+    if (code) error.code = emnapiString.UTF8ToString(code, -1)
 
     envObject.tryCatch.setError(error)
     return envObject.clearLastError()
@@ -65,7 +65,7 @@ function napi_throw_range_error (env: napi_env, code: const_char_p, msg: const_c
     $from64('msg')
 
     const error: RangeError & { code?: string } = new RangeError(emnapiString.UTF8ToString(msg, -1))
-    $INLINE_SET_ERROR_CODE!(envObject, error, 0, code)
+    if (code) error.code = emnapiString.UTF8ToString(code, -1)
 
     envObject.tryCatch.setError(error)
     return envObject.clearLastError()
@@ -80,7 +80,7 @@ function node_api_throw_syntax_error (env: napi_env, code: const_char_p, msg: co
     $from64('msg')
 
     const error: SyntaxError & { code?: string } = new SyntaxError(emnapiString.UTF8ToString(msg, -1))
-    $INLINE_SET_ERROR_CODE!(envObject, error, 0, code)
+    if (code) error.code = emnapiString.UTF8ToString(code, -1)
 
     envObject.tryCatch.setError(error)
     return envObject.clearLastError()
@@ -109,7 +109,13 @@ function napi_create_error (env: napi_env, code: napi_value, msg: napi_value, re
   }
 
   const error = new Error(msgValue)
-  $INLINE_SET_ERROR_CODE!(envObject, error, code, 0)
+  if (code) {
+    const codeValue = emnapiCtx.handleStore.get(code)!.value
+    if (typeof codeValue !== 'string') {
+      return envObject.setLastError(napi_status.napi_string_expected)
+    }
+    (error as any).code = codeValue
+  }
 
   $from64('result')
 
@@ -129,7 +135,13 @@ function napi_create_type_error (env: napi_env, code: napi_value, msg: napi_valu
     return envObject.setLastError(napi_status.napi_string_expected)
   }
   const error = new TypeError(msgValue)
-  $INLINE_SET_ERROR_CODE!(envObject, error, code, 0)
+  if (code) {
+    const codeValue = emnapiCtx.handleStore.get(code)!.value
+    if (typeof codeValue !== 'string') {
+      return envObject.setLastError(napi_status.napi_string_expected)
+    }
+    (error as any).code = codeValue
+  }
 
   $from64('result')
 
@@ -149,7 +161,13 @@ function napi_create_range_error (env: napi_env, code: napi_value, msg: napi_val
     return envObject.setLastError(napi_status.napi_string_expected)
   }
   const error = new RangeError(msgValue)
-  $INLINE_SET_ERROR_CODE!(envObject, error, code, 0)
+  if (code) {
+    const codeValue = emnapiCtx.handleStore.get(code)!.value
+    if (typeof codeValue !== 'string') {
+      return envObject.setLastError(napi_status.napi_string_expected)
+    }
+    (error as any).code = codeValue
+  }
   $from64('result')
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -168,7 +186,13 @@ function node_api_create_syntax_error (env: napi_env, code: napi_value, msg: nap
     return envObject.setLastError(napi_status.napi_string_expected)
   }
   const error = new SyntaxError(msgValue)
-  $INLINE_SET_ERROR_CODE!(envObject, error, code, 0)
+  if (code) {
+    const codeValue = emnapiCtx.handleStore.get(code)!.value
+    if (typeof codeValue !== 'string') {
+      return envObject.setLastError(napi_status.napi_string_expected)
+    }
+    (error as any).code = codeValue
+  }
   $from64('result')
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars

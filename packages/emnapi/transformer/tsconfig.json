@@ -18,6 +18,7 @@
     "outDir": "out"
   },
   "include": [
-    "./src/**/*.ts"
+    "./src/**/*.ts",
+    "../../runtime/src/typings/*.d.ts"
   ]
 }

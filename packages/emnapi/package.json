@@ -11,9 +11,6 @@
       "optional": true
     }
   },
-  "devDependencies": {
-    "ts-macros": "2.0.1"
-  },
   "scripts": {
     "build": "node ./script/build.js"
   },
