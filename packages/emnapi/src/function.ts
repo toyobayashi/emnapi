@@ -1,9 +1,8 @@
-// @ts-expect-error
 function napi_create_function (env: napi_env, utf8name: Pointer<const_char>, length: size_t, cb: napi_callback, data: void_p, result: Pointer<napi_value>): napi_status {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let value: number
 
-  $PREAMBLE!(env, (envObject) => {
+  return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, result)
     $CHECK_ARG!(envObject, cb)
 
@@ -74,13 +73,12 @@ function napi_call_function (
   argc: size_t,
   argv: Const<Pointer<napi_value>>,
   result: Pointer<napi_value>
-// @ts-expect-error
 ): napi_status {
   let i = 0
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let v: number
 
-  $PREAMBLE!(env, (envObject) => {
+  return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, recv)
 
     $from64('argc')
@@ -115,13 +113,12 @@ function napi_new_instance (
   argc: size_t,
   argv: Pointer<napi_value>,
   result: Pointer<napi_value>
-// @ts-expect-error
 ): napi_status {
   let i: number
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let v: number
 
-  $PREAMBLE!(env, (envObject) => {
+  return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, constructor)
     $from64('argc')
     $from64('argv')

@@ -41,12 +41,11 @@ function napi_typeof (env: napi_env, value: napi_value, result: Pointer<napi_val
   return envObject.clearLastError()
 }
 
-// @ts-expect-error
 function napi_coerce_to_bool (env: napi_env, value: napi_value, result: Pointer<napi_value>): napi_status {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let v: number
 
-  $PREAMBLE!(env, (envObject) => {
+  return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, value)
     $CHECK_ARG!(envObject, result)
     const handle = emnapiCtx.handleStore.get(value)!
@@ -58,12 +57,11 @@ function napi_coerce_to_bool (env: napi_env, value: napi_value, result: Pointer<
   })
 }
 
-// @ts-expect-error
 function napi_coerce_to_number (env: napi_env, value: napi_value, result: Pointer<napi_value>): napi_status {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let v: number
 
-  $PREAMBLE!(env, (envObject) => {
+  return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, value)
     $CHECK_ARG!(envObject, result)
     const handle = emnapiCtx.handleStore.get(value)!
@@ -79,12 +77,11 @@ function napi_coerce_to_number (env: napi_env, value: napi_value, result: Pointe
   })
 }
 
-// @ts-expect-error
 function napi_coerce_to_object (env: napi_env, value: napi_value, result: Pointer<napi_value>): napi_status {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let v: number
 
-  $PREAMBLE!(env, (envObject) => {
+  return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, value)
     $CHECK_ARG!(envObject, result)
     const handle = emnapiCtx.handleStore.get(value)!
@@ -100,12 +97,11 @@ function napi_coerce_to_object (env: napi_env, value: napi_value, result: Pointe
   })
 }
 
-// @ts-expect-error
 function napi_coerce_to_string (env: napi_env, value: napi_value, result: Pointer<napi_value>): napi_status {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let v: number
 
-  $PREAMBLE!(env, (envObject) => {
+  return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, value)
     $CHECK_ARG!(envObject, result)
     const handle = emnapiCtx.handleStore.get(value)!
@@ -121,12 +117,11 @@ function napi_coerce_to_string (env: napi_env, value: napi_value, result: Pointe
   })
 }
 
-// @ts-expect-error
 function napi_instanceof (env: napi_env, object: napi_value, constructor: napi_value, result: Pointer<bool>): napi_status {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let r: number
 
-  $PREAMBLE!(env, (envObject) => {
+  return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, object)
     $CHECK_ARG!(envObject, result)
     $CHECK_ARG!(envObject, constructor)
@@ -235,12 +230,11 @@ function napi_is_dataview (env: napi_env, value: napi_value, result: Pointer<boo
   return envObject.clearLastError()
 }
 
-// @ts-expect-error
 function napi_strict_equals (env: napi_env, lhs: napi_value, rhs: napi_value, result: Pointer<bool>): napi_status {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let r: number
 
-  $PREAMBLE!(env, (envObject) => {
+  return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, lhs)
     $CHECK_ARG!(envObject, rhs)
     $CHECK_ARG!(envObject, result)
@@ -276,9 +270,8 @@ function napi_detach_arraybuffer (env: napi_env, arraybuffer: napi_value): napi_
   return envObject.clearLastError()
 }
 
-// @ts-expect-error
 function napi_is_detached_arraybuffer (env: napi_env, arraybuffer: napi_value, result: Pointer<bool>): napi_status {
-  $PREAMBLE!(env, (envObject) => {
+  return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, arraybuffer)
     $CHECK_ARG!(envObject, result)
     const h = emnapiCtx.handleStore.get(arraybuffer)!

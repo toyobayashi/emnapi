@@ -198,12 +198,11 @@ function napi_get_dataview_info (
   return envObject.clearLastError()
 }
 
-// @ts-expect-error
 function napi_get_date_value (env: napi_env, value: napi_value, result: Pointer<double>): napi_status {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let v: number
 
-  $PREAMBLE!(env, (envObject) => {
+  return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, value)
     $CHECK_ARG!(envObject, result)
     const handle = emnapiCtx.handleStore.get(value)!

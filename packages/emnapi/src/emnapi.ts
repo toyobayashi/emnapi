@@ -6,12 +6,11 @@ function _emnapi_create_memory_view (
   finalize_cb: napi_finalize,
   finalize_hint: void_p,
   result: Pointer<napi_value>
-// @ts-expect-error
 ): napi_status {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let value: number
 
-  $PREAMBLE!(env, (envObject) => {
+  return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, result)
     $from64('byte_length')
     $from64('external_data')
@@ -167,12 +166,11 @@ function emnapiSyncMemory<T extends ArrayBuffer | ArrayBufferView> (
   throw new TypeError('emnapiSyncMemory expect ArrayBuffer or ArrayBufferView as first parameter')
 }
 
-// @ts-expect-error
 function emnapi_sync_memory (env: napi_env, js_to_wasm: bool, arraybuffer_or_view: Pointer<napi_value>, offset: size_t, len: size_t): napi_status {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let v: number
 
-  $PREAMBLE!(env, (envObject) => {
+  return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, arraybuffer_or_view)
 
     $from64('arraybuffer_or_view')
@@ -218,13 +216,12 @@ function emnapiGetMemoryAddress (arrayBufferOrView: ArrayBuffer | ArrayBufferVie
   }
 }
 
-// @ts-expect-error
 function emnapi_get_memory_address (env: napi_env, arraybuffer_or_view: napi_value, address: Pointer<void_pp>, ownership: Pointer<int>, runtime_allocated: Pointer<bool>): napi_status {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let p: number, runtimeAllocated: number, ownershipOut: number
   let info: ArrayBufferPointer
 
-  $PREAMBLE!(env, (envObject) => {
+  return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, arraybuffer_or_view)
     if (!address && !ownership && !runtime_allocated) {
       return envObject.setLastError(napi_status.napi_invalid_arg)

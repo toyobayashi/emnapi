@@ -7,12 +7,11 @@ function napi_define_class (
   property_count: size_t,
   properties: Const<Pointer<napi_property_descriptor>>,
   result: Pointer<napi_value>
-// @ts-expect-error
 ): napi_status {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let propPtr: number, valueHandleId: number, attributes: number
 
-  $PREAMBLE!(env, (envObject) => {
+  return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, result)
     $CHECK_ARG!(envObject, constructor)
     $from64('length')
@@ -75,18 +74,6 @@ function napi_define_class (
 }
 
 function napi_wrap (env: napi_env, js_object: napi_value, native_object: void_p, finalize_cb: napi_finalize, finalize_hint: void_p, result: Pointer<napi_ref>): napi_status {
-  if (!emnapiCtx.feature.supportFinalizer) {
-    if (finalize_cb) {
-      $PREAMBLE!(env, () => {
-        throw emnapiCtx.createNotSupportWeakRefError('napi_wrap', 'Parameter "finalize_cb" must be 0(NULL)')
-      })
-    }
-    if (result) {
-      $PREAMBLE!(env, () => {
-        throw emnapiCtx.createNotSupportWeakRefError('napi_wrap', 'Parameter "result" must be 0(NULL)')
-      })
-    }
-  }
   return emnapiWrap(env, js_object, native_object, finalize_cb, finalize_hint, result)
 }
 
@@ -98,9 +85,8 @@ function napi_remove_wrap (env: napi_env, js_object: napi_value, result: void_pp
   return emnapiUnwrap(env, js_object, result, UnwrapAction.RemoveWrap)
 }
 
-// @ts-expect-error
 function napi_type_tag_object (env: napi_env, object: napi_value, type_tag: Const<Pointer<unknown>>): napi_status {
-  $PREAMBLE!(env, (envObject) => {
+  return $PREAMBLE!(env, (envObject) => {
     if (!object) {
       return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_invalid_arg)
     }
@@ -127,12 +113,11 @@ function napi_type_tag_object (env: napi_env, object: napi_value, type_tag: Cons
   })
 }
 
-// @ts-expect-error
 function napi_check_object_type_tag (env: napi_env, object: napi_value, type_tag: Const<Pointer<unknown>>, result: Pointer<bool>): napi_status {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars, one-var
   let ret = true, i: number
 
-  $PREAMBLE!(env, (envObject) => {
+  return $PREAMBLE!(env, (envObject) => {
     if (!object) {
       return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_invalid_arg)
     }

@@ -5,12 +5,11 @@ function _napi_get_all_property_names (
   key_filter: napi_key_filter,
   key_conversion: napi_key_conversion,
   result: Pointer<napi_value>
-// @ts-expect-error
 ): napi_status {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let value: number
 
-  $PREAMBLE!(env, (envObject) => {
+  return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, result)
     $CHECK_ARG!(envObject, object)
     const h = emnapiCtx.handleStore.get(object)!
@@ -145,9 +144,8 @@ function napi_get_property_names (env: napi_env, object: napi_value, result: Poi
   )
 }
 
-// @ts-expect-error
 function napi_set_property (env: napi_env, object: napi_value, key: napi_value, value: napi_value): napi_status {
-  $PREAMBLE!(env, (envObject) => {
+  return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, key)
     $CHECK_ARG!(envObject, value)
     $CHECK_ARG!(envObject, object)
@@ -160,12 +158,11 @@ function napi_set_property (env: napi_env, object: napi_value, key: napi_value, 
   })
 }
 
-// @ts-expect-error
 function napi_has_property (env: napi_env, object: napi_value, key: napi_value, result: Pointer<bool>): napi_status {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let r: number
 
-  $PREAMBLE!(env, (envObject) => {
+  return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, key)
     $CHECK_ARG!(envObject, result)
     $CHECK_ARG!(envObject, object)
@@ -186,12 +183,11 @@ function napi_has_property (env: napi_env, object: napi_value, key: napi_value, 
   })
 }
 
-// @ts-expect-error
 function napi_get_property (env: napi_env, object: napi_value, key: napi_value, result: Pointer<napi_value>): napi_status {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let value: number
 
-  $PREAMBLE!(env, (envObject) => {
+  return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, key)
     $CHECK_ARG!(envObject, result)
     $CHECK_ARG!(envObject, object)
@@ -213,12 +209,11 @@ function napi_get_property (env: napi_env, object: napi_value, key: napi_value, 
   })
 }
 
-// @ts-expect-error
 function napi_delete_property (env: napi_env, object: napi_value, key: napi_value, result: Pointer<bool>): napi_status {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let r: boolean
 
-  $PREAMBLE!(env, (envObject) => {
+  return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, key)
     $CHECK_ARG!(envObject, object)
     const h = emnapiCtx.handleStore.get(object)!
@@ -243,12 +238,11 @@ function napi_delete_property (env: napi_env, object: napi_value, key: napi_valu
   })
 }
 
-// @ts-expect-error
 function napi_has_own_property (env: napi_env, object: napi_value, key: napi_value, result: Pointer<bool>): napi_status {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let value: number, r: boolean
 
-  $PREAMBLE!(env, (envObject) => {
+  return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, key)
     $CHECK_ARG!(envObject, result)
     $CHECK_ARG!(envObject, object)
@@ -273,9 +267,8 @@ function napi_has_own_property (env: napi_env, object: napi_value, key: napi_val
   })
 }
 
-// @ts-expect-error
 function napi_set_named_property (env: napi_env, object: napi_value, cname: const_char_p, value: napi_value): napi_status {
-  $PREAMBLE!(env, (envObject) => {
+  return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, value)
     $CHECK_ARG!(envObject, object)
     const h = emnapiCtx.handleStore.get(object)!
@@ -291,12 +284,11 @@ function napi_set_named_property (env: napi_env, object: napi_value, cname: cons
   })
 }
 
-// @ts-expect-error
 function napi_has_named_property (env: napi_env, object: napi_value, utf8name: const_char_p, result: Pointer<bool>): napi_status {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let r: boolean
 
-  $PREAMBLE!(env, (envObject) => {
+  return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, result)
     $CHECK_ARG!(envObject, object)
     if (!utf8name) {
@@ -321,12 +313,11 @@ function napi_has_named_property (env: napi_env, object: napi_value, utf8name: c
   })
 }
 
-// @ts-expect-error
 function napi_get_named_property (env: napi_env, object: napi_value, utf8name: const_char_p, result: Pointer<napi_value>): napi_status {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let value: number
 
-  $PREAMBLE!(env, (envObject) => {
+  return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, result)
     $CHECK_ARG!(envObject, object)
     if (!utf8name) {
@@ -352,9 +343,8 @@ function napi_get_named_property (env: napi_env, object: napi_value, utf8name: c
   })
 }
 
-// @ts-expect-error
 function napi_set_element (env: napi_env, object: napi_value, index: uint32_t, value: napi_value): napi_status {
-  $PREAMBLE!(env, (envObject) => {
+  return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, value)
     $CHECK_ARG!(envObject, object)
     const h = emnapiCtx.handleStore.get(object)!
@@ -366,12 +356,11 @@ function napi_set_element (env: napi_env, object: napi_value, index: uint32_t, v
   })
 }
 
-// @ts-expect-error
 function napi_has_element (env: napi_env, object: napi_value, index: uint32_t, result: Pointer<bool>): napi_status {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let r: number
 
-  $PREAMBLE!(env, (envObject) => {
+  return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, result)
     $CHECK_ARG!(envObject, object)
     const h = emnapiCtx.handleStore.get(object)!
@@ -391,12 +380,11 @@ function napi_has_element (env: napi_env, object: napi_value, index: uint32_t, r
   })
 }
 
-// @ts-expect-error
 function napi_get_element (env: napi_env, object: napi_value, index: uint32_t, result: Pointer<napi_value>): napi_status {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let value: number
 
-  $PREAMBLE!(env, (envObject) => {
+  return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, result)
     $CHECK_ARG!(envObject, object)
     const h = emnapiCtx.handleStore.get(object)!
@@ -417,12 +405,11 @@ function napi_get_element (env: napi_env, object: napi_value, index: uint32_t, r
   })
 }
 
-// @ts-expect-error
 function napi_delete_element (env: napi_env, object: napi_value, index: uint32_t, result: Pointer<bool>): napi_status {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let r: boolean
 
-  $PREAMBLE!(env, (envObject) => {
+  return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, object)
     const h = emnapiCtx.handleStore.get(object)!
     if (!(h.isObject() || h.isFunction())) {
@@ -450,12 +437,11 @@ function napi_define_properties (
   object: napi_value,
   property_count: size_t,
   properties: Const<Pointer<napi_property_descriptor>>
-// @ts-expect-error
 ): napi_status {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let propPtr: number, attributes: number
 
-  $PREAMBLE!(env, (envObject) => {
+  return $PREAMBLE!(env, (envObject) => {
     $from64('properties')
     $from64('property_count')
 
@@ -503,9 +489,8 @@ function napi_define_properties (
   })
 }
 
-// @ts-expect-error
 function napi_object_freeze (env: napi_env, object: napi_value): napi_status {
-  $PREAMBLE!(env, (envObject) => {
+  return $PREAMBLE!(env, (envObject) => {
     if (!object) return envObject.setLastError(napi_status.napi_invalid_arg)
     const h = emnapiCtx.handleStore.get(object)!
     const maybeObject = h.value
@@ -517,9 +502,8 @@ function napi_object_freeze (env: napi_env, object: napi_value): napi_status {
   })
 }
 
-// @ts-expect-error
 function napi_object_seal (env: napi_env, object: napi_value): napi_status {
-  $PREAMBLE!(env, (envObject) => {
+  return $PREAMBLE!(env, (envObject) => {
     if (!object) return envObject.setLastError(napi_status.napi_invalid_arg)
     const h = emnapiCtx.handleStore.get(object)!
     const maybeObject = h.value

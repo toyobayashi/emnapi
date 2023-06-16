@@ -37,12 +37,11 @@ function emnapiCreateArrayBuffer (byte_length: size_t, data: void_pp): ArrayBuff
   return arrayBuffer
 }
 
-// @ts-expect-error
 function napi_create_arraybuffer (env: napi_env, byte_length: size_t, data: void_pp, result: Pointer<napi_value>): napi_status {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let value: number
 
-  $PREAMBLE!(env, (envObject) => {
+  return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, result)
     $from64('result')
     const arrayBuffer = emnapiCreateArrayBuffer(byte_length, data)
@@ -52,12 +51,11 @@ function napi_create_arraybuffer (env: napi_env, byte_length: size_t, data: void
   })
 }
 
-// @ts-expect-error
 function napi_create_date (env: napi_env, time: double, result: Pointer<napi_value>): napi_status {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let value: number
 
-  $PREAMBLE!(env, (envObject) => {
+  return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, result)
     $from64('result')
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -67,12 +65,11 @@ function napi_create_date (env: napi_env, time: double, result: Pointer<napi_val
   })
 }
 
-// @ts-expect-error
 function napi_create_external (env: napi_env, data: void_p, finalize_cb: napi_finalize, finalize_hint: void_p, result: Pointer<napi_value>): napi_status {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let value: number
 
-  $PREAMBLE!(env, (envObject) => {
+  return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, result)
     if (!emnapiCtx.feature.supportFinalizer && finalize_cb) {
       throw emnapiCtx.createNotSupportWeakRefError('napi_create_external', 'Parameter "finalize_cb" must be 0(NULL)')
@@ -95,12 +92,11 @@ function napi_create_external_arraybuffer (
   finalize_cb: napi_finalize,
   finalize_hint: void_p,
   result: Pointer<napi_value>
-// @ts-expect-error
 ): napi_status {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let value: number
 
-  $PREAMBLE!(env, (envObject) => {
+  return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, result)
     $from64('byte_length')
     $from64('external_data')
@@ -192,12 +188,11 @@ function napi_create_typedarray (
   arraybuffer: napi_value,
   byte_offset: size_t,
   result: Pointer<napi_value>
-// @ts-expect-error
 ): napi_status {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let value: number
 
-  $PREAMBLE!(env, (envObject) => {
+  return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, arraybuffer)
     $CHECK_ARG!(envObject, result)
 
@@ -283,12 +278,11 @@ function napi_create_buffer (
   size: size_t,
   data: Pointer<Pointer<void>>,
   result: Pointer<napi_value>
-// @ts-expect-error
 ): napi_status {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let value: number, pointer: number
 
-  $PREAMBLE!(env, (envObject) => {
+  return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, result)
 
     const Buffer = emnapiCtx.feature.Buffer
@@ -335,12 +329,11 @@ function napi_create_buffer_copy (
   data: Pointer<void>,
   result_data: Pointer<Pointer<void>>,
   result: Pointer<napi_value>
-// @ts-expect-error
 ): napi_status {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let value: number
 
-  $PREAMBLE!(env, (envObject) => {
+  return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, result)
     const Buffer = emnapiCtx.feature.Buffer!
     if (!Buffer) {
@@ -383,12 +376,11 @@ function napi_create_dataview (
   arraybuffer: napi_value,
   byte_offset: size_t,
   result: Pointer<napi_value>
-// @ts-expect-error
 ): napi_status {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let value: number
 
-  $PREAMBLE!(env, (envObject) => {
+  return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, arraybuffer)
     $CHECK_ARG!(envObject, result)
     $from64('byte_length')

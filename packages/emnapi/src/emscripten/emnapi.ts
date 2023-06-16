@@ -1,9 +1,8 @@
-// @ts-expect-error
 function emnapi_get_module_object (env: napi_env, result: Pointer<napi_value>): napi_status {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let value: number
 
-  $PREAMBLE!(env, (envObject) => {
+  return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, result)
     $from64('result')
 
@@ -14,12 +13,11 @@ function emnapi_get_module_object (env: napi_env, result: Pointer<napi_value>): 
   })
 }
 
-// @ts-expect-error
 function emnapi_get_module_property (env: napi_env, utf8name: const_char_p, result: Pointer<napi_value>): napi_status {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let value: number
 
-  $PREAMBLE!(env, (envObject) => {
+  return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, utf8name)
     $CHECK_ARG!(envObject, result)
     $from64('utf8name')
