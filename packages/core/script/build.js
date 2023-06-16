@@ -3,7 +3,7 @@ const fs = require('fs-extra')
 const rollup = require('rollup')
 const rollupNodeResolve = require('@rollup/plugin-node-resolve').default
 const rollupReplace = require('@rollup/plugin-replace').default
-const rollupTerser = require('rollup-plugin-terser').terser
+const rollupTerser = require('@rollup/plugin-terser').default
 const dist = path.join(__dirname, '../dist')
 const { compile } = require('@tybys/tsapi')
 
