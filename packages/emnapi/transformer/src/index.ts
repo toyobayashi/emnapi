@@ -28,7 +28,7 @@ function isEmscriptenMacro (text: string): boolean {
   return text.length > 1 && text.charAt(0) === '$' && text.charAt(1) !== '$'
 }
 
-function expandFrom64 (factory: NodeFactory, defines: Record<string, any>, node: ExpressionStatement): Statement {
+function expandFrom64 (factory: NodeFactory, defines: Record<string, any>, node: ExpressionStatement): Statement | undefined {
   if (defines.MEMORY64) {
     const varName = ((node.expression as CallExpression).arguments[0] as StringLiteral).text
     if (!varName) return node
@@ -42,7 +42,7 @@ function expandFrom64 (factory: NodeFactory, defines: Record<string, any>, node:
       )
     ))
   }
-  return factory.createEmptyStatement()
+  return undefined
 }
 
 function expandTo64 (factory: NodeFactory, defines: Record<string, any>, node: CallExpression): Expression {
@@ -139,7 +139,7 @@ class Transform {
     this.visitor = this.visitor.bind(this)
   }
 
-  visitor (node: Node): VisitResult<Node> {
+  visitor (node: Node): VisitResult<Node | undefined> {
     if (ts.isFunctionDeclaration(node) || ts.isFunctionExpression(node) || ts.isMethodDeclaration(node)) {
       this.functionDeclarations.push(node)
       const result = ts.visitEachChild(node, this.visitor, this.ctx)

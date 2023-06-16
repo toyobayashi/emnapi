@@ -134,13 +134,12 @@ function napi_close_callback_scope (env: napi_env, scope: number): napi_status {
   throw new Error('napi_close_callback_scope has not been implemented yet')
 }
 
-// @ts-expect-error
 function napi_make_callback (env: napi_env, async_context: Pointer<int64_t>, recv: napi_value, func: napi_value, argc: size_t, argv: Pointer<napi_value>, result: Pointer<napi_value>): napi_status {
   let i = 0
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let v: number
 
-  $PREAMBLE!(env, (envObject) => {
+  return $PREAMBLE!(env, (envObject) => {
     if (!emnapiNodeBinding) {
       return envObject.setLastError(napi_status.napi_generic_failure)
     }

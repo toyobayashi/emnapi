@@ -110,11 +110,18 @@ function emnapiGetHandle (js_object: napi_value): { status: napi_status; handle?
   return { status: napi_status.napi_ok, handle }
 }
 
-// @ts-expect-error
 function emnapiWrap (env: napi_env, js_object: napi_value, native_object: void_p, finalize_cb: napi_finalize, finalize_hint: void_p, result: Pointer<napi_ref>): napi_status {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let referenceId: number
-  $PREAMBLE!(env, (envObject) => {
+  return $PREAMBLE!(env, (envObject) => {
+    if (!emnapiCtx.feature.supportFinalizer) {
+      if (finalize_cb) {
+        throw emnapiCtx.createNotSupportWeakRefError('napi_wrap', 'Parameter "finalize_cb" must be 0(NULL)')
+      }
+      if (result) {
+        throw emnapiCtx.createNotSupportWeakRefError('napi_wrap', 'Parameter "result" must be 0(NULL)')
+      }
+    }
     $CHECK_ARG!(envObject, js_object)
 
     const handleResult = emnapiGetHandle(js_object)
@@ -143,11 +150,10 @@ function emnapiWrap (env: napi_env, js_object: napi_value, native_object: void_p
   })
 }
 
-// @ts-expect-error
 function emnapiUnwrap (env: napi_env, js_object: napi_value, result: void_pp, action: UnwrapAction): napi_status {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let data: number
-  $PREAMBLE!(env, (envObject) => {
+  return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, js_object)
     if (action === UnwrapAction.KeepWrap) {
       if (!result) return envObject.setLastError(napi_status.napi_invalid_arg)

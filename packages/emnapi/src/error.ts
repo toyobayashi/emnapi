@@ -18,18 +18,16 @@ function __emnapi_get_last_error_info (env: napi_env, error_code: Pointer<napi_s
   $makeSetValue('engine_reserved', 0, 'engineReserved', '*')
 }
 
-// @ts-expect-error
 function napi_throw (env: napi_env, error: napi_value): napi_status {
-  $PREAMBLE!(env, (envObject) => {
+  return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, error)
     envObject.tryCatch.setError(emnapiCtx.handleStore.get(error)!.value)
     return envObject.clearLastError()
   })
 }
 
-// @ts-expect-error
 function napi_throw_error (env: napi_env, code: const_char_p, msg: const_char_p): napi_status {
-  $PREAMBLE!(env, (envObject) => {
+  return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, msg)
     $from64('code')
     $from64('msg')
@@ -42,9 +40,8 @@ function napi_throw_error (env: napi_env, code: const_char_p, msg: const_char_p)
   })
 }
 
-// @ts-expect-error
 function napi_throw_type_error (env: napi_env, code: const_char_p, msg: const_char_p): napi_status {
-  $PREAMBLE!(env, (envObject) => {
+  return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, msg)
     $from64('code')
     $from64('msg')
@@ -57,9 +54,8 @@ function napi_throw_type_error (env: napi_env, code: const_char_p, msg: const_ch
   })
 }
 
-// @ts-expect-error
 function napi_throw_range_error (env: napi_env, code: const_char_p, msg: const_char_p): napi_status {
-  $PREAMBLE!(env, (envObject) => {
+  return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, msg)
     $from64('code')
     $from64('msg')
@@ -72,9 +68,8 @@ function napi_throw_range_error (env: napi_env, code: const_char_p, msg: const_c
   })
 }
 
-// @ts-expect-error
 function node_api_throw_syntax_error (env: napi_env, code: const_char_p, msg: const_char_p): napi_status {
-  $PREAMBLE!(env, (envObject) => {
+  return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, msg)
     $from64('code')
     $from64('msg')
@@ -235,9 +230,8 @@ function napi_fatal_error (location: const_char_p, location_len: size_t, message
   }
 }
 
-// @ts-expect-error
 function napi_fatal_exception (env: napi_env, err: napi_value): napi_status {
-  $PREAMBLE!(env, (envObject) => {
+  return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, err)
     const error = envObject.ctx.handleStore.get(err)!
     try {

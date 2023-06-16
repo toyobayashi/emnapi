@@ -1,9 +1,9 @@
-// @ts-expect-error
+
 function napi_create_promise (env: napi_env, deferred: Pointer<napi_deferred>, promise: Pointer<napi_value>): napi_status {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let deferredObjectId: number, value: number
 
-  $PREAMBLE!(env, (envObject) => {
+  return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, deferred)
     $CHECK_ARG!(envObject, promise)
 
@@ -22,9 +22,8 @@ function napi_create_promise (env: napi_env, deferred: Pointer<napi_deferred>, p
   })
 }
 
-// @ts-expect-error
 function napi_resolve_deferred (env: napi_env, deferred: napi_deferred, resolution: napi_value): napi_status {
-  $PREAMBLE!(env, (envObject) => {
+  return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, deferred)
     $CHECK_ARG!(envObject, resolution)
     const deferredObject = emnapiCtx.deferredStore.get(deferred)!
@@ -33,9 +32,8 @@ function napi_resolve_deferred (env: napi_env, deferred: napi_deferred, resoluti
   })
 }
 
-// @ts-expect-error
 function napi_reject_deferred (env: napi_env, deferred: napi_deferred, resolution: napi_value): napi_status {
-  $PREAMBLE!(env, (envObject) => {
+  return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, deferred)
     $CHECK_ARG!(envObject, resolution)
     const deferredObject = emnapiCtx.deferredStore.get(deferred)!

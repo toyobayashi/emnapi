@@ -60,195 +60,213 @@ class Transform {
     this.visitor = this.visitor.bind(this)
   }
 
+  expandCheckEnv (factory: ts.NodeFactory, args: ts.NodeArray<ts.Expression>): ts.IfStatement {
+    if (!ts.isIdentifier(args[0])) throw new Error('$CHECK_ENV!() the first argument is not identifier')
+    return factory.createIfStatement(
+      factory.createPrefixUnaryExpression(
+        ts.SyntaxKind.ExclamationToken,
+        factory.createIdentifier(args[0].text)
+      ),
+      factory.createReturnStatement(
+        ts.addSyntheticTrailingComment(factory.createNumericLiteral(String(napi_status.napi_invalid_arg)), ts.SyntaxKind.MultiLineCommentTrivia, ' napi_status.napi_invalid_arg ')
+      ),
+      undefined
+    )
+  }
+
+  expandCheckArg (factory: ts.NodeFactory, args: ts.NodeArray<ts.Expression>): ts.IfStatement {
+    if (!ts.isIdentifier(args[0])) throw new Error('$CHECK_ARG!() the first argument is not identifier')
+    if (!ts.isIdentifier(args[1])) throw new Error('$CHECK_ARG!() the second argument is not identifier')
+    return factory.createIfStatement(
+      factory.createPrefixUnaryExpression(
+        ts.SyntaxKind.ExclamationToken,
+        factory.createIdentifier(args[1].text)
+      ),
+      factory.createReturnStatement(factory.createCallExpression(
+        factory.createPropertyAccessExpression(
+          factory.createIdentifier(args[0].text),
+          factory.createIdentifier('setLastError')
+        ),
+        undefined,
+        [ts.addSyntheticTrailingComment(factory.createNumericLiteral(String(napi_status.napi_invalid_arg)), ts.SyntaxKind.MultiLineCommentTrivia, ' napi_status.napi_invalid_arg ')]
+      )),
+      undefined
+    )
+  }
+
+  expandPreamble (factory: ts.NodeFactory, args: ts.NodeArray<ts.Expression>): ts.Statement[] {
+    if (!ts.isIdentifier(args[0])) throw new Error('$PREAMBLE!() the first argument is not identifier')
+    if (!ts.isArrowFunction(args[1])) throw new Error('$PREAMBLE!() the second argument is not arrow function')
+    const param0 = args[1].parameters[0]?.name.getText() ?? 'envObject'
+
+    return [
+      factory.createIfStatement(
+        factory.createPrefixUnaryExpression(
+          ts.SyntaxKind.ExclamationToken,
+          factory.createIdentifier(args[0].text)
+        ),
+        factory.createReturnStatement(ts.addSyntheticTrailingComment(factory.createNumericLiteral(String(napi_status.napi_invalid_arg)), ts.SyntaxKind.MultiLineCommentTrivia, ' napi_status.napi_invalid_arg ')),
+        undefined
+      ),
+      factory.createVariableStatement(
+        undefined,
+        factory.createVariableDeclarationList(
+          [factory.createVariableDeclaration(
+            factory.createIdentifier(param0),
+            undefined,
+            undefined,
+            factory.createNonNullExpression(factory.createCallExpression(
+              factory.createPropertyAccessExpression(
+                factory.createPropertyAccessExpression(
+                  factory.createIdentifier('emnapiCtx'),
+                  factory.createIdentifier('envStore')
+                ),
+                factory.createIdentifier('get')
+              ),
+              undefined,
+              [factory.createIdentifier(args[0].text)]
+            ))
+          )],
+          ts.NodeFlags.Const
+        )
+      ),
+      factory.createIfStatement(
+        factory.createCallExpression(
+          factory.createPropertyAccessExpression(
+            factory.createPropertyAccessExpression(
+              factory.createIdentifier(param0),
+              factory.createIdentifier('tryCatch')
+            ),
+            factory.createIdentifier('hasCaught')
+          ),
+          undefined,
+          []
+        ),
+        factory.createReturnStatement(factory.createCallExpression(
+          factory.createPropertyAccessExpression(
+            factory.createIdentifier(param0),
+            factory.createIdentifier('setLastError')
+          ),
+          undefined,
+          [
+            ts.addSyntheticTrailingComment(factory.createNumericLiteral(String(napi_status.napi_pending_exception)), ts.SyntaxKind.MultiLineCommentTrivia, ' napi_status.napi_pending_exception ')
+          ]
+        )),
+        undefined
+      ),
+      factory.createIfStatement(
+        factory.createPrefixUnaryExpression(
+          ts.SyntaxKind.ExclamationToken,
+          factory.createCallExpression(
+            factory.createPropertyAccessExpression(
+              factory.createIdentifier(param0),
+              factory.createIdentifier('canCallIntoJs')
+            ),
+            undefined,
+            []
+          )
+        ),
+        factory.createBlock(
+          [factory.createReturnStatement(factory.createCallExpression(
+            factory.createPropertyAccessExpression(
+              factory.createIdentifier(param0),
+              factory.createIdentifier('setLastError')
+            ),
+            undefined,
+            [factory.createConditionalExpression(
+              factory.createBinaryExpression(
+                factory.createPropertyAccessExpression(
+                  factory.createIdentifier(param0),
+                  factory.createIdentifier('moduleApiVersion')
+                ),
+                factory.createToken(ts.SyntaxKind.EqualsEqualsEqualsToken),
+                ts.addSyntheticTrailingComment(factory.createNumericLiteral(String(Version.NAPI_VERSION_EXPERIMENTAL)), ts.SyntaxKind.MultiLineCommentTrivia, ' Version.NAPI_VERSION_EXPERIMENTAL ')
+              ),
+              factory.createToken(ts.SyntaxKind.QuestionToken),
+              ts.addSyntheticTrailingComment(factory.createNumericLiteral(String(napi_status.napi_cannot_run_js)), ts.SyntaxKind.MultiLineCommentTrivia, ' napi_status.napi_cannot_run_js '),
+              factory.createToken(ts.SyntaxKind.ColonToken),
+              ts.addSyntheticTrailingComment(factory.createNumericLiteral(String(napi_status.napi_pending_exception)), ts.SyntaxKind.MultiLineCommentTrivia, ' napi_status.napi_pending_exception ')
+            )]
+          ))],
+          true
+        ),
+        undefined
+      ),
+      factory.createExpressionStatement(factory.createCallExpression(
+        factory.createPropertyAccessExpression(
+          factory.createIdentifier(param0),
+          factory.createIdentifier('clearLastError')
+        ),
+        undefined,
+        []
+      )),
+      factory.createTryStatement(
+        factory.createBlock(
+          [...ts.visitEachChild(args[1].body as ts.Block, this.visitor, this.ctx).statements],
+          true
+        ),
+        factory.createCatchClause(
+          factory.createVariableDeclaration(
+            factory.createIdentifier('err'),
+            undefined,
+            undefined,
+            undefined
+          ),
+          factory.createBlock(
+            [
+              factory.createExpressionStatement(factory.createCallExpression(
+                factory.createPropertyAccessExpression(
+                  factory.createPropertyAccessExpression(
+                    factory.createIdentifier(param0),
+                    factory.createIdentifier('tryCatch')
+                  ),
+                  factory.createIdentifier('setError')
+                ),
+                undefined,
+                [factory.createIdentifier('err')]
+              )),
+              factory.createReturnStatement(factory.createCallExpression(
+                factory.createPropertyAccessExpression(
+                  factory.createIdentifier(param0),
+                  factory.createIdentifier('setLastError')
+                ),
+                undefined,
+                [
+                  ts.addSyntheticTrailingComment(factory.createNumericLiteral(String(napi_status.napi_pending_exception)), ts.SyntaxKind.MultiLineCommentTrivia, ' napi_status.napi_pending_exception ')
+                ]
+              ))
+            ],
+            true
+          )
+        ),
+        undefined
+      )
+    ]
+  }
+
   visitor (n: Node): VisitResult<Node> {
     if (ts.isExpressionStatement(n) && isMacroCall(n.expression)) {
       const node = n.expression
       const macroName = ((node.expression as NonNullExpression).expression as Identifier).text
       const factory = this.ctx.factory
       if (macroName === '$CHECK_ENV') {
-        if (!ts.isIdentifier(node.arguments[0])) throw new Error('$CHECK_ENV!() the first argument is not identifier')
-        return factory.createIfStatement(
-          factory.createBinaryExpression(
-            factory.createIdentifier(node.arguments[0].text),
-            factory.createToken(ts.SyntaxKind.EqualsEqualsToken),
-            factory.createNumericLiteral('0')
-          ),
-          factory.createReturnStatement(
-            ts.addSyntheticTrailingComment(factory.createNumericLiteral(String(napi_status.napi_invalid_arg)), ts.SyntaxKind.MultiLineCommentTrivia, ' napi_status.napi_invalid_arg ')
-          ),
-          undefined
-        )
+        return this.expandCheckEnv(factory, node.arguments)
       }
       if (macroName === '$CHECK_ARG') {
-        if (!ts.isIdentifier(node.arguments[0])) throw new Error('$CHECK_ARG!() the first argument is not identifier')
-        if (!ts.isIdentifier(node.arguments[1])) throw new Error('$CHECK_ARG!() the second argument is not identifier')
-        return factory.createIfStatement(
-          factory.createBinaryExpression(
-            factory.createIdentifier(node.arguments[1].text),
-            factory.createToken(ts.SyntaxKind.EqualsEqualsToken),
-            factory.createNumericLiteral('0')
-          ),
-          factory.createReturnStatement(factory.createCallExpression(
-            factory.createPropertyAccessExpression(
-              factory.createIdentifier(node.arguments[0].text),
-              factory.createIdentifier('setLastError')
-            ),
-            undefined,
-            [ts.addSyntheticTrailingComment(factory.createNumericLiteral(String(napi_status.napi_invalid_arg)), ts.SyntaxKind.MultiLineCommentTrivia, ' napi_status.napi_invalid_arg ')]
-          )),
-          undefined
-        )
+        return this.expandCheckArg(factory, node.arguments)
       }
 
       if (macroName === '$PREAMBLE') {
-        if (!ts.isIdentifier(node.arguments[0])) throw new Error('$PREAMBLE!() the first argument is not identifier')
-        if (!ts.isArrowFunction(node.arguments[1])) throw new Error('$PREAMBLE!() the second argument is not arrow function')
-        const param0 = node.arguments[1].parameters[0]?.name.getText() ?? 'envObject'
+        return this.expandPreamble(factory, node.arguments)
+      }
+    }
 
-        return [
-          factory.createIfStatement(
-            factory.createBinaryExpression(
-              factory.createIdentifier(node.arguments[0].text),
-              factory.createToken(ts.SyntaxKind.EqualsEqualsToken),
-              factory.createNumericLiteral('0')
-            ),
-            factory.createReturnStatement(ts.addSyntheticTrailingComment(factory.createNumericLiteral(String(napi_status.napi_invalid_arg)), ts.SyntaxKind.MultiLineCommentTrivia, ' napi_status.napi_invalid_arg ')),
-            undefined
-          ),
-          factory.createVariableStatement(
-            undefined,
-            factory.createVariableDeclarationList(
-              [factory.createVariableDeclaration(
-                factory.createIdentifier(param0),
-                undefined,
-                undefined,
-                factory.createNonNullExpression(factory.createCallExpression(
-                  factory.createPropertyAccessExpression(
-                    factory.createPropertyAccessExpression(
-                      factory.createIdentifier('emnapiCtx'),
-                      factory.createIdentifier('envStore')
-                    ),
-                    factory.createIdentifier('get')
-                  ),
-                  undefined,
-                  [factory.createIdentifier(node.arguments[0].text)]
-                ))
-              )],
-              ts.NodeFlags.Const
-            )
-          ),
-          factory.createIfStatement(
-            factory.createCallExpression(
-              factory.createPropertyAccessExpression(
-                factory.createPropertyAccessExpression(
-                  factory.createIdentifier(param0),
-                  factory.createIdentifier('tryCatch')
-                ),
-                factory.createIdentifier('hasCaught')
-              ),
-              undefined,
-              []
-            ),
-            factory.createReturnStatement(factory.createCallExpression(
-              factory.createPropertyAccessExpression(
-                factory.createIdentifier(param0),
-                factory.createIdentifier('setLastError')
-              ),
-              undefined,
-              [
-                ts.addSyntheticTrailingComment(factory.createNumericLiteral(String(napi_status.napi_pending_exception)), ts.SyntaxKind.MultiLineCommentTrivia, ' napi_status.napi_pending_exception ')
-              ]
-            )),
-            undefined
-          ),
-          factory.createIfStatement(
-            factory.createPrefixUnaryExpression(
-              ts.SyntaxKind.ExclamationToken,
-              factory.createCallExpression(
-                factory.createPropertyAccessExpression(
-                  factory.createIdentifier(param0),
-                  factory.createIdentifier('canCallIntoJs')
-                ),
-                undefined,
-                []
-              )
-            ),
-            factory.createBlock(
-              [factory.createReturnStatement(factory.createCallExpression(
-                factory.createPropertyAccessExpression(
-                  factory.createIdentifier(param0),
-                  factory.createIdentifier('setLastError')
-                ),
-                undefined,
-                [factory.createConditionalExpression(
-                  factory.createBinaryExpression(
-                    factory.createPropertyAccessExpression(
-                      factory.createIdentifier(param0),
-                      factory.createIdentifier('moduleApiVersion')
-                    ),
-                    factory.createToken(ts.SyntaxKind.EqualsEqualsEqualsToken),
-                    ts.addSyntheticTrailingComment(factory.createNumericLiteral(String(Version.NAPI_VERSION_EXPERIMENTAL)), ts.SyntaxKind.MultiLineCommentTrivia, ' Version.NAPI_VERSION_EXPERIMENTAL ')
-                  ),
-                  factory.createToken(ts.SyntaxKind.QuestionToken),
-                  ts.addSyntheticTrailingComment(factory.createNumericLiteral(String(napi_status.napi_cannot_run_js)), ts.SyntaxKind.MultiLineCommentTrivia, ' napi_status.napi_cannot_run_js '),
-                  factory.createToken(ts.SyntaxKind.ColonToken),
-                  ts.addSyntheticTrailingComment(factory.createNumericLiteral(String(napi_status.napi_pending_exception)), ts.SyntaxKind.MultiLineCommentTrivia, ' napi_status.napi_pending_exception ')
-                )]
-              ))],
-              true
-            ),
-            undefined
-          ),
-          factory.createExpressionStatement(factory.createCallExpression(
-            factory.createPropertyAccessExpression(
-              factory.createIdentifier(param0),
-              factory.createIdentifier('clearLastError')
-            ),
-            undefined,
-            []
-          )),
-          factory.createTryStatement(
-            factory.createBlock(
-              [...ts.visitEachChild(node.arguments[1].body as ts.Block, this.visitor, this.ctx).statements],
-              true
-            ),
-            factory.createCatchClause(
-              factory.createVariableDeclaration(
-                factory.createIdentifier('err'),
-                undefined,
-                undefined,
-                undefined
-              ),
-              factory.createBlock(
-                [
-                  factory.createExpressionStatement(factory.createCallExpression(
-                    factory.createPropertyAccessExpression(
-                      factory.createPropertyAccessExpression(
-                        factory.createIdentifier(param0),
-                        factory.createIdentifier('tryCatch')
-                      ),
-                      factory.createIdentifier('setError')
-                    ),
-                    undefined,
-                    [factory.createIdentifier('err')]
-                  )),
-                  factory.createReturnStatement(factory.createCallExpression(
-                    factory.createPropertyAccessExpression(
-                      factory.createIdentifier(param0),
-                      factory.createIdentifier('setLastError')
-                    ),
-                    undefined,
-                    [
-                      ts.addSyntheticTrailingComment(factory.createNumericLiteral(String(napi_status.napi_pending_exception)), ts.SyntaxKind.MultiLineCommentTrivia, ' napi_status.napi_pending_exception ')
-                    ]
-                  ))
-                ],
-                true
-              )
-            ),
-            undefined
-          )
-        ]
+    if (ts.isReturnStatement(n) && n.expression && isMacroCall(n.expression)) {
+      const node = n.expression
+      const macroName = ((node.expression as NonNullExpression).expression as Identifier).text
+      const factory = this.ctx.factory
+      if (macroName === '$PREAMBLE') {
+        return this.expandPreamble(factory, node.arguments)
       }
     }
 
