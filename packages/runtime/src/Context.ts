@@ -15,7 +15,7 @@ import {
   _Buffer,
   _MessageChannel,
   version,
-  NAPI_VERSION,
+  NODE_API_MODULE_API_VERSION,
   NAPI_VERSION_EXPERIMENTAL,
   NODE_API_DEFAULT_MODULE_API_VERSION
 } from './util'
@@ -145,7 +145,7 @@ export class Context {
   getRuntimeVersions () {
     return {
       version,
-      NAPI_VERSION,
+      NODE_API_MODULE_API_VERSION,
       NAPI_VERSION_EXPERIMENTAL,
       NODE_API_DEFAULT_MODULE_API_VERSION
     }
