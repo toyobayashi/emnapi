@@ -24,6 +24,7 @@ import { NotSupportWeakRefError, NotSupportBufferError } from './errors'
 import { Reference } from './Reference'
 import { type IDeferrdValue, Deferred } from './Deferred'
 import { Store } from './Store'
+import { TrackedFinalizer } from './TrackedFinalizer'
 
 export type CleanupHookCallbackFunction = number | ((arg: number) => void)
 
@@ -192,6 +193,15 @@ export class Context {
     nodeBinding?: any
   ): Env {
     return newEnv(this, filename, moduleApiVersion, makeDynCall_vppp, makeDynCall_vp, abort, nodeBinding)
+  }
+
+  createTrackedFinalizer (
+    envObject: Env,
+    finalize_callback: napi_finalize,
+    finalize_data: void_p,
+    finalize_hint: void_p
+  ): TrackedFinalizer {
+    return TrackedFinalizer.create(envObject, finalize_callback, finalize_data, finalize_hint)
   }
 
   getCurrentScope (): HandleScope | null {

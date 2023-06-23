@@ -54,6 +54,8 @@ export class Env implements IStoreValue {
     engineReserved: 0 as Ptr
   }
 
+  public suspendCallIntoJs = false
+
   public constructor (
     public readonly ctx: Context,
     public moduleApiVersion: number,
@@ -66,7 +68,7 @@ export class Env implements IStoreValue {
 
   /** @virtual */
   public canCallIntoJs (): boolean {
-    return true
+    return !this.suspendCallIntoJs
   }
 
   public terminatedOrTerminating (): boolean {
@@ -137,6 +139,20 @@ export class Env implements IStoreValue {
       this.callIntoModule(() => { f(env, data, hint) })
     } finally {
       this.ctx.closeScope(this, scope)
+    }
+  }
+
+  public invokeFinalizerFromGC (finalizer: RefTracker): void {
+    if (this.moduleApiVersion !== NAPI_VERSION_EXPERIMENTAL) {
+      this.enqueueFinalizer(finalizer)
+    } else {
+      if (this.lastError.errorCode === napi_status.napi_ok && !this.tryCatch.hasCaught()) {
+        const savedSuspendCallIntoJs = this.suspendCallIntoJs
+        finalizer.finalize()
+        this.suspendCallIntoJs = savedSuspendCallIntoJs
+      } else {
+        this.enqueueFinalizer(finalizer)
+      }
     }
   }
 
@@ -224,7 +240,7 @@ export class NodeEnv extends Env {
   }
 
   public override canCallIntoJs (): boolean {
-    return this.ctx.canCallIntoJs()
+    return super.canCallIntoJs() && this.ctx.canCallIntoJs()
   }
 
   public triggerFatalException (err: any): void {
