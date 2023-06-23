@@ -292,6 +292,9 @@ add_test("buffer_finalizer" "./buffer_finalizer/binding.c" OFF)
 add_test("fatal_exception" "./fatal_exception/binding.c" OFF)
 add_test("cleanup_hook" "./cleanup_hook/binding.c" OFF)
 
+add_test("finalizer" "./finalizer/binding.c" OFF)
+target_compile_definitions("finalizer" PRIVATE "NAPI_EXPERIMENTAL")
+
 add_test("reference_obj_only" "./ref_by_node_api_version/binding.c" OFF)
 target_compile_definitions("reference_obj_only" PRIVATE "NAPI_VERSION=8")
 add_test("reference_all_types" "./ref_by_node_api_version/binding.c" OFF)
