@@ -148,6 +148,7 @@ export class Env implements IStoreValue {
     } else {
       if (this.lastError.errorCode === napi_status.napi_ok && !this.tryCatch.hasCaught()) {
         const savedSuspendCallIntoJs = this.suspendCallIntoJs
+        this.suspendCallIntoJs = true
         finalizer.finalize()
         this.suspendCallIntoJs = savedSuspendCallIntoJs
       } else {
