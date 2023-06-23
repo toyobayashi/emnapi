@@ -98,6 +98,11 @@ void uv_cond_wait(uv_cond_t* cond, uv_mutex_t* mutex) {
     abort();
 }
 
+void uv_cond_destroy(uv_cond_t* cond) {
+  if (pthread_cond_destroy(cond))
+    abort();
+}
+
 int uv_thread_create_ex(uv_thread_t* tid,
                         void* params,
                         void (*entry)(void *arg),

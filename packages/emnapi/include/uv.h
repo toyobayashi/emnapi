@@ -53,6 +53,7 @@ UV_EXTERN void uv_sem_wait(uv_sem_t* sem);
 UV_EXTERN int uv_cond_init(uv_cond_t* cond);
 UV_EXTERN void uv_cond_signal(uv_cond_t* cond);
 UV_EXTERN void uv_cond_wait(uv_cond_t* cond, uv_mutex_t* mutex);
+UV_EXTERN void uv_cond_destroy(uv_cond_t* cond);
 
 UV_EXTERN void uv_once(uv_once_t* guard, void (*callback)(void));
 
@@ -75,6 +76,7 @@ UV_EXTERN int uv_mutex_init(uv_mutex_t* mutex);
 UV_EXTERN void uv_mutex_destroy(uv_mutex_t* handle);
 UV_EXTERN void uv_mutex_lock(uv_mutex_t* handle);
 UV_EXTERN void uv_mutex_unlock(uv_mutex_t* handle);
+UV_EXTERN void uv_mutex_destroy(uv_mutex_t* cond);
 
 typedef void (*uv_thread_cb)(void* arg);
 
