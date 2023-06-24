@@ -40,6 +40,7 @@ struct uv_req_s {
   UV_REQ_FIELDS
 };
 
+UV_EXTERN void uv_library_shutdown(void);
 UV_EXTERN uv_loop_t* uv_default_loop(void);
 UV_EXTERN int uv_loop_init(uv_loop_t* loop);
 UV_EXTERN int uv_loop_close(uv_loop_t* loop);
@@ -53,6 +54,7 @@ UV_EXTERN void uv_sem_wait(uv_sem_t* sem);
 UV_EXTERN int uv_cond_init(uv_cond_t* cond);
 UV_EXTERN void uv_cond_signal(uv_cond_t* cond);
 UV_EXTERN void uv_cond_wait(uv_cond_t* cond, uv_mutex_t* mutex);
+UV_EXTERN void uv_cond_destroy(uv_cond_t* cond);
 
 UV_EXTERN void uv_once(uv_once_t* guard, void (*callback)(void));
 
@@ -75,6 +77,7 @@ UV_EXTERN int uv_mutex_init(uv_mutex_t* mutex);
 UV_EXTERN void uv_mutex_destroy(uv_mutex_t* handle);
 UV_EXTERN void uv_mutex_lock(uv_mutex_t* handle);
 UV_EXTERN void uv_mutex_unlock(uv_mutex_t* handle);
+UV_EXTERN void uv_mutex_destroy(uv_mutex_t* cond);
 
 typedef void (*uv_thread_cb)(void* arg);
 

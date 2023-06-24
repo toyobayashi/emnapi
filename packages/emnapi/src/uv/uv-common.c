@@ -48,4 +48,23 @@ int uv_loop_close(uv_loop_t* loop) {
   return 0;
 }
 
+#if defined(__GNUC__) && !defined(_WIN32)
+__attribute__((destructor))
+#endif
+void uv_library_shutdown(void) {
+  static int was_shutdown;
+
+  if (uv__exchange_int_relaxed(&was_shutdown, 1))
+    return;
+
+//   uv__process_title_cleanup();
+//   uv__signal_cleanup();
+// #ifdef __MVS__
+//   /* TODO(itodorov) - zos: revisit when Woz compiler is available. */
+//   uv__os390_cleanup();
+// #else
+  uv__threadpool_cleanup();
+// #endif
+}
+
 #endif

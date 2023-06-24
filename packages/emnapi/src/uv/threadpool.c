@@ -180,34 +180,34 @@ static void post(QUEUE* q, enum uv__work_kind kind) {
 }
 
 
-// #ifdef __MVS__
-// /* TODO(itodorov) - zos: revisit when Woz compiler is available. */
-// __attribute__((destructor))
-// #endif
-// void uv__threadpool_cleanup(void) {
-//   unsigned int i;
+#ifdef __MVS__
+/* TODO(itodorov) - zos: revisit when Woz compiler is available. */
+__attribute__((destructor))
+#endif
+void uv__threadpool_cleanup(void) {
+  unsigned int i;
 
-//   if (nthreads == 0)
-//     return;
+  if (nthreads == 0)
+    return;
 
-// #ifndef __MVS__
-//   /* TODO(gabylb) - zos: revisit when Woz compiler is available. */
-//   post(&exit_message, UV__WORK_CPU);
-// #endif
+#ifndef __MVS__
+  /* TODO(gabylb) - zos: revisit when Woz compiler is available. */
+  post(&exit_message, UV__WORK_CPU);
+#endif
 
-//   for (i = 0; i < nthreads; i++)
-//     if (uv_thread_join(threads + i))
-//       abort();
+  for (i = 0; i < nthreads; i++)
+    if (uv_thread_join(threads + i))
+      abort();
 
-//   if (threads != default_threads)
-//     free(threads);
+  if (threads != default_threads)
+    free(threads);
 
-//   uv_mutex_destroy(&mutex);
-//   uv_cond_destroy(&cond);
+  uv_mutex_destroy(&mutex);
+  uv_cond_destroy(&cond);
 
-//   threads = NULL;
-//   nthreads = 0;
-// }
+  threads = NULL;
+  nthreads = 0;
+}
 
 EMNAPI_EXTERN int _emnapi_async_work_pool_size();
 
