@@ -40,6 +40,7 @@ struct uv_req_s {
   UV_REQ_FIELDS
 };
 
+UV_EXTERN void uv_library_shutdown(void);
 UV_EXTERN uv_loop_t* uv_default_loop(void);
 UV_EXTERN int uv_loop_init(uv_loop_t* loop);
 UV_EXTERN int uv_loop_close(uv_loop_t* loop);

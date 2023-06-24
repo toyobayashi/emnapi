@@ -18,6 +18,9 @@
 #include <assert.h>
 #include "uv.h"
 #include "queue.h"
+#ifndef _MSC_VER
+# include <stdatomic.h>
+#endif
 
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
 // #define offsetof(s, m) __builtin_offsetof(s, m)
@@ -53,12 +56,16 @@
   }                                                                           \
   while (0)
 
+#define uv__exchange_int_relaxed(p, v)                                        \
+  atomic_exchange_explicit((_Atomic int*)(p), v, memory_order_relaxed)
+
 enum uv__work_kind {
   UV__WORK_CPU,
   UV__WORK_FAST_IO,
   UV__WORK_SLOW_IO
 };
 
+void uv__threadpool_cleanup(void);
 void uv__work_done(uv_async_t* handle);
 void uv__loop_close(uv_loop_t* loop);
 void uv__async_close(uv_async_t* handle);
