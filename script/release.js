@@ -41,9 +41,9 @@ async function main () {
 
   let runtimeNapiVersion
   try {
-    runtimeNapiVersion = require('@emnapi/runtime').NODE_API_SUPPORTED_VERSION_MAX
+    runtimeNapiVersion = require('@emnapi/runtime').NAPI_VERSION_EXPERIMENTAL
   } catch (_) {
-    throw new Error('Failed to get NODE_API_SUPPORTED_VERSION_MAX. Please run `npm install` and `npm run build` first.')
+    runtimeNapiVersion = 0x7fffffff
   }
 
   await spawn('cmake', [
