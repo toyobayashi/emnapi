@@ -39,12 +39,20 @@ async function main () {
     ? ['-G', 'Ninja']
     : (process.platform === 'win32' ? ['-G', 'MinGW Makefiles', '-DCMAKE_MAKE_PROGRAM=make'] : [])
 
+  let runtimeNapiVersion
+  try {
+    runtimeNapiVersion = require('@emnapi/runtime').NODE_API_SUPPORTED_VERSION_MAX
+  } catch (_) {
+    throw new Error('Failed to get NODE_API_SUPPORTED_VERSION_MAX. Please run `npm install` and `npm run build` first.')
+  }
+
   await spawn('cmake', [
     ...generatorOptions,
     '-DCMAKE_TOOLCHAIN_FILE=./cmake/wasm32.cmake',
     `-DLLVM_PREFIX=${LLVM_PATH}`,
     '-DCMAKE_BUILD_TYPE=Release',
     '-DCMAKE_VERBOSE_MAKEFILE=1',
+    `-DNAPI_VERSION=${runtimeNapiVersion}`,
     '-H.',
     '-Bbuild/wasm32'
   ], cwd)
@@ -67,6 +75,7 @@ async function main () {
     `-DWASI_SDK_PREFIX=${WASI_SDK_PATH}`,
     '-DCMAKE_BUILD_TYPE=Release',
     '-DCMAKE_VERBOSE_MAKEFILE=1',
+    `-DNAPI_VERSION=${runtimeNapiVersion}`,
     '-H.',
     '-Bbuild/wasm32-wasi'
   ], cwd)
@@ -97,6 +106,7 @@ async function main () {
       `-DWASI_SDK_PREFIX=${WASI_SDK_PATH}`,
       '-DCMAKE_BUILD_TYPE=Release',
       '-DCMAKE_VERBOSE_MAKEFILE=1',
+      `-DNAPI_VERSION=${runtimeNapiVersion}`,
       '-H.',
       '-Bbuild/wasm32-wasi-threads'
     ], cwd)
@@ -120,6 +130,7 @@ async function main () {
     '-DCMAKE_BUILD_TYPE=Release',
     '-DCMAKE_VERBOSE_MAKEFILE=1',
     '-DEMNAPI_INSTALL_SRC=1',
+    `-DNAPI_VERSION=${runtimeNapiVersion}`,
     '-H.',
     '-Bbuild/emscripten'
   ], cwd)
