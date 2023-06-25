@@ -48,7 +48,7 @@
     },
     {
       "name": "Emscripten",
-      "defines": ["${defines}", "__wasm__", "__EMSCRIPTEN_PTHREADS__", "NAPI_VERSION=8"],
+      "defines": ["${defines}", "__wasm__", "__EMSCRIPTEN_PTHREADS__", "NAPI_VERSION=2147483647"],
       "compilerPath": "${env:EMSDK}/upstream/emscripten/emcc",
       "intelliSenseMode": "linux-clang-x86",
       "cStandard": "c11",
@@ -57,7 +57,7 @@
     },
     {
       "name": "Win32 Emscripten",
-      "defines": ["${defines}", "__wasm__", "__EMSCRIPTEN_PTHREADS__", "NAPI_VERSION=8"],
+      "defines": ["${defines}", "__wasm__", "__EMSCRIPTEN_PTHREADS__", "NAPI_VERSION=2147483647"],
       "compilerPath": "${env:EMSDK}\\upstream\\emscripten\\emcc.bat",
       "intelliSenseMode": "linux-clang-x86",
       "cStandard": "c11",

@@ -19,8 +19,6 @@ if(MSVC AND CMAKE_JS_NODELIB_DEF AND CMAKE_JS_NODELIB_TARGET)
   execute_process(COMMAND ${CMAKE_AR} /def:${CMAKE_JS_NODELIB_DEF} /out:${CMAKE_JS_NODELIB_TARGET} ${CMAKE_STATIC_LINKER_FLAGS})
 endif()
 
-# add_compile_definitions("NAPI_VERSION=8")
-
 if(CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
   set(IS_EMSCRIPTEN ON)
 else()
@@ -212,7 +210,7 @@ function(add_naa_test NAME SOURCE_LIST DEFINES ENABLE_EXCEPTION)
     target_link_libraries(${NAME} PRIVATE ${CMAKE_JS_LIB})
   endif()
 
-  target_compile_definitions(${NAME} PRIVATE "NAPI_VERSION=8")
+  target_compile_definitions(${NAME} PRIVATE "NAPI_VERSION=9")
 
   set_target_properties(${NAME} PROPERTIES
     BUILD_RPATH "$ORIGIN")
