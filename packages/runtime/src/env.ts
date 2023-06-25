@@ -4,7 +4,7 @@ import type { IStoreValue } from './Store'
 import {
   TryCatch,
   _setImmediate,
-  NODE_API_MODULE_API_VERSION,
+  NODE_API_SUPPORTED_VERSION_MAX,
   NAPI_VERSION_EXPERIMENTAL,
   NODE_API_DEFAULT_MODULE_API_VERSION
 } from './util'
@@ -15,7 +15,7 @@ function throwNodeApiVersionError (moduleName: string, moduleApiVersion: number)
   const errorMessage = `${
     moduleName} requires Node-API version ${
       moduleApiVersion}, but this version of Node.js only supports version ${
-        NODE_API_MODULE_API_VERSION} add-ons.`
+        NODE_API_SUPPORTED_VERSION_MAX} add-ons.`
   throw new Error(errorMessage)
 }
 
@@ -314,7 +314,7 @@ export function newEnv (
   // Validate module_api_version.
   if (moduleApiVersion < NODE_API_DEFAULT_MODULE_API_VERSION) {
     moduleApiVersion = NODE_API_DEFAULT_MODULE_API_VERSION
-  } else if (moduleApiVersion > NODE_API_MODULE_API_VERSION && moduleApiVersion !== NAPI_VERSION_EXPERIMENTAL) {
+  } else if (moduleApiVersion > NODE_API_SUPPORTED_VERSION_MAX && moduleApiVersion !== NAPI_VERSION_EXPERIMENTAL) {
     throwNodeApiVersionError(filename, moduleApiVersion)
   }
   const env = new NodeEnv(ctx, filename, moduleApiVersion, makeDynCall_vppp, makeDynCall_vp, abort, nodeBinding)

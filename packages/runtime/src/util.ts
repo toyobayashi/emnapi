@@ -148,6 +148,6 @@ export const _Buffer: BufferCtor | undefined = typeof Buffer === 'function'
 // Versions defined in runtime
 declare const __VERSION__: string
 export const version = __VERSION__
-export const NODE_API_MODULE_API_VERSION = Version.NODE_API_MODULE_API_VERSION
+export const NODE_API_SUPPORTED_VERSION_MAX = Version.NODE_API_SUPPORTED_VERSION_MAX
 export const NAPI_VERSION_EXPERIMENTAL = Version.NAPI_VERSION_EXPERIMENTAL
 export const NODE_API_DEFAULT_MODULE_API_VERSION = Version.NODE_API_DEFAULT_MODULE_API_VERSION
