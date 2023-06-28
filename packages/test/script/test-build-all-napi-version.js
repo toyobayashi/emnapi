@@ -5,7 +5,7 @@ const { spawn } = require('../../../script/spawn.js')
 const { which } = require('../../../script/which.js')
 
 async function main () {
-  const testVersions = [1, 2, 3, 4, 5, 6, 7, 8]
+  const testVersions = [1, 2, 3, 4, 5, 6, 7, 8, 9, 2147483647]
   const cwd = path.join(__dirname, '../../..')
   let emcmake = process.platform === 'win32' ? 'emcmake.bat' : 'emcmake'
   if (process.env.EMSDK) {
