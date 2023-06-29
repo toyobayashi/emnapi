@@ -97,12 +97,14 @@ if(IS_WASM32)
     ${MALLOC_PUBLIC_SOURCES}
     "${CMAKE_CURRENT_SOURCE_DIR}/src/malloc/emmalloc/emmalloc.c"
   )
+  target_compile_options(${EMMALLOC_TARGET_NAME} PRIVATE "-fno-strict-aliasing")
   target_compile_definitions(${EMMALLOC_TARGET_NAME} PRIVATE "PAGESIZE=65536")
 
   add_library(${EMMALLOC_MT_TARGET_NAME} STATIC
     ${MALLOC_PUBLIC_SOURCES}
     "${CMAKE_CURRENT_SOURCE_DIR}/src/malloc/emmalloc/emmalloc.c"
   )
+  target_compile_options(${EMMALLOC_MT_TARGET_NAME} PRIVATE "-fno-strict-aliasing")
   target_compile_options(${EMMALLOC_MT_TARGET_NAME} PUBLIC "-matomics" "-mbulk-memory")
   target_compile_definitions(${EMMALLOC_MT_TARGET_NAME} PRIVATE "PAGESIZE=65536" "__EMSCRIPTEN_SHARED_MEMORY__=1")
 endif()
