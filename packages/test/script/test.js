@@ -15,6 +15,7 @@ const pthread = [
   'node-addon-api/**/*',
   'pool/**/*',
   'tsfn/**/*',
+  'rust/**/*',
   'async_cleanup_hook/**/*',
   'string/string-pthread.test.js'
 ]
@@ -24,7 +25,7 @@ if (process.env.EMNAPI_TEST_NATIVE) {
     ...ignore,
     'filename/**/*',
     'objwrap/objwrapref.test.js',
-    'rust/**/*',
+    // 'rust/**/*',
     '**/{emnapitest,node-addon-api}/**/*'
   ])]
 } else if (!process.env.EMNAPI_TEST_WASI_THREADS && (process.env.EMNAPI_TEST_WASI || process.env.EMNAPI_TEST_WASM32)) {
@@ -35,7 +36,7 @@ if (process.env.EMNAPI_TEST_NATIVE) {
 } else {
   ignore = [...new Set([
     ...ignore,
-    'rust/**/*'
+    // 'rust/**/*'
   ])]
 }
 
