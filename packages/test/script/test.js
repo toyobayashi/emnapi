@@ -9,13 +9,14 @@ const glob = require('glob')
 const cwd = path.join(__dirname, '..')
 const subdir = process.argv[2]
 
-let ignore = []
+let ignore = [
+  'rust/**/*'
+]
 
 const pthread = [
   'node-addon-api/**/*',
   'pool/**/*',
   'tsfn/**/*',
-  'rust/**/*',
   'async_cleanup_hook/**/*',
   'string/string-pthread.test.js'
 ]
