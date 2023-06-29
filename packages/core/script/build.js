@@ -133,7 +133,13 @@ function build () {
   })).then(() => {
     const dts = path.join(__dirname, '../index.d.ts')
     const dest = path.join(__dirname, '../dist/emnapi-core.d.ts')
+    const mDts = path.join(__dirname, '../dist/emnapi-core.d.mts')
+    const cjsMinDts = path.join(__dirname, '../dist/emnapi-core.cjs.min.d.ts')
+    const mjsMinDts = path.join(__dirname, '../dist/emnapi-core.min.d.mts')
     fs.copyFileSync(dts, dest)
+    fs.copyFileSync(dts, mDts)
+    fs.copyFileSync(dts, cjsMinDts)
+    fs.copyFileSync(dts, mjsMinDts)
     fs.appendFileSync(dest, '\nexport as namespace emnapiCore;\n', 'utf8')
   })
 }

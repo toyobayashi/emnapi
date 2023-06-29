@@ -163,8 +163,10 @@ function build () {
     return rollup.rollup(conf.input).then(bundle => bundle.write(conf.output))
   })).then(() => {
     const iifeDtsPath = path.join(__dirname, '../dist/emnapi.iife.d.ts')
+    const mDtsPath = path.join(__dirname, '../dist/emnapi.d.mts')
+    const cjsMinDtsPath = path.join(__dirname, '../dist/emnapi.cjs.min.d.ts')
+    const mjsMinDtsPath = path.join(__dirname, '../dist/emnapi.min.d.mts')
     fs.copyFileSync(runtimeDts, iifeDtsPath)
-    fs.appendFileSync(runtimeDts, '\nexport as namespace emnapi;\n', 'utf8')
 
     let iifeDts = fs.readFileSync(iifeDtsPath, 'utf8')
     iifeDts = iifeDts.replace(/export { }/g, '')
@@ -179,7 +181,12 @@ function build () {
     dts += fs.readFileSync(path.join(__dirname, '../src/typings/ctype.d.ts'), 'utf8').replace(/declare/g, 'export declare')
     dts += fs.readFileSync(path.join(__dirname, '../src/typings/napi.d.ts'), 'utf8').replace(/declare/g, 'export declare')
     dts += fs.readFileSync(runtimeDts, 'utf8')
+    fs.writeFileSync(mDtsPath, dts, 'utf8')
+    fs.writeFileSync(cjsMinDtsPath, dts, 'utf8')
+    dts += '\nexport as namespace emnapi;\n'
     fs.writeFileSync(runtimeDts, dts, 'utf8')
+
+    fs.copyFileSync(mDtsPath, mjsMinDtsPath)
   })
 }
 

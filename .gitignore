@@ -10,3 +10,4 @@ package-lock.json
 /example/build
 out
 /script/emnapi.zip
+*.tgz
