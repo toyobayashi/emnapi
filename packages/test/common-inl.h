@@ -57,7 +57,9 @@ inline void add_last_status(napi_env env,
     NODE_API_CALL_RETURN_VOID(
         env, napi_get_and_clear_last_exception(env, &exception));
     char exception_key[50];
+#if !defined(__wasm__) || (defined(__EMSCRIPTEN__) || defined(__wasi__))
     snprintf(exception_key, sizeof(exception_key), "%s%s", key, "Exception");
+#endif
     NODE_API_CALL_RETURN_VOID(
         env,
         napi_set_named_property(env, return_value, exception_key, exception));
