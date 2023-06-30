@@ -1,17 +1,17 @@
 function napi_get_array_length (env: napi_env, value: napi_value, result: Pointer<uint32_t>): napi_status {
-  $CHECK_ENV!(env)
-  const envObject = emnapiCtx.envStore.get(env)!
-  $CHECK_ARG!(envObject, value)
-  $CHECK_ARG!(envObject, result)
-  const handle = emnapiCtx.handleStore.get(value)!
-  if (!handle.isArray()) {
-    return envObject.setLastError(napi_status.napi_array_expected)
-  }
-  $from64('result')
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const v = handle.value.length >>> 0
-  $makeSetValue('result', 0, 'v', 'u32')
-  return envObject.clearLastError()
+  return $PREAMBLE!(env, (envObject) => {
+    $CHECK_ARG!(envObject, value)
+    $CHECK_ARG!(envObject, result)
+    const handle = emnapiCtx.handleStore.get(value)!
+    if (!handle.isArray()) {
+      return envObject.setLastError(napi_status.napi_array_expected)
+    }
+    $from64('result')
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const v = handle.value.length >>> 0
+    $makeSetValue('result', 0, 'v', 'u32')
+    return envObject.getReturnStatus()
+  })
 }
 
 function napi_get_arraybuffer_info (env: napi_env, arraybuffer: napi_value, data: void_pp, byte_length: Pointer<size_t>): napi_status {
@@ -38,27 +38,26 @@ function napi_get_arraybuffer_info (env: napi_env, arraybuffer: napi_value, data
 }
 
 function napi_get_prototype (env: napi_env, value: napi_value, result: Pointer<napi_value>): napi_status {
-  $CHECK_ENV!(env)
-  const envObject = emnapiCtx.envStore.get(env)!
-  $CHECK_ARG!(envObject, value)
-  $CHECK_ARG!(envObject, result)
-  const handle = emnapiCtx.handleStore.get(value)!
-  if (handle.value == null) {
-    envObject.tryCatch.setError(new TypeError('Cannot convert undefined or null to object'))
-    return envObject.setLastError(napi_status.napi_pending_exception)
-  }
-  let v: any
-  try {
-    v = handle.isObject() || handle.isFunction() ? handle.value : Object(handle.value)
-  } catch (_) {
-    return envObject.setLastError(napi_status.napi_object_expected)
-  }
-  $from64('result')
+  return $PREAMBLE!(env, (envObject) => {
+    $CHECK_ARG!(envObject, value)
+    $CHECK_ARG!(envObject, result)
+    const handle = emnapiCtx.handleStore.get(value)!
+    if (handle.value == null) {
+      throw new TypeError('Cannot convert undefined or null to object')
+    }
+    let v: any
+    try {
+      v = handle.isObject() || handle.isFunction() ? handle.value : Object(handle.value)
+    } catch (_) {
+      return envObject.setLastError(napi_status.napi_object_expected)
+    }
+    $from64('result')
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const p = envObject.ensureHandleId(Object.getPrototypeOf(v))
-  $makeSetValue('result', 0, 'p', '*')
-  return envObject.clearLastError()
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const p = envObject.ensureHandleId(Object.getPrototypeOf(v))
+    $makeSetValue('result', 0, 'p', '*')
+    return envObject.getReturnStatus()
+  })
 }
 
 function _napi_get_typedarray_info (
