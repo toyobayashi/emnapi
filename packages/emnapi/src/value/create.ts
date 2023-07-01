@@ -396,8 +396,7 @@ function napi_create_dataview (
     if ((byte_length + byte_offset) > buffer.byteLength) {
       const err: RangeError & { code?: string } = new RangeError('byte_offset + byte_length should be less than or equal to the size in bytes of the array passed in')
       err.code = 'ERR_NAPI_INVALID_DATAVIEW_ARGS'
-      envObject.tryCatch.setError(err)
-      return envObject.setLastError(napi_status.napi_pending_exception)
+      throw err
     }
 
     const dataview = new DataView(buffer, byte_offset, byte_length)

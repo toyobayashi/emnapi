@@ -37,18 +37,6 @@ Object.defineProperty(NotSupportWeakRefError.prototype, 'name', {
   value: 'NotSupportWeakRefError'
 })
 
-class NotSupportBigIntError extends EmnapiError {
-  constructor (api: string, message: string) {
-    super(`${api}: The current runtime does not support "BigInt".${message ? ` ${message}` : ''}`)
-  }
-}
-
-Object.defineProperty(NotSupportBigIntError.prototype, 'name', {
-  configurable: true,
-  writable: true,
-  value: 'NotSupportBigIntError'
-})
-
 class NotSupportBufferError extends EmnapiError {
   constructor (api: string, message: string) {
     super(`${api}: The current runtime does not support "Buffer". Consider using buffer polyfill to make sure \`globalThis.Buffer\` is defined.${message ? ` ${message}` : ''}`)
@@ -64,6 +52,5 @@ Object.defineProperty(NotSupportBufferError.prototype, 'name', {
 export {
   EmnapiError,
   NotSupportWeakRefError,
-  NotSupportBigIntError,
   NotSupportBufferError
 }

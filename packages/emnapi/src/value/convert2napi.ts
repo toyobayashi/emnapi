@@ -141,8 +141,7 @@ function napi_create_bigint_int64 (env: napi_env, low: int32_t, high: int32_t, r
   $CHECK_ENV!(env)
   const envObject = emnapiCtx.envStore.get(env)!
   if (!emnapiCtx.feature.supportBigInt) {
-    envObject.tryCatch.setError(emnapiCtx.createNotSupportBigIntError('napi_create_bigint_int64', 'This API is unavailable'))
-    return envObject.setLastError(napi_status.napi_pending_exception)
+    return envObject.setLastError(napi_status.napi_generic_failure)
   }
 
   let value: BigInt
@@ -169,8 +168,7 @@ function napi_create_bigint_uint64 (env: napi_env, low: int32_t, high: int32_t, 
   $CHECK_ENV!(env)
   const envObject = emnapiCtx.envStore.get(env)!
   if (!emnapiCtx.feature.supportBigInt) {
-    envObject.tryCatch.setError(emnapiCtx.createNotSupportBigIntError('napi_create_bigint_uint64', 'This API is unavailable'))
-    return envObject.setLastError(napi_status.napi_pending_exception)
+    return envObject.setLastError(napi_status.napi_generic_failure)
   }
 
   let value: BigInt
@@ -199,7 +197,7 @@ function napi_create_bigint_words (env: napi_env, sign_bit: int, word_count: siz
 
   return $PREAMBLE!(env, (envObject) => {
     if (!emnapiCtx.feature.supportBigInt) {
-      throw emnapiCtx.createNotSupportBigIntError('napi_create_bigint_words', 'This API is unavailable')
+      return envObject.setLastError(napi_status.napi_generic_failure)
     }
     $CHECK_ARG!(envObject, result)
     $from64('words')
@@ -222,7 +220,7 @@ function napi_create_bigint_words (env: napi_env, sign_bit: int, word_count: siz
     $from64('result')
     v = emnapiCtx.addToCurrentScope(value).id
     $makeSetValue('result', 0, 'v', '*')
-    return envObject.clearLastError()
+    return envObject.getReturnStatus()
   })
 }
 
