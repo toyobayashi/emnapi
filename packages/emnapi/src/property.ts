@@ -280,7 +280,7 @@ function napi_set_named_property (env: napi_env, object: napi_value, cname: cons
     }
     $from64('cname')
     emnapiCtx.handleStore.get(object)!.value[emnapiString.UTF8ToString(cname, -1)] = emnapiCtx.handleStore.get(value)!.value
-    return napi_status.napi_ok
+    return envObject.getReturnStatus()
   })
 }
 
@@ -485,7 +485,7 @@ function napi_define_properties (
       }
       emnapiDefineProperty(envObject, maybeObject, propertyName, method, getter, setter, value, attributes, data)
     }
-    return napi_status.napi_ok
+    return envObject.getReturnStatus()
   })
 }
 

@@ -20,7 +20,7 @@ import {
   NODE_API_DEFAULT_MODULE_API_VERSION
 } from './util'
 import { CallbackInfoStack } from './CallbackInfo'
-import { NotSupportWeakRefError, NotSupportBigIntError, NotSupportBufferError } from './errors'
+import { NotSupportWeakRefError, NotSupportBufferError } from './errors'
 import { Reference } from './Reference'
 import { type IDeferrdValue, Deferred } from './Deferred'
 import { Store } from './Store'
@@ -153,10 +153,6 @@ export class Context {
 
   createNotSupportWeakRefError (api: string, message: string): NotSupportWeakRefError {
     return new NotSupportWeakRefError(api, message)
-  }
-
-  createNotSupportBigIntError (api: string, message: string): NotSupportBigIntError {
-    return new NotSupportBigIntError(api, message)
   }
 
   createNotSupportBufferError (api: string, message: string): NotSupportBufferError {

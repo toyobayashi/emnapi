@@ -180,7 +180,7 @@ function napi_make_callback (env: napi_env, async_context: Pointer<int64_t>, rec
       v = envObject.ensureHandleId(ret.value)
       $makeSetValue('result', 0, 'v', '*')
     }
-    return envObject.clearLastError()
+    return envObject.getReturnStatus()
   })
 }
 

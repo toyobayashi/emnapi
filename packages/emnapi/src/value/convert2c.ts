@@ -252,8 +252,7 @@ function napi_get_value_bigint_int64 (env: napi_env, value: napi_value, result: 
   $CHECK_ENV!(env)
   const envObject = emnapiCtx.envStore.get(env)!
   if (!emnapiCtx.feature.supportBigInt) {
-    envObject.tryCatch.setError(emnapiCtx.createNotSupportBigIntError('napi_get_value_bigint_int64', 'This API is unavailable'))
-    return envObject.setLastError(napi_status.napi_pending_exception)
+    return envObject.setLastError(napi_status.napi_generic_failure)
   }
   $CHECK_ARG!(envObject, value)
   $CHECK_ARG!(envObject, result)
@@ -287,8 +286,7 @@ function napi_get_value_bigint_uint64 (env: napi_env, value: napi_value, result:
   $CHECK_ENV!(env)
   const envObject = emnapiCtx.envStore.get(env)!
   if (!emnapiCtx.feature.supportBigInt) {
-    envObject.tryCatch.setError(emnapiCtx.createNotSupportBigIntError('napi_get_value_bigint_uint64', 'This API is unavailable'))
-    return envObject.setLastError(napi_status.napi_pending_exception)
+    return envObject.setLastError(napi_status.napi_generic_failure)
   }
   $CHECK_ARG!(envObject, value)
   $CHECK_ARG!(envObject, result)
@@ -325,8 +323,7 @@ function napi_get_value_bigint_words (
   $CHECK_ENV!(env)
   const envObject = emnapiCtx.envStore.get(env)!
   if (!emnapiCtx.feature.supportBigInt) {
-    envObject.tryCatch.setError(emnapiCtx.createNotSupportBigIntError('napi_get_value_bigint_words', 'This API is unavailable'))
-    return envObject.setLastError(napi_status.napi_pending_exception)
+    return envObject.setLastError(napi_status.napi_generic_failure)
   }
   $CHECK_ARG!(envObject, value)
   $CHECK_ARG!(envObject, word_count)
