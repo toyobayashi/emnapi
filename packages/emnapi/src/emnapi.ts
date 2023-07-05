@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/indent */
+
 function _emnapi_create_memory_view (
   env: napi_env,
   typedarray_type: emnapi_memory_view_type,
@@ -250,6 +252,42 @@ function emnapi_get_memory_address (env: napi_env, arraybuffer_or_view: napi_val
   })
 }
 
+function emnapiAwait (env: napi_env, value: napi_value, result: Pointer<napi_value>): napi_value | Promise<napi_value> {
+  $CHECK_ENV!(env)
+  const envObject = emnapiCtx.envStore.get(env)!
+  $CHECK_ARG!(envObject, value)
+  const h = emnapiCtx.handleStore.get(value)
+  if (!h) return envObject.setLastError(napi_status.napi_invalid_arg)
+  return Promise.resolve(h.value).then((v) => {
+    const r = envObject.ensureHandleId(v)
+    if (result) {
+      $makeSetValue('result', 0, 'r', '*')
+    }
+    return r
+  })
+}
+
+declare const Asyncify: any
+
+function _emnapi_await (env: napi_env, value: napi_value, result: Pointer<napi_value>): Promise<napi_value> {
+  let r: any
+// #if ASYNCIFY == 2
+  const promise = new Promise((resolve) => {
+    resolve(emnapiAwait(env, value, result))
+  })
+  if (typeof Asyncify === 'object' && Asyncify !== null) {
+    r = Asyncify.handleAsync(() => promise)
+  } else {
+    r = promise
+  }
+// #else
+  $CHECK_ENV!(env)
+  const envObject = emnapiCtx.envStore.get(env)!
+  r = envObject.setLastError(napi_status.napi_generic_failure)
+// #endif
+  return r
+}
+
 emnapiImplementHelper('$emnapiSyncMemory', undefined, emnapiSyncMemory, ['$emnapiExternalMemory'], 'syncMemory')
 emnapiImplementHelper('$emnapiGetMemoryAddress', undefined, emnapiGetMemoryAddress, ['$emnapiExternalMemory'], 'getMemoryAddress')
 
@@ -260,3 +298,10 @@ emnapiImplement2('emnapi_is_node_binding_available', 'i', emnapi_is_node_binding
 emnapiImplement2('emnapi_create_memory_view', 'ipippppp', _emnapi_create_memory_view, ['napi_add_finalizer', '$emnapiExternalMemory'])
 emnapiImplement2('emnapi_sync_memory', 'ipippp', emnapi_sync_memory, ['$emnapiSyncMemory'])
 emnapiImplement2('emnapi_get_memory_address', 'ipppp', emnapi_get_memory_address, ['$emnapiGetMemoryAddress'])
+
+// #if ASYNCIFY
+emnapiImplement2Async('emnapi_await', 'ippp', _emnapi_await, ['$emnapiAwait', '$Asyncify'])
+// #else
+emnapiImplement2Async('emnapi_await', 'ippp', _emnapi_await, ['$emnapiAwait'])
+// #endif
+emnapiImplementHelper('$emnapiAwait', undefined, emnapiAwait)

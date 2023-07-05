@@ -13,14 +13,38 @@ function emnapiCreateFunction<F extends (...args: any[]) => any> (envObject: Env
     'use strict'
     emnapiCtx.cbinfoStack.push(this, data, arguments, f)
     const scope = emnapiCtx.openScope(envObject)
-    try {
-      return envObject.callIntoModule((envObject) => {
-        const napiValue = $makeDynCall('ppp', 'cb')(envObject.id, 0)
-        return (!napiValue) ? undefined : emnapiCtx.handleStore.get(napiValue)!.value
-      })
-    } finally {
-      emnapiCtx.cbinfoStack.pop()
-      emnapiCtx.closeScope(envObject, scope)
+    const callSync = (): any => {
+      try {
+        return envObject.callIntoModule((envObject) => {
+          const napiValue = $makeDynCall('ppp', 'cb')(envObject.id, 0)
+          return (!napiValue) ? undefined : emnapiCtx.handleStore.get(napiValue)!.value
+        })
+      } finally {
+        emnapiCtx.cbinfoStack.pop()
+        emnapiCtx.closeScope(envObject, scope)
+      }
+    }
+    if (emnapiCtx.feature.supportJSPI) {
+      const exportFunction = wasmTable.get(Number(cb))
+      const WebAssemblyFunction = (WebAssembly as any).Function
+      const params = WebAssemblyFunction.type(exportFunction).parameters
+      if (params[0] === 'externref') {
+        const wrappedFunction = new WebAssemblyFunction(
+          { parameters: params.slice(1), results: ['externref'] },
+          exportFunction,
+          { promising: 'first' }
+        )
+        return wrappedFunction($to64('envObject.id'), $to64('0')).then((napiValue: napi_value) => {
+          return (!napiValue) ? undefined : emnapiCtx.handleStore.get(napiValue)!.value
+        }).finally(() => {
+          emnapiCtx.cbinfoStack.pop()
+          emnapiCtx.closeScope(envObject, scope)
+        })
+      } else {
+        return callSync()
+      }
+    } else {
+      return callSync()
     }
   }
 

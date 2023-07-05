@@ -7,6 +7,7 @@ declare function mergeInto (target: any, source: Record<string, any>): void
 
 // runtime
 declare var wasmMemory: WebAssembly.Memory
+declare var wasmTable: WebAssembly.Table
 declare var ENVIRONMENT_IS_NODE: boolean
 declare var ENVIRONMENT_IS_PTHREAD: boolean
 

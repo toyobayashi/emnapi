@@ -17,6 +17,11 @@ function emnapiImplement2 (): void {
   emnapiImplement.apply(null, arguments as any)
 }
 
+function emnapiImplement2Async (...args: Parameters<typeof emnapiImplement>): void
+function emnapiImplement2Async (): void {
+  emnapiImplement.apply(null, arguments as any)
+}
+
 // _emnapi_*
 function emnapiImplementInternal (...args: Parameters<typeof emnapiImplement>): void
 function emnapiImplementInternal (): void {

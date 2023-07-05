@@ -85,6 +85,7 @@ export const supportWeakSymbol = /*#__PURE__*/ (function () {
   return true
 })()
 export const supportBigInt = typeof BigInt !== 'undefined'
+export const supportJSPI = typeof (WebAssembly as any).Function === 'function'
 
 export function isReferenceType (v: any): v is object {
   return (typeof v === 'object' && v !== null) || typeof v === 'function'
