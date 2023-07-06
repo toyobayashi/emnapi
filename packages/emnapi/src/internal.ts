@@ -34,12 +34,16 @@ function emnapiCreateFunction<F extends (...args: any[]) => any> (envObject: Env
           exportFunction,
           { promising: 'first' }
         )
-        return wrappedFunction($to64('envObject.id'), $to64('0')).then((napiValue: napi_value) => {
-          return (!napiValue) ? undefined : emnapiCtx.handleStore.get(napiValue)!.value
-        }).finally(() => {
-          emnapiCtx.cbinfoStack.pop()
-          emnapiCtx.closeScope(envObject, scope)
+        return envObject.callIntoModuleAsync((envObject) => {
+          return wrappedFunction($to64('envObject.id'), $to64('0')).then((napiValue: napi_value) => {
+            return (!napiValue) ? undefined : emnapiCtx.handleStore.get(napiValue)!.value
+          })
         })
+          // @ts-expect-error
+          .finally(() => {
+            emnapiCtx.cbinfoStack.pop()
+            emnapiCtx.closeScope(envObject, scope)
+          })
       } else {
         return callSync()
       }

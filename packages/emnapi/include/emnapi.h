@@ -31,6 +31,11 @@ EMNAPI_EXTERN int emnapi_is_support_weakref();
 EMNAPI_EXTERN int emnapi_is_support_bigint();
 EMNAPI_EXTERN int emnapi_is_node_binding_available();
 
+EMNAPI_EXTERN
+napi_status emnapi_await(napi_env env,
+                         napi_value value,
+                         napi_value* result);
+
 #ifdef __EMSCRIPTEN__
 EMNAPI_EXTERN
 napi_status emnapi_get_module_object(napi_env env,

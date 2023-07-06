@@ -29,7 +29,7 @@ function emnapiImplement2Async (name: string, sig: string | undefined, compilerT
     const parameters = parameterType.slice(0)
     parameters.unshift('externref')
     napiModule.imports.emnapi[name] = new WebAssemblyFunction(
-      { parameters, results: returnType },
+      { parameters, results: [returnType] },
       compilerTimeFunction,
       { suspending: 'first' }
     )

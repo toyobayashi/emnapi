@@ -88,22 +88,44 @@ function emnapiInit (options: InitOptions): any {
   ))
 
   const scope = emnapiCtx.openScope(envObject)
-  try {
-    envObject.callIntoModule((_envObject) => {
+  const callSync = (): any => {
+    try {
+      envObject.callIntoModule((_envObject) => {
+        const exports = emnapiModule.exports
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const exportsHandle = scope.add(exports)
+        const napiValue = _napi_register_wasm_v1($to64('_envObject.id'), $to64('exportsHandle.id'))
+        emnapiModule.exports = (!napiValue) ? exports : emnapiCtx.handleStore.get(napiValue)!.value
+      })
+    } catch (err) {
+      emnapiCtx.closeScope(envObject, scope)
+      throw err
+    }
+    emnapiCtx.closeScope(envObject, scope)
+    emnapiModule.loaded = true
+    delete emnapiModule.envObject
+    return emnapiModule.exports
+  }
+  if (emnapiCtx.feature.supportJSPI && (_napi_register_wasm_v1 instanceof (WebAssembly as any).Function)) {
+    return envObject.callIntoModuleAsync((_envObject) => {
       const exports = emnapiModule.exports
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const exportsHandle = scope.add(exports)
-      const napiValue = _napi_register_wasm_v1($to64('_envObject.id'), $to64('exportsHandle.id'))
-      emnapiModule.exports = (!napiValue) ? exports : emnapiCtx.handleStore.get(napiValue)!.value
+      return (_napi_register_wasm_v1($to64('_envObject.id'), $to64('exportsHandle.id')) as unknown as Promise<napi_status>).then((napiValue) => {
+        emnapiModule.exports = (!napiValue) ? exports : emnapiCtx.handleStore.get(napiValue)!.value
+      })
+    }).catch((err: any) => {
+      emnapiCtx.closeScope(envObject, scope)
+      throw err
+    }).then(() => {
+      emnapiCtx.closeScope(envObject, scope)
+      emnapiModule.loaded = true
+      delete emnapiModule.envObject
+      return emnapiModule.exports
     })
-  } catch (err) {
-    emnapiCtx.closeScope(envObject, scope)
-    throw err
+  } else {
+    return callSync()
   }
-  emnapiCtx.closeScope(envObject, scope)
-  emnapiModule.loaded = true
-  delete emnapiModule.envObject
-  return emnapiModule.exports
 }
 
 emnapiImplementHelper(

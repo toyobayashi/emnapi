@@ -128,6 +128,24 @@ export class Env implements IStoreValue {
     return r
   }
 
+  public callIntoModuleAsync<T> (fn: (env: Env) => Promise<T>, handleException?: (envObject: Env, value: any) => void): Promise<T>
+  public callIntoModuleAsync<T> (fn: (env: Env) => Promise<T>, handleException = handleThrow): Promise<T> {
+    return new Promise<T>((resolve, reject) => {
+      const openHandleScopesBefore = this.openHandleScopes
+      this.clearLastError()
+      fn(this).then((r) => {
+        if (openHandleScopesBefore !== this.openHandleScopes) {
+          this.abort('open_handle_scopes != open_handle_scopes_before')
+        }
+        if (this.tryCatch.hasCaught()) {
+          const err = this.tryCatch.extractException()!
+          handleException(this, err)
+        }
+        resolve(r)
+      }).catch(reject)
+    })
+  }
+
   /** @virtual */
   public callFinalizer (cb: napi_finalize, data: void_p, hint: void_p): void {
     const f = this.makeDynCall_vppp(cb)

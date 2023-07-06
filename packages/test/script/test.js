@@ -25,6 +25,7 @@ if (process.env.EMNAPI_TEST_NATIVE) {
   ignore = [...new Set([
     ...ignore,
     'filename/**/*',
+    'jspi/**/*',
     'objwrap/objwrapref.test.js',
     // 'rust/**/*',
     '**/{emnapitest,node-addon-api}/**/*'
@@ -38,6 +39,13 @@ if (process.env.EMNAPI_TEST_NATIVE) {
   ignore = [...new Set([
     ...ignore,
     // 'rust/**/*'
+  ])]
+}
+
+if (process.env.EMNAPI_TEST_WASI_THREADS || process.env.EMNAPI_TEST_WASI || process.env.EMNAPI_TEST_WASM32) {
+  ignore = [...new Set([
+    ...ignore,
+    'jspi/**/*'
   ])]
 }
 

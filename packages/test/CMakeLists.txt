@@ -252,6 +252,27 @@ endfunction()
 add_test("env" "./env/binding.c" OFF OFF "")
 add_test("hello" "./hello/binding.c" OFF OFF "")
 
+if(IS_EMSCRIPTEN)
+  add_test("jspi" "./jspi/binding.c" OFF OFF "-sASYNCIFY=2;-sASYNCIFY_IMPORTS=emnapi_await;-sASYNCIFY_EXPORTS=test_async")
+# elseif(IS_WASM)
+#   find_program(WASM_OPT "wasm-opt")
+#   if(WASM_OPT)
+#     add_test("jspi" "./jspi/binding.c" OFF OFF "")
+#     add_custom_command(TARGET jspi POST_BUILD
+#       COMMAND ${WASM_OPT}
+#               "--enable-reference-types"
+#               "--jspi"
+#               "--pass-arg=jspi-imports@emnapi.emnapi_await"
+#               "--pass-arg=jspi-exports@test_async"
+#               "$<TARGET_FILE:jspi>"
+#               "-o"
+#               "$<TARGET_FILE:jspi>"
+#     )
+#   else()
+#     message(FATAL_ERROR "wasm-opt not found")
+#   endif()
+endif()
+
 add_test("async" "./async/binding.c" OFF ON "")
 add_test("tsfn2" "./tsfn2/binding.c" OFF ON "")
 

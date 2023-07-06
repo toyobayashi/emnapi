@@ -263,7 +263,7 @@ function emnapiAwait (env: napi_env, value: napi_value, result: Pointer<napi_val
     if (result) {
       $makeSetValue('result', 0, 'r', '*')
     }
-    return r
+    return envObject.clearLastError()
   })
 }
 
@@ -281,7 +281,7 @@ function _emnapi_await (env: napi_env, value: napi_value, result: Pointer<napi_v
     r = promise
   }
 // #else
-  $CHECK_ENV!(env)
+  if (!env) return napi_status.napi_invalid_arg as any
   const envObject = emnapiCtx.envStore.get(env)!
   r = envObject.setLastError(napi_status.napi_generic_failure)
 // #endif
