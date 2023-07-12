@@ -64,6 +64,16 @@ jobs:
         wget -q https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${WASI_VERSION}/wasi-sdk-${WASI_VERSION_FULL}-linux.tar.gz
         mkdir -p $WASI_SDK_PATH
         tar zxvf wasi-sdk-${WASI_VERSION_FULL}-linux.tar.gz -C $WASI_SDK_PATH --strip 1
+    
+    - name: Install binaryen
+      if: ${{ matrix.target == 'wasm32-unknown-unknown' || matrix.target == 'wasm32-wasi' || matrix.target == 'wasm32-wasi-threads' }}
+      shell: bash
+      run: |
+        wget -q https://github.com/WebAssembly/binaryen/releases/download/version_114/binaryen-version_114-x86_64-linux.tar.gz
+        mkdir -p $GITHUB_WORKSPACE/binaryen
+        echo "$GITHUB_WORKSPACE/binaryen"
+        tar zxvf binaryen-version_114-x86_64-linux.tar.gz -C $GITHUB_WORKSPACE/binaryen --strip 1
+        echo "$GITHUB_WORKSPACE/binaryen/bin" >> $GITHUB_PATH
 
     - uses: actions/setup-node@v3
       with:

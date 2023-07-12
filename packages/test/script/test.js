@@ -42,7 +42,7 @@ if (process.env.EMNAPI_TEST_NATIVE) {
   ])]
 }
 
-if (process.env.EMNAPI_TEST_WASI_THREADS || process.env.EMNAPI_TEST_WASI || process.env.EMNAPI_TEST_WASM32) {
+if (process.env.MEMORY64) {
   ignore = [...new Set([
     ...ignore,
     'jspi/**/*'
