@@ -9,7 +9,7 @@ async function main () {
 
   fs.rmSync(buildDir, { force: true, recursive: true })
   fs.mkdirSync(buildDir, { recursive: true })
-  let WASI_SDK_PATH = process.env.WASI_SDK_PATH
+  let WASI_SDK_PATH = process.env.WASI_SDK_PATH || process.env.LLVM_PATH
   if (!WASI_SDK_PATH) {
     throw new Error('process.env.WASI_SDK_PATH is falsy value')
   }

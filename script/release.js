@@ -11,7 +11,7 @@ async function main () {
   fs.rmSync(sysroot, { force: true, recursive: true })
   fs.mkdirSync(sysroot, { recursive: true })
 
-  let WASI_SDK_PATH = process.env.WASI_SDK_PATH
+  let WASI_SDK_PATH = process.env.WASI_SDK_PATH || process.env.LLVM_PATH
   if (!WASI_SDK_PATH) {
     throw new Error('process.env.WASI_SDK_PATH is falsy value')
   }
@@ -149,7 +149,9 @@ async function main () {
 
   const { stderr: llvmClangVersion } = spawnSync(path.join(LLVM_PATH, 'bin/clang' + (process.platform === 'win32' ? '.exe' : '')), ['-v', '--target=wasm32'])
   const { stderr: wasiSdkClangVersion } = spawnSync(path.join(WASI_SDK_PATH, 'bin/clang' + (process.platform === 'win32' ? '.exe' : '')), ['-v'])
-  const { stderr: emccVersion } = spawnSync(path.join(process.env.EMSDK, 'upstream/emscripten/emcc' + (process.platform === 'win32' ? '.bat' : '')), ['-v'])
+
+  const emcc = (process.env.EMSDK ? path.join(process.env.EMSDK, 'upstream/emscripten/emcc') : 'emcc') + (process.platform === 'win32' ? '.bat' : '')
+  const { stderr: emccVersion } = spawnSync(emcc, ['-v'])
 
   fs.writeFileSync(path.join(sysroot, 'lib/emnapi', 'wasm32.txt'), llvmClangVersion)
   fs.writeFileSync(path.join(sysroot, 'lib/emnapi', 'wasm32-wasi.txt'), wasiSdkClangVersion)
