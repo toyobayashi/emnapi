@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #else
+#include <stddef.h>
 void *memcpy(void * dest, const void * src, size_t n);
 void* memset(void* dst, int c, size_t n);
 void* malloc(size_t size);
