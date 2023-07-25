@@ -156,6 +156,9 @@ napi_status _emnapi_node_make_callback(napi_env env,
                                        double trigger_async_id,
                                        napi_value* result);
 
+EMNAPI_INTERNAL_EXTERN
+void _emnapi_env_check_gc_access(napi_env env);
+
 #define EMNAPI_ASYNC_RESOURCE_CTOR(env, res, name, ar) \
   do { \
     EMNAPI_ASSERT_CALL(napi_create_reference((env), (res), 1, &(ar)->resource_)); \

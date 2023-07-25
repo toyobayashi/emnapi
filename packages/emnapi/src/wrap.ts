@@ -156,6 +156,7 @@ function napi_check_object_type_tag (env: napi_env, object: napi_value, type_tag
 function _napi_add_finalizer (env: napi_env, js_object: napi_value, finalize_data: void_p, finalize_cb: napi_finalize, finalize_hint: void_p, result: Pointer<napi_ref>): napi_status {
   $CHECK_ENV!(env)
   const envObject = emnapiCtx.envStore.get(env)!
+  envObject.checkGCAccess()
 
   if (!emnapiCtx.feature.supportFinalizer) {
     return envObject.setLastError(napi_status.napi_generic_failure)

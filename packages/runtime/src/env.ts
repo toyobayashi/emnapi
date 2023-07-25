@@ -54,7 +54,7 @@ export class Env implements IStoreValue {
     engineReserved: 0 as Ptr
   }
 
-  public suspendCallIntoJs = false
+  public inGcFinalizer = false
 
   public constructor (
     public readonly ctx: Context,
@@ -68,7 +68,7 @@ export class Env implements IStoreValue {
 
   /** @virtual */
   public canCallIntoJs (): boolean {
-    return !this.suspendCallIntoJs
+    return true
   }
 
   public terminatedOrTerminating (): boolean {
@@ -146,14 +146,23 @@ export class Env implements IStoreValue {
     if (this.moduleApiVersion !== NAPI_VERSION_EXPERIMENTAL) {
       this.enqueueFinalizer(finalizer)
     } else {
-      if (this.lastError.errorCode === napi_status.napi_ok && !this.tryCatch.hasCaught()) {
-        const savedSuspendCallIntoJs = this.suspendCallIntoJs
-        this.suspendCallIntoJs = true
-        finalizer.finalize()
-        this.suspendCallIntoJs = savedSuspendCallIntoJs
-      } else {
-        this.enqueueFinalizer(finalizer)
-      }
+      const saved = this.inGcFinalizer
+      this.inGcFinalizer = true
+      finalizer.finalize()
+      this.inGcFinalizer = saved
+    }
+  }
+
+  public checkGCAccess (): void {
+    if (this.moduleApiVersion === NAPI_VERSION_EXPERIMENTAL && this.inGcFinalizer) {
+      this.abort(
+        'Finalizer is calling a function that may affect GC state.\n' +
+        'The finalizers are run directly from GC and must not affect GC ' +
+        'state.\n' +
+        'Use `node_api_post_finalizer` from inside of the finalizer to work ' +
+        'around this issue.\n' +
+        'It schedules the call as a new task in the event loop.'
+      )
     }
   }
 

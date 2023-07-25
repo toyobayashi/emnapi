@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #else
+#include <stddef.h>
 void* memset(void* dst, int c, size_t n);
 void* malloc(size_t size);
 void free(void* p);
@@ -20,7 +21,12 @@ static void finalizerOnlyCallback(napi_env env,
                                   void* finalize_data,
                                   void* finalize_hint) {
   FinalizerData* data = (FinalizerData*)finalize_data;
-  ++data->finalize_count;
+  int32_t count = ++data->finalize_count;
+
+  // It is safe to access instance data
+  NAPI_CALL_RETURN_VOID(env, napi_get_instance_data(env, (void**)&data));
+  NAPI_ASSERT_RETURN_VOID(
+      env, count = data->finalize_count, "Expected to the same FinalizerData");
 }
 
 static void finalizerCallingJSCallback(napi_env env,
@@ -28,9 +34,11 @@ static void finalizerCallingJSCallback(napi_env env,
                                        void* finalize_hint) {
   napi_value js_func, undefined;
   FinalizerData* data = (FinalizerData*)finalize_data;
-  NAPI_CALL_RETURN_VOID(env, napi_get_reference_value(env, data->js_func, &js_func));
+  NAPI_CALL_RETURN_VOID(
+      env, napi_get_reference_value(env, data->js_func, &js_func));
   NAPI_CALL_RETURN_VOID(env, napi_get_undefined(env, &undefined));
-  NAPI_CALL_RETURN_VOID(env, napi_call_function(env, undefined, js_func, 0, NULL, NULL));
+  NAPI_CALL_RETURN_VOID(
+      env, napi_call_function(env, undefined, js_func, 0, NULL, NULL));
   NAPI_CALL_RETURN_VOID(env, napi_delete_reference(env, data->js_func));
   data->js_func = NULL;
   ++data->finalize_count;
@@ -41,13 +49,24 @@ static void finalizerWithJSCallback(napi_env env,
                                     void* finalize_data,
                                     void* finalize_hint) {
   FinalizerData* data = (FinalizerData*)finalize_data;
-  NAPI_CALL_RETURN_VOID(env, node_api_post_finalizer(
-      env, finalizerCallingJSCallback, data, finalize_hint));
+  NAPI_CALL_RETURN_VOID(
+      env,
+      node_api_post_finalizer(
+          env, finalizerCallingJSCallback, finalize_data, finalize_hint));
+}
+
+static void finalizerWithFailedJSCallback(napi_env env,
+                                          void* finalize_data,
+                                          void* finalize_hint) {
+  napi_value obj;
+  FinalizerData* data = (FinalizerData*)finalize_data;
+  ++data->finalize_count;
+  NAPI_CALL_RETURN_VOID(env, napi_create_object(env, &obj));
 }
 
 static napi_value addFinalizer(napi_env env, napi_callback_info info) {
   size_t argc = 1;
-  napi_value argv[1];
+  napi_value argv[1] = {0};
   FinalizerData* data;
 
   NAPI_CALL(env, napi_get_cb_info(env, info, &argc, argv, NULL, NULL));
@@ -58,7 +77,7 @@ static napi_value addFinalizer(napi_env env, napi_callback_info info) {
   return NULL;
 }
 
-// This finalizer is going to call JavaScript from finalizer
+// This finalizer is going to call JavaScript from finalizer and succeed.
 static napi_value addFinalizerWithJS(napi_env env, napi_callback_info info) {
   size_t argc = 2;
   napi_value argv[2] = {0};
@@ -74,6 +93,21 @@ static napi_value addFinalizerWithJS(napi_env env, napi_callback_info info) {
   NAPI_CALL(env,
                 napi_add_finalizer(
                     env, argv[0], data, finalizerWithJSCallback, NULL, NULL));
+  return NULL;
+}
+
+// This finalizer is going to call JavaScript from finalizer and fail.
+static napi_value addFinalizerFailOnJS(napi_env env, napi_callback_info info) {
+  size_t argc = 1;
+  napi_value argv[1] = {0};
+  FinalizerData* data;
+
+  NAPI_CALL(env, napi_get_cb_info(env, info, &argc, argv, NULL, NULL));
+  NAPI_CALL(env, napi_get_instance_data(env, (void**)&data));
+  NAPI_CALL(
+      env,
+      napi_add_finalizer(
+          env, argv[0], data, finalizerWithFailedJSCallback, NULL, NULL));
   return NULL;
 }
 
@@ -102,6 +136,7 @@ napi_value Init(napi_env env, napi_value exports) {
   napi_property_descriptor descriptors[] = {
       DECLARE_NAPI_PROPERTY("addFinalizer", addFinalizer),
       DECLARE_NAPI_PROPERTY("addFinalizerWithJS", addFinalizerWithJS),
+      DECLARE_NAPI_PROPERTY("addFinalizerFailOnJS", addFinalizerFailOnJS),
       DECLARE_NAPI_PROPERTY("getFinalizerCallCount",
                                 getFinalizerCallCount)};
 

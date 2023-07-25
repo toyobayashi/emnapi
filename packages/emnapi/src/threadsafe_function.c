@@ -409,6 +409,7 @@ napi_create_threadsafe_function(napi_env env,
                                 napi_threadsafe_function* result) {
 #if EMNAPI_HAVE_THREADS
   CHECK_ENV(env);
+  _emnapi_env_check_gc_access(env);
   CHECK_ARG(env, async_resource_name);
   RETURN_STATUS_IF_FALSE(env, initial_thread_count > 0, napi_invalid_arg);
   CHECK_ARG(env, result);

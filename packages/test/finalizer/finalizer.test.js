@@ -6,24 +6,22 @@ const { load } = require('../util')
 const common = require('../common')
 
 module.exports = load('finalizer').then(async test_finalizer => {
-  function addFinalizer () {
-    // Define obj in a function context to let it GC-collected.
+  (() => {
     const obj = {}
     test_finalizer.addFinalizer(obj)
-  }
+  })()
 
-  addFinalizer()
-
-  await common.gcUntil('test JS finalizer getFinalizerCallCount === 1',
-    () => (test_finalizer.getFinalizerCallCount() === 1))
-  /* for (let i = 0; i < 1000; ++i) {
+  for (let i = 0; i < 10; ++i) {
+    await new Promise((resolve) => {
+      setImmediate(resolve)
+    })
     global.gc()
     if (test_finalizer.getFinalizerCallCount() === 1) {
       break
     }
   }
 
-  assert.strictEqual(test_finalizer.getFinalizerCallCount(), 1)  */
+  assert(test_finalizer.getFinalizerCallCount() === 1)
 
   async function runAsyncTests () {
     let js_is_called = false;
@@ -31,7 +29,7 @@ module.exports = load('finalizer').then(async test_finalizer => {
       const obj = {}
       test_finalizer.addFinalizerWithJS(obj, () => { js_is_called = true })
     })()
-    await common.gcUntil('test JS finalizer',
+    await common.gcUntil('ensure JS finalizer called',
       () => (test_finalizer.getFinalizerCallCount() === 2))
     assert(js_is_called)
   }

@@ -25,6 +25,7 @@ function $CHECK_ARG (env: Env, arg: void_p): any {
 function $PREAMBLE (env: number, fn: (envObject: Env) => napi_status): napi_status {
   if (env == 0) return napi_status.napi_invalid_arg
   const envObject = emnapiCtx.envStore.get(env)!
+  envObject.checkGCAccess()
   if (envObject.tryCatch.hasCaught()) return envObject.setLastError(napi_status.napi_pending_exception)
   if (!envObject.canCallIntoJs()) {
     return envObject.setLastError(
@@ -130,6 +131,14 @@ class Transform {
           ts.NodeFlags.Const
         )
       ),
+      factory.createExpressionStatement(factory.createCallExpression(
+        factory.createPropertyAccessExpression(
+          factory.createIdentifier(param0),
+          factory.createIdentifier('checkGCAccess')
+        ),
+        undefined,
+        []
+      )),
       factory.createIfStatement(
         factory.createCallExpression(
           factory.createPropertyAccessExpression(
