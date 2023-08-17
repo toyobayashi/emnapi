@@ -83,7 +83,7 @@ static napi_value Test(napi_env env, napi_callback_info info) {
   void* data;
   NAPI_CALL(env,
     napi_get_cb_info(env, info, &argc, argv, &_this, &data));
-  NAPI_ASSERT(env, argc >= 3, "Not enough arguments, expected 2.");
+  NAPI_ASSERT(env, argc >= 3, "Not enough arguments, expected 3.");
 
   napi_valuetype t;
   NAPI_CALL(env, napi_typeof(env, argv[0], &t));
