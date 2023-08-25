@@ -20,11 +20,11 @@ function napi_create_function (env: napi_env, utf8name: Pointer<const_char>, len
   })
 }
 
-function napi_get_cb_info (env: napi_env, _cbinfo: napi_callback_info, argc: Pointer<size_t>, argv: Pointer<napi_value>, this_arg: Pointer<napi_value>, data: void_pp): napi_status {
+function napi_get_cb_info (env: napi_env, cbinfo: napi_callback_info, argc: Pointer<size_t>, argv: Pointer<napi_value>, this_arg: Pointer<napi_value>, data: void_pp): napi_status {
   $CHECK_ENV!(env)
   const envObject = emnapiCtx.envStore.get(env)!
 
-  const cbinfoValue = emnapiCtx.cbinfoStack.current!
+  const cbinfoValue = emnapiCtx.cbinfoStack.get(cbinfo)!
 
   $from64('argc')
   $from64('argv')
@@ -160,7 +160,7 @@ function napi_new_instance (
 
 function napi_get_new_target (
   env: napi_env,
-  _cbinfo: napi_callback_info,
+  cbinfo: napi_callback_info,
   result: Pointer<napi_value>
 ): napi_status {
   $CHECK_ENV!(env)
@@ -170,7 +170,7 @@ function napi_get_new_target (
 
   $from64('result')
 
-  const cbinfoValue = emnapiCtx.cbinfoStack.current!
+  const cbinfoValue = emnapiCtx.cbinfoStack.get(cbinfo)!
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const value = cbinfoValue.getNewTarget(envObject)
   $makeSetValue('result', 0, 'value', '*')

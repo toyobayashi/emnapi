@@ -11,11 +11,11 @@ function emnapiCreateFunction<F extends (...args: any[]) => any> (envObject: Env
 
   const makeFunction = () => function (this: any): any {
     'use strict'
-    emnapiCtx.cbinfoStack.push(this, data, arguments, f)
+    const cbinfo = emnapiCtx.cbinfoStack.push(this, data, arguments, f)
     const scope = emnapiCtx.openScope(envObject)
     try {
       return envObject.callIntoModule((envObject) => {
-        const napiValue = $makeDynCall('ppp', 'cb')(envObject.id, 0)
+        const napiValue = $makeDynCall('ppp', 'cb')(envObject.id, cbinfo)
         return (!napiValue) ? undefined : emnapiCtx.handleStore.get(napiValue)!.value
       })
     } finally {
