@@ -36,13 +36,13 @@ function __emnapi_node_emit_async_destroy (async_id: double, trigger_async_id: d
   })
 
   $from64('result')
-  $makeSetValue('result', 0, 'nativeCallbackScopePointer', 'i64')
+  $_TODO_makeSetValue('result', 0, 'nativeCallbackScopePointer', 'i64')
 }
 
 function __emnapi_node_close_callback_scope (scope: Pointer<int64_t>): void {
   if (!emnapiNodeBinding || !scope) return
   $from64('scope')
-  const nativeCallbackScopePointer = $makeGetValue('scope', 0, 'i64')
+  const nativeCallbackScopePointer = $_TODO_makeGetValue('scope', 0, 'i64')
   emnapiNodeBinding.node.closeCallbackScope(BigInt(nativeCallbackScopePointer))
 } */
 
