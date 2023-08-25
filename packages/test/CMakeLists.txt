@@ -264,6 +264,7 @@ if((NOT IS_WASM) OR IS_EMSCRIPTEN OR IS_WASI_THREADS)
 endif()
 
 add_test("arg" "./arg/binding.c" ON OFF "")
+add_test("cbinfo" "./cbinfo/binding.c" ON OFF "")
 add_test("callback" "./callback/binding.c" ON OFF "")
 add_test("objfac" "./objfac/binding.c" ON OFF "")
 add_test("fnfac" "./fnfac/binding.c" ON OFF "")
