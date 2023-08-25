@@ -25,6 +25,8 @@ function getEntry (targetName) {
 
 exports.getEntry = getEntry
 
+const RUNTIME_UV_THREADPOOL_SIZE = ('UV_THREADPOOL_SIZE' in process.env) ? Number(process.env.UV_THREADPOOL_SIZE) : 4
+
 function loadPath (request, options) {
   try {
     if (process.env.EMNAPI_TEST_NATIVE) {
@@ -74,7 +76,7 @@ function loadPath (request, options) {
       const { createNapiModule, loadNapiModule } = require('@emnapi/core')
       const napiModule = createNapiModule({
         context,
-        asyncWorkPoolSize: ('UV_THREADPOOL_SIZE' in process.env) ? Number(process.env.UV_THREADPOOL_SIZE) : 4,
+        asyncWorkPoolSize: RUNTIME_UV_THREADPOOL_SIZE,
         onCreateWorker () {
           return new Worker(join(__dirname, './worker.js'), {
             env: process.env
@@ -127,6 +129,7 @@ function loadPath (request, options) {
       try {
         resolve(Module.emnapiInit({
           context,
+          asyncWorkPoolSize: RUNTIME_UV_THREADPOOL_SIZE,
           ...(options || {})
         }))
       } catch (err) {
