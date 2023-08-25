@@ -41,6 +41,7 @@ function loadPath (request, options) {
       })
       const napiModule = createNapiModule({
         context,
+        asyncWorkPoolSize: RUNTIME_UV_THREADPOOL_SIZE,
         filename: request,
         reuseWorker: true,
         onCreateWorker () {

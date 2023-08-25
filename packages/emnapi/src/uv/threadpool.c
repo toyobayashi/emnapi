@@ -209,7 +209,7 @@ void uv__threadpool_cleanup(void) {
   nthreads = 0;
 }
 
-EMNAPI_EXTERN int _emnapi_async_work_pool_size();
+EMNAPI_INTERNAL_EXTERN int _emnapi_async_work_pool_size();
 
 static void init_threads(void) {
   unsigned int i;
