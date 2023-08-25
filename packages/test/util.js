@@ -41,7 +41,9 @@ function loadPath (request, options) {
       })
       const napiModule = createNapiModule({
         context,
-        asyncWorkPoolSize: RUNTIME_UV_THREADPOOL_SIZE,
+        asyncWorkPoolSize: process.env.EMNAPI_TEST_WASI_THREADS
+          ? RUNTIME_UV_THREADPOOL_SIZE
+          : -RUNTIME_UV_THREADPOOL_SIZE,
         filename: request,
         reuseWorker: true,
         onCreateWorker () {
