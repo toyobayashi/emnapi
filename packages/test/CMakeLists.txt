@@ -288,6 +288,7 @@ add_test("number" "./number/binding.c;./number/test_null.c" OFF)
 add_test("symbol" "./symbol/binding.c" OFF)
 add_test("typedarray" "./typedarray/binding.c" OFF)
 add_test("buffer" "./buffer/binding.c" OFF)
+add_test("buffer_finalizer" "./buffer_finalizer/binding.c" OFF)
 add_test("fatal_exception" "./fatal_exception/binding.c" OFF)
 add_test("cleanup_hook" "./cleanup_hook/binding.c" OFF)
 

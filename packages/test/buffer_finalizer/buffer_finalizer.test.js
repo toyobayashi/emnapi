@@ -10,7 +10,7 @@ process.on('uncaughtException', common.mustCall((err) => {
 }))
 
 async function main () {
-  const binding = await load('buffer')
+  const binding = await load('buffer_finalizer')
 
   await (async function () {
     // eslint-disable-next-line no-lone-blocks
