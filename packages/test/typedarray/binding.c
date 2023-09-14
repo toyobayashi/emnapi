@@ -6,6 +6,7 @@
 // #include <string.h>
 // #include <stdlib.h>
 #include "../common.h"
+#include "../entry_point.h"
 
 void* malloc(size_t size);
 void free(void* p);
