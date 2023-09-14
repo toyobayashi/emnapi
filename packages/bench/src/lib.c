@@ -67,8 +67,8 @@ static napi_value js_fib(napi_env env, napi_callback_info info) {
 #define EXPORT_FUNCTION(env, exports, name, f) \
   do { \
     napi_value f##_fn; \
-    NAPI_CALL((env), napi_create_function((env), NULL, NAPI_AUTO_LENGTH, (f), NULL, &(f##_fn))); \
-    NAPI_CALL((env), napi_set_named_property((env), (exports), (name), (f##_fn))); \
+    NODE_API_CALL((env), napi_create_function((env), NULL, NAPI_AUTO_LENGTH, (f), NULL, &(f##_fn))); \
+    NODE_API_CALL((env), napi_set_named_property((env), (exports), (name), (f##_fn))); \
   } while (0)
 
 NAPI_MODULE_INIT() {
