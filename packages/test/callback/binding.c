@@ -1,5 +1,6 @@
 #include <js_native_api.h>
 #include "../common.h"
+#include "../entry_point.h"
 #if !defined(__wasm__) || (defined(__EMSCRIPTEN__) || defined(__wasi__))
 #include <string.h>
 #endif

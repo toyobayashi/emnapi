@@ -1,6 +1,7 @@
 // #include <assert.h>
 #include "myobject.h"
 #include "../common.h"
+#include "../entry_point.h"
 
 #if !(!defined(__wasm__) || (defined(__EMSCRIPTEN__) || defined(__wasi__)))
 #include <stddef.h>

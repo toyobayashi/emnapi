@@ -1,6 +1,7 @@
 #define NAPI_EXPERIMENTAL
 #include <node_api.h>
 #include "../common.h"
+#include "../entry_point.h"
 
 static napi_value GetFilename(napi_env env, napi_callback_info info) {
   const char* filename;

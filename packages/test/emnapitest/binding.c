@@ -4,6 +4,7 @@
 #include "js_native_api.h"
 #include "emnapi.h"
 #include "../common.h"
+#include "../entry_point.h"
 
 void* malloc(size_t size);
 void free(void* p);

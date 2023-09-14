@@ -1,6 +1,7 @@
 #define NAPI_VERSION 9
 #include <js_native_api.h>
 #include "../common.h"
+#include "../entry_point.h"
 
 #define assert(x) do { if (!(x)) { __builtin_trap(); } } while (0)
 
