@@ -133,7 +133,7 @@ static void Complete(napi_env env, napi_status status, void* data) {
     uv_mutex_unlock(&d->mutex);
   }
 
-  NAPI_CALL_RETURN_VOID(env, napi_delete_async_work(env, c->request));
+  NODE_API_CALL_RETURN_VOID(env, napi_delete_async_work(env, c->request));
   free(c);
 }
 
@@ -142,8 +142,8 @@ static napi_value Test(napi_env env, napi_callback_info info) {
   napi_value argv[1];
   napi_value this;
   void* data;
-  NAPI_CALL(env, napi_get_cb_info(env, info, &argc, argv, &this, &data));
-  NAPI_ASSERT(env, argc >= 1, "Not enough arguments, expected 1.");
+  NODE_API_CALL(env, napi_get_cb_info(env, info, &argc, argv, &this, &data));
+  NODE_API_ASSERT(env, argc >= 1, "Not enough arguments, expected 1.");
 
   async_shared_data* shared_data = calloc(1, sizeof(async_shared_data));
   assert(shared_data != NULL);
@@ -151,14 +151,14 @@ static napi_value Test(napi_env env, napi_callback_info info) {
   assert(ret == 0);
 
   napi_valuetype t;
-  NAPI_CALL(env, napi_typeof(env, argv[0], &t));
-  NAPI_ASSERT(
+  NODE_API_CALL(env, napi_typeof(env, argv[0], &t));
+  NODE_API_ASSERT(
       env, t == napi_number, "Wrong first argument, integer expected.");
-  NAPI_CALL(
+  NODE_API_CALL(
       env, napi_get_value_uint32(env, argv[0], &shared_data->threadpool_size));
 
   napi_value resource_name;
-  NAPI_CALL(env,
+  NODE_API_CALL(env,
                 napi_create_string_utf8(
                     env, "TestResource", NAPI_AUTO_LENGTH, &resource_name));
 
@@ -167,7 +167,7 @@ static napi_value Test(napi_env env, napi_callback_info info) {
     assert(carrier != NULL);
     carrier->task_id = i;
     carrier->shared_data = shared_data;
-    NAPI_CALL(env,
+    NODE_API_CALL(env,
                   napi_create_async_work(env,
                                          NULL,
                                          resource_name,
@@ -175,15 +175,15 @@ static napi_value Test(napi_env env, napi_callback_info info) {
                                          Complete,
                                          carrier,
                                          &carrier->request));
-    NAPI_CALL(env, napi_queue_async_work(env, carrier->request));
+    NODE_API_CALL(env, napi_queue_async_work(env, carrier->request));
   }
 
   return NULL;
 }
 
 static napi_value Init(napi_env env, napi_value exports) {
-  napi_property_descriptor desc = DECLARE_NAPI_PROPERTY("test", Test);
-  NAPI_CALL(env, napi_define_properties(env, exports, 1, &desc));
+  napi_property_descriptor desc = DECLARE_NODE_API_PROPERTY("test", Test);
+  NODE_API_CALL(env, napi_define_properties(env, exports, 1, &desc));
   return exports;
 }
 

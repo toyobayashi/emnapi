@@ -109,7 +109,7 @@ Create `hello.c`.
 ```c
 #include <node_api.h>
 
-#define NAPI_CALL(env, the_call)                                \
+#define NODE_API_CALL(env, the_call)                                \
   do {                                                          \
     if ((the_call) != napi_ok) {                                \
       const napi_extended_error_info *error_info;               \
@@ -130,15 +130,15 @@ Create `hello.c`.
 static napi_value js_hello(napi_env env, napi_callback_info info) {
   napi_value world;
   const char* str = "world";
-  NAPI_CALL(env, napi_create_string_utf8(env, str, NAPI_AUTO_LENGTH, &world));
+  NODE_API_CALL(env, napi_create_string_utf8(env, str, NAPI_AUTO_LENGTH, &world));
   return world;
 }
 
 NAPI_MODULE_INIT() {
   napi_value hello;
-  NAPI_CALL(env, napi_create_function(env, "hello", NAPI_AUTO_LENGTH,
+  NODE_API_CALL(env, napi_create_function(env, "hello", NAPI_AUTO_LENGTH,
                                       js_hello, NULL, &hello));
-  NAPI_CALL(env, napi_set_named_property(env, exports, "hello", hello));
+  NODE_API_CALL(env, napi_set_named_property(env, exports, "hello", hello));
   return exports;
 }
 ```

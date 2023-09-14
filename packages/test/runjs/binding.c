@@ -32,22 +32,22 @@ static napi_value CreateRef(napi_env env, napi_callback_info info) {
   napi_value cb;
   napi_valuetype value_type;
   napi_ref* ref = malloc(sizeof(*ref));
-  NAPI_CALL(env, napi_get_cb_info(env, info, &argc, &cb, NULL, NULL));
-  NAPI_ASSERT(env, argc == 1, "Function takes only one argument");
-  NAPI_CALL(env, napi_typeof(env, cb, &value_type));
-  NAPI_ASSERT(
+  NODE_API_CALL(env, napi_get_cb_info(env, info, &argc, &cb, NULL, NULL));
+  NODE_API_ASSERT(env, argc == 1, "Function takes only one argument");
+  NODE_API_CALL(env, napi_typeof(env, cb, &value_type));
+  NODE_API_ASSERT(
       env, value_type == napi_function, "argument must be function");
-  NAPI_CALL(env, napi_add_finalizer(env, cb, ref, Finalize, NULL, ref));
+  NODE_API_CALL(env, napi_add_finalizer(env, cb, ref, Finalize, NULL, ref));
   return cb;
 }
 
 EXTERN_C_START
 napi_value Init(napi_env env, napi_value exports) {
   napi_property_descriptor properties[] = {
-      DECLARE_NAPI_PROPERTY("createRef", CreateRef),
+      DECLARE_NODE_API_PROPERTY("createRef", CreateRef),
   };
 
-  NAPI_CALL(
+  NODE_API_CALL(
       env,
       napi_define_properties(
           env, exports, sizeof(properties) / sizeof(*properties), properties));

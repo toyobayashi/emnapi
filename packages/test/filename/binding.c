@@ -6,8 +6,8 @@ static napi_value GetFilename(napi_env env, napi_callback_info info) {
   const char* filename;
   napi_value result;
 
-  NAPI_CALL(env, node_api_get_module_file_name(env, &filename));
-  NAPI_CALL(env,
+  NODE_API_CALL(env, node_api_get_module_file_name(env, &filename));
+  NODE_API_CALL(env,
       napi_create_string_utf8(env, filename, NAPI_AUTO_LENGTH, &result));
 
   return result;
@@ -16,10 +16,10 @@ static napi_value GetFilename(napi_env env, napi_callback_info info) {
 EXTERN_C_START
 napi_value Init(napi_env env, napi_value exports) {
   napi_property_descriptor descriptors[] = {
-    DECLARE_NAPI_PROPERTY("filename", GetFilename)
+    DECLARE_NODE_API_PROPERTY("filename", GetFilename)
   };
 
-  NAPI_CALL(env, napi_define_properties(
+  NODE_API_CALL(env, napi_define_properties(
       env, exports, sizeof(descriptors) / sizeof(*descriptors), descriptors));
 
   return exports;

@@ -4,24 +4,24 @@
 static napi_value Test1(napi_env env, napi_callback_info info) {
   size_t argc = 1;
   napi_value args[1];
-  NAPI_CALL(env, napi_get_cb_info(env, info, &argc, args, NULL, NULL));
+  NODE_API_CALL(env, napi_get_cb_info(env, info, &argc, args, NULL, NULL));
 
-  NAPI_ASSERT(env, argc == 1,
+  NODE_API_ASSERT(env, argc == 1,
       "Test1: Wrong number of arguments. Expects a single argument.");
 
   napi_valuetype valuetype0;
-  NAPI_CALL(env, napi_typeof(env, args[0], &valuetype0));
-  NAPI_ASSERT(env, valuetype0 == napi_function,
+  NODE_API_CALL(env, napi_typeof(env, args[0], &valuetype0));
+  NODE_API_ASSERT(env, valuetype0 == napi_function,
       "Test1: Wrong type of arguments. Expects a function as first argument.");
 
   napi_value argv[1];
-  NAPI_CALL(env, napi_create_bigint_int64(env, (int64_t) info, argv));
+  NODE_API_CALL(env, napi_create_bigint_int64(env, (int64_t) info, argv));
 
   napi_value global;
-  NAPI_CALL(env, napi_get_global(env, &global));
+  NODE_API_CALL(env, napi_get_global(env, &global));
 
   napi_value cb = args[0];
-  NAPI_CALL(env, napi_call_function(env, global, cb, 1, argv, NULL));
+  NODE_API_CALL(env, napi_call_function(env, global, cb, 1, argv, NULL));
 
   return NULL;
 }
@@ -29,30 +29,30 @@ static napi_value Test1(napi_env env, napi_callback_info info) {
 static napi_value Test2(napi_env env, napi_callback_info info) {
   size_t argc = 1;
   napi_value args[1];
-  NAPI_CALL(env, napi_get_cb_info(env, info, &argc, args, NULL, NULL));
+  NODE_API_CALL(env, napi_get_cb_info(env, info, &argc, args, NULL, NULL));
 
-  NAPI_ASSERT(env, argc == 1,
+  NODE_API_ASSERT(env, argc == 1,
       "Test2: Wrong number of arguments. Expects a single argument.");
 
   napi_valuetype valuetype0;
-  NAPI_CALL(env, napi_typeof(env, args[0], &valuetype0));
-  NAPI_ASSERT(env, valuetype0 == napi_bigint,
+  NODE_API_CALL(env, napi_typeof(env, args[0], &valuetype0));
+  NODE_API_ASSERT(env, valuetype0 == napi_bigint,
       "Test2: Wrong type of arguments. Expects a bigint as first argument.");
   
   int64_t prev_info;
   bool lossless;
-  NAPI_CALL(env, napi_get_value_bigint_int64(env, args[0], &prev_info, &lossless));
+  NODE_API_CALL(env, napi_get_value_bigint_int64(env, args[0], &prev_info, &lossless));
 
   size_t prev_argc = 1;
   napi_value prev_args[1];
-  NAPI_CALL(env, napi_get_cb_info(env, (napi_callback_info) prev_info, &prev_argc, prev_args, NULL, NULL));
+  NODE_API_CALL(env, napi_get_cb_info(env, (napi_callback_info) prev_info, &prev_argc, prev_args, NULL, NULL));
 
-  NAPI_ASSERT(env, prev_argc == 1,
+  NODE_API_ASSERT(env, prev_argc == 1,
       "Test2: Wrong number of arguments. Expects a single argument.");
 
   napi_valuetype t;
-  NAPI_CALL(env, napi_typeof(env, prev_args[0], &t));
-  NAPI_ASSERT(env, t == napi_function,
+  NODE_API_CALL(env, napi_typeof(env, prev_args[0], &t));
+  NODE_API_ASSERT(env, t == napi_function,
       "Test2: Wrong type of arguments. Expects a function as first argument.");
   return NULL;
 }
@@ -60,10 +60,10 @@ static napi_value Test2(napi_env env, napi_callback_info info) {
 EXTERN_C_START
 napi_value Init(napi_env env, napi_value exports) {
   napi_property_descriptor desc[2] = {
-    DECLARE_NAPI_PROPERTY("test1", Test1),
-    DECLARE_NAPI_PROPERTY("test2", Test2),
+    DECLARE_NODE_API_PROPERTY("test1", Test1),
+    DECLARE_NODE_API_PROPERTY("test2", Test2),
   };
-  NAPI_CALL(env, napi_define_properties(env, exports, 2, desc));
+  NODE_API_CALL(env, napi_define_properties(env, exports, 2, desc));
   return exports;
 }
 EXTERN_C_END

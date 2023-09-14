@@ -10,7 +10,7 @@ typedef double double_t;
                                             napi_callback_info info) {         \
     napi_value return_value, call_result;                                      \
     lowercase##_t value = 42;                                                  \
-    NAPI_CALL(env, napi_create_object(env, &return_value));                \
+    NODE_API_CALL(env, napi_create_object(env, &return_value));                \
     add_returned_status(env,                                                   \
                         "envIsNull",                                           \
                         return_value,                                          \
@@ -27,8 +27,8 @@ typedef double double_t;
                                               napi_callback_info info) {       \
     napi_value return_value, call_result;                                      \
     lowercase##_t value = 42;                                                  \
-    NAPI_CALL(env, napi_create_object(env, &return_value));                \
-    NAPI_CALL(env, napi_create_##lowercase(env, value, &call_result));     \
+    NODE_API_CALL(env, napi_create_object(env, &return_value));                \
+    NODE_API_CALL(env, napi_create_##lowercase(env, value, &call_result));     \
     add_returned_status(                                                       \
         env,                                                                   \
         "envIsNull",                                                           \
@@ -54,24 +54,24 @@ BINDING_FOR_GET_VALUE(Int64, int64)
 
 void init_test_null(napi_env env, napi_value exports) {
   const napi_property_descriptor test_null_props[] = {
-      DECLARE_NAPI_PROPERTY("createDouble", CreateDouble),
-      DECLARE_NAPI_PROPERTY("createInt32", CreateInt32),
-      DECLARE_NAPI_PROPERTY("createUint32", CreateUint32),
-      DECLARE_NAPI_PROPERTY("createInt64", CreateInt64),
-      DECLARE_NAPI_PROPERTY("getValueDouble", GetValueDouble),
-      DECLARE_NAPI_PROPERTY("getValueInt32", GetValueInt32),
-      DECLARE_NAPI_PROPERTY("getValueUint32", GetValueUint32),
-      DECLARE_NAPI_PROPERTY("getValueInt64", GetValueInt64),
+      DECLARE_NODE_API_PROPERTY("createDouble", CreateDouble),
+      DECLARE_NODE_API_PROPERTY("createInt32", CreateInt32),
+      DECLARE_NODE_API_PROPERTY("createUint32", CreateUint32),
+      DECLARE_NODE_API_PROPERTY("createInt64", CreateInt64),
+      DECLARE_NODE_API_PROPERTY("getValueDouble", GetValueDouble),
+      DECLARE_NODE_API_PROPERTY("getValueInt32", GetValueInt32),
+      DECLARE_NODE_API_PROPERTY("getValueUint32", GetValueUint32),
+      DECLARE_NODE_API_PROPERTY("getValueInt64", GetValueInt64),
   };
   napi_value test_null;
 
-  NAPI_CALL_RETURN_VOID(env, napi_create_object(env, &test_null));
-  NAPI_CALL_RETURN_VOID(
+  NODE_API_CALL_RETURN_VOID(env, napi_create_object(env, &test_null));
+  NODE_API_CALL_RETURN_VOID(
       env,
       napi_define_properties(env,
                              test_null,
                              sizeof(test_null_props) / sizeof(*test_null_props),
                              test_null_props));
-  NAPI_CALL_RETURN_VOID(
+  NODE_API_CALL_RETURN_VOID(
       env, napi_set_named_property(env, exports, "testNull", test_null));
 }
