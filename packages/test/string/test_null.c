@@ -7,7 +7,7 @@
   static napi_value                                                       \
   test_create_##charset(napi_env env, napi_callback_info info) {          \
     napi_value return_value, result;                                      \
-    NAPI_CALL(env, napi_create_object(env, &return_value));           \
+    NODE_API_CALL(env, napi_create_object(env, &return_value));           \
                                                                           \
     add_returned_status(env,                                              \
                         "envIsNull",                                      \
@@ -52,13 +52,13 @@ void init_test_null(napi_env env, napi_value exports) {
   napi_value test_null;
 
   const napi_property_descriptor test_null_props[] = {
-    DECLARE_NAPI_PROPERTY("test_create_utf8", test_create_utf8),
-    DECLARE_NAPI_PROPERTY("test_create_latin1", test_create_latin1),
-    DECLARE_NAPI_PROPERTY("test_create_utf16", test_create_utf16),
+    DECLARE_NODE_API_PROPERTY("test_create_utf8", test_create_utf8),
+    DECLARE_NODE_API_PROPERTY("test_create_latin1", test_create_latin1),
+    DECLARE_NODE_API_PROPERTY("test_create_utf16", test_create_utf16),
   };
 
-  NAPI_CALL_RETURN_VOID(env, napi_create_object(env, &test_null));
-  NAPI_CALL_RETURN_VOID(env, napi_define_properties(
+  NODE_API_CALL_RETURN_VOID(env, napi_create_object(env, &test_null));
+  NODE_API_CALL_RETURN_VOID(env, napi_define_properties(
       env, test_null, sizeof(test_null_props) / sizeof(*test_null_props),
       test_null_props));
 
@@ -66,6 +66,6 @@ void init_test_null(napi_env env, napi_value exports) {
     "testNull", NULL, NULL, NULL, NULL, test_null, napi_enumerable, NULL
   };
 
-  NAPI_CALL_RETURN_VOID(env,
+  NODE_API_CALL_RETURN_VOID(env,
       napi_define_properties(env, exports, 1, &test_null_set));
 }

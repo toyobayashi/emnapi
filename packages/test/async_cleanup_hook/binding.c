@@ -57,18 +57,18 @@ static void ObjectFinalizer(napi_env env, void* data, void* hint) {
   assert(cleanup_hook_count == 6);
 
   napi_ref* ref = data;
-  NAPI_CALL_RETURN_VOID(env, napi_delete_reference(env, *ref));
+  NODE_API_CALL_RETURN_VOID(env, napi_delete_reference(env, *ref));
   free(ref);
 }
 
 static void CreateObjectWrap(napi_env env) {
   napi_value js_obj;
   napi_ref* ref = malloc(sizeof(*ref));
-  NAPI_CALL_RETURN_VOID(env, napi_create_object(env, &js_obj));
-  NAPI_CALL_RETURN_VOID(
+  NODE_API_CALL_RETURN_VOID(env, napi_create_object(env, &js_obj));
+  NODE_API_CALL_RETURN_VOID(
       env, napi_wrap(env, js_obj, ref, ObjectFinalizer, NULL, ref));
   // create a strong reference so that the finalizer is called at shutdown.
-  NAPI_CALL_RETURN_VOID(env, napi_reference_ref(env, *ref, NULL));
+  NODE_API_CALL_RETURN_VOID(env, napi_reference_ref(env, *ref, NULL));
 }
 
 static napi_value Init(napi_env env, napi_value exports) {

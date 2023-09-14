@@ -49,7 +49,7 @@ static void Execute(napi_env env, void* user_data) {
 
 static void Complete(napi_env env, napi_status status, void* user_data) {
   struct ctx* data = (struct ctx*) user_data;
-  NAPI_CALL_RETURN_VOID(env, napi_release_threadsafe_function(data->progress_callback, napi_tsfn_release));
+  NODE_API_CALL_RETURN_VOID(env, napi_release_threadsafe_function(data->progress_callback, napi_tsfn_release));
 }
 
 static void tsfn_finalize(napi_env env, void* user_data, void* hint) {
@@ -60,15 +60,15 @@ static void tsfn_finalize(napi_env env, void* user_data, void* hint) {
   int s = data->status;
   free(data);
   napi_value callback, undefined;
-  NAPI_CALL_RETURN_VOID(env, napi_get_reference_value(env, ok_callback, &callback));
+  NODE_API_CALL_RETURN_VOID(env, napi_get_reference_value(env, ok_callback, &callback));
 
   napi_value argv[2];
-  NAPI_CALL_RETURN_VOID(env, napi_create_int32(env, s, argv));
-  NAPI_CALL_RETURN_VOID(env, napi_create_int32(env, out, argv + 1));
-  NAPI_CALL_RETURN_VOID(env, napi_get_undefined(env, &undefined));
-  NAPI_CALL_RETURN_VOID(env, napi_call_function(env, undefined, callback, 2, argv, NULL));
-  NAPI_CALL_RETURN_VOID(env, napi_delete_reference(env, ok_callback));
-  NAPI_CALL_RETURN_VOID(env, napi_delete_async_work(env, work));
+  NODE_API_CALL_RETURN_VOID(env, napi_create_int32(env, s, argv));
+  NODE_API_CALL_RETURN_VOID(env, napi_create_int32(env, out, argv + 1));
+  NODE_API_CALL_RETURN_VOID(env, napi_get_undefined(env, &undefined));
+  NODE_API_CALL_RETURN_VOID(env, napi_call_function(env, undefined, callback, 2, argv, NULL));
+  NODE_API_CALL_RETURN_VOID(env, napi_delete_reference(env, ok_callback));
+  NODE_API_CALL_RETURN_VOID(env, napi_delete_async_work(env, work));
 }
 
 static void call_js(napi_env env, napi_value cb, void* hint, void* data) {
@@ -77,9 +77,9 @@ static void call_js(napi_env env, napi_value cb, void* hint, void* data) {
   
   if (!(env == NULL || cb == NULL)) {
     napi_value argv, undefined;
-    NAPI_CALL_RETURN_VOID(env, napi_create_int32(env, index, &argv));
-    NAPI_CALL_RETURN_VOID(env, napi_get_undefined(env, &undefined));
-    NAPI_CALL_RETURN_VOID(env, napi_call_function(env, undefined, cb, 1, &argv,
+    NODE_API_CALL_RETURN_VOID(env, napi_create_int32(env, index, &argv));
+    NODE_API_CALL_RETURN_VOID(env, napi_get_undefined(env, &undefined));
+    NODE_API_CALL_RETURN_VOID(env, napi_call_function(env, undefined, cb, 1, &argv,
         NULL));
   }
 }
@@ -88,20 +88,20 @@ static napi_value Test(napi_env env, napi_callback_info info) {
   size_t argc = 4;
   napi_value argv[4];
   napi_value resname1, resname2;
-  NAPI_CALL(env, napi_get_cb_info(env, info, &argc, argv, NULL, NULL));
-  NAPI_CALL(env, napi_create_string_utf8(env, "progress_callback", -1, &resname1));
-  NAPI_CALL(env, napi_create_string_utf8(env, "tsfntest", -1, &resname2));
+  NODE_API_CALL(env, napi_get_cb_info(env, info, &argc, argv, NULL, NULL));
+  NODE_API_CALL(env, napi_create_string_utf8(env, "progress_callback", -1, &resname1));
+  NODE_API_CALL(env, napi_create_string_utf8(env, "tsfntest", -1, &resname2));
 
   int32_t in, count;
   napi_ref ok_callback;
   
-  NAPI_CALL(env, napi_get_value_int32(env, argv[0], &in));
-  NAPI_CALL(env, napi_get_value_int32(env, argv[1], &count));
-  NAPI_CALL(env, napi_create_reference(env, argv[2], 1, &ok_callback));
+  NODE_API_CALL(env, napi_get_value_int32(env, argv[0], &in));
+  NODE_API_CALL(env, napi_get_value_int32(env, argv[1], &count));
+  NODE_API_CALL(env, napi_create_reference(env, argv[2], 1, &ok_callback));
 
   struct ctx* data = (struct ctx*)malloc(sizeof(struct ctx));
   if (!data) {
-    NAPI_CALL(env, napi_throw_error(env, NULL, "OOM"));
+    NODE_API_CALL(env, napi_throw_error(env, NULL, "OOM"));
     return NULL;
   }
   data->in = in;
@@ -110,20 +110,20 @@ static napi_value Test(napi_env env, napi_callback_info info) {
   data->out = in;
   data->status = 0;
 
-  NAPI_CALL(env, napi_create_async_work(env, NULL, resname2, Execute, Complete, data, &data->work));
-  NAPI_CALL(env, napi_create_threadsafe_function(env,
+  NODE_API_CALL(env, napi_create_async_work(env, NULL, resname2, Execute, Complete, data, &data->work));
+  NODE_API_CALL(env, napi_create_threadsafe_function(env,
     argv[3], NULL, resname1, 0, 1,
     data, tsfn_finalize, NULL, call_js, &data->progress_callback));
-  NAPI_CALL(env, napi_queue_async_work(env, data->work));
+  NODE_API_CALL(env, napi_queue_async_work(env, data->work));
   return NULL;
 }
 
 static napi_value Init(napi_env env, napi_value exports) {
   napi_property_descriptor properties[] = {
-    DECLARE_NAPI_PROPERTY("testTSFN", Test),
+    DECLARE_NODE_API_PROPERTY("testTSFN", Test),
   };
 
-  NAPI_CALL(env, napi_define_properties(env, exports,
+  NODE_API_CALL(env, napi_define_properties(env, exports,
     sizeof(properties)/sizeof(properties[0]), properties));
 
   return exports;
