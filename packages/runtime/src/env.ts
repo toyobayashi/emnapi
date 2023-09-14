@@ -251,15 +251,23 @@ export class NodeEnv extends Env {
       const hasProcess = typeof process === 'object' && process !== null
       const hasForceFlag = hasProcess ? Boolean(process.execArgv && (process.execArgv.indexOf('--force-node-api-uncaught-exceptions-policy') !== -1)) : false
       if (!hasForceFlag && !enforceUncaughtExceptionPolicy) {
-        if (hasProcess && typeof process.emitWarning === 'function') {
-          process.emitWarning(
-            'Uncaught N-API callback exception detected, please run node with option --force-node-api-uncaught-exceptions-policy=true to handle those exceptions properly.',
-            'DeprecationWarning',
-            'DEP0168'
-          )
-        } else {
-          throw err
-        }
+        const warn = hasProcess && typeof process.emitWarning === 'function'
+          ? process.emitWarning
+          : function (warning: string | Error, type?: string, code?: string) {
+            if (warning instanceof Error) {
+              console.warn(warning.toString())
+            } else {
+              const prefix = code ? `[${code}] ` : ''
+              // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+              console.warn(`${prefix}${type || 'Warning'}: ${warning}`)
+            }
+          }
+        warn(
+          'Uncaught N-API callback exception detected, please run node with option --force-node-api-uncaught-exceptions-policy=true to handle those exceptions properly.',
+          'DeprecationWarning',
+          'DEP0168'
+        )
+        return
       }
       (envObject as NodeEnv).triggerFatalException(err)
     })
