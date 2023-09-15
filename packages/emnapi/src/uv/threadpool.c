@@ -212,6 +212,7 @@ void uv__threadpool_cleanup(void) {
 EMNAPI_INTERNAL_EXTERN int _emnapi_async_work_pool_size();
 
 static void init_threads(void) {
+  uv_thread_options_t config;
   unsigned int i;
 #if !defined(EMNAPI_WORKER_POOL_SIZE) || !(EMNAPI_WORKER_POOL_SIZE > 0)
   const char* val;
@@ -262,11 +263,17 @@ static void init_threads(void) {
     abort();
 #endif
 
+  // config.flags = UV_THREAD_HAS_STACK_SIZE;
+  // config.stack_size = 8u << 20;  /* 8 MB */
+
+  // use DEFAULT_PTHREAD_STACK_SIZE
+  config.flags = UV_THREAD_NO_FLAGS;
+
   for (i = 0; i < nthreads; i++)
 #ifndef __EMNAPI_WASI_THREADS__
-    if (uv_thread_create(threads + i, (uv_thread_cb) worker, &sem))
+    if (uv_thread_create_ex(threads + i, &config, (uv_thread_cb) worker, &sem))
 #else
-    if (uv_thread_create(threads + i, (uv_thread_cb) worker, NULL))
+    if (uv_thread_create_ex(threads + i, &config, (uv_thread_cb) worker, NULL))
 #endif
       abort();
 
