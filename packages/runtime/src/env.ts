@@ -250,7 +250,7 @@ export class NodeEnv extends Env {
       }
       const hasProcess = typeof process === 'object' && process !== null
       const hasForceFlag = hasProcess ? Boolean(process.execArgv && (process.execArgv.indexOf('--force-node-api-uncaught-exceptions-policy') !== -1)) : false
-      if (!hasForceFlag && !enforceUncaughtExceptionPolicy) {
+      if (envObject.moduleApiVersion < NAPI_VERSION_EXPERIMENTAL && !hasForceFlag && !enforceUncaughtExceptionPolicy) {
         const warn = hasProcess && typeof process.emitWarning === 'function'
           ? process.emitWarning
           : function (warning: string | Error, type?: string, code?: string) {

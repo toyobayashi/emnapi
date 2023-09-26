@@ -21,9 +21,9 @@ module.exports = new Promise((resolve) => {
   })
 
   const p2 = new Promise((resolve, reject) => {
-    load('ref').then((test_reference) => {
+    load('ref_finalizer').then((binding) => {
       {
-        test_reference.createExternalWithJsFinalize(
+        binding.createExternalWithJsFinalize(
           common.mustCall(() => {
             throw new Error('finalizer error')
           }))
