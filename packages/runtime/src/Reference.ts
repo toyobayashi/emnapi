@@ -6,7 +6,7 @@ import type { Handle } from './Handle'
 
 function weakCallback (ref: Reference): void {
   ref.persistent.reset()
-  ref.envObject.enqueueFinalizer(ref)
+  ref.envObject.invokeFinalizerFromGC(ref)
 }
 
 function canBeHeldWeakly (value: Handle<any>): boolean {

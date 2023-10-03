@@ -241,6 +241,7 @@ var emnapiString = {
   ) {
     $CHECK_ENV!(env)
     const envObject = emnapiCtx.envStore.get(env)!
+    envObject.checkGCAccess()
     $from64('length')
     const autoLength = length === -1
     const sizelength = length >>> 0
@@ -271,6 +272,8 @@ var emnapiString = {
     createApi: (env: napi_env, str: number, length: size_t, result: Pointer<napi_value>) => napi_status,
     stringMaker: (autoLength: boolean, sizeLength: number) => string
   ) {
+    const envObject = emnapiCtx.envStore.get(env)!
+    envObject.checkGCAccess()
     const status = createApi(env, str, length, result)
     if (status === napi_status.napi_ok) {
       if (copied) {

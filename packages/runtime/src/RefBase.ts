@@ -1,22 +1,7 @@
 import type { Env } from './env'
-import { Finalizer } from './Finalizer'
-import { RefTracker } from './RefTracker'
+import { TrackedFinalizer } from './TrackedFinalizer'
 
-export interface RefBase extends Finalizer, RefTracker {}
-
-export class RefBase extends Finalizer {
-  public static finalizeAll (list: RefTracker): void {
-    RefTracker.finalizeAll(list)
-  }
-
-  public link (list: RefTracker): void {
-    RefTracker.prototype.link.call(this, list)
-  }
-
-  public unlink (): void {
-    RefTracker.prototype.unlink.call(this)
-  }
-
+export class RefBase extends TrackedFinalizer {
   private _refcount: uint32_t
   private readonly _ownership: Ownership
 
@@ -29,18 +14,8 @@ export class RefBase extends Finalizer {
     finalize_hint: void_p
   ) {
     super(envObject, finalize_callback, finalize_data, finalize_hint)
-    ;(this as any)._next = null
-    ;(this as any)._prev = null
     this._refcount = initial_refcount
     this._ownership = ownership
-
-    this.link(!finalize_callback ? envObject.reflist : envObject.finalizing_reflist)
-  }
-
-  public dispose (): void {
-    this.unlink()
-    this.envObject.dequeueFinalizer(this)
-    super.dispose()
   }
 
   public data (): void_p {
@@ -67,32 +42,6 @@ export class RefBase extends Finalizer {
   }
 
   public finalize (): void {
-    const ownership = this._ownership
-    // Swap out the field finalize_callback so that it can not be accidentally
-    // called more than once.
-    const finalize_callback = this._finalizeCallback
-    const finalize_data = this._finalizeData
-    const finalize_hint = this._finalizeHint
-    this.resetFinalizer()
-
-    this.unlink()
-
-    let error: any
-    let caught = false
-    if (finalize_callback) {
-      const fini = Number(finalize_callback)
-      try {
-        this.envObject.callFinalizer(fini, finalize_data, finalize_hint)
-      } catch (err) {
-        caught = true
-        error = err
-      }
-    }
-    if (ownership === Ownership.kRuntime) {
-      this.dispose()
-    }
-    if (caught) {
-      throw error
-    }
+    this.finalizeCore(this._ownership === Ownership.kRuntime)
   }
 }

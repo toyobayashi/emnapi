@@ -167,6 +167,7 @@ function napi_get_new_target (
   const envObject = emnapiCtx.envStore.get(env)!
   // if (!cbinfo) return envObject.setLastError(napi_status.napi_invalid_arg)
   $CHECK_ARG!(envObject, result)
+  envObject.checkGCAccess()
 
   $from64('result')
 

@@ -1,6 +1,7 @@
 function napi_typeof (env: napi_env, value: napi_value, result: Pointer<napi_valuetype>): napi_status {
   $CHECK_ENV!(env)
   const envObject = emnapiCtx.envStore.get(env)!
+  envObject.checkGCAccess()
   $CHECK_ARG!(envObject, value)
   $CHECK_ARG!(envObject, result)
   const v = emnapiCtx.handleStore.get(value)!
@@ -142,6 +143,7 @@ function napi_instanceof (env: napi_env, object: napi_value, constructor: napi_v
 function napi_is_array (env: napi_env, value: napi_value, result: Pointer<bool>): napi_status {
   $CHECK_ENV!(env)
   const envObject = emnapiCtx.envStore.get(env)!
+  envObject.checkGCAccess()
   $CHECK_ARG!(envObject, value)
   $CHECK_ARG!(envObject, result)
   const h = emnapiCtx.handleStore.get(value)!
@@ -155,6 +157,7 @@ function napi_is_array (env: napi_env, value: napi_value, result: Pointer<bool>)
 function napi_is_arraybuffer (env: napi_env, value: napi_value, result: Pointer<bool>): napi_status {
   $CHECK_ENV!(env)
   const envObject = emnapiCtx.envStore.get(env)!
+  envObject.checkGCAccess()
   $CHECK_ARG!(envObject, value)
   $CHECK_ARG!(envObject, result)
   const h = emnapiCtx.handleStore.get(value)!
@@ -168,6 +171,7 @@ function napi_is_arraybuffer (env: napi_env, value: napi_value, result: Pointer<
 function napi_is_date (env: napi_env, value: napi_value, result: Pointer<bool>): napi_status {
   $CHECK_ENV!(env)
   const envObject = emnapiCtx.envStore.get(env)!
+  envObject.checkGCAccess()
   $CHECK_ARG!(envObject, value)
   $CHECK_ARG!(envObject, result)
   const h = emnapiCtx.handleStore.get(value)!
@@ -181,6 +185,7 @@ function napi_is_date (env: napi_env, value: napi_value, result: Pointer<bool>):
 function napi_is_error (env: napi_env, value: napi_value, result: Pointer<bool>): napi_status {
   $CHECK_ENV!(env)
   const envObject = emnapiCtx.envStore.get(env)!
+  envObject.checkGCAccess()
   $CHECK_ARG!(envObject, value)
   $CHECK_ARG!(envObject, result)
   const val = emnapiCtx.handleStore.get(value)!.value
@@ -194,6 +199,7 @@ function napi_is_error (env: napi_env, value: napi_value, result: Pointer<bool>)
 function napi_is_typedarray (env: napi_env, value: napi_value, result: Pointer<bool>): napi_status {
   $CHECK_ENV!(env)
   const envObject = emnapiCtx.envStore.get(env)!
+  envObject.checkGCAccess()
   $CHECK_ARG!(envObject, value)
   $CHECK_ARG!(envObject, result)
   const h = emnapiCtx.handleStore.get(value)!
@@ -207,6 +213,7 @@ function napi_is_typedarray (env: napi_env, value: napi_value, result: Pointer<b
 function napi_is_buffer (env: napi_env, value: napi_value, result: Pointer<bool>): napi_status {
   $CHECK_ENV!(env)
   const envObject = emnapiCtx.envStore.get(env)!
+  envObject.checkGCAccess()
   $CHECK_ARG!(envObject, value)
   $CHECK_ARG!(envObject, result)
   const h = emnapiCtx.handleStore.get(value)!
@@ -220,6 +227,7 @@ function napi_is_buffer (env: napi_env, value: napi_value, result: Pointer<bool>
 function napi_is_dataview (env: napi_env, value: napi_value, result: Pointer<bool>): napi_status {
   $CHECK_ENV!(env)
   const envObject = emnapiCtx.envStore.get(env)!
+  envObject.checkGCAccess()
   $CHECK_ARG!(envObject, value)
   $CHECK_ARG!(envObject, result)
   const h = emnapiCtx.handleStore.get(value)!
@@ -250,6 +258,7 @@ function napi_strict_equals (env: napi_env, lhs: napi_value, rhs: napi_value, re
 function napi_detach_arraybuffer (env: napi_env, arraybuffer: napi_value): napi_status {
   $CHECK_ENV!(env)
   const envObject = emnapiCtx.envStore.get(env)!
+  envObject.checkGCAccess()
   $CHECK_ARG!(envObject, arraybuffer)
   const value = emnapiCtx.handleStore.get(arraybuffer)!.value
   if (!(value instanceof ArrayBuffer)) {
@@ -271,6 +280,7 @@ function napi_detach_arraybuffer (env: napi_env, arraybuffer: napi_value): napi_
 
 function napi_is_detached_arraybuffer (env: napi_env, arraybuffer: napi_value, result: Pointer<bool>): napi_status {
   return $PREAMBLE!(env, (envObject) => {
+    envObject.checkGCAccess()
     $CHECK_ARG!(envObject, arraybuffer)
     $CHECK_ARG!(envObject, result)
     const h = emnapiCtx.handleStore.get(arraybuffer)!

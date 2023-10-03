@@ -54,6 +54,8 @@ export class Env implements IStoreValue {
     engineReserved: 0 as Ptr
   }
 
+  public inGcFinalizer = false
+
   public constructor (
     public readonly ctx: Context,
     public moduleApiVersion: number,
@@ -137,6 +139,33 @@ export class Env implements IStoreValue {
       this.callIntoModule(() => { f(env, data, hint) })
     } finally {
       this.ctx.closeScope(this, scope)
+    }
+  }
+
+  public invokeFinalizerFromGC (finalizer: RefTracker): void {
+    if (this.moduleApiVersion !== NAPI_VERSION_EXPERIMENTAL) {
+      this.enqueueFinalizer(finalizer)
+    } else {
+      const saved = this.inGcFinalizer
+      this.inGcFinalizer = true
+      try {
+        finalizer.finalize()
+      } finally {
+        this.inGcFinalizer = saved
+      }
+    }
+  }
+
+  public checkGCAccess (): void {
+    if (this.moduleApiVersion === NAPI_VERSION_EXPERIMENTAL && this.inGcFinalizer) {
+      this.abort(
+        'Finalizer is calling a function that may affect GC state.\n' +
+        'The finalizers are run directly from GC and must not affect GC ' +
+        'state.\n' +
+        'Use `node_api_post_finalizer` from inside of the finalizer to work ' +
+        'around this issue.\n' +
+        'It schedules the call as a new task in the event loop.'
+      )
     }
   }
 
@@ -224,7 +253,7 @@ export class NodeEnv extends Env {
   }
 
   public override canCallIntoJs (): boolean {
-    return this.ctx.canCallIntoJs()
+    return super.canCallIntoJs() && this.ctx.canCallIntoJs()
   }
 
   public triggerFatalException (err: any): void {

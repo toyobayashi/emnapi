@@ -184,6 +184,11 @@ function napi_make_callback (env: napi_env, async_context: Pointer<int64_t>, rec
   })
 }
 
+function __emnapi_env_check_gc_access (env: napi_env): void {
+  const envObject = emnapiCtx.envStore.get(env)!
+  envObject.checkGCAccess()
+}
+
 emnapiImplementInternal('_emnapi_node_emit_async_init', 'vppdp', __emnapi_node_emit_async_init)
 emnapiImplementInternal('_emnapi_node_emit_async_destroy', 'vdd', __emnapi_node_emit_async_destroy)
 // emnapiImplementInternal('_emnapi_node_open_callback_scope', 'vpddp', __emnapi_node_open_callback_scope)
@@ -192,6 +197,7 @@ emnapiImplementInternal('_emnapi_node_make_callback', 'ipppppddp', __emnapi_node
 
 emnapiImplementInternal('_emnapi_async_init_js', 'ippp', __emnapi_async_init_js)
 emnapiImplementInternal('_emnapi_async_destroy_js', 'ip', __emnapi_async_destroy_js)
+emnapiImplementInternal('_emnapi_env_check_gc_access', 'vp', __emnapi_env_check_gc_access)
 
 emnapiImplement('napi_open_callback_scope', 'ipppp', napi_open_callback_scope)
 emnapiImplement('napi_close_callback_scope', 'ipp', napi_close_callback_scope)

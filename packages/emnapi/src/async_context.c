@@ -21,6 +21,7 @@ napi_async_init(napi_env env,
                 napi_value async_resource_name,
                 napi_async_context* result) {
   CHECK_ENV(env);
+  _emnapi_env_check_gc_access(env);
   CHECK_ARG(env, async_resource_name);
   CHECK_ARG(env, result);
 
@@ -39,6 +40,7 @@ napi_async_init(napi_env env,
 napi_status napi_async_destroy(napi_env env,
                                napi_async_context async_context) {
   CHECK_ENV(env);
+  _emnapi_env_check_gc_access(env);
   CHECK_ARG(env, async_context);
 
   napi_status status = _emnapi_async_destroy_js(async_context);
