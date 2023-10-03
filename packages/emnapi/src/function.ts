@@ -23,7 +23,7 @@ function napi_create_function (env: napi_env, utf8name: Pointer<const_char>, len
 function napi_get_cb_info (env: napi_env, cbinfo: napi_callback_info, argc: Pointer<size_t>, argv: Pointer<napi_value>, this_arg: Pointer<napi_value>, data: void_pp): napi_status {
   $CHECK_ENV!(env)
   const envObject = emnapiCtx.envStore.get(env)!
-
+  if (!cbinfo) return envObject.setLastError(napi_status.napi_invalid_arg)
   const cbinfoValue = emnapiCtx.cbinfoStack.get(cbinfo)!
 
   $from64('argc')
@@ -165,7 +165,7 @@ function napi_get_new_target (
 ): napi_status {
   $CHECK_ENV!(env)
   const envObject = emnapiCtx.envStore.get(env)!
-  // if (!cbinfo) return envObject.setLastError(napi_status.napi_invalid_arg)
+  if (!cbinfo) return envObject.setLastError(napi_status.napi_invalid_arg)
   $CHECK_ARG!(envObject, result)
   envObject.checkGCAccess()
 
