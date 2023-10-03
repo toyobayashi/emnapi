@@ -3,7 +3,8 @@
     "includePath": [
       "${default}",
       // "${env:USERPROFILE}/AppData/Local/node-gyp/Cache/16.15.0/include/node"
-      "${workspaceFolder}/packages/emnapi/include"
+      "${workspaceFolder}/packages/emnapi/include",
+      "${workspaceFolder}/node_modules/node-addon-api"
     ],
     "defines": ["NAPI_DISABLE_CPP_EXCEPTIONS", "NODE_ADDON_API_ENABLE_MAYBE"],
     "clPath": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Community\\VC\\Tools\\MSVC\\14.28.29910\\bin\\Hostx64\\x64\\cl.exe",
