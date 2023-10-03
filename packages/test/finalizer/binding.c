@@ -11,6 +11,7 @@ void* malloc(size_t size);
 void free(void* p);
 #endif
 #include "../common.h"
+#include "../entry_point.h"
 
 typedef struct {
   int32_t finalize_count;
@@ -25,8 +26,9 @@ static void finalizerOnlyCallback(napi_env env,
 
   // It is safe to access instance data
   NODE_API_CALL_RETURN_VOID(env, napi_get_instance_data(env, (void**)&data));
-  NODE_API_ASSERT_RETURN_VOID(
-      env, count = data->finalize_count, "Expected to the same FinalizerData");
+  NODE_API_ASSERT_RETURN_VOID(env,
+                              count = data->finalize_count,
+                              "Expected to be the same FinalizerData");
 }
 
 static void finalizerCallingJSCallback(napi_env env,
@@ -48,7 +50,6 @@ static void finalizerCallingJSCallback(napi_env env,
 static void finalizerWithJSCallback(napi_env env,
                                     void* finalize_data,
                                     void* finalize_hint) {
-  FinalizerData* data = (FinalizerData*)finalize_data;
   NODE_API_CALL_RETURN_VOID(
       env,
       node_api_post_finalizer(
