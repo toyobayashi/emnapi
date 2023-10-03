@@ -148,8 +148,11 @@ export class Env implements IStoreValue {
     } else {
       const saved = this.inGcFinalizer
       this.inGcFinalizer = true
-      finalizer.finalize()
-      this.inGcFinalizer = saved
+      try {
+        finalizer.finalize()
+      } finally {
+        this.inGcFinalizer = saved
+      }
     }
   }
 
