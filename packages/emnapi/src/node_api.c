@@ -1,5 +1,5 @@
-#include "emnapi_internal.h"
 #include "node_api.h"
+#include "emnapi_internal.h"
 
 #if EMNAPI_HAVE_THREADS
 #include "uv.h"

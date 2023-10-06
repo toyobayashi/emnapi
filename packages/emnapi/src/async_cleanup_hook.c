@@ -1,5 +1,5 @@
-#include "emnapi_internal.h"
 #include "node_api.h"
+#include "emnapi_internal.h"
 
 #if NAPI_VERSION >= 8
 

@@ -1,7 +1,7 @@
+#include "myobject.h"
 #ifdef __wasm__
 #include <emnapi.h>
 #endif
-#include "myobject.h"
 #include "../common.h"
 
 #if !(!defined(__wasm__) || (defined(__EMSCRIPTEN__) || defined(__wasi__)))
