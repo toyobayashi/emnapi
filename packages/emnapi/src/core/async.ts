@@ -107,7 +107,7 @@ var PThread = {
     if (typeof onCreateWorker !== 'function') {
       throw new TypeError('`options.onCreateWorker` is not provided')
     }
-    const worker = onCreateWorker({ type: 'pthread' })
+    const worker = onCreateWorker({ type: 'thread' })
     PThread.unusedWorkers.push(worker)
     return worker
   },

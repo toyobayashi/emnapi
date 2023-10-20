@@ -145,7 +145,7 @@ var napiModule: INapiModule = {
 
 var emnapiCtx: Context
 var emnapiNodeBinding: NodeBinding
-var onCreateWorker: (info: { type: 'pthread' | 'async-work' }) => any
+var onCreateWorker: (info: { type: 'thread' | 'async-work' }) => any
 var out: (str: string) => void
 var err: (str: string) => void
 

@@ -14,7 +14,7 @@ export declare interface NodeBinding {
 }
 
 export declare interface CreateWorkerInfo {
-  type: 'pthread' | 'async-work'
+  type: 'thread' | 'async-work'
 }
 
 export declare type BaseCreateOptions = {
