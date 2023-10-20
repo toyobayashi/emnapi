@@ -165,6 +165,8 @@ module.exports = (function (exports) {
 
 ```bash
 emcc -O3 \
+     -DBUILDING_NODE_EXTENSION \
+     "-DNAPI_EXTERN=__attribute__((__import_module__(\"env\")))" \
      -I./node_modules/emnapi/include \
      -L./node_modules/emnapi/lib/wasm32-emscripten \
      --js-library=./node_modules/emnapi/dist/library_napi.js \
@@ -181,6 +183,7 @@ emcc -O3 \
 
 ```bash
 clang -O3 \
+      -DBUILDING_NODE_EXTENSION \
       -I./node_modules/emnapi/include \
       -L./node_modules/emnapi/lib/wasm32-wasi \
       --target=wasm32-wasi \
@@ -208,6 +211,7 @@ Choose `libdlmalloc.a` or `libemmalloc.a` for `malloc` and `free`.
 
 ```bash
 clang -O3 \
+      -DBUILDING_NODE_EXTENSION \
       -I./node_modules/emnapi/include \
       -L./node_modules/emnapi/lib/wasm32 \
       --target=wasm32 \
@@ -448,6 +452,8 @@ Compile `hello.cpp` using `em++`. C++ exception is disabled by Emscripten defaul
 
 ```bash
 em++ -O3 \
+     -DBUILDING_NODE_EXTENSION \
+     "-DNAPI_EXTERN=__attribute__((__import_module__(\"env\")))" \
      -DNAPI_DISABLE_CPP_EXCEPTIONS \
      -DNODE_ADDON_API_ENABLE_MAYBE \
      -I./node_modules/emnapi/include \
@@ -467,6 +473,7 @@ em++ -O3 \
 
 ```bash
 clang++ -O3 \
+        -DBUILDING_NODE_EXTENSION \
         -DNAPI_DISABLE_CPP_EXCEPTIONS \
         -DNODE_ADDON_API_ENABLE_MAYBE \
         -I./node_modules/emnapi/include \
@@ -500,6 +507,7 @@ You can still use `wasm32-unknown-unknown` target if you use Node-API C API only
 
 ```bash
 clang++ -O3 \
+        -DBUILDING_NODE_EXTENSION \
         -I./node_modules/emnapi/include \
         -L./node_modules/emnapi/lib/wasm32 \
         --target=wasm32 \
