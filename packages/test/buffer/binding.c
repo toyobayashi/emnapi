@@ -1,8 +1,9 @@
+#include <node_api.h>
+
 #ifdef __wasm__
 #include <emnapi.h>
 #endif
 
-#include <node_api.h>
 #include "../common.h"
 
 void* malloc(size_t size);

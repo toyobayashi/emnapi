@@ -1,8 +1,9 @@
+#include <js_native_api.h>
+
 #ifdef __wasm__
 #include <emnapi.h>
 #endif
 
-#include <js_native_api.h>
 // #include <string.h>
 // #include <stdlib.h>
 #include "../common.h"
