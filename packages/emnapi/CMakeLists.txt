@@ -40,11 +40,16 @@ set(EMNAPI_THREADS_SRC
 set(EMNAPI_SRC ${ENAPI_BASIC_SRC} ${EMNAPI_THREADS_SRC})
 
 set(EMNAPI_INCLUDE "${CMAKE_CURRENT_SOURCE_DIR}/include")
+set(EMNAPI_DEFINES "BUILDING_NODE_EXTENSION")
 
 set(EMNAPI_JS_LIB "${CMAKE_CURRENT_SOURCE_DIR}/dist/library_napi.js")
 
 if(IS_EMSCRIPTEN)
   set(EMNAPI_MT_CFLAGS "-pthread" "-sWASM_WORKERS=1")
+
+  # https://github.com/emscripten-core/emscripten/issues/20035
+  # https://github.com/emscripten-core/emscripten/pull/20130
+  list(APPEND EMNAPI_DEFINES "NAPI_EXTERN=__attribute__((__import_module__(\"env\")))")
 else()
   set(EMNAPI_MT_CFLAGS "-pthread")
 endif()
@@ -115,12 +120,14 @@ endif()
 
 add_library(${EMNAPI_TARGET_NAME} STATIC ${EMNAPI_SRC} ${UV_SRC})
 target_include_directories(${EMNAPI_TARGET_NAME} PUBLIC ${EMNAPI_INCLUDE})
+target_compile_definitions(${EMNAPI_TARGET_NAME} PUBLIC ${EMNAPI_DEFINES})
 if(IS_EMSCRIPTEN)
   target_link_options(${EMNAPI_TARGET_NAME} INTERFACE "--js-library=${EMNAPI_JS_LIB}")
 endif()
 
 add_library(${EMNAPI_BASIC_TARGET_NAME} STATIC ${ENAPI_BASIC_SRC})
 target_include_directories(${EMNAPI_BASIC_TARGET_NAME} PUBLIC ${EMNAPI_INCLUDE})
+target_compile_definitions(${EMNAPI_BASIC_TARGET_NAME} PUBLIC ${EMNAPI_DEFINES})
 if(IS_EMSCRIPTEN)
   target_link_options(${EMNAPI_BASIC_TARGET_NAME} INTERFACE "--js-library=${EMNAPI_JS_LIB}")
 endif()
@@ -139,6 +146,7 @@ if(EMNAPI_BUILD_BASIC_MT)
   )
   target_compile_options(${EMNAPI_BASIC_MT_TARGET_NAME} PUBLIC "-matomics" "-mbulk-memory")
   target_include_directories(${EMNAPI_BASIC_MT_TARGET_NAME} PUBLIC ${EMNAPI_INCLUDE})
+  target_compile_definitions(${EMNAPI_BASIC_MT_TARGET_NAME} PUBLIC ${EMNAPI_DEFINES})
 endif()
 
 if(IS_EMSCRIPTEN OR (CMAKE_C_COMPILER_TARGET STREQUAL "wasm32-wasi-threads"))
@@ -151,6 +159,7 @@ if(EMNAPI_BUILD_MT)
   add_library(${EMNAPI_MT_TARGET_NAME} STATIC ${EMNAPI_SRC} ${UV_SRC})
   target_compile_options(${EMNAPI_MT_TARGET_NAME} PRIVATE ${EMNAPI_MT_CFLAGS})
   target_include_directories(${EMNAPI_MT_TARGET_NAME} PUBLIC ${EMNAPI_INCLUDE})
+  target_compile_definitions(${EMNAPI_MT_TARGET_NAME} PUBLIC ${EMNAPI_DEFINES})
   if(IS_EMSCRIPTEN)
     target_link_options(${EMNAPI_MT_TARGET_NAME} INTERFACE "--js-library=${EMNAPI_JS_LIB}")
   endif()

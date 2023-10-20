@@ -117,13 +117,8 @@ else()
   set(COMMON_LINK_OPTIONS "")
 endif()
 
-add_compile_definitions("BUILDING_NODE_EXTENSION=1")
-
 if(IS_WASM)
 set(EMNAPI_FIND_NODE_ADDON_API ON)
-if(IS_EMSCRIPTEN)
-  add_compile_definitions("NAPI_EXTERN=__attribute__((__import_module__(\"env\")))")
-endif()
 add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/../emnapi" "${CMAKE_CURRENT_BINARY_DIR}/emnapi")
 endif()
 
