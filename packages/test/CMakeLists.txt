@@ -117,6 +117,8 @@ else()
   set(COMMON_LINK_OPTIONS "")
 endif()
 
+add_compile_definitions("BUILDING_NODE_EXTENSION=1")
+
 if(IS_WASM)
 set(EMNAPI_FIND_NODE_ADDON_API ON)
 if(IS_EMSCRIPTEN)
