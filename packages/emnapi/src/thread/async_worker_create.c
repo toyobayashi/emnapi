@@ -20,6 +20,7 @@ struct worker_args {
 
 extern void __wasm_init_tls(void*);
 
+__attribute__((__weak__))
 void* __copy_tls(unsigned char *mem) {
 	size_t tls_align = __builtin_wasm_tls_align();
 	volatile void* tls_base = __builtin_wasm_tls_base();
