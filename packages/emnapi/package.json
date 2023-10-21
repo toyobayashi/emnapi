@@ -1,6 +1,6 @@
 {
   "name": "emnapi",
-  "version": "0.43.0",
+  "version": "0.43.1",
   "description": "Node-API implementation for Emscripten",
   "main": "index.js",
   "peerDependencies": {
