@@ -272,7 +272,8 @@ function spawnThread (startArg: number, errorOrTid: number): number {
   Atomics.store(struct, 1, tid)
   Atomics.notify(struct, 1)
 
-  PThread.nextWorkerID = (PThread.nextWorkerID + 1) % (0xffffffff - 42)
+  const WASI_THREADS_MAX_TID = 0x1FFFFFFF
+  PThread.nextWorkerID = (PThread.nextWorkerID + 1) % (WASI_THREADS_MAX_TID - 42)
   PThread.pthreads[tid] = worker
   worker.__emnapi_tid = tid
   PThread.runningWorkers.push(worker)
