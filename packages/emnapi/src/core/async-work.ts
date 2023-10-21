@@ -69,8 +69,11 @@ var emnapiAWMT = {
     }
     const promises = [] as Array<Promise<void>>
     const args = [] as number[]
+    if (!('emnapi_async_worker_create' in wasmInstance.exports)) {
+      throw new TypeError('`emnapi_async_worker_create` is not exported, please try to add `--export=emnapi_async_worker_create` to linker flags')
+    }
     for (let i = 0; i < n; ++i) {
-      args.push((wasmInstance.exports as any).emnapi_async_worker_create())
+      args.push((wasmInstance.exports.emnapi_async_worker_create as () => number)())
     }
     try {
       for (let i = 0; i < n; ++i) {
@@ -353,9 +356,9 @@ var _napi_cancel_async_work = singleThreadAsyncWork
 function initWorker (startArg: number): void {
   if (napiModule.childThread) {
     if (typeof wasmInstance.exports.emnapi_async_worker_init !== 'function') {
-      throw new TypeError('emnapi_async_worker_init is not exported')
+      throw new TypeError('`emnapi_async_worker_init` is not exported, please try to add `--export=emnapi_async_worker_init` to linker flags')
     }
-    ;(wasmInstance.exports.emnapi_async_worker_init as Function)(startArg)
+    ;(wasmInstance.exports.emnapi_async_worker_init as (startArg: number) => void)(startArg)
   } else {
     throw new Error('startThread is only available in child threads')
   }
