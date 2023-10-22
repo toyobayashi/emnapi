@@ -125,8 +125,13 @@ static napi_status create_external_latin1(napi_env env,
                                           size_t length,
                                           napi_value* result) {
   napi_status status;
+#ifdef EMNAPI_UNMODIFIED_NATIVE_TEST
+  // Initialize to false, because that is the value we don't want.
+  bool copied = true;
+#else
   // Initialize to false, because that is the value we don't want.
   bool copied = false;
+#endif
   char* string_copy;
   const size_t actual_length =
       (length == NAPI_AUTO_LENGTH ? strlen(string) : length);
@@ -138,7 +143,13 @@ static napi_status create_external_latin1(napi_env env,
   status = node_api_create_external_string_latin1(
       env, string_copy, length, free_string, NULL, result, &copied);
   // We do not want the string to be copied.
+#ifdef EMNAPI_UNMODIFIED_NATIVE_TEST
+  // Initialize to false, because that is the value we don't want.
+  if (copied) {
+#else
+  // Initialize to false, because that is the value we don't want.
   if (!copied) {
+#endif
     return napi_generic_failure;
   }
   if (status != napi_ok) {

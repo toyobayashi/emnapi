@@ -2,6 +2,7 @@
 'use strict'
 // Flags: --expose-gc
 const { load } = require('../util')
+const common = require('../common')
 
 module.exports = load('finalizer').then(async test_finalizer => {
   if (process.argv[2] === 'child') {
@@ -32,7 +33,7 @@ module.exports = load('finalizer').then(async test_finalizer => {
     __filename,
     'child'
   ])
-  assert.strictEqual(child.signal, null)
+  assert.strictEqual(child.signal, (common.isWindows || !process.env.EMNAPI_TEST_NATIVE) ? null : 'SIGABRT')
   console.log(child.stderr.toString())
   assert.match(child.stderr.toString(), /Finalizer is calling a function that may affect GC state/)
 })

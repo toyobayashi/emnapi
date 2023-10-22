@@ -149,6 +149,7 @@ function(add_test NAME SOURCE_LIST PTHREAD)
     add_library(${NAME} SHARED ${__SRC_LIST} ${CMAKE_JS_SRC})
     set_target_properties(${NAME} PROPERTIES PREFIX "" SUFFIX ".node")
     target_link_libraries(${NAME} PRIVATE ${CMAKE_JS_LIB})
+    target_compile_definitions(${NAME} PRIVATE "EMNAPI_UNMODIFIED_NATIVE_TEST")
   endif()
 
   set_target_properties(${NAME} PROPERTIES

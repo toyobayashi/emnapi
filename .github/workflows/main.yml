@@ -67,7 +67,7 @@ jobs:
 
     - uses: actions/setup-node@v3
       with:
-        node-version: ${{ (contains(matrix.target, 'emscripten') && matrix.target == 'wasm64-unknown-emscripten' && '20.0.0') || '18.14.0' }}
+        node-version: ${{ (contains(matrix.target, 'emscripten') && matrix.target == 'wasm64-unknown-emscripten' && '21.0.0') || '18.18.2' }}
         registry-url: 'https://registry.npmjs.org'
       env:
         NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -145,7 +145,7 @@ jobs:
         tar zxvf wasi-sdk-${WASI_VERSION_FULL}-linux.tar.gz -C $WASI_SDK_PATH --strip 1
     - uses: actions/setup-node@v3
       with:
-        node-version: '18.14.0'
+        node-version: '18.18.2'
         registry-url: 'https://registry.npmjs.org'
       env:
         NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
