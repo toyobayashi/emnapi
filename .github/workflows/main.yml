@@ -67,7 +67,7 @@ jobs:
 
     - uses: actions/setup-node@v3
       with:
-        node-version: ${{ (contains(matrix.target, 'emscripten') && matrix.target == 'wasm64-unknown-emscripten' && '21.0.0') || '18.18.2' }}
+        node-version: ${{ (contains(matrix.target, 'emscripten') && matrix.target == 'wasm64-unknown-emscripten' && '20.8.1') || '18.18.2' }}
         registry-url: 'https://registry.npmjs.org'
       env:
         NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
