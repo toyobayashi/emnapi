@@ -1,9 +1,5 @@
 #include "emnapi_internal.h"
 
-#ifdef __EMSCRIPTEN__
-#include <emscripten/heap.h>
-#endif
-
 EXTERN_C_START
 
 static const char* emnapi_error_messages[] = {
@@ -65,36 +61,6 @@ napi_status napi_get_last_error_info(
   }
   *result = &last_error;
   return napi_ok;
-}
-
-#define PAGESIZE 65536
-
-napi_status napi_adjust_external_memory(napi_env env,
-                                        int64_t change_in_bytes,
-                                        int64_t* adjusted_value) {
-  CHECK_ENV(env);
-  CHECK_ARG(env, adjusted_value);
-
-  if (change_in_bytes < 0) {
-    return napi_set_last_error(env, napi_invalid_arg, 0, NULL);
-  }
-
-  size_t old_size = __builtin_wasm_memory_size(0) << 16;
-  size_t new_size = old_size + (size_t) change_in_bytes;
-#ifdef __EMSCRIPTEN__
-  if (!emscripten_resize_heap(new_size)) {
-    return napi_set_last_error(env, napi_generic_failure, 0, NULL);
-  }
-#else
-  new_size = new_size + (PAGESIZE - new_size % PAGESIZE) % PAGESIZE;
-  if (-1 == __builtin_wasm_memory_grow(0, (new_size - old_size + 65535) >> 16)) {
-    return napi_set_last_error(env, napi_generic_failure, 0, NULL);
-  }
-#endif
-
-  *adjusted_value = (int64_t) (__builtin_wasm_memory_size(0) << 16);
-
-  return napi_clear_last_error(env);
 }
 
 EXTERN_C_END

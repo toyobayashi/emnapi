@@ -20,6 +20,7 @@
     "./miscellaneous.ts",
     "./string.ts",
     "./util.ts",
+    "./memory.ts",
     "../../../runtime/src/typings/**/*.d.ts",
     "../typings/**/*.d.ts",
     "../*.ts",
