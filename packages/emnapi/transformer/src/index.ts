@@ -11,10 +11,10 @@ import type {
   Expression,
   TransformationContext,
   Node,
+  Visitor,
+  Block,
+  FunctionLikeDeclaration,
   VisitResult,
-  FunctionDeclaration,
-  FunctionExpression,
-  MethodDeclaration,
   Statement
 } from 'typescript'
 
@@ -125,29 +125,122 @@ function byteOffsetParameter (factory: NodeFactory, defines: Record<string, any>
   throw new Error('$makeGetValue unsupported pos')
 }
 
+function isFunctionLikeDeclaration (node: Node): node is FunctionLikeDeclaration {
+  return ts.isFunctionDeclaration(node) ||
+    ts.isMethodDeclaration(node) ||
+    ts.isConstructorDeclaration(node) ||
+    ts.isGetAccessorDeclaration(node) ||
+    ts.isSetAccessorDeclaration(node) ||
+    ts.isFunctionExpression(node) ||
+    ts.isArrowFunction(node)
+}
+
+function updateBody<N extends FunctionLikeDeclaration> (factory: NodeFactory, node: N, body: Block): N {
+  if (ts.isFunctionDeclaration(node)) {
+    return factory.updateFunctionDeclaration(node,
+      node.modifiers,
+      node.asteriskToken,
+      node.name,
+      node.typeParameters,
+      node.parameters,
+      node.type,
+      body
+    ) as N
+  }
+  if (ts.isMethodDeclaration(node)) {
+    return factory.updateMethodDeclaration(node,
+      node.modifiers,
+      node.asteriskToken,
+      node.name,
+      node.questionToken,
+      node.typeParameters,
+      node.parameters,
+      node.type,
+      body
+    ) as N
+  }
+  if (ts.isConstructorDeclaration(node)) {
+    return factory.updateConstructorDeclaration(node,
+      node.modifiers,
+      node.parameters,
+      body
+    ) as N
+  }
+  if (ts.isGetAccessorDeclaration(node)) {
+    return factory.updateGetAccessorDeclaration(node,
+      node.modifiers,
+      node.name,
+      node.parameters,
+      node.type,
+      body
+    ) as N
+  }
+  if (ts.isSetAccessorDeclaration(node)) {
+    return factory.updateSetAccessorDeclaration(node,
+      node.modifiers,
+      node.name,
+      node.parameters,
+      body
+    ) as N
+  }
+  if (ts.isFunctionExpression(node)) {
+    return factory.updateFunctionExpression(node,
+      node.modifiers,
+      node.asteriskToken,
+      node.name,
+      node.typeParameters,
+      node.parameters,
+      node.type,
+      body
+    ) as N
+  }
+  if (ts.isArrowFunction(node)) {
+    return factory.updateArrowFunction(node,
+      node.modifiers,
+      node.typeParameters,
+      node.parameters,
+      node.type,
+      node.equalsGreaterThanToken,
+      body
+    ) as N
+  }
+
+  throw new Error('unreachable')
+}
+
 class Transform {
   ctx: TransformationContext
-  functionDeclarations: Array<FunctionDeclaration | FunctionExpression | MethodDeclaration>
-  injectDataViewDecl: boolean
   defines: Record<string, any>
 
   constructor (context: TransformationContext, defines: Record<string, any>) {
     this.ctx = context
-    this.functionDeclarations = []
-    this.injectDataViewDecl = false
     this.defines = defines
     this.visitor = this.visitor.bind(this)
   }
 
-  visitor (node: Node): VisitResult<Node | undefined> {
-    if (ts.isFunctionDeclaration(node) || ts.isFunctionExpression(node) || ts.isMethodDeclaration(node)) {
-      this.functionDeclarations.push(node)
-      const result = ts.visitEachChild(node, this.visitor, this.ctx)
-      this.functionDeclarations.pop()
-      const statements = result.body?.statements ?? []
-      if (this.injectDataViewDecl && this.functionDeclarations.length === 0) {
-        this.injectDataViewDecl = false
-        const decl = this.ctx.factory.createVariableStatement(
+  injectHeapDataViewDeclaration<T extends FunctionLikeDeclaration> (functionLike: T): T {
+    const statements = functionLike.body
+      ? ts.isBlock(functionLike.body)
+        ? functionLike.body.statements
+        : [this.ctx.factory.createReturnStatement(functionLike.body)]
+      : []
+
+    const index = statements.findIndex((statement) => {
+      let includeGetOrSet = false
+      const statementVisitor: Visitor = (n) => {
+        if (ts.isIdentifier(n) && n.text === 'HEAP_DATA_VIEW') {
+          includeGetOrSet = true
+        }
+        return ts.visitEachChild(n, statementVisitor, this.ctx)
+      }
+      ts.visitEachChild(statement, statementVisitor, this.ctx)
+      return includeGetOrSet
+    })
+
+    if (index !== -1) {
+      const newStatements = [
+        ...statements.slice(0, index),
+        this.ctx.factory.createVariableStatement(
           undefined,
           this.ctx.factory.createVariableDeclarationList(
             [this.ctx.factory.createVariableDeclaration(
@@ -165,49 +258,20 @@ class Transform {
             )],
             ts.NodeFlags.None
           )
-        )
-        const modifiers = ts.getModifiers(result)!
-        const asteriskToken = result.asteriskToken
-        const name = result.name!
-        const questionToken = result.questionToken
-        const typeParameters = result.typeParameters
-        const parameters = result.parameters
-        const type = result.type
-        const body = this.ctx.factory.createBlock(
-          this.ctx.factory.createNodeArray([
-            decl,
-            ...statements
-          ]),
-          true
-        )
-        if (ts.isMethodDeclaration(node)) {
-          return this.ctx.factory.updateMethodDeclaration(
-            result as MethodDeclaration,
-            modifiers,
-            asteriskToken,
-            name,
-            questionToken,
-            typeParameters,
-            parameters,
-            type,
-            body
-          )
-        }
-        const method = ts.isFunctionDeclaration(node)
-          ? 'updateFunctionDeclaration'
-          : 'updateFunctionExpression'
-        return this.ctx.factory[method](
-          result as any,
-          modifiers,
-          asteriskToken,
-          name as any,
-          typeParameters,
-          parameters,
-          type,
-          body
-        )
-      }
-      return result
+        ),
+        ...statements.slice(index)
+      ]
+
+      const newBody = this.ctx.factory.createBlock(newStatements, true)
+      return updateBody(this.ctx.factory, functionLike, newBody)
+    }
+    return functionLike
+  }
+
+  visitor (node: Node): VisitResult<Node | undefined> {
+    if (isFunctionLikeDeclaration(node)) {
+      const result = ts.visitEachChild(node, this.visitor, this.ctx)
+      return this.injectHeapDataViewDeclaration(result)
     }
 
     if (ts.isExpressionStatement(node) &&
@@ -322,7 +386,6 @@ class Transform {
       }
     }
 
-    this.injectDataViewDecl = true
     return this.ctx.factory.createCallExpression(
       this.ctx.factory.createPropertyAccessExpression(
         this.ctx.factory.createIdentifier('HEAP_DATA_VIEW'),
@@ -369,7 +432,6 @@ class Transform {
       }
     }
 
-    this.injectDataViewDecl = true
     const methodName = getDataViewSetMethod(this.defines, type)
     return this.ctx.factory.createCallExpression(
       this.ctx.factory.createPropertyAccessExpression(
