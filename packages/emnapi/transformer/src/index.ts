@@ -298,10 +298,9 @@ class Transform {
       const targetStatement = statements[statementIndex[0]]
 
       const injectVisitor: Visitor = (node) => {
-        let newStatement = node
         if (ts.isIfStatement(node)) {
           if (!isIncludeGetOrSet(node.elseStatement)) {
-            newStatement = this.ctx.factory.updateIfStatement(node, node.expression,
+            return this.ctx.factory.updateIfStatement(node, node.expression,
               ts.isBlock(node.thenStatement)
                 ? this.ctx.factory.updateBlock(node.thenStatement, this.injectHeapDataViewDeclaration(node.thenStatement.statements))
                 : this.ctx.factory.createBlock(this.injectHeapDataViewDeclaration(this.ctx.factory.createNodeArray([node.thenStatement]))),
@@ -315,7 +314,7 @@ class Transform {
         } else if (ts.isTryStatement(node)) {
           if (node.catchClause && !node.finallyBlock) {
             if (!isIncludeGetOrSet(node.catchClause)) {
-              newStatement = this.ctx.factory.updateTryStatement(node,
+              return this.ctx.factory.updateTryStatement(node,
                 this.ctx.factory.updateBlock(node.tryBlock, this.injectHeapDataViewDeclaration(node.tryBlock.statements)),
                 node.catchClause,
                 node.finallyBlock
@@ -323,7 +322,7 @@ class Transform {
             }
           } else if (!node.catchClause && node.finallyBlock) {
             if (!isIncludeGetOrSet(node.finallyBlock)) {
-              newStatement = this.ctx.factory.updateTryStatement(node,
+              return this.ctx.factory.updateTryStatement(node,
                 this.ctx.factory.updateBlock(node.tryBlock, this.injectHeapDataViewDeclaration(node.tryBlock.statements)),
                 node.catchClause,
                 node.finallyBlock
@@ -331,7 +330,7 @@ class Transform {
             }
           } else if (node.catchClause && node.finallyBlock) {
             if (!(isIncludeGetOrSet(node.catchClause) && isIncludeGetOrSet(node.finallyBlock))) {
-              newStatement = this.ctx.factory.updateTryStatement(node,
+              return this.ctx.factory.updateTryStatement(node,
                 this.ctx.factory.updateBlock(node.tryBlock, this.injectHeapDataViewDeclaration(node.tryBlock.statements)),
                 node.catchClause
                   ? this.ctx.factory.updateCatchClause(node.catchClause, node.catchClause.variableDeclaration, this.ctx.factory.updateBlock(node.catchClause.block, this.injectHeapDataViewDeclaration(node.catchClause.block.statements)))
@@ -346,7 +345,7 @@ class Transform {
           }
         } else if (ts.isSwitchStatement(node)) {
           if (node.caseBlock.clauses.some((clause) => !isIncludeGetOrSet(clause))) {
-            newStatement = this.ctx.factory.updateSwitchStatement(node, node.expression,
+            return this.ctx.factory.updateSwitchStatement(node, node.expression,
               this.ctx.factory.updateCaseBlock(node.caseBlock, node.caseBlock.clauses.map(clause => {
                 if (ts.isCaseClause(clause)) {
                   return this.ctx.factory.updateCaseClause(clause, clause.expression, this.injectHeapDataViewDeclaration(clause.statements))
@@ -356,10 +355,10 @@ class Transform {
             )
           }
         } else if (ts.isBlock(node)) {
-          newStatement = this.ctx.factory.updateBlock(node, this.injectHeapDataViewDeclaration(node.statements))
+          return this.ctx.factory.updateBlock(node, this.injectHeapDataViewDeclaration(node.statements))
         }
 
-        return ts.visitEachChild(newStatement, this.functionLikeDeclarationVisitor, this.ctx)
+        return ts.visitEachChild(node, this.functionLikeDeclarationVisitor, this.ctx)
       }
 
       const newStatement = ts.visitNode(targetStatement, injectVisitor) as Statement
