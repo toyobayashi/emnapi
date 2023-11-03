@@ -216,6 +216,16 @@ class Transform {
     this.ctx = context
     this.defines = defines
     this.visitor = this.visitor.bind(this)
+    this.functionLikeDeclarationVisitor = this.functionLikeDeclarationVisitor.bind(this)
+  }
+
+  functionLikeDeclarationVisitor (node: Node): VisitResult<Node | undefined> {
+    if (isFunctionLikeDeclaration(node)) {
+      const result = ts.visitEachChild(node, this.visitor, this.ctx)
+      return this.injectHeapDataViewDeclaration(result)
+    }
+
+    return ts.visitEachChild(node, this.functionLikeDeclarationVisitor, this.ctx)
   }
 
   injectHeapDataViewDeclaration<T extends FunctionLikeDeclaration> (functionLike: T): T {
@@ -225,7 +235,9 @@ class Transform {
         : [this.ctx.factory.createReturnStatement(functionLike.body)]
       : []
 
-    const index = statements.findIndex((statement) => {
+    const statementIndex = [] as number[]
+    for (let i = 0; i < statements.length; ++i) {
+      const statement = statements[i]
       let includeGetOrSet = false
       const statementVisitor: Visitor = (n) => {
         if (ts.isIdentifier(n) && n.text === 'HEAP_DATA_VIEW') {
@@ -234,12 +246,15 @@ class Transform {
         return ts.visitEachChild(n, statementVisitor, this.ctx)
       }
       ts.visitEachChild(statement, statementVisitor, this.ctx)
-      return includeGetOrSet
-    })
+      if (includeGetOrSet) {
+        statementIndex.push(i)
+      }
+    }
 
-    if (index !== -1) {
+    if (statementIndex.length > 0) {
+      const firstIndex = statementIndex[0]
       const newStatements = [
-        ...statements.slice(0, index),
+        ...statements.slice(0, firstIndex),
         this.ctx.factory.createVariableStatement(
           undefined,
           this.ctx.factory.createVariableDeclarationList(
@@ -259,7 +274,7 @@ class Transform {
             ts.NodeFlags.None
           )
         ),
-        ...statements.slice(index)
+        ...statements.slice(firstIndex)
       ]
 
       const newBody = this.ctx.factory.createBlock(newStatements, true)
@@ -269,11 +284,6 @@ class Transform {
   }
 
   visitor (node: Node): VisitResult<Node | undefined> {
-    if (isFunctionLikeDeclaration(node)) {
-      const result = ts.visitEachChild(node, this.visitor, this.ctx)
-      return this.injectHeapDataViewDeclaration(result)
-    }
-
     if (ts.isExpressionStatement(node) &&
         ts.isCallExpression(node.expression) &&
         ts.isIdentifier(node.expression.expression) &&
@@ -584,7 +594,10 @@ function createTransformerFactory (_program: Program, config: DefineOptions): Tr
 
     return (src) => {
       if (src.isDeclarationFile) return src
-      return ts.visitEachChild(src, transform.visitor, context)
+      // expand emscripten macros
+      const transformedSrc = ts.visitEachChild(src, transform.visitor, context)
+      // inject HEAP_DATA_VIEW
+      return ts.visitEachChild(transformedSrc, transform.functionLikeDeclarationVisitor, context)
     }
   }
 }
