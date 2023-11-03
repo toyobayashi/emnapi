@@ -14,6 +14,8 @@ import type {
   Visitor,
   Block,
   FunctionLikeDeclaration,
+  VariableStatement,
+  NodeArray,
   VisitResult,
   Statement
 } from 'typescript'
@@ -219,25 +221,52 @@ class Transform {
     this.functionLikeDeclarationVisitor = this.functionLikeDeclarationVisitor.bind(this)
   }
 
+  createHeapDataViewDeclaration (): VariableStatement {
+    return this.ctx.factory.createVariableStatement(
+      undefined,
+      this.ctx.factory.createVariableDeclarationList(
+        [this.ctx.factory.createVariableDeclaration(
+          this.ctx.factory.createIdentifier('HEAP_DATA_VIEW'),
+          undefined,
+          undefined,
+          this.ctx.factory.createNewExpression(
+            this.ctx.factory.createIdentifier('DataView'),
+            undefined,
+            [this.ctx.factory.createPropertyAccessExpression(
+              this.ctx.factory.createIdentifier('wasmMemory'),
+              this.ctx.factory.createIdentifier('buffer')
+            )]
+          )
+        )],
+        ts.NodeFlags.None
+      )
+    )
+  }
+
   functionLikeDeclarationVisitor (node: Node): VisitResult<Node | undefined> {
     if (isFunctionLikeDeclaration(node)) {
-      const result = ts.visitEachChild(node, this.visitor, this.ctx)
-      return this.injectHeapDataViewDeclaration(result)
+      const statements = node.body
+        ? ts.isBlock(node.body)
+          ? node.body.statements
+          : this.ctx.factory.createNodeArray([this.ctx.factory.createReturnStatement(node.body)])
+        : this.ctx.factory.createNodeArray([])
+
+      const newStatements = this.injectHeapDataViewDeclaration(statements)
+
+      if (statements === newStatements) {
+        return ts.visitEachChild(node, this.functionLikeDeclarationVisitor, this.ctx)
+      }
+
+      const newBody = this.ctx.factory.createBlock(newStatements, true)
+      return updateBody(this.ctx.factory, node, newBody)
     }
 
     return ts.visitEachChild(node, this.functionLikeDeclarationVisitor, this.ctx)
   }
 
-  injectHeapDataViewDeclaration<T extends FunctionLikeDeclaration> (functionLike: T): T {
-    const statements = functionLike.body
-      ? ts.isBlock(functionLike.body)
-        ? functionLike.body.statements
-        : [this.ctx.factory.createReturnStatement(functionLike.body)]
-      : []
-
-    const statementIndex = [] as number[]
-    for (let i = 0; i < statements.length; ++i) {
-      const statement = statements[i]
+  injectHeapDataViewDeclaration (statements: NodeArray<Statement>): NodeArray<Statement> {
+    const isIncludeGetOrSet: (statement?: Node) => boolean = (statement) => {
+      if (!statement) return false
       let includeGetOrSet = false
       const statementVisitor: Visitor = (n) => {
         if (ts.isIdentifier(n) && n.text === 'HEAP_DATA_VIEW') {
@@ -246,41 +275,103 @@ class Transform {
         return ts.visitEachChild(n, statementVisitor, this.ctx)
       }
       ts.visitEachChild(statement, statementVisitor, this.ctx)
-      if (includeGetOrSet) {
+      return includeGetOrSet
+    }
+
+    const statementIndex = [] as number[]
+    for (let i = 0; i < statements.length; ++i) {
+      const statement = statements[i]
+      if (isIncludeGetOrSet(statement)) {
         statementIndex.push(i)
       }
     }
 
-    if (statementIndex.length > 0) {
+    if (statementIndex.length > 1) {
       const firstIndex = statementIndex[0]
-      const newStatements = [
+      return this.ctx.factory.createNodeArray([
         ...statements.slice(0, firstIndex),
-        this.ctx.factory.createVariableStatement(
-          undefined,
-          this.ctx.factory.createVariableDeclarationList(
-            [this.ctx.factory.createVariableDeclaration(
-              this.ctx.factory.createIdentifier('HEAP_DATA_VIEW'),
-              undefined,
-              undefined,
-              this.ctx.factory.createNewExpression(
-                this.ctx.factory.createIdentifier('DataView'),
-                undefined,
-                [this.ctx.factory.createPropertyAccessExpression(
-                  this.ctx.factory.createIdentifier('wasmMemory'),
-                  this.ctx.factory.createIdentifier('buffer')
-                )]
-              )
-            )],
-            ts.NodeFlags.None
-          )
-        ),
+        this.createHeapDataViewDeclaration(),
         ...statements.slice(firstIndex)
-      ]
-
-      const newBody = this.ctx.factory.createBlock(newStatements, true)
-      return updateBody(this.ctx.factory, functionLike, newBody)
+      ])
     }
-    return functionLike
+    if (statementIndex.length === 1) {
+      const targetStatement = statements[statementIndex[0]]
+
+      const injectVisitor: Visitor = (node) => {
+        let newStatement = node
+        if (ts.isIfStatement(node)) {
+          if (!isIncludeGetOrSet(node.elseStatement)) {
+            newStatement = this.ctx.factory.updateIfStatement(node, node.expression,
+              ts.isBlock(node.thenStatement)
+                ? this.ctx.factory.updateBlock(node.thenStatement, this.injectHeapDataViewDeclaration(node.thenStatement.statements))
+                : this.ctx.factory.createBlock(this.injectHeapDataViewDeclaration(this.ctx.factory.createNodeArray([node.thenStatement]))),
+              node.elseStatement
+                ? ts.isBlock(node.elseStatement)
+                  ? this.ctx.factory.updateBlock(node.elseStatement, this.injectHeapDataViewDeclaration(node.elseStatement.statements))
+                  : this.ctx.factory.createBlock(this.injectHeapDataViewDeclaration(this.ctx.factory.createNodeArray([node.elseStatement])))
+                : node.elseStatement
+            )
+          }
+        } else if (ts.isTryStatement(node)) {
+          if (node.catchClause && !node.finallyBlock) {
+            if (!isIncludeGetOrSet(node.catchClause)) {
+              newStatement = this.ctx.factory.updateTryStatement(node,
+                this.ctx.factory.updateBlock(node.tryBlock, this.injectHeapDataViewDeclaration(node.tryBlock.statements)),
+                node.catchClause,
+                node.finallyBlock
+              )
+            }
+          } else if (!node.catchClause && node.finallyBlock) {
+            if (!isIncludeGetOrSet(node.finallyBlock)) {
+              newStatement = this.ctx.factory.updateTryStatement(node,
+                this.ctx.factory.updateBlock(node.tryBlock, this.injectHeapDataViewDeclaration(node.tryBlock.statements)),
+                node.catchClause,
+                node.finallyBlock
+              )
+            }
+          } else if (node.catchClause && node.finallyBlock) {
+            if (!(isIncludeGetOrSet(node.catchClause) && isIncludeGetOrSet(node.finallyBlock))) {
+              newStatement = this.ctx.factory.updateTryStatement(node,
+                this.ctx.factory.updateBlock(node.tryBlock, this.injectHeapDataViewDeclaration(node.tryBlock.statements)),
+                node.catchClause
+                  ? this.ctx.factory.updateCatchClause(node.catchClause, node.catchClause.variableDeclaration, this.ctx.factory.updateBlock(node.catchClause.block, this.injectHeapDataViewDeclaration(node.catchClause.block.statements)))
+                  : node.catchClause,
+                node.finallyBlock
+                  ? this.ctx.factory.updateBlock(node.finallyBlock, this.injectHeapDataViewDeclaration(node.finallyBlock.statements))
+                  : node.finallyBlock
+              )
+            }
+          } else {
+            throw new Error('unreachable')
+          }
+        } else if (ts.isSwitchStatement(node)) {
+          if (node.caseBlock.clauses.some((clause) => !isIncludeGetOrSet(clause))) {
+            newStatement = this.ctx.factory.updateSwitchStatement(node, node.expression,
+              this.ctx.factory.updateCaseBlock(node.caseBlock, node.caseBlock.clauses.map(clause => {
+                if (ts.isCaseClause(clause)) {
+                  return this.ctx.factory.updateCaseClause(clause, clause.expression, this.injectHeapDataViewDeclaration(clause.statements))
+                }
+                return this.ctx.factory.updateDefaultClause(clause, this.injectHeapDataViewDeclaration(clause.statements))
+              }))
+            )
+          }
+        } else if (ts.isBlock(node)) {
+          newStatement = this.ctx.factory.updateBlock(node, this.injectHeapDataViewDeclaration(node.statements))
+        }
+
+        return ts.visitEachChild(newStatement, this.functionLikeDeclarationVisitor, this.ctx)
+      }
+
+      const newStatement = ts.visitNode(targetStatement, injectVisitor) as Statement
+
+      return this.ctx.factory.createNodeArray<Statement>([
+        ...statements.slice(0, statementIndex[0]),
+        ...(newStatement === targetStatement ? [this.createHeapDataViewDeclaration()] : []),
+        newStatement,
+        ...statements.slice(statementIndex[0] + 1)
+      ], false)
+    }
+    return statements
   }
 
   visitor (node: Node): VisitResult<Node | undefined> {
