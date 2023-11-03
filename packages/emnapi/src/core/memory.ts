@@ -23,8 +23,6 @@ function _napi_adjust_external_memory (
   }
 
   $from64('adjusted_value')
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  var HEAP_DATA_VIEW = new DataView(wasmMemory.buffer)
   $makeSetValue('adjusted_value', 0, 'wasmMemory.buffer.byteLength', 'i64')
 
   return envObject.clearLastError()
