@@ -11,10 +11,12 @@ import type {
   Expression,
   TransformationContext,
   Node,
+  Visitor,
+  Block,
+  FunctionLikeDeclaration,
+  VariableStatement,
+  NodeArray,
   VisitResult,
-  FunctionDeclaration,
-  FunctionExpression,
-  MethodDeclaration,
   Statement
 } from 'typescript'
 
@@ -125,91 +127,253 @@ function byteOffsetParameter (factory: NodeFactory, defines: Record<string, any>
   throw new Error('$makeGetValue unsupported pos')
 }
 
+function isFunctionLikeDeclaration (node: Node): node is FunctionLikeDeclaration {
+  return ts.isFunctionDeclaration(node) ||
+    ts.isMethodDeclaration(node) ||
+    ts.isConstructorDeclaration(node) ||
+    ts.isGetAccessorDeclaration(node) ||
+    ts.isSetAccessorDeclaration(node) ||
+    ts.isFunctionExpression(node) ||
+    ts.isArrowFunction(node)
+}
+
+function updateBody<N extends FunctionLikeDeclaration> (factory: NodeFactory, node: N, body: Block): N {
+  if (ts.isFunctionDeclaration(node)) {
+    return factory.updateFunctionDeclaration(node,
+      node.modifiers,
+      node.asteriskToken,
+      node.name,
+      node.typeParameters,
+      node.parameters,
+      node.type,
+      body
+    ) as N
+  }
+  if (ts.isMethodDeclaration(node)) {
+    return factory.updateMethodDeclaration(node,
+      node.modifiers,
+      node.asteriskToken,
+      node.name,
+      node.questionToken,
+      node.typeParameters,
+      node.parameters,
+      node.type,
+      body
+    ) as N
+  }
+  if (ts.isConstructorDeclaration(node)) {
+    return factory.updateConstructorDeclaration(node,
+      node.modifiers,
+      node.parameters,
+      body
+    ) as N
+  }
+  if (ts.isGetAccessorDeclaration(node)) {
+    return factory.updateGetAccessorDeclaration(node,
+      node.modifiers,
+      node.name,
+      node.parameters,
+      node.type,
+      body
+    ) as N
+  }
+  if (ts.isSetAccessorDeclaration(node)) {
+    return factory.updateSetAccessorDeclaration(node,
+      node.modifiers,
+      node.name,
+      node.parameters,
+      body
+    ) as N
+  }
+  if (ts.isFunctionExpression(node)) {
+    return factory.updateFunctionExpression(node,
+      node.modifiers,
+      node.asteriskToken,
+      node.name,
+      node.typeParameters,
+      node.parameters,
+      node.type,
+      body
+    ) as N
+  }
+  if (ts.isArrowFunction(node)) {
+    return factory.updateArrowFunction(node,
+      node.modifiers,
+      node.typeParameters,
+      node.parameters,
+      node.type,
+      node.equalsGreaterThanToken,
+      body
+    ) as N
+  }
+
+  throw new Error('unreachable')
+}
+
 class Transform {
   ctx: TransformationContext
-  functionDeclarations: Array<FunctionDeclaration | FunctionExpression | MethodDeclaration>
-  injectDataViewDecl: boolean
   defines: Record<string, any>
 
   constructor (context: TransformationContext, defines: Record<string, any>) {
     this.ctx = context
-    this.functionDeclarations = []
-    this.injectDataViewDecl = false
     this.defines = defines
     this.visitor = this.visitor.bind(this)
+    this.functionLikeDeclarationVisitor = this.functionLikeDeclarationVisitor.bind(this)
+  }
+
+  createHeapDataViewDeclaration (): VariableStatement {
+    return this.ctx.factory.createVariableStatement(
+      undefined,
+      this.ctx.factory.createVariableDeclarationList(
+        [this.ctx.factory.createVariableDeclaration(
+          this.ctx.factory.createIdentifier('HEAP_DATA_VIEW'),
+          undefined,
+          undefined,
+          this.ctx.factory.createNewExpression(
+            this.ctx.factory.createIdentifier('DataView'),
+            undefined,
+            [this.ctx.factory.createPropertyAccessExpression(
+              this.ctx.factory.createIdentifier('wasmMemory'),
+              this.ctx.factory.createIdentifier('buffer')
+            )]
+          )
+        )],
+        ts.NodeFlags.None
+      )
+    )
+  }
+
+  functionLikeDeclarationVisitor (node: Node): VisitResult<Node | undefined> {
+    if (isFunctionLikeDeclaration(node)) {
+      const statements = node.body
+        ? ts.isBlock(node.body)
+          ? node.body.statements
+          : this.ctx.factory.createNodeArray([this.ctx.factory.createReturnStatement(node.body)])
+        : this.ctx.factory.createNodeArray([])
+
+      const newStatements = this.injectHeapDataViewDeclaration(statements)
+
+      if (statements === newStatements) {
+        return ts.visitEachChild(node, this.functionLikeDeclarationVisitor, this.ctx)
+      }
+
+      const newBody = this.ctx.factory.createBlock(newStatements, true)
+      return updateBody(this.ctx.factory, node, newBody)
+    }
+
+    return ts.visitEachChild(node, this.functionLikeDeclarationVisitor, this.ctx)
+  }
+
+  injectHeapDataViewDeclaration (statements: NodeArray<Statement>): NodeArray<Statement> {
+    const isIncludeGetOrSet: (statement?: Node) => boolean = (statement) => {
+      if (!statement) return false
+      let includeGetOrSet = false
+      const statementVisitor: Visitor = (n) => {
+        if (ts.isIdentifier(n) && n.text === 'HEAP_DATA_VIEW') {
+          includeGetOrSet = true
+        }
+        return ts.visitEachChild(n, statementVisitor, this.ctx)
+      }
+      ts.visitEachChild(statement, statementVisitor, this.ctx)
+      return includeGetOrSet
+    }
+
+    const statementIndex = [] as number[]
+    for (let i = 0; i < statements.length; ++i) {
+      const statement = statements[i]
+      if (isIncludeGetOrSet(statement)) {
+        statementIndex.push(i)
+      }
+    }
+
+    if (statementIndex.length > 1) {
+      const firstIndex = statementIndex[0]
+      return this.ctx.factory.createNodeArray([
+        ...statements.slice(0, firstIndex),
+        this.createHeapDataViewDeclaration(),
+        ...statements.slice(firstIndex)
+      ])
+    }
+    if (statementIndex.length === 1) {
+      const targetStatement = statements[statementIndex[0]]
+
+      const injectVisitor: Visitor = (node) => {
+        if (ts.isIfStatement(node)) {
+          if (!isIncludeGetOrSet(node.elseStatement)) {
+            return this.ctx.factory.updateIfStatement(node, node.expression,
+              ts.isBlock(node.thenStatement)
+                ? this.ctx.factory.updateBlock(node.thenStatement, this.injectHeapDataViewDeclaration(node.thenStatement.statements))
+                : this.ctx.factory.createBlock(this.injectHeapDataViewDeclaration(this.ctx.factory.createNodeArray([node.thenStatement]))),
+              node.elseStatement
+                ? ts.isBlock(node.elseStatement)
+                  ? this.ctx.factory.updateBlock(node.elseStatement, this.injectHeapDataViewDeclaration(node.elseStatement.statements))
+                  : this.ctx.factory.createBlock(this.injectHeapDataViewDeclaration(this.ctx.factory.createNodeArray([node.elseStatement])))
+                : node.elseStatement
+            )
+          }
+        } else if (ts.isTryStatement(node)) {
+          if (node.catchClause && !node.finallyBlock) {
+            if (!isIncludeGetOrSet(node.catchClause)) {
+              return this.ctx.factory.updateTryStatement(node,
+                this.ctx.factory.updateBlock(node.tryBlock, this.injectHeapDataViewDeclaration(node.tryBlock.statements)),
+                node.catchClause,
+                node.finallyBlock
+              )
+            }
+          } else if (!node.catchClause && node.finallyBlock) {
+            if (!isIncludeGetOrSet(node.finallyBlock)) {
+              return this.ctx.factory.updateTryStatement(node,
+                this.ctx.factory.updateBlock(node.tryBlock, this.injectHeapDataViewDeclaration(node.tryBlock.statements)),
+                node.catchClause,
+                node.finallyBlock
+              )
+            }
+          } else if (node.catchClause && node.finallyBlock) {
+            if (!(isIncludeGetOrSet(node.catchClause) && isIncludeGetOrSet(node.finallyBlock))) {
+              return this.ctx.factory.updateTryStatement(node,
+                this.ctx.factory.updateBlock(node.tryBlock, this.injectHeapDataViewDeclaration(node.tryBlock.statements)),
+                node.catchClause
+                  ? this.ctx.factory.updateCatchClause(node.catchClause, node.catchClause.variableDeclaration, this.ctx.factory.updateBlock(node.catchClause.block, this.injectHeapDataViewDeclaration(node.catchClause.block.statements)))
+                  : node.catchClause,
+                node.finallyBlock
+                  ? this.ctx.factory.updateBlock(node.finallyBlock, this.injectHeapDataViewDeclaration(node.finallyBlock.statements))
+                  : node.finallyBlock
+              )
+            }
+          } else {
+            throw new Error('unreachable')
+          }
+        } else if (ts.isSwitchStatement(node)) {
+          if (node.caseBlock.clauses.some((clause) => !isIncludeGetOrSet(clause))) {
+            return this.ctx.factory.updateSwitchStatement(node, node.expression,
+              this.ctx.factory.updateCaseBlock(node.caseBlock, node.caseBlock.clauses.map(clause => {
+                if (ts.isCaseClause(clause)) {
+                  return this.ctx.factory.updateCaseClause(clause, clause.expression, this.injectHeapDataViewDeclaration(clause.statements))
+                }
+                return this.ctx.factory.updateDefaultClause(clause, this.injectHeapDataViewDeclaration(clause.statements))
+              }))
+            )
+          }
+        } else if (ts.isBlock(node)) {
+          return this.ctx.factory.updateBlock(node, this.injectHeapDataViewDeclaration(node.statements))
+        }
+
+        return ts.visitEachChild(node, this.functionLikeDeclarationVisitor, this.ctx)
+      }
+
+      const newStatement = ts.visitNode(targetStatement, injectVisitor) as Statement
+
+      return this.ctx.factory.createNodeArray<Statement>([
+        ...statements.slice(0, statementIndex[0]),
+        ...(newStatement === targetStatement ? [this.createHeapDataViewDeclaration()] : []),
+        newStatement,
+        ...statements.slice(statementIndex[0] + 1)
+      ], false)
+    }
+    return statements
   }
 
   visitor (node: Node): VisitResult<Node | undefined> {
-    if (ts.isFunctionDeclaration(node) || ts.isFunctionExpression(node) || ts.isMethodDeclaration(node)) {
-      this.functionDeclarations.push(node)
-      const result = ts.visitEachChild(node, this.visitor, this.ctx)
-      this.functionDeclarations.pop()
-      const statements = result.body?.statements ?? []
-      if (this.injectDataViewDecl && this.functionDeclarations.length === 0) {
-        this.injectDataViewDecl = false
-        const decl = this.ctx.factory.createVariableStatement(
-          undefined,
-          this.ctx.factory.createVariableDeclarationList(
-            [this.ctx.factory.createVariableDeclaration(
-              this.ctx.factory.createIdentifier('HEAP_DATA_VIEW'),
-              undefined,
-              undefined,
-              this.ctx.factory.createNewExpression(
-                this.ctx.factory.createIdentifier('DataView'),
-                undefined,
-                [this.ctx.factory.createPropertyAccessExpression(
-                  this.ctx.factory.createIdentifier('wasmMemory'),
-                  this.ctx.factory.createIdentifier('buffer')
-                )]
-              )
-            )],
-            ts.NodeFlags.None
-          )
-        )
-        const modifiers = ts.getModifiers(result)!
-        const asteriskToken = result.asteriskToken
-        const name = result.name!
-        const questionToken = result.questionToken
-        const typeParameters = result.typeParameters
-        const parameters = result.parameters
-        const type = result.type
-        const body = this.ctx.factory.createBlock(
-          this.ctx.factory.createNodeArray([
-            decl,
-            ...statements
-          ]),
-          true
-        )
-        if (ts.isMethodDeclaration(node)) {
-          return this.ctx.factory.updateMethodDeclaration(
-            result as MethodDeclaration,
-            modifiers,
-            asteriskToken,
-            name,
-            questionToken,
-            typeParameters,
-            parameters,
-            type,
-            body
-          )
-        }
-        const method = ts.isFunctionDeclaration(node)
-          ? 'updateFunctionDeclaration'
-          : 'updateFunctionExpression'
-        return this.ctx.factory[method](
-          result as any,
-          modifiers,
-          asteriskToken,
-          name as any,
-          typeParameters,
-          parameters,
-          type,
-          body
-        )
-      }
-      return result
-    }
-
     if (ts.isExpressionStatement(node) &&
         ts.isCallExpression(node.expression) &&
         ts.isIdentifier(node.expression.expression) &&
@@ -322,7 +486,6 @@ class Transform {
       }
     }
 
-    this.injectDataViewDecl = true
     return this.ctx.factory.createCallExpression(
       this.ctx.factory.createPropertyAccessExpression(
         this.ctx.factory.createIdentifier('HEAP_DATA_VIEW'),
@@ -369,7 +532,6 @@ class Transform {
       }
     }
 
-    this.injectDataViewDecl = true
     const methodName = getDataViewSetMethod(this.defines, type)
     return this.ctx.factory.createCallExpression(
       this.ctx.factory.createPropertyAccessExpression(
@@ -522,7 +684,10 @@ function createTransformerFactory (_program: Program, config: DefineOptions): Tr
 
     return (src) => {
       if (src.isDeclarationFile) return src
-      return ts.visitEachChild(src, transform.visitor, context)
+      // expand emscripten macros
+      const transformedSrc = ts.visitEachChild(src, transform.visitor, context)
+      // inject HEAP_DATA_VIEW
+      return ts.visitEachChild(transformedSrc, transform.functionLikeDeclarationVisitor, context)
     }
   }
 }
