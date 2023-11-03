@@ -34,7 +34,11 @@ function _napi_adjust_external_memory (
 
 // #if WASM_BIGINT
   $from64('high')
-  $makeSetValue('high', 0, 'wasmMemory.buffer.byteLength', 'i64')
+  if (emnapiCtx.feature.supportBigInt) {
+    $makeSetValue('high', 0, 'wasmMemory.buffer.byteLength', 'i64')
+  } else {
+    emnapiSetValueI64(high, wasmMemory.buffer.byteLength)
+  }
 // #else
   $from64('adjusted_value')
   $makeSetValue('adjusted_value', 0, 'wasmMemory.buffer.byteLength', 'i64')
@@ -43,4 +47,11 @@ function _napi_adjust_external_memory (
   return envObject.clearLastError()
 }
 
-emnapiImplement('napi_adjust_external_memory', 'ipjp', _napi_adjust_external_memory, ['emscripten_resize_heap'])
+emnapiImplement('napi_adjust_external_memory', 'ipjp', _napi_adjust_external_memory,
+  [
+// #if WASM_BIGINT
+    '$emnapiSetValueI64',
+// #endif
+    'emscripten_resize_heap'
+  ]
+)

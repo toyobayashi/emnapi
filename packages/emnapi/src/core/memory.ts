@@ -23,7 +23,11 @@ function _napi_adjust_external_memory (
   }
 
   $from64('adjusted_value')
-  $makeSetValue('adjusted_value', 0, 'wasmMemory.buffer.byteLength', 'i64')
+  if (emnapiCtx.feature.supportBigInt) {
+    $makeSetValue('adjusted_value', 0, 'wasmMemory.buffer.byteLength', 'i64')
+  } else {
+    emnapiSetValueI64(adjusted_value, wasmMemory.buffer.byteLength)
+  }
 
   return envObject.clearLastError()
 }
