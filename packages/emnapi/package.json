@@ -12,7 +12,8 @@
     }
   },
   "scripts": {
-    "build": "node ./script/build.js"
+    "build": "node ./script/build.js",
+    "version": "node ./script/version.js && git add ."
   },
   "repository": {
     "type": "git",
