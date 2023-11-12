@@ -38,14 +38,15 @@ static napi_value getModuleProperty(napi_env env, napi_callback_info info) {
 
   return result;
 }
+#endif
 
-static napi_value testGetEmscriptenVersion(napi_env env, napi_callback_info info) {
-  const emnapi_emscripten_version* emscripten_version;
+static napi_value testGetRuntimeVersion(napi_env env, napi_callback_info info) {
+  emnapi_runtime_version runtime_version;
   napi_value result, major, minor, patch;
-  NODE_API_CALL(env, emnapi_get_emscripten_version(env, &emscripten_version));
-  NODE_API_CALL(env, napi_create_uint32(env, emscripten_version->major, &major));
-  NODE_API_CALL(env, napi_create_uint32(env, emscripten_version->minor, &minor));
-  NODE_API_CALL(env, napi_create_uint32(env, emscripten_version->patch, &patch));
+  NODE_API_CALL(env, emnapi_get_runtime_version(env, &runtime_version));
+  NODE_API_CALL(env, napi_create_uint32(env, runtime_version.major, &major));
+  NODE_API_CALL(env, napi_create_uint32(env, runtime_version.minor, &minor));
+  NODE_API_CALL(env, napi_create_uint32(env, runtime_version.patch, &patch));
 
   NODE_API_CALL(env, napi_create_array_with_length(env, 3, &result));
   NODE_API_CALL(env, napi_set_element(env, result, 0, major));
@@ -53,7 +54,6 @@ static napi_value testGetEmscriptenVersion(napi_env env, napi_callback_info info
   NODE_API_CALL(env, napi_set_element(env, result, 2, patch));
   return result;
 }
-#endif
 
 static void FinalizeCallback(napi_env env,
                              void* finalize_data,
@@ -113,17 +113,12 @@ static napi_value NullArrayBuffer(napi_env env, napi_callback_info info) {
 
 EXTERN_C_START
 napi_value Init(napi_env env, napi_value exports) {
-#ifdef __EMSCRIPTEN__
-  const emnapi_emscripten_version* emscripten_version;
-  NODE_API_CALL(env, emnapi_get_emscripten_version(env, &emscripten_version));
-  printf("Init: Emscripten v%u.%u.%u\n", emscripten_version->major, emscripten_version->minor, emscripten_version->patch);
-#endif
   napi_property_descriptor descriptors[] = {
 #ifdef __EMSCRIPTEN__
     DECLARE_NODE_API_PROPERTY("getModuleObject", getModuleObject),
     DECLARE_NODE_API_PROPERTY("getModuleProperty", getModuleProperty),
-    DECLARE_NODE_API_PROPERTY("testGetEmscriptenVersion", testGetEmscriptenVersion),
 #endif
+    DECLARE_NODE_API_PROPERTY("testGetRuntimeVersion", testGetRuntimeVersion),
     DECLARE_NODE_API_PROPERTY("External", External),
     DECLARE_NODE_API_PROPERTY("NullArrayBuffer", NullArrayBuffer),
     DECLARE_NODE_API_PROPERTY("GrowMemory", GrowMemory),

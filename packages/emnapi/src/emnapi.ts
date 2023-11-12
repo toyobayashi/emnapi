@@ -250,6 +250,31 @@ function emnapi_get_memory_address (env: napi_env, arraybuffer_or_view: napi_val
   })
 }
 
+function emnapi_get_runtime_version (env: napi_env, version: number): napi_status {
+  $CHECK_ENV!(env)
+  const envObject = emnapiCtx.envStore.get(env)!
+  $CHECK_ARG!(envObject, version)
+
+  let runtimeVersion: string
+  try {
+    runtimeVersion = emnapiCtx.getRuntimeVersions().version
+  } catch (_) {
+    return envObject.setLastError(napi_status.napi_generic_failure)
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const versions = runtimeVersion.split('.')
+    .map((n: string) => Number(n)) as [number, number, number]
+
+  $from64('version')
+
+  $makeSetValue('version', 0, 'versions[0]', 'u32')
+  $makeSetValue('version', 4, 'versions[1]', 'u32')
+  $makeSetValue('version', 8, 'versions[2]', 'u32')
+
+  return envObject.clearLastError()
+}
+
 emnapiImplementHelper('$emnapiSyncMemory', undefined, emnapiSyncMemory, ['$emnapiExternalMemory'], 'syncMemory')
 emnapiImplementHelper('$emnapiGetMemoryAddress', undefined, emnapiGetMemoryAddress, ['$emnapiExternalMemory'], 'getMemoryAddress')
 
@@ -260,3 +285,5 @@ emnapiImplement2('emnapi_is_node_binding_available', 'i', emnapi_is_node_binding
 emnapiImplement2('emnapi_create_memory_view', 'ipippppp', _emnapi_create_memory_view, ['napi_add_finalizer', '$emnapiExternalMemory'])
 emnapiImplement2('emnapi_sync_memory', 'ipippp', emnapi_sync_memory, ['$emnapiSyncMemory'])
 emnapiImplement2('emnapi_get_memory_address', 'ipppp', emnapi_get_memory_address, ['$emnapiGetMemoryAddress'])
+
+emnapiImplement2('emnapi_get_runtime_version', 'ipp', emnapi_get_runtime_version)
