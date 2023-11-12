@@ -13,7 +13,7 @@
   },
   "scripts": {
     "build": "node ./script/build.js",
-    "version": "node ./script/version.js && git add ."
+    "version": "node ./script/version.js"
   },
   "repository": {
     "type": "git",
