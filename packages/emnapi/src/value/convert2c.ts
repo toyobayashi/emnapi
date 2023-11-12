@@ -416,6 +416,17 @@ function napi_get_value_int32 (env: napi_env, value: napi_value, result: Pointer
   return envObject.clearLastError()
 }
 
+function emnapiSetValueI64 (result: Pointer<int64_t>, numberValue: number): void {
+  let tempDouble: number
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const tempI64 = [
+    numberValue >>> 0,
+    (tempDouble = numberValue, +Math.abs(tempDouble) >= 1 ? tempDouble > 0 ? (Math.min(+Math.floor(tempDouble / 4294967296), 4294967295) | 0) >>> 0 : ~~+Math.ceil((tempDouble - +(~~tempDouble >>> 0)) / 4294967296) >>> 0 : 0)
+  ]
+  $makeSetValue('result', 0, 'tempI64[0]', 'i32')
+  $makeSetValue('result', 4, 'tempI64[1]', 'i32')
+}
+
 function napi_get_value_int64 (env: napi_env, value: napi_value, result: Pointer<int64_t>): napi_status {
   $CHECK_ENV!(env)
   const envObject = emnapiCtx.envStore.get(env)!
@@ -428,7 +439,7 @@ function napi_get_value_int64 (env: napi_env, value: napi_value, result: Pointer
   }
   const numberValue = handle.value
   $from64('result')
-  let tempI64: any
+
   if (numberValue === Number.POSITIVE_INFINITY || numberValue === Number.NEGATIVE_INFINITY || isNaN(numberValue)) {
     $makeSetValue('result', 0, '0', 'i32')
     $makeSetValue('result', 4, '0', 'i32')
@@ -439,11 +450,7 @@ function napi_get_value_int64 (env: napi_env, value: napi_value, result: Pointer
     $makeSetValue('result', 0, '0xffffffff', 'u32')
     $makeSetValue('result', 4, '0x7fffffff', 'u32')
   } else {
-    let tempDouble
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    tempI64 = [numberValue >>> 0, (tempDouble = numberValue, +Math.abs(tempDouble) >= 1 ? tempDouble > 0 ? (Math.min(+Math.floor(tempDouble / 4294967296), 4294967295) | 0) >>> 0 : ~~+Math.ceil((tempDouble - +(~~tempDouble >>> 0)) / 4294967296) >>> 0 : 0)]
-    $makeSetValue('result', 0, 'tempI64[0]', 'i32')
-    $makeSetValue('result', 4, 'tempI64[1]', 'i32')
+    emnapiSetValueI64(result, numberValue)
   }
   return envObject.clearLastError()
 }
@@ -560,6 +567,8 @@ function napi_get_value_uint32 (env: napi_env, value: napi_value, result: Pointe
   return envObject.clearLastError()
 }
 
+emnapiImplementHelper('$emnapiSetValueI64', undefined, emnapiSetValueI64, undefined)
+
 emnapiImplement('napi_get_array_length', 'ippp', napi_get_array_length)
 emnapiImplement('napi_get_arraybuffer_info', 'ipppp', napi_get_arraybuffer_info, ['$emnapiExternalMemory'])
 emnapiImplement('napi_get_prototype', 'ippp', napi_get_prototype)
@@ -574,7 +583,7 @@ emnapiImplement('napi_get_value_bigint_uint64', 'ipppp', napi_get_value_bigint_u
 emnapiImplement('napi_get_value_bigint_words', 'ippppp', napi_get_value_bigint_words)
 emnapiImplement('napi_get_value_external', 'ippp', napi_get_value_external)
 emnapiImplement('napi_get_value_int32', 'ippp', napi_get_value_int32)
-emnapiImplement('napi_get_value_int64', 'ippp', napi_get_value_int64)
+emnapiImplement('napi_get_value_int64', 'ippp', napi_get_value_int64, ['$emnapiSetValueI64'])
 emnapiImplement('napi_get_value_string_latin1', 'ippppp', napi_get_value_string_latin1)
 emnapiImplement('napi_get_value_string_utf8', 'ippppp', napi_get_value_string_utf8, ['$emnapiString'])
 

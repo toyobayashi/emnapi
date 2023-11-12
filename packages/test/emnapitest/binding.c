@@ -83,11 +83,22 @@ static napi_value External(napi_env env, napi_callback_info info) {
 }
 
 static napi_value GrowMemory(napi_env env, napi_callback_info info) {
-  napi_value result;
-  int64_t adjustedValue;
+  size_t argc = 1;
+  napi_value result, change_in_bytes_value;
+  int64_t adjustedValue, change_in_bytes;
 
-  NODE_API_CALL(env, napi_adjust_external_memory(env, 1, &adjustedValue));
+  NODE_API_CALL(env, napi_get_cb_info(env, info, &argc, &change_in_bytes_value, NULL, NULL));
+  NODE_API_CALL(env, napi_get_value_int64(env, change_in_bytes_value, &change_in_bytes));
+  NODE_API_CALL(env, napi_adjust_external_memory(env, change_in_bytes, &adjustedValue));
   NODE_API_CALL(env, napi_create_double(env, (double)adjustedValue, &result));
+
+  return result;
+}
+
+static napi_value GetWasmMemorySize(napi_env env, napi_callback_info info) {
+  napi_value result;
+  size_t wasm_memory_size = __builtin_wasm_memory_size(0) << 16;
+  NODE_API_CALL(env, napi_create_bigint_uint64(env, wasm_memory_size, &result));
 
   return result;
 }
@@ -116,6 +127,7 @@ napi_value Init(napi_env env, napi_value exports) {
     DECLARE_NODE_API_PROPERTY("External", External),
     DECLARE_NODE_API_PROPERTY("NullArrayBuffer", NullArrayBuffer),
     DECLARE_NODE_API_PROPERTY("GrowMemory", GrowMemory),
+    DECLARE_NODE_API_PROPERTY("GetWasmMemorySize", GetWasmMemorySize),
   };
 
   NODE_API_CALL(env, napi_define_properties(
