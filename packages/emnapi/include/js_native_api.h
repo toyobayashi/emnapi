@@ -21,6 +21,12 @@
 #endif
 #endif
 
+#ifndef EMNAPI_UNMODIFIED_UPSTREAM
+#if !defined(NAPI_EXTERN) && defined(__EMSCRIPTEN__)
+#define NAPI_EXTERN __attribute__((__import_module__("env")))
+#endif
+#endif
+
 #include "js_native_api_types.h"
 
 // If you need __declspec(dllimport), either include <node_api.h> instead, or

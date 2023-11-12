@@ -1,6 +1,16 @@
 #ifndef SRC_NODE_API_H_
 #define SRC_NODE_API_H_
 
+#ifndef EMNAPI_UNMODIFIED_UPSTREAM
+#ifndef BUILDING_NODE_EXTENSION
+#define BUILDING_NODE_EXTENSION
+#endif
+
+#if !defined(NAPI_EXTERN) && defined(__EMSCRIPTEN__)
+#define NAPI_EXTERN __attribute__((__import_module__("env")))
+#endif
+#endif
+
 #if defined(BUILDING_NODE_EXTENSION) && !defined(NAPI_EXTERN)
 #ifdef _WIN32
 // Building native addon against node
