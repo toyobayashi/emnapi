@@ -5,6 +5,10 @@
 #include "js_native_api_types.h"
 #include "emnapi_common.h"
 
+#define EMNAPI_MAJOR_VERSION 0
+#define EMNAPI_MINOR_VERSION 44
+#define EMNAPI_PATCH_VERSION 0
+
 typedef enum {
   emnapi_runtime,
   emnapi_userland,
@@ -41,17 +45,17 @@ EMNAPI_EXTERN
 napi_status emnapi_get_module_property(napi_env env,
                                        const char* utf8name,
                                        napi_value* result);
+#endif
 
 typedef struct {
   uint32_t major;
   uint32_t minor;
   uint32_t patch;
-} emnapi_emscripten_version;
+} emnapi_runtime_version;
 
 EMNAPI_EXTERN
-napi_status emnapi_get_emscripten_version(napi_env env,
-                                          const emnapi_emscripten_version** version);
-#endif
+napi_status emnapi_get_runtime_version(napi_env env, 
+                                       emnapi_runtime_version* version);
 
 EMNAPI_EXTERN
 napi_status emnapi_create_memory_view(napi_env env,

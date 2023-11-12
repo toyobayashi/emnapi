@@ -29,7 +29,6 @@ set(UV_SRC
 set(ENAPI_BASIC_SRC
   "${CMAKE_CURRENT_SOURCE_DIR}/src/js_native_api.c"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/node_api.c"
-  "${CMAKE_CURRENT_SOURCE_DIR}/src/emnapi.c"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/async_cleanup_hook.c"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/async_context.c"
 )

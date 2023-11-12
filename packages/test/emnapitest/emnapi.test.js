@@ -40,11 +40,9 @@ module.exports = promise.then(test_typedarray => {
   }
   assert.notStrictEqual(buffer.buffer.byteLength, 0)
 
-  if (!process.env.EMNAPI_TEST_WASI && !process.env.EMNAPI_TEST_WASM32) {
-    const [major, minor, patch] = test_typedarray.testGetEmscriptenVersion()
-    assert.strictEqual(typeof major, 'number')
-    assert.strictEqual(typeof minor, 'number')
-    assert.strictEqual(typeof patch, 'number')
-    console.log(`test: Emscripten v${major}.${minor}.${patch}`)
-  }
+  const [major, minor, patch] = test_typedarray.testGetRuntimeVersion()
+  assert.strictEqual(typeof major, 'number')
+  assert.strictEqual(typeof minor, 'number')
+  assert.strictEqual(typeof patch, 'number')
+  console.log(`@emnapi/runtime: v${major}.${minor}.${patch}`)
 })
