@@ -1,14 +1,22 @@
 #ifndef SRC_NODE_API_H_
 #define SRC_NODE_API_H_
 
-#ifdef EMNAPI_UNMODIFIED_UPSTREAM
-#ifdef BUILDING_NODE_EXTENSION
+#ifndef EMNAPI_UNMODIFIED_UPSTREAM
+#ifndef BUILDING_NODE_EXTENSION
+#define BUILDING_NODE_EXTENSION
+#endif
+
+#if !defined(NAPI_EXTERN) && defined(__EMSCRIPTEN__)
+#define NAPI_EXTERN __attribute__((__import_module__("env")))
+#endif
+#endif
+
+#if defined(BUILDING_NODE_EXTENSION) && !defined(NAPI_EXTERN)
 #ifdef _WIN32
 // Building native addon against node
 #define NAPI_EXTERN __declspec(dllimport)
-#elif defined(__wasm32__)
+#elif defined(__wasm__)
 #define NAPI_EXTERN __attribute__((__import_module__("napi")))
-#endif
 #endif
 #endif
 #include "js_native_api.h"
@@ -19,14 +27,11 @@ struct uv_loop_s;  // Forward declaration.
 #ifdef _WIN32
 #define NAPI_MODULE_EXPORT __declspec(dllexport)
 #else
-#ifdef EMNAPI_UNMODIFIED_UPSTREAM
-#define NAPI_MODULE_EXPORT __attribute__((visibility("default")))
-#else
 #ifdef __EMSCRIPTEN__
-#define NAPI_MODULE_EXPORT __attribute__((visibility("default"))) __attribute__((used))
+#define NAPI_MODULE_EXPORT                                                     \
+  __attribute__((visibility("default"))) __attribute__((used))
 #else
 #define NAPI_MODULE_EXPORT __attribute__((visibility("default")))
-#endif
 #endif
 #endif
 
@@ -59,18 +64,10 @@ typedef struct napi_module {
   NAPI_MODULE_INITIALIZER_X_HELPER(base, version)
 #define NAPI_MODULE_INITIALIZER_X_HELPER(base, version) base##version
 
-#ifdef EMNAPI_UNMODIFIED_UPSTREAM
-#ifdef __wasm32__
-#define NAPI_MODULE_INITIALIZER_BASE napi_register_wasm_v
-#else
-#define NAPI_MODULE_INITIALIZER_BASE napi_register_module_v
-#endif
-#else
 #ifdef __wasm__
 #define NAPI_MODULE_INITIALIZER_BASE napi_register_wasm_v
 #else
 #define NAPI_MODULE_INITIALIZER_BASE napi_register_module_v
-#endif
 #endif
 
 #define NODE_API_MODULE_GET_API_VERSION_BASE node_api_module_get_api_version_v
@@ -160,7 +157,7 @@ NAPI_EXTERN napi_status NAPI_CDECL napi_get_buffer_info(napi_env env,
                                                         napi_value value,
                                                         void** data,
                                                         size_t* length);
-#if !defined(EMNAPI_UNMODIFIED_UPSTREAM) || (defined(EMNAPI_UNMODIFIED_UPSTREAM) && !defined(__wasm32__))
+
 // Methods to manage simple async operations
 NAPI_EXTERN napi_status NAPI_CDECL
 napi_create_async_work(napi_env env,
@@ -176,7 +173,6 @@ NAPI_EXTERN napi_status NAPI_CDECL napi_queue_async_work(napi_env env,
                                                          napi_async_work work);
 NAPI_EXTERN napi_status NAPI_CDECL napi_cancel_async_work(napi_env env,
                                                           napi_async_work work);
-#endif  // __wasm32__
 
 // version management
 NAPI_EXTERN napi_status NAPI_CDECL
@@ -214,7 +210,6 @@ napi_close_callback_scope(napi_env env, napi_callback_scope scope);
 
 #if NAPI_VERSION >= 4
 
-#if !defined(EMNAPI_UNMODIFIED_UPSTREAM) || (defined(EMNAPI_UNMODIFIED_UPSTREAM) && !defined(__wasm32__))
 // Calling into JS from other threads
 NAPI_EXTERN napi_status NAPI_CDECL
 napi_create_threadsafe_function(napi_env env,
@@ -248,7 +243,6 @@ napi_unref_threadsafe_function(napi_env env, napi_threadsafe_function func);
 
 NAPI_EXTERN napi_status NAPI_CDECL
 napi_ref_threadsafe_function(napi_env env, napi_threadsafe_function func);
-#endif  // __wasm32__
 
 #endif  // NAPI_VERSION >= 4
 

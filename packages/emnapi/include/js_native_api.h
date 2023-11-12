@@ -21,15 +21,20 @@
 #endif
 #endif
 
+#ifndef EMNAPI_UNMODIFIED_UPSTREAM
+#if !defined(NAPI_EXTERN) && defined(__EMSCRIPTEN__)
+#define NAPI_EXTERN __attribute__((__import_module__("env")))
+#endif
+#endif
+
 #include "js_native_api_types.h"
 
-#ifdef EMNAPI_UNMODIFIED_UPSTREAM
 // If you need __declspec(dllimport), either include <node_api.h> instead, or
 // define NAPI_EXTERN as __declspec(dllimport) on the compiler's command line.
 #ifndef NAPI_EXTERN
 #ifdef _WIN32
 #define NAPI_EXTERN __declspec(dllexport)
-#elif defined(__wasm32__)
+#elif defined(__wasm__)
 #define NAPI_EXTERN                                                            \
   __attribute__((visibility("default")))                                       \
   __attribute__((__import_module__("napi")))
@@ -37,20 +42,15 @@
 #define NAPI_EXTERN __attribute__((visibility("default")))
 #endif
 #endif
-#else
-#include "emnapi_common.h"
-#endif
 
 #define NAPI_AUTO_LENGTH SIZE_MAX
 
-#ifdef EMNAPI_UNMODIFIED_UPSTREAM
 #ifdef __cplusplus
 #define EXTERN_C_START extern "C" {
 #define EXTERN_C_END }
 #else
 #define EXTERN_C_START
 #define EXTERN_C_END
-#endif
 #endif
 
 EXTERN_C_START
