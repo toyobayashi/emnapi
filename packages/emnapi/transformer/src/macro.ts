@@ -13,7 +13,7 @@ import type {
 } from 'typescript'
 
 import * as ts from 'typescript'
-import { cloneNode } from 'ts-clone-node'
+import { cloneNode, CloneNodeOptions } from 'ts-clone-node'
 
 function isMacroCall (node: Node): node is CallExpression {
   return ts.isCallExpression(node) &&
@@ -67,30 +67,39 @@ class Transform {
       const node = n.expression
       // const macroName = ((node.expression as NonNullExpression).expression as Identifier).text
 
+      const cloneOptions: Partial<CloneNodeOptions<any>> = {
+        typescript: ts,
+        factory: this.ctx.factory,
+        setOriginalNodes: true,
+        setParents: true,
+        preserveComments: true,
+        preserveSymbols: true
+      }
+
       const type = checker.getTypeAtLocation((node.expression as NonNullExpression).expression as Identifier)
       const valueDeclaration = type.getSymbol()?.valueDeclaration
       if (valueDeclaration && ts.isFunctionDeclaration(valueDeclaration) && valueDeclaration.body) {
-        const decl = cloneNode(this.visitor(valueDeclaration) as ts.FunctionDeclaration, { setOriginalNodes: true })
+        const decl = cloneNode(this.visitor(valueDeclaration) as ts.FunctionDeclaration, cloneOptions)
         const args = node.arguments.map(a => cloneNode(
           ts.visitEachChild(
             ts.visitEachChild(a, this.visitor, this.ctx),
             this.constEnumVisitor,
             this.ctx
           ),
-          { setOriginalNodes: true }
+          cloneOptions
         ))
         const paramNames = valueDeclaration.parameters.map(p => p.name.getText())
         const visitor: ts.Visitor = (nodeInMacro) => {
-          let result: VisitResult<Node> = this.constEnumVisitor(nodeInMacro) as Node
+          let result: VisitResult<Node> = this.constEnumVisitor(nodeInMacro)
           if (ts.isIdentifier(nodeInMacro)) {
             const sym = checker.getSymbolAtLocation(nodeInMacro)?.valueDeclaration
             if (sym && paramNames.includes(nodeInMacro.text)) {
               const index = paramNames.indexOf(nodeInMacro.text)
-              result = cloneNode(args[index])
+              result = cloneNode(args[index], cloneOptions)
             }
           }
 
-          result = this.visitor(result)
+          result = this.visitor(result as Node)
 
           if (Array.isArray(result)) {
             return result.map(n => ts.visitEachChild(n, visitor, this.ctx))
