@@ -1,7 +1,7 @@
 import type {
   TransformerFactory,
   SourceFile,
-  // Visitor,
+  Visitor,
   CallExpression,
   TransformationContext,
   Node,
@@ -13,7 +13,7 @@ import type {
 } from 'typescript'
 
 import * as ts from 'typescript'
-import { cloneNode, CloneNodeOptions } from 'ts-clone-node'
+import { cloneNode } from 'ts-clone-node'
 
 function isMacroCall (node: Node): node is CallExpression {
   return ts.isCallExpression(node) &&
@@ -34,7 +34,7 @@ class Transform {
     this.constEnumVisitor = this.constEnumVisitor.bind(this)
   }
 
-  constEnumVisitor (node: Node): VisitResult<Node> {
+  constEnumVisitor (node: Node): Node {
     const factory = this.ctx.factory
     const checker = this.typeChecker
     if (ts.isPropertyAccessExpression(node) && ts.isIdentifier(node.expression)) {
@@ -60,16 +60,16 @@ class Transform {
   }
 
   visitor (n: Node): VisitResult<Node> {
-    // const factory = this.ctx.factory
+    const factory = this.ctx.factory
     const checker = this.typeChecker
 
     if ((ts.isExpressionStatement(n) && isMacroCall(n.expression)) || (ts.isReturnStatement(n) && n.expression && isMacroCall(n.expression))) {
       const node = n.expression
       // const macroName = ((node.expression as NonNullExpression).expression as Identifier).text
 
-      const cloneOptions: Partial<CloneNodeOptions<any>> = {
+      const cloneOptions: any = {
         typescript: ts,
-        factory: this.ctx.factory,
+        factory,
         setOriginalNodes: true,
         setParents: true,
         preserveComments: true,
@@ -89,27 +89,56 @@ class Transform {
           cloneOptions
         ))
         const paramNames = valueDeclaration.parameters.map(p => p.name.getText())
-        const visitor: ts.Visitor = (nodeInMacro) => {
-          let result: VisitResult<Node> = this.constEnumVisitor(nodeInMacro)
-          if (ts.isIdentifier(nodeInMacro)) {
-            const sym = checker.getSymbolAtLocation(nodeInMacro)?.valueDeclaration
-            if (sym && paramNames.includes(nodeInMacro.text)) {
-              const index = paramNames.indexOf(nodeInMacro.text)
-              result = cloneNode(args[index], cloneOptions)
+        const macroBodyVisitor: Visitor = (nodeInMacro) => {
+          const newNode = this.constEnumVisitor(nodeInMacro)
+          let result: VisitResult<Node> = newNode
+
+          if ((ts.isExpressionStatement(newNode) && ts.isCallExpression(newNode.expression)) || (ts.isReturnStatement(newNode) && newNode.expression && ts.isCallExpression(newNode.expression))) {
+            const callExpressionExpression = (newNode.expression as CallExpression).expression
+            if (ts.isIdentifier(callExpressionExpression)) {
+              const callArgs = (newNode.expression as CallExpression).arguments.map((a) => cloneNode(a, cloneOptions))
+              const sym = checker.getSymbolAtLocation(callExpressionExpression)?.valueDeclaration
+              if (sym && paramNames.includes(callExpressionExpression.text)) {
+                const index = paramNames.indexOf(callExpressionExpression.text)
+                const arg = cloneNode(args[index], cloneOptions)
+                if ((ts.isArrowFunction(arg) || ts.isFunctionExpression(arg)) && ts.isBlock(arg.body)) {
+                  const names = arg.parameters.map(p => String((p.name as Identifier).text))
+                  const replaceIdentifierVisitor = (n: Node): Node => {
+                    if (ts.isIdentifier(n)) {
+                      const sym = checker.getSymbolAtLocation(n)?.valueDeclaration
+                      if (sym && names.includes(n.text)) {
+                        const index = names.indexOf(n.text)
+                        return cloneNode(callArgs[index], cloneOptions)
+                      }
+                    }
+
+                    return ts.visitEachChild(n, replaceIdentifierVisitor, this.ctx)
+                  }
+                  result = ts.visitEachChild(arg.body, replaceIdentifierVisitor, this.ctx).statements
+                }
+              }
+            }
+          } else if (ts.isIdentifier(newNode)) {
+            const sym = checker.getSymbolAtLocation(newNode)?.valueDeclaration
+            if (sym && paramNames.includes(newNode.text)) {
+              const index = paramNames.indexOf(newNode.text)
+              result = this.visitor(cloneNode(args[index], cloneOptions))
             }
           }
 
-          result = this.visitor(result as Node)
-
-          if (Array.isArray(result)) {
-            return result.map(n => ts.visitEachChild(n, visitor, this.ctx))
+          if (!Array.isArray(result)) {
+            result = this.visitor(result as Node)
           }
 
-          return ts.visitEachChild(result as Node, visitor, this.ctx)
+          if (Array.isArray(result)) {
+            return result.map(n => ts.visitEachChild(n, macroBodyVisitor, this.ctx))
+          }
+
+          return ts.visitEachChild(result as Node, macroBodyVisitor, this.ctx)
         }
         const transformedBody = ts.visitEachChild(
           decl.body!,
-          visitor,
+          macroBodyVisitor,
           this.ctx
         )
         return transformedBody.statements
@@ -129,7 +158,7 @@ function createTransformerFactory (program: Program/* , config: unknown */): Tra
     return (src) => {
       if (src.isDeclarationFile) return src
 
-      const removeVisitor: ts.Visitor<Node> = (n) => {
+      const removeVisitor: Visitor = (n) => {
         if (ts.isFunctionDeclaration(n) && n.name && n.name.text.charAt(0) === '$' && n.name.text.length > 1) {
           return context.factory.createEmptyStatement()
         }
