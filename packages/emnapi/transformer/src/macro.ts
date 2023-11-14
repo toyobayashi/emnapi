@@ -25,6 +25,23 @@ function isMacroCall (node: Node): node is CallExpression {
     node.expression.expression.text.charAt(0) === '$'
 }
 
+function preserveMultiLine (node: Node, sourceNode: Node): Node {
+  if ((sourceNode as any)?.multiLine) {
+    (node as any).multiLine = (sourceNode as any).multiLine
+  }
+
+  const children: Node[] = []
+  node?.forEachChild(child => { children.push(child) })
+
+  const sourceChildren: Node[] = []
+  sourceNode?.forEachChild(child => { sourceChildren.push(child) })
+
+  for (let i = 0; i < children.length; i++) {
+    preserveMultiLine(children[i], sourceChildren[i])
+  }
+  return node
+}
+
 class Transform {
   ctx: TransformationContext
   typeChecker: TypeChecker
@@ -67,6 +84,12 @@ class Transform {
     const cloneOptions: any = {
       typescript: ts,
       factory,
+      finalize: (clonedNode: Node, oldNode: Node) => {
+        if (ts.isStringLiteral(oldNode)) {
+          (clonedNode as any).singleQuote = true
+        }
+        return preserveMultiLine(clonedNode, oldNode)
+      },
       setOriginalNodes: true,
       setParents: true,
       preserveComments: true,
