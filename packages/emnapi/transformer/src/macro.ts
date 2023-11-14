@@ -183,7 +183,7 @@ function createTransformerFactory (program: Program/* , config: unknown */): Tra
 
       const removeVisitor: Visitor = (n) => {
         if (ts.isFunctionDeclaration(n) && n.name && n.name.text.charAt(0) === '$' && n.name.text.length > 1 && n.body) {
-          return context.factory.createEmptyStatement()
+          return undefined
         }
         if (ts.isVariableStatement(n)) {
           const newDeclarations = n.declarationList.declarations.filter(
@@ -192,7 +192,7 @@ function createTransformerFactory (program: Program/* , config: unknown */): Tra
           if (newDeclarations.length > 0) {
             return context.factory.updateVariableStatement(n, n.modifiers, context.factory.updateVariableDeclarationList(n.declarationList, newDeclarations))
           } else {
-            return context.factory.createEmptyStatement()
+            return undefined
           }
         }
 
