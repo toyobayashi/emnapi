@@ -7,10 +7,13 @@ import type {
   Node,
   VisitResult,
   NonNullExpression,
-  Identifier
+  Identifier,
+  Program,
+  TypeChecker
 } from 'typescript'
 
 import * as ts from 'typescript'
+import { cloneNode } from 'ts-clone-node'
 
 /*
 
@@ -55,44 +58,12 @@ function isMacroCall (node: Node): node is CallExpression {
 
 class Transform {
   ctx: TransformationContext
+  typeChecker: TypeChecker
 
-  constructor (context: TransformationContext) {
+  constructor (context: TransformationContext, typeChecker: TypeChecker) {
     this.ctx = context
+    this.typeChecker = typeChecker
     this.visitor = this.visitor.bind(this)
-  }
-
-  expandCheckEnv (factory: ts.NodeFactory, args: ts.NodeArray<ts.Expression>): ts.IfStatement {
-    if (!ts.isIdentifier(args[0])) throw new Error('$CHECK_ENV!() the first argument is not identifier')
-    return factory.createIfStatement(
-      factory.createPrefixUnaryExpression(
-        ts.SyntaxKind.ExclamationToken,
-        factory.createIdentifier(args[0].text)
-      ),
-      factory.createReturnStatement(
-        ts.addSyntheticTrailingComment(factory.createNumericLiteral(String(napi_status.napi_invalid_arg)), ts.SyntaxKind.MultiLineCommentTrivia, ' napi_status.napi_invalid_arg ')
-      ),
-      undefined
-    )
-  }
-
-  expandCheckArg (factory: ts.NodeFactory, args: ts.NodeArray<ts.Expression>): ts.IfStatement {
-    if (!ts.isIdentifier(args[0])) throw new Error('$CHECK_ARG!() the first argument is not identifier')
-    if (!ts.isIdentifier(args[1])) throw new Error('$CHECK_ARG!() the second argument is not identifier')
-    return factory.createIfStatement(
-      factory.createPrefixUnaryExpression(
-        ts.SyntaxKind.ExclamationToken,
-        factory.createIdentifier(args[1].text)
-      ),
-      factory.createReturnStatement(factory.createCallExpression(
-        factory.createPropertyAccessExpression(
-          factory.createIdentifier(args[0].text),
-          factory.createIdentifier('setLastError')
-        ),
-        undefined,
-        [ts.addSyntheticTrailingComment(factory.createNumericLiteral(String(napi_status.napi_invalid_arg)), ts.SyntaxKind.MultiLineCommentTrivia, ' napi_status.napi_invalid_arg ')]
-      )),
-      undefined
-    )
   }
 
   expandPreamble (factory: ts.NodeFactory, args: ts.NodeArray<ts.Expression>): ts.Statement[] {
@@ -254,20 +225,70 @@ class Transform {
   }
 
   visitor (n: Node): VisitResult<Node> {
-    if (ts.isExpressionStatement(n) && isMacroCall(n.expression)) {
+    const factory = this.ctx.factory
+    const checker = this.typeChecker
+
+    if (ts.isFunctionDeclaration(n) && n.name && n.name.text.charAt(0) === '$' && n.name.text.length > 1) {
+      return factory.createEmptyStatement()
+    }
+
+    if ((ts.isExpressionStatement(n) && isMacroCall(n.expression)) || (ts.isReturnStatement(n) && n.expression && isMacroCall(n.expression))) {
       const node = n.expression
       const macroName = ((node.expression as NonNullExpression).expression as Identifier).text
-      const factory = this.ctx.factory
-      if (macroName === '$CHECK_ENV') {
-        return this.expandCheckEnv(factory, node.arguments)
-      }
-      if (macroName === '$CHECK_ARG') {
-        return this.expandCheckArg(factory, node.arguments)
-      }
 
       if (macroName === '$PREAMBLE') {
         return this.expandPreamble(factory, node.arguments)
       }
+
+      const type = checker.getTypeAtLocation((node.expression as NonNullExpression).expression as Identifier)
+      const valueDeclaration = type.getSymbol()?.valueDeclaration
+      if (valueDeclaration && ts.isFunctionDeclaration(valueDeclaration) && valueDeclaration.body) {
+        const decl = cloneNode(valueDeclaration, { setOriginalNodes: true })
+        const paramNames = valueDeclaration.parameters.map(p => p.name.getText())
+        const visitor: ts.Visitor = (nodeInMacro) => {
+          let result: VisitResult<Node> = nodeInMacro
+          if (ts.isPropertyAccessExpression(nodeInMacro) && ts.isIdentifier(nodeInMacro.expression)) {
+            const enumValue = checker.getConstantValue(nodeInMacro)
+            if (typeof enumValue === 'number') {
+              result = ts.addSyntheticTrailingComment(
+                factory.createNumericLiteral(enumValue),
+                ts.SyntaxKind.MultiLineCommentTrivia,
+                ` ${nodeInMacro.expression.text as string}.${nodeInMacro.name.text as string} `,
+                false
+              )
+            } else if (typeof enumValue === 'string') {
+              result = ts.addSyntheticTrailingComment(
+                factory.createStringLiteral(enumValue),
+                ts.SyntaxKind.MultiLineCommentTrivia,
+                ` ${nodeInMacro.expression.text as string}.${nodeInMacro.name.text as string} `,
+                false
+              )
+            }
+          } else if (ts.isIdentifier(nodeInMacro)) {
+            const sym = checker.getSymbolAtLocation(nodeInMacro)?.valueDeclaration
+            if (sym && paramNames.includes(nodeInMacro.text)) {
+              const index = paramNames.indexOf(nodeInMacro.text)
+              result = cloneNode(node.arguments[index])
+            }
+          }
+
+          result = this.visitor(result)
+
+          if (Array.isArray(result)) {
+            return result.map(n => ts.visitEachChild(n, visitor, this.ctx))
+          }
+
+          return ts.visitEachChild(result as Node, visitor, this.ctx)
+        }
+        const transformedBody = ts.visitEachChild(
+          decl.body!,
+          visitor,
+          this.ctx
+        )
+        return transformedBody.statements
+      }
+
+      return ts.visitEachChild(n, this.visitor, this.ctx)
     }
 
     if (ts.isReturnStatement(n) && n.expression && isMacroCall(n.expression)) {
@@ -283,11 +304,11 @@ class Transform {
   }
 }
 
-function createTransformerFactory (/* _program: Program, config: unknown */): TransformerFactory<SourceFile> {
+function createTransformerFactory (program: Program/* , config: unknown */): TransformerFactory<SourceFile> {
   // const defineKeys = Object.keys(defines)
-  // const typeChecker = program.getTypeChecker()
+  const typeChecker = program.getTypeChecker()
   return (context) => {
-    const transform = new Transform(context)
+    const transform = new Transform(context, typeChecker)
 
     return (src) => {
       if (src.isDeclarationFile) return src
