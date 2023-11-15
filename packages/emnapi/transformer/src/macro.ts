@@ -25,7 +25,7 @@ function isMacroCall (node: Node): node is CallExpression {
     node.expression.expression.text.charAt(0) === '$'
 }
 
-function preserveMultiLine (node: Node, sourceNode: Node): Node {
+/* function preserveMultiLine (node: Node, sourceNode: Node): Node {
   if ((sourceNode as any)?.multiLine) {
     (node as any).multiLine = (sourceNode as any).multiLine
   }
@@ -40,7 +40,7 @@ function preserveMultiLine (node: Node, sourceNode: Node): Node {
     preserveMultiLine(children[i], sourceChildren[i])
   }
   return node
-}
+} */
 
 class Transform {
   ctx: TransformationContext
@@ -84,12 +84,12 @@ class Transform {
     const cloneOptions: any = {
       typescript: ts,
       factory,
-      finalize: (clonedNode: Node, oldNode: Node) => {
+      /* finalize: (clonedNode: Node, oldNode: Node) => {
         if (ts.isStringLiteral(oldNode)) {
           (clonedNode as any).singleQuote = true
         }
         return preserveMultiLine(clonedNode, oldNode)
-      },
+      }, */
       setOriginalNodes: true,
       setParents: true,
       preserveComments: true,
@@ -97,14 +97,13 @@ class Transform {
     }
 
     const decl = cloneNode(this.visitor(valueDeclaration) as (FunctionDeclaration | ArrowFunction), cloneOptions)
-    const args = node.arguments.map(a => cloneNode(
+    const args = node.arguments.map(a =>
       ts.visitEachChild(
         ts.visitEachChild(a, this.visitor, this.ctx),
         this.constEnumVisitor,
         this.ctx
-      ),
-      cloneOptions
-    ))
+      )
+    )
     const paramNames = valueDeclaration.parameters.map(p => p.name.getText())
     const macroBodyVisitor: Visitor = (nodeInMacro) => {
       const newNode = this.constEnumVisitor(nodeInMacro)
