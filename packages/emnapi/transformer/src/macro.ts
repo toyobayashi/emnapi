@@ -204,6 +204,61 @@ function createTransformerFactory (program: Program/* , config: unknown */): Tra
     return (src) => {
       if (src.isDeclarationFile) return src
 
+      const isMacro = (n: Node): boolean => {
+        return Boolean((ts.isFunctionDeclaration(n) || ts.isArrowFunction(n) || ts.isFunctionExpression(n)) && n.name && n.name.text.charAt(0) === '$' && n.name.text.length > 1 && n.body)
+      }
+
+      const isMacroIdentifier = (n: Node): boolean => {
+        if (!n) return false
+        if (ts.isIdentifier(n)) {
+          const symbol = typeChecker.getTypeAtLocation(n)?.getSymbol()
+          const decls = symbol?.getDeclarations()
+          if (decls) {
+            return isMacro(decls[0])
+          }
+          return false
+        }
+        return false
+      }
+
+      const removeImportExport: Visitor = (n) => {
+        if (ts.isExportAssignment(n)) {
+          if (isMacroIdentifier(n.expression)) {
+            return undefined
+          }
+        } else if (ts.isExportDeclaration(n)) {
+          if (n.exportClause && ts.isNamedExports(n.exportClause)) {
+            const newElements = n.exportClause.elements.filter(sp => {
+              return !isMacroIdentifier(sp.name)
+            })
+            return context.factory.updateExportDeclaration(n, n.modifiers, n.isTypeOnly,
+              context.factory.updateNamedExports(n.exportClause, newElements), n.moduleSpecifier, n.assertClause)
+          }
+        } else if (ts.isImportDeclaration(n)) {
+          if (n.importClause) {
+            let newName = n.importClause.name
+            let newBindings = n.importClause.namedBindings
+            if (n.importClause.name) {
+              if (isMacroIdentifier(n.importClause.name)) {
+                newName = undefined
+              }
+            }
+            if (n.importClause.namedBindings && ts.isNamedImports(n.importClause.namedBindings)) {
+              const newElements = n.importClause.namedBindings.elements.filter(sp => {
+                return !isMacroIdentifier(sp.name)
+              })
+              newBindings = context.factory.updateNamedImports(n.importClause.namedBindings, newElements)
+            }
+            return context.factory.updateImportDeclaration(n, n.modifiers,
+              context.factory.updateImportClause(n.importClause, n.importClause.isTypeOnly, newName, newBindings),
+              n.moduleSpecifier, n.assertClause
+            )
+          }
+        }
+
+        return ts.visitEachChild(n, removeImportExport, context)
+      }
+
       const removeVisitor: Visitor = (n) => {
         if (ts.isFunctionDeclaration(n) && n.name && n.name.text.charAt(0) === '$' && n.name.text.length > 1 && n.body) {
           return undefined
@@ -223,7 +278,11 @@ function createTransformerFactory (program: Program/* , config: unknown */): Tra
       }
 
       return ts.visitEachChild(
-        ts.visitEachChild(src, transform.visitor, context),
+        ts.visitEachChild(
+          ts.visitEachChild(src, transform.visitor, context),
+          removeImportExport,
+          context
+        ),
         removeVisitor,
         context
       )
