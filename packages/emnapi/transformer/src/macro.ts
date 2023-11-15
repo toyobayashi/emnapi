@@ -204,8 +204,18 @@ function createTransformerFactory (program: Program/* , config: unknown */): Tra
     return (src) => {
       if (src.isDeclarationFile) return src
 
+      const isMacroFunctionName = (text: string): boolean => {
+        return text.charAt(0) === '$' && text.length > 1
+      }
+
       const isMacro = (n: Node): boolean => {
-        return Boolean((ts.isFunctionDeclaration(n) || ts.isArrowFunction(n) || ts.isFunctionExpression(n)) && n.name && n.name.text.charAt(0) === '$' && n.name.text.length > 1 && n.body)
+        if (ts.isFunctionDeclaration(n)) {
+          return Boolean((n.body && n.name && isMacroFunctionName(n.name.text)))
+        }
+        if (ts.isArrowFunction(n) || ts.isFunctionExpression(n)) {
+          return Boolean(n.body && ts.isVariableDeclaration(n.parent) && n.parent.name && ts.isIdentifier(n.parent.name) && isMacroFunctionName(n.parent.name.text))
+        }
+        return false
       }
 
       const isMacroIdentifier = (n: Node): boolean => {
@@ -247,10 +257,14 @@ function createTransformerFactory (program: Program/* , config: unknown */): Tra
               const newElements = n.importClause.namedBindings.elements.filter(sp => {
                 return !isMacroIdentifier(sp.name)
               })
-              newBindings = context.factory.updateNamedImports(n.importClause.namedBindings, newElements)
+              newBindings = newElements.length > 0
+                ? context.factory.updateNamedImports(n.importClause.namedBindings, newElements)
+                : undefined
             }
             return context.factory.updateImportDeclaration(n, n.modifiers,
-              context.factory.updateImportClause(n.importClause, n.importClause.isTypeOnly, newName, newBindings),
+              newBindings || newName
+                ? context.factory.updateImportClause(n.importClause, n.importClause.isTypeOnly, newName, newBindings)
+                : undefined,
               n.moduleSpecifier, n.assertClause
             )
           }
