@@ -11,7 +11,8 @@ import type {
   Program,
   TypeChecker,
   FunctionDeclaration,
-  ArrowFunction
+  ArrowFunction,
+  FunctionExpression
 } from 'typescript'
 
 import * as ts from 'typescript'
@@ -78,7 +79,7 @@ class Transform {
     return ts.visitEachChild(node, this.constEnumVisitor, this.ctx)
   }
 
-  expandMacro (node: CallExpression, valueDeclaration: FunctionDeclaration | ArrowFunction): VisitResult<Node> {
+  expandMacro (node: CallExpression, valueDeclaration: FunctionDeclaration | ArrowFunction | FunctionExpression): VisitResult<Node> {
     const factory = this.ctx.factory
     const checker = this.typeChecker
     const cloneOptions: any = {
@@ -176,7 +177,7 @@ class Transform {
 
       const type = checker.getTypeAtLocation((node.expression as NonNullExpression).expression as Identifier)
       const valueDeclaration = type.getSymbol()?.valueDeclaration
-      if (valueDeclaration && (ts.isFunctionDeclaration(valueDeclaration) || ts.isArrowFunction(valueDeclaration)) && valueDeclaration.body) {
+      if (valueDeclaration && (ts.isFunctionDeclaration(valueDeclaration) || ts.isArrowFunction(valueDeclaration) || ts.isFunctionExpression(valueDeclaration)) && valueDeclaration.body) {
         return this.expandMacro(node, valueDeclaration)
       }
     }
@@ -209,7 +210,7 @@ function createTransformerFactory (program: Program/* , config: unknown */): Tra
         }
         if (ts.isVariableStatement(n)) {
           const newDeclarations = n.declarationList.declarations.filter(
-            (d) => !(ts.isIdentifier(d.name) && d.name.text.charAt(0) === '$' && d.name.text.length > 1 && d.initializer && ts.isArrowFunction(d.initializer) && d.initializer.body)
+            (d) => !(ts.isIdentifier(d.name) && d.name.text.charAt(0) === '$' && d.name.text.length > 1 && d.initializer && (ts.isArrowFunction(d.initializer) || ts.isFunctionExpression(d.initializer)) && d.initializer.body)
           )
           if (newDeclarations.length > 0) {
             return context.factory.updateVariableStatement(n, n.modifiers, context.factory.updateVariableDeclarationList(n.declarationList, newDeclarations))
