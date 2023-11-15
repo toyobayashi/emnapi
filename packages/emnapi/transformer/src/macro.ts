@@ -113,11 +113,11 @@ class Transform {
       if ((ts.isExpressionStatement(newNode) && ts.isCallExpression(newNode.expression)) || (ts.isReturnStatement(newNode) && newNode.expression && ts.isCallExpression(newNode.expression))) {
         const callExpressionExpression = (newNode.expression as CallExpression).expression
         if (ts.isIdentifier(callExpressionExpression)) {
-          const callArgs = (newNode.expression as CallExpression).arguments.map((a) => cloneNode(a, cloneOptions))
+          const callArgs = (newNode.expression as CallExpression).arguments
           const sym = checker.getSymbolAtLocation(callExpressionExpression)?.valueDeclaration
           if (sym && paramNames.includes(callExpressionExpression.text)) {
             const index = paramNames.indexOf(callExpressionExpression.text)
-            const arg = cloneNode(args[index], cloneOptions)
+            const arg = args[index]
             if ((ts.isArrowFunction(arg) || ts.isFunctionExpression(arg)) && ts.isBlock(arg.body)) {
               const names = arg.parameters.map(p => String((p.name as Identifier).text))
               const replaceIdentifierVisitor = (n: Node): Node => {
