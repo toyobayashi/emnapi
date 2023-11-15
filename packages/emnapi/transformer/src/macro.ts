@@ -56,6 +56,7 @@ class Transform {
     this.typeChecker = typeChecker
     this.test = options?.test // ?? /^\$[_a-zA-Z0-9]+/
     this.visitor = this.visitor.bind(this)
+    this.removeImportExport = this.removeImportExport.bind(this)
     this.removeVisitor = this.removeVisitor.bind(this)
     this.constEnumVisitor = this.constEnumVisitor.bind(this)
   }
@@ -248,6 +249,77 @@ class Transform {
     return ts.visitEachChild(n, this.visitor, this.ctx)
   }
 
+  isMacroIdentifier (n: Node): boolean {
+    if (!n) return false
+    if (ts.isIdentifier(n)) {
+      const symbol = this.typeChecker.getTypeAtLocation(n)?.getSymbol()
+      const decls = symbol?.getDeclarations()
+      if (decls) {
+        const n = decls[0]
+        if (!this.test) {
+          if (ts.isFunctionDeclaration(n)) {
+            return Boolean(n.name && this.typeChecker.getSymbolAtLocation(n.name)?.getJsDocTags().some(info => info.name === JSDocTagType.INLINE || info.name === JSDocTagType.MACRO))
+          }
+          if (ts.isArrowFunction(n) || ts.isFunctionExpression(n)) {
+            return Boolean(ts.isVariableDeclaration(n.parent) && ts.isIdentifier(n.parent.name) && this.typeChecker.getSymbolAtLocation(n.parent.name)?.getJsDocTags().some(info => info.name === JSDocTagType.INLINE || info.name === JSDocTagType.MACRO))
+          }
+        } else {
+          if (ts.isFunctionDeclaration(n)) {
+            return Boolean((n.body && n.name && this.testMacroName(n.name.text)))
+          }
+          if (ts.isArrowFunction(n) || ts.isFunctionExpression(n)) {
+            return Boolean(n.body && ts.isVariableDeclaration(n.parent) && n.parent.name && ts.isIdentifier(n.parent.name) && this.testMacroName(n.parent.name.text))
+          }
+          return false
+        }
+      }
+      return false
+    }
+    return false
+  }
+
+  removeImportExport: Visitor = (n) => {
+    if (ts.isExportAssignment(n)) {
+      if (this.isMacroIdentifier(n.expression)) {
+        return undefined
+      }
+    } else if (ts.isExportDeclaration(n)) {
+      if (n.exportClause && ts.isNamedExports(n.exportClause)) {
+        const newElements = n.exportClause.elements.filter(sp => {
+          return !this.isMacroIdentifier(sp.name)
+        })
+        return this.ctx.factory.updateExportDeclaration(n, n.modifiers, n.isTypeOnly,
+          this.ctx.factory.updateNamedExports(n.exportClause, newElements), n.moduleSpecifier, n.assertClause)
+      }
+    } else if (ts.isImportDeclaration(n)) {
+      if (n.importClause) {
+        let newName = n.importClause.name
+        let newBindings = n.importClause.namedBindings
+        if (n.importClause.name) {
+          if (this.isMacroIdentifier(n.importClause.name)) {
+            newName = undefined
+          }
+        }
+        if (n.importClause.namedBindings && ts.isNamedImports(n.importClause.namedBindings)) {
+          const newElements = n.importClause.namedBindings.elements.filter(sp => {
+            return !this.isMacroIdentifier(sp.name)
+          })
+          newBindings = newElements.length > 0
+            ? this.ctx.factory.updateNamedImports(n.importClause.namedBindings, newElements)
+            : undefined
+        }
+        return this.ctx.factory.updateImportDeclaration(n, n.modifiers,
+          newBindings || newName
+            ? this.ctx.factory.updateImportClause(n.importClause, n.importClause.isTypeOnly, newName, newBindings)
+            : undefined,
+          n.moduleSpecifier, n.assertClause
+        )
+      }
+    }
+
+    return ts.visitEachChild(n, this.removeImportExport, this.ctx)
+  }
+
   removeVisitor (n: Node): VisitResult<Node | undefined> {
     const checker = this.typeChecker
     if (!this.test) {
@@ -292,65 +364,10 @@ function createTransformerFactory (program: Program, config: TransformOptions): 
     return (src) => {
       if (src.isDeclarationFile) return src
 
-      const isMacroIdentifier = (n: Node): boolean => {
-        if (!n) return false
-        if (ts.isIdentifier(n)) {
-          const symbol = typeChecker.getTypeAtLocation(n)?.getSymbol()
-          const decls = symbol?.getDeclarations()
-          if (decls) {
-            return transform.isMacro(decls[0])
-          }
-          return false
-        }
-        return false
-      }
-
-      const removeImportExport: Visitor = (n) => {
-        if (ts.isExportAssignment(n)) {
-          if (isMacroIdentifier(n.expression)) {
-            return undefined
-          }
-        } else if (ts.isExportDeclaration(n)) {
-          if (n.exportClause && ts.isNamedExports(n.exportClause)) {
-            const newElements = n.exportClause.elements.filter(sp => {
-              return !isMacroIdentifier(sp.name)
-            })
-            return context.factory.updateExportDeclaration(n, n.modifiers, n.isTypeOnly,
-              context.factory.updateNamedExports(n.exportClause, newElements), n.moduleSpecifier, n.assertClause)
-          }
-        } else if (ts.isImportDeclaration(n)) {
-          if (n.importClause) {
-            let newName = n.importClause.name
-            let newBindings = n.importClause.namedBindings
-            if (n.importClause.name) {
-              if (isMacroIdentifier(n.importClause.name)) {
-                newName = undefined
-              }
-            }
-            if (n.importClause.namedBindings && ts.isNamedImports(n.importClause.namedBindings)) {
-              const newElements = n.importClause.namedBindings.elements.filter(sp => {
-                return !isMacroIdentifier(sp.name)
-              })
-              newBindings = newElements.length > 0
-                ? context.factory.updateNamedImports(n.importClause.namedBindings, newElements)
-                : undefined
-            }
-            return context.factory.updateImportDeclaration(n, n.modifiers,
-              newBindings || newName
-                ? context.factory.updateImportClause(n.importClause, n.importClause.isTypeOnly, newName, newBindings)
-                : undefined,
-              n.moduleSpecifier, n.assertClause
-            )
-          }
-        }
-
-        return ts.visitEachChild(n, removeImportExport, context)
-      }
-
       return ts.visitEachChild(
         ts.visitEachChild(
           ts.visitEachChild(src, transform.visitor, context),
-          removeImportExport,
+          transform.removeImportExport,
           context
         ),
         transform.removeVisitor,
