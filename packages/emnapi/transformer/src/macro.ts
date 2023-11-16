@@ -12,8 +12,12 @@ import type {
   FunctionDeclaration,
   ArrowFunction,
   FunctionExpression,
-  Expression,
   JSDocTagInfo,
+  ExpressionStatement,
+  ReturnStatement,
+  Modifier,
+  ConciseBody,
+  Block,
   Declaration
 } from 'typescript'
 
@@ -104,7 +108,7 @@ class Transform {
     return ts.visitEachChild(node, this.constEnumVisitor, this.ctx)
   }
 
-  expandMacro (node: CallExpression, valueDeclaration: FunctionDeclaration | ArrowFunction | FunctionExpression, type: JSDocTagType): VisitResult<Node> {
+  expandMacro (node: CallExpression, valueDeclaration: FunctionDeclaration | ArrowFunction | FunctionExpression, type: JSDocTagType, originalNode: ExpressionStatement | ReturnStatement | CallExpression): VisitResult<Node> {
     const factory = this.ctx.factory
     const checker = this.typeChecker
     const cloneOptions: any = {
@@ -122,17 +126,16 @@ class Transform {
       preserveSymbols: true
     }
 
-    const decl = cloneNode(this.visitor(valueDeclaration) as (FunctionDeclaration | ArrowFunction), cloneOptions)
+    const decl = cloneNode(valueDeclaration, cloneOptions)
     const args = node.arguments.map(a =>
-      ts.visitEachChild(
-        ts.visitEachChild(a, this.visitor, this.ctx),
-        this.constEnumVisitor,
-        this.ctx
-      )
+      ts.visitNode(
+        ts.visitNode(a, this.visitor),
+        this.constEnumVisitor
+      ) as ts.Expression
     )
     const paramNames = valueDeclaration.parameters.map(p => p.name.getText())
     const macroBodyVisitor: Visitor = (nodeInMacro) => {
-      const newNode = this.constEnumVisitor(nodeInMacro)
+      const newNode = nodeInMacro
       let result: VisitResult<Node> = newNode
 
       if ((ts.isExpressionStatement(newNode) && ts.isCallExpression(newNode.expression)) || (ts.isReturnStatement(newNode) && newNode.expression && ts.isCallExpression(newNode.expression))) {
@@ -157,20 +160,16 @@ class Transform {
                 return ts.visitEachChild(n, replaceIdentifierVisitor, this.ctx)
               }
               const b = ts.visitEachChild(arg.body, replaceIdentifierVisitor, this.ctx)
-              result = type === JSDocTagType.INLINE ? b : b.statements
+              result = b.statements
             }
           }
         }
-      } else if (ts.isIdentifier(newNode)) {
+      } else if (ts.isIdentifier(newNode)/*  && !ts.isParameter(newNode.parent) */) {
         const sym = checker.getSymbolAtLocation(newNode)?.valueDeclaration
         if (sym && paramNames.includes(newNode.text)) {
           const index = paramNames.indexOf(newNode.text)
-          result = this.visitor(cloneNode(args[index], cloneOptions))
+          result = cloneNode(args[index], cloneOptions)
         }
-      }
-
-      if (!Array.isArray(result)) {
-        result = this.visitor(result as Node)
       }
 
       if (Array.isArray(result)) {
@@ -180,23 +179,52 @@ class Transform {
       return ts.visitEachChild(result as Node, macroBodyVisitor, this.ctx)
     }
 
-    const body = decl.body!
-    if (ts.isBlock(body!)) {
-      const transformedBody = ts.visitEachChild(
-        body!,
-        macroBodyVisitor,
-        this.ctx
-      )
-      return type === JSDocTagType.INLINE ? transformedBody : transformedBody.statements
+    if (type === JSDocTagType.INLINE) {
+      const body = decl.body!
+      const transformedBody = ts.visitNode(ts.visitNode(body, this.visitor), this.constEnumVisitor)
+      const f = ts.isArrowFunction(decl)
+        ? factory.updateArrowFunction(decl, decl.modifiers, decl.typeParameters, decl.parameters, decl.type, decl.equalsGreaterThanToken, transformedBody as ConciseBody)
+        : factory.createFunctionExpression(decl.modifiers?.filter(d => d.kind !== ts.SyntaxKind.Decorator && d.kind !== ts.SyntaxKind.ExportKeyword) as (readonly Modifier[] | undefined), decl.asteriskToken, undefined, decl.typeParameters, decl.parameters, decl.type, transformedBody as Block)
+      if (ts.isCallExpression(originalNode)) {
+        return factory.updateCallExpression(originalNode, factory.createParenthesizedExpression(f), originalNode.typeArguments, args)
+      }
+      if (ts.isExpressionStatement(originalNode)) {
+        const callExpression = originalNode.expression as CallExpression
+        return factory.updateExpressionStatement(originalNode,
+          factory.updateCallExpression(callExpression, factory.createParenthesizedExpression(f), callExpression.typeArguments, args))
+      }
+      if (ts.isReturnStatement(originalNode)) {
+        const callExpression = originalNode.expression as CallExpression
+        return factory.updateReturnStatement(originalNode,
+          factory.updateCallExpression(callExpression, factory.createParenthesizedExpression(f), callExpression.typeArguments, args))
+      }
+      throw new Error('unreachable')
+    } else {
+      const body = decl.body!
+      if (ts.isBlock(body!)) {
+        const transformedBody = ts.visitEachChild(
+          ts.visitEachChild(
+            ts.visitEachChild(
+              body!,
+              macroBodyVisitor,
+              this.ctx
+            ),
+            this.visitor,
+            this.ctx
+          ),
+          this.constEnumVisitor,
+          this.ctx
+        )
+        return transformedBody.statements
+      }
+      return ts.visitNode(body, macroBodyVisitor)!
     }
-
-    return ts.visitNode(body, macroBodyVisitor)!
   }
 
-  getDeclarationIfMacroCall (node: Expression): { valueDeclaration: Declaration | undefined; type: JSDocTagType } {
+  getDeclarationIfMacroCall (node: CallExpression): { valueDeclaration: Declaration | undefined; type: JSDocTagType } {
     if (!this.test) {
-      let t = JSDocTagType.INLINE
-      if (ts.isCallExpression(node) && ((ts.isNonNullExpression(node.expression) && ts.isIdentifier(node.expression.expression)) || ts.isIdentifier(node.expression))) {
+      let t = JSDocTagType.MACRO
+      if (((ts.isNonNullExpression(node.expression) && ts.isIdentifier(node.expression.expression)) || ts.isIdentifier(node.expression))) {
         const identifier = ts.isNonNullExpression(node.expression) ? node.expression.expression : node.expression as Identifier
         const type = this.typeChecker.getTypeAtLocation(identifier)
         const sym = type.getSymbol()
@@ -213,18 +241,17 @@ class Transform {
       }
       return { valueDeclaration: undefined, type: t }
     } else {
-      if (ts.isCallExpression(node) &&
-        ts.isNonNullExpression(node.expression) &&
+      if (ts.isNonNullExpression(node.expression) &&
         ts.isIdentifier(node.expression.expression) &&
         this.testMacroName(node.expression.expression.text)
       ) {
         const type = this.typeChecker.getTypeAtLocation(node.expression.expression)
         const sym = type.getSymbol()
         if (sym) {
-          return { valueDeclaration: sym.valueDeclaration, type: JSDocTagType.INLINE }
+          return { valueDeclaration: sym.valueDeclaration, type: JSDocTagType.MACRO }
         }
       }
-      return { valueDeclaration: undefined, type: JSDocTagType.INLINE }
+      return { valueDeclaration: undefined, type: JSDocTagType.MACRO }
     }
   }
 
@@ -232,17 +259,34 @@ class Transform {
     // const factory = this.ctx.factory
     // const checker = this.typeChecker
 
-    if ((ts.isExpressionStatement(n) || ts.isReturnStatement(n)) && n.expression) {
-      const { valueDeclaration, type } = this.getDeclarationIfMacroCall(n.expression)
-      if (valueDeclaration && (ts.isFunctionDeclaration(valueDeclaration) || ts.isArrowFunction(valueDeclaration) || ts.isFunctionExpression(valueDeclaration)) && valueDeclaration.body) {
-        return this.expandMacro(n.expression as CallExpression, valueDeclaration, type)
+    if (((ts.isFunctionDeclaration(n) && n.name) || ((ts.isArrowFunction(n) || ts.isFunctionExpression(n)) && n.parent && ts.isVariableDeclaration(n.parent) && ts.isIdentifier(n.parent.name)))) {
+      const type = this.typeChecker.getTypeAtLocation(ts.isFunctionDeclaration(n) ? n.name! : ((n.parent as ts.VariableDeclaration).name as Identifier))
+      const sym = type.getSymbol()
+      const someFn = (info: JSDocTagInfo): boolean => {
+        if (info.name === JSDocTagType.INLINE || info.name === JSDocTagType.MACRO) {
+          return true
+        }
+        return false
+      }
+      if (sym?.getJsDocTags(this.typeChecker).reverse().some(someFn)) {
+        return n
       }
     }
 
-    if (ts.isExpression(n)) {
+    if ((ts.isExpressionStatement(n) || ts.isReturnStatement(n)) && n.expression && ts.isCallExpression(n.expression)) {
+      const { valueDeclaration, type } = this.getDeclarationIfMacroCall(n.expression)
+      if (valueDeclaration && (ts.isFunctionDeclaration(valueDeclaration) || ts.isArrowFunction(valueDeclaration) || ts.isFunctionExpression(valueDeclaration)) && valueDeclaration.body) {
+        return this.expandMacro(n.expression, valueDeclaration, type, n)
+      }
+    }
+
+    if (ts.isCallExpression(n)) {
       const { valueDeclaration, type } = this.getDeclarationIfMacroCall(n)
-      if (valueDeclaration && ts.isArrowFunction(valueDeclaration) && ts.isExpression(valueDeclaration.body)) {
-        return this.expandMacro(n as CallExpression, valueDeclaration, type)
+      if (valueDeclaration && (
+        (ts.isArrowFunction(valueDeclaration) && ts.isExpression(valueDeclaration.body)) ||
+        ((ts.isFunctionDeclaration(valueDeclaration) || ts.isArrowFunction(valueDeclaration) || ts.isFunctionExpression(valueDeclaration)) && valueDeclaration.body && type === JSDocTagType.INLINE)
+      )) {
+        return this.expandMacro(n, valueDeclaration, type, n)
       }
     }
 
