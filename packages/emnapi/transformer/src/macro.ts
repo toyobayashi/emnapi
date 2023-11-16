@@ -25,7 +25,7 @@ import type {
 import * as ts from 'typescript'
 import { cloneNode } from 'ts-clone-node'
 
-/* function preserveMultiLine (node: Node, sourceNode: Node): Node {
+function preserveMultiLine (node: Node, sourceNode: Node): Node {
   if ((sourceNode as any)?.multiLine) {
     (node as any).multiLine = (sourceNode as any).multiLine
   }
@@ -40,7 +40,7 @@ import { cloneNode } from 'ts-clone-node'
     preserveMultiLine(children[i], sourceChildren[i])
   }
   return node
-} */
+}
 
 const enum JSDocTagType {
   INLINE = 'inline',
@@ -115,12 +115,9 @@ class Transform {
     const cloneOptions: any = {
       typescript: ts,
       factory,
-      /* finalize: (clonedNode: Node, oldNode: Node) => {
-        if (ts.isStringLiteral(oldNode)) {
-          (clonedNode as any).singleQuote = true
-        }
+      finalize: (clonedNode: Node, oldNode: Node) => {
         return preserveMultiLine(clonedNode, oldNode)
-      }, */
+      },
       setOriginalNodes: true,
       setParents: true,
       preserveComments: true,
@@ -352,7 +349,7 @@ class Transform {
         }
         if (n.importClause.namedBindings && ts.isNamedImports(n.importClause.namedBindings)) {
           const newElements = n.importClause.namedBindings.elements.filter(sp => {
-            return !this.isMacroIdentifier(sp.name)
+            return !this.isMacroIdentifier(sp.name) && !sp.isTypeOnly && this.typeChecker.getTypeAtLocation(sp.name).getSymbol()?.flags !== ts.SymbolFlags.ConstEnum
           })
           newBindings = newElements.length > 0
             ? this.ctx.factory.updateNamedImports(n.importClause.namedBindings, newElements)
