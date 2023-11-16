@@ -18,6 +18,7 @@ import type {
   Modifier,
   ConciseBody,
   Block,
+  Expression,
   Declaration
 } from 'typescript'
 
@@ -217,7 +218,17 @@ class Transform {
         )
         return transformedBody.statements
       }
-      return ts.visitNode(body, macroBodyVisitor)!
+      const transformedBody = ts.visitNode(body, macroBodyVisitor) as Expression
+      if (ts.isCallExpression(originalNode)) {
+        return transformedBody
+      }
+      if (ts.isExpressionStatement(originalNode)) {
+        return factory.updateExpressionStatement(originalNode, transformedBody)
+      }
+      if (ts.isReturnStatement(originalNode)) {
+        return factory.updateReturnStatement(originalNode, transformedBody)
+      }
+      throw new Error('unreachable')
     }
   }
 
