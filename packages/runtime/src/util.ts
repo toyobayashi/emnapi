@@ -37,6 +37,10 @@ export class TryCatch {
   private _exception: any = undefined
   private _caught: boolean = false
 
+  public isEmpty (): boolean {
+    return !this._caught
+  }
+
   public hasCaught (): boolean {
     return this._caught
   }
