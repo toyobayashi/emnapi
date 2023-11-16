@@ -63,6 +63,7 @@ class Transform {
     this.visitor = this.visitor.bind(this)
     this.removeImportExport = this.removeImportExport.bind(this)
     this.removeVisitor = this.removeVisitor.bind(this)
+    this.constEnumVisitor = this.constEnumVisitor.bind(this)
   }
 
   testMacroName (text: string): boolean {
@@ -81,6 +82,31 @@ class Transform {
       return Boolean(n.body && ts.isVariableDeclaration(n.parent) && n.parent.name && ts.isIdentifier(n.parent.name) && this.testMacroName(n.parent.name.text))
     }
     return false
+  }
+
+  constEnumVisitor (node: Node): Node {
+    const factory = this.ctx.factory
+    const checker = this.typeChecker
+    if (ts.isPropertyAccessExpression(node) && ts.isIdentifier(node.expression)) {
+      const enumValue = checker.getConstantValue(node)
+      if (typeof enumValue === 'number') {
+        return ts.addSyntheticTrailingComment(
+          factory.createNumericLiteral(enumValue),
+          ts.SyntaxKind.MultiLineCommentTrivia,
+          ` ${node.expression.text as string}.${node.name.text as string} `,
+          false
+        )
+      } else if (typeof enumValue === 'string') {
+        return ts.addSyntheticTrailingComment(
+          factory.createStringLiteral(enumValue),
+          ts.SyntaxKind.MultiLineCommentTrivia,
+          ` ${node.expression.text as string}.${node.name.text as string} `,
+          false
+        )
+      }
+    }
+
+    return ts.visitEachChild(node, this.constEnumVisitor, this.ctx)
   }
 
   expandMacro (node: CallExpression, valueDeclaration: FunctionDeclaration | ArrowFunction | FunctionExpression, type: JSDocTagType, originalNode: ExpressionStatement | ReturnStatement | CallExpression): VisitResult<Node> {
@@ -151,7 +177,7 @@ class Transform {
 
     if (type === JSDocTagType.INLINE) {
       const body = decl.body!
-      const transformedBody = /* ts.visitNode( */ts.visitNode(body, this.visitor)/* , this.constEnumVisitor) */
+      const transformedBody = ts.visitNode(ts.visitNode(body, this.visitor), this.constEnumVisitor)
       const f = ts.isArrowFunction(decl)
         ? factory.updateArrowFunction(decl, decl.modifiers, decl.typeParameters, decl.parameters, decl.type, decl.equalsGreaterThanToken, transformedBody as ConciseBody)
         : factory.createFunctionExpression(decl.modifiers?.filter(d => d.kind !== ts.SyntaxKind.Decorator && d.kind !== ts.SyntaxKind.ExportKeyword) as (readonly Modifier[] | undefined), decl.asteriskToken, undefined, decl.typeParameters, decl.parameters, decl.type, transformedBody as Block)
@@ -174,11 +200,15 @@ class Transform {
       if (ts.isBlock(body!)) {
         const transformedBody = ts.visitEachChild(
           ts.visitEachChild(
-            body!,
-            macroBodyVisitor,
+            ts.visitEachChild(
+              body!,
+              macroBodyVisitor,
+              this.ctx
+            ),
+            this.visitor,
             this.ctx
           ),
-          this.visitor,
+          this.constEnumVisitor,
           this.ctx
         )
         return transformedBody.statements
