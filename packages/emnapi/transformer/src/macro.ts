@@ -128,12 +128,7 @@ class Transform {
     }
 
     const decl = cloneNode(valueDeclaration, cloneOptions)
-    const args = node.arguments.map(a =>
-      ts.visitNode(
-        ts.visitNode(a, this.visitor),
-        this.constEnumVisitor
-      ) as ts.Expression
-    )
+    const args = node.arguments.map(a => ts.visitNode(a, this.visitor) as Expression)
     const paramNames = valueDeclaration.parameters.map(p => p.name.getText())
     const macroBodyVisitor: Visitor = (nodeInMacro) => {
       const newNode = nodeInMacro
