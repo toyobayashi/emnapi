@@ -312,7 +312,7 @@ class Transform {
           this.ctx.factory.updateNamedExports(n.exportClause, newElements), n.moduleSpecifier, n.assertClause)
       }
     } else if (ts.isImportDeclaration(n)) {
-      if (n.importClause) {
+      if (n.importClause && !n.importClause.isTypeOnly) {
         let newName = n.importClause.name
         let newBindings = n.importClause.namedBindings
         if (n.importClause.name) {
