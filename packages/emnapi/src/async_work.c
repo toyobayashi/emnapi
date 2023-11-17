@@ -148,8 +148,7 @@ napi_status napi_create_async_work(napi_env env,
                                    void* data,
                                    napi_async_work* result) {
 #if EMNAPI_HAVE_THREADS
-  CHECK_ENV(env);
-  _emnapi_env_check_gc_access(env);
+  CHECK_ENV_NOT_IN_GC(env);
   CHECK_ARG(env, execute);
   CHECK_ARG(env, result);
 
@@ -188,8 +187,7 @@ napi_status napi_create_async_work(napi_env env,
 
 napi_status napi_delete_async_work(napi_env env, napi_async_work work) {
 #if EMNAPI_HAVE_THREADS
-  CHECK_ENV(env);
-  _emnapi_env_check_gc_access(env);
+  CHECK_ENV_NOT_IN_GC(env);
   CHECK_ARG(env, work);
 
   async_work_delete(work);

@@ -211,9 +211,7 @@ function napi_is_typedarray (env: napi_env, value: napi_value, result: Pointer<b
 }
 
 function napi_is_buffer (env: napi_env, value: napi_value, result: Pointer<bool>): napi_status {
-  $CHECK_ENV!(env)
-  const envObject = emnapiCtx.envStore.get(env)!
-  envObject.checkGCAccess()
+  const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, value)
   $CHECK_ARG!(envObject, result)
   const h = emnapiCtx.handleStore.get(value)!

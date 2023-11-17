@@ -52,6 +52,12 @@ EXTERN_C_END
 #define CHECK_ARG(env, arg) \
   RETURN_STATUS_IF_FALSE((env), ((arg) != NULL), napi_invalid_arg)
 
+#define CHECK_ENV_NOT_IN_GC(env)                                               \
+  do {                                                                         \
+    CHECK_ENV((env));                                                          \
+    _emnapi_env_check_gc_access((env));                                          \
+  } while (0)
+
 #define CHECK(expr)                                                           \
   do {                                                                        \
     if (!(expr)) {                                                            \

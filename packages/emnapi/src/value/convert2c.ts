@@ -144,9 +144,7 @@ function napi_get_buffer_info (
   data: void_pp,
   length: Pointer<size_t>
 ): napi_status {
-  $CHECK_ENV!(env)
-  const envObject = emnapiCtx.envStore.get(env)!
-  envObject.checkGCAccess()
+  const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, buffer)
   const handle = emnapiCtx.handleStore.get(buffer)!
   if (!handle.isBuffer()) {

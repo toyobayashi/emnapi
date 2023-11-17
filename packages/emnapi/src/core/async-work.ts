@@ -228,9 +228,7 @@ var emnapiAWMT = {
 
 var _napi_create_async_work = singleThreadAsyncWork
   ? function (env: napi_env, resource: napi_value, resource_name: napi_value, execute: number, complete: number, data: number, result: number): napi_status {
-    $CHECK_ENV!(env)
-    const envObject = emnapiCtx.envStore.get(env)!
-    envObject.checkGCAccess()
+    const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
     $CHECK_ARG!(envObject, execute)
     $CHECK_ARG!(envObject, result)
 
@@ -251,9 +249,7 @@ var _napi_create_async_work = singleThreadAsyncWork
     return envObject.clearLastError()
   }
   : function (env: napi_env, resource: napi_value, resource_name: napi_value, execute: number, complete: number, data: number, result: number): napi_status {
-    $CHECK_ENV!(env)
-    const envObject = emnapiCtx.envStore.get(env)!
-    envObject.checkGCAccess()
+    const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
     $CHECK_ARG!(envObject, execute)
     $CHECK_ARG!(envObject, result)
 
@@ -287,18 +283,14 @@ var _napi_create_async_work = singleThreadAsyncWork
 
 var _napi_delete_async_work = singleThreadAsyncWork
   ? function (env: napi_env, work: number): napi_status {
-    $CHECK_ENV!(env)
-    const envObject = emnapiCtx.envStore.get(env)!
-    envObject.checkGCAccess()
+    const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
     $CHECK_ARG!(envObject, work)
 
     emnapiAWST.remove(work)
     return envObject.clearLastError()
   }
   : function (env: napi_env, work: number): napi_status {
-    $CHECK_ENV!(env)
-    const envObject = emnapiCtx.envStore.get(env)!
-    envObject.checkGCAccess()
+    const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
     $CHECK_ARG!(envObject, work)
 
     const resource = emnapiAWMT.getResource(work)
