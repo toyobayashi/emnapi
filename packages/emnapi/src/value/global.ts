@@ -1,7 +1,5 @@
 function napi_get_boolean (env: napi_env, value: bool, result: Pointer<napi_value>): napi_status {
-  $CHECK_ENV!(env)
-  const envObject = emnapiCtx.envStore.get(env)!
-  envObject.checkGCAccess()
+  const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, result)
   $from64('result')
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -11,9 +9,7 @@ function napi_get_boolean (env: napi_env, value: bool, result: Pointer<napi_valu
 }
 
 function napi_get_global (env: napi_env, result: Pointer<napi_value>): napi_status {
-  $CHECK_ENV!(env)
-  const envObject = emnapiCtx.envStore.get(env)!
-  envObject.checkGCAccess()
+  const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, result)
   $from64('result')
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -23,9 +19,7 @@ function napi_get_global (env: napi_env, result: Pointer<napi_value>): napi_stat
 }
 
 function napi_get_null (env: napi_env, result: Pointer<napi_value>): napi_status {
-  $CHECK_ENV!(env)
-  const envObject = emnapiCtx.envStore.get(env)!
-  envObject.checkGCAccess()
+  const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, result)
   $from64('result')
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -35,9 +29,7 @@ function napi_get_null (env: napi_env, result: Pointer<napi_value>): napi_status
 }
 
 function napi_get_undefined (env: napi_env, result: Pointer<napi_value>): napi_status {
-  $CHECK_ENV!(env)
-  const envObject = emnapiCtx.envStore.get(env)!
-  envObject.checkGCAccess()
+  const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, result)
   $from64('result')
   // eslint-disable-next-line @typescript-eslint/no-unused-vars

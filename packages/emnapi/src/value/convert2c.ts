@@ -15,9 +15,7 @@ function napi_get_array_length (env: napi_env, value: napi_value, result: Pointe
 }
 
 function napi_get_arraybuffer_info (env: napi_env, arraybuffer: napi_value, data: void_pp, byte_length: Pointer<size_t>): napi_status {
-  $CHECK_ENV!(env)
-  const envObject = emnapiCtx.envStore.get(env)!
-  envObject.checkGCAccess()
+  const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, arraybuffer)
   const handle = emnapiCtx.handleStore.get(arraybuffer)!
   if (!handle.isArrayBuffer()) {
@@ -69,9 +67,7 @@ function _napi_get_typedarray_info (
   arraybuffer: Pointer<napi_value>,
   byte_offset: Pointer<size_t>
 ): napi_status {
-  $CHECK_ENV!(env)
-  const envObject = emnapiCtx.envStore.get(env)!
-  envObject.checkGCAccess()
+  const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, typedarray)
   const handle = emnapiCtx.handleStore.get(typedarray)!
   if (!handle.isTypedArray()) {
@@ -144,9 +140,7 @@ function napi_get_buffer_info (
   data: void_pp,
   length: Pointer<size_t>
 ): napi_status {
-  $CHECK_ENV!(env)
-  const envObject = emnapiCtx.envStore.get(env)!
-  envObject.checkGCAccess()
+  const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, buffer)
   const handle = emnapiCtx.handleStore.get(buffer)!
   if (!handle.isBuffer()) {
@@ -163,9 +157,7 @@ function napi_get_dataview_info (
   arraybuffer: Pointer<napi_value>,
   byte_offset: Pointer<size_t>
 ): napi_status {
-  $CHECK_ENV!(env)
-  const envObject = emnapiCtx.envStore.get(env)!
-  envObject.checkGCAccess()
+  const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, dataview)
   const handle = emnapiCtx.handleStore.get(dataview)!
   if (!handle.isDataView()) {
@@ -206,7 +198,6 @@ function napi_get_date_value (env: napi_env, value: napi_value, result: Pointer<
   let v: number
 
   return $PREAMBLE!(env, (envObject) => {
-    envObject.checkGCAccess()
     $CHECK_ARG!(envObject, value)
     $CHECK_ARG!(envObject, result)
     const handle = emnapiCtx.handleStore.get(value)!
@@ -221,9 +212,7 @@ function napi_get_date_value (env: napi_env, value: napi_value, result: Pointer<
 }
 
 function napi_get_value_bool (env: napi_env, value: napi_value, result: Pointer<bool>): napi_status {
-  $CHECK_ENV!(env)
-  const envObject = emnapiCtx.envStore.get(env)!
-  envObject.checkGCAccess()
+  const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, value)
   $CHECK_ARG!(envObject, result)
   const handle = emnapiCtx.handleStore.get(value)!
@@ -238,9 +227,7 @@ function napi_get_value_bool (env: napi_env, value: napi_value, result: Pointer<
 }
 
 function napi_get_value_double (env: napi_env, value: napi_value, result: Pointer<double>): napi_status {
-  $CHECK_ENV!(env)
-  const envObject = emnapiCtx.envStore.get(env)!
-  envObject.checkGCAccess()
+  const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, value)
   $CHECK_ARG!(envObject, result)
   const handle = emnapiCtx.handleStore.get(value)!
@@ -255,9 +242,7 @@ function napi_get_value_double (env: napi_env, value: napi_value, result: Pointe
 }
 
 function napi_get_value_bigint_int64 (env: napi_env, value: napi_value, result: Pointer<int64_t>, lossless: Pointer<bool>): napi_status {
-  $CHECK_ENV!(env)
-  const envObject = emnapiCtx.envStore.get(env)!
-  envObject.checkGCAccess()
+  const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   if (!emnapiCtx.feature.supportBigInt) {
     return envObject.setLastError(napi_status.napi_generic_failure)
   }
@@ -290,9 +275,7 @@ function napi_get_value_bigint_int64 (env: napi_env, value: napi_value, result: 
 }
 
 function napi_get_value_bigint_uint64 (env: napi_env, value: napi_value, result: Pointer<uint64_t>, lossless: Pointer<bool>): napi_status {
-  $CHECK_ENV!(env)
-  const envObject = emnapiCtx.envStore.get(env)!
-  envObject.checkGCAccess()
+  const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   if (!emnapiCtx.feature.supportBigInt) {
     return envObject.setLastError(napi_status.napi_generic_failure)
   }
@@ -328,9 +311,7 @@ function napi_get_value_bigint_words (
   word_count: Pointer<size_t>,
   words: Pointer<uint64_t>
 ): napi_status {
-  $CHECK_ENV!(env)
-  const envObject = emnapiCtx.envStore.get(env)!
-  envObject.checkGCAccess()
+  const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   if (!emnapiCtx.feature.supportBigInt) {
     return envObject.setLastError(napi_status.napi_generic_failure)
   }
@@ -384,9 +365,7 @@ function napi_get_value_bigint_words (
 }
 
 function napi_get_value_external (env: napi_env, value: napi_value, result: void_pp): napi_status {
-  $CHECK_ENV!(env)
-  const envObject = emnapiCtx.envStore.get(env)!
-  envObject.checkGCAccess()
+  const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, value)
   $CHECK_ARG!(envObject, result)
   const handle = emnapiCtx.handleStore.get(value)!
@@ -402,9 +381,7 @@ function napi_get_value_external (env: napi_env, value: napi_value, result: void
 }
 
 function napi_get_value_int32 (env: napi_env, value: napi_value, result: Pointer<int32_t>): napi_status {
-  $CHECK_ENV!(env)
-  const envObject = emnapiCtx.envStore.get(env)!
-  envObject.checkGCAccess()
+  const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, value)
   $CHECK_ARG!(envObject, result)
   const handle = emnapiCtx.handleStore.get(value)!
@@ -428,9 +405,7 @@ function emnapiSetValueI64 (result: Pointer<int64_t>, numberValue: number): void
 }
 
 function napi_get_value_int64 (env: napi_env, value: napi_value, result: Pointer<int64_t>): napi_status {
-  $CHECK_ENV!(env)
-  const envObject = emnapiCtx.envStore.get(env)!
-  envObject.checkGCAccess()
+  const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, value)
   $CHECK_ARG!(envObject, result)
   const handle = emnapiCtx.handleStore.get(value)!
@@ -456,9 +431,7 @@ function napi_get_value_int64 (env: napi_env, value: napi_value, result: Pointer
 }
 
 function napi_get_value_string_latin1 (env: napi_env, value: napi_value, buf: char_p, buf_size: size_t, result: Pointer<size_t>): napi_status {
-  $CHECK_ENV!(env)
-  const envObject = emnapiCtx.envStore.get(env)!
-  envObject.checkGCAccess()
+  const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, value)
   $from64('result')
   $from64('buf')
@@ -493,9 +466,7 @@ function napi_get_value_string_latin1 (env: napi_env, value: napi_value, buf: ch
 }
 
 function napi_get_value_string_utf8 (env: napi_env, value: napi_value, buf: char_p, buf_size: size_t, result: Pointer<size_t>): napi_status {
-  $CHECK_ENV!(env)
-  const envObject = emnapiCtx.envStore.get(env)!
-  envObject.checkGCAccess()
+  const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, value)
   $from64('result')
   $from64('buf')
@@ -524,9 +495,7 @@ function napi_get_value_string_utf8 (env: napi_env, value: napi_value, buf: char
 }
 
 function napi_get_value_string_utf16 (env: napi_env, value: napi_value, buf: char16_t_p, buf_size: size_t, result: Pointer<size_t>): napi_status {
-  $CHECK_ENV!(env)
-  const envObject = emnapiCtx.envStore.get(env)!
-  envObject.checkGCAccess()
+  const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, value)
   $from64('result')
   $from64('buf')
@@ -553,9 +522,7 @@ function napi_get_value_string_utf16 (env: napi_env, value: napi_value, buf: cha
 }
 
 function napi_get_value_uint32 (env: napi_env, value: napi_value, result: Pointer<uint32_t>): napi_status {
-  $CHECK_ENV!(env)
-  const envObject = emnapiCtx.envStore.get(env)!
-  envObject.checkGCAccess()
+  const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, value)
   $CHECK_ARG!(envObject, result)
   const handle = emnapiCtx.handleStore.get(value)!

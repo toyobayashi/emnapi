@@ -18,6 +18,7 @@ import type {
   Modifier,
   ConciseBody,
   Block,
+  VariableStatement,
   Expression,
   Declaration
 } from 'typescript'
@@ -109,7 +110,7 @@ class Transform {
     return ts.visitEachChild(node, this.constEnumVisitor, this.ctx)
   }
 
-  expandMacro (node: CallExpression, valueDeclaration: FunctionDeclaration | ArrowFunction | FunctionExpression, type: JSDocTagType, originalNode: ExpressionStatement | ReturnStatement | CallExpression): VisitResult<Node> {
+  expandMacro (node: CallExpression, valueDeclaration: FunctionDeclaration | ArrowFunction | FunctionExpression, type: JSDocTagType, originalNode: ExpressionStatement | ReturnStatement | CallExpression | VariableStatement): VisitResult<Node> {
     const factory = this.ctx.factory
     const checker = this.typeChecker
     const cloneOptions: any = {
@@ -220,6 +221,17 @@ class Transform {
       if (ts.isReturnStatement(originalNode)) {
         return factory.updateReturnStatement(originalNode, transformedBody)
       }
+      if (ts.isVariableStatement(originalNode)) {
+        return factory.updateVariableStatement(originalNode, originalNode.modifiers,
+          factory.updateVariableDeclarationList(originalNode.declarationList, [
+            factory.updateVariableDeclaration(originalNode.declarationList.declarations[0],
+              originalNode.declarationList.declarations[0].name,
+              originalNode.declarationList.declarations[0].exclamationToken,
+              originalNode.declarationList.declarations[0].type,
+              transformedBody
+            )
+          ]))
+      }
       throw new Error('unreachable')
     }
   }
@@ -280,6 +292,17 @@ class Transform {
       const { valueDeclaration, type } = this.getDeclarationIfMacroCall(n.expression)
       if (valueDeclaration && (ts.isFunctionDeclaration(valueDeclaration) || ts.isArrowFunction(valueDeclaration) || ts.isFunctionExpression(valueDeclaration)) && valueDeclaration.body) {
         return this.expandMacro(n.expression, valueDeclaration, type, n)
+      }
+    }
+
+    if (ts.isVariableStatement(n) && n.declarationList.declarations.length === 1 && n.declarationList.declarations[0].initializer) {
+      const expression = n.declarationList.declarations[0].initializer
+      if (ts.isCallExpression(expression) || (ts.isAsExpression(expression) && ts.isCallExpression(expression.expression))) {
+        const call = ts.isCallExpression(expression) ? expression : expression.expression as CallExpression
+        const { valueDeclaration, type } = this.getDeclarationIfMacroCall(call)
+        if (valueDeclaration && (ts.isFunctionDeclaration(valueDeclaration) || ts.isArrowFunction(valueDeclaration) || ts.isFunctionExpression(valueDeclaration)) && valueDeclaration.body && type === JSDocTagType.MACRO) {
+          return this.expandMacro(call, valueDeclaration, type, n)
+        }
       }
     }
 

@@ -1,7 +1,5 @@
 function napi_create_array (env: napi_env, result: Pointer<napi_value>): napi_status {
-  $CHECK_ENV!(env)
-  const envObject = emnapiCtx.envStore.get(env)!
-  envObject.checkGCAccess()
+  const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, result)
   $from64('result')
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -11,9 +9,7 @@ function napi_create_array (env: napi_env, result: Pointer<napi_value>): napi_st
 }
 
 function napi_create_array_with_length (env: napi_env, length: size_t, result: Pointer<napi_value>): napi_status {
-  $CHECK_ENV!(env)
-  const envObject = emnapiCtx.envStore.get(env)!
-  envObject.checkGCAccess()
+  const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, result)
   $from64('length')
   $from64('result')
@@ -150,9 +146,7 @@ function napi_create_external_arraybuffer (
 }
 
 function napi_create_object (env: napi_env, result: Pointer<napi_value>): napi_status {
-  $CHECK_ENV!(env)
-  const envObject = emnapiCtx.envStore.get(env)!
-  envObject.checkGCAccess()
+  const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, result)
   $from64('result')
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -162,9 +156,7 @@ function napi_create_object (env: napi_env, result: Pointer<napi_value>): napi_s
 }
 
 function napi_create_symbol (env: napi_env, description: napi_value, result: Pointer<napi_value>): napi_status {
-  $CHECK_ENV!(env)
-  const envObject = emnapiCtx.envStore.get(env)!
-  envObject.checkGCAccess()
+  const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, result)
   $from64('result')
 
@@ -425,9 +417,7 @@ function napi_create_dataview (
 }
 
 function node_api_symbol_for (env: napi_env, utf8description: const_char_p, length: size_t, result: Pointer<napi_value>): napi_status {
-  $CHECK_ENV!(env)
-  const envObject = emnapiCtx.envStore.get(env)!
-  envObject.checkGCAccess()
+  const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, result)
   $from64('length')
   $from64('utf8description')

@@ -640,9 +640,7 @@ function _napi_create_threadsafe_function (
   call_js_cb: number,
   result: number
 ): napi_status {
-  $CHECK_ENV!(env)
-  const envObject = emnapiCtx.envStore.get(env)!
-  envObject.checkGCAccess()
+  const envObject = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, async_resource_name)
   $from64('max_queue_size')
   $from64('initial_thread_count')

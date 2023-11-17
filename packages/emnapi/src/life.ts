@@ -1,7 +1,5 @@
 function napi_open_handle_scope (env: napi_env, result: Pointer<napi_handle_scope>): napi_status {
-  $CHECK_ENV!(env)
-  const envObject = emnapiCtx.envStore.get(env)!
-  envObject.checkGCAccess()
+  const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, result)
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const scope = emnapiCtx.openScope(envObject)
@@ -11,9 +9,7 @@ function napi_open_handle_scope (env: napi_env, result: Pointer<napi_handle_scop
 }
 
 function napi_close_handle_scope (env: napi_env, scope: napi_handle_scope): napi_status {
-  $CHECK_ENV!(env)
-  const envObject = emnapiCtx.envStore.get(env)!
-  envObject.checkGCAccess()
+  const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, scope)
   if ((envObject.openHandleScopes === 0)) {
     return napi_status.napi_handle_scope_mismatch
@@ -24,9 +20,7 @@ function napi_close_handle_scope (env: napi_env, scope: napi_handle_scope): napi
 }
 
 function napi_open_escapable_handle_scope (env: napi_env, result: Pointer<napi_escapable_handle_scope>): napi_status {
-  $CHECK_ENV!(env)
-  const envObject = emnapiCtx.envStore.get(env)!
-  envObject.checkGCAccess()
+  const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, result)
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const scope = emnapiCtx.openScope(envObject)
@@ -36,9 +30,7 @@ function napi_open_escapable_handle_scope (env: napi_env, result: Pointer<napi_e
 }
 
 function napi_close_escapable_handle_scope (env: napi_env, scope: napi_escapable_handle_scope): napi_status {
-  $CHECK_ENV!(env)
-  const envObject = emnapiCtx.envStore.get(env)!
-  envObject.checkGCAccess()
+  const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, scope)
   if ((envObject.openHandleScopes === 0)) {
     return napi_status.napi_handle_scope_mismatch
@@ -49,9 +41,7 @@ function napi_close_escapable_handle_scope (env: napi_env, scope: napi_escapable
 }
 
 function napi_escape_handle (env: napi_env, scope: napi_escapable_handle_scope, escapee: napi_value, result: Pointer<napi_value>): napi_status {
-  $CHECK_ENV!(env)
-  const envObject = emnapiCtx.envStore.get(env)!
-  envObject.checkGCAccess()
+  const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, scope)
   $CHECK_ARG!(envObject, escapee)
   $CHECK_ARG!(envObject, result)
@@ -75,9 +65,7 @@ function napi_create_reference (
   initial_refcount: uint32_t,
   result: Pointer<napi_ref>
 ): napi_status {
-  $CHECK_ENV!(env)
-  const envObject = emnapiCtx.envStore.get(env)!
-  envObject.checkGCAccess()
+  const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, value)
   $CHECK_ARG!(envObject, result)
 
@@ -98,9 +86,7 @@ function napi_delete_reference (
   env: napi_env,
   ref: napi_ref
 ): napi_status {
-  $CHECK_ENV!(env)
-  const envObject = emnapiCtx.envStore.get(env)!
-  envObject.checkGCAccess()
+  const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, ref)
   emnapiCtx.refStore.get(ref)!.dispose()
   return envObject.clearLastError()
@@ -111,9 +97,7 @@ function napi_reference_ref (
   ref: napi_ref,
   result: Pointer<uint32_t>
 ): napi_status {
-  $CHECK_ENV!(env)
-  const envObject = emnapiCtx.envStore.get(env)!
-  envObject.checkGCAccess()
+  const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, ref)
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const count = emnapiCtx.refStore.get(ref)!.ref()
@@ -129,9 +113,7 @@ function napi_reference_unref (
   ref: napi_ref,
   result: Pointer<uint32_t>
 ): napi_status {
-  $CHECK_ENV!(env)
-  const envObject = emnapiCtx.envStore.get(env)!
-  envObject.checkGCAccess()
+  const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, ref)
   const reference = emnapiCtx.refStore.get(ref)!
   const refcount = reference.refCount()
@@ -153,9 +135,7 @@ function napi_get_reference_value (
   ref: napi_ref,
   result: Pointer<napi_value>
 ): napi_status {
-  $CHECK_ENV!(env)
-  const envObject = emnapiCtx.envStore.get(env)!
-  envObject.checkGCAccess()
+  const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, ref)
   $CHECK_ARG!(envObject, result)
   const reference = emnapiCtx.refStore.get(ref)!
