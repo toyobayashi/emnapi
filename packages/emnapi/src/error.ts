@@ -83,9 +83,7 @@ function node_api_throw_syntax_error (env: napi_env, code: const_char_p, msg: co
 }
 
 function napi_is_exception_pending (env: napi_env, result: Pointer<bool>): napi_status {
-  $CHECK_ENV!(env)
-  const envObject = emnapiCtx.envStore.get(env)!
-  envObject.checkGCAccess()
+  const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, result)
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const r = envObject.tryCatch.hasCaught()
@@ -95,9 +93,7 @@ function napi_is_exception_pending (env: napi_env, result: Pointer<bool>): napi_
 }
 
 function napi_create_error (env: napi_env, code: napi_value, msg: napi_value, result: Pointer<napi_value>): napi_status {
-  $CHECK_ENV!(env)
-  const envObject = emnapiCtx.envStore.get(env)!
-  envObject.checkGCAccess()
+  const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, msg)
   $CHECK_ARG!(envObject, result)
   const msgValue = emnapiCtx.handleStore.get(msg)!.value
@@ -123,9 +119,7 @@ function napi_create_error (env: napi_env, code: napi_value, msg: napi_value, re
 }
 
 function napi_create_type_error (env: napi_env, code: napi_value, msg: napi_value, result: Pointer<napi_value>): napi_status {
-  $CHECK_ENV!(env)
-  const envObject = emnapiCtx.envStore.get(env)!
-  envObject.checkGCAccess()
+  const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, msg)
   $CHECK_ARG!(envObject, result)
   const msgValue = emnapiCtx.handleStore.get(msg)!.value
@@ -150,9 +144,7 @@ function napi_create_type_error (env: napi_env, code: napi_value, msg: napi_valu
 }
 
 function napi_create_range_error (env: napi_env, code: napi_value, msg: napi_value, result: Pointer<napi_value>): napi_status {
-  $CHECK_ENV!(env)
-  const envObject = emnapiCtx.envStore.get(env)!
-  envObject.checkGCAccess()
+  const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, msg)
   $CHECK_ARG!(envObject, result)
   const msgValue = emnapiCtx.handleStore.get(msg)!.value
@@ -176,9 +168,7 @@ function napi_create_range_error (env: napi_env, code: napi_value, msg: napi_val
 }
 
 function node_api_create_syntax_error (env: napi_env, code: napi_value, msg: napi_value, result: Pointer<napi_value>): napi_status {
-  $CHECK_ENV!(env)
-  const envObject = emnapiCtx.envStore.get(env)!
-  envObject.checkGCAccess()
+  const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, msg)
   $CHECK_ARG!(envObject, result)
   const msgValue = emnapiCtx.handleStore.get(msg)!.value
@@ -202,9 +192,7 @@ function node_api_create_syntax_error (env: napi_env, code: napi_value, msg: nap
 }
 
 function napi_get_and_clear_last_exception (env: napi_env, result: Pointer<napi_value>): napi_status {
-  $CHECK_ENV!(env)
-  const envObject = emnapiCtx.envStore.get(env)!
-  envObject.checkGCAccess()
+  const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, result)
   $from64('result')
 

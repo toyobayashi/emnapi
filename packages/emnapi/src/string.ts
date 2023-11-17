@@ -237,24 +237,21 @@ var emnapiString = {
     str: number,
     length: size_t,
     result: Pointer<napi_value>,
-    stringMaker: (autoLength: boolean, sizeLength: number) => string
+    stringMaker: (str: number, autoLength: boolean, sizeLength: number) => string
   ) {
-    $CHECK_ENV!(env)
-    const envObject = emnapiCtx.envStore.get(env)!
-    envObject.checkGCAccess()
     $from64('length')
-    const autoLength = length === -1
-    const sizelength = length >>> 0
-    if (length !== 0) {
-      $CHECK_ARG!(envObject, str)
-    }
-    $CHECK_ARG!(envObject, result)
-    $from64('str')
+    const {
+      autoLength,
+      sizelength,
+      envObject
+    }: {
+      autoLength: boolean
+      sizelength: number
+      envObject: Env
+    } = $CHECK_NEW_STRING_ARGS!(env, str, length, result)
 
-    if (!(autoLength || (sizelength <= 2147483647))) {
-      return envObject.setLastError(napi_status.napi_invalid_arg)
-    }
-    const strValue = stringMaker(autoLength, sizelength)
+    $from64('str')
+    const strValue = stringMaker(str, autoLength, sizelength)
     $from64('result')
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const value = emnapiCtx.addToCurrentScope(strValue).id
@@ -270,17 +267,23 @@ var emnapiString = {
     result: Pointer<napi_value>,
     copied: Pointer<bool>,
     createApi: (env: napi_env, str: number, length: size_t, result: Pointer<napi_value>) => napi_status,
-    stringMaker: (autoLength: boolean, sizeLength: number) => string
+    stringMaker: (str: number, autoLength: boolean, sizeLength: number) => string
   ) {
-    const envObject = emnapiCtx.envStore.get(env)!
-    envObject.checkGCAccess()
+    $from64('length')
+    const {
+      envObject
+    }: {
+      autoLength: boolean
+      sizelength: number
+      envObject: Env
+    } = $CHECK_NEW_STRING_ARGS!(env, str, length, result)
+
     const status = createApi(env, str, length, result)
     if (status === napi_status.napi_ok) {
       if (copied) {
         $makeSetValue('copied', 0, '1', 'i8')
       }
       if (finalize_callback) {
-        const envObject = emnapiCtx.envStore.get(env)!
         envObject.callFinalizer(finalize_callback, str, finalize_hint)
       }
     }

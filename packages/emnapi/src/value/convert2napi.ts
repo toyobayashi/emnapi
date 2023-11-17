@@ -1,9 +1,7 @@
 /* eslint-disable @typescript-eslint/indent */
 
 function napi_create_int32 (env: napi_env, value: int32_t, result: Pointer<napi_value>): napi_status {
-  $CHECK_ENV!(env)
-  const envObject = emnapiCtx.envStore.get(env)!
-  envObject.checkGCAccess()
+  const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, result)
   $from64('result')
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -13,9 +11,7 @@ function napi_create_int32 (env: napi_env, value: int32_t, result: Pointer<napi_
 }
 
 function napi_create_uint32 (env: napi_env, value: uint32_t, result: Pointer<napi_value>): napi_status {
-  $CHECK_ENV!(env)
-  const envObject = emnapiCtx.envStore.get(env)!
-  envObject.checkGCAccess()
+  const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, result)
   $from64('result')
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -25,9 +21,7 @@ function napi_create_uint32 (env: napi_env, value: uint32_t, result: Pointer<nap
 }
 
 function napi_create_int64 (env: napi_env, low: int32_t, high: int32_t, result: Pointer<napi_value>): napi_status {
-  $CHECK_ENV!(env)
-  const envObject = emnapiCtx.envStore.get(env)!
-  envObject.checkGCAccess()
+  const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
 
   let value: number
 
@@ -50,9 +44,7 @@ function napi_create_int64 (env: napi_env, low: int32_t, high: int32_t, result: 
 }
 
 function napi_create_double (env: napi_env, value: double, result: Pointer<napi_value>): napi_status {
-  $CHECK_ENV!(env)
-  const envObject = emnapiCtx.envStore.get(env)!
-  envObject.checkGCAccess()
+  const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, result)
   $from64('result')
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -62,7 +54,7 @@ function napi_create_double (env: napi_env, value: double, result: Pointer<napi_
 }
 
 function _napi_create_string_latin1 (env: napi_env, str: const_char_p, length: size_t, result: Pointer<napi_value>): napi_status {
-  return emnapiString.newString(env, str, length, result, (autoLength, sizeLength) => {
+  return emnapiString.newString(env, str, length, result, (str, autoLength, sizeLength) => {
     let latin1String = ''
     let len = 0
     if (autoLength) {
@@ -86,13 +78,13 @@ function _napi_create_string_latin1 (env: napi_env, str: const_char_p, length: s
 }
 
 function _napi_create_string_utf16 (env: napi_env, str: const_char16_t_p, length: size_t, result: Pointer<napi_value>): napi_status {
-  return emnapiString.newString(env, str, length, result, () => {
+  return emnapiString.newString(env, str, length, result, (str) => {
     return emnapiString.UTF16ToString(str, length)
   })
 }
 
 function napi_create_string_utf8 (env: napi_env, str: const_char_p, length: size_t, result: Pointer<napi_value>): napi_status {
-  return emnapiString.newString(env, str, length, result, () => {
+  return emnapiString.newString(env, str, length, result, (str) => {
     return emnapiString.UTF8ToString(str, length)
   })
 }
@@ -142,9 +134,7 @@ function node_api_create_external_string_utf16 (
 }
 
 function napi_create_bigint_int64 (env: napi_env, low: int32_t, high: int32_t, result: Pointer<napi_value>): napi_status {
-  $CHECK_ENV!(env)
-  const envObject = emnapiCtx.envStore.get(env)!
-  envObject.checkGCAccess()
+  const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   if (!emnapiCtx.feature.supportBigInt) {
     return envObject.setLastError(napi_status.napi_generic_failure)
   }
@@ -170,9 +160,7 @@ function napi_create_bigint_int64 (env: napi_env, low: int32_t, high: int32_t, r
 }
 
 function napi_create_bigint_uint64 (env: napi_env, low: int32_t, high: int32_t, result: Pointer<napi_value>): napi_status {
-  $CHECK_ENV!(env)
-  const envObject = emnapiCtx.envStore.get(env)!
-  envObject.checkGCAccess()
+  const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   if (!emnapiCtx.feature.supportBigInt) {
     return envObject.setLastError(napi_status.napi_generic_failure)
   }
@@ -205,7 +193,6 @@ function napi_create_bigint_words (env: napi_env, sign_bit: int, word_count: siz
     if (!emnapiCtx.feature.supportBigInt) {
       return envObject.setLastError(napi_status.napi_generic_failure)
     }
-    envObject.checkGCAccess()
     $CHECK_ARG!(envObject, result)
     $from64('words')
     $from64('word_count')

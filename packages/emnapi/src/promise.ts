@@ -43,9 +43,7 @@ function napi_reject_deferred (env: napi_env, deferred: napi_deferred, resolutio
 }
 
 function napi_is_promise (env: napi_env, value: napi_value, is_promise: Pointer<bool>): napi_status {
-  $CHECK_ENV!(env)
-  const envObject = emnapiCtx.envStore.get(env)!
-  envObject.checkGCAccess()
+  const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, value)
   $CHECK_ARG!(envObject, is_promise)
   const h = emnapiCtx.handleStore.get(value)!
