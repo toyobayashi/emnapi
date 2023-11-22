@@ -44,18 +44,19 @@ jobs:
       with:
         path: ${{env.EM_CACHE_FOLDER}}
         key: ${{env.EM_VERSION}}-${{ runner.os }}-${{ matrix.target }}
-    - uses: mymindstorm/setup-emsdk@v12
+    - uses: mymindstorm/setup-emsdk@v13
       if: ${{ contains(matrix.target, 'emscripten') }}
       with:
         version: ${{ env.EM_VERSION }}
         # no-cache: true
         actions-cache-folder: ${{ env.EM_CACHE_FOLDER }}
-    - uses: actions-rs/toolchain@v1
-      if: ${{ matrix.target == 'wasm32-unknown-unknown' || matrix.target == 'wasm32-wasi' }}
-      with:
-        toolchain: nightly
-        default: true
-        target: ${{ matrix.target }}
+
+    # - uses: actions-rs/toolchain@v1
+    #   if: ${{ matrix.target == 'wasm32-unknown-unknown' || matrix.target == 'wasm32-wasi' }}
+    #   with:
+    #     toolchain: nightly
+    #     default: true
+    #     target: ${{ matrix.target }}
 
     - name: Install wasi-sdk
       if: ${{ matrix.target == 'wasm32-unknown-unknown' || matrix.target == 'wasm32-wasi' || matrix.target == 'wasm32-wasi-threads' }}
@@ -67,7 +68,7 @@ jobs:
 
     - uses: actions/setup-node@v3
       with:
-        node-version: ${{ (contains(matrix.target, 'emscripten') && matrix.target == 'wasm64-unknown-emscripten' && '20.8.1') || '18.18.2' }}
+        node-version: '20.9.0'
         registry-url: 'https://registry.npmjs.org'
       env:
         NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -132,7 +133,7 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install ninja-build
-    - uses: mymindstorm/setup-emsdk@v12
+    - uses: mymindstorm/setup-emsdk@v13
       with:
         version: ${{ env.EM_VERSION }}
         # no-cache: true
@@ -145,7 +146,7 @@ jobs:
         tar zxvf wasi-sdk-${WASI_VERSION_FULL}-linux.tar.gz -C $WASI_SDK_PATH --strip 1
     - uses: actions/setup-node@v3
       with:
-        node-version: '18.18.2'
+        node-version: '20.9.0'
         registry-url: 'https://registry.npmjs.org'
       env:
         NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
