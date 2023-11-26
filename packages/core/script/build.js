@@ -1,40 +1,45 @@
 const path = require('path')
 const fs = require('fs-extra')
 const rollup = require('rollup')
+const ts = require('typescript')
+const rollupTypescript = require('@rollup/plugin-typescript').default
 const rollupNodeResolve = require('@rollup/plugin-node-resolve').default
 const rollupReplace = require('@rollup/plugin-replace').default
 const rollupTerser = require('@rollup/plugin-terser').default
 const dist = path.join(__dirname, '../dist')
-const { compile } = require('@tybys/tsapi')
 
 function build () {
-  compile(path.join(__dirname, '../tsconfig.json'), {
-    optionsToExtend: {
-      target: require('typescript').ScriptTarget.ES5,
-      outDir: path.join(__dirname, '../lib/es5')
-    }
-  })
-  compile(path.join(__dirname, '../tsconfig.json'), {
-    optionsToExtend: {
-      target: require('typescript').ScriptTarget.ES2019,
-      outDir: path.join(__dirname, '../lib/es2019'),
-      removeComments: true,
-      downlevelIteration: false
-    }
-  })
-
   /**
-   * @param {'es5' | 'es2019'} esversion
+   * @param {ts.ScriptTarget} esversion
    * @param {boolean=} minify
    * @returns {rollup.RollupOptions}
    */
-  function createInput (esversion, minify, options) {
+  function createInput (esversion, minify, external) {
     return {
-      input: path.join(__dirname, '../lib', esversion, 'index.js'),
+      input: path.join(__dirname, '../src/index.js'),
+      external,
       plugins: [
+        rollupTypescript({
+          tsconfig: path.join(__dirname, '../tsconfig.json'),
+          tslib: path.join(
+            path.dirname(require.resolve('tslib')),
+            JSON.parse(fs.readFileSync(path.join(path.dirname(require.resolve('tslib')), 'package.json'))).module
+          ),
+          compilerOptions: {
+            target: esversion,
+            ...(esversion !== ts.ScriptTarget.ES5 ? { removeComments: true, downlevelIteration: false } : {})
+          },
+          include: [
+            './src/**/*'
+          ],
+          transformers: {
+            after: [
+              require('@tybys/ts-transform-pure-class').default
+            ]
+          }
+        }),
         rollupNodeResolve({
-          mainFields: ['module', 'main'],
-          ...((options && options.resolveOnly) ? { resolveOnly: options.resolveOnly } : {})
+          mainFields: ['module', 'main']
         }),
         rollupReplace({
           preventAssignment: true,
@@ -59,7 +64,7 @@ function build () {
 
   return Promise.all(([
     {
-      input: createInput('es5', false),
+      input: createInput(ts.ScriptTarget.ES5, false),
       output: {
         file: path.join(dist, 'emnapi-core.js'),
         format: 'umd',
@@ -69,7 +74,7 @@ function build () {
       }
     },
     {
-      input: createInput('es5', true),
+      input: createInput(ts.ScriptTarget.ES5, true),
       output: {
         file: path.join(dist, 'emnapi-core.min.js'),
         format: 'umd',
@@ -79,7 +84,7 @@ function build () {
       }
     },
     {
-      input: createInput('es2019', false, { resolveOnly: [/^(?!(tslib)).*?$/] }),
+      input: createInput(ts.ScriptTarget.ES2019, false, ['tslib']),
       output: {
         file: path.join(dist, 'emnapi-core.cjs.js'),
         format: 'cjs',
@@ -89,7 +94,7 @@ function build () {
       }
     },
     {
-      input: createInput('es2019', true, { resolveOnly: [/^(?!(tslib)).*?$/] }),
+      input: createInput(ts.ScriptTarget.ES2019, true, ['tslib']),
       output: {
         file: path.join(dist, 'emnapi-core.cjs.min.js'),
         format: 'cjs',
@@ -99,7 +104,7 @@ function build () {
       }
     },
     {
-      input: createInput('es2019', false, { resolveOnly: [/^(?!(tslib)).*?$/] }),
+      input: createInput(ts.ScriptTarget.ES2019, false, ['tslib']),
       output: {
         file: path.join(dist, 'emnapi-core.mjs'),
         format: 'esm',
@@ -109,7 +114,7 @@ function build () {
       }
     },
     {
-      input: createInput('es2019', true, { resolveOnly: [/^(?!(tslib)).*?$/] }),
+      input: createInput(ts.ScriptTarget.ES2019, true, ['tslib']),
       output: {
         file: path.join(dist, 'emnapi-core.min.mjs'),
         format: 'esm',
@@ -119,7 +124,7 @@ function build () {
       }
     },
     {
-      input: createInput('es5', false, { resolveOnly: [/^(?!(tslib)).*?$/] }),
+      input: createInput(ts.ScriptTarget.ES5, false, ['tslib']),
       output: {
         file: path.join(dist, 'emnapi-core.esm-bundler.js'),
         format: 'esm',
