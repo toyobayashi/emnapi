@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/prefer-nullish-coalescing */
 
-declare interface CreateOptions {
+export interface CreateOptions {
   context: Context
   filename?: string
   nodeBinding?: NodeBinding
@@ -14,7 +14,7 @@ declare interface CreateOptions {
   postMessage?: (msg: any) => any
 }
 
-declare interface InitOptions {
+export interface InitOptions {
   instance: WebAssembly.Instance
   module: WebAssembly.Module
   memory?: WebAssembly.Memory
@@ -24,7 +24,7 @@ declare interface InitOptions {
 // factory parameter
 declare const options: CreateOptions
 
-declare interface INapiModule {
+export interface INapiModule {
   imports: {
     env: any
     napi: any
@@ -45,31 +45,33 @@ declare interface INapiModule {
   postMessage?: (msg: any) => any
 }
 
-var ENVIRONMENT_IS_NODE = typeof process === 'object' && process !== null && typeof process.versions === 'object' && process.versions !== null && typeof process.versions.node === 'string'
-var ENVIRONMENT_IS_PTHREAD = Boolean(options.childThread)
-var reuseWorker = Boolean(options.reuseWorker)
+declare const process: any
 
-var wasmInstance: WebAssembly.Instance
-var wasmModule: WebAssembly.Module
-var wasmMemory: WebAssembly.Memory
+export var ENVIRONMENT_IS_NODE = typeof process === 'object' && process !== null && typeof process.versions === 'object' && process.versions !== null && typeof process.versions.node === 'string'
+export var ENVIRONMENT_IS_PTHREAD = Boolean(options.childThread)
+export var reuseWorker = Boolean(options.reuseWorker)
 
-var wasmTable: WebAssembly.Table
+export var wasmInstance: WebAssembly.Instance
+export var wasmModule: WebAssembly.Module
+export var wasmMemory: WebAssembly.Memory
 
-var _malloc: any
-var _free: any
+export var wasmTable: WebAssembly.Table
 
-function abort (msg?: string): never {
+export var _malloc: any
+export var _free: any
+
+export function abort (msg?: string): never {
   if (typeof WebAssembly.RuntimeError === 'function') {
     throw new WebAssembly.RuntimeError(msg)
   }
   throw Error(msg)
 }
 
-function runtimeKeepalivePush (): void {}
+export function runtimeKeepalivePush (): void {}
 
-function runtimeKeepalivePop (): void {}
+export function runtimeKeepalivePop (): void {}
 
-var napiModule: INapiModule = {
+export var napiModule: INapiModule = {
   imports: {
     env: {},
     napi: {},
@@ -143,11 +145,11 @@ var napiModule: INapiModule = {
   }
 }
 
-var emnapiCtx: Context
-var emnapiNodeBinding: NodeBinding
-var onCreateWorker: (info: { type: 'thread' | 'async-work' }) => any
-var out: (str: string) => void
-var err: (str: string) => void
+export var emnapiCtx: Context
+export var emnapiNodeBinding: NodeBinding
+export var onCreateWorker: (info: { type: 'thread' | 'async-work' }) => any
+export var out: (str: string) => void
+export var err: (str: string) => void
 
 if (!ENVIRONMENT_IS_PTHREAD) {
   const context = options.context
@@ -195,7 +197,7 @@ if ('nodeBinding' in options) {
   emnapiNodeBinding = nodeBinding
 }
 
-var emnapiAsyncWorkPoolSize = 0
+export var emnapiAsyncWorkPoolSize = 0
 if ('asyncWorkPoolSize' in options) {
   if (typeof options.asyncWorkPoolSize !== 'number') {
     throw new TypeError('options.asyncWorkPoolSize must be a integer')
@@ -207,10 +209,10 @@ if ('asyncWorkPoolSize' in options) {
     emnapiAsyncWorkPoolSize = -1024
   }
 }
-var singleThreadAsyncWork = ENVIRONMENT_IS_PTHREAD ? false : (emnapiAsyncWorkPoolSize <= 0)
+export var singleThreadAsyncWork = ENVIRONMENT_IS_PTHREAD ? false : (emnapiAsyncWorkPoolSize <= 0)
 
-function __emnapi_async_work_pool_size (): number {
+export function _emnapi_async_work_pool_size (): number {
   return Math.abs(emnapiAsyncWorkPoolSize)
 }
 
-emnapiImplementInternal('_emnapi_async_work_pool_size', 'i', __emnapi_async_work_pool_size)
+napiModule.imports.env._emnapi_async_work_pool_size = _emnapi_async_work_pool_size

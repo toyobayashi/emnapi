@@ -1,6 +1,11 @@
 /* eslint-disable @typescript-eslint/indent */
 
-function napi_run_script (env: napi_env, script: napi_value, result: Pointer<napi_value>): napi_status {
+import { emnapiCtx } from 'emnapi:shared'
+import { $CHECK_ARG, $PREAMBLE } from './macro'
+import { napi_set_last_error } from './util'
+
+/** @__sig ippp */
+export function napi_run_script (env: napi_env, script: napi_value, result: Pointer<napi_value>): napi_status {
   let status: napi_status
 // #if DYNAMIC_EXECUTION
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -23,9 +28,7 @@ function napi_run_script (env: napi_env, script: napi_value, result: Pointer<nap
     status = envObject.getReturnStatus()
   })
 // #else
-  status = _napi_set_last_error(env, napi_status.napi_generic_failure, 0, 0)
+  status = napi_set_last_error(env, napi_status.napi_generic_failure, 0, 0)
 // #endif
   return status
 }
-
-emnapiImplement('napi_run_script', 'ippp', napi_run_script, ['napi_set_last_error'])

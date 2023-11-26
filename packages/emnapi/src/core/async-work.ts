@@ -1,3 +1,11 @@
+import { emnapiAWST } from '../async-work'
+import { $CHECK_ENV_NOT_IN_GC, $CHECK_ARG, $CHECK_ENV } from '../macro'
+import { _emnapi_node_emit_async_init, _emnapi_node_emit_async_destroy } from '../node'
+import { emnapiTSFN } from '../threadsafe-function'
+import { _emnapi_runtime_keepalive_pop, _emnapi_runtime_keepalive_push } from '../util'
+import { ENVIRONMENT_IS_NODE, emnapiCtx, ENVIRONMENT_IS_PTHREAD, onCreateWorker, wasmInstance, _free, napiModule, emnapiNodeBinding, wasmMemory, singleThreadAsyncWork, _malloc, _emnapi_async_work_pool_size } from './init'
+import { PThread } from './pthread'
+
 var emnapiAWMT = {
   unusedWorkers: [] as any[],
   runningWorkers: [] as any[],
@@ -29,7 +37,7 @@ var emnapiAWMT = {
         const type = __emnapi__.type
         const payload = __emnapi__.payload
         if (type === 'async-work-complete') {
-          __emnapi_runtime_keepalive_pop()
+          _emnapi_runtime_keepalive_pop()
           emnapiCtx.decreaseWaitingRequestCounter()
           emnapiAWMT.runningWorkers.splice(emnapiAWMT.runningWorkers.indexOf(worker), 1)
           emnapiAWMT.unusedWorkers.push(worker)
@@ -145,19 +153,19 @@ var emnapiAWMT = {
       })
       return
     }
-    __emnapi_runtime_keepalive_push()
+    _emnapi_runtime_keepalive_push()
     emnapiCtx.increaseWaitingRequestCounter()
     emnapiAWMT.workQueue.push(work)
     if (emnapiAWMT.workerReady?.ready) {
       emnapiAWMT.checkIdleWorker()
     } else {
       const fail = (err: any): void => {
-        __emnapi_runtime_keepalive_pop()
+        _emnapi_runtime_keepalive_pop()
         emnapiCtx.decreaseWaitingRequestCounter()
         throw err
       }
       try {
-        emnapiAWMT.initWorkers(__emnapi_async_work_pool_size()).then(() => {
+        emnapiAWMT.initWorkers(_emnapi_async_work_pool_size()).then(() => {
           emnapiAWMT.workerReady!.ready = true
           emnapiAWMT.checkIdleWorker()
         }, fail)
@@ -182,7 +190,7 @@ var emnapiAWMT = {
       emnapiAWMT.workQueue.splice(index, 1)
 
       emnapiCtx.feature.setImmediate(() => {
-        __emnapi_runtime_keepalive_pop()
+        _emnapi_runtime_keepalive_pop()
         emnapiCtx.decreaseWaitingRequestCounter()
         emnapiAWMT.checkIdleWorker()
         emnapiAWMT.callComplete(work, napi_status.napi_cancelled)
@@ -226,7 +234,8 @@ var emnapiAWMT = {
   }
 }
 
-var _napi_create_async_work = singleThreadAsyncWork
+/** @__sig ippppppp */
+export var napi_create_async_work = singleThreadAsyncWork
   ? function (env: napi_env, resource: napi_value, resource_name: napi_value, execute: number, complete: number, data: number, result: number): napi_status {
     const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
     $CHECK_ARG!(envObject, execute)
@@ -271,7 +280,7 @@ var _napi_create_async_work = singleThreadAsyncWork
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const resource_ = resourceRef.id
     $makeSetValue('aw', 0, 'resource_', '*')
-    __emnapi_node_emit_async_init(s, resource_name, -1, aw + emnapiAWMT.offset.async_id)
+    _emnapi_node_emit_async_init(s, resource_name, -1, aw + emnapiAWMT.offset.async_id)
     $makeSetValue('aw', 'emnapiAWMT.offset.env', 'env', '*')
     $makeSetValue('aw', 'emnapiAWMT.offset.execute', 'execute', '*')
     $makeSetValue('aw', 'emnapiAWMT.offset.complete', 'complete', '*')
@@ -281,7 +290,8 @@ var _napi_create_async_work = singleThreadAsyncWork
     return envObject.clearLastError()
   }
 
-var _napi_delete_async_work = singleThreadAsyncWork
+/** @__sig ipp */
+export var napi_delete_async_work = singleThreadAsyncWork
   ? function (env: napi_env, work: number): napi_status {
     const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
     $CHECK_ARG!(envObject, work)
@@ -300,14 +310,15 @@ var _napi_delete_async_work = singleThreadAsyncWork
       const view = new DataView(wasmMemory.buffer)
       const asyncId = view.getFloat64(work + emnapiAWMT.offset.async_id, true)
       const triggerAsyncId = view.getFloat64(work + emnapiAWMT.offset.trigger_async_id, true)
-      __emnapi_node_emit_async_destroy(asyncId, triggerAsyncId)
+      _emnapi_node_emit_async_destroy(asyncId, triggerAsyncId)
     }
 
     _free($to64('work') as number)
     return envObject.clearLastError()
   }
 
-var _napi_queue_async_work = singleThreadAsyncWork
+/** @__sig ipp */
+export var napi_queue_async_work = singleThreadAsyncWork
   ? function (env: napi_env, work: number): napi_status {
     $CHECK_ENV!(env)
     const envObject = emnapiCtx.envStore.get(env)!
@@ -325,7 +336,8 @@ var _napi_queue_async_work = singleThreadAsyncWork
     return envObject.clearLastError()
   }
 
-var _napi_cancel_async_work = singleThreadAsyncWork
+/** @__sig ipp */
+export var napi_cancel_async_work = singleThreadAsyncWork
   ? function (env: napi_env, work: number): napi_status {
     $CHECK_ENV!(env)
     const envObject = emnapiCtx.envStore.get(env)!
@@ -372,8 +384,3 @@ function executeAsyncWork (work: number): void {
 }
 napiModule.initWorker = initWorker
 napiModule.executeAsyncWork = executeAsyncWork
-
-emnapiImplement('napi_create_async_work', 'ippppppp', _napi_create_async_work)
-emnapiImplement('napi_delete_async_work', 'ipp', _napi_delete_async_work)
-emnapiImplement('napi_queue_async_work', 'ipp', _napi_queue_async_work)
-emnapiImplement('napi_cancel_async_work', 'ipp', _napi_cancel_async_work)

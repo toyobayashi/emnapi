@@ -1,4 +1,8 @@
-function napi_typeof (env: napi_env, value: napi_value, result: Pointer<napi_valuetype>): napi_status {
+import { emnapiCtx } from 'emnapi:shared'
+import { $CHECK_ENV_NOT_IN_GC, $CHECK_ARG, $PREAMBLE } from './macro'
+
+/** @__sig ippp */
+export function napi_typeof (env: napi_env, value: napi_value, result: Pointer<napi_valuetype>): napi_status {
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, value)
   $CHECK_ARG!(envObject, result)
@@ -40,7 +44,8 @@ function napi_typeof (env: napi_env, value: napi_value, result: Pointer<napi_val
   return envObject.clearLastError()
 }
 
-function napi_coerce_to_bool (env: napi_env, value: napi_value, result: Pointer<napi_value>): napi_status {
+/** @__sig ippp */
+export function napi_coerce_to_bool (env: napi_env, value: napi_value, result: Pointer<napi_value>): napi_status {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let v: number
 
@@ -56,7 +61,8 @@ function napi_coerce_to_bool (env: napi_env, value: napi_value, result: Pointer<
   })
 }
 
-function napi_coerce_to_number (env: napi_env, value: napi_value, result: Pointer<napi_value>): napi_status {
+/** @__sig ippp */
+export function napi_coerce_to_number (env: napi_env, value: napi_value, result: Pointer<napi_value>): napi_status {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let v: number
 
@@ -76,7 +82,8 @@ function napi_coerce_to_number (env: napi_env, value: napi_value, result: Pointe
   })
 }
 
-function napi_coerce_to_object (env: napi_env, value: napi_value, result: Pointer<napi_value>): napi_status {
+/** @__sig ippp */
+export function napi_coerce_to_object (env: napi_env, value: napi_value, result: Pointer<napi_value>): napi_status {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let v: number
 
@@ -96,7 +103,8 @@ function napi_coerce_to_object (env: napi_env, value: napi_value, result: Pointe
   })
 }
 
-function napi_coerce_to_string (env: napi_env, value: napi_value, result: Pointer<napi_value>): napi_status {
+/** @__sig ippp */
+export function napi_coerce_to_string (env: napi_env, value: napi_value, result: Pointer<napi_value>): napi_status {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let v: number
 
@@ -116,7 +124,8 @@ function napi_coerce_to_string (env: napi_env, value: napi_value, result: Pointe
   })
 }
 
-function napi_instanceof (env: napi_env, object: napi_value, constructor: napi_value, result: Pointer<bool>): napi_status {
+/** @__sig ipppp */
+export function napi_instanceof (env: napi_env, object: napi_value, constructor: napi_value, result: Pointer<bool>): napi_status {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let r: number
 
@@ -138,7 +147,8 @@ function napi_instanceof (env: napi_env, object: napi_value, constructor: napi_v
   })
 }
 
-function napi_is_array (env: napi_env, value: napi_value, result: Pointer<bool>): napi_status {
+/** @__sig ippp */
+export function napi_is_array (env: napi_env, value: napi_value, result: Pointer<bool>): napi_status {
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, value)
   $CHECK_ARG!(envObject, result)
@@ -150,7 +160,8 @@ function napi_is_array (env: napi_env, value: napi_value, result: Pointer<bool>)
   return envObject.clearLastError()
 }
 
-function napi_is_arraybuffer (env: napi_env, value: napi_value, result: Pointer<bool>): napi_status {
+/** @__sig ippp */
+export function napi_is_arraybuffer (env: napi_env, value: napi_value, result: Pointer<bool>): napi_status {
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, value)
   $CHECK_ARG!(envObject, result)
@@ -162,7 +173,8 @@ function napi_is_arraybuffer (env: napi_env, value: napi_value, result: Pointer<
   return envObject.clearLastError()
 }
 
-function napi_is_date (env: napi_env, value: napi_value, result: Pointer<bool>): napi_status {
+/** @__sig ippp */
+export function napi_is_date (env: napi_env, value: napi_value, result: Pointer<bool>): napi_status {
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, value)
   $CHECK_ARG!(envObject, result)
@@ -174,7 +186,8 @@ function napi_is_date (env: napi_env, value: napi_value, result: Pointer<bool>):
   return envObject.clearLastError()
 }
 
-function napi_is_error (env: napi_env, value: napi_value, result: Pointer<bool>): napi_status {
+/** @__sig ippp */
+export function napi_is_error (env: napi_env, value: napi_value, result: Pointer<bool>): napi_status {
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, value)
   $CHECK_ARG!(envObject, result)
@@ -186,7 +199,8 @@ function napi_is_error (env: napi_env, value: napi_value, result: Pointer<bool>)
   return envObject.clearLastError()
 }
 
-function napi_is_typedarray (env: napi_env, value: napi_value, result: Pointer<bool>): napi_status {
+/** @__sig ippp */
+export function napi_is_typedarray (env: napi_env, value: napi_value, result: Pointer<bool>): napi_status {
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, value)
   $CHECK_ARG!(envObject, result)
@@ -198,7 +212,8 @@ function napi_is_typedarray (env: napi_env, value: napi_value, result: Pointer<b
   return envObject.clearLastError()
 }
 
-function napi_is_buffer (env: napi_env, value: napi_value, result: Pointer<bool>): napi_status {
+/** @__sig ippp */
+export function napi_is_buffer (env: napi_env, value: napi_value, result: Pointer<bool>): napi_status {
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, value)
   $CHECK_ARG!(envObject, result)
@@ -210,7 +225,8 @@ function napi_is_buffer (env: napi_env, value: napi_value, result: Pointer<bool>
   return envObject.clearLastError()
 }
 
-function napi_is_dataview (env: napi_env, value: napi_value, result: Pointer<bool>): napi_status {
+/** @__sig ippp */
+export function napi_is_dataview (env: napi_env, value: napi_value, result: Pointer<bool>): napi_status {
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, value)
   $CHECK_ARG!(envObject, result)
@@ -222,7 +238,8 @@ function napi_is_dataview (env: napi_env, value: napi_value, result: Pointer<boo
   return envObject.clearLastError()
 }
 
-function napi_strict_equals (env: napi_env, lhs: napi_value, rhs: napi_value, result: Pointer<bool>): napi_status {
+/** @__sig ipppp */
+export function napi_strict_equals (env: napi_env, lhs: napi_value, rhs: napi_value, result: Pointer<bool>): napi_status {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let r: number
 
@@ -239,7 +256,8 @@ function napi_strict_equals (env: napi_env, lhs: napi_value, rhs: napi_value, re
   })
 }
 
-function napi_detach_arraybuffer (env: napi_env, arraybuffer: napi_value): napi_status {
+/** @__sig ipp */
+export function napi_detach_arraybuffer (env: napi_env, arraybuffer: napi_value): napi_status {
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, arraybuffer)
   const value = emnapiCtx.handleStore.get(arraybuffer)!.value
@@ -260,7 +278,8 @@ function napi_detach_arraybuffer (env: napi_env, arraybuffer: napi_value): napi_
   return envObject.clearLastError()
 }
 
-function napi_is_detached_arraybuffer (env: napi_env, arraybuffer: napi_value, result: Pointer<bool>): napi_status {
+/** @__sig ippp */
+export function napi_is_detached_arraybuffer (env: napi_env, arraybuffer: napi_value, result: Pointer<bool>): napi_status {
   return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, arraybuffer)
     $CHECK_ARG!(envObject, result)
@@ -279,20 +298,3 @@ function napi_is_detached_arraybuffer (env: napi_env, arraybuffer: napi_value, r
     return envObject.getReturnStatus()
   })
 }
-
-emnapiImplement('napi_typeof', 'ippp', napi_typeof)
-emnapiImplement('napi_coerce_to_bool', 'ippp', napi_coerce_to_bool)
-emnapiImplement('napi_coerce_to_number', 'ippp', napi_coerce_to_number)
-emnapiImplement('napi_coerce_to_object', 'ippp', napi_coerce_to_object)
-emnapiImplement('napi_coerce_to_string', 'ippp', napi_coerce_to_string)
-emnapiImplement('napi_instanceof', 'ipppp', napi_instanceof)
-emnapiImplement('napi_is_array', 'ippp', napi_is_array)
-emnapiImplement('napi_is_arraybuffer', 'ippp', napi_is_arraybuffer)
-emnapiImplement('napi_is_date', 'ippp', napi_is_date)
-emnapiImplement('napi_is_error', 'ippp', napi_is_error)
-emnapiImplement('napi_is_typedarray', 'ippp', napi_is_typedarray)
-emnapiImplement('napi_is_buffer', 'ippp', napi_is_buffer)
-emnapiImplement('napi_is_dataview', 'ippp', napi_is_dataview)
-emnapiImplement('napi_strict_equals', 'ipppp', napi_strict_equals)
-emnapiImplement('napi_detach_arraybuffer', 'ipp', napi_detach_arraybuffer, ['napi_set_last_error'])
-emnapiImplement('napi_is_detached_arraybuffer', 'ippp', napi_is_detached_arraybuffer, ['napi_set_last_error'])

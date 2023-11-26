@@ -1,7 +1,12 @@
 const fs = require('fs')
 const path = require('path')
+const { createRequire } = require('module')
 const { EOL } = require('os')
+const ts = require('typescript')
 const { compile } = require('@tybys/tsapi')
+const rollupTypescript = require('@rollup/plugin-typescript').default
+const rollupAlias = require('@rollup/plugin-alias').default
+const { rollup } = require('rollup')
 
 // const {
 //   runtimeOut
@@ -25,10 +30,49 @@ async function build () {
   compile(transformerTsconfigPath)
 
   const libTsconfigPath = path.join(__dirname, '../tsconfig.json')
-  compile(libTsconfigPath)
+  // compile(libTsconfigPath)
   const libTsconfig = JSON.parse(fs.readFileSync(libTsconfigPath, 'utf8'))
 
-  const libOut = path.join(path.dirname(libTsconfigPath), libTsconfig.compilerOptions.outFile)
+  const libOut = path.join(path.dirname(libTsconfigPath), './dist/library_napi.js')
+  const runtimeRequire = createRequire(path.join(__dirname, '../../runtime/index.js'))
+
+  const emnapiRollupBuild = await rollup({
+    input: path.join(__dirname, '../src/emscripten/index.ts'),
+    treeshake: false,
+    plugins: [
+      rollupTypescript({
+        tsconfig: libTsconfigPath,
+        tslib: path.join(
+          path.dirname(runtimeRequire.resolve('tslib')),
+          JSON.parse(fs.readFileSync(path.join(path.dirname(runtimeRequire.resolve('tslib')), 'package.json'))).module
+        ),
+        compilerOptions: {
+          module: ts.ModuleKind.ESNext
+        },
+        include: libTsconfig.include,
+        transformers: {
+          before: [
+            {
+              type: 'program',
+              factory: require('../transformer/out/macro.js').default
+            }
+          ]
+        }
+      }),
+      rollupAlias({
+        entries: [
+          { find: 'emnapi:shared', replacement: path.join(__dirname, '../src/emscripten/init.ts') }
+        ]
+      }),
+      require('./rollup-plugin-emscripten.js').default()
+    ]
+  })
+  await emnapiRollupBuild.write({
+    file: libOut,
+    format: 'esm',
+    exports: 'named',
+    strict: false
+  })
 
   // const runtimeCode = fs.readFileSync(runtimeOut, 'utf8')
   const libCode = fs.readFileSync(libOut, 'utf8')
@@ -43,9 +87,57 @@ async function build () {
   )
 
   const coreTsconfigPath = path.join(__dirname, '../src/core/tsconfig.json')
-  compile(coreTsconfigPath)
+  //   compile(coreTsconfigPath)
   const coreTsconfig = JSON.parse(fs.readFileSync(coreTsconfigPath, 'utf8'))
-  const coreOut = path.join(path.dirname(coreTsconfigPath), coreTsconfig.compilerOptions.outFile)
+  const coreOut = path.join(path.dirname(coreTsconfigPath), '../../dist/emnapi-core.js')
+
+  const coreRollupBuild = await rollup({
+    input: path.join(__dirname, '../src/core/index.ts'),
+    treeshake: false,
+    plugins: [
+      rollupTypescript({
+        tsconfig: coreTsconfigPath,
+        tslib: path.join(
+          path.dirname(runtimeRequire.resolve('tslib')),
+          JSON.parse(fs.readFileSync(path.join(path.dirname(runtimeRequire.resolve('tslib')), 'package.json'))).module
+        ),
+        compilerOptions: {
+          module: ts.ModuleKind.ESNext
+        },
+        include: coreTsconfig.include.map(s => path.join(__dirname, '../src/core', s)),
+        transformers: {
+          before: [
+            {
+              type: 'program',
+              factory: require('../transformer/out/macro.js').default
+            },
+            {
+              type: 'program',
+              factory (program) {
+                return require('../transformer/out/index.js').default(program, {
+                  defines: {
+                    MEMORY64: 0
+                  }
+                })
+              }
+            }
+          ]
+        }
+      }),
+      rollupAlias({
+        entries: [
+          { find: 'emnapi:shared', replacement: path.join(__dirname, '../src/core/init.ts') }
+        ]
+      })
+    ]
+  })
+  await coreRollupBuild.write({
+    file: coreOut,
+    format: 'iife',
+    name: 'napiModule',
+    strict: false
+  })
+
   const coreCode = fs.readFileSync(coreOut, 'utf8')
   const { Compiler } = require('./preprocess.js')
   const compiler = new Compiler({

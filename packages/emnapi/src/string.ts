@@ -1,10 +1,19 @@
 /* eslint-disable @typescript-eslint/indent */
 
-declare interface Decoder {
+import { emnapiCtx } from 'emnapi:shared'
+import { $CHECK_NEW_STRING_ARGS } from './macro'
+
+export interface Decoder {
   decode (input: Uint8Array): string
 }
 
-var emnapiString = {
+/**
+ * @__postset
+ * ```
+ * emnapiString.init();
+ * ```
+ */
+export var emnapiString = {
   utf8Decoder: undefined! as Decoder,
   utf16Decoder: undefined! as Decoder,
   init () {
@@ -290,5 +299,3 @@ var emnapiString = {
     return status
   }
 }
-
-emnapiDefineVar('$emnapiString', emnapiString, [], 'emnapiString.init();')

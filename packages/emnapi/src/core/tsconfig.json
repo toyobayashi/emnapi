@@ -1,25 +1,17 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "outFile": "../../dist/emnapi-core.js",
-    "plugins": [
-      {
-        "transform": "../../transformer/out/macro.js"
-      },
-      {
-        "transform": "../../transformer/out/index.js",
-        "defines": {
-          "MEMORY64": 0
-        }
-      }
-    ]
+    "paths": {
+      "emnapi:shared": ["./init"]
+    }
   },
   "include": [
+    "./index.ts",
+    "./pthread.ts",
     "./init.ts",
     "./async.ts",
     "./miscellaneous.ts",
     "./string.ts",
-    "./util.ts",
     "./memory.ts",
     "../../../runtime/src/typings/**/*.d.ts",
     "../typings/**/*.d.ts",

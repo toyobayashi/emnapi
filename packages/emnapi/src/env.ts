@@ -1,4 +1,8 @@
-function napi_set_instance_data (env: napi_env, data: void_p, finalize_cb: napi_finalize, finalize_hint: void_p): napi_status {
+import { emnapiCtx } from 'emnapi:shared'
+import { $CHECK_ENV, $CHECK_ARG } from './macro'
+
+/** @__sig ipppp */
+export function napi_set_instance_data (env: napi_env, data: void_p, finalize_cb: napi_finalize, finalize_hint: void_p): napi_status {
   $CHECK_ENV!(env)
   const envObject = emnapiCtx.envStore.get(env)!
   $from64('data')
@@ -8,7 +12,8 @@ function napi_set_instance_data (env: napi_env, data: void_p, finalize_cb: napi_
   return envObject.clearLastError()
 }
 
-function napi_get_instance_data (env: napi_env, data: void_pp): napi_status {
+/** @__sig ipp */
+export function napi_get_instance_data (env: napi_env, data: void_pp): napi_status {
   $CHECK_ENV!(env)
   const envObject = emnapiCtx.envStore.get(env)!
   $CHECK_ARG!(envObject, data)
@@ -19,6 +24,3 @@ function napi_get_instance_data (env: napi_env, data: void_pp): napi_status {
   $makeSetValue('data', 0, 'value', '*')
   return envObject.clearLastError()
 }
-
-emnapiImplement('napi_set_instance_data', 'ipppp', napi_set_instance_data)
-emnapiImplement('napi_get_instance_data', 'ipp', napi_get_instance_data)

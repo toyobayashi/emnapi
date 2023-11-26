@@ -1,4 +1,6 @@
-declare interface AsyncWork {
+import { emnapiAsyncWorkPoolSize, emnapiNodeBinding, emnapiCtx } from 'emnapi:shared'
+
+export interface AsyncWork {
   id: number
   resource: object
   asyncId: number
@@ -17,7 +19,13 @@ declare interface AsyncWork {
   status: 0 | 1 | 2 | 3 | 4
 }
 
-var emnapiAWST = {
+/**
+ * @__postset
+ * ```
+ * emnapiAWST.init();
+ * ```
+ */
+export var emnapiAWST = {
   idGen: {} as unknown as {
     nextId: number
     list: number[]
@@ -170,5 +178,3 @@ var emnapiAWST = {
     emnapiAWST.idGen.reuse(id)
   }
 }
-
-emnapiDefineVar('$emnapiAWST', emnapiAWST, ['$emnapiAsyncWorkPoolSize'], 'emnapiAWST.init();')

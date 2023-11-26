@@ -1,4 +1,13 @@
-function napi_get_array_length (env: napi_env, value: napi_value, result: Pointer<uint32_t>): napi_status {
+import { emnapiCtx } from 'emnapi:shared'
+import { $emnapiSetValueI64 as emnapiSetValueI64 } from '../util'
+import { emnapiString } from '../string'
+import { emnapiExternalMemory } from '../memory'
+import { $CHECK_ARG, $CHECK_ENV_NOT_IN_GC, $PREAMBLE } from '../macro'
+
+/**
+ * @__sig ippp
+ */
+export function napi_get_array_length (env: napi_env, value: napi_value, result: Pointer<uint32_t>): napi_status {
   return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, value)
     $CHECK_ARG!(envObject, result)
@@ -14,7 +23,10 @@ function napi_get_array_length (env: napi_env, value: napi_value, result: Pointe
   })
 }
 
-function napi_get_arraybuffer_info (env: napi_env, arraybuffer: napi_value, data: void_pp, byte_length: Pointer<size_t>): napi_status {
+/**
+ * @__sig ipppp
+ */
+export function napi_get_arraybuffer_info (env: napi_env, arraybuffer: napi_value, data: void_pp, byte_length: Pointer<size_t>): napi_status {
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, arraybuffer)
   const handle = emnapiCtx.handleStore.get(arraybuffer)!
@@ -35,7 +47,10 @@ function napi_get_arraybuffer_info (env: napi_env, arraybuffer: napi_value, data
   return envObject.clearLastError()
 }
 
-function napi_get_prototype (env: napi_env, value: napi_value, result: Pointer<napi_value>): napi_status {
+/**
+ * @__sig ippp
+ */
+export function napi_get_prototype (env: napi_env, value: napi_value, result: Pointer<napi_value>): napi_status {
   return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, value)
     $CHECK_ARG!(envObject, result)
@@ -58,7 +73,10 @@ function napi_get_prototype (env: napi_env, value: napi_value, result: Pointer<n
   })
 }
 
-function _napi_get_typedarray_info (
+/**
+ * @__sig ippppppp
+ */
+export function napi_get_typedarray_info (
   env: napi_env,
   typedarray: napi_value,
   type: Pointer<napi_typedarray_type>,
@@ -134,7 +152,10 @@ function _napi_get_typedarray_info (
   return envObject.clearLastError()
 }
 
-function napi_get_buffer_info (
+/**
+ * @__sig ipppp
+ */
+export function napi_get_buffer_info (
   env: napi_env,
   buffer: napi_value,
   data: void_pp,
@@ -146,10 +167,13 @@ function napi_get_buffer_info (
   if (!handle.isBuffer()) {
     return envObject.setLastError(napi_status.napi_invalid_arg)
   }
-  return _napi_get_typedarray_info(env, buffer, 0, length, data, 0, 0)
+  return napi_get_typedarray_info(env, buffer, 0, length, data, 0, 0)
 }
 
-function napi_get_dataview_info (
+/**
+ * @__sig ipppppp
+ */
+export function napi_get_dataview_info (
   env: napi_env,
   dataview: napi_value,
   byte_length: Pointer<size_t>,
@@ -193,7 +217,10 @@ function napi_get_dataview_info (
   return envObject.clearLastError()
 }
 
-function napi_get_date_value (env: napi_env, value: napi_value, result: Pointer<double>): napi_status {
+/**
+ * @__sig ippp
+ */
+export function napi_get_date_value (env: napi_env, value: napi_value, result: Pointer<double>): napi_status {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let v: number
 
@@ -211,7 +238,10 @@ function napi_get_date_value (env: napi_env, value: napi_value, result: Pointer<
   })
 }
 
-function napi_get_value_bool (env: napi_env, value: napi_value, result: Pointer<bool>): napi_status {
+/**
+ * @__sig ippp
+ */
+export function napi_get_value_bool (env: napi_env, value: napi_value, result: Pointer<bool>): napi_status {
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, value)
   $CHECK_ARG!(envObject, result)
@@ -226,7 +256,10 @@ function napi_get_value_bool (env: napi_env, value: napi_value, result: Pointer<
   return envObject.clearLastError()
 }
 
-function napi_get_value_double (env: napi_env, value: napi_value, result: Pointer<double>): napi_status {
+/**
+ * @__sig ippp
+ */
+export function napi_get_value_double (env: napi_env, value: napi_value, result: Pointer<double>): napi_status {
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, value)
   $CHECK_ARG!(envObject, result)
@@ -241,7 +274,10 @@ function napi_get_value_double (env: napi_env, value: napi_value, result: Pointe
   return envObject.clearLastError()
 }
 
-function napi_get_value_bigint_int64 (env: napi_env, value: napi_value, result: Pointer<int64_t>, lossless: Pointer<bool>): napi_status {
+/**
+ * @__sig ipppp
+ */
+export function napi_get_value_bigint_int64 (env: napi_env, value: napi_value, result: Pointer<int64_t>, lossless: Pointer<bool>): napi_status {
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   if (!emnapiCtx.feature.supportBigInt) {
     return envObject.setLastError(napi_status.napi_generic_failure)
@@ -274,7 +310,10 @@ function napi_get_value_bigint_int64 (env: napi_env, value: napi_value, result: 
   return envObject.clearLastError()
 }
 
-function napi_get_value_bigint_uint64 (env: napi_env, value: napi_value, result: Pointer<uint64_t>, lossless: Pointer<bool>): napi_status {
+/**
+ * @__sig ipppp
+ */
+export function napi_get_value_bigint_uint64 (env: napi_env, value: napi_value, result: Pointer<uint64_t>, lossless: Pointer<bool>): napi_status {
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   if (!emnapiCtx.feature.supportBigInt) {
     return envObject.setLastError(napi_status.napi_generic_failure)
@@ -304,7 +343,10 @@ function napi_get_value_bigint_uint64 (env: napi_env, value: napi_value, result:
   return envObject.clearLastError()
 }
 
-function napi_get_value_bigint_words (
+/**
+ * @__sig ippppp
+ */
+export function napi_get_value_bigint_words (
   env: napi_env,
   value: napi_value,
   sign_bit: Pointer<int>,
@@ -364,7 +406,10 @@ function napi_get_value_bigint_words (
   return envObject.clearLastError()
 }
 
-function napi_get_value_external (env: napi_env, value: napi_value, result: void_pp): napi_status {
+/**
+ * @__sig ippp
+ */
+export function napi_get_value_external (env: napi_env, value: napi_value, result: void_pp): napi_status {
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, value)
   $CHECK_ARG!(envObject, result)
@@ -380,7 +425,10 @@ function napi_get_value_external (env: napi_env, value: napi_value, result: void
   return envObject.clearLastError()
 }
 
-function napi_get_value_int32 (env: napi_env, value: napi_value, result: Pointer<int32_t>): napi_status {
+/**
+ * @__sig ippp
+ */
+export function napi_get_value_int32 (env: napi_env, value: napi_value, result: Pointer<int32_t>): napi_status {
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, value)
   $CHECK_ARG!(envObject, result)
@@ -393,18 +441,10 @@ function napi_get_value_int32 (env: napi_env, value: napi_value, result: Pointer
   return envObject.clearLastError()
 }
 
-function emnapiSetValueI64 (result: Pointer<int64_t>, numberValue: number): void {
-  let tempDouble: number
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const tempI64 = [
-    numberValue >>> 0,
-    (tempDouble = numberValue, +Math.abs(tempDouble) >= 1 ? tempDouble > 0 ? (Math.min(+Math.floor(tempDouble / 4294967296), 4294967295) | 0) >>> 0 : ~~+Math.ceil((tempDouble - +(~~tempDouble >>> 0)) / 4294967296) >>> 0 : 0)
-  ]
-  $makeSetValue('result', 0, 'tempI64[0]', 'i32')
-  $makeSetValue('result', 4, 'tempI64[1]', 'i32')
-}
-
-function napi_get_value_int64 (env: napi_env, value: napi_value, result: Pointer<int64_t>): napi_status {
+/**
+ * @__sig ippp
+ */
+export function napi_get_value_int64 (env: napi_env, value: napi_value, result: Pointer<int64_t>): napi_status {
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, value)
   $CHECK_ARG!(envObject, result)
@@ -430,7 +470,10 @@ function napi_get_value_int64 (env: napi_env, value: napi_value, result: Pointer
   return envObject.clearLastError()
 }
 
-function napi_get_value_string_latin1 (env: napi_env, value: napi_value, buf: char_p, buf_size: size_t, result: Pointer<size_t>): napi_status {
+/**
+ * @__sig ippppp
+ */
+export function napi_get_value_string_latin1 (env: napi_env, value: napi_value, buf: char_p, buf_size: size_t, result: Pointer<size_t>): napi_status {
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, value)
   $from64('result')
@@ -465,7 +508,10 @@ function napi_get_value_string_latin1 (env: napi_env, value: napi_value, buf: ch
   return envObject.clearLastError()
 }
 
-function napi_get_value_string_utf8 (env: napi_env, value: napi_value, buf: char_p, buf_size: size_t, result: Pointer<size_t>): napi_status {
+/**
+ * @__sig ippppp
+ */
+export function napi_get_value_string_utf8 (env: napi_env, value: napi_value, buf: char_p, buf_size: size_t, result: Pointer<size_t>): napi_status {
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, value)
   $from64('result')
@@ -494,7 +540,10 @@ function napi_get_value_string_utf8 (env: napi_env, value: napi_value, buf: char
   return envObject.clearLastError()
 }
 
-function napi_get_value_string_utf16 (env: napi_env, value: napi_value, buf: char16_t_p, buf_size: size_t, result: Pointer<size_t>): napi_status {
+/**
+ * @__sig ippppp
+ */
+export function napi_get_value_string_utf16 (env: napi_env, value: napi_value, buf: char16_t_p, buf_size: size_t, result: Pointer<size_t>): napi_status {
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, value)
   $from64('result')
@@ -521,7 +570,10 @@ function napi_get_value_string_utf16 (env: napi_env, value: napi_value, buf: cha
   return envObject.clearLastError()
 }
 
-function napi_get_value_uint32 (env: napi_env, value: napi_value, result: Pointer<uint32_t>): napi_status {
+/**
+ * @__sig ippp
+ */
+export function napi_get_value_uint32 (env: napi_env, value: napi_value, result: Pointer<uint32_t>): napi_status {
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, value)
   $CHECK_ARG!(envObject, result)
@@ -533,27 +585,3 @@ function napi_get_value_uint32 (env: napi_env, value: napi_value, result: Pointe
   $makeSetValue('result', 0, 'handle.value', 'u32')
   return envObject.clearLastError()
 }
-
-emnapiImplementHelper('$emnapiSetValueI64', undefined, emnapiSetValueI64, undefined)
-
-emnapiImplement('napi_get_array_length', 'ippp', napi_get_array_length)
-emnapiImplement('napi_get_arraybuffer_info', 'ipppp', napi_get_arraybuffer_info, ['$emnapiExternalMemory'])
-emnapiImplement('napi_get_prototype', 'ippp', napi_get_prototype)
-emnapiImplement('napi_get_typedarray_info', 'ippppppp', _napi_get_typedarray_info, ['$emnapiExternalMemory'])
-emnapiImplement('napi_get_buffer_info', 'ipppp', napi_get_buffer_info, ['napi_get_typedarray_info'])
-emnapiImplement('napi_get_dataview_info', 'ipppppp', napi_get_dataview_info, ['$emnapiExternalMemory'])
-emnapiImplement('napi_get_date_value', 'ippp', napi_get_date_value)
-emnapiImplement('napi_get_value_bool', 'ippp', napi_get_value_bool)
-emnapiImplement('napi_get_value_double', 'ippp', napi_get_value_double)
-emnapiImplement('napi_get_value_bigint_int64', 'ipppp', napi_get_value_bigint_int64)
-emnapiImplement('napi_get_value_bigint_uint64', 'ipppp', napi_get_value_bigint_uint64)
-emnapiImplement('napi_get_value_bigint_words', 'ippppp', napi_get_value_bigint_words)
-emnapiImplement('napi_get_value_external', 'ippp', napi_get_value_external)
-emnapiImplement('napi_get_value_int32', 'ippp', napi_get_value_int32)
-emnapiImplement('napi_get_value_int64', 'ippp', napi_get_value_int64, ['$emnapiSetValueI64'])
-emnapiImplement('napi_get_value_string_latin1', 'ippppp', napi_get_value_string_latin1)
-emnapiImplement('napi_get_value_string_utf8', 'ippppp', napi_get_value_string_utf8, ['$emnapiString'])
-
-emnapiImplement('napi_get_value_string_utf16', 'ippppp', napi_get_value_string_utf16, ['$emnapiString'])
-
-emnapiImplement('napi_get_value_uint32', 'ippp', napi_get_value_uint32)

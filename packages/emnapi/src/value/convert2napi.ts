@@ -1,6 +1,13 @@
 /* eslint-disable @typescript-eslint/indent */
 
-function napi_create_int32 (env: napi_env, value: int32_t, result: Pointer<napi_value>): napi_status {
+import { emnapiCtx } from 'emnapi:shared'
+import { emnapiString } from '../string'
+import { $CHECK_ARG, $CHECK_ENV_NOT_IN_GC, $PREAMBLE } from '../macro'
+
+/**
+ * @__sig ipip
+ */
+export function napi_create_int32 (env: napi_env, value: int32_t, result: Pointer<napi_value>): napi_status {
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, result)
   $from64('result')
@@ -10,7 +17,10 @@ function napi_create_int32 (env: napi_env, value: int32_t, result: Pointer<napi_
   return envObject.clearLastError()
 }
 
-function napi_create_uint32 (env: napi_env, value: uint32_t, result: Pointer<napi_value>): napi_status {
+/**
+ * @__sig ipip
+ */
+export function napi_create_uint32 (env: napi_env, value: uint32_t, result: Pointer<napi_value>): napi_status {
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, result)
   $from64('result')
@@ -20,7 +30,10 @@ function napi_create_uint32 (env: napi_env, value: uint32_t, result: Pointer<nap
   return envObject.clearLastError()
 }
 
-function napi_create_int64 (env: napi_env, low: int32_t, high: int32_t, result: Pointer<napi_value>): napi_status {
+/**
+ * @__sig ipjp
+ */
+export function napi_create_int64 (env: napi_env, low: int32_t, high: int32_t, result: Pointer<napi_value>): napi_status {
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
 
   let value: number
@@ -43,7 +56,10 @@ function napi_create_int64 (env: napi_env, low: int32_t, high: int32_t, result: 
   return envObject.clearLastError()
 }
 
-function napi_create_double (env: napi_env, value: double, result: Pointer<napi_value>): napi_status {
+/**
+ * @__sig ipdp
+ */
+export function napi_create_double (env: napi_env, value: double, result: Pointer<napi_value>): napi_status {
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, result)
   $from64('result')
@@ -53,7 +69,10 @@ function napi_create_double (env: napi_env, value: double, result: Pointer<napi_
   return envObject.clearLastError()
 }
 
-function _napi_create_string_latin1 (env: napi_env, str: const_char_p, length: size_t, result: Pointer<napi_value>): napi_status {
+/**
+ * @__sig ipppp
+ */
+export function napi_create_string_latin1 (env: napi_env, str: const_char_p, length: size_t, result: Pointer<napi_value>): napi_status {
   return emnapiString.newString(env, str, length, result, (str, autoLength, sizeLength) => {
     let latin1String = ''
     let len = 0
@@ -77,19 +96,28 @@ function _napi_create_string_latin1 (env: napi_env, str: const_char_p, length: s
   })
 }
 
-function _napi_create_string_utf16 (env: napi_env, str: const_char16_t_p, length: size_t, result: Pointer<napi_value>): napi_status {
+/**
+ * @__sig ipppp
+ */
+export function napi_create_string_utf16 (env: napi_env, str: const_char16_t_p, length: size_t, result: Pointer<napi_value>): napi_status {
   return emnapiString.newString(env, str, length, result, (str) => {
     return emnapiString.UTF16ToString(str, length)
   })
 }
 
-function napi_create_string_utf8 (env: napi_env, str: const_char_p, length: size_t, result: Pointer<napi_value>): napi_status {
+/**
+ * @__sig ipppp
+ */
+export function napi_create_string_utf8 (env: napi_env, str: const_char_p, length: size_t, result: Pointer<napi_value>): napi_status {
   return emnapiString.newString(env, str, length, result, (str) => {
     return emnapiString.UTF8ToString(str, length)
   })
 }
 
-function node_api_create_external_string_latin1 (
+/**
+ * @__sig ippppppp
+ */
+export function node_api_create_external_string_latin1 (
   env: napi_env,
   str: number,
   length: size_t,
@@ -106,12 +134,15 @@ function node_api_create_external_string_latin1 (
     finalize_hint,
     result,
     copied,
-    _napi_create_string_latin1,
+    napi_create_string_latin1,
     undefined!
   )
 }
 
-function node_api_create_external_string_utf16 (
+/**
+ * @__sig ippppppp
+ */
+export function node_api_create_external_string_utf16 (
   env: napi_env,
   str: number,
   length: size_t,
@@ -128,12 +159,15 @@ function node_api_create_external_string_utf16 (
     finalize_hint,
     result,
     copied,
-    _napi_create_string_utf16,
+    napi_create_string_utf16,
     undefined!
   )
 }
 
-function napi_create_bigint_int64 (env: napi_env, low: int32_t, high: int32_t, result: Pointer<napi_value>): napi_status {
+/**
+ * @__sig ipjp
+ */
+export function napi_create_bigint_int64 (env: napi_env, low: int32_t, high: int32_t, result: Pointer<napi_value>): napi_status {
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   if (!emnapiCtx.feature.supportBigInt) {
     return envObject.setLastError(napi_status.napi_generic_failure)
@@ -159,7 +193,10 @@ function napi_create_bigint_int64 (env: napi_env, low: int32_t, high: int32_t, r
   return envObject.clearLastError()
 }
 
-function napi_create_bigint_uint64 (env: napi_env, low: int32_t, high: int32_t, result: Pointer<napi_value>): napi_status {
+/**
+ * @__sig ipjp
+ */
+export function napi_create_bigint_uint64 (env: napi_env, low: int32_t, high: int32_t, result: Pointer<napi_value>): napi_status {
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   if (!emnapiCtx.feature.supportBigInt) {
     return envObject.setLastError(napi_status.napi_generic_failure)
@@ -185,7 +222,10 @@ function napi_create_bigint_uint64 (env: napi_env, low: int32_t, high: int32_t, 
   return envObject.clearLastError()
 }
 
-function napi_create_bigint_words (env: napi_env, sign_bit: int, word_count: size_t, words: Const<Pointer<uint64_t>>, result: Pointer<napi_value>): napi_status {
+/**
+ * @__sig ipippp
+ */
+export function napi_create_bigint_words (env: napi_env, sign_bit: int, word_count: size_t, words: Const<Pointer<uint64_t>>, result: Pointer<napi_value>): napi_status {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let v: number, i: number
 
@@ -217,16 +257,3 @@ function napi_create_bigint_words (env: napi_env, sign_bit: int, word_count: siz
     return envObject.getReturnStatus()
   })
 }
-
-emnapiImplement('napi_create_int32', 'ipip', napi_create_int32)
-emnapiImplement('napi_create_uint32', 'ipip', napi_create_uint32)
-emnapiImplement('napi_create_int64', 'ipjp', napi_create_int64)
-emnapiImplement('napi_create_double', 'ipdp', napi_create_double)
-emnapiImplement('napi_create_bigint_int64', 'ipjp', napi_create_bigint_int64)
-emnapiImplement('napi_create_bigint_uint64', 'ipjp', napi_create_bigint_uint64)
-emnapiImplement('napi_create_bigint_words', 'ipippp', napi_create_bigint_words)
-emnapiImplement('napi_create_string_latin1', 'ipppp', _napi_create_string_latin1, ['$emnapiString'])
-emnapiImplement('napi_create_string_utf16', 'ipppp', _napi_create_string_utf16, ['$emnapiString'])
-emnapiImplement('napi_create_string_utf8', 'ipppp', napi_create_string_utf8, ['$emnapiString'])
-emnapiImplement('node_api_create_external_string_latin1', 'ippppppp', node_api_create_external_string_latin1, ['$emnapiString', 'napi_create_string_latin1'])
-emnapiImplement('node_api_create_external_string_utf16', 'ippppppp', node_api_create_external_string_utf16, ['$emnapiString', 'napi_create_string_utf16'])

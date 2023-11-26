@@ -1,4 +1,10 @@
-function _napi_get_all_property_names (
+import { emnapiCtx } from 'emnapi:shared'
+import { emnapiDefineProperty } from './internal'
+import { $PREAMBLE, $CHECK_ARG } from './macro'
+import { emnapiString } from './string'
+
+/** @__sig ippiiip */
+export function napi_get_all_property_names (
   env: napi_env,
   object: napi_value,
   key_mode: napi_key_collection_mode,
@@ -133,8 +139,9 @@ function _napi_get_all_property_names (
   })
 }
 
-function napi_get_property_names (env: napi_env, object: napi_value, result: Pointer<napi_value>): napi_status {
-  return _napi_get_all_property_names(
+/** @__sig ippp */
+export function napi_get_property_names (env: napi_env, object: napi_value, result: Pointer<napi_value>): napi_status {
+  return napi_get_all_property_names(
     env,
     object,
     napi_key_collection_mode.napi_key_include_prototypes,
@@ -144,7 +151,8 @@ function napi_get_property_names (env: napi_env, object: napi_value, result: Poi
   )
 }
 
-function napi_set_property (env: napi_env, object: napi_value, key: napi_value, value: napi_value): napi_status {
+/** @__sig ipppp */
+export function napi_set_property (env: napi_env, object: napi_value, key: napi_value, value: napi_value): napi_status {
   return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, key)
     $CHECK_ARG!(envObject, value)
@@ -158,7 +166,8 @@ function napi_set_property (env: napi_env, object: napi_value, key: napi_value, 
   })
 }
 
-function napi_has_property (env: napi_env, object: napi_value, key: napi_value, result: Pointer<bool>): napi_status {
+/** @__sig ipppp */
+export function napi_has_property (env: napi_env, object: napi_value, key: napi_value, result: Pointer<bool>): napi_status {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let r: number
 
@@ -183,7 +192,8 @@ function napi_has_property (env: napi_env, object: napi_value, key: napi_value, 
   })
 }
 
-function napi_get_property (env: napi_env, object: napi_value, key: napi_value, result: Pointer<napi_value>): napi_status {
+/** @__sig ipppp */
+export function napi_get_property (env: napi_env, object: napi_value, key: napi_value, result: Pointer<napi_value>): napi_status {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let value: number
 
@@ -209,7 +219,8 @@ function napi_get_property (env: napi_env, object: napi_value, key: napi_value, 
   })
 }
 
-function napi_delete_property (env: napi_env, object: napi_value, key: napi_value, result: Pointer<bool>): napi_status {
+/** @__sig ipppp */
+export function napi_delete_property (env: napi_env, object: napi_value, key: napi_value, result: Pointer<bool>): napi_status {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let r: boolean
 
@@ -238,7 +249,8 @@ function napi_delete_property (env: napi_env, object: napi_value, key: napi_valu
   })
 }
 
-function napi_has_own_property (env: napi_env, object: napi_value, key: napi_value, result: Pointer<bool>): napi_status {
+/** @__sig ipppp */
+export function napi_has_own_property (env: napi_env, object: napi_value, key: napi_value, result: Pointer<bool>): napi_status {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let value: number, r: boolean
 
@@ -267,7 +279,8 @@ function napi_has_own_property (env: napi_env, object: napi_value, key: napi_val
   })
 }
 
-function napi_set_named_property (env: napi_env, object: napi_value, cname: const_char_p, value: napi_value): napi_status {
+/** @__sig ipppp */
+export function napi_set_named_property (env: napi_env, object: napi_value, cname: const_char_p, value: napi_value): napi_status {
   return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, value)
     $CHECK_ARG!(envObject, object)
@@ -284,7 +297,8 @@ function napi_set_named_property (env: napi_env, object: napi_value, cname: cons
   })
 }
 
-function napi_has_named_property (env: napi_env, object: napi_value, utf8name: const_char_p, result: Pointer<bool>): napi_status {
+/** @__sig ipppp */
+export function napi_has_named_property (env: napi_env, object: napi_value, utf8name: const_char_p, result: Pointer<bool>): napi_status {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let r: boolean
 
@@ -313,7 +327,8 @@ function napi_has_named_property (env: napi_env, object: napi_value, utf8name: c
   })
 }
 
-function napi_get_named_property (env: napi_env, object: napi_value, utf8name: const_char_p, result: Pointer<napi_value>): napi_status {
+/** @__sig ipppp */
+export function napi_get_named_property (env: napi_env, object: napi_value, utf8name: const_char_p, result: Pointer<napi_value>): napi_status {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let value: number
 
@@ -343,7 +358,8 @@ function napi_get_named_property (env: napi_env, object: napi_value, utf8name: c
   })
 }
 
-function napi_set_element (env: napi_env, object: napi_value, index: uint32_t, value: napi_value): napi_status {
+/** @__sig ippip */
+export function napi_set_element (env: napi_env, object: napi_value, index: uint32_t, value: napi_value): napi_status {
   return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, value)
     $CHECK_ARG!(envObject, object)
@@ -356,7 +372,8 @@ function napi_set_element (env: napi_env, object: napi_value, index: uint32_t, v
   })
 }
 
-function napi_has_element (env: napi_env, object: napi_value, index: uint32_t, result: Pointer<bool>): napi_status {
+/** @__sig ippip */
+export function napi_has_element (env: napi_env, object: napi_value, index: uint32_t, result: Pointer<bool>): napi_status {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let r: number
 
@@ -380,7 +397,8 @@ function napi_has_element (env: napi_env, object: napi_value, index: uint32_t, r
   })
 }
 
-function napi_get_element (env: napi_env, object: napi_value, index: uint32_t, result: Pointer<napi_value>): napi_status {
+/** @__sig ippip */
+export function napi_get_element (env: napi_env, object: napi_value, index: uint32_t, result: Pointer<napi_value>): napi_status {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let value: number
 
@@ -405,7 +423,8 @@ function napi_get_element (env: napi_env, object: napi_value, index: uint32_t, r
   })
 }
 
-function napi_delete_element (env: napi_env, object: napi_value, index: uint32_t, result: Pointer<bool>): napi_status {
+/** @__sig ippip */
+export function napi_delete_element (env: napi_env, object: napi_value, index: uint32_t, result: Pointer<bool>): napi_status {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let r: boolean
 
@@ -432,7 +451,8 @@ function napi_delete_element (env: napi_env, object: napi_value, index: uint32_t
   })
 }
 
-function napi_define_properties (
+/** @__sig ipppp */
+export function napi_define_properties (
   env: napi_env,
   object: napi_value,
   property_count: size_t,
@@ -489,7 +509,8 @@ function napi_define_properties (
   })
 }
 
-function napi_object_freeze (env: napi_env, object: napi_value): napi_status {
+/** @__sig ipp */
+export function napi_object_freeze (env: napi_env, object: napi_value): napi_status {
   return $PREAMBLE!(env, (envObject) => {
     if (!object) return envObject.setLastError(napi_status.napi_invalid_arg)
     const h = emnapiCtx.handleStore.get(object)!
@@ -502,7 +523,8 @@ function napi_object_freeze (env: napi_env, object: napi_value): napi_status {
   })
 }
 
-function napi_object_seal (env: napi_env, object: napi_value): napi_status {
+/** @__sig ipp */
+export function napi_object_seal (env: napi_env, object: napi_value): napi_status {
   return $PREAMBLE!(env, (envObject) => {
     if (!object) return envObject.setLastError(napi_status.napi_invalid_arg)
     const h = emnapiCtx.handleStore.get(object)!
@@ -514,21 +536,3 @@ function napi_object_seal (env: napi_env, object: napi_value): napi_status {
     return envObject.getReturnStatus()
   })
 }
-
-emnapiImplement('napi_get_all_property_names', 'ippiiip', _napi_get_all_property_names)
-emnapiImplement('napi_get_property_names', 'ippp', napi_get_property_names, ['napi_get_all_property_names'])
-emnapiImplement('napi_set_property', 'ipppp', napi_set_property)
-emnapiImplement('napi_has_property', 'ipppp', napi_has_property)
-emnapiImplement('napi_get_property', 'ipppp', napi_get_property)
-emnapiImplement('napi_delete_property', 'ipppp', napi_delete_property)
-emnapiImplement('napi_has_own_property', 'ipppp', napi_has_own_property)
-emnapiImplement('napi_set_named_property', 'ipppp', napi_set_named_property, ['$emnapiString'])
-emnapiImplement('napi_has_named_property', 'ipppp', napi_has_named_property, ['$emnapiString'])
-emnapiImplement('napi_get_named_property', 'ipppp', napi_get_named_property, ['$emnapiString'])
-emnapiImplement('napi_set_element', 'ippip', napi_set_element)
-emnapiImplement('napi_has_element', 'ippip', napi_has_element)
-emnapiImplement('napi_get_element', 'ippip', napi_get_element)
-emnapiImplement('napi_delete_element', 'ippip', napi_delete_element)
-emnapiImplement('napi_define_properties', 'ipppp', napi_define_properties, ['$emnapiDefineProperty', '$emnapiString'])
-emnapiImplement('napi_object_freeze', 'ipp', napi_object_freeze)
-emnapiImplement('napi_object_seal', 'ipp', napi_object_seal)

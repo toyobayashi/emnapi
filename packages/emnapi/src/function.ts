@@ -1,4 +1,9 @@
-function napi_create_function (env: napi_env, utf8name: Pointer<const_char>, length: size_t, cb: napi_callback, data: void_p, result: Pointer<napi_value>): napi_status {
+import { emnapiCtx } from 'emnapi:shared'
+import { emnapiCreateFunction } from './internal'
+import { $PREAMBLE, $CHECK_ARG, $CHECK_ENV, $CHECK_ENV_NOT_IN_GC } from './macro'
+
+/** @__sig ipppppp */
+export function napi_create_function (env: napi_env, utf8name: Pointer<const_char>, length: size_t, cb: napi_callback, data: void_p, result: Pointer<napi_value>): napi_status {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let value: number
 
@@ -20,7 +25,8 @@ function napi_create_function (env: napi_env, utf8name: Pointer<const_char>, len
   })
 }
 
-function napi_get_cb_info (env: napi_env, cbinfo: napi_callback_info, argc: Pointer<size_t>, argv: Pointer<napi_value>, this_arg: Pointer<napi_value>, data: void_pp): napi_status {
+/** @__sig ipppppp */
+export function napi_get_cb_info (env: napi_env, cbinfo: napi_callback_info, argc: Pointer<size_t>, argv: Pointer<napi_value>, this_arg: Pointer<napi_value>, data: void_pp): napi_status {
   $CHECK_ENV!(env)
   const envObject = emnapiCtx.envStore.get(env)!
   if (!cbinfo) return envObject.setLastError(napi_status.napi_invalid_arg)
@@ -66,7 +72,8 @@ function napi_get_cb_info (env: napi_env, cbinfo: napi_callback_info, argc: Poin
   return envObject.clearLastError()
 }
 
-function napi_call_function (
+/** @__sig ipppppp */
+export function napi_call_function (
   env: napi_env,
   recv: napi_value,
   func: napi_value,
@@ -107,7 +114,8 @@ function napi_call_function (
   })
 }
 
-function napi_new_instance (
+/** @__sig ippppp */
+export function napi_new_instance (
   env: napi_env,
   constructor: napi_value,
   argc: size_t,
@@ -158,7 +166,8 @@ function napi_new_instance (
   })
 }
 
-function napi_get_new_target (
+/** @__sig ippp */
+export function napi_get_new_target (
   env: napi_env,
   cbinfo: napi_callback_info,
   result: Pointer<napi_value>
@@ -175,9 +184,3 @@ function napi_get_new_target (
   $makeSetValue('result', 0, 'value', '*')
   return envObject.clearLastError()
 }
-
-emnapiImplement('napi_create_function', 'ipppppp', napi_create_function, ['$emnapiCreateFunction'])
-emnapiImplement('napi_get_cb_info', 'ipppppp', napi_get_cb_info)
-emnapiImplement('napi_call_function', 'ipppppp', napi_call_function)
-emnapiImplement('napi_new_instance', 'ippppp', napi_new_instance)
-emnapiImplement('napi_get_new_target', 'ippp', napi_get_new_target)
