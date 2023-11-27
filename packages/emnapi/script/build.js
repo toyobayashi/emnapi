@@ -49,12 +49,27 @@ async function build () {
         compilerOptions: {
           module: ts.ModuleKind.ESNext
         },
-        include: libTsconfig.include,
+        include: libTsconfig.include.map(s => path.join(__dirname, '..', s)),
         transformers: {
           before: [
             {
               type: 'program',
               factory: require('../transformer/out/macro.js').default
+            },
+            {
+              type: 'program',
+              factory: () => {
+                return (context) => {
+                  return (src) => {
+                    if (src.isDeclarationFile) return src
+                    const statements = src.statements
+                    const newStatements = statements.filter(s => {
+                      return !(ts.isImportDeclaration(s) && ts.isStringLiteral(s.moduleSpecifier) && (s.moduleSpecifier.text === 'emnapi:emscripten-runtime'))
+                    })
+                    return context.factory.updateSourceFile(src, newStatements)
+                  }
+                }
+              }
             }
           ]
         }
@@ -126,7 +141,8 @@ async function build () {
       }),
       rollupAlias({
         entries: [
-          { find: 'emnapi:shared', replacement: path.join(__dirname, '../src/core/init.ts') }
+          { find: 'emnapi:shared', replacement: path.join(__dirname, '../src/core/init.ts') },
+          { find: 'emnapi:emscripten-runtime', replacement: path.join(__dirname, '../src/core/init.ts') }
         ]
       })
     ]

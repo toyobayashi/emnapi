@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/indent */
 
+import { ENVIRONMENT_IS_NODE, _malloc, wasmMemory, _free, ENVIRONMENT_IS_PTHREAD, abort } from 'emnapi:emscripten-runtime'
 import { emnapiCtx, emnapiNodeBinding } from 'emnapi:shared'
 import { $CHECK_ENV_NOT_IN_GC, $CHECK_ARG } from './macro'
 import { _emnapi_node_emit_async_destroy, _emnapi_node_emit_async_init } from './node'

@@ -2,6 +2,7 @@
 import { emnapiCtx } from 'emnapi:shared'
 import { emnapiString } from '../string'
 import { $CHECK_ARG, $PREAMBLE } from '../macro'
+import { Module } from 'emnapi:emscripten-runtime'
 
 /**
  * @__sig ipp

@@ -28,6 +28,7 @@ import {
   emnapiTSFN,
   napi_create_threadsafe_function,
   napi_get_threadsafe_function_context,
+  napi_call_threadsafe_function,
   napi_acquire_threadsafe_function,
   napi_release_threadsafe_function,
   napi_unref_threadsafe_function,
@@ -85,6 +86,7 @@ addImports(versionMod)
 
 napiModule.imports.napi.napi_create_threadsafe_function = napi_create_threadsafe_function
 napiModule.imports.napi.napi_get_threadsafe_function_context = napi_get_threadsafe_function_context
+napiModule.imports.napi.napi_call_threadsafe_function = napi_call_threadsafe_function
 napiModule.imports.napi.napi_acquire_threadsafe_function = napi_acquire_threadsafe_function
 napiModule.imports.napi.napi_release_threadsafe_function = napi_release_threadsafe_function
 napiModule.imports.napi.napi_unref_threadsafe_function = napi_unref_threadsafe_function

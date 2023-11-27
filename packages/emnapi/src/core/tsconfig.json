@@ -2,7 +2,8 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "paths": {
-      "emnapi:shared": ["./init"]
+      "emnapi:shared": ["./init"],
+      "emnapi:emscripten-runtime": ["./init"]
     }
   },
   "include": [

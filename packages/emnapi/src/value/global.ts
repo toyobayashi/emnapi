@@ -1,3 +1,5 @@
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import { emnapiCtx } from 'emnapi:shared'
 import { $CHECK_ENV_NOT_IN_GC, $CHECK_ARG } from '../macro'
 
 /** @__sig ipip */

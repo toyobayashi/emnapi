@@ -2,6 +2,8 @@
 /* eslint-disable no-new-func */
 /* eslint-disable @typescript-eslint/no-implied-eval */
 
+import { abort } from 'emnapi:emscripten-runtime'
+
 // declare const global: typeof globalThis
 // declare const require: any
 // declare const process: any

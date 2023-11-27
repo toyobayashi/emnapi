@@ -1,3 +1,4 @@
+import { _free, wasmMemory, _malloc } from 'emnapi:emscripten-runtime'
 import { emnapiCtx } from 'emnapi:shared'
 
 export type ViewConstuctor =

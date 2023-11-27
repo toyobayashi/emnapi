@@ -1,4 +1,5 @@
 import { emnapiCtx, emnapiNodeBinding } from 'emnapi:shared'
+import { wasmMemory } from 'emnapi:emscripten-runtime'
 import { type MemoryViewDescriptor, type ArrayBufferPointer, emnapiExternalMemory } from './memory'
 import { napi_add_finalizer } from './wrap'
 import { $CHECK_ARG, $PREAMBLE, $CHECK_ENV } from './macro'

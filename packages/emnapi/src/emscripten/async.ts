@@ -1,3 +1,4 @@
+import { ENVIRONMENT_IS_NODE, ENVIRONMENT_IS_PTHREAD } from 'emnapi:emscripten-runtime'
 import { _emnapi_set_immediate, _emnapi_next_tick } from '../util'
 
 declare var PThread: any

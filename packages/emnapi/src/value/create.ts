@@ -1,4 +1,5 @@
 import { emnapiCtx } from 'emnapi:shared'
+import { wasmMemory, _malloc } from 'emnapi:emscripten-runtime'
 import { emnapiString } from '../string'
 import { type MemoryViewDescriptor, emnapiExternalMemory } from '../memory'
 import { emnapi_create_memory_view } from '../emnapi'

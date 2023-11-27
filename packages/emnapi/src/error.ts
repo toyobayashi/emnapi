@@ -1,3 +1,4 @@
+import { abort } from 'emnapi:emscripten-runtime'
 import { emnapiCtx, emnapiNodeBinding } from 'emnapi:shared'
 import { $PREAMBLE, $CHECK_ARG, $CHECK_ENV_NOT_IN_GC } from './macro'
 import { emnapiString } from './string'

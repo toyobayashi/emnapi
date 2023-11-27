@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/indent */
 
+import { runtimeKeepalivePop, runtimeKeepalivePush } from 'emnapi:emscripten-runtime'
 import { emnapiCtx } from 'emnapi:shared'
 
 /**

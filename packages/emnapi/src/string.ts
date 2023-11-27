@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/indent */
 
+import { wasmMemory } from 'emnapi:emscripten-runtime'
 import { emnapiCtx } from 'emnapi:shared'
 import { $CHECK_NEW_STRING_ARGS } from './macro'
 
