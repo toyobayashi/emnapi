@@ -19,4 +19,5 @@ declare module 'emnapi:emscripten-runtime' {
   export function runtimeKeepalivePop (): void
 
   export const Module: any
+  export const PThread: any
 }

@@ -3,8 +3,7 @@ import { $CHECK_ENV_NOT_IN_GC, $CHECK_ARG, $CHECK_ENV } from '../macro'
 import { _emnapi_node_emit_async_init, _emnapi_node_emit_async_destroy } from '../node'
 import { emnapiTSFN } from '../threadsafe-function'
 import { _emnapi_runtime_keepalive_pop, _emnapi_runtime_keepalive_push } from '../util'
-import { ENVIRONMENT_IS_NODE, emnapiCtx, ENVIRONMENT_IS_PTHREAD, onCreateWorker, wasmInstance, _free, napiModule, emnapiNodeBinding, wasmMemory, singleThreadAsyncWork, _malloc, _emnapi_async_work_pool_size } from './init'
-import { PThread } from './pthread'
+import { PThread, ENVIRONMENT_IS_NODE, emnapiCtx, ENVIRONMENT_IS_PTHREAD, onCreateWorker, wasmInstance, _free, napiModule, emnapiNodeBinding, wasmMemory, singleThreadAsyncWork, _malloc, _emnapi_async_work_pool_size } from './init'
 
 var emnapiAWMT = {
   unusedWorkers: [] as any[],

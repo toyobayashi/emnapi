@@ -1,9 +1,7 @@
 /* eslint-disable @typescript-eslint/no-floating-promises */
 
-import { ENVIRONMENT_IS_NODE, wasmMemory, ENVIRONMENT_IS_PTHREAD, napiModule } from './init'
+import { ENVIRONMENT_IS_NODE, wasmMemory, ENVIRONMENT_IS_PTHREAD, napiModule, PThread } from './init'
 import { _emnapi_set_immediate, _emnapi_next_tick } from '../util'
-
-import { PThread } from './pthread'
 
 function emnapiGetWorkerByPthreadPtr (pthreadPtr: number): any {
   const view = new DataView(wasmMemory.buffer)

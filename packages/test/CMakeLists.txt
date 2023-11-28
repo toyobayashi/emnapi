@@ -91,6 +91,7 @@ if(IS_EMSCRIPTEN)
     "-sDEFAULT_PTHREAD_STACK_SIZE=2MB"
     "-sSAFE_HEAP=1"
     "-sMODULARIZE=1"
+    "-sEXPORTED_RUNTIME_METHODS=['ExitStatus']"
   )
 elseif(IS_WASI_THREADS)
   add_compile_options("-fno-exceptions")
@@ -247,7 +248,9 @@ add_test("env" "./env/binding.c" OFF)
 add_test("hello" "./hello/binding.c" OFF)
 
 add_test("async" "./async/binding.c" ON)
+add_test("async_st" "./async/binding.c" OFF)
 add_test("tsfn2" "./tsfn2/binding.c" ON)
+add_test("tsfn2_st" "./tsfn2/binding.c" OFF)
 
 if((NOT IS_WASM) OR IS_EMSCRIPTEN OR IS_WASI_THREADS)
   add_test("string_mt" "./string/binding.c;./string/test_null.c" ON)

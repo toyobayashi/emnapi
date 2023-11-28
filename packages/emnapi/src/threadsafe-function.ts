@@ -1,15 +1,12 @@
 /* eslint-disable @typescript-eslint/indent */
 
-import { ENVIRONMENT_IS_NODE, _malloc, wasmMemory, _free, ENVIRONMENT_IS_PTHREAD, abort } from 'emnapi:emscripten-runtime'
+import { ENVIRONMENT_IS_NODE, _malloc, wasmMemory, _free, ENVIRONMENT_IS_PTHREAD, abort, PThread } from 'emnapi:emscripten-runtime'
 import { emnapiCtx, emnapiNodeBinding } from 'emnapi:shared'
 import { $CHECK_ENV_NOT_IN_GC, $CHECK_ARG } from './macro'
 import { _emnapi_node_emit_async_destroy, _emnapi_node_emit_async_init } from './node'
 import { _emnapi_runtime_keepalive_pop, _emnapi_runtime_keepalive_push } from './util'
 
-declare var PThread: any
-
 /**
- * @__deps $PThread
  * @__deps malloc
  * @__deps free
  * @__postset
@@ -627,7 +624,7 @@ export const emnapiTSFN = {
     if ((current_state & 1) === 1) {
       return
     }
-    if (ENVIRONMENT_IS_PTHREAD) {
+    if ((typeof ENVIRONMENT_IS_PTHREAD !== 'undefined') && ENVIRONMENT_IS_PTHREAD) {
       postMessage({
         __emnapi__: {
           type: 'tsfn-send',
