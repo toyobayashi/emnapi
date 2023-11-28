@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/prefer-nullish-coalescing */
 
+import { emnapiTSFN } from '../threadsafe-function'
+
 export interface CreateOptions {
   context: Context
   filename?: string
@@ -392,7 +394,7 @@ export var PThread = {
   },
   loadWasmModuleToWorker: (worker: any) => {
     if (worker.whenLoaded) return worker.whenLoaded
-    worker.whenLoaded = import('../threadsafe-function').then((tsfn) => new Promise<any>((resolve, reject) => {
+    worker.whenLoaded = new Promise<any>((resolve, reject) => {
       worker.onmessage = function (e: any) {
         if (e.data.__emnapi__) {
           const type = e.data.__emnapi__.type
@@ -442,7 +444,6 @@ export var PThread = {
       }
       // napiModule.emnapi.addSendListener(worker)
       emnapiAddSendListener(worker)
-      const emnapiTSFN = tsfn.emnapiTSFN
       if (typeof emnapiTSFN !== 'undefined') {
         emnapiTSFN.addListener(worker)
       }
@@ -465,7 +466,7 @@ export var PThread = {
         }
         throw err
       }
-    }))
+    })
     return worker.whenLoaded
   },
   allocateUnusedWorker () {
