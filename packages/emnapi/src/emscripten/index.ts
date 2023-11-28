@@ -4,7 +4,7 @@ export {
   emnapiAsyncWorkPoolSize as $emnapiAsyncWorkPoolSize,
   emnapiNodeBinding as $emnapiNodeBinding,
   _emnapi_async_work_pool_size
-} from './init'
+} from 'emnapi:shared'
 
 export * from './memory'
 export * from './async'

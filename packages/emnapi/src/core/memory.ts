@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/indent */
 
+import { emnapiCtx } from 'emnapi:shared'
+import { wasmMemory } from 'emnapi:emscripten-runtime'
 import { $CHECK_ENV, $CHECK_ARG } from '../macro'
-import { emnapiCtx, wasmMemory } from './init'
 import { $emnapiSetValueI64 as emnapiSetValueI64 } from '../util'
 
 /** @__sig ipjp */

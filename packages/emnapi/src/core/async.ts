@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-floating-promises */
 
-import { ENVIRONMENT_IS_NODE, wasmMemory, ENVIRONMENT_IS_PTHREAD, napiModule, PThread } from './init'
+import { napiModule } from 'emnapi:shared'
+import { ENVIRONMENT_IS_NODE, wasmMemory, ENVIRONMENT_IS_PTHREAD, PThread } from 'emnapi:emscripten-runtime'
 import { _emnapi_set_immediate, _emnapi_next_tick } from '../util'
 
 function emnapiGetWorkerByPthreadPtr (pthreadPtr: number): any {

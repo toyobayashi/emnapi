@@ -1,4 +1,4 @@
-import { napiModule } from './init'
+import { napiModule } from 'emnapi:shared'
 
 import * as asyncMod from './async'
 import * as memoryMod from './memory'

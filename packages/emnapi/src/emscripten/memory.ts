@@ -1,5 +1,5 @@
 import { wasmMemory } from 'emnapi:emscripten-runtime'
-import { emnapiCtx } from './init'
+import { emnapiCtx } from 'emnapi:shared'
 import { $emnapiSetValueI64 as emnapiSetValueI64 } from '../util'
 import { $CHECK_ENV } from '../macro'
 
