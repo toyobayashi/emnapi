@@ -1,7 +1,6 @@
 const fs = require('fs')
 const path = require('path')
 const { createRequire } = require('module')
-const { EOL } = require('os')
 const ts = require('typescript')
 const { compile } = require('@tybys/tsapi')
 const rollupTypescript = require('@rollup/plugin-typescript').default
@@ -11,19 +10,6 @@ const { rollup } = require('rollup')
 // const {
 //   runtimeOut
 // } = require('../../runtime/script/build.js')
-
-function replaceParseTool (code) {
-  return code
-    .replace(/(\r?\n)\s*\/\/\s+(#((if)|(else)|(elif)|(endif)))/g, '$1$2')
-    .replace(/\$POINTER_SIZE/g, '{{{ POINTER_SIZE }}}')
-    .replace(/\$(from64\(.*?\))/g, '{{{ $1 }}}')
-    .replace(/\$(to64\(.*?\))/g, '{{{ $1 }}}')
-    .replace(/\$(makeGetValue\(.*?\))/g, '{{{ $1 }}}')
-    .replace(/\$(makeSetValue\(.*?\))/g, '{{{ $1 }}}')
-    .replace(/\$(makeDynCall\(.*?\))/g, '{{{ $1 }}}')
-    // .replace(/\$(makeMalloc\(.*?\))/g, '{{{ $1 }}}')
-    .replace(/\$(getUnsharedTextDecoderView\(.*?\))/g, '{{{ $1 }}}')
-}
 
 async function build () {
   const transformerTsconfigPath = path.join(__dirname, '../transformer/tsconfig.json')
@@ -79,7 +65,21 @@ async function build () {
           { find: 'emnapi:shared', replacement: path.join(__dirname, '../src/emscripten/init.ts') }
         ]
       }),
-      require('./rollup-plugin-emscripten.js').default()
+      require('./rollup-plugin-emscripten.js').default({
+        defaultLibraryFuncsToInclude: ['$emnapiInit'],
+        exportedRuntimeMethods: ['emnapiInit'],
+        modifyOutput (output) {
+          return output
+            .replace(/\$POINTER_SIZE/g, '{{{ POINTER_SIZE }}}')
+            .replace(/\$(from64\(.*?\))/g, '{{{ $1 }}}')
+            .replace(/\$(to64\(.*?\))/g, '{{{ $1 }}}')
+            .replace(/\$(makeGetValue\(.*?\))/g, '{{{ $1 }}}')
+            .replace(/\$(makeSetValue\(.*?\))/g, '{{{ $1 }}}')
+            .replace(/\$(makeDynCall\(.*?\))/g, '{{{ $1 }}}')
+            // .replace(/\$(makeMalloc\(.*?\))/g, '{{{ $1 }}}')
+            .replace(/\$(getUnsharedTextDecoderView\(.*?\))/g, '{{{ $1 }}}')
+        }
+      })
     ]
   })
   await emnapiRollupBuild.write({
@@ -90,16 +90,6 @@ async function build () {
   })
 
   // const runtimeCode = fs.readFileSync(runtimeOut, 'utf8')
-  const libCode = fs.readFileSync(libOut, 'utf8')
-
-  fs.writeFileSync(libOut,
-    '{{{ ((DEFAULT_LIBRARY_FUNCS_TO_INCLUDE.indexOf("$emnapiInit") === -1 ? DEFAULT_LIBRARY_FUNCS_TO_INCLUDE.push("$emnapiInit") : undefined), "") }}}' + EOL +
-    '{{{ ((EXPORTED_RUNTIME_METHODS.indexOf("emnapiInit") === -1 ? EXPORTED_RUNTIME_METHODS.push("emnapiInit") : undefined), "") }}}' + EOL +
-    replaceParseTool(
-      libCode
-    ),
-    'utf8'
-  )
 
   const coreTsconfigPath = path.join(__dirname, '../src/core/tsconfig.json')
   //   compile(coreTsconfigPath)
