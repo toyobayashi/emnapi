@@ -1,10 +1,9 @@
 {
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
-    "outFile": "./dist/library_napi.js",
-    "plugins": [
-      { "transform": "./transformer/out/macro.js" }
-    ]
+    "paths": {
+      "emnapi:shared": ["./src/emscripten/init"]
+    }
   },
   "include": [
     "../runtime/src/typings/**/*.d.ts",

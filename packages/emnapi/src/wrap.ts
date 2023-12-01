@@ -1,4 +1,12 @@
-function napi_define_class (
+import { emnapiCtx } from 'emnapi:shared'
+import { emnapiString } from './string'
+import { emnapiCreateFunction, emnapiDefineProperty, emnapiWrap, emnapiUnwrap, emnapiGetHandle } from './internal'
+import { $CHECK_ARG, $CHECK_ENV, $CHECK_ENV_NOT_IN_GC, $PREAMBLE } from './macro'
+
+/**
+ * @__sig ipppppppp
+ */
+export function napi_define_class (
   env: napi_env,
   utf8name: Pointer<const_char>,
   length: size_t,
@@ -73,19 +81,31 @@ function napi_define_class (
   })
 }
 
-function napi_wrap (env: napi_env, js_object: napi_value, native_object: void_p, finalize_cb: napi_finalize, finalize_hint: void_p, result: Pointer<napi_ref>): napi_status {
+/**
+ * @__sig ipppppp
+ */
+export function napi_wrap (env: napi_env, js_object: napi_value, native_object: void_p, finalize_cb: napi_finalize, finalize_hint: void_p, result: Pointer<napi_ref>): napi_status {
   return emnapiWrap(env, js_object, native_object, finalize_cb, finalize_hint, result)
 }
 
-function napi_unwrap (env: napi_env, js_object: napi_value, result: void_pp): napi_status {
+/**
+ * @__sig ippp
+ */
+export function napi_unwrap (env: napi_env, js_object: napi_value, result: void_pp): napi_status {
   return emnapiUnwrap(env, js_object, result, UnwrapAction.KeepWrap)
 }
 
-function napi_remove_wrap (env: napi_env, js_object: napi_value, result: void_pp): napi_status {
+/**
+ * @__sig ippp
+ */
+export function napi_remove_wrap (env: napi_env, js_object: napi_value, result: void_pp): napi_status {
   return emnapiUnwrap(env, js_object, result, UnwrapAction.RemoveWrap)
 }
 
-function napi_type_tag_object (env: napi_env, object: napi_value, type_tag: Const<Pointer<unknown>>): napi_status {
+/**
+ * @__sig ippp
+ */
+export function napi_type_tag_object (env: napi_env, object: napi_value, type_tag: Const<Pointer<unknown>>): napi_status {
   return $PREAMBLE!(env, (envObject) => {
     if (!object) {
       return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_invalid_arg)
@@ -113,7 +133,10 @@ function napi_type_tag_object (env: napi_env, object: napi_value, type_tag: Cons
   })
 }
 
-function napi_check_object_type_tag (env: napi_env, object: napi_value, type_tag: Const<Pointer<unknown>>, result: Pointer<bool>): napi_status {
+/**
+ * @__sig ipppp
+ */
+export function napi_check_object_type_tag (env: napi_env, object: napi_value, type_tag: Const<Pointer<unknown>>, result: Pointer<bool>): napi_status {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars, one-var
   let ret = true, i: number
 
@@ -152,8 +175,10 @@ function napi_check_object_type_tag (env: napi_env, object: napi_value, type_tag
   })
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function _napi_add_finalizer (env: napi_env, js_object: napi_value, finalize_data: void_p, finalize_cb: napi_finalize, finalize_hint: void_p, result: Pointer<napi_ref>): napi_status {
+/**
+ * @__sig ipppppp
+ */
+export function napi_add_finalizer (env: napi_env, js_object: napi_value, finalize_data: void_p, finalize_cb: napi_finalize, finalize_hint: void_p, result: Pointer<napi_ref>): napi_status {
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
 
   if (!emnapiCtx.feature.supportFinalizer) {
@@ -184,7 +209,10 @@ function _napi_add_finalizer (env: napi_env, js_object: napi_value, finalize_dat
   return envObject.clearLastError()
 }
 
-function _node_api_post_finalizer (env: napi_env, finalize_cb: napi_finalize, finalize_data: void_p, finalize_hint: void_p): napi_status {
+/**
+ * @__sig ipppp
+ */
+export function node_api_post_finalizer (env: napi_env, finalize_cb: napi_finalize, finalize_data: void_p, finalize_hint: void_p): napi_status {
   $CHECK_ENV!(env)
   const envObject = emnapiCtx.envStore.get(env)!
   envObject.enqueueFinalizer(
@@ -197,12 +225,3 @@ function _node_api_post_finalizer (env: napi_env, finalize_cb: napi_finalize, fi
   )
   return envObject.clearLastError()
 }
-
-emnapiImplement('napi_define_class', 'ipppppppp', napi_define_class, ['$emnapiCreateFunction', '$emnapiDefineProperty', '$emnapiString'])
-emnapiImplement('napi_wrap', 'ipppppp', napi_wrap, ['$emnapiWrap'])
-emnapiImplement('napi_unwrap', 'ippp', napi_unwrap, ['$emnapiUnwrap'])
-emnapiImplement('napi_remove_wrap', 'ippp', napi_remove_wrap, ['$emnapiUnwrap'])
-emnapiImplement('napi_type_tag_object', 'ippp', napi_type_tag_object)
-emnapiImplement('napi_check_object_type_tag', 'ipppp', napi_check_object_type_tag)
-emnapiImplement('napi_add_finalizer', 'ipppppp', _napi_add_finalizer, ['$emnapiGetHandle'])
-emnapiImplement('node_api_post_finalizer', 'ipppp', _node_api_post_finalizer)

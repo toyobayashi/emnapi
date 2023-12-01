@@ -2,43 +2,43 @@
 /* eslint-disable no-new-func */
 /* eslint-disable @typescript-eslint/no-implied-eval */
 
+import { abort } from 'emnapi:emscripten-runtime'
+
 // declare const global: typeof globalThis
 // declare const require: any
 // declare const process: any
 // declare const __webpack_public_path__: any
 
-declare var emnapiCtx: Context
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-declare var emnapiNodeBinding: NodeBinding
-declare var emnapiAsyncWorkPoolSize: number
-
 declare function _napi_register_wasm_v1 (env: Ptr, exports: Ptr): napi_value
 declare function _node_api_module_get_api_version_v1 (): number
 
-declare const emnapiModule: {
-  exports: any
-  loaded: boolean
-  filename: string
-  envObject?: Env
-}
-
-declare interface InitOptions {
+export interface InitOptions {
   context: Context
   filename?: string
   asyncWorkPoolSize?: number
   nodeBinding?: NodeBinding
 }
 
-emnapiDefineVar('$emnapiCtx', undefined)
-emnapiDefineVar('$emnapiNodeBinding', undefined)
-emnapiDefineVar('$emnapiModule', {
+export var emnapiCtx: Context = undefined!
+export var emnapiNodeBinding: NodeBinding = undefined!
+export var emnapiAsyncWorkPoolSize: number = 0
+
+const emnapiModule: {
+  exports: any
+  loaded: boolean
+  filename: string
+  envObject?: Env
+} = {
   exports: {},
   loaded: false,
   filename: ''
-})
-emnapiDefineVar('$emnapiAsyncWorkPoolSize', 0)
+}
 
-function emnapiInit (options: InitOptions): any {
+/**
+ * @__deps napi_register_wasm_v1
+ * @__deps node_api_module_get_api_version_v1
+ */
+export function emnapiInit (options: InitOptions): any {
   if (emnapiModule.loaded) return emnapiModule.exports
 
   if (typeof options !== 'object' || options === null) {
@@ -106,15 +106,11 @@ function emnapiInit (options: InitOptions): any {
   return emnapiModule.exports
 }
 
-emnapiImplementHelper(
-  '$emnapiInit',
-  undefined,
-  emnapiInit,
-  ['$emnapiModule', '$emnapiCtx', '$emnapiNodeBinding', '$emnapiAsyncWorkPoolSize', 'napi_register_wasm_v1', 'node_api_module_get_api_version_v1']
-)
+export { emnapiInit as $emnapiInit }
 
-function __emnapi_async_work_pool_size (): number {
+/**
+ * @__sig i
+ */
+export function _emnapi_async_work_pool_size (): number {
   return Math.abs(emnapiAsyncWorkPoolSize)
 }
-
-emnapiImplementInternal('_emnapi_async_work_pool_size', 'i', __emnapi_async_work_pool_size, ['$emnapiAsyncWorkPoolSize'])

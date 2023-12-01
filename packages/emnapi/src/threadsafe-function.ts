@@ -1,6 +1,20 @@
 /* eslint-disable @typescript-eslint/indent */
 
-const emnapiTSFN = {
+import { ENVIRONMENT_IS_NODE, _malloc, wasmMemory, _free, ENVIRONMENT_IS_PTHREAD, abort, PThread } from 'emnapi:emscripten-runtime'
+import { emnapiCtx, emnapiNodeBinding } from 'emnapi:shared'
+import { $CHECK_ENV_NOT_IN_GC, $CHECK_ARG } from './macro'
+import { _emnapi_node_emit_async_destroy, _emnapi_node_emit_async_init } from './node'
+import { _emnapi_runtime_keepalive_pop, _emnapi_runtime_keepalive_push } from './util'
+
+/**
+ * @__deps malloc
+ * @__deps free
+ * @__postset
+ * ```
+ * emnapiTSFN.init();
+ * ```
+ */
+export const emnapiTSFN = {
   offset: {
     /* napi_ref */ resource: 0,
     /* double */ async_id: 8,
@@ -408,7 +422,7 @@ const emnapiTSFN = {
     const arr = new Int32Array(wasmMemory.buffer)
     if (Atomics.load(arr, asyncRefOffset)) {
       Atomics.store(arr, asyncRefOffset, 0)
-      __emnapi_runtime_keepalive_pop()
+      _emnapi_runtime_keepalive_pop()
       emnapiCtx.decreaseWaitingRequestCounter()
     }
 
@@ -419,7 +433,7 @@ const emnapiTSFN = {
       const view = new DataView(wasmMemory.buffer)
       const asyncId = view.getFloat64(func + emnapiTSFN.offset.async_id, true)
       const triggerAsyncId = view.getFloat64(func + emnapiTSFN.offset.trigger_async_id, true)
-      __emnapi_node_emit_async_destroy(asyncId, triggerAsyncId)
+      _emnapi_node_emit_async_destroy(asyncId, triggerAsyncId)
     }
 
     _free($to64('func') as number)
@@ -610,7 +624,7 @@ const emnapiTSFN = {
     if ((current_state & 1) === 1) {
       return
     }
-    if (ENVIRONMENT_IS_PTHREAD) {
+    if ((typeof ENVIRONMENT_IS_PTHREAD !== 'undefined') && ENVIRONMENT_IS_PTHREAD) {
       postMessage({
         __emnapi__: {
           type: 'tsfn-send',
@@ -627,7 +641,8 @@ const emnapiTSFN = {
   }
 }
 
-function _napi_create_threadsafe_function (
+/** @__sig ippppppppppp */
+export function napi_create_threadsafe_function (
   env: napi_env,
   func: napi_value,
   async_resource: napi_value,
@@ -702,7 +717,7 @@ function _napi_create_threadsafe_function (
     resourceRef.dispose()
     return envObject.setLastError(napi_status.napi_generic_failure)
   }
-  __emnapi_node_emit_async_init(resource, resource_name, -1, tsfn + emnapiTSFN.offset.async_id)
+  _emnapi_node_emit_async_init(resource, resource_name, -1, tsfn + emnapiTSFN.offset.async_id)
   $makeSetValue('tsfn', 'emnapiTSFN.offset.thread_count', 'initial_thread_count', SIZE_TYPE)
   $makeSetValue('tsfn', 'emnapiTSFN.offset.context', 'context', '*')
   $makeSetValue('tsfn', 'emnapiTSFN.offset.max_queue_size', 'max_queue_size', SIZE_TYPE)
@@ -714,7 +729,7 @@ function _napi_create_threadsafe_function (
   emnapiCtx.addCleanupHook(envObject, emnapiTSFN.cleanup, tsfn)
   envObject.ref()
 
-  __emnapi_runtime_keepalive_push()
+  _emnapi_runtime_keepalive_push()
   emnapiCtx.increaseWaitingRequestCounter()
   $makeSetValue('tsfn', 'emnapiTSFN.offset.async_ref', '1', 'i32')
 
@@ -724,7 +739,8 @@ function _napi_create_threadsafe_function (
   return envObject.clearLastError()
 }
 
-function _napi_get_threadsafe_function_context (func: number, result: void_pp): napi_status {
+/** @__sig ipp */
+export function napi_get_threadsafe_function_context (func: number, result: void_pp): napi_status {
   if (!func || !result) {
     abort()
     return napi_status.napi_invalid_arg
@@ -737,7 +753,8 @@ function _napi_get_threadsafe_function_context (func: number, result: void_pp): 
   return napi_status.napi_ok
 }
 
-function _napi_call_threadsafe_function (func: number, data: void_p, mode: napi_threadsafe_function_call_mode): napi_status {
+/** @__sig ippi */
+export function napi_call_threadsafe_function (func: number, data: void_p, mode: napi_threadsafe_function_call_mode): napi_status {
   if (!func) {
     abort()
     return napi_status.napi_invalid_arg
@@ -748,7 +765,8 @@ function _napi_call_threadsafe_function (func: number, data: void_p, mode: napi_
   return emnapiTSFN.push(func, data, mode)
 }
 
-function _napi_acquire_threadsafe_function (func: number): napi_status {
+/** @__sig ip */
+export function napi_acquire_threadsafe_function (func: number): napi_status {
   if (!func) {
     abort()
     return napi_status.napi_invalid_arg
@@ -765,7 +783,8 @@ function _napi_acquire_threadsafe_function (func: number): napi_status {
   })
 }
 
-function _napi_release_threadsafe_function (func: number, mode: napi_threadsafe_function_release_mode): napi_status {
+/** @__sig ipi */
+export function napi_release_threadsafe_function (func: number, mode: napi_threadsafe_function_release_mode): napi_status {
   if (!func) {
     abort()
     return napi_status.napi_invalid_arg
@@ -798,7 +817,8 @@ function _napi_release_threadsafe_function (func: number, mode: napi_threadsafe_
   })
 }
 
-function _napi_unref_threadsafe_function (env: napi_env, func: number): napi_status {
+/** @__sig ipp */
+export function napi_unref_threadsafe_function (env: napi_env, func: number): napi_status {
   if (!func) {
     abort()
     return napi_status.napi_invalid_arg
@@ -808,13 +828,14 @@ function _napi_unref_threadsafe_function (env: napi_env, func: number): napi_sta
   const arr = new Int32Array(wasmMemory.buffer)
   if (Atomics.load(arr, asyncRefOffset)) {
     Atomics.store(arr, asyncRefOffset, 0)
-    __emnapi_runtime_keepalive_pop()
+    _emnapi_runtime_keepalive_pop()
     emnapiCtx.decreaseWaitingRequestCounter()
   }
   return napi_status.napi_ok
 }
 
-function _napi_ref_threadsafe_function (env: napi_env, func: number): napi_status {
+/** @__sig ipp */
+export function napi_ref_threadsafe_function (env: napi_env, func: number): napi_status {
   if (!func) {
     abort()
     return napi_status.napi_invalid_arg
@@ -824,32 +845,8 @@ function _napi_ref_threadsafe_function (env: napi_env, func: number): napi_statu
   const arr = new Int32Array(wasmMemory.buffer)
   if (!Atomics.load(arr, asyncRefOffset)) {
     Atomics.store(arr, asyncRefOffset, 1)
-    __emnapi_runtime_keepalive_push()
+    _emnapi_runtime_keepalive_push()
     emnapiCtx.increaseWaitingRequestCounter()
   }
   return napi_status.napi_ok
 }
-
-emnapiDefineVar(
-  '$emnapiTSFN',
-  emnapiTSFN,
-  [
-    '$emnapiInit',
-    '$PThread',
-    'malloc',
-    'free',
-    '_emnapi_node_emit_async_init',
-    '_emnapi_node_emit_async_destroy',
-    '_emnapi_runtime_keepalive_pop',
-    '_emnapi_runtime_keepalive_push'
-  ],
-  'emnapiTSFN.init();'
-)
-
-emnapiImplement('napi_create_threadsafe_function', 'ippppppppppp', _napi_create_threadsafe_function, ['$emnapiTSFN'])
-emnapiImplement('napi_get_threadsafe_function_context', 'ipp', _napi_get_threadsafe_function_context, ['$emnapiTSFN'])
-emnapiImplement('napi_call_threadsafe_function', 'ippi', _napi_call_threadsafe_function, ['$emnapiTSFN'])
-emnapiImplement('napi_acquire_threadsafe_function', 'ip', _napi_acquire_threadsafe_function, ['$emnapiTSFN'])
-emnapiImplement('napi_release_threadsafe_function', 'ipi', _napi_release_threadsafe_function, ['$emnapiTSFN'])
-emnapiImplement('napi_unref_threadsafe_function', 'ipp', _napi_unref_threadsafe_function, ['$emnapiTSFN'])
-emnapiImplement('napi_ref_threadsafe_function', 'ipp', _napi_ref_threadsafe_function, ['$emnapiTSFN'])

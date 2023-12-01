@@ -1,4 +1,13 @@
-function _emnapi_create_memory_view (
+import { emnapiCtx, emnapiNodeBinding } from 'emnapi:shared'
+import { wasmMemory } from 'emnapi:emscripten-runtime'
+import { type MemoryViewDescriptor, type ArrayBufferPointer, emnapiExternalMemory } from './memory'
+import { napi_add_finalizer } from './wrap'
+import { $CHECK_ARG, $PREAMBLE, $CHECK_ENV } from './macro'
+
+/**
+ * @__sig ipippppp
+ */
+export function emnapi_create_memory_view (
   env: napi_env,
   typedarray_type: emnapi_memory_view_type,
   external_data: void_p,
@@ -86,7 +95,7 @@ function _emnapi_create_memory_view (
     const handle = emnapiCtx.addToCurrentScope(typedArray)
     emnapiExternalMemory.wasmMemoryViewTable.set(typedArray, viewDescriptor)
     if (finalize_cb) {
-      const status = _napi_add_finalizer(env, handle.id, external_data, finalize_cb, finalize_hint, /* NULL */ 0)
+      const status = napi_add_finalizer(env, handle.id, external_data, finalize_cb, finalize_hint, /* NULL */ 0)
       if (status === napi_status.napi_pending_exception) {
         const err = envObject.tryCatch.extractException()
         envObject.clearLastError()
@@ -101,19 +110,28 @@ function _emnapi_create_memory_view (
   })
 }
 
-function emnapi_is_support_weakref (): int {
+/**
+ * @__sig i
+ */
+export function emnapi_is_support_weakref (): int {
   return emnapiCtx.feature.supportFinalizer ? 1 : 0
 }
 
-function emnapi_is_support_bigint (): int {
+/**
+ * @__sig i
+ */
+export function emnapi_is_support_bigint (): int {
   return emnapiCtx.feature.supportBigInt ? 1 : 0
 }
 
-function emnapi_is_node_binding_available (): int {
+/**
+ * @__sig i
+ */
+export function emnapi_is_node_binding_available (): int {
   return emnapiNodeBinding ? 1 : 0
 }
 
-function emnapiSyncMemory<T extends ArrayBuffer | ArrayBufferView> (
+export function $emnapiSyncMemory<T extends ArrayBuffer | ArrayBufferView> (
   js_to_wasm: boolean,
   arrayBufferOrView: T,
   offset?: number,
@@ -166,7 +184,10 @@ function emnapiSyncMemory<T extends ArrayBuffer | ArrayBufferView> (
   throw new TypeError('emnapiSyncMemory expect ArrayBuffer or ArrayBufferView as first parameter')
 }
 
-function emnapi_sync_memory (env: napi_env, js_to_wasm: bool, arraybuffer_or_view: Pointer<napi_value>, offset: size_t, len: size_t): napi_status {
+/**
+ * @__sig ipippp
+ */
+export function emnapi_sync_memory (env: napi_env, js_to_wasm: bool, arraybuffer_or_view: Pointer<napi_value>, offset: size_t, len: size_t): napi_status {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let v: number
 
@@ -183,7 +204,7 @@ function emnapi_sync_memory (env: napi_env, js_to_wasm: bool, arraybuffer_or_vie
     if (!handle.isArrayBuffer() && !handle.isTypedArray() && !handle.isDataView()) {
       return envObject.setLastError(napi_status.napi_invalid_arg)
     }
-    const ret = emnapiSyncMemory(Boolean(js_to_wasm), handle.value, offset, len)
+    const ret = $emnapiSyncMemory(Boolean(js_to_wasm), handle.value, offset, len)
 
     if (handle.value !== ret) {
       $from64('arraybuffer_or_view')
@@ -195,7 +216,7 @@ function emnapi_sync_memory (env: napi_env, js_to_wasm: bool, arraybuffer_or_vie
   })
 }
 
-function emnapiGetMemoryAddress (arrayBufferOrView: ArrayBuffer | ArrayBufferView): ArrayBufferPointer {
+export function $emnapiGetMemoryAddress (arrayBufferOrView: ArrayBuffer | ArrayBufferView): ArrayBufferPointer {
   const isArrayBuffer = arrayBufferOrView instanceof ArrayBuffer
   const isDataView = arrayBufferOrView instanceof DataView
   const isTypedArray = ArrayBuffer.isView(arrayBufferOrView) && !isDataView
@@ -216,7 +237,10 @@ function emnapiGetMemoryAddress (arrayBufferOrView: ArrayBuffer | ArrayBufferVie
   }
 }
 
-function emnapi_get_memory_address (env: napi_env, arraybuffer_or_view: napi_value, address: Pointer<void_pp>, ownership: Pointer<int>, runtime_allocated: Pointer<bool>): napi_status {
+/**
+ * @__sig ipppp
+ */
+export function emnapi_get_memory_address (env: napi_env, arraybuffer_or_view: napi_value, address: Pointer<void_pp>, ownership: Pointer<int>, runtime_allocated: Pointer<bool>): napi_status {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let p: number, runtimeAllocated: number, ownershipOut: number
   let info: ArrayBufferPointer
@@ -228,7 +252,7 @@ function emnapi_get_memory_address (env: napi_env, arraybuffer_or_view: napi_val
     }
 
     const handle: Handle<ArrayBuffer | ArrayBufferView> = envObject.ctx.handleStore.get(arraybuffer_or_view)!
-    info = emnapiGetMemoryAddress(handle.value)
+    info = $emnapiGetMemoryAddress(handle.value)
 
     p = info.address
     if (address) {
@@ -250,7 +274,10 @@ function emnapi_get_memory_address (env: napi_env, arraybuffer_or_view: napi_val
   })
 }
 
-function emnapi_get_runtime_version (env: napi_env, version: number): napi_status {
+/**
+ * @__sig ipp
+ */
+export function emnapi_get_runtime_version (env: napi_env, version: number): napi_status {
   $CHECK_ENV!(env)
   const envObject = emnapiCtx.envStore.get(env)!
   $CHECK_ARG!(envObject, version)
@@ -275,15 +302,5 @@ function emnapi_get_runtime_version (env: napi_env, version: number): napi_statu
   return envObject.clearLastError()
 }
 
-emnapiImplementHelper('$emnapiSyncMemory', undefined, emnapiSyncMemory, ['$emnapiExternalMemory'], 'syncMemory')
-emnapiImplementHelper('$emnapiGetMemoryAddress', undefined, emnapiGetMemoryAddress, ['$emnapiExternalMemory'], 'getMemoryAddress')
-
-emnapiImplement2('emnapi_is_support_weakref', 'i', emnapi_is_support_weakref)
-emnapiImplement2('emnapi_is_support_bigint', 'i', emnapi_is_support_bigint)
-emnapiImplement2('emnapi_is_node_binding_available', 'i', emnapi_is_node_binding_available)
-
-emnapiImplement2('emnapi_create_memory_view', 'ipippppp', _emnapi_create_memory_view, ['napi_add_finalizer', '$emnapiExternalMemory'])
-emnapiImplement2('emnapi_sync_memory', 'ipippp', emnapi_sync_memory, ['$emnapiSyncMemory'])
-emnapiImplement2('emnapi_get_memory_address', 'ipppp', emnapi_get_memory_address, ['$emnapiGetMemoryAddress'])
-
-emnapiImplement2('emnapi_get_runtime_version', 'ipp', emnapi_get_runtime_version)
+// emnapiImplementHelper('$emnapiSyncMemory', undefined, emnapiSyncMemory, ['$emnapiExternalMemory'], 'syncMemory')
+// emnapiImplementHelper('$emnapiGetMemoryAddress', undefined, emnapiGetMemoryAddress, ['$emnapiExternalMemory'], 'getMemoryAddress')

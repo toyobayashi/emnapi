@@ -1,7 +1,9 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/prefer-nullish-coalescing */
 
-declare interface CreateOptions {
+import { emnapiTSFN } from '../threadsafe-function'
+
+export interface CreateOptions {
   context: Context
   filename?: string
   nodeBinding?: NodeBinding
@@ -14,7 +16,7 @@ declare interface CreateOptions {
   postMessage?: (msg: any) => any
 }
 
-declare interface InitOptions {
+export interface InitOptions {
   instance: WebAssembly.Instance
   module: WebAssembly.Module
   memory?: WebAssembly.Memory
@@ -24,7 +26,7 @@ declare interface InitOptions {
 // factory parameter
 declare const options: CreateOptions
 
-declare interface INapiModule {
+export interface INapiModule {
   imports: {
     env: any
     napi: any
@@ -45,31 +47,33 @@ declare interface INapiModule {
   postMessage?: (msg: any) => any
 }
 
-var ENVIRONMENT_IS_NODE = typeof process === 'object' && process !== null && typeof process.versions === 'object' && process.versions !== null && typeof process.versions.node === 'string'
-var ENVIRONMENT_IS_PTHREAD = Boolean(options.childThread)
-var reuseWorker = Boolean(options.reuseWorker)
+declare const process: any
 
-var wasmInstance: WebAssembly.Instance
-var wasmModule: WebAssembly.Module
-var wasmMemory: WebAssembly.Memory
+export var ENVIRONMENT_IS_NODE = typeof process === 'object' && process !== null && typeof process.versions === 'object' && process.versions !== null && typeof process.versions.node === 'string'
+export var ENVIRONMENT_IS_PTHREAD = Boolean(options.childThread)
+export var reuseWorker = Boolean(options.reuseWorker)
 
-var wasmTable: WebAssembly.Table
+export var wasmInstance: WebAssembly.Instance
+export var wasmModule: WebAssembly.Module
+export var wasmMemory: WebAssembly.Memory
 
-var _malloc: any
-var _free: any
+export var wasmTable: WebAssembly.Table
 
-function abort (msg?: string): never {
+export var _malloc: any
+export var _free: any
+
+export function abort (msg?: string): never {
   if (typeof WebAssembly.RuntimeError === 'function') {
     throw new WebAssembly.RuntimeError(msg)
   }
   throw Error(msg)
 }
 
-function runtimeKeepalivePush (): void {}
+export function runtimeKeepalivePush (): void {}
 
-function runtimeKeepalivePop (): void {}
+export function runtimeKeepalivePop (): void {}
 
-var napiModule: INapiModule = {
+export var napiModule: INapiModule = {
   imports: {
     env: {},
     napi: {},
@@ -143,11 +147,11 @@ var napiModule: INapiModule = {
   }
 }
 
-var emnapiCtx: Context
-var emnapiNodeBinding: NodeBinding
-var onCreateWorker: (info: { type: 'thread' | 'async-work' }) => any
-var out: (str: string) => void
-var err: (str: string) => void
+export var emnapiCtx: Context
+export var emnapiNodeBinding: NodeBinding
+export var onCreateWorker: (info: { type: 'thread' | 'async-work' }) => any
+export var out: (str: string) => void
+export var err: (str: string) => void
 
 if (!ENVIRONMENT_IS_PTHREAD) {
   const context = options.context
@@ -195,7 +199,7 @@ if ('nodeBinding' in options) {
   emnapiNodeBinding = nodeBinding
 }
 
-var emnapiAsyncWorkPoolSize = 0
+export var emnapiAsyncWorkPoolSize = 0
 if ('asyncWorkPoolSize' in options) {
   if (typeof options.asyncWorkPoolSize !== 'number') {
     throw new TypeError('options.asyncWorkPoolSize must be a integer')
@@ -207,10 +211,282 @@ if ('asyncWorkPoolSize' in options) {
     emnapiAsyncWorkPoolSize = -1024
   }
 }
-var singleThreadAsyncWork = ENVIRONMENT_IS_PTHREAD ? false : (emnapiAsyncWorkPoolSize <= 0)
+export var singleThreadAsyncWork = ENVIRONMENT_IS_PTHREAD ? false : (emnapiAsyncWorkPoolSize <= 0)
 
-function __emnapi_async_work_pool_size (): number {
+export function _emnapi_async_work_pool_size (): number {
   return Math.abs(emnapiAsyncWorkPoolSize)
 }
 
-emnapiImplementInternal('_emnapi_async_work_pool_size', 'i', __emnapi_async_work_pool_size)
+napiModule.imports.env._emnapi_async_work_pool_size = _emnapi_async_work_pool_size
+
+// ------------------------------ pthread -------------------------------
+
+function emnapiAddSendListener (worker: any): boolean {
+  if (!worker) return false
+  if (worker._emnapiSendListener) return true
+  const handler = function (e: any): void {
+    const data = ENVIRONMENT_IS_NODE ? e : e.data
+    const __emnapi__ = data.__emnapi__
+    if (__emnapi__ && __emnapi__.type === 'async-send') {
+      if (ENVIRONMENT_IS_PTHREAD) {
+        const postMessage = napiModule.postMessage!
+        postMessage({ __emnapi__ })
+      } else {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const callback = __emnapi__.payload.callback
+        $makeDynCall('vp', 'callback')(__emnapi__.payload.data)
+      }
+    }
+  }
+  const dispose = function (): void {
+    if (ENVIRONMENT_IS_NODE) {
+      worker.off('message', handler)
+    } else {
+      worker.removeEventListener('message', handler, false)
+    }
+    delete worker._emnapiSendListener
+  }
+  worker._emnapiSendListener = { handler, dispose }
+  if (ENVIRONMENT_IS_NODE) {
+    worker.on('message', handler)
+  } else {
+    worker.addEventListener('message', handler, false)
+  }
+  return true
+}
+
+napiModule.emnapi.addSendListener = emnapiAddSendListener
+
+function terminateWorker (worker: any): void {
+  const tid = worker.__emnapi_tid
+  worker.terminate()
+  worker.onmessage = (e: any) => {
+    if (e.data.__emnapi__) {
+      err('received "' + e.data.__emnapi__.type + '" command from terminated worker: ' + tid)
+    }
+  }
+}
+
+function spawnThread (startArg: number, errorOrTid: number): number {
+  const isNewABI = errorOrTid !== undefined
+  if (!isNewABI) {
+    errorOrTid = _malloc($to64('8'))
+    if (!errorOrTid) {
+      return -48 /* ENOMEM */
+    }
+  }
+  const struct = new Int32Array(wasmMemory.buffer, errorOrTid, 2)
+  Atomics.store(struct, 0, 0)
+  Atomics.store(struct, 1, 0)
+
+  if (ENVIRONMENT_IS_PTHREAD) {
+    const postMessage = napiModule.postMessage!
+    postMessage({
+      __emnapi__: {
+        type: 'spawn-thread',
+        payload: {
+          startArg,
+          errorOrTid
+        }
+      }
+    })
+    Atomics.wait(struct, 1, 0)
+    const isError = Atomics.load(struct, 0)
+    const result = Atomics.load(struct, 1)
+    if (isNewABI) {
+      return isError
+    }
+    _free($to64('errorOrTid'))
+    return isError ? -result : result
+  }
+
+  let worker: any
+  try {
+    worker = PThread.getNewWorker()
+    if (!worker) {
+      throw new Error('failed to get new worker')
+    }
+  } catch (e) {
+    const EAGAIN = 6
+
+    Atomics.store(struct, 0, 1)
+    Atomics.store(struct, 1, EAGAIN)
+    Atomics.notify(struct, 1)
+
+    err(e.message)
+    if (isNewABI) {
+      return 1
+    }
+    _free($to64('errorOrTid'))
+    return -EAGAIN
+  }
+
+  const tid = PThread.nextWorkerID + 43
+
+  Atomics.store(struct, 0, 0)
+  Atomics.store(struct, 1, tid)
+  Atomics.notify(struct, 1)
+
+  const WASI_THREADS_MAX_TID = 0x1FFFFFFF
+  PThread.nextWorkerID = (PThread.nextWorkerID + 1) % (WASI_THREADS_MAX_TID - 42)
+  PThread.pthreads[tid] = worker
+  worker.__emnapi_tid = tid
+  PThread.runningWorkers.push(worker)
+  if (ENVIRONMENT_IS_NODE) {
+    worker.ref()
+  }
+
+  worker.postMessage({
+    __emnapi__: {
+      type: 'start',
+      payload: {
+        tid,
+        arg: startArg
+      }
+    }
+  })
+
+  if (isNewABI) {
+    return 0
+  }
+  _free($to64('errorOrTid'))
+  return tid
+}
+
+function startThread (tid: number, startArg: number): void {
+  if (napiModule.childThread) {
+    if (typeof wasmInstance.exports.wasi_thread_start !== 'function') {
+      throw new TypeError('wasi_thread_start is not exported')
+    }
+    const postMessage = napiModule.postMessage!
+    ;(wasmInstance.exports.wasi_thread_start as Function)(tid, startArg)
+    postMessage({
+      __emnapi__: {
+        type: 'cleanup-thread',
+        payload: {
+          tid
+        }
+      }
+    })
+  } else {
+    throw new Error('startThread is only available in child threads')
+  }
+}
+
+napiModule.spawnThread = spawnThread
+napiModule.startThread = startThread
+
+export var PThread = {
+  unusedWorkers: [] as any[],
+  runningWorkers: [] as any[],
+  pthreads: Object.create(null),
+  nextWorkerID: 0,
+  init () {},
+  returnWorkerToPool (worker: any) {
+    var tid = worker.__emnapi_tid
+    delete PThread.pthreads[tid]
+    PThread.unusedWorkers.push(worker)
+    PThread.runningWorkers.splice(PThread.runningWorkers.indexOf(worker), 1)
+    delete worker.__emnapi_tid
+    if (ENVIRONMENT_IS_NODE) {
+      worker.unref()
+    }
+  },
+  loadWasmModuleToWorker: (worker: any) => {
+    if (worker.whenLoaded) return worker.whenLoaded
+    worker.whenLoaded = new Promise<any>((resolve, reject) => {
+      worker.onmessage = function (e: any) {
+        if (e.data.__emnapi__) {
+          const type = e.data.__emnapi__.type
+          const payload = e.data.__emnapi__.payload
+          if (type === 'loaded') {
+            worker.loaded = true
+            if (ENVIRONMENT_IS_NODE && !worker.__emnapi_tid) {
+              worker.unref()
+            }
+            resolve(worker)
+            // if (payload.err) {
+            //   err('failed to load in child thread: ' + (payload.err.message || payload.err))
+            // }
+          } else if (type === 'spawn-thread') {
+            spawnThread(payload.startArg, payload.errorOrTid)
+          } else if (type === 'cleanup-thread') {
+            if (reuseWorker) {
+              PThread.returnWorkerToPool(worker)
+            } else {
+              delete PThread.pthreads[payload.tid]
+              PThread.runningWorkers.splice(PThread.runningWorkers.indexOf(worker), 1)
+              terminateWorker(worker)
+              delete worker.__emnapi_tid
+            }
+          }
+        }
+      }
+      worker.onerror = (e: any) => {
+        const message = 'worker sent an error!'
+        // if (worker.pthread_ptr) {
+        //   message = 'Pthread ' + ptrToString(worker.pthread_ptr) + ' sent an error!'
+        // }
+        err(message + ' ' + e.message)
+        reject(e)
+        throw e
+      }
+      if (ENVIRONMENT_IS_NODE) {
+        worker.on('message', function (data: any) {
+          worker.onmessage({
+            data
+          })
+        })
+        worker.on('error', function (e: any) {
+          worker.onerror(e)
+        })
+        worker.on('detachedExit', function () {})
+      }
+      // napiModule.emnapi.addSendListener(worker)
+      emnapiAddSendListener(worker)
+      if (typeof emnapiTSFN !== 'undefined') {
+        emnapiTSFN.addListener(worker)
+      }
+      try {
+        worker.postMessage({
+          __emnapi__: {
+            type: 'load',
+            payload: {
+              wasmModule,
+              wasmMemory
+            }
+          }
+        })
+      } catch (err) {
+        if (typeof SharedArrayBuffer === 'undefined' || !(wasmMemory.buffer instanceof SharedArrayBuffer)) {
+          throw new Error(
+            'Multithread features require shared wasm memory. ' +
+            'Try to compile with `-matomics -mbulk-memory` and use `--import-memory --shared-memory` during linking'
+          )
+        }
+        throw err
+      }
+    })
+    return worker.whenLoaded
+  },
+  allocateUnusedWorker () {
+    if (typeof onCreateWorker !== 'function') {
+      throw new TypeError('`options.onCreateWorker` is not provided')
+    }
+    const worker = onCreateWorker({ type: 'thread' })
+    PThread.unusedWorkers.push(worker)
+    return worker
+  },
+  getNewWorker () {
+    if (reuseWorker) {
+      if (PThread.unusedWorkers.length === 0) {
+        const worker = PThread.allocateUnusedWorker()
+        PThread.loadWasmModuleToWorker(worker)
+      }
+      return PThread.unusedWorkers.pop()
+    }
+    const worker = PThread.allocateUnusedWorker()
+    PThread.loadWasmModuleToWorker(worker)
+    return worker
+  }
+}

@@ -1,4 +1,7 @@
-declare type ViewConstuctor =
+import { _free, wasmMemory, _malloc } from 'emnapi:emscripten-runtime'
+import { emnapiCtx } from 'emnapi:shared'
+
+export type ViewConstuctor =
   Int8ArrayConstructor |
   Uint8ArrayConstructor |
   Uint8ClampedArrayConstructor |
@@ -13,22 +16,30 @@ declare type ViewConstuctor =
   DataViewConstructor |
   BufferCtor
 
-declare interface ArrayBufferPointer {
+export interface ArrayBufferPointer {
   address: void_p
   ownership: Ownership
   runtimeAllocated: 0 | 1
 }
 
-declare interface MemoryViewDescriptor extends ArrayBufferPointer {
+export interface MemoryViewDescriptor extends ArrayBufferPointer {
   Ctor: ViewConstuctor
   length: number
 }
 
-declare interface ViewPointer<T extends ArrayBufferView> extends ArrayBufferPointer {
+export interface ViewPointer<T extends ArrayBufferView> extends ArrayBufferPointer {
   view: T
 }
 
-const emnapiExternalMemory: {
+/**
+ * @__deps malloc
+ * @__deps free
+ * @__postset
+ * ```
+ * emnapiExternalMemory.init();
+ * ```
+ */
+export const emnapiExternalMemory: {
   registry: FinalizationRegistry<number> | undefined
   table: WeakMap<ArrayBuffer, ArrayBufferPointer>
   wasmMemoryViewTable: WeakMap<ArrayBufferView, MemoryViewDescriptor>
@@ -151,10 +162,3 @@ const emnapiExternalMemory: {
     return { address: address === 0 ? 0 : (address + view.byteOffset), ownership, runtimeAllocated, view }
   }
 }
-
-emnapiDefineVar(
-  '$emnapiExternalMemory',
-  emnapiExternalMemory,
-  ['malloc', 'free', '$emnapiInit'],
-  'emnapiExternalMemory.init();'
-)

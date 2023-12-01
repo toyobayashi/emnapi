@@ -4,9 +4,10 @@
     "allowJs": true,
     "target": "ES5",
     "module": "ESNext",
+    "moduleResolution": "Bundler",
     "noEmitHelpers": true,
     "importHelpers": true,
-    "importsNotUsedAsValues": "error",
+    "outDir": "lib",
     "paths": {
       "tslib" : ["../../node_modules/tslib/tslib.d.ts"]
     },
@@ -17,17 +18,9 @@
       "ES2021.WeakRef",
       "ES2017.SharedMemory",
       "DOM"
-    ],
-    "plugins": [
-      {
-        "transform": "@tybys/ts-transform-pure-class",
-        "type": "raw",
-        "after": true
-      }
     ]
   },
   "include": [
-    "./src/**/*.ts",
-    "./src/**/*.js"
+    "./src/**/*"
   ]
 }

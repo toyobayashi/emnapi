@@ -1,6 +1,12 @@
 /* eslint-disable @typescript-eslint/indent */
 
-function _napi_adjust_external_memory (
+import { emnapiCtx } from 'emnapi:shared'
+import { wasmMemory } from 'emnapi:emscripten-runtime'
+import { $CHECK_ENV, $CHECK_ARG } from '../macro'
+import { $emnapiSetValueI64 as emnapiSetValueI64 } from '../util'
+
+/** @__sig ipjp */
+export function napi_adjust_external_memory (
   env: napi_env,
   change_in_bytes: bigint,
   adjusted_value: number
@@ -31,5 +37,3 @@ function _napi_adjust_external_memory (
 
   return envObject.clearLastError()
 }
-
-emnapiImplement('napi_adjust_external_memory', 'ipjp', _napi_adjust_external_memory, [])

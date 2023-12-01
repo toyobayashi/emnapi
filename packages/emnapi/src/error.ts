@@ -1,4 +1,10 @@
-function __emnapi_get_last_error_info (env: napi_env, error_code: Pointer<napi_status>, engine_error_code: Pointer<uint32_t>, engine_reserved: void_pp): void {
+import { abort } from 'emnapi:emscripten-runtime'
+import { emnapiCtx, emnapiNodeBinding } from 'emnapi:shared'
+import { $PREAMBLE, $CHECK_ARG, $CHECK_ENV_NOT_IN_GC } from './macro'
+import { emnapiString } from './string'
+
+/** @__sig vpppp */
+export function _emnapi_get_last_error_info (env: napi_env, error_code: Pointer<napi_status>, engine_error_code: Pointer<uint32_t>, engine_reserved: void_pp): void {
   $from64('error_code')
   $from64('engine_error_code')
   $from64('engine_reserved')
@@ -18,7 +24,8 @@ function __emnapi_get_last_error_info (env: napi_env, error_code: Pointer<napi_s
   $makeSetValue('engine_reserved', 0, 'engineReserved', '*')
 }
 
-function napi_throw (env: napi_env, error: napi_value): napi_status {
+/** @__sig ipp */
+export function napi_throw (env: napi_env, error: napi_value): napi_status {
   return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, error)
     envObject.tryCatch.setError(emnapiCtx.handleStore.get(error)!.value)
@@ -26,7 +33,8 @@ function napi_throw (env: napi_env, error: napi_value): napi_status {
   })
 }
 
-function napi_throw_error (env: napi_env, code: const_char_p, msg: const_char_p): napi_status {
+/** @__sig ippp */
+export function napi_throw_error (env: napi_env, code: const_char_p, msg: const_char_p): napi_status {
   return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, msg)
     $from64('code')
@@ -40,7 +48,8 @@ function napi_throw_error (env: napi_env, code: const_char_p, msg: const_char_p)
   })
 }
 
-function napi_throw_type_error (env: napi_env, code: const_char_p, msg: const_char_p): napi_status {
+/** @__sig ippp */
+export function napi_throw_type_error (env: napi_env, code: const_char_p, msg: const_char_p): napi_status {
   return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, msg)
     $from64('code')
@@ -54,7 +63,8 @@ function napi_throw_type_error (env: napi_env, code: const_char_p, msg: const_ch
   })
 }
 
-function napi_throw_range_error (env: napi_env, code: const_char_p, msg: const_char_p): napi_status {
+/** @__sig ippp */
+export function napi_throw_range_error (env: napi_env, code: const_char_p, msg: const_char_p): napi_status {
   return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, msg)
     $from64('code')
@@ -68,7 +78,8 @@ function napi_throw_range_error (env: napi_env, code: const_char_p, msg: const_c
   })
 }
 
-function node_api_throw_syntax_error (env: napi_env, code: const_char_p, msg: const_char_p): napi_status {
+/** @__sig ippp */
+export function node_api_throw_syntax_error (env: napi_env, code: const_char_p, msg: const_char_p): napi_status {
   return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, msg)
     $from64('code')
@@ -82,7 +93,8 @@ function node_api_throw_syntax_error (env: napi_env, code: const_char_p, msg: co
   })
 }
 
-function napi_is_exception_pending (env: napi_env, result: Pointer<bool>): napi_status {
+/** @__sig ipp */
+export function napi_is_exception_pending (env: napi_env, result: Pointer<bool>): napi_status {
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, result)
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -92,7 +104,8 @@ function napi_is_exception_pending (env: napi_env, result: Pointer<bool>): napi_
   return envObject.clearLastError()
 }
 
-function napi_create_error (env: napi_env, code: napi_value, msg: napi_value, result: Pointer<napi_value>): napi_status {
+/** @__sig ipppp */
+export function napi_create_error (env: napi_env, code: napi_value, msg: napi_value, result: Pointer<napi_value>): napi_status {
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, msg)
   $CHECK_ARG!(envObject, result)
@@ -118,7 +131,8 @@ function napi_create_error (env: napi_env, code: napi_value, msg: napi_value, re
   return envObject.clearLastError()
 }
 
-function napi_create_type_error (env: napi_env, code: napi_value, msg: napi_value, result: Pointer<napi_value>): napi_status {
+/** @__sig ipppp */
+export function napi_create_type_error (env: napi_env, code: napi_value, msg: napi_value, result: Pointer<napi_value>): napi_status {
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, msg)
   $CHECK_ARG!(envObject, result)
@@ -143,7 +157,8 @@ function napi_create_type_error (env: napi_env, code: napi_value, msg: napi_valu
   return envObject.clearLastError()
 }
 
-function napi_create_range_error (env: napi_env, code: napi_value, msg: napi_value, result: Pointer<napi_value>): napi_status {
+/** @__sig ipppp */
+export function napi_create_range_error (env: napi_env, code: napi_value, msg: napi_value, result: Pointer<napi_value>): napi_status {
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, msg)
   $CHECK_ARG!(envObject, result)
@@ -167,7 +182,8 @@ function napi_create_range_error (env: napi_env, code: napi_value, msg: napi_val
   return envObject.clearLastError()
 }
 
-function node_api_create_syntax_error (env: napi_env, code: napi_value, msg: napi_value, result: Pointer<napi_value>): napi_status {
+/** @__sig ipppp */
+export function node_api_create_syntax_error (env: napi_env, code: napi_value, msg: napi_value, result: Pointer<napi_value>): napi_status {
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, msg)
   $CHECK_ARG!(envObject, result)
@@ -191,7 +207,8 @@ function node_api_create_syntax_error (env: napi_env, code: napi_value, msg: nap
   return envObject.clearLastError()
 }
 
-function napi_get_and_clear_last_exception (env: napi_env, result: Pointer<napi_value>): napi_status {
+/** @__sig ipp */
+export function napi_get_and_clear_last_exception (env: napi_env, result: Pointer<napi_value>): napi_status {
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, result)
   $from64('result')
@@ -209,7 +226,8 @@ function napi_get_and_clear_last_exception (env: napi_env, result: Pointer<napi_
   return envObject.clearLastError()
 }
 
-function napi_fatal_error (location: const_char_p, location_len: size_t, message: const_char_p, message_len: size_t): void {
+/** @__sig vpppp */
+export function napi_fatal_error (location: const_char_p, location_len: size_t, message: const_char_p, message_len: size_t): void {
   $from64('location')
   $from64('location_len')
   $from64('message')
@@ -224,7 +242,8 @@ function napi_fatal_error (location: const_char_p, location_len: size_t, message
   }
 }
 
-function napi_fatal_exception (env: napi_env, err: napi_value): napi_status {
+/** @__sig ipp */
+export function napi_fatal_exception (env: napi_env, err: napi_value): napi_status {
   return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, err)
     const error = envObject.ctx.handleStore.get(err)!
@@ -236,19 +255,3 @@ function napi_fatal_exception (env: napi_env, err: napi_value): napi_status {
     return envObject.clearLastError()
   })
 }
-
-emnapiImplementInternal('_emnapi_get_last_error_info', 'vpppp', __emnapi_get_last_error_info)
-
-emnapiImplement('napi_get_and_clear_last_exception', 'ipp', napi_get_and_clear_last_exception)
-emnapiImplement('napi_throw', 'ipp', napi_throw)
-emnapiImplement('napi_throw_error', 'ippp', napi_throw_error, ['$emnapiString'])
-emnapiImplement('napi_throw_type_error', 'ippp', napi_throw_type_error, ['$emnapiString'])
-emnapiImplement('napi_throw_range_error', 'ippp', napi_throw_range_error, ['$emnapiString'])
-emnapiImplement('node_api_throw_syntax_error', 'ippp', node_api_throw_syntax_error, ['$emnapiString'])
-emnapiImplement('napi_create_error', 'ipppp', napi_create_error, ['$emnapiString'])
-emnapiImplement('napi_create_type_error', 'ipppp', napi_create_type_error, ['$emnapiString'])
-emnapiImplement('napi_create_range_error', 'ipppp', napi_create_range_error, ['$emnapiString'])
-emnapiImplement('node_api_create_syntax_error', 'ipppp', node_api_create_syntax_error, ['$emnapiString'])
-emnapiImplement('napi_is_exception_pending', 'ipp', napi_is_exception_pending)
-emnapiImplement('napi_fatal_error', 'vpppp', napi_fatal_error, ['$emnapiString'])
-emnapiImplement('napi_fatal_exception', 'ipp', napi_fatal_exception)

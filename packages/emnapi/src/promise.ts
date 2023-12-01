@@ -1,5 +1,8 @@
+import { emnapiCtx } from 'emnapi:shared'
+import { $PREAMBLE, $CHECK_ARG, $CHECK_ENV_NOT_IN_GC } from './macro'
 
-function napi_create_promise (env: napi_env, deferred: Pointer<napi_deferred>, promise: Pointer<napi_value>): napi_status {
+/** @__sig ippp */
+export function napi_create_promise (env: napi_env, deferred: Pointer<napi_deferred>, promise: Pointer<napi_value>): napi_status {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let deferredObjectId: number, value: number
 
@@ -22,7 +25,8 @@ function napi_create_promise (env: napi_env, deferred: Pointer<napi_deferred>, p
   })
 }
 
-function napi_resolve_deferred (env: napi_env, deferred: napi_deferred, resolution: napi_value): napi_status {
+/** @__sig ippp */
+export function napi_resolve_deferred (env: napi_env, deferred: napi_deferred, resolution: napi_value): napi_status {
   return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, deferred)
     $CHECK_ARG!(envObject, resolution)
@@ -32,7 +36,8 @@ function napi_resolve_deferred (env: napi_env, deferred: napi_deferred, resoluti
   })
 }
 
-function napi_reject_deferred (env: napi_env, deferred: napi_deferred, resolution: napi_value): napi_status {
+/** @__sig ippp */
+export function napi_reject_deferred (env: napi_env, deferred: napi_deferred, resolution: napi_value): napi_status {
   return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, deferred)
     $CHECK_ARG!(envObject, resolution)
@@ -42,7 +47,8 @@ function napi_reject_deferred (env: napi_env, deferred: napi_deferred, resolutio
   })
 }
 
-function napi_is_promise (env: napi_env, value: napi_value, is_promise: Pointer<bool>): napi_status {
+/** @__sig ippp */
+export function napi_is_promise (env: napi_env, value: napi_value, is_promise: Pointer<bool>): napi_status {
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, value)
   $CHECK_ARG!(envObject, is_promise)
@@ -53,8 +59,3 @@ function napi_is_promise (env: napi_env, value: napi_value, is_promise: Pointer<
   $makeSetValue('is_promise', 0, 'r', 'i8')
   return envObject.clearLastError()
 }
-
-emnapiImplement('napi_create_promise', 'ippp', napi_create_promise)
-emnapiImplement('napi_resolve_deferred', 'ippp', napi_resolve_deferred)
-emnapiImplement('napi_reject_deferred', 'ippp', napi_reject_deferred)
-emnapiImplement('napi_is_promise', 'ippp', napi_is_promise)

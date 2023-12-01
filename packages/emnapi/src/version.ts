@@ -1,4 +1,8 @@
-function _napi_get_version (env: napi_env, result: Pointer<uint32_t>): napi_status {
+import { emnapiCtx } from 'emnapi:shared'
+import { $CHECK_ENV, $CHECK_ARG } from './macro'
+
+/** @__sig ipp */
+export function napi_get_version (env: napi_env, result: Pointer<uint32_t>): napi_status {
   $CHECK_ENV!(env)
   const envObject = emnapiCtx.envStore.get(env)!
   $CHECK_ARG!(envObject, result)
@@ -7,5 +11,3 @@ function _napi_get_version (env: napi_env, result: Pointer<uint32_t>): napi_stat
   $makeSetValue('result', 0, 'NODE_API_SUPPORTED_VERSION_MAX', 'u32')
   return envObject.clearLastError()
 }
-
-emnapiImplement('napi_get_version', 'ipp', _napi_get_version, [])

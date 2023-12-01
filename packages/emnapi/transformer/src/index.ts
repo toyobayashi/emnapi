@@ -21,6 +21,7 @@ import type {
 } from 'typescript'
 
 import * as ts from 'typescript'
+import { join } from 'path'
 
 export interface DefineOptions {
   defines?: Record<string, any>
@@ -213,12 +214,21 @@ function updateBody<N extends FunctionLikeDeclaration> (factory: NodeFactory, no
 class Transform {
   ctx: TransformationContext
   defines: Record<string, any>
+  insertWasmMemoryImport: boolean
+  insertWasmTableImport: boolean
 
   constructor (context: TransformationContext, defines: Record<string, any>) {
     this.ctx = context
     this.defines = defines
     this.visitor = this.visitor.bind(this)
     this.functionLikeDeclarationVisitor = this.functionLikeDeclarationVisitor.bind(this)
+    this.insertWasmMemoryImport = false
+    this.insertWasmTableImport = false
+  }
+
+  resetSource (): void {
+    this.insertWasmMemoryImport = false
+    this.insertWasmTableImport = false
   }
 
   createHeapDataViewDeclaration (): VariableStatement {
@@ -270,6 +280,9 @@ class Transform {
       let includeGetOrSet = false
       const statementVisitor: Visitor = (n) => {
         if (ts.isIdentifier(n) && n.text === 'HEAP_DATA_VIEW') {
+          if (!this.insertWasmMemoryImport) {
+            this.insertWasmMemoryImport = true
+          }
           includeGetOrSet = true
         }
         return ts.visitEachChild(n, statementVisitor, this.ctx)
@@ -590,6 +603,10 @@ class Transform {
     const pointerName = argv1.text
     if (!pointerName) return node
 
+    if (!this.insertWasmTableImport) {
+      this.insertWasmTableImport = true
+    }
+
     return this.ctx.factory.createParenthesizedExpression(this.ctx.factory.createCallExpression(
       this.ctx.factory.createPropertyAccessExpression(
         this.ctx.factory.createIdentifier('wasmTable'),
@@ -675,6 +692,32 @@ class Transform {
   }
 }
 
+function getImportsOfModule (src: SourceFile): string[] {
+  const collection = new Set<string>()
+  for (let i = 0; i < src.statements.length; ++i) {
+    const s = src.statements[i]
+    if (ts.isImportDeclaration(s)) {
+      if (s.importClause && !s.importClause.isTypeOnly) {
+        if (s.importClause.name) {
+          collection.add(s.importClause.name.text)
+        }
+        if (s.importClause.namedBindings) {
+          if (ts.isNamedImports(s.importClause.namedBindings)) {
+            s.importClause.namedBindings.elements.filter(e => !e.isTypeOnly).forEach(sp => {
+              collection.add(sp.name.text)
+            })
+          } else if (ts.isNamespaceImport(s.importClause.namedBindings)) {
+            collection.add(s.importClause.namedBindings.name.text)
+          }
+        }
+      }
+    } else if (ts.isImportEqualsDeclaration(s)) {
+      collection.add(s.name.text)
+    }
+  }
+  return [...collection]
+}
+
 function createTransformerFactory (_program: Program, config: DefineOptions): TransformerFactory<SourceFile> {
   const defines = config.defines ?? {}
   // const defineKeys = Object.keys(defines)
@@ -684,10 +727,56 @@ function createTransformerFactory (_program: Program, config: DefineOptions): Tr
 
     return (src) => {
       if (src.isDeclarationFile) return src
+      transform.resetSource()
       // expand emscripten macros
       const transformedSrc = ts.visitEachChild(src, transform.visitor, context)
       // inject HEAP_DATA_VIEW
-      return ts.visitEachChild(transformedSrc, transform.functionLikeDeclarationVisitor, context)
+      const injectedSrc = ts.visitEachChild(transformedSrc, transform.functionLikeDeclarationVisitor, context)
+
+      const doNotInsertImport = join(__dirname, '../../src/core/init.ts')
+      if (src.fileName === doNotInsertImport) {
+        return injectedSrc
+      }
+
+      let resultSrc = injectedSrc
+      let importNames: string[] | null = null
+      const factory = context.factory
+      if (transform.insertWasmMemoryImport) {
+        importNames = getImportsOfModule(resultSrc)
+        if (!importNames.includes('wasmMemory')) {
+          resultSrc = factory.updateSourceFile(resultSrc, [
+            factory.createImportDeclaration(undefined,
+              factory.createImportClause(false, undefined,
+                factory.createNamedImports([
+                  factory.createImportSpecifier(false, undefined, factory.createIdentifier('wasmMemory'))
+                ])
+              ),
+              factory.createStringLiteral('emnapi:emscripten-runtime'),
+              undefined
+            ),
+            ...resultSrc.statements
+          ])
+        }
+      }
+      if (transform.insertWasmTableImport) {
+        importNames = getImportsOfModule(resultSrc)
+        if (!importNames.includes('wasmTable')) {
+          resultSrc = factory.updateSourceFile(resultSrc, [
+            factory.createImportDeclaration(undefined,
+              factory.createImportClause(false, undefined,
+                factory.createNamedImports([
+                  factory.createImportSpecifier(false, undefined, factory.createIdentifier('wasmTable'))
+                ])
+              ),
+              factory.createStringLiteral('emnapi:emscripten-runtime'),
+              undefined
+            ),
+            ...resultSrc.statements
+          ])
+        }
+      }
+
+      return resultSrc
     }
   }
 }

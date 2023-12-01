@@ -1,4 +1,11 @@
-function _napi_create_async_work (env: napi_env, resource: napi_value, resource_name: napi_value, execute: number, complete: number, data: number, result: number): napi_status {
+import { emnapiCtx } from 'emnapi:shared'
+import { emnapiAWST } from '../async-work'
+import { $CHECK_ARG, $CHECK_ENV, $CHECK_ENV_NOT_IN_GC } from '../macro'
+
+/**
+ * @__sig ippppppp
+ */
+export function napi_create_async_work (env: napi_env, resource: napi_value, resource_name: napi_value, execute: number, complete: number, data: number, result: number): napi_status {
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, execute)
   $CHECK_ARG!(envObject, result)
@@ -20,7 +27,10 @@ function _napi_create_async_work (env: napi_env, resource: napi_value, resource_
   return envObject.clearLastError()
 }
 
-function _napi_delete_async_work (env: napi_env, work: number): napi_status {
+/**
+ * @__sig ipp
+ */
+export function napi_delete_async_work (env: napi_env, work: number): napi_status {
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, work)
 
@@ -28,7 +38,10 @@ function _napi_delete_async_work (env: napi_env, work: number): napi_status {
   return envObject.clearLastError()
 }
 
-function _napi_queue_async_work (env: napi_env, work: number): napi_status {
+/**
+ * @__sig ipp
+ */
+export function napi_queue_async_work (env: napi_env, work: number): napi_status {
   $CHECK_ENV!(env)
   const envObject = emnapiCtx.envStore.get(env)!
   $CHECK_ARG!(envObject, work)
@@ -37,7 +50,10 @@ function _napi_queue_async_work (env: napi_env, work: number): napi_status {
   return envObject.clearLastError()
 }
 
-function _napi_cancel_async_work (env: napi_env, work: number): napi_status {
+/**
+ * @__sig ipp
+ */
+export function napi_cancel_async_work (env: napi_env, work: number): napi_status {
   $CHECK_ENV!(env)
   const envObject = emnapiCtx.envStore.get(env)!
   $CHECK_ARG!(envObject, work)
@@ -46,8 +62,3 @@ function _napi_cancel_async_work (env: napi_env, work: number): napi_status {
   if (status === napi_status.napi_ok) return envObject.clearLastError()
   return envObject.setLastError(status)
 }
-
-emnapiImplement('napi_create_async_work', 'ippppppp', _napi_create_async_work, ['$emnapiAWST'])
-emnapiImplement('napi_delete_async_work', 'ipp', _napi_delete_async_work, ['$emnapiAWST'])
-emnapiImplement('napi_queue_async_work', 'ipp', _napi_queue_async_work, ['$emnapiAWST'])
-emnapiImplement('napi_cancel_async_work', 'ipp', _napi_cancel_async_work, ['$emnapiAWST'])

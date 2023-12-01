@@ -1,7 +1,16 @@
+import { wasmMemory } from 'emnapi:emscripten-runtime'
+import { emnapiCtx } from 'emnapi:shared'
+import { $emnapiSetValueI64 as emnapiSetValueI64 } from '../util'
+import { $CHECK_ENV } from '../macro'
+
 /* eslint-disable @typescript-eslint/indent */
 declare function _emscripten_resize_heap (requested: number): boolean
 
-function _napi_adjust_external_memory (
+/**
+ * @__deps emscripten_resize_heap
+ * @__sig ipjp
+ */
+export function napi_adjust_external_memory (
   env: napi_env,
   low: number,
   high: number,
@@ -46,12 +55,3 @@ function _napi_adjust_external_memory (
 
   return envObject.clearLastError()
 }
-
-emnapiImplement('napi_adjust_external_memory', 'ipjp', _napi_adjust_external_memory,
-  [
-// #if WASM_BIGINT
-    '$emnapiSetValueI64',
-// #endif
-    'emscripten_resize_heap'
-  ]
-)

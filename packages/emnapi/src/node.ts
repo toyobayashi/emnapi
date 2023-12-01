@@ -1,4 +1,8 @@
-function __emnapi_node_emit_async_init (
+import { emnapiNodeBinding, emnapiCtx } from 'emnapi:shared'
+import { $PREAMBLE, $CHECK_ARG } from './macro'
+
+/** @__sig vppdp */
+export function _emnapi_node_emit_async_init (
   async_resource: napi_value,
   async_resource_name: napi_value,
   trigger_async_id: double,
@@ -18,7 +22,8 @@ function __emnapi_node_emit_async_init (
   }
 }
 
-function __emnapi_node_emit_async_destroy (async_id: double, trigger_async_id: double): void {
+/** @__sig vdd */
+export function _emnapi_node_emit_async_destroy (async_id: double, trigger_async_id: double): void {
   if (!emnapiNodeBinding) return
   emnapiNodeBinding.node.emitAsyncDestroy({
     asyncId: async_id,
@@ -26,7 +31,7 @@ function __emnapi_node_emit_async_destroy (async_id: double, trigger_async_id: d
   })
 }
 
-/* function __emnapi_node_open_callback_scope (async_resource: napi_value, async_id: double, trigger_async_id: double, result: Pointer<int64_t>): void {
+/* vpddp export function _emnapi_node_open_callback_scope (async_resource: napi_value, async_id: double, trigger_async_id: double, result: Pointer<int64_t>): void {
   if (!emnapiNodeBinding || !result) return
   const resource = emnapiCtx.handleStore.get(async_resource)!.value
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -39,14 +44,16 @@ function __emnapi_node_emit_async_destroy (async_id: double, trigger_async_id: d
   $_TODO_makeSetValue('result', 0, 'nativeCallbackScopePointer', 'i64')
 }
 
-function __emnapi_node_close_callback_scope (scope: Pointer<int64_t>): void {
+vp
+export function _emnapi_node_close_callback_scope (scope: Pointer<int64_t>): void {
   if (!emnapiNodeBinding || !scope) return
   $from64('scope')
   const nativeCallbackScopePointer = $_TODO_makeGetValue('scope', 0, 'i64')
   emnapiNodeBinding.node.closeCallbackScope(BigInt(nativeCallbackScopePointer))
 } */
 
-function __emnapi_node_make_callback (env: napi_env, async_resource: napi_value, cb: napi_value, argv: Pointer<napi_value>, size: size_t, async_id: double, trigger_async_id: double, result: Pointer<napi_value>): void {
+/** @__sig ipppppddp */
+export function _emnapi_node_make_callback (env: napi_env, async_resource: napi_value, cb: napi_value, argv: Pointer<napi_value>, size: size_t, async_id: double, trigger_async_id: double, result: Pointer<napi_value>): void {
   let i = 0
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let v: number
@@ -75,7 +82,8 @@ function __emnapi_node_make_callback (env: napi_env, async_resource: napi_value,
   }
 }
 
-function __emnapi_async_init_js (async_resource: napi_value, async_resource_name: napi_value, result: Pointer<int64_t>): napi_status {
+/** @__sig ippp */
+export function _emnapi_async_init_js (async_resource: napi_value, async_resource_name: napi_value, result: Pointer<int64_t>): napi_status {
   if (!emnapiNodeBinding) {
     return napi_status.napi_generic_failure
   }
@@ -108,7 +116,8 @@ function __emnapi_async_init_js (async_resource: napi_value, async_resource_name
   return napi_status.napi_ok
 }
 
-function __emnapi_async_destroy_js (async_context: Pointer<int64_t>): napi_status {
+/** @__sig ip */
+export function _emnapi_async_destroy_js (async_context: Pointer<int64_t>): napi_status {
   if (!emnapiNodeBinding) {
     return napi_status.napi_generic_failure
   }
@@ -126,15 +135,18 @@ function __emnapi_async_destroy_js (async_context: Pointer<int64_t>): napi_statu
 
 // https://github.com/nodejs/node-addon-api/pull/1283
 
-function napi_open_callback_scope (env: napi_env, ignored: napi_value, async_context_handle: number, result: number): napi_status {
+/** @__sig ipppp */
+export function napi_open_callback_scope (env: napi_env, ignored: napi_value, async_context_handle: number, result: number): napi_status {
   throw new Error('napi_open_callback_scope has not been implemented yet')
 }
 
-function napi_close_callback_scope (env: napi_env, scope: number): napi_status {
+/** @__sig ipp */
+export function napi_close_callback_scope (env: napi_env, scope: number): napi_status {
   throw new Error('napi_close_callback_scope has not been implemented yet')
 }
 
-function napi_make_callback (env: napi_env, async_context: Pointer<int64_t>, recv: napi_value, func: napi_value, argc: size_t, argv: Pointer<napi_value>, result: Pointer<napi_value>): napi_status {
+/** @__sig ippppppp */
+export function napi_make_callback (env: napi_env, async_context: Pointer<int64_t>, recv: napi_value, func: napi_value, argc: size_t, argv: Pointer<napi_value>, result: Pointer<napi_value>): napi_status {
   let i = 0
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let v: number
@@ -184,21 +196,8 @@ function napi_make_callback (env: napi_env, async_context: Pointer<int64_t>, rec
   })
 }
 
-function __emnapi_env_check_gc_access (env: napi_env): void {
+/** @__sig vp */
+export function _emnapi_env_check_gc_access (env: napi_env): void {
   const envObject = emnapiCtx.envStore.get(env)!
   envObject.checkGCAccess()
 }
-
-emnapiImplementInternal('_emnapi_node_emit_async_init', 'vppdp', __emnapi_node_emit_async_init)
-emnapiImplementInternal('_emnapi_node_emit_async_destroy', 'vdd', __emnapi_node_emit_async_destroy)
-// emnapiImplementInternal('_emnapi_node_open_callback_scope', 'vpddp', __emnapi_node_open_callback_scope)
-// emnapiImplementInternal('_emnapi_node_close_callback_scope', 'vp', __emnapi_node_close_callback_scope)
-emnapiImplementInternal('_emnapi_node_make_callback', 'ipppppddp', __emnapi_node_make_callback)
-
-emnapiImplementInternal('_emnapi_async_init_js', 'ippp', __emnapi_async_init_js)
-emnapiImplementInternal('_emnapi_async_destroy_js', 'ip', __emnapi_async_destroy_js)
-emnapiImplementInternal('_emnapi_env_check_gc_access', 'vp', __emnapi_env_check_gc_access)
-
-emnapiImplement('napi_open_callback_scope', 'ipppp', napi_open_callback_scope)
-emnapiImplement('napi_close_callback_scope', 'ipp', napi_close_callback_scope)
-emnapiImplement('napi_make_callback', 'ippppppp', napi_make_callback)

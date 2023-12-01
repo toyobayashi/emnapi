@@ -1,4 +1,8 @@
-function napi_open_handle_scope (env: napi_env, result: Pointer<napi_handle_scope>): napi_status {
+import { emnapiCtx } from 'emnapi:shared'
+import { $CHECK_ENV_NOT_IN_GC, $CHECK_ARG, $CHECK_ENV } from './macro'
+
+/** @__sig ipp */
+export function napi_open_handle_scope (env: napi_env, result: Pointer<napi_handle_scope>): napi_status {
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, result)
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -8,7 +12,8 @@ function napi_open_handle_scope (env: napi_env, result: Pointer<napi_handle_scop
   return envObject.clearLastError()
 }
 
-function napi_close_handle_scope (env: napi_env, scope: napi_handle_scope): napi_status {
+/** @__sig ipp */
+export function napi_close_handle_scope (env: napi_env, scope: napi_handle_scope): napi_status {
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, scope)
   if ((envObject.openHandleScopes === 0)) {
@@ -19,7 +24,8 @@ function napi_close_handle_scope (env: napi_env, scope: napi_handle_scope): napi
   return envObject.clearLastError()
 }
 
-function napi_open_escapable_handle_scope (env: napi_env, result: Pointer<napi_escapable_handle_scope>): napi_status {
+/** @__sig ipp */
+export function napi_open_escapable_handle_scope (env: napi_env, result: Pointer<napi_escapable_handle_scope>): napi_status {
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, result)
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -29,7 +35,8 @@ function napi_open_escapable_handle_scope (env: napi_env, result: Pointer<napi_e
   return envObject.clearLastError()
 }
 
-function napi_close_escapable_handle_scope (env: napi_env, scope: napi_escapable_handle_scope): napi_status {
+/** @__sig ipp */
+export function napi_close_escapable_handle_scope (env: napi_env, scope: napi_escapable_handle_scope): napi_status {
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, scope)
   if ((envObject.openHandleScopes === 0)) {
@@ -40,7 +47,8 @@ function napi_close_escapable_handle_scope (env: napi_env, scope: napi_escapable
   return envObject.clearLastError()
 }
 
-function napi_escape_handle (env: napi_env, scope: napi_escapable_handle_scope, escapee: napi_value, result: Pointer<napi_value>): napi_status {
+/** @__sig ipppp */
+export function napi_escape_handle (env: napi_env, scope: napi_escapable_handle_scope, escapee: napi_value, result: Pointer<napi_value>): napi_status {
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, scope)
   $CHECK_ARG!(envObject, escapee)
@@ -59,7 +67,8 @@ function napi_escape_handle (env: napi_env, scope: napi_escapable_handle_scope, 
   return envObject.setLastError(napi_status.napi_escape_called_twice)
 }
 
-function napi_create_reference (
+/** @__sig ippip */
+export function napi_create_reference (
   env: napi_env,
   value: napi_value,
   initial_refcount: uint32_t,
@@ -82,7 +91,8 @@ function napi_create_reference (
   return envObject.clearLastError()
 }
 
-function napi_delete_reference (
+/** @__sig ipp */
+export function napi_delete_reference (
   env: napi_env,
   ref: napi_ref
 ): napi_status {
@@ -92,7 +102,8 @@ function napi_delete_reference (
   return envObject.clearLastError()
 }
 
-function napi_reference_ref (
+/** @__sig ippp */
+export function napi_reference_ref (
   env: napi_env,
   ref: napi_ref,
   result: Pointer<uint32_t>
@@ -108,7 +119,8 @@ function napi_reference_ref (
   return envObject.clearLastError()
 }
 
-function napi_reference_unref (
+/** @__sig ippp */
+export function napi_reference_unref (
   env: napi_env,
   ref: napi_ref,
   result: Pointer<uint32_t>
@@ -130,7 +142,8 @@ function napi_reference_unref (
   return envObject.clearLastError()
 }
 
-function napi_get_reference_value (
+/** @__sig ippp */
+export function napi_get_reference_value (
   env: napi_env,
   ref: napi_ref,
   result: Pointer<napi_value>
@@ -146,7 +159,8 @@ function napi_get_reference_value (
   return envObject.clearLastError()
 }
 
-function napi_add_env_cleanup_hook (env: napi_env, fun: number, arg: number): napi_status {
+/** @__sig ippp */
+export function napi_add_env_cleanup_hook (env: napi_env, fun: number, arg: number): napi_status {
   $CHECK_ENV!(env)
   const envObject = emnapiCtx.envStore.get(env)!
   $CHECK_ARG!(envObject, fun)
@@ -159,7 +173,8 @@ function napi_add_env_cleanup_hook (env: napi_env, fun: number, arg: number): na
   return napi_status.napi_ok
 }
 
-function napi_remove_env_cleanup_hook (env: napi_env, fun: number, arg: number): napi_status {
+/** @__sig ippp */
+export function napi_remove_env_cleanup_hook (env: napi_env, fun: number, arg: number): napi_status {
   $CHECK_ENV!(env)
   const envObject = emnapiCtx.envStore.get(env)!
   $CHECK_ARG!(envObject, fun)
@@ -172,30 +187,14 @@ function napi_remove_env_cleanup_hook (env: napi_env, fun: number, arg: number):
   return napi_status.napi_ok
 }
 
-function __emnapi_env_ref (env: napi_env): void {
+/** @__sig vp */
+export function _emnapi_env_ref (env: napi_env): void {
   const envObject = emnapiCtx.envStore.get(env)!
   envObject.ref()
 }
 
-function __emnapi_env_unref (env: napi_env): void {
+/** @__sig vp */
+export function _emnapi_env_unref (env: napi_env): void {
   const envObject = emnapiCtx.envStore.get(env)!
   envObject.unref()
 }
-
-emnapiImplement('napi_open_handle_scope', 'ipp', napi_open_handle_scope)
-emnapiImplement('napi_close_handle_scope', 'ipp', napi_close_handle_scope)
-emnapiImplement('napi_open_escapable_handle_scope', 'ipp', napi_open_escapable_handle_scope)
-emnapiImplement('napi_close_escapable_handle_scope', 'ipp', napi_close_escapable_handle_scope)
-emnapiImplement('napi_escape_handle', 'ipppp', napi_escape_handle)
-
-emnapiImplement('napi_create_reference', 'ippip', napi_create_reference)
-emnapiImplement('napi_delete_reference', 'ipp', napi_delete_reference)
-emnapiImplement('napi_reference_ref', 'ippp', napi_reference_ref)
-emnapiImplement('napi_reference_unref', 'ippp', napi_reference_unref)
-emnapiImplement('napi_get_reference_value', 'ippp', napi_get_reference_value)
-
-emnapiImplement('napi_add_env_cleanup_hook', 'ippp', napi_add_env_cleanup_hook)
-emnapiImplement('napi_remove_env_cleanup_hook', 'ippp', napi_remove_env_cleanup_hook)
-
-emnapiImplementInternal('_emnapi_env_ref', 'vp', __emnapi_env_ref)
-emnapiImplementInternal('_emnapi_env_unref', 'vp', __emnapi_env_unref)

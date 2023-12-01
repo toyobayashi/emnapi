@@ -2,7 +2,8 @@
   "extends": "../shared/tsconfig.base.json",
   "compilerOptions": {
     "target": "ES5",
-    "module": "none",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
     "importHelpers": false,
     "noEmitHelpers": true,
     "noUnusedLocals": false,
