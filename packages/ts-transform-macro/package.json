@@ -23,5 +23,8 @@
   },
   "dependencies": {
     "ts-clone-node": "^3.0.0"
+  },
+  "peerDependencies": {
+    "typescript": ">= 5.0.0"
   }
 }

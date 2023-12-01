@@ -83,6 +83,10 @@ jobs:
       shell: bash
       run: npm run build --workspaces --if-present
 
+    - name: Test Emscripten ESM library
+      shell: bash
+      run: npm run test -w packages/ts-transform-emscripten-esm-library
+
     # - name: Lint
     #   run: npm run lint
 

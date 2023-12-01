@@ -21,5 +21,8 @@
   "homepage": "https://github.com/toyobayashi/emnapi/tree/main/packages/ts-transform-emscripten-parse-tools",
   "publishConfig": {
     "access": "public"
+  },
+  "peerDependencies": {
+    "typescript": ">= 5.0.0"
   }
 }

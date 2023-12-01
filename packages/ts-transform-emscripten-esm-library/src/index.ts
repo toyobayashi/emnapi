@@ -336,4 +336,29 @@ function createTransformerFactory (program: Program): TransformerFactory<SourceF
   }
 }
 
-export { createTransformerFactory }
+function transform (fileName: string, sourceText: string): string {
+  const compilerOptions = {
+    allowJs: true,
+    module: ts.ModuleKind.ESNext,
+    target: ts.ScriptTarget.ESNext,
+    noEmit: true
+  }
+  const source = ts.createSourceFile(fileName, sourceText, ts.ScriptTarget.ESNext, true, ts.ScriptKind.JS)
+  const host = ts.createCompilerHost(compilerOptions, true)
+  host.getSourceFile = filePath => filePath === fileName ? source : undefined
+  const program = ts.createProgram({
+    rootNames: [fileName],
+    options: compilerOptions,
+    host
+  })
+
+  const transformerFactory = createTransformerFactory(program)
+
+  const transformResult = ts.transform(source, [transformerFactory])
+  const printer = ts.createPrinter({
+    newLine: process.platform === 'win32' ? ts.NewLineKind.CarriageReturnLineFeed : ts.NewLineKind.LineFeed
+  })
+  return printer.printNode(ts.EmitHint.SourceFile, transformResult.transformed[0], transformResult.transformed[0])
+}
+
+export { createTransformerFactory, transform }
