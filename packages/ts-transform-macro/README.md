@@ -1,0 +1,1 @@
+# @emnapi/ts-transform-macro

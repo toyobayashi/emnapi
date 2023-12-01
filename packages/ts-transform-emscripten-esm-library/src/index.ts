@@ -328,10 +328,12 @@ class Transformer {
   }
 }
 
-export default function createTransformer (program: Program): TransformerFactory<SourceFile> {
+function createTransformerFactory (program: Program): TransformerFactory<SourceFile> {
   return (context) => {
     const transformer = new Transformer(context, program)
 
     return transformer.transform
   }
 }
+
+export { createTransformerFactory }

@@ -20,11 +20,13 @@ import type {
   Statement
 } from 'typescript'
 
-import * as ts from 'typescript'
+import ts = require('typescript')
 import { join } from 'path'
 
 export interface DefineOptions {
-  defines?: Record<string, any>
+  defines?: {
+    MEMORY64?: 0 | 1
+  }
 }
 
 function isEmscriptenMacro (text: string): boolean {
@@ -733,7 +735,7 @@ function createTransformerFactory (_program: Program, config: DefineOptions): Tr
       // inject HEAP_DATA_VIEW
       const injectedSrc = ts.visitEachChild(transformedSrc, transform.functionLikeDeclarationVisitor, context)
 
-      const doNotInsertImport = join(__dirname, '../../src/core/init.ts')
+      const doNotInsertImport = join(__dirname, '../../emnapi/src/core/init.ts')
       if (src.fileName === doNotInsertImport) {
         return injectedSrc
       }
@@ -781,4 +783,4 @@ function createTransformerFactory (_program: Program, config: DefineOptions): Tr
   }
 }
 
-export default createTransformerFactory
+export { createTransformerFactory }

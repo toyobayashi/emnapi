@@ -1,0 +1,17 @@
+{
+  "extends": "../shared/tsconfig.base.json",
+  "compilerOptions": {
+    "target": "ES2019",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "declaration": true,
+    "sourceMap": true,
+    "declarationMap": true,
+    "outDir": "lib"
+  },
+  "include": [
+    "./src/**/*",
+    "../../runtime/src/typings/*.d.ts"
+  ]
+}

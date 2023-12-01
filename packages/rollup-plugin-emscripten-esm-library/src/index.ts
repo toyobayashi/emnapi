@@ -1,13 +1,15 @@
-const { EOL } = require('os')
-const ts = require('typescript')
-const createTransformer = require('../transformer/out/esm.js').default
+import { EOL } from 'os'
+import ts = require('typescript')
+import type { Plugin } from 'rollup'
+import { createTransformerFactory } from '@emnapi/ts-transform-emscripten-esm-library'
 
-/**
- * @param {string} fileName
- * @param {string} sourceText
- * @returns {string}
- */
-function transform (fileName, sourceText) {
+export interface PluginOptions {
+  defaultLibraryFuncsToInclude?: string[]
+  exportedRuntimeMethods?: string[]
+  modifyOutput?: (output: string) => string
+}
+
+function transform (fileName: string, sourceText: string): string {
   const compilerOptions = {
     allowJs: true,
     module: ts.ModuleKind.ESNext,
@@ -23,7 +25,7 @@ function transform (fileName, sourceText) {
     host
   })
 
-  const transformerFactory = createTransformer(program)
+  const transformerFactory = createTransformerFactory(program)
 
   const transformResult = ts.transform(source, [transformerFactory])
   const printer = ts.createPrinter({
@@ -32,14 +34,11 @@ function transform (fileName, sourceText) {
   return printer.printNode(ts.EmitHint.SourceFile, transformResult.transformed[0], transformResult.transformed[0])
 }
 
-/**
- * @param {{ defaultLibraryFuncsToInclude?: string[]; exportedRuntimeMethods?: string[]; modifyOutput?: (output: string) => string }=} options
- */
-exports.default = function (options) {
-  const defaultLibraryFuncsToInclude = (options ? options.defaultLibraryFuncsToInclude : []) || []
-  const exportedRuntimeMethods = (options ? options.exportedRuntimeMethods : []) || []
-  const defaultModify = _ => _
-  const modifyOutput = (options ? options.modifyOutput : defaultModify) || defaultModify
+export default function (options?: PluginOptions): Plugin {
+  const defaultLibraryFuncsToInclude = options?.defaultLibraryFuncsToInclude ?? []
+  const exportedRuntimeMethods = options?.exportedRuntimeMethods ?? []
+  const defaultModify = <T>(_: T): T => _
+  const modifyOutput = options?.modifyOutput ?? defaultModify
 
   return {
     name: 'ts-transform-emscriten',
