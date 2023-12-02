@@ -23,7 +23,7 @@ import type {
   Declaration
 } from 'typescript'
 
-import * as ts from 'typescript'
+import ts = require('typescript')
 import { cloneNode } from 'ts-clone-node'
 
 function preserveMultiLine (node: Node, sourceNode: Node): Node {
@@ -447,4 +447,4 @@ function createTransformerFactory (program: Program, config: TransformOptions): 
   }
 }
 
-export default createTransformerFactory
+export { createTransformerFactory }

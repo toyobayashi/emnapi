@@ -1,0 +1,30 @@
+{
+  "name": "@emnapi/ts-transform-macro",
+  "version": "1.0.0",
+  "description": "C style define macros for TypeScript",
+  "type": "commonjs",
+  "main": "./lib/index.js",
+  "types": "./lib/index.d.ts",
+  "scripts": {
+    "build": "tsc"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/toyobayashi/emnapi.git"
+  },
+  "author": "toyobayashi",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/toyobayashi/emnapi/issues"
+  },
+  "homepage": "https://github.com/toyobayashi/emnapi/tree/main/packages/ts-transform-emscripten-macro#readme",
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "ts-clone-node": "^3.0.0"
+  },
+  "peerDependencies": {
+    "typescript": ">= 5.0.0"
+  }
+}

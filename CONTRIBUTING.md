@@ -22,7 +22,7 @@ This doc will explain the structure of this project and some points need to note
 - `packages/core` (`dependencies`)
 
     This package is designed for using emnapi on non-Emscripten platform, it is a trasformed output of `packages/emnapi`
-    by using `packages/emnapi/transformer`.
+    by using `packages/ts-transform-emscripten-parse-tools`.
     
     For common WebAssembly loading case, we can't use the Emscripten JavaScript library file built in `packages/emnapi` package.
     We need to manually provide imported symbols to the second parameter of `WebAssembly.instantiate`,
@@ -52,4 +52,4 @@ This doc will explain the structure of this project and some points need to note
 Macro is heavily used in `packages/emnapi`, there are two kinds of macro.
 
 - `$macroName(...)`: transformed to `{{{ macroName(...) }}}`
-- `$CUSTOM_MACRO!(...)`: powered by `packages/emnapi/transformer/src/macro.ts`
+- `$CUSTOM_MACRO!(...)`: powered by `packages/ts-transform-macro`

@@ -13,6 +13,8 @@ import type {
   ExpressionStatement
 } from 'typescript'
 
+import { EOL } from 'os'
+
 import ts = require('typescript')
 
 interface SymbolWrap/* <T extends VariableDeclaration | FunctionDeclaration> */ {
@@ -328,10 +330,63 @@ class Transformer {
   }
 }
 
-export default function createTransformer (program: Program): TransformerFactory<SourceFile> {
+function createTransformerFactory (program: Program): TransformerFactory<SourceFile> {
   return (context) => {
     const transformer = new Transformer(context, program)
 
     return transformer.transform
   }
 }
+
+function transform (fileName: string, sourceText: string): string {
+  const compilerOptions = {
+    allowJs: true,
+    module: ts.ModuleKind.ESNext,
+    target: ts.ScriptTarget.ESNext,
+    noEmit: true
+  }
+  const source = ts.createSourceFile(fileName, sourceText, ts.ScriptTarget.ESNext, true, ts.ScriptKind.JS)
+  const host = ts.createCompilerHost(compilerOptions, true)
+  host.getSourceFile = filePath => filePath === fileName ? source : undefined
+  const program = ts.createProgram({
+    rootNames: [fileName],
+    options: compilerOptions,
+    host
+  })
+
+  const transformerFactory = createTransformerFactory(program)
+
+  const transformResult = ts.transform(source, [transformerFactory])
+  const printer = ts.createPrinter({
+    newLine: process.platform === 'win32' ? ts.NewLineKind.CarriageReturnLineFeed : ts.NewLineKind.LineFeed
+  })
+  return printer.printNode(ts.EmitHint.SourceFile, transformResult.transformed[0], transformResult.transformed[0])
+}
+
+export interface TransformOptions {
+  defaultLibraryFuncsToInclude?: string[]
+  exportedRuntimeMethods?: string[]
+  processDirective?: boolean
+}
+
+function transformWithOptions (fileName: string, sourceText: string, options?: TransformOptions): string {
+  const defaultLibraryFuncsToInclude = options?.defaultLibraryFuncsToInclude ?? []
+  const exportedRuntimeMethods = options?.exportedRuntimeMethods ?? []
+
+  let result = transform(fileName, sourceText)
+
+  const prefix = [
+    ...defaultLibraryFuncsToInclude
+      .map(sym => `{{{ ((DEFAULT_LIBRARY_FUNCS_TO_INCLUDE.indexOf("${sym}") === -1 ? DEFAULT_LIBRARY_FUNCS_TO_INCLUDE.push("${sym}") : undefined), "") }}}`),
+    ...exportedRuntimeMethods
+      .map(sym => `{{{ ((EXPORTED_RUNTIME_METHODS.indexOf("${sym}") === -1 ? EXPORTED_RUNTIME_METHODS.push("${sym}") : undefined), "") }}}`)
+  ].join(EOL)
+
+  if (options?.processDirective) {
+    result = result.replace(/(\r?\n)\s*\/\/\s+(#((if)|(else)|(elif)|(endif)))/g, '$1$2')
+  }
+
+  return prefix + (prefix ? EOL : '') + result
+}
+
+export { createTransformerFactory, transform, transformWithOptions }

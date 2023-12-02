@@ -2,7 +2,6 @@ const fs = require('fs')
 const path = require('path')
 const { createRequire } = require('module')
 const ts = require('typescript')
-const { compile } = require('@tybys/tsapi')
 const rollupTypescript = require('@rollup/plugin-typescript').default
 const rollupAlias = require('@rollup/plugin-alias').default
 const { rollup } = require('rollup')
@@ -12,9 +11,6 @@ const { rollup } = require('rollup')
 // } = require('../../runtime/script/build.js')
 
 async function build () {
-  const transformerTsconfigPath = path.join(__dirname, '../transformer/tsconfig.json')
-  compile(transformerTsconfigPath)
-
   const libTsconfigPath = path.join(__dirname, '../tsconfig.json')
   // compile(libTsconfigPath)
   const libTsconfig = JSON.parse(fs.readFileSync(libTsconfigPath, 'utf8'))
@@ -40,7 +36,7 @@ async function build () {
           before: [
             {
               type: 'program',
-              factory: require('../transformer/out/macro.js').default
+              factory: require('@emnapi/ts-transform-macro').createTransformerFactory
             },
             {
               type: 'program',
@@ -65,9 +61,10 @@ async function build () {
           { find: 'emnapi:shared', replacement: path.join(__dirname, '../src/emscripten/init.ts') }
         ]
       }),
-      require('./rollup-plugin-emscripten.js').default({
+      require('@emnapi/rollup-plugin-emscripten-esm-library').default({
         defaultLibraryFuncsToInclude: ['$emnapiInit'],
         exportedRuntimeMethods: ['emnapiInit'],
+        processDirective: true,
         modifyOutput (output) {
           return output
             .replace(/\$POINTER_SIZE/g, '{{{ POINTER_SIZE }}}')
@@ -114,12 +111,12 @@ async function build () {
           before: [
             {
               type: 'program',
-              factory: require('../transformer/out/macro.js').default
+              factory: require('@emnapi/ts-transform-macro').createTransformerFactory
             },
             {
               type: 'program',
               factory (program) {
-                return require('../transformer/out/index.js').default(program, {
+                return require('@emnapi/ts-transform-emscripten-parse-tools').createTransformerFactory(program, {
                   defines: {
                     MEMORY64: 0
                   }

@@ -1,0 +1,28 @@
+{
+  "name": "@emnapi/ts-transform-emscripten-parse-tools",
+  "version": "0.44.0",
+  "private": true,
+  "description": "",
+  "type": "commonjs",
+  "main": "./lib/index.js",
+  "types": "./lib/index.d.ts",
+  "scripts": {
+    "build": "tsc"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/toyobayashi/emnapi.git"
+  },
+  "author": "toyobayashi",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/toyobayashi/emnapi/issues"
+  },
+  "homepage": "https://github.com/toyobayashi/emnapi/tree/main/packages/ts-transform-emscripten-parse-tools",
+  "publishConfig": {
+    "access": "public"
+  },
+  "peerDependencies": {
+    "typescript": ">= 5.0.0"
+  }
+}
