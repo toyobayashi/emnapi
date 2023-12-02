@@ -1,7 +1,7 @@
-import { join, dirname } from "path"
-import { defineConfig } from "rollup"
+import { join, dirname } from 'path'
+import { defineConfig } from 'rollup'
 import rollupTs from '@rollup/plugin-typescript'
-import { fileURLToPath } from "url"
+import { fileURLToPath } from 'url'
 import rollupEmscripten from '@emnapi/rollup-plugin-emscripten-esm-library'
 
 const __filename = fileURLToPath(import.meta.url)

@@ -64,6 +64,7 @@ async function build () {
       require('@emnapi/rollup-plugin-emscripten-esm-library').default({
         defaultLibraryFuncsToInclude: ['$emnapiInit'],
         exportedRuntimeMethods: ['emnapiInit'],
+        processDirective: true,
         modifyOutput (output) {
           return output
             .replace(/\$POINTER_SIZE/g, '{{{ POINTER_SIZE }}}')

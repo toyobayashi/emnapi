@@ -13,6 +13,8 @@ import type {
   ExpressionStatement
 } from 'typescript'
 
+import { EOL } from 'os'
+
 import ts = require('typescript')
 
 interface SymbolWrap/* <T extends VariableDeclaration | FunctionDeclaration> */ {
@@ -361,4 +363,30 @@ function transform (fileName: string, sourceText: string): string {
   return printer.printNode(ts.EmitHint.SourceFile, transformResult.transformed[0], transformResult.transformed[0])
 }
 
-export { createTransformerFactory, transform }
+export interface TransformOptions {
+  defaultLibraryFuncsToInclude?: string[]
+  exportedRuntimeMethods?: string[]
+  processDirective?: boolean
+}
+
+function transformWithOptions (fileName: string, sourceText: string, options?: TransformOptions): string {
+  const defaultLibraryFuncsToInclude = options?.defaultLibraryFuncsToInclude ?? []
+  const exportedRuntimeMethods = options?.exportedRuntimeMethods ?? []
+
+  let result = transform(fileName, sourceText)
+
+  const prefix = [
+    ...defaultLibraryFuncsToInclude
+      .map(sym => `{{{ ((DEFAULT_LIBRARY_FUNCS_TO_INCLUDE.indexOf("${sym}") === -1 ? DEFAULT_LIBRARY_FUNCS_TO_INCLUDE.push("${sym}") : undefined), "") }}}`),
+    ...exportedRuntimeMethods
+      .map(sym => `{{{ ((EXPORTED_RUNTIME_METHODS.indexOf("${sym}") === -1 ? EXPORTED_RUNTIME_METHODS.push("${sym}") : undefined), "") }}}`)
+  ].join(EOL)
+
+  if (options?.processDirective) {
+    result = result.replace(/(\r?\n)\s*\/\/\s+(#((if)|(else)|(elif)|(endif)))/g, '$1$2')
+  }
+
+  return prefix + (prefix ? EOL : '') + result
+}
+
+export { createTransformerFactory, transform, transformWithOptions }
