@@ -15,6 +15,6 @@ export default defineConfig({
   },
   plugins: [
     rollupTs({ tsconfig: join(__dirname, 'tsconfig.json') }),
-    rollupEmscripten.default()
+    rollupEmscripten()
   ]
 })

@@ -5,6 +5,18 @@
   "type": "commonjs",
   "main": "./lib/index.js",
   "types": "./lib/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./lib/index.d.mts",
+        "default": "./lib/index.mjs"
+      },
+      "require": {
+        "types": "./lib/index.js",
+        "default": "./lib/index.d.ts"
+      }
+    }
+  },
   "scripts": {
     "build": "tsc"
   },
