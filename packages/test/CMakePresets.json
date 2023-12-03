@@ -1,0 +1,91 @@
+{
+  "version": 3,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 21,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "configure: wasm32-unknown-emscripten",
+      "displayName": "configure: wasm32-unknown-emscripten",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/.build/wasm32-unknown-emscripten",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      },
+      "toolchainFile": "$env{EMSDK}/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake"
+    },
+    {
+      "name": "configure: wasm64-unknown-emscripten",
+      "displayName": "configure: wasm64-unknown-emscripten",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/.build/wasm64-unknown-emscripten",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      },
+      "toolchainFile": "$env{EMSDK}/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake",
+      "environment": {
+        "MEMORY64": "1"
+      }
+    },
+    {
+      "name": "configure: wasm32-unknown-unknown",
+      "displayName": "configure: wasm32-unknown-unknown",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/.build/wasm32-unknown-unknown",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "LLVM_PREFIX": "$env{WASI_SDK_PATH}"
+      },
+      "toolchainFile": "${sourceDir}/../emnapi/cmake/wasm32.cmake"
+    },
+    {
+      "name": "configure: wasm32-wasi",
+      "displayName": "configure: wasm32-wasi",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/.build/wasm32-wasi",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "WASI_SDK_PREFIX": "$env{WASI_SDK_PATH}"
+      },
+      "toolchainFile": "$env{WASI_SDK_PATH}/share/cmake/wasi-sdk.cmake"
+    },
+    {
+      "name": "configure: wasm32-wasi-threads",
+      "displayName": "configure: wasm32-wasi-threads",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/.build/wasm32-wasi-threads",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "WASI_SDK_PREFIX": "$env{WASI_SDK_PATH}"
+      },
+      "toolchainFile": "$env{WASI_SDK_PATH}/share/cmake/wasi-sdk-pthread.cmake"
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "build: wasm32-unknown-emscripten",
+      "configurePreset": "configure: wasm32-unknown-emscripten"
+    },
+    {
+      "name": "build: wasm64-unknown-emscripten",
+      "configurePreset": "configure: wasm64-unknown-emscripten",
+      "environment": {
+        "MEMORY64": "1"
+      }
+    },
+    {
+      "name": "build: wasm32-unknown-unknown",
+      "configurePreset": "configure: wasm32-unknown-unknown"
+    },
+    {
+      "name": "build: wasm32-wasi",
+      "configurePreset": "configure: wasm32-wasi"
+    },
+    {
+      "name": "build: wasm32-wasi-threads",
+      "configurePreset": "configure: wasm32-wasi-threads"
+    }
+  ]
+}

@@ -2,92 +2,94 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "VC Debug",
-      "type": "shell",
-      "command": "cgen.cmd",
-      "args": [
-        "build",
-        "--debug"
-      ],
-      "group": "build"
+      "type": "cmake",
+      "label": "CMake: configure wasm32-unknown-emscripten",
+      "command": "configure",
+      "preset": "configure: wasm32-unknown-emscripten",
+      "detail": "configure: wasm32-unknown-emscripten"
     },
     {
-      "label": "VC Release",
-      "type": "shell",
-      "command": "cgen.cmd",
-      "args": [
-        "build"
-      ],
-      "group": "build"
-    },
-    {
-      "label": "GCC Debug",
-      "type": "shell",
-      "command": "cgen",
-      "args": [
-        "build",
-        "--debug"
-      ],
-      "group": "build"
-    },
-    {
-      "label": "GCC Release",
-      "type": "shell",
-      "command": "cgen",
-      "args": [
-        "build"
-      ],
-      "group": "build"
-    },
-    {
-      "label": "Clang Debug",
-      "type": "shell",
-      "command": "cgen",
-      "args": [
-        "build",
-        "--debug"
-      ],
-      "group": "build"
-    },
-    {
-      "label": "Clang Release",
-      "type": "shell",
-      "command": "cgen",
-      "args": [
-        "build"
-      ],
-      "group": "build"
-    },
-    {
-      "label": "WSL GCC Debug",
-      "type": "shell",
-      "command": "cgen",
-      "args": [
-        "build",
-        "--debug"
-      ],
+      "type": "cmake",
+      "label": "CMake: build wasm32-unknown-emscripten",
+      "command": "build",
+      "preset": "build: wasm32-unknown-emscripten",
+      "detail": "build: wasm32-unknown-emscripten",
       "group": "build",
-      "options": {
-        "shell": {
-          "executable": "c:\\windows\\System32\\wsl.exe",
-          "args": []
-        }
-      }
+      "dependsOn": [
+        "CMake: configure wasm32-unknown-emscripten"
+      ]
     },
     {
-      "label": "WSL GCC Release",
-      "type": "shell",
-      "command": "cgen",
-      "args": [
-        "build"
-      ],
+      "type": "cmake",
+      "label": "CMake: configure wasm64-unknown-emscripten",
+      "command": "configure",
+      "preset": "configure: wasm64-unknown-emscripten",
+      "detail": "configure: wasm64-unknown-emscripten"
+    },
+    {
+      "type": "cmake",
+      "label": "CMake: build wasm64-unknown-emscripten",
+      "command": "build",
+      "preset": "build: wasm64-unknown-emscripten",
+      "detail": "build: wasm64-unknown-emscripten",
       "group": "build",
-      "options": {
-        "shell": {
-          "executable": "c:\\windows\\System32\\wsl.exe",
-          "args": []
-        }
-      }
+      "dependsOn": [
+        "CMake: configure wasm64-unknown-emscripten"
+      ]
+    },
+    {
+      "type": "cmake",
+      "label": "CMake: configure wasm32-unknown-unknown",
+      "command": "configure",
+      "preset": "configure: wasm32-unknown-unknown",
+      "detail": "configure: wasm32-unknown-unknown"
+    },
+    {
+      "type": "cmake",
+      "label": "CMake: build wasm32-unknown-unknown",
+      "command": "build",
+      "preset": "build: wasm32-unknown-unknown",
+      "detail": "build: wasm32-unknown-unknown",
+      "group": "build",
+      "dependsOn": [
+        "CMake: configure wasm32-unknown-unknown"
+      ]
+    },
+    {
+      "type": "cmake",
+      "label": "CMake: configure wasm32-wasi",
+      "command": "configure",
+      "preset": "configure: wasm32-wasi",
+      "detail": "configure: wasm32-wasi"
+    },
+    {
+      "type": "cmake",
+      "label": "CMake: build wasm32-wasi",
+      "command": "build",
+      "preset": "build: wasm32-wasi",
+      "detail": "build: wasm32-wasi",
+      "group": "build",
+      "dependsOn": [
+        "CMake: configure wasm32-wasi"
+      ]
+    },
+    {
+      "type": "cmake",
+      "label": "CMake: configure wasm32-wasi-threads",
+      "command": "configure",
+      "preset": "configure: wasm32-wasi-threads",
+      "detail": "configure: wasm32-wasi-threads"
+    },
+    {
+      "type": "cmake",
+      "label": "CMake: build wasm32-wasi-threads",
+      "command": "build",
+      "preset": "build: wasm32-wasi-threads",
+      "detail": "build: wasm32-wasi-threads",
+      "group": "build",
+      "dependsOn": [
+        "CMake: configure wasm32-wasi-threads"
+      ]
     }
   ]
 }

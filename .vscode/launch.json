@@ -12,22 +12,36 @@
     {
       "type": "node",
       "request": "launch",
-      "name": "Launch Program",
+      "name": "Launch Test",
+      "enableDWARF": true,
+      "envFile": "${workspaceFolder}/packages/test/${input:target}.ini",
       "env": {
-        "NODE_TEST_KNOWN_GLOBALS": "0",
-        "EMNAPI_TEST_WASM32": "1",
-        "UV_THREADPOOL_SIZE": "2"
-        // "EMNAPI_TEST_WASI": "0",
-        // "EMNAPI_TEST_WASI_THREADS": "0"
+        "UV_THREADPOOL_SIZE": "${input:uvThreadpoolSize}"
       },
       "runtimeArgs": ["--experimental-wasi-unstable-preview1", "--expose-gc"],
-      "program": "${workspaceFolder}/packages/test/async/async.test.js",
-      "args": []
+      "program": "${file}",
+      "args": [],
+      "preLaunchTask": "CMake: build ${input:target}"
+    }
+  ],
+  "inputs": [
+    {
+      "id": "target",
+      "type": "pickString",
+      "description": "Target",
+      "options": [
+        "wasm32-unknown-emscripten",
+        "wasm64-unknown-emscripten",
+        "wasm32-unknown-unknown",
+        "wasm32-wasi",
+        "wasm32-wasi-threads"
+      ]
     },
     {
-      "name": "Windows Attach",
-      "type": "cppvsdbg",
-      "request": "attach",
+      "id": "uvThreadpoolSize",
+      "type": "promptString",
+      "description": "UV_THREADPOOL_SIZE",
+      "default": "2"
     }
   ]
 }
