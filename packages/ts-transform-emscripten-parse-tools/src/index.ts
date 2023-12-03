@@ -21,7 +21,7 @@ import type {
 } from 'typescript'
 
 import ts = require('typescript')
-import { join } from 'path'
+import { join, resolve } from 'path'
 
 export interface DefineOptions {
   defines?: {
@@ -736,8 +736,16 @@ function createTransformerFactory (_program: Program, config: DefineOptions): Tr
       const injectedSrc = ts.visitEachChild(transformedSrc, transform.functionLikeDeclarationVisitor, context)
 
       const doNotInsertImport = join(__dirname, '../../emnapi/src/core/init.ts')
-      if (src.fileName === doNotInsertImport) {
-        return injectedSrc
+
+      if (process.platform === 'win32') {
+        const resolvedFileName = resolve(src.fileName)
+        if (resolvedFileName === doNotInsertImport) {
+          return injectedSrc
+        }
+      } else {
+        if (src.fileName === doNotInsertImport) {
+          return injectedSrc
+        }
       }
 
       let resultSrc = injectedSrc
