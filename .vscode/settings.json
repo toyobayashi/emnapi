@@ -3,5 +3,19 @@
     "**/api-extractor.json": "jsonc"
   },
   "typescript.tsdk": "./node_modules/typescript/lib",
-  "cmake.sourceDirectory": "${workspaceFolder}/packages/test"
+  "cmake.sourceDirectory": "${workspaceFolder}/packages/test",
+  "cmake.options.advanced": {
+    "configurePreset": {
+      "statusBarVisibility": "visible"
+    },
+    "build": {
+      "statusBarVisibility": "visible"
+    },
+    "debug": {
+      "statusBarVisibility": "hidden"
+    },
+    "launch": {
+      "statusBarVisibility": "hidden"
+    }
+  }
 }
