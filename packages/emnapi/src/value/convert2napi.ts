@@ -165,6 +165,13 @@ export function node_api_create_external_string_utf16 (
 }
 
 /**
+ * @__sig ipppp
+ */
+export function node_api_create_property_key_utf16 (env: napi_env, str: const_char16_t_p, length: size_t, result: Pointer<napi_value>): napi_status {
+  return napi_create_string_utf16(env, str, length, result)
+}
+
+/**
  * @__sig ipjp
  */
 export function napi_create_bigint_int64 (env: napi_env, low: int32_t, high: int32_t, result: Pointer<napi_value>): napi_status {
