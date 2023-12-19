@@ -28,7 +28,7 @@ function handleThrow (envObject: Env, value: any): void {
 
 export interface IReferenceBinding {
   wrapped: number // wrapped Reference id
-  tag: [number, number, number, number] | null
+  tag: Uint32Array | null
   data: void_p
 }
 

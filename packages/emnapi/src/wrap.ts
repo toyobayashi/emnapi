@@ -1,4 +1,5 @@
 import { emnapiCtx } from 'emnapi:shared'
+import { wasmMemory } from 'emnapi:emscripten-runtime'
 import { emnapiString } from './string'
 import { emnapiCreateFunction, emnapiDefineProperty, emnapiWrap, emnapiUnwrap, emnapiGetHandle } from './internal'
 import { $CHECK_ARG, $CHECK_ENV, $CHECK_ENV_NOT_IN_GC, $PREAMBLE } from './macro'
@@ -122,12 +123,9 @@ export function napi_type_tag_object (env: napi_env, object: napi_value, type_ta
     if (binding.tag !== null) {
       return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_invalid_arg)
     }
-    binding.tag = [
-      $makeGetValue('type_tag', '0', 'u32') as number,
-      $makeGetValue('type_tag', '4', 'u32') as number,
-      $makeGetValue('type_tag', '8', 'u32') as number,
-      $makeGetValue('type_tag', '12', 'u32') as number
-    ]
+    const tag = new Uint8Array(16)
+    tag.set(new Uint8Array(wasmMemory.buffer, type_tag, 16))
+    binding.tag = new Uint32Array(tag.buffer)
 
     return envObject.getReturnStatus()
   })
@@ -157,13 +155,14 @@ export function napi_check_object_type_tag (env: napi_env, object: napi_value, t
     const binding = envObject.getObjectBinding(value.value)
     if (binding.tag !== null) {
       $from64('type_tag')
-      for (i = 0; i < 4; i++) {
-        const x = $makeGetValue('type_tag', 'i * 4', 'u32')
-        if (x !== binding.tag[i]) {
-          ret = false
-          break
-        }
-      }
+      const tag = binding.tag
+      const typeTag = new Uint32Array(wasmMemory.buffer, type_tag, 4)
+      ret = (
+        tag[0] === typeTag[0] &&
+        tag[1] === typeTag[1] &&
+        tag[2] === typeTag[2] &&
+        tag[3] === typeTag[3]
+      )
     } else {
       ret = false
     }
