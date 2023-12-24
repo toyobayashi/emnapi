@@ -1,4 +1,5 @@
 import { emnapiCtx } from 'emnapi:shared'
+import { from64, makeSetValue } from 'emscripten:parse-tools'
 import { $PREAMBLE, $CHECK_ARG, $CHECK_ENV_NOT_IN_GC } from './macro'
 
 /** @__sig ippp */
@@ -13,14 +14,14 @@ export function napi_create_promise (env: napi_env, deferred: Pointer<napi_defer
     const p = new Promise<any>((resolve, reject) => {
       const deferredObject = emnapiCtx.createDeferred({ resolve, reject })
       deferredObjectId = deferredObject.id
-      $from64('deferred')
-      $makeSetValue('deferred', 0, 'deferredObjectId', '*')
+      from64('deferred')
+      makeSetValue('deferred', 0, 'deferredObjectId', '*')
     })
-    $from64('promise')
+    from64('promise')
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     value = emnapiCtx.addToCurrentScope(p).id
-    $makeSetValue('promise', 0, 'value', '*')
+    makeSetValue('promise', 0, 'value', '*')
     return envObject.getReturnStatus()
   })
 }
@@ -53,9 +54,9 @@ export function napi_is_promise (env: napi_env, value: napi_value, is_promise: P
   $CHECK_ARG!(envObject, value)
   $CHECK_ARG!(envObject, is_promise)
   const h = emnapiCtx.handleStore.get(value)!
-  $from64('is_promise')
+  from64('is_promise')
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const r = h.isPromise() ? 1 : 0
-  $makeSetValue('is_promise', 0, 'r', 'i8')
+  makeSetValue('is_promise', 0, 'r', 'i8')
   return envObject.clearLastError()
 }

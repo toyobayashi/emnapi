@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/prefer-nullish-coalescing */
 
+import { makeDynCall, to64 } from 'emscripten:parse-tools'
 import { emnapiTSFN } from '../threadsafe-function'
 
 export interface CreateOptions {
@@ -122,8 +123,8 @@ export var napiModule: INapiModule = {
       const envObject = napiModule.envObject || (napiModule.envObject = emnapiCtx.createEnv(
         napiModule.filename,
         moduleApiVersion,
-        (cb: Ptr) => $makeDynCall('vppp', 'cb'),
-        (cb: Ptr) => $makeDynCall('vp', 'cb'),
+        (cb: Ptr) => makeDynCall('vppp', 'cb'),
+        (cb: Ptr) => makeDynCall('vp', 'cb'),
         abort,
         emnapiNodeBinding
       ))
@@ -134,7 +135,7 @@ export var napiModule: INapiModule = {
           const exports = napiModule.exports
           const exportsHandle = scope.add(exports)
           const napi_register_wasm_v1 = instance.exports.napi_register_wasm_v1 as Function
-          const napiValue = napi_register_wasm_v1($to64('_envObject.id'), $to64('exportsHandle.id'))
+          const napiValue = napi_register_wasm_v1(to64('_envObject.id'), to64('exportsHandle.id'))
           napiModule.exports = (!napiValue) ? exports : emnapiCtx.handleStore.get(napiValue)!.value
         })
       } finally {
@@ -234,7 +235,7 @@ function emnapiAddSendListener (worker: any): boolean {
       } else {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const callback = __emnapi__.payload.callback
-        $makeDynCall('vp', 'callback')(__emnapi__.payload.data)
+        makeDynCall('vp', 'callback')(__emnapi__.payload.data)
       }
     }
   }
@@ -270,7 +271,7 @@ function terminateWorker (worker: any): void {
 function spawnThread (startArg: number, errorOrTid: number): number {
   const isNewABI = errorOrTid !== undefined
   if (!isNewABI) {
-    errorOrTid = _malloc($to64('8'))
+    errorOrTid = _malloc(to64('8'))
     if (!errorOrTid) {
       return -48 /* ENOMEM */
     }
@@ -296,7 +297,7 @@ function spawnThread (startArg: number, errorOrTid: number): number {
     if (isNewABI) {
       return isError
     }
-    _free($to64('errorOrTid'))
+    _free(to64('errorOrTid'))
     return isError ? -result : result
   }
 
@@ -317,7 +318,7 @@ function spawnThread (startArg: number, errorOrTid: number): number {
     if (isNewABI) {
       return 1
     }
-    _free($to64('errorOrTid'))
+    _free(to64('errorOrTid'))
     return -EAGAIN
   }
 
@@ -349,7 +350,7 @@ function spawnThread (startArg: number, errorOrTid: number): number {
   if (isNewABI) {
     return 0
   }
-  _free($to64('errorOrTid'))
+  _free(to64('errorOrTid'))
   return tid
 }
 

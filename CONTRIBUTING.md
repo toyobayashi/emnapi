@@ -49,7 +49,6 @@ This doc will explain the structure of this project and some points need to note
 
 ## Macro
 
-Macro is heavily used in `packages/emnapi`, there are two kinds of macro.
+Macro is heavily used in `packages/emnapi`.
 
-- `$macroName(...)`: transformed to `{{{ macroName(...) }}}`
 - `$CUSTOM_MACRO!(...)`: powered by `packages/ts-transform-macro`

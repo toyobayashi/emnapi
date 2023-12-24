@@ -1,4 +1,5 @@
 import { emnapiCtx } from 'emnapi:shared'
+import { from64, makeSetValue, makeGetValue, SIZE_TYPE, POINTER_SIZE } from 'emscripten:parse-tools'
 import { emnapiCreateFunction } from './internal'
 import { $PREAMBLE, $CHECK_ARG, $CHECK_ENV, $CHECK_ENV_NOT_IN_GC } from './macro'
 
@@ -11,16 +12,16 @@ export function napi_create_function (env: napi_env, utf8name: Pointer<const_cha
     $CHECK_ARG!(envObject, result)
     $CHECK_ARG!(envObject, cb)
 
-    $from64('length')
+    from64('length')
 
     const fresult = emnapiCreateFunction(envObject, utf8name, length, cb, data)
     if (fresult.status !== napi_status.napi_ok) return envObject.setLastError(fresult.status)
     const f = fresult.f
     const valueHandle = emnapiCtx.addToCurrentScope(f)
-    $from64('result')
+    from64('result')
 
     value = valueHandle.id
-    $makeSetValue('result', 0, 'value', '*')
+    makeSetValue('result', 0, 'value', '*')
     return envObject.getReturnStatus()
   })
 }
@@ -32,13 +33,13 @@ export function napi_get_cb_info (env: napi_env, cbinfo: napi_callback_info, arg
   if (!cbinfo) return envObject.setLastError(napi_status.napi_invalid_arg)
   const cbinfoValue = emnapiCtx.cbinfoStack.get(cbinfo)!
 
-  $from64('argc')
-  $from64('argv')
+  from64('argc')
+  from64('argv')
 
   if (argv) {
     $CHECK_ARG!(envObject, argc)
-    const argcValue = $makeGetValue('argc', 0, SIZE_TYPE)
-    $from64('argcValue')
+    const argcValue = makeGetValue('argc', 0, SIZE_TYPE)
+    from64('argcValue')
 
     const len = cbinfoValue.args.length
     const arrlen = argcValue < len ? argcValue : len
@@ -47,27 +48,27 @@ export function napi_get_cb_info (env: napi_env, cbinfo: napi_callback_info, arg
     for (; i < arrlen; i++) {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const argVal = envObject.ensureHandleId(cbinfoValue.args[i])
-      $makeSetValue('argv', 'i * ' + POINTER_SIZE, 'argVal', '*')
+      makeSetValue('argv', 'i * ' + POINTER_SIZE, 'argVal', '*')
     }
     if (i < argcValue) {
       for (; i < argcValue; i++) {
-        $makeSetValue('argv', 'i * ' + POINTER_SIZE, '1', '*')
+        makeSetValue('argv', 'i * ' + POINTER_SIZE, '1', '*')
       }
     }
   }
   if (argc) {
-    $makeSetValue('argc', 0, 'cbinfoValue.args.length', SIZE_TYPE)
+    makeSetValue('argc', 0, 'cbinfoValue.args.length', SIZE_TYPE)
   }
   if (this_arg) {
-    $from64('this_arg')
+    from64('this_arg')
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const v = envObject.ensureHandleId(cbinfoValue.thiz)
-    $makeSetValue('this_arg', 0, 'v', '*')
+    makeSetValue('this_arg', 0, 'v', '*')
   }
   if (data) {
-    $from64('data')
-    $makeSetValue('data', 0, 'cbinfoValue.data', '*')
+    from64('data')
+    makeSetValue('data', 0, 'cbinfoValue.data', '*')
   }
   return envObject.clearLastError()
 }
@@ -88,9 +89,9 @@ export function napi_call_function (
   return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, recv)
 
-    $from64('argc')
-    $from64('argv')
-    $from64('result')
+    from64('argc')
+    from64('argv')
+    from64('result')
 
     argc = argc >>> 0
     if (argc > 0) {
@@ -102,13 +103,13 @@ export function napi_call_function (
     if (typeof v8func !== 'function') return envObject.setLastError(napi_status.napi_invalid_arg)
     const args = []
     for (; i < argc; i++) {
-      const argVal = $makeGetValue('argv', 'i * ' + POINTER_SIZE, '*')
+      const argVal = makeGetValue('argv', 'i * ' + POINTER_SIZE, '*')
       args.push(emnapiCtx.handleStore.get(argVal)!.value)
     }
     const ret = v8func.apply(v8recv, args)
     if (result) {
       v = envObject.ensureHandleId(ret)
-      $makeSetValue('result', 0, 'v', '*')
+      makeSetValue('result', 0, 'v', '*')
     }
     return envObject.clearLastError()
   })
@@ -128,9 +129,9 @@ export function napi_new_instance (
 
   return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, constructor)
-    $from64('argc')
-    $from64('argv')
-    $from64('result')
+    from64('argc')
+    from64('argv')
+    from64('result')
 
     argc = argc >>> 0
     if (argc > 0) {
@@ -144,7 +145,7 @@ export function napi_new_instance (
     if (emnapiCtx.feature.supportReflect) {
       const argList = Array(argc)
       for (i = 0; i < argc; i++) {
-        const argVal = $makeGetValue('argv', 'i * ' + POINTER_SIZE, '*')
+        const argVal = makeGetValue('argv', 'i * ' + POINTER_SIZE, '*')
         argList[i] = emnapiCtx.handleStore.get(argVal)!.value
       }
       ret = Reflect.construct(Ctor, argList, Ctor)
@@ -152,7 +153,7 @@ export function napi_new_instance (
       const args = Array(argc + 1) as [undefined, ...any[]]
       args[0] = undefined
       for (i = 0; i < argc; i++) {
-        const argVal = $makeGetValue('argv', 'i * ' + POINTER_SIZE, '*')
+        const argVal = makeGetValue('argv', 'i * ' + POINTER_SIZE, '*')
         args[i + 1] = emnapiCtx.handleStore.get(argVal)!.value
       }
       const BoundCtor = Ctor.bind.apply(Ctor, args) as new () => any
@@ -160,7 +161,7 @@ export function napi_new_instance (
     }
     if (result) {
       v = envObject.ensureHandleId(ret)
-      $makeSetValue('result', 0, 'v', '*')
+      makeSetValue('result', 0, 'v', '*')
     }
     return envObject.getReturnStatus()
   })
@@ -176,11 +177,11 @@ export function napi_get_new_target (
   $CHECK_ARG!(envObject, cbinfo)
   $CHECK_ARG!(envObject, result)
 
-  $from64('result')
+  from64('result')
 
   const cbinfoValue = emnapiCtx.cbinfoStack.get(cbinfo)!
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const value = cbinfoValue.getNewTarget(envObject)
-  $makeSetValue('result', 0, 'value', '*')
+  makeSetValue('result', 0, 'value', '*')
   return envObject.clearLastError()
 }

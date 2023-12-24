@@ -1,5 +1,6 @@
-import { _free, wasmMemory, _malloc } from 'emnapi:emscripten-runtime'
+import { _free, wasmMemory, _malloc } from 'emscripten:runtime'
 import { emnapiCtx } from 'emnapi:shared'
+import { to64 } from 'emscripten:parse-tools'
 
 export type ViewConstuctor =
   Int8ArrayConstructor |
@@ -49,12 +50,12 @@ export const emnapiExternalMemory: {
   getArrayBufferPointer: (arrayBuffer: ArrayBuffer, shouldCopy: boolean) => ArrayBufferPointer
   getViewPointer: <T extends ArrayBufferView>(view: T, shouldCopy: boolean) => ViewPointer<T>
 } = {
-  registry: typeof FinalizationRegistry === 'function' ? new FinalizationRegistry(function (_pointer) { _free($to64('_pointer') as number) }) : undefined,
+  registry: typeof FinalizationRegistry === 'function' ? new FinalizationRegistry(function (_pointer) { _free(to64('_pointer') as number) }) : undefined,
   table: new WeakMap(),
   wasmMemoryViewTable: new WeakMap(),
 
   init: function () {
-    emnapiExternalMemory.registry = typeof FinalizationRegistry === 'function' ? new FinalizationRegistry(function (_pointer) { _free($to64('_pointer') as number) }) : undefined
+    emnapiExternalMemory.registry = typeof FinalizationRegistry === 'function' ? new FinalizationRegistry(function (_pointer) { _free(to64('_pointer') as number) }) : undefined
     emnapiExternalMemory.table = new WeakMap()
     emnapiExternalMemory.wasmMemoryViewTable = new WeakMap()
   },
@@ -102,7 +103,7 @@ export const emnapiExternalMemory: {
       return info
     }
 
-    const pointer = _malloc($to64('arrayBuffer.byteLength'))
+    const pointer = _malloc(to64('arrayBuffer.byteLength'))
     if (!pointer) throw new Error('Out of memory')
     new Uint8Array(wasmMemory.buffer).set(new Uint8Array(arrayBuffer), pointer)
 

@@ -1,13 +1,14 @@
-import { abort } from 'emnapi:emscripten-runtime'
+import { abort } from 'emscripten:runtime'
 import { emnapiCtx, emnapiNodeBinding } from 'emnapi:shared'
+import { from64, makeSetValue } from 'emscripten:parse-tools'
 import { $PREAMBLE, $CHECK_ARG, $CHECK_ENV_NOT_IN_GC } from './macro'
 import { emnapiString } from './string'
 
 /** @__sig vpppp */
 export function _emnapi_get_last_error_info (env: napi_env, error_code: Pointer<napi_status>, engine_error_code: Pointer<uint32_t>, engine_reserved: void_pp): void {
-  $from64('error_code')
-  $from64('engine_error_code')
-  $from64('engine_reserved')
+  from64('error_code')
+  from64('engine_error_code')
+  from64('engine_reserved')
   const envObject = emnapiCtx.envStore.get(env)!
 
   const lastError = envObject.lastError
@@ -17,11 +18,11 @@ export function _emnapi_get_last_error_info (env: napi_env, error_code: Pointer<
   const engineErrorCode = lastError.engineErrorCode >>> 0
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const engineReserved = lastError.engineReserved
-  $from64('engineReserved')
+  from64('engineReserved')
 
-  $makeSetValue('error_code', 0, 'errorCode', 'i32')
-  $makeSetValue('engine_error_code', 0, 'engineErrorCode', 'u32')
-  $makeSetValue('engine_reserved', 0, 'engineReserved', '*')
+  makeSetValue('error_code', 0, 'errorCode', 'i32')
+  makeSetValue('engine_error_code', 0, 'engineErrorCode', 'u32')
+  makeSetValue('engine_reserved', 0, 'engineReserved', '*')
 }
 
 /** @__sig ipp */
@@ -37,8 +38,8 @@ export function napi_throw (env: napi_env, error: napi_value): napi_status {
 export function napi_throw_error (env: napi_env, code: const_char_p, msg: const_char_p): napi_status {
   return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, msg)
-    $from64('code')
-    $from64('msg')
+    from64('code')
+    from64('msg')
 
     const error: Error & { code?: string } = new Error(emnapiString.UTF8ToString(msg, -1))
     if (code) error.code = emnapiString.UTF8ToString(code, -1)
@@ -52,8 +53,8 @@ export function napi_throw_error (env: napi_env, code: const_char_p, msg: const_
 export function napi_throw_type_error (env: napi_env, code: const_char_p, msg: const_char_p): napi_status {
   return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, msg)
-    $from64('code')
-    $from64('msg')
+    from64('code')
+    from64('msg')
 
     const error: TypeError & { code?: string } = new TypeError(emnapiString.UTF8ToString(msg, -1))
     if (code) error.code = emnapiString.UTF8ToString(code, -1)
@@ -67,8 +68,8 @@ export function napi_throw_type_error (env: napi_env, code: const_char_p, msg: c
 export function napi_throw_range_error (env: napi_env, code: const_char_p, msg: const_char_p): napi_status {
   return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, msg)
-    $from64('code')
-    $from64('msg')
+    from64('code')
+    from64('msg')
 
     const error: RangeError & { code?: string } = new RangeError(emnapiString.UTF8ToString(msg, -1))
     if (code) error.code = emnapiString.UTF8ToString(code, -1)
@@ -82,8 +83,8 @@ export function napi_throw_range_error (env: napi_env, code: const_char_p, msg: 
 export function node_api_throw_syntax_error (env: napi_env, code: const_char_p, msg: const_char_p): napi_status {
   return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, msg)
-    $from64('code')
-    $from64('msg')
+    from64('code')
+    from64('msg')
 
     const error: SyntaxError & { code?: string } = new SyntaxError(emnapiString.UTF8ToString(msg, -1))
     if (code) error.code = emnapiString.UTF8ToString(code, -1)
@@ -99,8 +100,8 @@ export function napi_is_exception_pending (env: napi_env, result: Pointer<bool>)
   $CHECK_ARG!(envObject, result)
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const r = envObject.tryCatch.hasCaught()
-  $from64('result')
-  $makeSetValue('result', 0, 'r ? 1 : 0', 'i8')
+  from64('result')
+  makeSetValue('result', 0, 'r ? 1 : 0', 'i8')
   return envObject.clearLastError()
 }
 
@@ -123,11 +124,11 @@ export function napi_create_error (env: napi_env, code: napi_value, msg: napi_va
     (error as any).code = codeValue
   }
 
-  $from64('result')
+  from64('result')
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const value = emnapiCtx.addToCurrentScope(error).id
-  $makeSetValue('result', 0, 'value', '*')
+  makeSetValue('result', 0, 'value', '*')
   return envObject.clearLastError()
 }
 
@@ -149,11 +150,11 @@ export function napi_create_type_error (env: napi_env, code: napi_value, msg: na
     (error as any).code = codeValue
   }
 
-  $from64('result')
+  from64('result')
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const value = emnapiCtx.addToCurrentScope(error).id
-  $makeSetValue('result', 0, 'value', '*')
+  makeSetValue('result', 0, 'value', '*')
   return envObject.clearLastError()
 }
 
@@ -174,11 +175,11 @@ export function napi_create_range_error (env: napi_env, code: napi_value, msg: n
     }
     (error as any).code = codeValue
   }
-  $from64('result')
+  from64('result')
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const value = emnapiCtx.addToCurrentScope(error).id
-  $makeSetValue('result', 0, 'value', '*')
+  makeSetValue('result', 0, 'value', '*')
   return envObject.clearLastError()
 }
 
@@ -199,11 +200,11 @@ export function node_api_create_syntax_error (env: napi_env, code: napi_value, m
     }
     (error as any).code = codeValue
   }
-  $from64('result')
+  from64('result')
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const value = emnapiCtx.addToCurrentScope(error).id
-  $makeSetValue('result', 0, 'value', '*')
+  makeSetValue('result', 0, 'value', '*')
   return envObject.clearLastError()
 }
 
@@ -211,16 +212,16 @@ export function node_api_create_syntax_error (env: napi_env, code: napi_value, m
 export function napi_get_and_clear_last_exception (env: napi_env, result: Pointer<napi_value>): napi_status {
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, result)
-  $from64('result')
+  from64('result')
 
   if (!envObject.tryCatch.hasCaught()) {
-    $makeSetValue('result', 0, '1', '*') // ID_UNDEFINED
+    makeSetValue('result', 0, '1', '*') // ID_UNDEFINED
     return envObject.clearLastError()
   } else {
     const err = envObject.tryCatch.exception()!
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const value = envObject.ensureHandleId(err)
-    $makeSetValue('result', 0, 'value', '*')
+    makeSetValue('result', 0, 'value', '*')
     envObject.tryCatch.reset()
   }
   return envObject.clearLastError()
@@ -228,10 +229,10 @@ export function napi_get_and_clear_last_exception (env: napi_env, result: Pointe
 
 /** @__sig vpppp */
 export function napi_fatal_error (location: const_char_p, location_len: size_t, message: const_char_p, message_len: size_t): void {
-  $from64('location')
-  $from64('location_len')
-  $from64('message')
-  $from64('message_len')
+  from64('location')
+  from64('location_len')
+  from64('message')
+  from64('message_len')
 
   const locationStr = emnapiString.UTF8ToString(location, location_len)
   const messageStr = emnapiString.UTF8ToString(message, message_len)

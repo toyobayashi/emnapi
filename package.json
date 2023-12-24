@@ -52,8 +52,8 @@
   },
   "workspaces": [
     "packages/ts-transform-macro",
-    "packages/ts-transform-emscripten-parse-tools",
     "packages/ts-transform-emscripten-esm-library",
+    "packages/ts-transform-emscripten-parse-tools",
     "packages/rollup-plugin-emscripten-esm-library",
     "packages/runtime",
     "packages/node",

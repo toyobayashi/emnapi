@@ -1,4 +1,5 @@
 import { emnapiCtx } from 'emnapi:shared'
+import { makeSetValue } from 'emscripten:parse-tools'
 import { emnapiAWST } from '../async-work'
 import { $CHECK_ARG, $CHECK_ENV, $CHECK_ENV_NOT_IN_GC } from '../macro'
 
@@ -23,7 +24,7 @@ export function napi_create_async_work (env: napi_env, resource: napi_value, res
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const id = emnapiAWST.create(env, resourceObject, resourceName, execute, complete, data)
-  $makeSetValue('result', 0, 'id', '*')
+  makeSetValue('result', 0, 'id', '*')
   return envObject.clearLastError()
 }
 

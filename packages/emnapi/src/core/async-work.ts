@@ -1,5 +1,6 @@
 import { emnapiCtx, onCreateWorker, napiModule, emnapiNodeBinding, singleThreadAsyncWork, _emnapi_async_work_pool_size } from 'emnapi:shared'
-import { PThread, ENVIRONMENT_IS_NODE, ENVIRONMENT_IS_PTHREAD, wasmInstance, _free, wasmMemory, _malloc } from 'emnapi:emscripten-runtime'
+import { PThread, ENVIRONMENT_IS_NODE, ENVIRONMENT_IS_PTHREAD, wasmInstance, _free, wasmMemory, _malloc } from 'emscripten:runtime'
+import { POINTER_SIZE, to64, makeDynCall, makeSetValue, from64 } from 'emscripten:parse-tools'
 import { emnapiAWST } from '../async-work'
 import { $CHECK_ENV_NOT_IN_GC, $CHECK_ARG, $CHECK_ENV } from '../macro'
 import { _emnapi_node_emit_async_init, _emnapi_node_emit_async_destroy } from '../node'
@@ -16,10 +17,10 @@ var emnapiAWMT = {
     /* double */ async_id: 8,
     /* double */ trigger_async_id: 16,
     /* napi_env */ env: 24,
-    /* void* */ data: 1 * $POINTER_SIZE + 24,
-    /* napi_async_execute_callback */ execute: 2 * $POINTER_SIZE + 24,
-    /* napi_async_complete_callback */ complete: 3 * $POINTER_SIZE + 24,
-    end: 4 * $POINTER_SIZE + 24
+    /* void* */ data: 1 * POINTER_SIZE + 24,
+    /* napi_async_execute_callback */ execute: 2 * POINTER_SIZE + 24,
+    /* napi_async_complete_callback */ complete: 3 * POINTER_SIZE + 24,
+    end: 4 * POINTER_SIZE + 24
   },
   init () {
     emnapiAWMT.unusedWorkers = []
@@ -107,7 +108,7 @@ var emnapiAWMT = {
       for (let i = 0; i < n; ++i) {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const arg = args[i]
-        _free($to64('arg'))
+        _free(to64('arg'))
       }
       throw err
     }
@@ -209,7 +210,7 @@ var emnapiAWMT = {
     const callback = (): void => {
       if (!complete) return
       (envObject as NodeEnv).callbackIntoModule(true, () => {
-        $makeDynCall('vpip', 'complete')(env, status, data)
+        makeDynCall('vpip', 'complete')(env, status, data)
       })
     }
 
@@ -254,7 +255,7 @@ export var napi_create_async_work = singleThreadAsyncWork
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const id = emnapiAWST.create(env, resourceObject, resourceName, execute, complete, data)
-    $makeSetValue('result', 0, 'id', '*')
+    makeSetValue('result', 0, 'id', '*')
     return envObject.clearLastError()
   }
   : function (env: napi_env, resource: napi_value, resource_name: napi_value, execute: number, complete: number, data: number, result: number): napi_status {
@@ -272,21 +273,21 @@ export var napi_create_async_work = singleThreadAsyncWork
     $CHECK_ARG!(envObject, resource_name)
 
     const sizeofAW = emnapiAWMT.offset.end
-    const aw = _malloc($to64('sizeofAW'))
+    const aw = _malloc(to64('sizeofAW'))
     if (!aw) return envObject.setLastError(napi_status.napi_generic_failure)
     new Uint8Array(wasmMemory.buffer).subarray(aw, aw + sizeofAW).fill(0)
     const s = envObject.ensureHandleId(resourceObject)
     const resourceRef = emnapiCtx.createReference(envObject, s, 1, Ownership.kUserland as any)
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const resource_ = resourceRef.id
-    $makeSetValue('aw', 0, 'resource_', '*')
+    makeSetValue('aw', 0, 'resource_', '*')
     _emnapi_node_emit_async_init(s, resource_name, -1, aw + emnapiAWMT.offset.async_id)
-    $makeSetValue('aw', 'emnapiAWMT.offset.env', 'env', '*')
-    $makeSetValue('aw', 'emnapiAWMT.offset.execute', 'execute', '*')
-    $makeSetValue('aw', 'emnapiAWMT.offset.complete', 'complete', '*')
-    $makeSetValue('aw', 'emnapiAWMT.offset.data', 'data', '*')
-    $from64('result')
-    $makeSetValue('result', 0, 'aw', '*')
+    makeSetValue('aw', 'emnapiAWMT.offset.env', 'env', '*')
+    makeSetValue('aw', 'emnapiAWMT.offset.execute', 'execute', '*')
+    makeSetValue('aw', 'emnapiAWMT.offset.complete', 'complete', '*')
+    makeSetValue('aw', 'emnapiAWMT.offset.data', 'data', '*')
+    from64('result')
+    makeSetValue('result', 0, 'aw', '*')
     return envObject.clearLastError()
   }
 
@@ -313,7 +314,7 @@ export var napi_delete_async_work = singleThreadAsyncWork
       _emnapi_node_emit_async_destroy(asyncId, triggerAsyncId)
     }
 
-    _free($to64('work') as number)
+    _free(to64('work') as number)
     return envObject.clearLastError()
   }
 
@@ -373,7 +374,7 @@ function executeAsyncWork (work: number): void {
   const execute = emnapiAWMT.getExecute(work)
   const env = emnapiAWMT.getEnv(work)
   const data = emnapiAWMT.getData(work)
-  $makeDynCall('vpp', 'execute')(env, data)
+  makeDynCall('vpp', 'execute')(env, data)
   const postMessage = napiModule.postMessage!
   postMessage({
     __emnapi__: {

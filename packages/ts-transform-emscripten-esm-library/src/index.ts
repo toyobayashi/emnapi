@@ -17,6 +17,14 @@ import { EOL } from 'os'
 
 import ts = require('typescript')
 
+export interface BaseTransformOptions {
+  /** @default 'emscripten:runtime' */
+  runtimeModuleSpecifier?: string
+
+  /** @default 'emscripten:parse-tools' */
+  parseToolsModuleSpecifier?: string
+}
+
 interface SymbolWrap/* <T extends VariableDeclaration | FunctionDeclaration> */ {
   // decl: T
   deps: Set<VariableDeclaration | FunctionDeclaration>
@@ -29,17 +37,26 @@ class Transformer {
   exported: Set<VariableDeclaration | FunctionDeclaration> = new Set()
   wrap: WeakMap<VariableDeclaration | FunctionDeclaration, SymbolWrap> = new WeakMap()
 
-  constructor (public ctx: TransformationContext, public program: Program) {
+  private readonly _runtimeModuleSpecifier: string
+  private readonly _parseToolsModuleSpecifier: string
+
+  constructor (public ctx: TransformationContext, public program: Program, options?: BaseTransformOptions) {
+    const { runtimeModuleSpecifier, parseToolsModuleSpecifier } = getDefaultBaseOptions(options)
+    this._runtimeModuleSpecifier = runtimeModuleSpecifier
+    this._parseToolsModuleSpecifier = parseToolsModuleSpecifier
+
     this.transform = this.transform.bind(this)
+    this.parseToolsVisitor = this.parseToolsVisitor.bind(this)
     this.finalVisitor = this.finalVisitor.bind(this)
     this.collectExportedFunctionVisitor = this.collectExportedFunctionVisitor.bind(this)
   }
 
   transform (source: SourceFile): SourceFile {
+    source = ts.visitNode(source, this.parseToolsVisitor) as SourceFile
     ts.visitNode(source, this.collectExportedFunctionVisitor) as SourceFile
 
     const result = ts.visitEachChild(source, this.finalVisitor, this.ctx)
-    const statements = [
+    let statements = [
       ...result.statements.filter(s => !ts.isExportDeclaration(s)).map(s => {
         if (ts.isFunctionDeclaration(s)) {
           return this.ctx.factory.updateFunctionDeclaration(s,
@@ -62,7 +79,49 @@ class Transformer {
       }),
       this.createMergeExported()
     ]
+
+    if (this._runtimeModuleSpecifier) {
+      statements = statements.filter(s => {
+        return !(ts.isImportDeclaration(s) && ts.isStringLiteral(s.moduleSpecifier) && (s.moduleSpecifier.text === this._runtimeModuleSpecifier))
+      })
+    }
+    if (this._parseToolsModuleSpecifier) {
+      statements = statements.filter(s => {
+        return !(ts.isImportDeclaration(s) && ts.isStringLiteral(s.moduleSpecifier) && (s.moduleSpecifier.text === this._parseToolsModuleSpecifier))
+      })
+    }
     return this.ctx.factory.updateSourceFile(result, statements)
+  }
+
+  parseToolsVisitor (node: Node): VisitResult<Node> {
+    if (this._parseToolsModuleSpecifier) {
+      const typeChecker = this.program.getTypeChecker()
+      if (ts.isCallExpression(node) && ts.isIdentifier(node.expression)) {
+        const d = typeChecker.getSymbolAtLocation(node.expression)?.declarations?.[0]
+        if (d && ts.isImportSpecifier(d)) {
+          const moduleSpecifier = d.parent.parent.parent.moduleSpecifier
+          if (ts.isStringLiteral(moduleSpecifier) && moduleSpecifier.text === this._parseToolsModuleSpecifier) {
+            return ts.addSyntheticTrailingComment(ts.addSyntheticLeadingComment(node,
+              ts.SyntaxKind.MultiLineCommentTrivia, ' {{{ ', false
+            ), ts.SyntaxKind.MultiLineCommentTrivia, ' }}} ', false)
+          }
+        }
+      }
+      if (ts.isIdentifier(node) && !ts.isImportSpecifier(node.parent) && !ts.isImportClause(node.parent) && !ts.isImportEqualsDeclaration(node.parent) && !ts.isImportTypeNode(node.parent)) {
+        const d = typeChecker.getSymbolAtLocation(node)?.declarations?.[0]
+        if (d && ts.isImportSpecifier(d)) {
+          const moduleSpecifier = d.parent.parent.parent.moduleSpecifier
+          if (ts.isStringLiteral(moduleSpecifier) && moduleSpecifier.text === this._parseToolsModuleSpecifier) {
+            return ts.addSyntheticTrailingComment(ts.addSyntheticLeadingComment(node,
+              ts.SyntaxKind.MultiLineCommentTrivia, ' {{{ ', false
+            ), ts.SyntaxKind.MultiLineCommentTrivia, ' }}} ', false)
+          }
+        }
+      }
+      return ts.visitEachChild(node, this.parseToolsVisitor, this.ctx)
+    }
+
+    return node
   }
 
   finalVisitor (node: Node): VisitResult<Node> {
@@ -296,6 +355,16 @@ class Transformer {
     for (let i = 0; i < source.statements.length; ++i) {
       const stmt = source.statements[i]
       if (ts.isImportDeclaration(stmt)) {
+        if (this._runtimeModuleSpecifier) {
+          if (ts.isStringLiteral(stmt.moduleSpecifier) && stmt.moduleSpecifier.text === this._runtimeModuleSpecifier) {
+            continue
+          }
+        }
+        if (this._parseToolsModuleSpecifier) {
+          if (ts.isStringLiteral(stmt.moduleSpecifier) && stmt.moduleSpecifier.text === this._parseToolsModuleSpecifier) {
+            continue
+          }
+        }
         throw new Error('import declaration is not supported: ' + stmt.getText(source))
       }
     }
@@ -330,15 +399,15 @@ class Transformer {
   }
 }
 
-function createTransformerFactory (program: Program): TransformerFactory<SourceFile> {
+function createTransformerFactory (program: Program, options?: BaseTransformOptions): TransformerFactory<SourceFile> {
   return (context) => {
-    const transformer = new Transformer(context, program)
+    const transformer = new Transformer(context, program, options)
 
     return transformer.transform
   }
 }
 
-function transform (fileName: string, sourceText: string): string {
+function transform (fileName: string, sourceText: string, options?: BaseTransformOptions): string {
   const compilerOptions = {
     allowJs: true,
     module: ts.ModuleKind.ESNext,
@@ -354,7 +423,7 @@ function transform (fileName: string, sourceText: string): string {
     host
   })
 
-  const transformerFactory = createTransformerFactory(program)
+  const transformerFactory = createTransformerFactory(program, options)
 
   const transformResult = ts.transform(source, [transformerFactory])
   const printer = ts.createPrinter({
@@ -363,17 +432,24 @@ function transform (fileName: string, sourceText: string): string {
   return printer.printNode(ts.EmitHint.SourceFile, transformResult.transformed[0], transformResult.transformed[0])
 }
 
-export interface TransformOptions {
+export interface TransformOptions extends BaseTransformOptions {
+  /** @default [] */
   defaultLibraryFuncsToInclude?: string[]
+  /** @default [] */
   exportedRuntimeMethods?: string[]
+  /** @default true */
   processDirective?: boolean
+  /** @default true */
+  processParseTools?: boolean
 }
 
 function transformWithOptions (fileName: string, sourceText: string, options?: TransformOptions): string {
   const defaultLibraryFuncsToInclude = options?.defaultLibraryFuncsToInclude ?? []
   const exportedRuntimeMethods = options?.exportedRuntimeMethods ?? []
+  const processDirective = options?.processDirective ?? true
+  const processParseTools = options?.processParseTools ?? true
 
-  let result = transform(fileName, sourceText)
+  let result = transform(fileName, sourceText, options)
 
   const prefix = [
     ...defaultLibraryFuncsToInclude
@@ -382,11 +458,34 @@ function transformWithOptions (fileName: string, sourceText: string, options?: T
       .map(sym => `{{{ ((EXPORTED_RUNTIME_METHODS.indexOf("${sym}") === -1 ? EXPORTED_RUNTIME_METHODS.push("${sym}") : undefined), "") }}}`)
   ].join(EOL)
 
-  if (options?.processDirective) {
+  if (processDirective) {
     result = result.replace(/(\r?\n)\s*\/\/\s+(#((if)|(else)|(elif)|(endif)))/g, '$1$2')
+  }
+
+  if (processParseTools) {
+    result = result
+      .replace(/\/\* \{\{\{ \*\//g, '{{{')
+      .replace(/\/\* \}\}\} \*\//g, '}}}')
   }
 
   return prefix + (prefix ? EOL : '') + result
 }
 
-export { createTransformerFactory, transform, transformWithOptions }
+function getDefaultBaseOptions (options?: BaseTransformOptions): Required<BaseTransformOptions> {
+  return {
+    runtimeModuleSpecifier: options?.runtimeModuleSpecifier ?? 'emscripten:runtime',
+    parseToolsModuleSpecifier: options?.parseToolsModuleSpecifier ?? 'emscripten:parse-tools'
+  }
+}
+
+function getDefaultOptions (options?: TransformOptions): Required<TransformOptions> {
+  return {
+    ...getDefaultBaseOptions(options),
+    defaultLibraryFuncsToInclude: options?.defaultLibraryFuncsToInclude ?? [],
+    exportedRuntimeMethods: options?.exportedRuntimeMethods ?? [],
+    processDirective: options?.processDirective ?? true,
+    processParseTools: options?.processParseTools ?? true
+  }
+}
+
+export { createTransformerFactory, transform, transformWithOptions, getDefaultBaseOptions, getDefaultOptions }
