@@ -22,7 +22,7 @@ const output = transformWithOptions(
     processDirective: true,
 
     /** @type {boolean} */
-    processParseTools: true
+    processParseTools: true,
 
     /** @type {string} */
     runtimeModuleSpecifier: 'emscripten:runtime',
@@ -237,7 +237,12 @@ function _y() {
   x: _x,
   x__deps: ["$external"],
   y: _y,
-  y__deps: ["x", "emscripten_resize_heap", "$runtimeKeepalivePush", "$runtimeKeepalivePop"],
+  y__deps: [
+    "x",
+    "emscripten_resize_heap",
+    "$runtimeKeepalivePush",
+    "$runtimeKeepalivePop"
+  ],
   y__sig: "v",
   y__postset: "console.log(42);\nconsole.log(_y);"
 })
@@ -324,7 +329,7 @@ function _getPointerSize(ret) {
   (...args) => mergeInto(
     LibraryManager.library, ...args)
 )({
-    getPointerSize: _getPointerSize
+  getPointerSize: _getPointerSize
 });
 ```
 
