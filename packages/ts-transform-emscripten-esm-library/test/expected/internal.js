@@ -9,7 +9,7 @@ function foo() {
 function _z() {
     return foo();
 }
-mergeInto(LibraryManager.library, {
+(typeof addToLibrary === "function" ? addToLibrary : (...args) => mergeInto(LibraryManager.library, ...args))({
     $fortyTwo: "42",
     $x: x,
     $x__deps: ["$fortyTwo"],

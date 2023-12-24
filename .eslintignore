@@ -10,5 +10,6 @@ node_modules
 /packages/emnapi/lib
 /packages/core/src/index.js
 /packages/**/test/**/input
+/packages/**/test/**/actual
 /packages/**/test/**/expected
 /out

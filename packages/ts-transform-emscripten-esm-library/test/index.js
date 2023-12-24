@@ -3,7 +3,7 @@ const { strictEqual } = require('assert')
 const { readFileSync, writeFileSync, mkdirSync } = require('fs')
 const { join, dirname } = require('path')
 const { rollup } = require('rollup')
-const { transform } = require('..')
+const { transformWithOptions: transform } = require('..')
 
 function testTransform (file) {
   const exportedFunction = join(__dirname, `input/${file}.js`)
@@ -41,6 +41,14 @@ test('object literal dependencies', () => {
 
 test('internal', () => {
   testTransform('internal')
+})
+
+test('directives', () => {
+  testTransform('directives')
+})
+
+test('virtual modules', () => {
+  testTransform('virtual-modules')
 })
 
 test('rollup', async () => {

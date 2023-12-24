@@ -19,7 +19,16 @@ const output = transformWithOptions(
     exportedRuntimeMethods: [ /* ... */ ],
 
     /** @type {boolean} */
-    processDirective: true
+    processDirective: true,
+
+    /** @type {boolean} */
+    processParseTools: true
+
+    /** @type {string} */
+    runtimeModuleSpecifier: 'emscripten:runtime',
+
+    /** @type {string} */
+    parseToolsModuleSpecifier: 'emscripten:parse-tools'
   }
 )
 ```
@@ -45,7 +54,11 @@ export function x () {
 function _x() {
   return 42
 }
-mergeInto(LibraryManager.library, {
+(typeof addToLibrary === "function"
+  ? addToLibrary :
+  (...args) => mergeInto(
+    LibraryManager.library, ...args)
+)({
   x: _x
 })
 ```
@@ -69,7 +82,11 @@ export function $x () {
 function x() {
   return 42
 }
-mergeInto(LibraryManager.library, {
+(typeof addToLibrary === "function"
+  ? addToLibrary :
+  (...args) => mergeInto(
+    LibraryManager.library, ...args)
+)({
   $x: x
 })
 ```
@@ -96,7 +113,11 @@ const _x = getX()
 function getX() {
     return 42;
 }
-mergeInto(LibraryManager.library, {
+(typeof addToLibrary === "function"
+  ? addToLibrary :
+  (...args) => mergeInto(
+    LibraryManager.library, ...args)
+)({
   $getX: getX,
   x: "getX()",
   x__deps: ["$getX"]
@@ -139,7 +160,11 @@ function _exportedFunc() {
   f()
   console.log(_exportedVar)
 }
-mergeInto(LibraryManager.library, {
+(typeof addToLibrary === "function"
+  ? addToLibrary :
+  (...args) => mergeInto(
+    LibraryManager.library, ...args)
+)({
   exportedVar: "10",
   $f: f,
   $f__deps: ["exportedVar"],
@@ -204,7 +229,11 @@ function _y() {
   _emscripten_resize_heap()
   return _x()
 }
-mergeInto(LibraryManager.library, {
+(typeof addToLibrary === "function"
+  ? addToLibrary :
+  (...args) => mergeInto(
+    LibraryManager.library, ...args)
+)({
   x: _x,
   x__deps: ["$external"],
   y: _y,
@@ -212,6 +241,91 @@ mergeInto(LibraryManager.library, {
   y__sig: "v",
   y__postset: "console.log(42);\nconsole.log(_y);"
 })
+```
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+```js
+export function getPointerSize () {
+  let result
+  // #if MEMORY64
+  result = 8
+  // #else
+  result = 4
+  // #endif
+  return result
+}
+```
+
+</td>
+<td>
+
+```js
+function _getPointerSize() {
+  let result
+#if MEMORY64
+  result = 8
+#else
+  result = 4
+#endif
+  return result
+}
+(typeof addToLibrary === "function"
+  ? addToLibrary :
+  (...args) => mergeInto(
+    LibraryManager.library, ...args)
+)({
+  getPointerSize: _getPointerSize
+})
+```
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+```js
+import {
+  from64,
+  makeSetValue,
+  SIZE_TYPE,
+  POINTER_SIZE
+} from 'emscripten:parse-tools'
+import {
+  wasmMemory,
+  HEAPU8
+} from 'emscripten:runtime'
+
+export function getPointerSize (ret) {
+  from64('ret')
+  makeSetValue('ret', 0, POINTER_SIZE, SIZE_TYPE)
+  console.log(HEAPU8.buffer === wasmMemory.buffer)
+  return POINTER_SIZE
+}
+```
+
+</td>
+<td>
+
+```js
+function _getPointerSize(ret) {
+  {{{ from64('ret') }}}
+  {{{ makeSetValue('ret', 0, POINTER_SIZE, SIZE_TYPE) }}}
+  console.log(HEAPU8.buffer === wasmMemory.buffer)
+  return {{{ POINTER_SIZE }}}
+}
+(typeof addToLibrary === "function"
+  ? addToLibrary :
+  (...args) => mergeInto(
+    LibraryManager.library, ...args)
+)({
+    getPointerSize: _getPointerSize
+});
 ```
 
 </td>

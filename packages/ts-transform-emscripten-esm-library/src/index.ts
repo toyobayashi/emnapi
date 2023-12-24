@@ -10,7 +10,8 @@ import type {
   Visitor,
   Symbol,
   JSDocTagInfo,
-  ExpressionStatement
+  ExpressionStatement,
+  ObjectLiteralExpression
 } from 'typescript'
 
 import { EOL } from 'os'
@@ -253,101 +254,136 @@ class Transformer {
     this.trackDeps(decl, this.tryGetExportSymbol(exportedSymbols, sym), parent, exportedSymbols)
   }
 
-  createMergeExported (): ExpressionStatement {
+  createMergeExpressionStatement (objectLiteral: ObjectLiteralExpression): ExpressionStatement {
     const factory = this.ctx.factory
     return factory.createExpressionStatement(factory.createCallExpression(
-      factory.createIdentifier('mergeInto'),
-      undefined,
-      [
-        factory.createPropertyAccessExpression(
-          factory.createIdentifier('LibraryManager'),
-          factory.createIdentifier('library')
+      factory.createParenthesizedExpression(factory.createConditionalExpression(
+        factory.createBinaryExpression(
+          factory.createTypeOfExpression(factory.createIdentifier('addToLibrary')),
+          factory.createToken(ts.SyntaxKind.EqualsEqualsEqualsToken),
+          factory.createStringLiteral('function')
         ),
-        factory.createObjectLiteralExpression(
-          [...this.exported].map(decl => {
-            const wrap = this.wrap.get(decl)!
-            const name = wrap.exported ? wrap.exported.escapedName as string : decl.name!.getText()
+        factory.createToken(ts.SyntaxKind.QuestionToken),
+        factory.createIdentifier('addToLibrary'),
+        factory.createToken(ts.SyntaxKind.ColonToken),
+        factory.createArrowFunction(
+          undefined,
+          undefined,
+          [factory.createParameterDeclaration(
+            undefined,
+            factory.createToken(ts.SyntaxKind.DotDotDotToken),
+            factory.createIdentifier('args'),
+            undefined,
+            undefined,
+            undefined
+          )],
+          undefined,
+          factory.createToken(ts.SyntaxKind.EqualsGreaterThanToken),
+          factory.createCallExpression(
+            factory.createIdentifier('mergeInto'),
+            undefined,
+            [
+              factory.createPropertyAccessExpression(
+                factory.createIdentifier('LibraryManager'),
+                factory.createIdentifier('library')
+              ),
+              factory.createSpreadElement(factory.createIdentifier('args'))
+            ]
+          )
+        )
+      )),
+      undefined,
+      [objectLiteral]
+    ))
+  }
 
-            // console.log(JSON.stringify(wrap.jsdocTags, null, 2))
-            const map = new Map<string, string[]>()
-            if (wrap.jsdocTags) {
-              const emscriptenModifiers = wrap.jsdocTags.filter(info => Boolean(info.name.startsWith('__') && info.name !== '__deps' && info.text?.[0]?.text))
-                .map(info => {
-                  let text = info.text![0].text
-                  if (text.startsWith('```')) {
-                    text = text.match(/^```(\r?\n)*([\s\S]*?)(\r?\n)*```$/)?.[2] ?? text
-                  } else if (text.startsWith('`')) {
-                    text = text.match(/^`([\s\S]*?)`$/)?.[1] ?? text
-                  } else if (text.startsWith('{')) {
-                    text = text.match(/^\{([\s\S]*?)\}$/)?.[1] ?? text
-                  }
-                  return {
-                    key: info.name,
-                    value: text
-                  }
-                })
-              for (let i = 0; i < emscriptenModifiers.length; ++i) {
-                const pair = emscriptenModifiers[i]
-                if (map.has(pair.key)) {
-                  map.get(pair.key)!.push(pair.value)
-                } else {
-                  map.set(pair.key, [pair.value])
+  createMergeExported (): ExpressionStatement {
+    const factory = this.ctx.factory
+    return this.createMergeExpressionStatement(
+      factory.createObjectLiteralExpression(
+        [...this.exported].map(decl => {
+          const wrap = this.wrap.get(decl)!
+          const name = wrap.exported ? wrap.exported.escapedName as string : decl.name!.getText()
+
+          // console.log(JSON.stringify(wrap.jsdocTags, null, 2))
+          const map = new Map<string, string[]>()
+          if (wrap.jsdocTags) {
+            const emscriptenModifiers = wrap.jsdocTags.filter(info => Boolean(info.name.startsWith('__') && info.name !== '__deps' && info.text?.[0]?.text))
+              .map(info => {
+                let text = info.text![0].text
+                if (text.startsWith('```')) {
+                  text = text.match(/^```(\r?\n)*([\s\S]*?)(\r?\n)*```$/)?.[2] ?? text
+                } else if (text.startsWith('`')) {
+                  text = text.match(/^`([\s\S]*?)`$/)?.[1] ?? text
+                } else if (text.startsWith('{')) {
+                  text = text.match(/^\{([\s\S]*?)\}$/)?.[1] ?? text
                 }
+                return {
+                  key: info.name,
+                  value: text
+                }
+              })
+            for (let i = 0; i < emscriptenModifiers.length; ++i) {
+              const pair = emscriptenModifiers[i]
+              if (map.has(pair.key)) {
+                map.get(pair.key)!.push(pair.value)
+              } else {
+                map.set(pair.key, [pair.value])
               }
             }
+          }
 
-            const depsInTags = wrap.jsdocTags?.filter(info => Boolean((info.name === '__deps' || info.name === 'deps') && info.text?.[0]?.text)) ?? []
+          const depsInTags = wrap.jsdocTags?.filter(info => Boolean((info.name === '__deps' || info.name === 'deps') && info.text?.[0]?.text)) ?? []
 
-            return [
-              factory.createPropertyAssignment(
-                wrap.exported ? factory.createIdentifier(name) : factory.createIdentifier('$' + name),
-                wrap.exported
-                  ? ts.isFunctionDeclaration(decl)
-                    ? name.startsWith('$') ? factory.createIdentifier(name.substring(1)) : factory.createIdentifier('_' + name)
-                    : decl.initializer
-                      ? ts.isFunctionExpression(decl.initializer) || ts.isArrowFunction(decl.initializer) || ts.isObjectLiteralExpression(decl.initializer) || ts.isArrayLiteralExpression(decl.initializer)
-                        ? name.startsWith('$') ? factory.createIdentifier(name.substring(1)) : factory.createIdentifier('_' + name)
-                        : factory.createStringLiteral(decl.initializer.getText())
-                      : factory.createIdentifier('undefined')
-                  : ts.isFunctionDeclaration(decl)
-                    ? factory.createIdentifier(name)
-                    : decl.initializer
-                      ? ts.isFunctionExpression(decl.initializer) || ts.isArrowFunction(decl.initializer) || ts.isObjectLiteralExpression(decl.initializer) || ts.isArrayLiteralExpression(decl.initializer)
-                        ? factory.createIdentifier(name)
-                        : factory.createStringLiteral(decl.initializer.getText())
-                      : factory.createIdentifier('undefined')
-              ),
-              ...((wrap.deps.size || depsInTags.length)
-                ? [
-                    factory.createPropertyAssignment(
-                      factory.createIdentifier((wrap.exported ? name : ('$' + name)) + '__deps'),
-                      factory.createArrayLiteralExpression([
-                        ...[...wrap.deps].map(d => {
-                          const w = this.wrap.get(d)!
-                          const name = w.exported ? w.exported.escapedName as string : d.name!.getText()
-                          return factory.createStringLiteral(w.exported ? name : `$${name as string}`)
-                        }),
-                        ...(depsInTags.map(info => {
-                          return factory.createStringLiteral(info.text![0].text)
-                        }))
-                      ], false)
-                    )
-                  ]
-                : []),
-              ...([...map.entries()].map(([m, value]) => {
-                return factory.createPropertyAssignment(
-                  factory.createIdentifier((wrap.exported ? name : ('$' + name)) + m),
-                  value.length > 1
-                    ? factory.createArrayLiteralExpression(value.map(v => factory.createStringLiteral(v)), false)
-                    : factory.createStringLiteral(value[0])
-                )
-              }))
-            ]
-          }).flat(),
-          true
-        )
-      ]
-    ))
+          return [
+            factory.createPropertyAssignment(
+              wrap.exported ? factory.createIdentifier(name) : factory.createIdentifier('$' + name),
+              wrap.exported
+                ? ts.isFunctionDeclaration(decl)
+                  ? name.startsWith('$') ? factory.createIdentifier(name.substring(1)) : factory.createIdentifier('_' + name)
+                  : decl.initializer
+                    ? ts.isFunctionExpression(decl.initializer) || ts.isArrowFunction(decl.initializer) || ts.isObjectLiteralExpression(decl.initializer) || ts.isArrayLiteralExpression(decl.initializer)
+                      ? name.startsWith('$') ? factory.createIdentifier(name.substring(1)) : factory.createIdentifier('_' + name)
+                      : factory.createStringLiteral(decl.initializer.getText())
+                    : factory.createIdentifier('undefined')
+                : ts.isFunctionDeclaration(decl)
+                  ? factory.createIdentifier(name)
+                  : decl.initializer
+                    ? ts.isFunctionExpression(decl.initializer) || ts.isArrowFunction(decl.initializer) || ts.isObjectLiteralExpression(decl.initializer) || ts.isArrayLiteralExpression(decl.initializer)
+                      ? factory.createIdentifier(name)
+                      : factory.createStringLiteral(decl.initializer.getText())
+                    : factory.createIdentifier('undefined')
+            ),
+            ...((wrap.deps.size || depsInTags.length)
+              ? [
+                  factory.createPropertyAssignment(
+                    factory.createIdentifier((wrap.exported ? name : ('$' + name)) + '__deps'),
+                    factory.createArrayLiteralExpression([
+                      ...[...wrap.deps].map(d => {
+                        const w = this.wrap.get(d)!
+                        const name = w.exported ? w.exported.escapedName as string : d.name!.getText()
+                        return factory.createStringLiteral(w.exported ? name : `$${name as string}`)
+                      }),
+                      ...(depsInTags.map(info => {
+                        return factory.createStringLiteral(info.text![0].text)
+                      }))
+                    ], false)
+                  )
+                ]
+              : []),
+            ...([...map.entries()].map(([m, value]) => {
+              return factory.createPropertyAssignment(
+                factory.createIdentifier((wrap.exported ? name : ('$' + name)) + m),
+                value.length > 1
+                  ? factory.createArrayLiteralExpression(value.map(v => factory.createStringLiteral(v)), false)
+                  : factory.createStringLiteral(value[0])
+              )
+            }))
+          ]
+        }).flat(),
+        true
+      )
+    )
   }
 
   collectExportedFunctionVisitor (source: SourceFile): VisitResult<SourceFile> {
