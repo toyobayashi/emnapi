@@ -2,7 +2,6 @@
 /* eslint-disable @typescript-eslint/prefer-nullish-coalescing */
 
 import { makeDynCall, to64 } from 'emscripten:parse-tools'
-import { emnapiTSFN } from '../threadsafe-function'
 
 export interface InitOptions {
   instance: WebAssembly.Instance
@@ -429,9 +428,9 @@ export var PThread = {
       }
       // napiModule.emnapi.addSendListener(worker)
       emnapiAddSendListener(worker)
-      if (typeof emnapiTSFN !== 'undefined') {
-        emnapiTSFN.addListener(worker)
-      }
+      // if (typeof emnapiTSFN !== 'undefined') {
+      //   emnapiTSFN.addListener(worker)
+      // }
       try {
         worker.postMessage({
           __emnapi__: {
