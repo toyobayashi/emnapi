@@ -8,16 +8,52 @@ This doc will explain the structure of this project and some points need to note
 
 - `packages/emnapi` (`devDependencies`)
 
-    The main package of emnapi, including emnapi C headers, CMake configurations and
-    the [Emscripten JavaScript library](https://emscripten.org/docs/porting/connecting_cpp_and_javascript/Interacting-with-code.html#implement-a-c-api-in-javascript) build.
+    The main package of emnapi, including all Node-API implementation, emnapi C headers, CMake configurations, and
+    the [Emscripten JavaScript library](https://emscripten.org/docs/porting/connecting_cpp_and_javascript/Interacting-with-code.html#implement-a-c-api-in-javascript) build. We finally need to build a Emscripten JavaScript library file
+    which is designed for being used in link time. The library file is not a regular JavaScript file,
+    it may contain some macros wrapped in `{{{  }}}` only available in Emscripten, and can not use ES Module format.
+    Fortunately, we can write ESM code during development and then build the final library file through
+    TypeScript custom transformers those are also in this repo.
 
-    The TypeScript `module` compiler option for this package is set to `none`, because we finally need to build
-    a Emscripten JavaScript library file which is designed for being used in link time. The library file is not
-    a regular JavaScript file, it may contain some macros wrapped in `{{{  }}}` only available in Emscripten,
-    and all function body string will be inlined to runtime code, so the module system and closures are not
-    available.
+    For example, write the following source code:
 
-    For example, the `$makeSetValue(...)` in TypeScript source code will be transformed to `{{{ makeSetValue(...) }}}`
+    ```ts
+    import { makeSetValue } from 'emscripten:parse-tools'
+
+    /** @__sig vp */
+    export function foo (result: number) {
+      makeSetValue('result', 0, 0, 'i32')
+    }
+    ```
+
+    This will output:
+
+    ```js
+    function _foo (result) {
+      {{{ makeSetValue('result', 0, 0, 'i32') }}}
+    }
+    addToLibrary({
+      foo: _foo,
+      foo__sig: 'vp'
+    })
+    ```
+
+    It is powered by `packages/rollup-plugin-emscripten-esm-library` and `packages/ts-transform-emscripten-esm-library`.
+
+    In addition, macros are also heavily used in `packages/emnapi` to match the Node.js source as much as possible.
+
+    ```ts
+    import { $CHECK_ARG, $CHECK_ENV_NOT_IN_GC } from '...'
+
+    /** @__sig ipip */
+    export function napi_create_int32 (env: napi_env, value: int32_t, result: Pointer<napi_value>): napi_status {
+      const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
+      $CHECK_ARG!(envObject, result)
+      // ...
+    }
+    ```
+
+    Macros are powered by `packages/ts-transform-macro`
 
 - `packages/core` (`dependencies`)
 
@@ -47,8 +83,11 @@ This doc will explain the structure of this project and some points need to note
 - [CMake](https://github.com/Kitware/CMake) `>= 3.13`
 - [ninja-build](https://github.com/ninja-build/ninja)
 
-## Macro
+## Debugging
 
-Macro is heavily used in `packages/emnapi`.
-
-- `$CUSTOM_MACRO!(...)`: powered by `packages/ts-transform-macro`
+- Run `npm run build` to build packages
+- Open `packages/test/**/*.js`
+- Add break points
+- Launch `Launch Test` VSCode launch configuration
+- Input `UV_THREADPOOL_SIZE` environment variable
+- Select target tripple
