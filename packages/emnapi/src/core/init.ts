@@ -4,28 +4,12 @@
 import { makeDynCall, to64 } from 'emscripten:parse-tools'
 import { emnapiTSFN } from '../threadsafe-function'
 
-export interface CreateOptions {
-  context: Context
-  filename?: string
-  nodeBinding?: NodeBinding
-  childThread?: boolean
-  reuseWorker?: boolean
-  asyncWorkPoolSize?: number
-  onCreateWorker?: () => any
-  print?: (str: string) => void
-  printErr?: (str: string) => void
-  postMessage?: (msg: any) => any
-}
-
 export interface InitOptions {
   instance: WebAssembly.Instance
   module: WebAssembly.Module
   memory?: WebAssembly.Memory
   table?: WebAssembly.Table
 }
-
-// factory parameter
-declare const options: CreateOptions
 
 export interface INapiModule {
   imports: {
