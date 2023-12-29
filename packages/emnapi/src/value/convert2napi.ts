@@ -174,11 +174,11 @@ export function napi_create_bigint_int64 (env: napi_env, low: int32_t, high: int
     return envObject.setLastError(napi_status.napi_generic_failure)
   }
 
-  let value: BigInt
+  let value: bigint
 
 // #if WASM_BIGINT
   if (!high) return envObject.setLastError(napi_status.napi_invalid_arg)
-  value = low as unknown as BigInt
+  value = low as unknown as bigint
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const v1 = emnapiCtx.addToCurrentScope(value).id
   from64('high')
@@ -203,11 +203,11 @@ export function napi_create_bigint_uint64 (env: napi_env, low: int32_t, high: in
     return envObject.setLastError(napi_status.napi_generic_failure)
   }
 
-  let value: BigInt
+  let value: bigint
 
 // #if WASM_BIGINT
   if (!high) return envObject.setLastError(napi_status.napi_invalid_arg)
-  value = low as unknown as BigInt
+  value = (low as unknown as bigint) & ((BigInt(1) << BigInt(64)) - BigInt(1))
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const v1 = emnapiCtx.addToCurrentScope(value).id
   from64('high')
