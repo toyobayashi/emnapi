@@ -12,7 +12,7 @@
         "default": "./lib/index.mjs"
       },
       "require": {
-        "types": "./lib/index.d.js",
+        "types": "./lib/index.d.ts",
         "default": "./lib/index.js"
       }
     }
