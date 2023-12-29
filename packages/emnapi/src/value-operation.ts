@@ -1,4 +1,5 @@
 import { emnapiCtx } from 'emnapi:shared'
+import { from64, makeSetValue } from 'emscripten:parse-tools'
 import { $CHECK_ENV_NOT_IN_GC, $CHECK_ARG, $PREAMBLE } from './macro'
 
 /** @__sig ippp */
@@ -7,7 +8,7 @@ export function napi_typeof (env: napi_env, value: napi_value, result: Pointer<n
   $CHECK_ARG!(envObject, value)
   $CHECK_ARG!(envObject, result)
   const v = emnapiCtx.handleStore.get(value)!
-  $from64('result')
+  from64('result')
   let r: napi_valuetype
   if (v.isNumber()) {
     r = napi_valuetype.napi_number
@@ -39,7 +40,7 @@ export function napi_typeof (env: napi_env, value: napi_value, result: Pointer<n
     return envObject.setLastError(napi_status.napi_invalid_arg)
   }
 
-  $makeSetValue('result', 0, 'r', 'i32')
+  makeSetValue('result', 0, 'r', 'i32')
 
   return envObject.clearLastError()
 }
@@ -53,10 +54,10 @@ export function napi_coerce_to_bool (env: napi_env, value: napi_value, result: P
     $CHECK_ARG!(envObject, value)
     $CHECK_ARG!(envObject, result)
     const handle = emnapiCtx.handleStore.get(value)!
-    $from64('result')
+    from64('result')
 
     v = handle.value ? GlobalHandle.TRUE : GlobalHandle.FALSE
-    $makeSetValue('result', 0, 'v', '*')
+    makeSetValue('result', 0, 'v', '*')
     return envObject.getReturnStatus()
   })
 }
@@ -73,11 +74,11 @@ export function napi_coerce_to_number (env: napi_env, value: napi_value, result:
     if (handle.isBigInt()) {
       throw new TypeError('Cannot convert a BigInt value to a number')
     }
-    $from64('result')
+    from64('result')
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     v = emnapiCtx.addToCurrentScope(Number(handle.value)).id
-    $makeSetValue('result', 0, 'v', '*')
+    makeSetValue('result', 0, 'v', '*')
     return envObject.getReturnStatus()
   })
 }
@@ -94,11 +95,11 @@ export function napi_coerce_to_object (env: napi_env, value: napi_value, result:
     if (handle.value == null) {
       throw new TypeError('Cannot convert undefined or null to object')
     }
-    $from64('result')
+    from64('result')
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     v = envObject.ensureHandleId(Object(handle.value))
-    $makeSetValue('result', 0, 'v', '*')
+    makeSetValue('result', 0, 'v', '*')
     return envObject.getReturnStatus()
   })
 }
@@ -115,11 +116,11 @@ export function napi_coerce_to_string (env: napi_env, value: napi_value, result:
     if (handle.isSymbol()) {
       throw new TypeError('Cannot convert a Symbol value to a string')
     }
-    $from64('result')
+    from64('result')
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     v = emnapiCtx.addToCurrentScope(String(handle.value)).id
-    $makeSetValue('result', 0, 'v', '*')
+    makeSetValue('result', 0, 'v', '*')
     return envObject.getReturnStatus()
   })
 }
@@ -133,8 +134,8 @@ export function napi_instanceof (env: napi_env, object: napi_value, constructor:
     $CHECK_ARG!(envObject, object)
     $CHECK_ARG!(envObject, result)
     $CHECK_ARG!(envObject, constructor)
-    $from64('result')
-    $makeSetValue('result', 0, '0', 'i8')
+    from64('result')
+    makeSetValue('result', 0, '0', 'i8')
     const ctor = emnapiCtx.handleStore.get(constructor)!
     if (!ctor.isFunction()) {
       return envObject.setLastError(napi_status.napi_function_expected)
@@ -142,7 +143,7 @@ export function napi_instanceof (env: napi_env, object: napi_value, constructor:
     const val = emnapiCtx.handleStore.get(object)!.value
     const ret = val instanceof ctor.value
     r = ret ? 1 : 0
-    $makeSetValue('result', 0, 'r', 'i8')
+    makeSetValue('result', 0, 'r', 'i8')
     return envObject.getReturnStatus()
   })
 }
@@ -153,10 +154,10 @@ export function napi_is_array (env: napi_env, value: napi_value, result: Pointer
   $CHECK_ARG!(envObject, value)
   $CHECK_ARG!(envObject, result)
   const h = emnapiCtx.handleStore.get(value)!
-  $from64('result')
+  from64('result')
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const r = h.isArray() ? 1 : 0
-  $makeSetValue('result', 0, 'r', 'i8')
+  makeSetValue('result', 0, 'r', 'i8')
   return envObject.clearLastError()
 }
 
@@ -166,10 +167,10 @@ export function napi_is_arraybuffer (env: napi_env, value: napi_value, result: P
   $CHECK_ARG!(envObject, value)
   $CHECK_ARG!(envObject, result)
   const h = emnapiCtx.handleStore.get(value)!
-  $from64('result')
+  from64('result')
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const r = h.isArrayBuffer() ? 1 : 0
-  $makeSetValue('result', 0, 'r', 'i8')
+  makeSetValue('result', 0, 'r', 'i8')
   return envObject.clearLastError()
 }
 
@@ -179,10 +180,10 @@ export function napi_is_date (env: napi_env, value: napi_value, result: Pointer<
   $CHECK_ARG!(envObject, value)
   $CHECK_ARG!(envObject, result)
   const h = emnapiCtx.handleStore.get(value)!
-  $from64('result')
+  from64('result')
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const r = h.isDate() ? 1 : 0
-  $makeSetValue('result', 0, 'r', 'i8')
+  makeSetValue('result', 0, 'r', 'i8')
   return envObject.clearLastError()
 }
 
@@ -192,10 +193,10 @@ export function napi_is_error (env: napi_env, value: napi_value, result: Pointer
   $CHECK_ARG!(envObject, value)
   $CHECK_ARG!(envObject, result)
   const val = emnapiCtx.handleStore.get(value)!.value
-  $from64('result')
+  from64('result')
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const r = (val instanceof Error) ? 1 : 0
-  $makeSetValue('result', 0, 'r', 'i8')
+  makeSetValue('result', 0, 'r', 'i8')
   return envObject.clearLastError()
 }
 
@@ -205,10 +206,10 @@ export function napi_is_typedarray (env: napi_env, value: napi_value, result: Po
   $CHECK_ARG!(envObject, value)
   $CHECK_ARG!(envObject, result)
   const h = emnapiCtx.handleStore.get(value)!
-  $from64('result')
+  from64('result')
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const r = h.isTypedArray() ? 1 : 0
-  $makeSetValue('result', 0, 'r', 'i8')
+  makeSetValue('result', 0, 'r', 'i8')
   return envObject.clearLastError()
 }
 
@@ -218,10 +219,10 @@ export function napi_is_buffer (env: napi_env, value: napi_value, result: Pointe
   $CHECK_ARG!(envObject, value)
   $CHECK_ARG!(envObject, result)
   const h = emnapiCtx.handleStore.get(value)!
-  $from64('result')
+  from64('result')
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const r = h.isBuffer() ? 1 : 0
-  $makeSetValue('result', 0, 'r', 'i8')
+  makeSetValue('result', 0, 'r', 'i8')
   return envObject.clearLastError()
 }
 
@@ -231,10 +232,10 @@ export function napi_is_dataview (env: napi_env, value: napi_value, result: Poin
   $CHECK_ARG!(envObject, value)
   $CHECK_ARG!(envObject, result)
   const h = emnapiCtx.handleStore.get(value)!
-  $from64('result')
+  from64('result')
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const r = h.isDataView() ? 1 : 0
-  $makeSetValue('result', 0, 'r', 'i8')
+  makeSetValue('result', 0, 'r', 'i8')
   return envObject.clearLastError()
 }
 
@@ -249,9 +250,9 @@ export function napi_strict_equals (env: napi_env, lhs: napi_value, rhs: napi_va
     $CHECK_ARG!(envObject, result)
     const lv = emnapiCtx.handleStore.get(lhs)!.value
     const rv = emnapiCtx.handleStore.get(rhs)!.value
-    $from64('result')
+    from64('result')
     r = (lv === rv) ? 1 : 0
-    $makeSetValue('result', 0, 'r', 'i8')
+    makeSetValue('result', 0, 'r', 'i8')
     return envObject.getReturnStatus()
   })
 }
@@ -284,17 +285,17 @@ export function napi_is_detached_arraybuffer (env: napi_env, arraybuffer: napi_v
     $CHECK_ARG!(envObject, arraybuffer)
     $CHECK_ARG!(envObject, result)
     const h = emnapiCtx.handleStore.get(arraybuffer)!
-    $from64('result')
+    from64('result')
     if (h.isArrayBuffer() && h.value.byteLength === 0) {
       try {
         // eslint-disable-next-line no-new
         new Uint8Array(h.value as ArrayBuffer)
       } catch (_) {
-        $makeSetValue('result', 0, '1', 'i8')
+        makeSetValue('result', 0, '1', 'i8')
         return envObject.getReturnStatus()
       }
     }
-    $makeSetValue('result', 0, '0', 'i8')
+    makeSetValue('result', 0, '0', 'i8')
     return envObject.getReturnStatus()
   })
 }

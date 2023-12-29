@@ -1,5 +1,6 @@
-import { wasmMemory } from 'emnapi:emscripten-runtime'
+import { wasmMemory } from 'emscripten:runtime'
 import { emnapiCtx } from 'emnapi:shared'
+import { from64, makeSetValue } from 'emscripten:parse-tools'
 import { $emnapiSetValueI64 as emnapiSetValueI64 } from '../util'
 import { $CHECK_ENV } from '../macro'
 
@@ -42,15 +43,15 @@ export function napi_adjust_external_memory (
   }
 
 // #if WASM_BIGINT
-  $from64('high')
+  from64('high')
   if (emnapiCtx.feature.supportBigInt) {
-    $makeSetValue('high', 0, 'wasmMemory.buffer.byteLength', 'i64')
+    makeSetValue('high', 0, 'wasmMemory.buffer.byteLength', 'i64')
   } else {
     emnapiSetValueI64(high, wasmMemory.buffer.byteLength)
   }
 // #else
-  $from64('adjusted_value')
-  $makeSetValue('adjusted_value', 0, 'wasmMemory.buffer.byteLength', 'i64')
+  from64('adjusted_value')
+  makeSetValue('adjusted_value', 0, 'wasmMemory.buffer.byteLength', 'i64')
 // #endif
 
   return envObject.clearLastError()

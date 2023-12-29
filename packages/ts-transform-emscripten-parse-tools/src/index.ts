@@ -22,16 +22,21 @@ import type {
 
 import ts = require('typescript')
 import { join, resolve } from 'path'
+import { getDefaultBaseOptions, type BaseTransformOptions } from '@emnapi/ts-transform-emscripten-esm-library'
 
-export interface DefineOptions {
-  defines?: {
-    MEMORY64?: 0 | 1
-  }
+export type CStyleBoolean = 0 | 1
+
+export interface Defines {
+  MEMORY64?: CStyleBoolean
 }
 
-function isEmscriptenMacro (text: string): boolean {
-  return text.length > 1 && text.charAt(0) === '$' && text.charAt(1) !== '$'
+export interface TransformOptions extends BaseTransformOptions {
+  defines?: Defines
 }
+
+// function isEmscriptenMacro (text: string): boolean {
+//   return text.length > 1 && text.charAt(0) === '$' && text.charAt(1) !== '$'
+// }
 
 function expandFrom64 (factory: NodeFactory, defines: Record<string, any>, node: ExpressionStatement): Statement | undefined {
   if (defines.MEMORY64) {
@@ -127,7 +132,7 @@ function byteOffsetParameter (factory: NodeFactory, defines: Record<string, any>
     }
     throw new Error('byteOffsetParameter unsupport binary expression')
   }
-  throw new Error('$makeGetValue unsupported pos')
+  throw new Error('makeGetValue unsupported pos')
 }
 
 function isFunctionLikeDeclaration (node: Node): node is FunctionLikeDeclaration {
@@ -219,9 +224,16 @@ class Transform {
   insertWasmMemoryImport: boolean
   insertWasmTableImport: boolean
 
-  constructor (context: TransformationContext, defines: Record<string, any>) {
+  readonly runtimeModuleSpecifier: string
+  readonly parseToolsModuleSpecifier: string
+
+  constructor (public program: Program, context: TransformationContext, config?: TransformOptions) {
+    const { runtimeModuleSpecifier, parseToolsModuleSpecifier } = getDefaultBaseOptions(config)
+    this.runtimeModuleSpecifier = runtimeModuleSpecifier
+    this.parseToolsModuleSpecifier = parseToolsModuleSpecifier
+
     this.ctx = context
-    this.defines = defines
+    this.defines = config?.defines ?? {}
     this.visitor = this.visitor.bind(this)
     this.functionLikeDeclarationVisitor = this.functionLikeDeclarationVisitor.bind(this)
     this.insertWasmMemoryImport = false
@@ -388,37 +400,60 @@ class Transform {
     return statements
   }
 
+  isEmscriptenMacro (node: Node): boolean {
+    const typeChecker = this.program.getTypeChecker()
+    if (ts.isCallExpression(node) && ts.isIdentifier(node.expression)) {
+      const d = typeChecker.getSymbolAtLocation(node.expression)?.declarations?.[0]
+      if (d && ts.isImportSpecifier(d)) {
+        const moduleSpecifier = d.parent.parent.parent.moduleSpecifier
+        if (ts.isStringLiteral(moduleSpecifier) && moduleSpecifier.text === this.parseToolsModuleSpecifier) {
+          return true
+        }
+      }
+    }
+    if (ts.isIdentifier(node) && !ts.isImportSpecifier(node.parent) && !ts.isImportClause(node.parent) && !ts.isImportEqualsDeclaration(node.parent) && !ts.isImportTypeNode(node.parent)) {
+      const d = typeChecker.getSymbolAtLocation(node)?.declarations?.[0]
+      if (d && ts.isImportSpecifier(d)) {
+        const moduleSpecifier = d.parent.parent.parent.moduleSpecifier
+        if (ts.isStringLiteral(moduleSpecifier) && moduleSpecifier.text === this.parseToolsModuleSpecifier) {
+          return true
+        }
+      }
+    }
+    return false
+  }
+
   visitor (node: Node): VisitResult<Node | undefined> {
     if (ts.isExpressionStatement(node) &&
         ts.isCallExpression(node.expression) &&
         ts.isIdentifier(node.expression.expression) &&
-        isEmscriptenMacro(node.expression.expression.text as string)
+        this.isEmscriptenMacro(node.expression.expression)
     ) {
       const functionName = node.expression.expression.text
-      if (functionName === '$from64' && ts.isStringLiteral(node.expression.arguments[0])) {
+      if (functionName === 'from64' && ts.isStringLiteral(node.expression.arguments[0])) {
         return expandFrom64(this.ctx.factory, this.defines, node)
       }
       return ts.visitEachChild(node, this.visitor, this.ctx)
     }
     if (ts.isCallExpression(node) && ts.isIdentifier(node.expression)) {
       const functionName = node.expression.text
-      if (isEmscriptenMacro(functionName)) {
-        if (functionName === '$to64' && ts.isStringLiteral(node.arguments[0])) {
+      if (this.isEmscriptenMacro(node.expression)) {
+        if (functionName === 'to64' && ts.isStringLiteral(node.arguments[0])) {
           return expandTo64(this.ctx.factory, this.defines, node)
         }
-        if (functionName === '$makeGetValue') {
+        if (functionName === 'makeGetValue') {
           return this.expandMakeGetValue(node)
         }
-        if (functionName === '$makeSetValue') {
+        if (functionName === 'makeSetValue') {
           return this.expandMakeSetValue(node)
         }
         // if (functionName === '$makeMalloc') {
         //   return this.expandMakeMalloc(node)
         // }
-        if (functionName === '$makeDynCall') {
+        if (functionName === 'makeDynCall') {
           return this.expandMakeDynCall(node)
         }
-        if (functionName === '$getUnsharedTextDecoderView') {
+        if (functionName === 'getUnsharedTextDecoderView') {
           return this.expandGetUnsharedTextDecoderView(node)
         }
       }
@@ -470,7 +505,7 @@ class Transform {
       }
       return ts.visitEachChild(node, this.visitor, this.ctx)
     }
-    if (ts.isIdentifier(node) && node.text === '$POINTER_SIZE') {
+    if (ts.isIdentifier(node) && !ts.isImportSpecifier(node.parent) && !ts.isImportClause(node.parent) && !ts.isImportEqualsDeclaration(node.parent) && !ts.isImportTypeNode(node.parent) && node.text === 'POINTER_SIZE') {
       return this.ctx.factory.createNumericLiteral(this.defines.MEMORY64 ? 8 : 4)
     }
     return ts.visitEachChild(node, this.visitor, this.ctx)
@@ -494,10 +529,10 @@ class Transform {
         } else if (argv2.text === 'POINTER_WASM_TYPE') {
           type = this.defines.MEMORY64 ? 'i64' : 'i32'
         } else {
-          throw new Error('$makeGetValue Invalid type')
+          throw new Error('makeGetValue Invalid type')
         }
       } else {
-        throw new Error('$makeGetValue Invalid type')
+        throw new Error('makeGetValue Invalid type')
       }
     }
 
@@ -540,10 +575,10 @@ class Transform {
         } else if (argv3.text === 'POINTER_WASM_TYPE') {
           type = this.defines.MEMORY64 ? 'i64' : 'i32'
         } else {
-          throw new Error('$makeGetValue Invalid type')
+          throw new Error('makeGetValue Invalid type')
         }
       } else {
-        throw new Error('$makeGetValue Invalid type')
+        throw new Error('makeGetValue Invalid type')
       }
     }
 
@@ -630,7 +665,7 @@ class Transform {
   expandGetUnsharedTextDecoderView (node: CallExpression): Expression {
     const argv = node.arguments
     if (argv.length !== 3) {
-      throw new Error('$getUnsharedTextDecoderView argument length != 3')
+      throw new Error('getUnsharedTextDecoderView argument length != 3')
     }
 
     const argv0 = argv[0]
@@ -641,7 +676,7 @@ class Transform {
         !ts.isStringLiteral(argv1) ||
         !ts.isStringLiteral(argv2)
     ) {
-      throw new Error('$getUnsharedTextDecoderView arguments include non string literal')
+      throw new Error('getUnsharedTextDecoderView arguments include non string literal')
     }
 
     const heap = argv0.text
@@ -720,20 +755,26 @@ function getImportsOfModule (src: SourceFile): string[] {
   return [...collection]
 }
 
-function createTransformerFactory (_program: Program, config: DefineOptions): TransformerFactory<SourceFile> {
-  const defines = config.defines ?? {}
+function createTransformerFactory (program: Program, config: TransformOptions): TransformerFactory<SourceFile> {
   // const defineKeys = Object.keys(defines)
   // const typeChecker = program.getTypeChecker()
   return (context) => {
-    const transform = new Transform(context, defines)
+    const transform = new Transform(program, context, config)
 
     return (src) => {
       if (src.isDeclarationFile) return src
+      const factory = context.factory
       transform.resetSource()
       // expand emscripten macros
       const transformedSrc = ts.visitEachChild(src, transform.visitor, context)
       // inject HEAP_DATA_VIEW
-      const injectedSrc = ts.visitEachChild(transformedSrc, transform.functionLikeDeclarationVisitor, context)
+      let injectedSrc = ts.visitEachChild(transformedSrc, transform.functionLikeDeclarationVisitor, context)
+
+      const newStatements = injectedSrc.statements.filter(s => {
+        return !(ts.isImportDeclaration(s) && ts.isStringLiteral(s.moduleSpecifier) && (s.moduleSpecifier.text === transform.parseToolsModuleSpecifier))
+      })
+
+      injectedSrc = factory.updateSourceFile(injectedSrc, newStatements)
 
       const doNotInsertImport = join(__dirname, '../../emnapi/src/core/init.ts')
 
@@ -750,7 +791,6 @@ function createTransformerFactory (_program: Program, config: DefineOptions): Tr
 
       let resultSrc = injectedSrc
       let importNames: string[] | null = null
-      const factory = context.factory
       if (transform.insertWasmMemoryImport) {
         importNames = getImportsOfModule(resultSrc)
         if (!importNames.includes('wasmMemory')) {
@@ -761,7 +801,7 @@ function createTransformerFactory (_program: Program, config: DefineOptions): Tr
                   factory.createImportSpecifier(false, undefined, factory.createIdentifier('wasmMemory'))
                 ])
               ),
-              factory.createStringLiteral('emnapi:emscripten-runtime'),
+              factory.createStringLiteral(transform.runtimeModuleSpecifier),
               undefined
             ),
             ...resultSrc.statements
@@ -778,7 +818,7 @@ function createTransformerFactory (_program: Program, config: DefineOptions): Tr
                   factory.createImportSpecifier(false, undefined, factory.createIdentifier('wasmTable'))
                 ])
               ),
-              factory.createStringLiteral('emnapi:emscripten-runtime'),
+              factory.createStringLiteral(transform.runtimeModuleSpecifier),
               undefined
             ),
             ...resultSrc.statements

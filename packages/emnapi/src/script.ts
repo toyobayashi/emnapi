@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/indent */
 
 import { emnapiCtx } from 'emnapi:shared'
+import { from64, makeSetValue } from 'emscripten:parse-tools'
 import { $CHECK_ARG, $PREAMBLE } from './macro'
 import { napi_set_last_error } from './util'
 
@@ -20,11 +21,11 @@ export function napi_run_script (env: napi_env, script: napi_value, result: Poin
     }
     const g: typeof globalThis = emnapiCtx.handleStore.get(GlobalHandle.GLOBAL)!.value
     const ret = g.eval(v8Script.value)
-    $from64('result')
+    from64('result')
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     value = envObject.ensureHandleId(ret)
-    $makeSetValue('result', 0, 'value', '*')
+    makeSetValue('result', 0, 'value', '*')
     status = envObject.getReturnStatus()
   })
 // #else

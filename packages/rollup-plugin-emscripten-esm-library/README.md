@@ -27,7 +27,16 @@ export default defineConfig({
       exportedRuntimeMethods: [ /* ... */ ],
 
       /** @type {boolean} */
-      processDirective: true
+      processDirective: true,
+
+      /** @type {boolean} */
+      processParseTools: true
+
+      /** @type {string} */
+      runtimeModuleSpecifier: 'emscripten:runtime',
+
+      /** @type {string} */
+      parseToolsModuleSpecifier: 'emscripten:parse-tools'
     })
   ]
 })

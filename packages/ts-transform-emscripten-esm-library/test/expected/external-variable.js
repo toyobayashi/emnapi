@@ -4,7 +4,7 @@ function _x(param) {
     const ret = arr;
     return param + ret;
 }
-mergeInto(LibraryManager.library, {
+(typeof addToLibrary === "function" ? addToLibrary : (...args) => mergeInto(LibraryManager.library, ...args))({
     $fortyTwo: "42",
     $arr: "new Uint8Array(fortyTwo)",
     $arr__deps: ["$fortyTwo"],

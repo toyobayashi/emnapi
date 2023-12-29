@@ -19,7 +19,7 @@ function _y() {
     _emscripten_resize_heap();
     return _x();
 }
-mergeInto(LibraryManager.library, {
+(typeof addToLibrary === "function" ? addToLibrary : (...args) => mergeInto(LibraryManager.library, ...args))({
     x: _x,
     x__deps: ["$external"],
     y: _y,

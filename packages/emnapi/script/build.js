@@ -18,6 +18,10 @@ async function build () {
   const libOut = path.join(path.dirname(libTsconfigPath), './dist/library_napi.js')
   const runtimeRequire = createRequire(path.join(__dirname, '../../runtime/index.js'))
 
+  const runtimeModuleSpecifier = 'emscripten:runtime'
+  const parseToolsModuleSpecifier = 'emscripten:parse-tools'
+  const sharedModuleSpecifier = 'emnapi:shared'
+
   const emnapiRollupBuild = await rollup({
     input: path.join(__dirname, '../src/emscripten/index.ts'),
     treeshake: false,
@@ -37,45 +41,20 @@ async function build () {
             {
               type: 'program',
               factory: require('@emnapi/ts-transform-macro').createTransformerFactory
-            },
-            {
-              type: 'program',
-              factory: () => {
-                return (context) => {
-                  return (src) => {
-                    if (src.isDeclarationFile) return src
-                    const statements = src.statements
-                    const newStatements = statements.filter(s => {
-                      return !(ts.isImportDeclaration(s) && ts.isStringLiteral(s.moduleSpecifier) && (s.moduleSpecifier.text === 'emnapi:emscripten-runtime'))
-                    })
-                    return context.factory.updateSourceFile(src, newStatements)
-                  }
-                }
-              }
             }
           ]
         }
       }),
       rollupAlias({
         entries: [
-          { find: 'emnapi:shared', replacement: path.join(__dirname, '../src/emscripten/init.ts') }
+          { find: sharedModuleSpecifier, replacement: path.join(__dirname, '../src/emscripten/init.ts') }
         ]
       }),
       require('@emnapi/rollup-plugin-emscripten-esm-library').default({
         defaultLibraryFuncsToInclude: ['$emnapiInit'],
         exportedRuntimeMethods: ['emnapiInit'],
-        processDirective: true,
-        modifyOutput (output) {
-          return output
-            .replace(/\$POINTER_SIZE/g, '{{{ POINTER_SIZE }}}')
-            .replace(/\$(from64\(.*?\))/g, '{{{ $1 }}}')
-            .replace(/\$(to64\(.*?\))/g, '{{{ $1 }}}')
-            .replace(/\$(makeGetValue\(.*?\))/g, '{{{ $1 }}}')
-            .replace(/\$(makeSetValue\(.*?\))/g, '{{{ $1 }}}')
-            .replace(/\$(makeDynCall\(.*?\))/g, '{{{ $1 }}}')
-            // .replace(/\$(makeMalloc\(.*?\))/g, '{{{ $1 }}}')
-            .replace(/\$(getUnsharedTextDecoderView\(.*?\))/g, '{{{ $1 }}}')
-        }
+        runtimeModuleSpecifier,
+        parseToolsModuleSpecifier
       })
     ]
   })
@@ -119,7 +98,9 @@ async function build () {
                 return require('@emnapi/ts-transform-emscripten-parse-tools').createTransformerFactory(program, {
                   defines: {
                     MEMORY64: 0
-                  }
+                  },
+                  runtimeModuleSpecifier,
+                  parseToolsModuleSpecifier
                 })
               }
             }
@@ -128,8 +109,8 @@ async function build () {
       }),
       rollupAlias({
         entries: [
-          { find: 'emnapi:shared', replacement: path.join(__dirname, '../src/core/init.ts') },
-          { find: 'emnapi:emscripten-runtime', replacement: path.join(__dirname, '../src/core/init.ts') }
+          { find: sharedModuleSpecifier, replacement: path.join(__dirname, '../src/core/init.ts') },
+          { find: runtimeModuleSpecifier, replacement: path.join(__dirname, '../src/core/init.ts') }
         ]
       })
     ]

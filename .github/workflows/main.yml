@@ -2,12 +2,18 @@ name: Build
 
 on:
   push:
+    paths-ignore:
+    - '**/*.md'
+    - '**/docs/**'
     branches:
     - main
     - test-*
     tags:
     - v*
   pull_request:
+    paths-ignore:
+    - '**/*.md'
+    - '**/docs/**'
   workflow_dispatch:
 
 env:

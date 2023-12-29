@@ -2,6 +2,7 @@ import { emnapiCtx } from 'emnapi:shared'
 import { emnapiDefineProperty } from './internal'
 import { $PREAMBLE, $CHECK_ARG } from './macro'
 import { emnapiString } from './string'
+import { POINTER_SIZE, POINTER_WASM_TYPE, from64, makeGetValue, makeSetValue } from 'emscripten:parse-tools'
 
 /** @__sig ippiiip */
 export function napi_get_all_property_names (
@@ -130,11 +131,11 @@ export function napi_get_all_property_names (
       }
     }
 
-    $from64('result')
+    from64('result')
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     value = emnapiCtx.addToCurrentScope(ret).id
-    $makeSetValue('result', 0, 'value', '*')
+    makeSetValue('result', 0, 'value', '*')
     return envObject.getReturnStatus()
   })
 }
@@ -185,9 +186,9 @@ export function napi_has_property (env: napi_env, object: napi_value, key: napi_
     } catch (_) {
       return envObject.setLastError(napi_status.napi_object_expected)
     }
-    $from64('result')
+    from64('result')
     r = (emnapiCtx.handleStore.get(key)!.value in v) ? 1 : 0
-    $makeSetValue('result', 0, 'r', 'i8')
+    makeSetValue('result', 0, 'r', 'i8')
     return envObject.getReturnStatus()
   })
 }
@@ -211,10 +212,10 @@ export function napi_get_property (env: napi_env, object: napi_value, key: napi_
     } catch (_) {
       return envObject.setLastError(napi_status.napi_object_expected)
     }
-    $from64('result')
+    from64('result')
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     value = envObject.ensureHandleId(v[emnapiCtx.handleStore.get(key)!.value])
-    $makeSetValue('result', 0, 'value', '*')
+    makeSetValue('result', 0, 'value', '*')
     return envObject.getReturnStatus()
   })
 }
@@ -242,8 +243,8 @@ export function napi_delete_property (env: napi_env, object: napi_value, key: na
       }
     }
     if (result) {
-      $from64('result')
-      $makeSetValue('result', 0, 'r ? 1 : 0', 'i8')
+      from64('result')
+      makeSetValue('result', 0, 'r ? 1 : 0', 'i8')
     }
     return envObject.getReturnStatus()
   })
@@ -273,8 +274,8 @@ export function napi_has_own_property (env: napi_env, object: napi_value, key: n
       return envObject.setLastError(napi_status.napi_name_expected)
     }
     r = Object.prototype.hasOwnProperty.call(v, emnapiCtx.handleStore.get(key)!.value)
-    $from64('result')
-    $makeSetValue('result', 0, 'r ? 1 : 0', 'i8')
+    from64('result')
+    makeSetValue('result', 0, 'r ? 1 : 0', 'i8')
     return envObject.getReturnStatus()
   })
 }
@@ -291,7 +292,7 @@ export function napi_set_named_property (env: napi_env, object: napi_value, cnam
     if (!cname) {
       return envObject.setLastError(napi_status.napi_invalid_arg)
     }
-    $from64('cname')
+    from64('cname')
     emnapiCtx.handleStore.get(object)!.value[emnapiString.UTF8ToString(cname, -1)] = emnapiCtx.handleStore.get(value)!.value
     return envObject.getReturnStatus()
   })
@@ -318,11 +319,11 @@ export function napi_has_named_property (env: napi_env, object: napi_value, utf8
     } catch (_) {
       return envObject.setLastError(napi_status.napi_object_expected)
     }
-    $from64('utf8name')
-    $from64('result')
+    from64('utf8name')
+    from64('result')
 
     r = emnapiString.UTF8ToString(utf8name, -1) in v
-    $makeSetValue('result', 0, 'r ? 1 : 0', 'i8')
+    makeSetValue('result', 0, 'r ? 1 : 0', 'i8')
     return envObject.getReturnStatus()
   })
 }
@@ -348,12 +349,12 @@ export function napi_get_named_property (env: napi_env, object: napi_value, utf8
     } catch (_) {
       return envObject.setLastError(napi_status.napi_object_expected)
     }
-    $from64('utf8name')
-    $from64('result')
+    from64('utf8name')
+    from64('result')
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     value = envObject.ensureHandleId(v[emnapiString.UTF8ToString(utf8name, -1)])
-    $makeSetValue('result', 0, 'value', '*')
+    makeSetValue('result', 0, 'value', '*')
     return envObject.getReturnStatus()
   })
 }
@@ -390,9 +391,9 @@ export function napi_has_element (env: napi_env, object: napi_value, index: uint
     } catch (_) {
       return envObject.setLastError(napi_status.napi_object_expected)
     }
-    $from64('result')
+    from64('result')
     r = ((index >>> 0) in v) ? 1 : 0
-    $makeSetValue('result', 0, 'r', 'i8')
+    makeSetValue('result', 0, 'r', 'i8')
     return envObject.getReturnStatus()
   })
 }
@@ -415,10 +416,10 @@ export function napi_get_element (env: napi_env, object: napi_value, index: uint
     } catch (_) {
       return envObject.setLastError(napi_status.napi_object_expected)
     }
-    $from64('result')
+    from64('result')
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     value = envObject.ensureHandleId(v[index >>> 0])
-    $makeSetValue('result', 0, 'value', '*')
+    makeSetValue('result', 0, 'value', '*')
     return envObject.getReturnStatus()
   })
 }
@@ -444,8 +445,8 @@ export function napi_delete_element (env: napi_env, object: napi_value, index: u
       }
     }
     if (result) {
-      $from64('result')
-      $makeSetValue('result', 0, 'r ? 1 : 0', 'i8')
+      from64('result')
+      makeSetValue('result', 0, 'r ? 1 : 0', 'i8')
     }
     return envObject.getReturnStatus()
   })
@@ -462,8 +463,8 @@ export function napi_define_properties (
   let propPtr: number, attributes: number
 
   return $PREAMBLE!(env, (envObject) => {
-    $from64('properties')
-    $from64('property_count')
+    from64('properties')
+    from64('property_count')
 
     property_count = property_count >>> 0
 
@@ -481,16 +482,16 @@ export function napi_define_properties (
 
     for (let i = 0; i < property_count; i++) {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      propPtr = properties + (i * ($POINTER_SIZE * 8))
-      const utf8Name = $makeGetValue('propPtr', 0, '*')
-      const name = $makeGetValue('propPtr', POINTER_SIZE, '*')
-      const method = $makeGetValue('propPtr', POINTER_SIZE * 2, '*')
-      const getter = $makeGetValue('propPtr', POINTER_SIZE * 3, '*')
-      const setter = $makeGetValue('propPtr', POINTER_SIZE * 4, '*')
-      const value = $makeGetValue('propPtr', POINTER_SIZE * 5, '*')
-      attributes = $makeGetValue('propPtr', POINTER_SIZE * 6, POINTER_WASM_TYPE) as number
-      $from64('attributes')
-      const data = $makeGetValue('propPtr', POINTER_SIZE * 7, '*')
+      propPtr = properties + (i * (POINTER_SIZE * 8))
+      const utf8Name = makeGetValue('propPtr', 0, '*')
+      const name = makeGetValue('propPtr', POINTER_SIZE, '*')
+      const method = makeGetValue('propPtr', POINTER_SIZE * 2, '*')
+      const getter = makeGetValue('propPtr', POINTER_SIZE * 3, '*')
+      const setter = makeGetValue('propPtr', POINTER_SIZE * 4, '*')
+      const value = makeGetValue('propPtr', POINTER_SIZE * 5, '*')
+      attributes = makeGetValue('propPtr', POINTER_SIZE * 6, POINTER_WASM_TYPE) as number
+      from64('attributes')
+      const data = makeGetValue('propPtr', POINTER_SIZE * 7, '*')
 
       if (utf8Name) {
         propertyName = emnapiString.UTF8ToString(utf8Name, -1)

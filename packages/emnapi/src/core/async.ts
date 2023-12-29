@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/no-floating-promises */
 
 import { napiModule } from 'emnapi:shared'
-import { ENVIRONMENT_IS_NODE, wasmMemory, ENVIRONMENT_IS_PTHREAD, PThread } from 'emnapi:emscripten-runtime'
+import { ENVIRONMENT_IS_NODE, wasmMemory, ENVIRONMENT_IS_PTHREAD, PThread } from 'emscripten:runtime'
+import { POINTER_SIZE, makeDynCall, makeGetValue, to64 } from 'emscripten:parse-tools'
 import { _emnapi_set_immediate, _emnapi_next_tick } from '../util'
 
 function emnapiGetWorkerByPthreadPtr (pthreadPtr: number): any {
@@ -76,10 +77,10 @@ export function _emnapi_is_main_browser_thread (): number {
 /** @__sig vppi */
 export function _emnapi_after_uvthreadpool_ready (callback: number, q: number, type: number): void {
   if (uvThreadpoolReady.ready) {
-    $makeDynCall('vpi', 'callback')($to64('q'), type)
+    makeDynCall('vpi', 'callback')(to64('q'), type)
   } else {
     uvThreadpoolReady.then(() => {
-      $makeDynCall('vpi', 'callback')($to64('q'), type)
+      makeDynCall('vpi', 'callback')(to64('q'), type)
     })
   }
 }
@@ -88,7 +89,7 @@ export function _emnapi_after_uvthreadpool_ready (callback: number, q: number, t
 export function _emnapi_tell_js_uvthreadpool (threads: number, size: number): void {
   const p = [] as Array<Promise<void>>
   for (let i = 0; i < size; i++) {
-    const pthreadPtr = $makeGetValue('threads', 'i * ' + POINTER_SIZE, '*')
+    const pthreadPtr = makeGetValue('threads', 'i * ' + POINTER_SIZE, '*')
     const worker = emnapiGetWorkerByPthreadPtr(pthreadPtr)
     p.push(new Promise<void>((resolve) => {
       const handler = function (e: any): void {

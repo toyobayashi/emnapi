@@ -1,4 +1,5 @@
 import { emnapiNodeBinding, emnapiCtx } from 'emnapi:shared'
+import { from64, makeSetValue, makeGetValue, POINTER_SIZE } from 'emscripten:parse-tools'
 import { $PREAMBLE, $CHECK_ARG } from './macro'
 
 /** @__sig vppdp */
@@ -16,9 +17,9 @@ export function _emnapi_node_emit_async_init (
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const asyncId = asyncContext.asyncId; const triggerAsyncId = asyncContext.triggerAsyncId
   if (result) {
-    $from64('result')
-    $makeSetValue('result', 0, 'asyncId', 'double')
-    $makeSetValue('result', 8, 'triggerAsyncId', 'double')
+    from64('result')
+    makeSetValue('result', 0, 'asyncId', 'double')
+    makeSetValue('result', 8, 'triggerAsyncId', 'double')
   }
 }
 
@@ -40,14 +41,14 @@ export function _emnapi_node_emit_async_destroy (async_id: double, trigger_async
     triggerAsyncId: trigger_async_id
   })
 
-  $from64('result')
+  from64('result')
   $_TODO_makeSetValue('result', 0, 'nativeCallbackScopePointer', 'i64')
 }
 
 vp
 export function _emnapi_node_close_callback_scope (scope: Pointer<int64_t>): void {
   if (!emnapiNodeBinding || !scope) return
-  $from64('scope')
+  from64('scope')
   const nativeCallbackScopePointer = $_TODO_makeGetValue('scope', 0, 'i64')
   emnapiNodeBinding.node.closeCallbackScope(BigInt(nativeCallbackScopePointer))
 } */
@@ -61,12 +62,12 @@ export function _emnapi_node_make_callback (env: napi_env, async_resource: napi_
   if (!emnapiNodeBinding) return
   const resource = emnapiCtx.handleStore.get(async_resource)!.value
   const callback = emnapiCtx.handleStore.get(cb)!.value
-  $from64('argv')
-  $from64('size')
+  from64('argv')
+  from64('size')
   size = size >>> 0
   const arr = Array(size)
   for (; i < size; i++) {
-    const argVal = $makeGetValue('argv', 'i * ' + POINTER_SIZE, '*')
+    const argVal = makeGetValue('argv', 'i * ' + POINTER_SIZE, '*')
     arr[i] = emnapiCtx.handleStore.get(argVal)!.value
   }
   const ret = emnapiNodeBinding.node.makeCallback(resource, callback, arr, {
@@ -74,11 +75,11 @@ export function _emnapi_node_make_callback (env: napi_env, async_resource: napi_
     triggerAsyncId: trigger_async_id
   })
   if (result) {
-    $from64('result')
+    from64('result')
     const envObject = emnapiCtx.envStore.get(env)!
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     v = envObject.ensureHandleId(ret)
-    $makeSetValue('result', 0, 'v', '*')
+    makeSetValue('result', 0, 'v', '*')
   }
 }
 
@@ -109,9 +110,9 @@ export function _emnapi_async_init_js (async_resource: napi_value, async_resourc
   const low = Number(numberValue & BigInt(0xffffffff))
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const high = Number(numberValue >> BigInt(32))
-  $from64('result')
-  $makeSetValue('result', 0, 'low', 'i32')
-  $makeSetValue('result', 4, 'high', 'i32')
+  from64('result')
+  makeSetValue('result', 0, 'low', 'i32')
+  makeSetValue('result', 4, 'high', 'i32')
 
   return napi_status.napi_ok
 }
@@ -121,9 +122,9 @@ export function _emnapi_async_destroy_js (async_context: Pointer<int64_t>): napi
   if (!emnapiNodeBinding) {
     return napi_status.napi_generic_failure
   }
-  $from64('async_context')
-  const low = $makeGetValue('async_context', 0, 'i32')
-  const high = $makeGetValue('async_context', 4, 'i32')
+  from64('async_context')
+  const low = makeGetValue('async_context', 0, 'i32')
+  const high = makeGetValue('async_context', 4, 'i32')
 
   const pointer = BigInt((low as number) >>> 0) | (BigInt(high) << BigInt(32))
 
@@ -166,17 +167,17 @@ export function napi_make_callback (env: napi_env, async_context: Pointer<int64_
       return envObject.setLastError(napi_status.napi_invalid_arg)
     }
 
-    $from64('async_context')
-    const low = $makeGetValue('async_context', 0, 'i32')
-    const high = $makeGetValue('async_context', 4, 'i32')
+    from64('async_context')
+    const low = makeGetValue('async_context', 0, 'i32')
+    const high = makeGetValue('async_context', 4, 'i32')
     const ctx = BigInt((low as number) >>> 0) | (BigInt(high) << BigInt(32))
 
-    $from64('argv')
-    $from64('argc')
+    from64('argv')
+    from64('argc')
     argc = argc >>> 0
     const arr = Array(argc)
     for (; i < argc; i++) {
-      const argVal = $makeGetValue('argv', 'i * ' + POINTER_SIZE, '*')
+      const argVal = makeGetValue('argv', 'i * ' + POINTER_SIZE, '*')
       arr[i] = emnapiCtx.handleStore.get(argVal)!.value
     }
     const ret = emnapiNodeBinding.napi.makeCallback(ctx, v8recv, v8func, arr)
@@ -187,10 +188,10 @@ export function napi_make_callback (env: napi_env, async_context: Pointer<int64_
     if (ret.status !== napi_status.napi_ok) return envObject.setLastError(ret.status)
 
     if (result) {
-      $from64('result')
+      from64('result')
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       v = envObject.ensureHandleId(ret.value)
-      $makeSetValue('result', 0, 'v', '*')
+      makeSetValue('result', 0, 'v', '*')
     }
     return envObject.getReturnStatus()
   })
