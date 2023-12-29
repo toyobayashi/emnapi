@@ -111,6 +111,15 @@ static napi_value NullArrayBuffer(napi_env env, napi_callback_info info) {
   return output_view;
 }
 
+static napi_value TestUint64(napi_env env, napi_callback_info info) {
+  uint64_t input = 10823190267204339845ULL;
+
+  napi_value output;
+  NODE_API_CALL(env, napi_create_bigint_uint64(env, input, &output));
+
+  return output;
+}
+
 EXTERN_C_START
 napi_value Init(napi_env env, napi_value exports) {
   napi_property_descriptor descriptors[] = {
@@ -123,6 +132,7 @@ napi_value Init(napi_env env, napi_value exports) {
     DECLARE_NODE_API_PROPERTY("NullArrayBuffer", NullArrayBuffer),
     DECLARE_NODE_API_PROPERTY("GrowMemory", GrowMemory),
     DECLARE_NODE_API_PROPERTY("GetWasmMemorySize", GetWasmMemorySize),
+    DECLARE_NODE_API_PROPERTY("TestUint64", TestUint64),
   };
 
   NODE_API_CALL(env, napi_define_properties(
