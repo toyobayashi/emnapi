@@ -159,6 +159,22 @@ static napi_status create_external_latin1(napi_env env,
   return napi_ok;
 }
 
+static napi_status create_property_key_utf16(napi_env env,
+                                             const char16_t* string,
+                                             size_t length,
+                                             napi_value* result) {
+  // Convert UTF-16 string to napi_value
+  napi_status status =
+      node_api_create_property_key_utf16(env, string, length, result);
+
+  if (status != napi_ok) {
+    // Handle necessary operations in case of an error
+    return status;
+  }
+
+  return napi_ok;
+}
+
 // strlen for char16_t. Needed in case we're copying a string of length
 // NAPI_AUTO_LENGTH.
 static size_t strlen16(const char16_t* string) {
@@ -333,6 +349,23 @@ static napi_value TestUtf16Insufficient(napi_env env, napi_callback_info info) {
   return output;
 }
 
+static napi_value TestPropertyKeyUtf16(napi_env env, napi_callback_info info) {
+  return TestTwoByteImpl(env,
+                         info,
+                         napi_get_value_string_utf16,
+                         node_api_create_property_key_utf16,
+                         actual_length);
+}
+
+static napi_value TestPropertyKeyUtf16AutoLength(napi_env env,
+                                                 napi_callback_info info) {
+  return TestTwoByteImpl(env,
+                         info,
+                         napi_get_value_string_utf16,
+                         node_api_create_property_key_utf16,
+                         auto_length);
+}
+
 static napi_value Utf16Length(napi_env env, napi_callback_info info) {
   napi_value args[1];
   NODE_API_CALL(env, validate_and_retrieve_single_string_arg(env, info, args));
@@ -473,6 +506,9 @@ napi_value Init(napi_env env, napi_value exports) {
       DECLARE_NODE_API_PROPERTY("TestLargeLatin1", TestLargeLatin1),
       DECLARE_NODE_API_PROPERTY("TestLargeUtf16", TestLargeUtf16),
       DECLARE_NODE_API_PROPERTY("TestMemoryCorruption", TestMemoryCorruption),
+      DECLARE_NODE_API_PROPERTY("TestPropertyKeyUtf16", TestPropertyKeyUtf16),
+      DECLARE_NODE_API_PROPERTY("TestPropertyKeyUtf16AutoLength",
+                                TestPropertyKeyUtf16AutoLength),
       DECLARE_NODE_API_PROPERTY("TestUtf8Large", TestUtf8Large),
       DECLARE_NODE_API_PROPERTY("TestUtf16Large", TestUtf16Large),
   };
