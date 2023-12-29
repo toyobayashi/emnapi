@@ -109,7 +109,7 @@ Create `hello.c`.
 ```c
 #include <node_api.h>
 
-#define NODE_API_CALL(env, the_call)                                \
+#define NODE_API_CALL(env, the_call)                            \
   do {                                                          \
     if ((the_call) != napi_ok) {                                \
       const napi_extended_error_info *error_info;               \

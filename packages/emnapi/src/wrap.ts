@@ -1,4 +1,6 @@
 import { emnapiCtx } from 'emnapi:shared'
+import { wasmMemory } from 'emscripten:runtime'
+import { from64, POINTER_SIZE, makeGetValue, POINTER_WASM_TYPE, makeSetValue } from 'emscripten:parse-tools'
 import { emnapiString } from './string'
 import { emnapiCreateFunction, emnapiDefineProperty, emnapiWrap, emnapiUnwrap, emnapiGetHandle } from './internal'
 import { $CHECK_ARG, $CHECK_ENV, $CHECK_ENV_NOT_IN_GC, $PREAMBLE } from './macro'
@@ -22,9 +24,9 @@ export function napi_define_class (
   return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, result)
     $CHECK_ARG!(envObject, constructor)
-    $from64('length')
-    $from64('properties')
-    $from64('property_count')
+    from64('length')
+    from64('properties')
+    from64('property_count')
 
     property_count = property_count >>> 0
 
@@ -42,16 +44,16 @@ export function napi_define_class (
 
     for (let i = 0; i < property_count; i++) {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      propPtr = properties + (i * ($POINTER_SIZE * 8))
-      const utf8Name = $makeGetValue('propPtr', 0, '*')
-      const name = $makeGetValue('propPtr', POINTER_SIZE, '*')
-      const method = $makeGetValue('propPtr', POINTER_SIZE * 2, '*')
-      const getter = $makeGetValue('propPtr', POINTER_SIZE * 3, '*')
-      const setter = $makeGetValue('propPtr', POINTER_SIZE * 4, '*')
-      const value = $makeGetValue('propPtr', POINTER_SIZE * 5, '*')
-      attributes = $makeGetValue('propPtr', POINTER_SIZE * 6, POINTER_WASM_TYPE) as number
-      $from64('attributes')
-      const data = $makeGetValue('propPtr', POINTER_SIZE * 7, '*')
+      propPtr = properties + (i * (POINTER_SIZE * 8))
+      const utf8Name = makeGetValue('propPtr', 0, '*')
+      const name = makeGetValue('propPtr', POINTER_SIZE, '*')
+      const method = makeGetValue('propPtr', POINTER_SIZE * 2, '*')
+      const getter = makeGetValue('propPtr', POINTER_SIZE * 3, '*')
+      const setter = makeGetValue('propPtr', POINTER_SIZE * 4, '*')
+      const value = makeGetValue('propPtr', POINTER_SIZE * 5, '*')
+      attributes = makeGetValue('propPtr', POINTER_SIZE * 6, POINTER_WASM_TYPE) as number
+      from64('attributes')
+      const data = makeGetValue('propPtr', POINTER_SIZE * 7, '*')
 
       if (utf8Name) {
         propertyName = emnapiString.UTF8ToString(utf8Name, -1)
@@ -75,8 +77,8 @@ export function napi_define_class (
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const valueHandle = emnapiCtx.addToCurrentScope(F)
     valueHandleId = valueHandle.id
-    $from64('result')
-    $makeSetValue('result', 0, 'valueHandleId', '*')
+    from64('result')
+    makeSetValue('result', 0, 'valueHandleId', '*')
     return envObject.getReturnStatus()
   })
 }
@@ -114,7 +116,7 @@ export function napi_type_tag_object (env: napi_env, object: napi_value, type_ta
     if (!(value.isObject() || value.isFunction())) {
       return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_object_expected)
     }
-    $from64('type_tag')
+    from64('type_tag')
     if (!type_tag) {
       return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_invalid_arg)
     }
@@ -122,12 +124,9 @@ export function napi_type_tag_object (env: napi_env, object: napi_value, type_ta
     if (binding.tag !== null) {
       return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_invalid_arg)
     }
-    binding.tag = [
-      $makeGetValue('type_tag', '0', 'u32') as number,
-      $makeGetValue('type_tag', '4', 'u32') as number,
-      $makeGetValue('type_tag', '8', 'u32') as number,
-      $makeGetValue('type_tag', '12', 'u32') as number
-    ]
+    const tag = new Uint8Array(16)
+    tag.set(new Uint8Array(wasmMemory.buffer, type_tag, 16))
+    binding.tag = new Uint32Array(tag.buffer)
 
     return envObject.getReturnStatus()
   })
@@ -156,20 +155,21 @@ export function napi_check_object_type_tag (env: napi_env, object: napi_value, t
     }
     const binding = envObject.getObjectBinding(value.value)
     if (binding.tag !== null) {
-      $from64('type_tag')
-      for (i = 0; i < 4; i++) {
-        const x = $makeGetValue('type_tag', 'i * 4', 'u32')
-        if (x !== binding.tag[i]) {
-          ret = false
-          break
-        }
-      }
+      from64('type_tag')
+      const tag = binding.tag
+      const typeTag = new Uint32Array(wasmMemory.buffer, type_tag, 4)
+      ret = (
+        tag[0] === typeTag[0] &&
+        tag[1] === typeTag[1] &&
+        tag[2] === typeTag[2] &&
+        tag[3] === typeTag[3]
+      )
     } else {
       ret = false
     }
 
-    $from64('result')
-    $makeSetValue('result', 0, 'ret ? 1 : 0', 'i8')
+    from64('result')
+    makeSetValue('result', 0, 'ret ? 1 : 0', 'i8')
 
     return envObject.getReturnStatus()
   })
@@ -195,15 +195,15 @@ export function napi_add_finalizer (env: napi_env, js_object: napi_value, finali
   const handle = handleResult.handle!
 
   const ownership: Ownership = !result ? Ownership.kRuntime : Ownership.kUserland
-  $from64('finalize_data')
-  $from64('finalize_cb')
-  $from64('finalize_hint')
+  from64('finalize_data')
+  from64('finalize_cb')
+  from64('finalize_hint')
   const reference = emnapiCtx.createReference(envObject, handle.id, 0, ownership as any, finalize_cb, finalize_data, finalize_hint)
   if (result) {
-    $from64('result')
+    from64('result')
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const referenceId = reference.id
-    $makeSetValue('result', 0, 'referenceId', '*')
+    makeSetValue('result', 0, 'referenceId', '*')
   }
 
   return envObject.clearLastError()

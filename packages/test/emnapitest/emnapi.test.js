@@ -45,4 +45,6 @@ module.exports = promise.then(test_typedarray => {
   assert.strictEqual(typeof minor, 'number')
   assert.strictEqual(typeof patch, 'number')
   console.log(`@emnapi/runtime: v${major}.${minor}.${patch}`)
+
+  assert.strictEqual(test_typedarray.TestUint64(), 10823190267204339845n)
 })

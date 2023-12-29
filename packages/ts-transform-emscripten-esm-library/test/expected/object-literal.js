@@ -30,7 +30,7 @@ const _fe = function () {
 const _af = (param) => {
     obj.bar(param);
 };
-mergeInto(LibraryManager.library, {
+(typeof addToLibrary === "function" ? addToLibrary : (...args) => mergeInto(LibraryManager.library, ...args))({
     bar: _bar,
     bar__sig: "ii",
     $fortyTwo: "42",

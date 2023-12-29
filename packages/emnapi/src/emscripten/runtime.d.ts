@@ -5,7 +5,7 @@ declare const LibraryManager: {
 
 declare function mergeInto (target: any, source: Record<string, any>): void
 
-declare module 'emnapi:emscripten-runtime' {
+declare module 'emscripten:runtime' {
   export const wasmMemory: WebAssembly.Memory
   export const ENVIRONMENT_IS_NODE: boolean
   export const ENVIRONMENT_IS_PTHREAD: boolean

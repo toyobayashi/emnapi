@@ -3,12 +3,13 @@
 /* eslint-disable @typescript-eslint/no-implied-eval */
 
 import { emnapiCtx } from 'emnapi:shared'
+import { from64, makeDynCall, makeSetValue } from 'emscripten:parse-tools'
 import { emnapiString } from './string'
 import { emnapiExternalMemory } from './memory'
 import { $CHECK_ARG, $PREAMBLE } from './macro'
 
 export function emnapiCreateFunction<F extends (...args: any[]) => any> (envObject: Env, utf8name: Pointer<const_char>, length: size_t, cb: napi_callback, data: void_p): { status: napi_status; f: F } {
-  $from64('utf8name')
+  from64('utf8name')
 
   const functionName = (!utf8name || !length) ? '' : (emnapiString.UTF8ToString(utf8name, length))
 
@@ -20,7 +21,7 @@ export function emnapiCreateFunction<F extends (...args: any[]) => any> (envObje
     const scope = emnapiCtx.openScope(envObject)
     try {
       return envObject.callIntoModule((envObject) => {
-        const napiValue = $makeDynCall('ppp', 'cb')(envObject.id, cbinfo)
+        const napiValue = makeDynCall('ppp', 'cb')(envObject.id, cbinfo)
         return (!napiValue) ? undefined : emnapiCtx.handleStore.get(napiValue)!.value
       })
     } finally {
@@ -143,9 +144,9 @@ export function emnapiWrap (env: napi_env, js_object: napi_value, native_object:
     if (result) {
       if (!finalize_cb) return envObject.setLastError(napi_status.napi_invalid_arg)
       reference = emnapiCtx.createReference(envObject, handle.id, 0, Ownership.kUserland as any, finalize_cb, native_object, finalize_hint)
-      $from64('result')
+      from64('result')
       referenceId = reference.id
-      $makeSetValue('result', 0, 'referenceId', '*')
+      makeSetValue('result', 0, 'referenceId', '*')
     } else {
       reference = emnapiCtx.createReference(envObject, handle.id, 0, Ownership.kRuntime as any, finalize_cb, native_object, !finalize_cb ? finalize_cb : finalize_hint)
     }
@@ -172,11 +173,11 @@ export function emnapiUnwrap (env: napi_env, js_object: napi_value, result: void
     const ref = emnapiCtx.refStore.get(referenceId)
     if (!ref) return envObject.setLastError(napi_status.napi_invalid_arg)
     if (result) {
-      $from64('result')
+      from64('result')
 
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       data = ref.data()
-      $makeSetValue('result', 0, 'data', '*')
+      makeSetValue('result', 0, 'data', '*')
     }
     if (action === UnwrapAction.RemoveWrap) {
       binding.wrapped = 0

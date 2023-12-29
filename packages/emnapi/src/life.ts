@@ -1,4 +1,5 @@
 import { emnapiCtx } from 'emnapi:shared'
+import { from64, makeSetValue } from 'emscripten:parse-tools'
 import { $CHECK_ENV_NOT_IN_GC, $CHECK_ARG, $CHECK_ENV } from './macro'
 
 /** @__sig ipp */
@@ -7,8 +8,8 @@ export function napi_open_handle_scope (env: napi_env, result: Pointer<napi_hand
   $CHECK_ARG!(envObject, result)
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const scope = emnapiCtx.openScope(envObject)
-  $from64('result')
-  $makeSetValue('result', 0, 'scope.id', '*')
+  from64('result')
+  makeSetValue('result', 0, 'scope.id', '*')
   return envObject.clearLastError()
 }
 
@@ -30,8 +31,8 @@ export function napi_open_escapable_handle_scope (env: napi_env, result: Pointer
   $CHECK_ARG!(envObject, result)
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const scope = emnapiCtx.openScope(envObject)
-  $from64('result')
-  $makeSetValue('result', 0, 'scope.id', '*')
+  from64('result')
+  makeSetValue('result', 0, 'scope.id', '*')
   return envObject.clearLastError()
 }
 
@@ -55,13 +56,13 @@ export function napi_escape_handle (env: napi_env, scope: napi_escapable_handle_
   $CHECK_ARG!(envObject, result)
   const scopeObject = emnapiCtx.scopeStore.get(scope)!
   if (!scopeObject.escapeCalled()) {
-    $from64('escapee')
-    $from64('result')
+    from64('escapee')
+    from64('result')
 
     const newHandle = scopeObject.escape(escapee)
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const value = newHandle ? newHandle.id : 0
-    $makeSetValue('result', 0, 'value', '*')
+    makeSetValue('result', 0, 'value', '*')
     return envObject.clearLastError()
   }
   return envObject.setLastError(napi_status.napi_escape_called_twice)
@@ -86,8 +87,8 @@ export function napi_create_reference (
   }
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const ref = emnapiCtx.createReference(envObject, handle.id, initial_refcount >>> 0, Ownership.kUserland as any)
-  $from64('result')
-  $makeSetValue('result', 0, 'ref.id', '*')
+  from64('result')
+  makeSetValue('result', 0, 'ref.id', '*')
   return envObject.clearLastError()
 }
 
@@ -113,8 +114,8 @@ export function napi_reference_ref (
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const count = emnapiCtx.refStore.get(ref)!.ref()
   if (result) {
-    $from64('result')
-    $makeSetValue('result', 0, 'count', 'u32')
+    from64('result')
+    makeSetValue('result', 0, 'count', 'u32')
   }
   return envObject.clearLastError()
 }
@@ -136,8 +137,8 @@ export function napi_reference_unref (
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const count = reference.unref()
   if (result) {
-    $from64('result')
-    $makeSetValue('result', 0, 'count', 'u32')
+    from64('result')
+    makeSetValue('result', 0, 'count', 'u32')
   }
   return envObject.clearLastError()
 }
@@ -154,8 +155,8 @@ export function napi_get_reference_value (
   const reference = emnapiCtx.refStore.get(ref)!
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleId = reference.get()
-  $from64('result')
-  $makeSetValue('result', 0, 'handleId', '*')
+  from64('result')
+  makeSetValue('result', 0, 'handleId', '*')
   return envObject.clearLastError()
 }
 
@@ -165,8 +166,8 @@ export function napi_add_env_cleanup_hook (env: napi_env, fun: number, arg: numb
   const envObject = emnapiCtx.envStore.get(env)!
   $CHECK_ARG!(envObject, fun)
 
-  $from64('fun')
-  $from64('arg')
+  from64('fun')
+  from64('arg')
 
   emnapiCtx.addCleanupHook(envObject, fun, arg)
 
@@ -179,8 +180,8 @@ export function napi_remove_env_cleanup_hook (env: napi_env, fun: number, arg: n
   const envObject = emnapiCtx.envStore.get(env)!
   $CHECK_ARG!(envObject, fun)
 
-  $from64('fun')
-  $from64('arg')
+  from64('fun')
+  from64('arg')
 
   emnapiCtx.removeCleanupHook(envObject, fun, arg)
 

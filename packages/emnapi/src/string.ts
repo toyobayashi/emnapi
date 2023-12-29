@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/indent */
 
-import { wasmMemory } from 'emnapi:emscripten-runtime'
+import { wasmMemory } from 'emscripten:runtime'
+import { getUnsharedTextDecoderView, makeSetValue, from64 } from 'emscripten:parse-tools'
 import { emnapiCtx } from 'emnapi:shared'
 import { $CHECK_NEW_STRING_ARGS } from './macro'
 
@@ -165,7 +166,7 @@ export var emnapiString = {
       return str
     }
 // #endif
-    return emnapiString.utf8Decoder.decode($getUnsharedTextDecoderView('HEAPU8', 'ptr', 'end') as Uint8Array)
+    return emnapiString.utf8Decoder.decode(getUnsharedTextDecoderView('HEAPU8', 'ptr', 'end') as Uint8Array)
   },
   stringToUTF8 (str: string, outPtr: number, maxBytesToWrite: number): number {
     const HEAPU8 = new Uint8Array(wasmMemory.buffer)
@@ -224,7 +225,7 @@ export var emnapiString = {
 // #endif
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const HEAPU8 = new Uint8Array(wasmMemory.buffer)
-    return emnapiString.utf16Decoder.decode($getUnsharedTextDecoderView('HEAPU8', 'ptr', 'end') as Uint8Array)
+    return emnapiString.utf16Decoder.decode(getUnsharedTextDecoderView('HEAPU8', 'ptr', 'end') as Uint8Array)
   },
   stringToUTF16 (str: string, outPtr: number, maxBytesToWrite: number): number {
     if (maxBytesToWrite === undefined) {
@@ -237,10 +238,10 @@ export var emnapiString = {
     for (var i = 0; i < numCharsToWrite; ++i) {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       var codeUnit = str.charCodeAt(i)
-      $makeSetValue('outPtr', 0, 'codeUnit', 'i16')
+      makeSetValue('outPtr', 0, 'codeUnit', 'i16')
       outPtr += 2
     }
-    $makeSetValue('outPtr', 0, '0', 'i16')
+    makeSetValue('outPtr', 0, '0', 'i16')
     return outPtr - startPtr
   },
   newString (env: napi_env,
@@ -249,7 +250,7 @@ export var emnapiString = {
     result: Pointer<napi_value>,
     stringMaker: (str: number, autoLength: boolean, sizeLength: number) => string
   ) {
-    $from64('length')
+    from64('length')
     const {
       autoLength,
       sizelength,
@@ -260,12 +261,12 @@ export var emnapiString = {
       envObject: Env
     } = $CHECK_NEW_STRING_ARGS!(env, str, length, result)
 
-    $from64('str')
+    from64('str')
     const strValue = stringMaker(str, autoLength, sizelength)
-    $from64('result')
+    from64('result')
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const value = emnapiCtx.addToCurrentScope(strValue).id
-    $makeSetValue('result', 0, 'value', '*')
+    makeSetValue('result', 0, 'value', '*')
     return envObject.clearLastError()
   },
   newExternalString (
@@ -279,7 +280,7 @@ export var emnapiString = {
     createApi: (env: napi_env, str: number, length: size_t, result: Pointer<napi_value>) => napi_status,
     stringMaker: (str: number, autoLength: boolean, sizeLength: number) => string
   ) {
-    $from64('length')
+    from64('length')
     const {
       envObject
     }: {
@@ -291,7 +292,7 @@ export var emnapiString = {
     const status = createApi(env, str, length, result)
     if (status === napi_status.napi_ok) {
       if (copied) {
-        $makeSetValue('copied', 0, '1', 'i8')
+        makeSetValue('copied', 0, '1', 'i8')
       }
       if (finalize_callback) {
         envObject.callFinalizer(finalize_callback, str, finalize_hint)

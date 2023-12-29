@@ -2,7 +2,8 @@
 /* eslint-disable no-new-func */
 /* eslint-disable @typescript-eslint/no-implied-eval */
 
-import { abort } from 'emnapi:emscripten-runtime'
+import { makeDynCall, to64 } from 'emscripten:parse-tools'
+import { abort } from 'emscripten:runtime'
 
 // declare const global: typeof globalThis
 // declare const require: any
@@ -81,8 +82,8 @@ export function emnapiInit (options: InitOptions): any {
   const envObject = emnapiModule.envObject || (emnapiModule.envObject = emnapiCtx.createEnv(
     filename,
     moduleApiVersion,
-    (cb: Ptr) => $makeDynCall('vppp', 'cb'),
-    (cb: Ptr) => $makeDynCall('vp', 'cb'),
+    (cb: Ptr) => makeDynCall('vppp', 'cb'),
+    (cb: Ptr) => makeDynCall('vp', 'cb'),
     abort,
     emnapiNodeBinding
   ))
@@ -93,7 +94,7 @@ export function emnapiInit (options: InitOptions): any {
       const exports = emnapiModule.exports
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const exportsHandle = scope.add(exports)
-      const napiValue = _napi_register_wasm_v1($to64('_envObject.id'), $to64('exportsHandle.id'))
+      const napiValue = _napi_register_wasm_v1(to64('_envObject.id'), to64('exportsHandle.id'))
       emnapiModule.exports = (!napiValue) ? exports : emnapiCtx.handleStore.get(napiValue)!.value
     })
   } catch (err) {

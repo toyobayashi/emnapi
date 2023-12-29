@@ -1,4 +1,5 @@
 import { emnapiAsyncWorkPoolSize, emnapiNodeBinding, emnapiCtx } from 'emnapi:shared'
+import { makeDynCall } from 'emscripten:parse-tools'
 
 export interface AsyncWork {
   id: number
@@ -95,7 +96,7 @@ export var emnapiAWST = {
       const scope = emnapiCtx.openScope(envObject)
       try {
         (envObject as NodeEnv).callbackIntoModule(true, () => {
-          $makeDynCall('vpip', 'complete')(env, status, data)
+          makeDynCall('vpip', 'complete')(env, status, data)
         })
       } finally {
         emnapiCtx.closeScope(envObject, scope)
@@ -128,7 +129,7 @@ export var emnapiAWST = {
       const execute = work.execute
       work.status = 2
       emnapiCtx.feature.setImmediate(() => {
-        $makeDynCall('vpp', 'execute')(env, data)
+        makeDynCall('vpp', 'execute')(env, data)
         emnapiAWST.queued.delete(id)
         work.status = 3
 

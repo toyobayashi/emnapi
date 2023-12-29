@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/indent */
 
 import { emnapiCtx } from 'emnapi:shared'
-import { wasmMemory } from 'emnapi:emscripten-runtime'
+import { wasmMemory } from 'emscripten:runtime'
+import { from64, makeSetValue } from 'emscripten:parse-tools'
 import { $CHECK_ENV, $CHECK_ARG } from '../macro'
 import { $emnapiSetValueI64 as emnapiSetValueI64 } from '../util'
 
@@ -28,9 +29,9 @@ export function napi_adjust_external_memory (
     return envObject.setLastError(napi_status.napi_generic_failure)
   }
 
-  $from64('adjusted_value')
+  from64('adjusted_value')
   if (emnapiCtx.feature.supportBigInt) {
-    $makeSetValue('adjusted_value', 0, 'wasmMemory.buffer.byteLength', 'i64')
+    makeSetValue('adjusted_value', 0, 'wasmMemory.buffer.byteLength', 'i64')
   } else {
     emnapiSetValueI64(adjusted_value, wasmMemory.buffer.byteLength)
   }

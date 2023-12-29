@@ -1,4 +1,5 @@
-import { ENVIRONMENT_IS_NODE, ENVIRONMENT_IS_PTHREAD, PThread } from 'emnapi:emscripten-runtime'
+import { ENVIRONMENT_IS_NODE, ENVIRONMENT_IS_PTHREAD, PThread } from 'emscripten:runtime'
+import { makeDynCall } from 'emscripten:parse-tools'
 import { _emnapi_set_immediate, _emnapi_next_tick } from '../util'
 
 /**
@@ -44,7 +45,7 @@ export function $emnapiAddSendListener (worker: any): boolean {
       } else {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const callback = __emnapi__.payload.callback
-        $makeDynCall('vp', 'callback')(__emnapi__.payload.data)
+        makeDynCall('vp', 'callback')(__emnapi__.payload.data)
       }
     }
   }

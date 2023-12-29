@@ -1,5 +1,6 @@
 import { emnapiCtx, emnapiNodeBinding } from 'emnapi:shared'
-import { wasmMemory } from 'emnapi:emscripten-runtime'
+import { wasmMemory } from 'emscripten:runtime'
+import { from64, makeSetValue, makeGetValue } from 'emscripten:parse-tools'
 import { type MemoryViewDescriptor, type ArrayBufferPointer, emnapiExternalMemory } from './memory'
 import { napi_add_finalizer } from './wrap'
 import { $CHECK_ARG, $PREAMBLE, $CHECK_ENV } from './macro'
@@ -21,9 +22,9 @@ export function emnapi_create_memory_view (
 
   return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, result)
-    $from64('byte_length')
-    $from64('external_data')
-    $from64('result')
+    from64('byte_length')
+    from64('external_data')
+    from64('result')
 
     byte_length = byte_length >>> 0
 
@@ -105,7 +106,7 @@ export function emnapi_create_memory_view (
       }
     }
     value = handle.id
-    $makeSetValue('result', 0, 'value', '*')
+    makeSetValue('result', 0, 'value', '*')
     return envObject.getReturnStatus()
   })
 }
@@ -194,11 +195,11 @@ export function emnapi_sync_memory (env: napi_env, js_to_wasm: bool, arraybuffer
   return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, arraybuffer_or_view)
 
-    $from64('arraybuffer_or_view')
-    $from64('offset')
-    $from64('len')
+    from64('arraybuffer_or_view')
+    from64('offset')
+    from64('len')
 
-    const handleId = $makeGetValue('arraybuffer_or_view', 0, '*')
+    const handleId = makeGetValue('arraybuffer_or_view', 0, '*')
 
     const handle: Handle<ArrayBuffer | ArrayBufferView> = envObject.ctx.handleStore.get(handleId)!
     if (!handle.isArrayBuffer() && !handle.isTypedArray() && !handle.isDataView()) {
@@ -207,9 +208,9 @@ export function emnapi_sync_memory (env: napi_env, js_to_wasm: bool, arraybuffer
     const ret = $emnapiSyncMemory(Boolean(js_to_wasm), handle.value, offset, len)
 
     if (handle.value !== ret) {
-      $from64('arraybuffer_or_view')
+      from64('arraybuffer_or_view')
       v = envObject.ensureHandleId(ret)
-      $makeSetValue('arraybuffer_or_view', 0, 'v', '*')
+      makeSetValue('arraybuffer_or_view', 0, 'v', '*')
     }
 
     return envObject.getReturnStatus()
@@ -256,18 +257,18 @@ export function emnapi_get_memory_address (env: napi_env, arraybuffer_or_view: n
 
     p = info.address
     if (address) {
-      $from64('address')
-      $makeSetValue('address', 0, 'p', '*')
+      from64('address')
+      makeSetValue('address', 0, 'p', '*')
     }
     if (ownership) {
-      $from64('ownership')
+      from64('ownership')
       ownershipOut = info.ownership
-      $makeSetValue('ownership', 0, 'ownershipOut', 'i32')
+      makeSetValue('ownership', 0, 'ownershipOut', 'i32')
     }
     if (runtime_allocated) {
-      $from64('runtime_allocated')
+      from64('runtime_allocated')
       runtimeAllocated = info.runtimeAllocated
-      $makeSetValue('runtime_allocated', 0, 'runtimeAllocated', 'i8')
+      makeSetValue('runtime_allocated', 0, 'runtimeAllocated', 'i8')
     }
 
     return envObject.getReturnStatus()
@@ -293,11 +294,11 @@ export function emnapi_get_runtime_version (env: napi_env, version: number): nap
   const versions = runtimeVersion.split('.')
     .map((n: string) => Number(n)) as [number, number, number]
 
-  $from64('version')
+  from64('version')
 
-  $makeSetValue('version', 0, 'versions[0]', 'u32')
-  $makeSetValue('version', 4, 'versions[1]', 'u32')
-  $makeSetValue('version', 8, 'versions[2]', 'u32')
+  makeSetValue('version', 0, 'versions[0]', 'u32')
+  makeSetValue('version', 4, 'versions[1]', 'u32')
+  makeSetValue('version', 8, 'versions[2]', 'u32')
 
   return envObject.clearLastError()
 }

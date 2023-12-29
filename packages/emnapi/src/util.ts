@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/indent */
 
-import { runtimeKeepalivePop, runtimeKeepalivePush } from 'emnapi:emscripten-runtime'
+import { runtimeKeepalivePop, runtimeKeepalivePush } from 'emscripten:runtime'
+import { from64, makeSetValue, makeDynCall } from 'emscripten:parse-tools'
 import { emnapiCtx } from 'emnapi:shared'
 
 /**
@@ -25,9 +26,9 @@ declare const process: any
  * @__sig vppp
  */
 export function _emnapi_get_node_version (major: number, minor: number, patch: number): void {
-  $from64('major')
-  $from64('minor')
-  $from64('patch')
+  from64('major')
+  from64('minor')
+  from64('patch')
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const versions: [number, number, number] =
@@ -39,9 +40,9 @@ export function _emnapi_get_node_version (major: number, minor: number, patch: n
       ? process.versions.node.split('.').map((n: string) => Number(n))
       : [0, 0, 0]
 
-  $makeSetValue('major', 0, 'versions[0]', 'u32')
-  $makeSetValue('minor', 0, 'versions[1]', 'u32')
-  $makeSetValue('patch', 0, 'versions[2]', 'u32')
+  makeSetValue('major', 0, 'versions[0]', 'u32')
+  makeSetValue('minor', 0, 'versions[1]', 'u32')
+  makeSetValue('patch', 0, 'versions[2]', 'u32')
 }
 
 /**
@@ -65,7 +66,7 @@ export function _emnapi_runtime_keepalive_pop (): void {
  */
 export function _emnapi_set_immediate (callback: number, data: number): void {
   emnapiCtx.feature.setImmediate(() => {
-    $makeDynCall('vp', 'callback')(data)
+    makeDynCall('vp', 'callback')(data)
   })
 }
 
@@ -75,7 +76,7 @@ export function _emnapi_set_immediate (callback: number, data: number): void {
 export function _emnapi_next_tick (callback: number, data: number): void {
   // eslint-disable-next-line @typescript-eslint/no-floating-promises
   Promise.resolve().then(() => {
-    $makeDynCall('vp', 'callback')(data)
+    makeDynCall('vp', 'callback')(data)
   })
 }
 
@@ -87,7 +88,7 @@ export function _emnapi_callback_into_module (forceUncaught: int, env: napi_env,
   const scope = emnapiCtx.openScope(envObject)
   try {
     (envObject as NodeEnv).callbackIntoModule(Boolean(forceUncaught), () => {
-      $makeDynCall('vpp', 'callback')(env, data)
+      makeDynCall('vpp', 'callback')(env, data)
     })
   } catch (err) {
     emnapiCtx.closeScope(envObject, scope)
@@ -104,7 +105,7 @@ export function _emnapi_callback_into_module (forceUncaught: int, env: napi_env,
  */
 export function _emnapi_call_finalizer (forceUncaught: int, env: napi_env, callback: number, data: number, hint: number): void {
   const envObject = emnapiCtx.envStore.get(env)!
-  $from64('callback')
+  from64('callback')
   ;(envObject as NodeEnv).callFinalizerInternal(forceUncaught, callback, data, hint)
 }
 
@@ -129,6 +130,6 @@ export function $emnapiSetValueI64 (result: Pointer<int64_t>, numberValue: numbe
     numberValue >>> 0,
     (tempDouble = numberValue, +Math.abs(tempDouble) >= 1 ? tempDouble > 0 ? (Math.min(+Math.floor(tempDouble / 4294967296), 4294967295) | 0) >>> 0 : ~~+Math.ceil((tempDouble - +(~~tempDouble >>> 0)) / 4294967296) >>> 0 : 0)
   ]
-  $makeSetValue('result', 0, 'tempI64[0]', 'i32')
-  $makeSetValue('result', 4, 'tempI64[1]', 'i32')
+  makeSetValue('result', 0, 'tempI64[0]', 'i32')
+  makeSetValue('result', 4, 'tempI64[1]', 'i32')
 }

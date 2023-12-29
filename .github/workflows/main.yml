@@ -2,19 +2,25 @@ name: Build
 
 on:
   push:
+    paths-ignore:
+    - '**/*.md'
+    - '**/docs/**'
     branches:
     - main
     - test-*
     tags:
     - v*
   pull_request:
+    paths-ignore:
+    - '**/*.md'
+    - '**/docs/**'
   workflow_dispatch:
 
 env:
-  WASI_VERSION: '20'
-  WASI_VERSION_FULL: '20.0'
-  WASI_SDK_PATH: './wasi-sdk-20.0'
-  EM_VERSION: '3.1.36'
+  WASI_VERSION: '21'
+  WASI_VERSION_FULL: '21.0'
+  WASI_SDK_PATH: './wasi-sdk-21.0'
+  EM_VERSION: '3.1.44'
   EM_CACHE_FOLDER: 'emsdk-cache'
 
 jobs:
@@ -32,7 +38,7 @@ jobs:
         - 'wasm32-wasi-threads'
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Install Ninja
       run: |
         sudo apt-get update
@@ -132,7 +138,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Install Ninja
       run: |
         sudo apt-get update

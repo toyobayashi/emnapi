@@ -6,7 +6,7 @@ function _exportedFunc() {
     f();
     console.log(_exportedVar);
 }
-mergeInto(LibraryManager.library, {
+(typeof addToLibrary === "function" ? addToLibrary : (...args) => mergeInto(LibraryManager.library, ...args))({
     exportedVar: "10",
     $f: f,
     $f__deps: ["exportedVar"],
