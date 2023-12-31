@@ -15,6 +15,7 @@ export class CallbackInfo {
 
   public getNewTarget (envObject: Env): number {
     const thiz = this.thiz
+    // eslint-disable-next-line @typescript-eslint/prefer-optional-chain
     if (thiz == null || thiz.constructor == null) return 0
     return thiz instanceof this.fn ? envObject.ensureHandleId(thiz.constructor) : 0
   }
