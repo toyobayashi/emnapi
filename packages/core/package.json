@@ -4,21 +4,21 @@
   "description": "emnapi core",
   "main": "index.js",
   "module": "./dist/emnapi-core.esm-bundler.js",
-  "types": "./index.d.ts",
+  "types": "./dist/emnapi-core.d.ts",
   "sideEffects": false,
   "exports": {
     ".": {
       "types": {
-        "module": "./index.d.ts",
+        "module": "./dist/emnapi-core.d.ts",
         "import": "./dist/emnapi-core.d.mts",
-        "default": "./index.d.ts"
+        "default": "./dist/emnapi-core.d.ts"
       },
       "module": "./dist/emnapi-core.esm-bundler.js",
       "import": "./dist/emnapi-core.mjs",
       "default": "./index.js"
     },
     "./dist/emnapi-core.cjs.min": {
-      "types": "./index.d.ts",
+      "types": "./dist/emnapi-core.d.ts",
       "default": "./dist/emnapi-core.cjs.min.js"
     },
     "./dist/emnapi-core.min.mjs": {
