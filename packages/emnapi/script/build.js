@@ -70,7 +70,8 @@ async function build () {
   const coreTsconfigPath = path.join(__dirname, '../src/core/tsconfig.json')
   //   compile(coreTsconfigPath)
   const coreTsconfig = JSON.parse(fs.readFileSync(coreTsconfigPath, 'utf8'))
-  const coreOut = path.join(path.dirname(coreTsconfigPath), '../../dist/emnapi-core.js')
+  // const coreOut = path.join(path.dirname(coreTsconfigPath), '../../dist/emnapi-core.js')
+  const outputDir = path.join(path.dirname(coreTsconfigPath), '../../../core/src/emnapi')
 
   const coreRollupBuild = await rollup({
     input: path.join(__dirname, '../src/core/index.ts'),
@@ -112,36 +113,39 @@ async function build () {
           { find: sharedModuleSpecifier, replacement: path.join(__dirname, '../src/core/init.ts') },
           { find: runtimeModuleSpecifier, replacement: path.join(__dirname, '../src/core/init.ts') }
         ]
-      })
-    ]
-  })
-  await coreRollupBuild.write({
-    file: coreOut,
-    format: 'iife',
-    name: 'napiModule',
-    strict: false
-  })
-
-  const coreCode = fs.readFileSync(coreOut, 'utf8')
-  const { Compiler } = require('./preprocess.js')
-  const compiler = new Compiler({
-    defines: {
-      DYNAMIC_EXECUTION: 1,
-      TEXTDECODER: 1,
-      LEGACY_RUNTIME: 1,
-      WASM_BIGINT: 1,
-      MEMORY64: 0
-    }
-  })
-  const parsedCode = compiler.parseCode(coreCode)
-  fs.writeFileSync(path.join(__dirname, '../../core/src/module.js'),
-`import { _WebAssembly as WebAssembly } from './util.js'
+      }),
+      {
+        name: 'preprocess',
+        renderChunk (code) {
+          const { Compiler } = require('./preprocess.js')
+          const compiler = new Compiler({
+            defines: {
+              DYNAMIC_EXECUTION: 1,
+              TEXTDECODER: 1,
+              LEGACY_RUNTIME: 1,
+              WASM_BIGINT: 1,
+              MEMORY64: 0
+            }
+          })
+          const parsedCode = compiler.parseCode(code)
+          return `import { _WebAssembly as WebAssembly } from '@/util'
 
 export function createNapiModule (options) {
   ${parsedCode}
   return napiModule;
 }
-`, 'utf8')
+`
+        }
+      }
+    ]
+  })
+  await coreRollupBuild.write({
+    // file: coreOut,
+    dir: outputDir,
+    format: 'iife',
+    name: 'napiModule',
+    strict: false
+  })
 }
 
 exports.build = build

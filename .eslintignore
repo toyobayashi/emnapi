@@ -8,7 +8,7 @@ node_modules
 /test/CMakeFiles
 /packages/runtime/lib
 /packages/emnapi/lib
-/packages/core/src/module.js
+/packages/core/src/emnapi
 /packages/**/test/**/input
 /packages/**/test/**/actual
 /packages/**/test/**/expected
