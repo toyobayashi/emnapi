@@ -685,22 +685,49 @@ class Transform {
 
     const factory = this.ctx.factory
     return factory.createConditionalExpression(
-      factory.createBinaryExpression(
-        factory.createBinaryExpression(
-          factory.createTypeOfExpression(factory.createIdentifier('SharedArrayBuffer')),
-          factory.createToken(ts.SyntaxKind.EqualsEqualsEqualsToken),
-          factory.createStringLiteral('function')
-        ),
-        factory.createToken(ts.SyntaxKind.AmpersandAmpersandToken),
-        factory.createBinaryExpression(
-          factory.createPropertyAccessExpression(
-            factory.createIdentifier(heap),
-            factory.createIdentifier('buffer')
+      factory.createParenthesizedExpression(factory.createBinaryExpression(
+        factory.createParenthesizedExpression(factory.createBinaryExpression(
+          factory.createBinaryExpression(
+            factory.createTypeOfExpression(factory.createIdentifier('SharedArrayBuffer')),
+            factory.createToken(ts.SyntaxKind.EqualsEqualsEqualsToken),
+            factory.createStringLiteral('function')
           ),
-          factory.createToken(ts.SyntaxKind.InstanceOfKeyword),
-          factory.createIdentifier('SharedArrayBuffer')
-        )
-      ),
+          factory.createToken(ts.SyntaxKind.AmpersandAmpersandToken),
+          factory.createBinaryExpression(
+            factory.createPropertyAccessExpression(
+              factory.createIdentifier(heap),
+              factory.createIdentifier('buffer')
+            ),
+            factory.createToken(ts.SyntaxKind.InstanceOfKeyword),
+            factory.createIdentifier('SharedArrayBuffer')
+          )
+        )),
+        factory.createToken(ts.SyntaxKind.BarBarToken),
+        factory.createParenthesizedExpression(factory.createBinaryExpression(
+          factory.createCallExpression(
+            factory.createPropertyAccessExpression(
+              factory.createPropertyAccessExpression(
+                factory.createPropertyAccessExpression(
+                  factory.createIdentifier('Object'),
+                  factory.createIdentifier('prototype')
+                ),
+                factory.createIdentifier('toString')
+              ),
+              factory.createIdentifier('call')
+            ),
+            undefined,
+            [factory.createPropertyAccessExpression(
+              factory.createPropertyAccessExpression(
+                factory.createIdentifier(heap),
+                factory.createIdentifier('buffer')
+              ),
+              factory.createIdentifier('constructor')
+            )]
+          ),
+          factory.createToken(ts.SyntaxKind.EqualsEqualsEqualsToken),
+          factory.createStringLiteral('[object SharedArrayBuffer]')
+        ))
+      )),
       factory.createToken(ts.SyntaxKind.QuestionToken),
       factory.createCallExpression(
         factory.createPropertyAccessExpression(
