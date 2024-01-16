@@ -42,8 +42,10 @@ napi_status napi_get_last_error_info(
 
   const int last_status = napi_cannot_run_js;
 
+#if (defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L) || defined(__cplusplus)
   static_assert((sizeof(emnapi_error_messages) / sizeof(const char*)) == napi_cannot_run_js + 1,
                 "Count of error messages must match count of error values");
+#endif
 
   _emnapi_get_last_error_info(env,
                               &last_error.error_code,
