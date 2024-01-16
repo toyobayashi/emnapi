@@ -2,6 +2,7 @@
   "private": true,
   "version": "0.0.0",
   "scripts": {
+    "prepare": "npm run build",
     "build": "npm run build --workspaces --if-present",
     "build:main": "npm run build -w packages/emnapi",
     "build:core": "npm run build -w packages/core",
