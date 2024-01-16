@@ -438,7 +438,9 @@ export function napi_get_value_int32 (env: napi_env, value: napi_value, result: 
     return envObject.setLastError(napi_status.napi_number_expected)
   }
   from64('result')
-  makeSetValue('result', 0, 'handle.value', 'i32')
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const v = new Int32Array([handle.value])[0]
+  makeSetValue('result', 0, 'v', 'i32')
   return envObject.clearLastError()
 }
 
@@ -466,7 +468,7 @@ export function napi_get_value_int64 (env: napi_env, value: napi_value, result: 
     makeSetValue('result', 0, '0xffffffff', 'u32')
     makeSetValue('result', 4, '0x7fffffff', 'u32')
   } else {
-    emnapiSetValueI64(result, numberValue)
+    emnapiSetValueI64(result, Math.trunc(numberValue))
   }
   return envObject.clearLastError()
 }
@@ -583,6 +585,8 @@ export function napi_get_value_uint32 (env: napi_env, value: napi_value, result:
     return envObject.setLastError(napi_status.napi_number_expected)
   }
   from64('result')
-  makeSetValue('result', 0, 'handle.value', 'u32')
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const v = new Uint32Array([handle.value])[0]
+  makeSetValue('result', 0, 'v', 'u32')
   return envObject.clearLastError()
 }
