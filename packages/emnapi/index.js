@@ -5,7 +5,7 @@ const path = require('path')
 
 const include = path.join(__dirname, 'include')
 const includeDir = path.relative(process.cwd(), include)
-const jsLibrary = path.join(__dirname, './dist/library_napi.js')
+const jsLibrary = path.join(__dirname, './dist/library_napi.js').replace(/\\|\\\\/g, '/')
 const sources = [
   path.join(__dirname, './src/js_native_api.c'),
   path.join(__dirname, './src/node_api.c'),
@@ -20,8 +20,10 @@ const sources = [
   path.join(__dirname, './src/uv/unix/async.c'),
   path.join(__dirname, './src/uv/unix/core.c')
 ]
+const targets = path.relative(process.cwd(), path.join(__dirname, 'emnapi.gyp'))
 
 exports.include = include
 exports.include_dir = includeDir
 exports.js_library = jsLibrary
 exports.sources = sources
+exports.targets = targets
