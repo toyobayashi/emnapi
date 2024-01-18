@@ -4,7 +4,7 @@
   'variables': {
     # 'emscripten' | 'wasi' | 'unknown'
     'target_os%': 'emscripten',
-    'napi_build_version%': '8',
+    'napi_build_version%': '9',
     'clang': 1,
     'target_arch%': 'wasm32',
     'wasm_threads%': 0,
