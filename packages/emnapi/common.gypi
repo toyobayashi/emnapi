@@ -89,15 +89,13 @@
           '-sDEFAULT_TO_CXX=0',
         ],
         'ldflags': [
-          '--js-library=<!(node -p "require(\'emnapi\').js_library")',
           "-sALLOW_MEMORY_GROWTH=1",
           "-sEXPORTED_FUNCTIONS=['_malloc','_free','_napi_register_wasm_v1','_node_api_module_get_api_version_v1']",
           '-sNODEJS_CATCH_EXIT=0',
           '-sNODEJS_CATCH_REJECTION=0',
-          '-sAUTO_JS_LIBRARIES=0',
-          '-sAUTO_NATIVE_LIBRARIES=0',
           '-sWASM_BIGINT=1',
           '-sMIN_CHROME_VERSION=84',
+          '-sMIN_NODE_VERSION=161500',
           '-sSTACK_SIZE=2MB',
           '-sDEFAULT_PTHREAD_STACK_SIZE=2MB',
         ],
@@ -122,15 +120,13 @@
                 '-sDEFAULT_TO_CXX=0',
               ],
               'OTHER_LDFLAGS': [
-                '--js-library=<!(node -p "require(\'emnapi\').js_library")',
                 "-sALLOW_MEMORY_GROWTH=1",
                 "-sEXPORTED_FUNCTIONS=['_malloc','_free','_napi_register_wasm_v1','_node_api_module_get_api_version_v1']",
                 '-sNODEJS_CATCH_EXIT=0',
                 '-sNODEJS_CATCH_REJECTION=0',
-                '-sAUTO_JS_LIBRARIES=0',
-                '-sAUTO_NATIVE_LIBRARIES=0',
                 '-sWASM_BIGINT=1',
                 '-sMIN_CHROME_VERSION=84',
+                '-sMIN_NODE_VERSION=161500',
                 '-sSTACK_SIZE=2MB',
                 '-sDEFAULT_PTHREAD_STACK_SIZE=2MB',
               ],
@@ -254,6 +250,9 @@
         'conditions': [
           ['target_os == "emscripten"', {
             'product_extension': 'js',
+            'libraries': [
+              '--js-library=<!(node -p "require(\'emnapi\').js_library")',
+            ]
           }, {
             # not emscripten
             'product_extension': 'wasm',
