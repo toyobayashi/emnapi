@@ -249,13 +249,13 @@
         ],
         'conditions': [
           ['target_os == "emscripten"', {
-            'product_extension': 'js',
+            'product_extension%': 'js',
             'libraries': [
               '--js-library=<!(node -p "require(\'emnapi\').js_library")',
             ]
           }, {
             # not emscripten
-            'product_extension': 'wasm',
+            'product_extension%': 'wasm',
 
             'ldflags': [
               '-Wl,--export-dynamic',
