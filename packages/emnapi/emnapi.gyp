@@ -33,12 +33,10 @@
         'src/malloc/emmalloc/emmalloc.c',
       ],
       'cflags': [ '-fno-strict-aliasing' ],
+      'xcode_settings': {
+        'GCC_STRICT_ALIASING': 'NO',
+      },
       'conditions': [
-        ['OS == "mac"', {
-          'xcode_settings': {
-            'GCC_STRICT_ALIASING': 'NO',
-          }
-        }],
         ['wasm_threads != 0', {
           'defines': [
             '__EMSCRIPTEN_SHARED_MEMORY__=1'
@@ -60,7 +58,7 @@
       },
       'link_settings': {
         'target_conditions': [
-          ['_type == "executable" and target_os == "emscripten"', {
+          ['_type == "executable" and OS == "emscripten"', {
             'libraries': [
               '--js-library=<!(node -p "require(\'emnapi\').js_library")',
             ]
@@ -68,7 +66,7 @@
         ]
       },
       'conditions': [
-        ['wasm_threads != 0 and target_os != "emscripten" and target_os != "wasi"', {
+        ['wasm_threads != 0 and OS != "emscripten" and OS != "wasi"', {
           'sources': [
             'src/thread/async_worker_create.c',
             'src/thread/async_worker_init.S',
@@ -100,7 +98,7 @@
       },
       'link_settings': {
         'target_conditions': [
-          ['_type == "executable" and target_os == "emscripten"', {
+          ['_type == "executable" and OS == "emscripten"', {
             'libraries': [
               '--js-library=<!(node -p "require(\'emnapi\').js_library")',
             ]
