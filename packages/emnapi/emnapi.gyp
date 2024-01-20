@@ -45,6 +45,68 @@
           ],
         }],
       ],
+    },
+    {
+      'target_name': 'emnapi_basic',
+      'type': 'static_library',
+      'sources': [
+        'src/js_native_api.c',
+        'src/node_api.c',
+        'src/async_cleanup_hook.c',
+        'src/async_context.c',
+      ],
+      'direct_dependent_settings': {
+        'include_dirs+': [ 'include' ],
+      },
+      'link_settings': {
+        'target_conditions': [
+          ['_type == "executable" and target_os == "emscripten"', {
+            'libraries': [
+              '--js-library=<!(node -p "require(\'emnapi\').js_library")',
+            ]
+          }],
+        ]
+      },
+      'conditions': [
+        ['wasm_threads != 0 and target_os != "emscripten" and target_os != "wasi"', {
+          'sources': [
+            'src/thread/async_worker_create.c',
+            'src/thread/async_worker_init.S',
+          ],
+        }],
+      ]
+    },
+    {
+      'target_name': 'emnapi',
+      'type': 'static_library',
+      'sources': [
+        'src/js_native_api.c',
+        'src/node_api.c',
+        'src/async_cleanup_hook.c',
+        'src/async_context.c',
+
+        'src/uv/uv-common.c',
+        'src/uv/threadpool.c',
+        'src/uv/unix/loop.c',
+        'src/uv/unix/thread.c',
+        'src/uv/unix/async.c',
+        'src/uv/unix/core.c',
+
+        'src/async_work.c',
+        'src/threadsafe_function.c',
+      ],
+      'direct_dependent_settings': {
+        'include_dirs+': [ 'include' ],
+      },
+      'link_settings': {
+        'target_conditions': [
+          ['_type == "executable" and target_os == "emscripten"', {
+            'libraries': [
+              '--js-library=<!(node -p "require(\'emnapi\').js_library")',
+            ]
+          }],
+        ]
+      },
     }
   ]
 }
