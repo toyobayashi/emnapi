@@ -3,7 +3,6 @@
 {
   'variables': {
     # OS: 'emscripten' | 'wasi' | 'unknown'
-    'napi_build_version%': '9',
     'clang': 1,
     'target_arch%': 'wasm32',
     'wasm_threads%': 0,
@@ -181,7 +180,7 @@
             ],
           }, {
             'conditions': [
-              ['OS == "unknown"', {
+              ['OS == "unknown" or OS == ""', {
                 # wasm32-unknown-unknown
                 'cflags': [ '--target=wasm32-unknown-unknown' ],
                 'ldflags': [
@@ -203,13 +202,25 @@
     'target_conditions': [
       ['_type=="executable"', {
         'sources': [
-          '<!@(node -p "require(\'emnapi\').sources.map(x => JSON.stringify(path.relative(process.cwd(), x))).join(\' \')")'
+          'src/js_native_api.c',
+          'src/node_api.c',
+          'src/async_cleanup_hook.c',
+          'src/async_context.c',
+          'src/async_work.c',
+          'src/threadsafe_function.c',
+          'src/uv/uv-common.c',
+          'src/uv/threadpool.c',
+          'src/uv/unix/loop.c',
+          'src/uv/unix/thread.c',
+          'src/uv/unix/async.c',
+          'src/uv/unix/core.c',
         ],
         'conditions': [
           ['OS == "emscripten"', {
             'product_extension': 'js',
             'libraries': [
-              '--js-library=<!(node -p "require(\'emnapi\').js_library")',
+              # '--js-library=<!(node -p "require(\'emnapi\').js_library")',
+              '--js-library=<(node_root_dir)/dist/library_napi.js',
             ]
           }, {
             # not emscripten
@@ -262,7 +273,7 @@
               }],
               ['OS == "wasi"', {}, {
                 'conditions': [
-                  ['OS == "unknown"', {
+                  ['OS == "unknown" or OS == ""', {
                     'defines': [
                       'PAGESIZE=65536'
                     ],
