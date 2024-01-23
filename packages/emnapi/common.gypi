@@ -219,8 +219,8 @@
           ['OS == "emscripten"', {
             'product_extension': 'js',
             'libraries': [
-              # '--js-library=<!(node -p "require(\'emnapi\').js_library")',
-              '--js-library=<(node_root_dir)/dist/library_napi.js',
+              '--js-library=<!(node -p "require(\'emnapi\').js_library")',
+              # '--js-library=<(node_root_dir)/dist/library_napi.js',
             ]
           }, {
             # not emscripten
