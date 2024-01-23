@@ -209,6 +209,11 @@ if(LIB_ARCH)
 endif()
 
 install(FILES
+    ${CMAKE_CURRENT_SOURCE_DIR}/common.gypi
+    ${CMAKE_CURRENT_SOURCE_DIR}/emnapi.gyp
+  DESTINATION ".")
+
+install(FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/include/emnapi_common.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/emnapi.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/js_native_api_types.h
@@ -216,11 +221,12 @@ install(FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/include/node_api_types.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/node_api.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/uv.h
-  DESTINATION "include/${PROJECT_NAME}")
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/node/config.gypi
+  DESTINATION "include/node")
 
 install(DIRECTORY
   ${CMAKE_CURRENT_SOURCE_DIR}/include/uv
-  DESTINATION "include/${PROJECT_NAME}")
+  DESTINATION "include/node")
 
 install(FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/dist/library_napi.js
@@ -230,14 +236,14 @@ if(EMNAPI_INSTALL_SRC)
   install(FILES
       ${EMNAPI_SRC}
       "${CMAKE_CURRENT_SOURCE_DIR}/src/emnapi_internal.h"
-    DESTINATION "src/${PROJECT_NAME}")
+    DESTINATION "src")
   install(DIRECTORY
     ${CMAKE_CURRENT_SOURCE_DIR}/src/uv
-    DESTINATION "src/${PROJECT_NAME}")
+    DESTINATION "src")
   install(DIRECTORY
     ${CMAKE_CURRENT_SOURCE_DIR}/src/malloc
-    DESTINATION "src/${PROJECT_NAME}")
+    DESTINATION "src")
   install(DIRECTORY
     ${CMAKE_CURRENT_SOURCE_DIR}/src/thread
-    DESTINATION "src/${PROJECT_NAME}")
+    DESTINATION "src")
 endif()
