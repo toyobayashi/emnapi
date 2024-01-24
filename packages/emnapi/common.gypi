@@ -132,8 +132,8 @@
             },
           }],
         ],
-      }, {
-        # not emscripten
+      }], 
+      ['OS == "" or OS == "wasi" or OS == "unknown"', {
         'configurations': {
           'Release': {
             'ldflags': [ '-Wl,--strip-debug' ],
@@ -142,7 +142,7 @@
             },
           }
         },
-        
+
         'conditions': [
           ['wasm_threads != 0', {
             'cflags': [ "-matomics", "-mbulk-memory" ],
@@ -179,21 +179,17 @@
               }],
             ],
           }, {
-            'conditions': [
-              ['OS == "unknown" or OS == ""', {
-                # wasm32-unknown-unknown
-                'cflags': [ '--target=wasm32-unknown-unknown' ],
-                'ldflags': [
-                  '--target=wasm32-unknown-unknown',
-                ],
-                'xcode_settings': {
-                  'WARNING_CFLAGS': [ '--target=wasm32-unknown-unknown' ],
-                  'OTHER_LDFLAGS': [
-                    '--target=wasm32-unknown-unknown',
-                  ],
-                },
-              }]
+            # wasm32-unknown-unknown
+            'cflags': [ '--target=wasm32-unknown-unknown' ],
+            'ldflags': [
+              '--target=wasm32-unknown-unknown',
             ],
+            'xcode_settings': {
+              'WARNING_CFLAGS': [ '--target=wasm32-unknown-unknown' ],
+              'OTHER_LDFLAGS': [
+                '--target=wasm32-unknown-unknown',
+              ],
+            },
           }],
         ]
       }],
@@ -217,13 +213,12 @@
         ],
         'conditions': [
           ['OS == "emscripten"', {
-            'product_extension': 'js',
             'libraries': [
               '--js-library=<!(node -p "require(\'emnapi\').js_library")',
               # '--js-library=<(node_root_dir)/dist/library_napi.js',
             ]
-          }, {
-            # not emscripten
+          }],
+          ['OS == "" or OS == "wasi" or OS == "unknown"', {
             'product_extension': 'wasm',
 
             'ldflags': [
@@ -271,51 +266,47 @@
                   ]
                 },
               }],
-              ['OS == "wasi"', {}, {
+              ['OS != "wasi"', {
+                'defines': [
+                  'PAGESIZE=65536'
+                ],
+                'ldflags': [
+                  '-nostdlib',
+                  '-Wl,--no-entry',
+                ],
+                'xcode_settings': {
+                  'OTHER_LDFLAGS': [
+                    '-nostdlib',
+                    '-Wl,--no-entry',
+                  ],
+                },
+                'sources': [
+                  'src/malloc/sbrk.c',
+                  'src/malloc/memcpy.c',
+                  'src/malloc/memset.c',
+                  'src/malloc/dlmalloc/dlmalloc.c',
+                ],
                 'conditions': [
-                  ['OS == "unknown" or OS == ""', {
+                  ['wasm_threads != 0', {
+                    # wasm32 + threads
+                    'sources': [
+                      'src/thread/async_worker_create.c',
+                      'src/thread/async_worker_init.S',
+                    ],
                     'defines': [
-                      'PAGESIZE=65536'
+                      'USE_LOCKS=1'
                     ],
                     'ldflags': [
-                      '-nostdlib',
-                      '-Wl,--no-entry',
+                      '-Wl,--export=emnapi_async_worker_create',
+                      '-Wl,--export=emnapi_async_worker_init',
                     ],
                     'xcode_settings': {
                       'OTHER_LDFLAGS': [
-                        '-nostdlib',
-                        '-Wl,--no-entry',
+                        '-Wl,--export=emnapi_async_worker_create',
+                        '-Wl,--export=emnapi_async_worker_init',
                       ],
                     },
-                    'sources': [
-                      'src/malloc/sbrk.c',
-                      'src/malloc/memcpy.c',
-                      'src/malloc/memset.c',
-                      'src/malloc/dlmalloc/dlmalloc.c',
-                    ],
-                    'conditions': [
-                      ['wasm_threads != 0', {
-                        # wasm32 + threads
-                        'sources': [
-                          'src/thread/async_worker_create.c',
-                          'src/thread/async_worker_init.S',
-                        ],
-                        'defines': [
-                          'USE_LOCKS=1'
-                        ],
-                        'ldflags': [
-                          '-Wl,--export=emnapi_async_worker_create',
-                          '-Wl,--export=emnapi_async_worker_init',
-                        ],
-                        'xcode_settings': {
-                          'OTHER_LDFLAGS': [
-                            '-Wl,--export=emnapi_async_worker_create',
-                            '-Wl,--export=emnapi_async_worker_init',
-                          ],
-                        },
-                      }],
-                    ]
-                  }]
+                  }],
                 ]
               }],
             ]
