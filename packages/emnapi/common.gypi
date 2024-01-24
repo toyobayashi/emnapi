@@ -9,6 +9,8 @@
     'stack_size%': 1048576,
     'initial_memory%': 16777216,
     'max_memory%': 2147483648,
+    # must be an absolute path
+    'emnapi_js_library%': '<!(node -p "(()=>{try{return require(\'emnapi\').js_library}catch(e){return \'\'}})()")'
   },
 
   'target_defaults': {
@@ -216,10 +218,13 @@
         ],
         'conditions': [
           ['OS == "emscripten"', {
-            'libraries': [
-              '--js-library=<!(node -p "require(\'emnapi\').js_library")',
-              # '--js-library=<(node_root_dir)/dist/library_napi.js',
-            ]
+            'conditions': [
+              ['emnapi_js_library != ""', {
+                'libraries': [
+                  '--js-library=<(emnapi_js_library)',
+                ],
+              }]
+            ],
           }],
           ['OS == "" or OS == "wasi" or OS == "unknown"', {
             'product_extension': 'wasm',
