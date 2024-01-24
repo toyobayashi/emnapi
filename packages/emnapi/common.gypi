@@ -6,6 +6,9 @@
     'clang': 1,
     'target_arch%': 'wasm32',
     'wasm_threads%': 0,
+    'stack_size%': 1048576,
+    'initial_memory%': 16777216,
+    'max_memory%': 2147483648,
   },
 
   'target_defaults': {
@@ -81,8 +84,10 @@
           '-sWASM_BIGINT=1',
           '-sMIN_CHROME_VERSION=84',
           '-sMIN_NODE_VERSION=161500',
-          '-sSTACK_SIZE=2MB',
-          '-sDEFAULT_PTHREAD_STACK_SIZE=2MB',
+          '-sSTACK_SIZE=<(stack_size)',
+          '-sDEFAULT_PTHREAD_STACK_SIZE=<(stack_size)',
+          '-sINITIAL_MEMORY=<(initial_memory)',
+          '-sMAXIMUM_MEMORY=<(max_memory)',
         ],
         'xcode_settings': {
           'WARNING_CFLAGS': [
@@ -96,8 +101,10 @@
             '-sWASM_BIGINT=1',
             '-sMIN_CHROME_VERSION=84',
             '-sMIN_NODE_VERSION=161500',
-            '-sSTACK_SIZE=2MB',
-            '-sDEFAULT_PTHREAD_STACK_SIZE=2MB',
+            '-sSTACK_SIZE=<(stack_size)',
+            '-sDEFAULT_PTHREAD_STACK_SIZE=<(stack_size)',
+            '-sINITIAL_MEMORY=<(initial_memory)',
+            '-sMAXIMUM_MEMORY=<(max_memory)',
           ],
         },
 
@@ -225,6 +232,9 @@
               '-Wl,--export-if-defined=node_api_module_get_api_version_v1',
               '-Wl,--import-undefined',
               '-Wl,--export-table',
+              '-Wl,-zstack-size=<(stack_size)',
+              '-Wl,--initial-memory=<(initial_memory)',
+              '-Wl,--max-memory=<(max_memory)',
             ],
             'xcode_settings': {
               'OTHER_LDFLAGS': [
@@ -235,6 +245,9 @@
                 '-Wl,--export-if-defined=node_api_module_get_api_version_v1',
                 '-Wl,--import-undefined',
                 '-Wl,--export-table',
+                '-Wl,-zstack-size=<(stack_size)',
+                '-Wl,--initial-memory=<(initial_memory)',
+                '-Wl,--max-memory=<(max_memory)',
               ],
             },
 
@@ -243,22 +256,11 @@
                 'ldflags': [
                   '-Wl,--import-memory',
                   '-Wl,--shared-memory',
-                  '-Wl,--max-memory=2147483648',
                 ],
                 'xcode_settings': {
                   'OTHER_LDFLAGS': [
                     '-Wl,--import-memory',
                     '-Wl,--shared-memory',
-                    '-Wl,--max-memory=2147483648',
-                  ]
-                },
-              }, {
-                'ldflags': [
-                  '-Wl,--initial-memory=16777216'
-                ],
-                'xcode_settings': {
-                  'OTHER_LDFLAGS': [
-                    '-Wl,--initial-memory=16777216'
                   ]
                 },
               }],
