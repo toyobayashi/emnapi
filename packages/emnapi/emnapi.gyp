@@ -53,9 +53,6 @@
         'src/async_cleanup_hook.c',
         'src/async_context.c',
       ],
-      'direct_dependent_settings': {
-        'include_dirs+': [ 'include' ],
-      },
       'link_settings': {
         'target_conditions': [
           ['_type == "executable" and OS == "emscripten"', {
@@ -93,9 +90,6 @@
         'src/async_work.c',
         'src/threadsafe_function.c',
       ],
-      'direct_dependent_settings': {
-        'include_dirs+': [ 'include' ],
-      },
       'link_settings': {
         'target_conditions': [
           ['_type == "executable" and OS == "emscripten"', {

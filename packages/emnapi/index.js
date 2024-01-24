@@ -3,7 +3,7 @@ Object.defineProperty(exports, '__esModule', { value: true })
 
 const path = require('path')
 
-const include = path.join(__dirname, 'include')
+const include = path.join(__dirname, 'include/node')
 const includeDir = path.relative(process.cwd(), include)
 const jsLibrary = path.join(__dirname, './dist/library_napi.js').replace(/\\|\\\\/g, '/')
 const sources = [

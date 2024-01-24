@@ -58,7 +58,7 @@ endif()
 math(EXPR PTHREAD_POOL_SIZE "${UV_THREADPOOL_SIZE} * 4")
 
 if(IS_WASM)
-  include_directories("${CMAKE_CURRENT_SOURCE_DIR}/../emnapi/include")
+  include_directories("${CMAKE_CURRENT_SOURCE_DIR}/../emnapi/include/node")
 else()
   include_directories(${CMAKE_JS_INC})
   include_directories("${CMAKE_CURRENT_SOURCE_DIR}/../../node_modules/node-addon-api")

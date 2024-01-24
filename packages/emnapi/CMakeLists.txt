@@ -38,7 +38,7 @@ set(EMNAPI_THREADS_SRC
 )
 set(EMNAPI_SRC ${ENAPI_BASIC_SRC} ${EMNAPI_THREADS_SRC})
 
-set(EMNAPI_INCLUDE "${CMAKE_CURRENT_SOURCE_DIR}/include")
+set(EMNAPI_INCLUDE "${CMAKE_CURRENT_SOURCE_DIR}/include/node")
 set(EMNAPI_DEFINES "BUILDING_NODE_EXTENSION")
 
 set(EMNAPI_JS_LIB "${CMAKE_CURRENT_SOURCE_DIR}/dist/library_napi.js")
@@ -214,18 +214,18 @@ install(FILES
   DESTINATION ".")
 
 install(FILES
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/emnapi_common.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/emnapi.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/js_native_api_types.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/js_native_api.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/node_api_types.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/node_api.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/uv.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/node/emnapi_common.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/node/emnapi.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/node/js_native_api_types.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/node/js_native_api.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/node/node_api_types.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/node/node_api.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/node/uv.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/node/config.gypi
   DESTINATION "include/node")
 
 install(DIRECTORY
-  ${CMAKE_CURRENT_SOURCE_DIR}/include/uv
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/node/uv
   DESTINATION "include/node")
 
 install(FILES

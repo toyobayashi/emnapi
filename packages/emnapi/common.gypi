@@ -64,10 +64,6 @@
       }
     },
 
-    'include_dirs+': [
-      'include',
-    ],
-
     'conditions': [
       ['OS == "emscripten"', {
         'defines': [
