@@ -4,14 +4,24 @@
   <img src="https://toyobayashi.github.io/emnapi-docs/emnapi.svg" alt="emnapi logo" width="256" />
 </p>
 
+## Sponsors
+
+<p align="center">
+  <a href="https://cdn.jsdelivr.net/gh/toyobayashi/toyobayashi/sponsorkit/sponsors.svg">
+    <img src='https://cdn.jsdelivr.net/gh/toyobayashi/toyobayashi/sponsorkit/sponsors.svg'/>
+  </a>
+</p>
+
 [![Build](https://github.com/toyobayashi/emnapi/actions/workflows/main.yml/badge.svg?branch=main)](https://github.com/toyobayashi/emnapi/actions/workflows/main.yml)
 
-[Node-API](https://nodejs.org/docs/latest/api/n-api.html) implementation for [Emscripten](https://emscripten.org/index.html), [wasi-sdk](https://github.com/WebAssembly/wasi-sdk) and clang with wasm support. napi-rs support is comming soon.
+[Node-API](https://nodejs.org/docs/latest/api/n-api.html) implementation for [Emscripten](https://emscripten.org/index.html), [wasi-sdk](https://github.com/WebAssembly/wasi-sdk) and clang with wasm support.
 
 This project aims to
 
 - Help users port their or existing Node-API native addons to wasm with code change as less as possible.
 - Make runtime behavior matches native Node.js as much as possible.
+
+This project also powers the WebAssembly feature for [napi-rs](https://github.com/napi-rs/napi-rs), and enables many Node.js native addons to run on [StackBlitz](https://stackblitz.com)'s WebContainer.
 
 See documentation for more details:
 - [https://toyobayashi.github.io/emnapi-docs/guide/](https://toyobayashi.github.io/emnapi-docs/guide/)
