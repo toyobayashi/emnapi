@@ -10,7 +10,7 @@
     'initial_memory%': 16777216,
     'max_memory%': 2147483648,
     # must be an absolute path
-    'emnapi_js_library%': '<!(node -p "path.resolve(process.argv[1],\'dist/library_napi.js\').replace(\'\\\\\', \'/\')" <(node_root_dir))'
+    'emnapi_js_library%': '<!(node -p "path.resolve(process.argv[1],\'dist/library_napi.js\').replace(process.argv[2],\'/\')" <(node_root_dir) "\\\\")'
   },
 
   'target_defaults': {
