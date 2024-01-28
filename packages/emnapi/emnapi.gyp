@@ -57,17 +57,33 @@
         'target_conditions': [
           ['_type == "executable" and OS == "emscripten"', {
             'libraries': [
-              '--js-library=<!(node -p "require(\'emnapi\').js_library")',
+              '--js-library=<(emnapi_js_library)',
             ]
           }],
         ]
       },
       'conditions': [
-        ['wasm_threads != 0 and OS != "emscripten" and OS != "wasi"', {
+        ['wasm_threads != 0 and OS in " unknown"', {
           'sources': [
             'src/thread/async_worker_create.c',
             'src/thread/async_worker_init.S',
           ],
+          'link_settings': {
+            'target_conditions': [
+              ['_type == "executable"', {
+                'ldflags': [
+                  '-Wl,--export=emnapi_async_worker_create',
+                  '-Wl,--export=emnapi_async_worker_init',
+                ],
+                'xcode_settings': {
+                  'OTHER_LDFLAGS': [
+                    '-Wl,--export=emnapi_async_worker_create',
+                    '-Wl,--export=emnapi_async_worker_init',
+                  ],
+                },
+              }],
+            ]
+          },
         }],
       ]
     },
@@ -94,8 +110,7 @@
         'target_conditions': [
           ['_type == "executable" and OS == "emscripten"', {
             'libraries': [
-              '--js-library=<!(node -p "require(\'emnapi\').js_library")',
-              # '--js-library=<(node_root_dir)/dist/library_napi.js',
+              '--js-library=<(emnapi_js_library)',
             ]
           }],
         ]

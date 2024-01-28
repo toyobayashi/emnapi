@@ -10,7 +10,8 @@
     'initial_memory%': 16777216,
     'max_memory%': 2147483648,
     # must be an absolute path
-    'emnapi_js_library%': '<!(node -p "path.resolve(process.argv[1],\'dist/library_napi.js\').replace(process.argv[2],\'/\')" <(node_root_dir) "\\\\")'
+    'emnapi_js_library%': '<!(node -p "path.resolve(process.argv[1],\'dist/library_napi.js\').replace(process.argv[2],\'/\')" "<(node_root_dir)" "\\\\")',
+    'emnapi_manual_linking%': 0,
   },
 
   'target_defaults': {
@@ -138,7 +139,7 @@
           }],
         ],
       }], 
-      ['OS == "" or OS == "wasi" or OS == "unknown"', {
+      ['OS in "wasi unknown "', {
         'configurations': {
           'Release': {
             'ldflags': [ '-Wl,--strip-debug' ],
@@ -198,124 +199,189 @@
           }],
         ]
       }],
-    ],
-
-    'target_conditions': [
-      ['_type=="executable"', {
-        'sources': [
-          'src/js_native_api.c',
-          'src/node_api.c',
-          'src/async_cleanup_hook.c',
-          'src/async_context.c',
-          'src/async_work.c',
-          'src/threadsafe_function.c',
-          'src/uv/uv-common.c',
-          'src/uv/threadpool.c',
-          'src/uv/unix/loop.c',
-          'src/uv/unix/thread.c',
-          'src/uv/unix/async.c',
-          'src/uv/unix/core.c',
-        ],
-        'conditions': [
-          ['OS == "emscripten"', {
+      ['emnapi_manual_linking != 0', {
+        'target_conditions': [
+          ['_type=="executable"', {
             'conditions': [
-              ['emnapi_js_library != ""', {
-                'libraries': [
-                  '--js-library=<(emnapi_js_library)',
-                ],
-              }]
-            ],
-          }],
-          ['OS == "" or OS == "wasi" or OS == "unknown"', {
-            'product_extension': 'wasm',
+              ['OS in "wasi unknown "', {
+                'product_extension': 'wasm',
 
-            'ldflags': [
-              '-Wl,--export-dynamic',
-              '-Wl,--export=malloc',
-              '-Wl,--export=free',
-              '-Wl,--export=napi_register_wasm_v1',
-              '-Wl,--export-if-defined=node_api_module_get_api_version_v1',
-              '-Wl,--import-undefined',
-              '-Wl,--export-table',
-              '-Wl,-zstack-size=<(stack_size)',
-              '-Wl,--initial-memory=<(initial_memory)',
-              '-Wl,--max-memory=<(max_memory)',
-            ],
-            'xcode_settings': {
-              'OTHER_LDFLAGS': [
-                '-Wl,--export-dynamic',
-                '-Wl,--export=malloc',
-                '-Wl,--export=free',
-                '-Wl,--export=napi_register_wasm_v1',
-                '-Wl,--export-if-defined=node_api_module_get_api_version_v1',
-                '-Wl,--import-undefined',
-                '-Wl,--export-table',
-                '-Wl,-zstack-size=<(stack_size)',
-                '-Wl,--initial-memory=<(initial_memory)',
-                '-Wl,--max-memory=<(max_memory)',
-              ],
-            },
-
-            'conditions': [
-              ['wasm_threads != 0', {
                 'ldflags': [
-                  '-Wl,--import-memory',
-                  '-Wl,--shared-memory',
+                  '-Wl,--export-dynamic',
+                  '-Wl,--export=malloc',
+                  '-Wl,--export=free',
+                  '-Wl,--export=napi_register_wasm_v1',
+                  '-Wl,--export-if-defined=node_api_module_get_api_version_v1',
+                  '-Wl,--import-undefined',
+                  '-Wl,--export-table',
+                  '-Wl,-zstack-size=<(stack_size)',
+                  '-Wl,--initial-memory=<(initial_memory)',
+                  '-Wl,--max-memory=<(max_memory)',
                 ],
                 'xcode_settings': {
                   'OTHER_LDFLAGS': [
-                    '-Wl,--import-memory',
-                    '-Wl,--shared-memory',
-                  ]
-                },
-              }],
-              ['OS != "wasi"', {
-                'defines': [
-                  'PAGESIZE=65536'
-                ],
-                'ldflags': [
-                  '-nostdlib',
-                  '-Wl,--no-entry',
-                ],
-                'xcode_settings': {
-                  'OTHER_LDFLAGS': [
-                    '-nostdlib',
-                    '-Wl,--no-entry',
+                    '-Wl,--export-dynamic',
+                    '-Wl,--export=malloc',
+                    '-Wl,--export=free',
+                    '-Wl,--export=napi_register_wasm_v1',
+                    '-Wl,--export-if-defined=node_api_module_get_api_version_v1',
+                    '-Wl,--import-undefined',
+                    '-Wl,--export-table',
+                    '-Wl,-zstack-size=<(stack_size)',
+                    '-Wl,--initial-memory=<(initial_memory)',
+                    '-Wl,--max-memory=<(max_memory)',
                   ],
                 },
-                'sources': [
-                  'src/malloc/sbrk.c',
-                  'src/malloc/memcpy.c',
-                  'src/malloc/memset.c',
-                  'src/malloc/dlmalloc/dlmalloc.c',
-                ],
+
                 'conditions': [
                   ['wasm_threads != 0', {
-                    # wasm32 + threads
-                    'sources': [
-                      'src/thread/async_worker_create.c',
-                      'src/thread/async_worker_init.S',
-                    ],
-                    'defines': [
-                      'USE_LOCKS=1'
-                    ],
                     'ldflags': [
-                      '-Wl,--export=emnapi_async_worker_create',
-                      '-Wl,--export=emnapi_async_worker_init',
+                      '-Wl,--import-memory',
+                      '-Wl,--shared-memory',
                     ],
                     'xcode_settings': {
                       'OTHER_LDFLAGS': [
-                        '-Wl,--export=emnapi_async_worker_create',
-                        '-Wl,--export=emnapi_async_worker_init',
+                        '-Wl,--import-memory',
+                        '-Wl,--shared-memory',
+                      ]
+                    },
+                  }],
+                  ['OS != "wasi"', {
+                    'ldflags': [
+                      '-nostdlib',
+                      '-Wl,--no-entry',
+                    ],
+                    'xcode_settings': {
+                      'OTHER_LDFLAGS': [
+                        '-nostdlib',
+                        '-Wl,--no-entry',
                       ],
                     },
                   }],
                 ]
-              }],
-            ]
-          }]
+              }]
+            ],
+          }],
         ],
-      }],
+      }, {
+        'target_conditions': [
+          ['_type=="executable"', {
+            'sources': [
+              'src/js_native_api.c',
+              'src/node_api.c',
+              'src/async_cleanup_hook.c',
+              'src/async_context.c',
+              'src/async_work.c',
+              'src/threadsafe_function.c',
+              'src/uv/uv-common.c',
+              'src/uv/threadpool.c',
+              'src/uv/unix/loop.c',
+              'src/uv/unix/thread.c',
+              'src/uv/unix/async.c',
+              'src/uv/unix/core.c',
+            ],
+            'conditions': [
+              ['OS == "emscripten"', {
+                'conditions': [
+                  ['emnapi_js_library != ""', {
+                    'libraries': [
+                      '--js-library=<(emnapi_js_library)',
+                    ],
+                  }]
+                ],
+              }],
+              ['OS in "wasi unknown "', {
+                'product_extension': 'wasm',
+
+                'ldflags': [
+                  '-Wl,--export-dynamic',
+                  '-Wl,--export=malloc',
+                  '-Wl,--export=free',
+                  '-Wl,--export=napi_register_wasm_v1',
+                  '-Wl,--export-if-defined=node_api_module_get_api_version_v1',
+                  '-Wl,--import-undefined',
+                  '-Wl,--export-table',
+                  '-Wl,-zstack-size=<(stack_size)',
+                  '-Wl,--initial-memory=<(initial_memory)',
+                  '-Wl,--max-memory=<(max_memory)',
+                ],
+                'xcode_settings': {
+                  'OTHER_LDFLAGS': [
+                    '-Wl,--export-dynamic',
+                    '-Wl,--export=malloc',
+                    '-Wl,--export=free',
+                    '-Wl,--export=napi_register_wasm_v1',
+                    '-Wl,--export-if-defined=node_api_module_get_api_version_v1',
+                    '-Wl,--import-undefined',
+                    '-Wl,--export-table',
+                    '-Wl,-zstack-size=<(stack_size)',
+                    '-Wl,--initial-memory=<(initial_memory)',
+                    '-Wl,--max-memory=<(max_memory)',
+                  ],
+                },
+
+                'conditions': [
+                  ['wasm_threads != 0', {
+                    'ldflags': [
+                      '-Wl,--import-memory',
+                      '-Wl,--shared-memory',
+                    ],
+                    'xcode_settings': {
+                      'OTHER_LDFLAGS': [
+                        '-Wl,--import-memory',
+                        '-Wl,--shared-memory',
+                      ]
+                    },
+                  }],
+                  ['OS != "wasi"', {
+                    'defines': [
+                      'PAGESIZE=65536'
+                    ],
+                    'ldflags': [
+                      '-nostdlib',
+                      '-Wl,--no-entry',
+                    ],
+                    'xcode_settings': {
+                      'OTHER_LDFLAGS': [
+                        '-nostdlib',
+                        '-Wl,--no-entry',
+                      ],
+                    },
+                    'sources': [
+                      'src/malloc/sbrk.c',
+                      'src/malloc/memcpy.c',
+                      'src/malloc/memset.c',
+                      'src/malloc/dlmalloc/dlmalloc.c',
+                    ],
+                    'conditions': [
+                      ['wasm_threads != 0', {
+                        # wasm32 + threads
+                        'sources': [
+                          'src/thread/async_worker_create.c',
+                          'src/thread/async_worker_init.S',
+                        ],
+                        'defines': [
+                          'USE_LOCKS=1'
+                        ],
+                        'ldflags': [
+                          '-Wl,--export=emnapi_async_worker_create',
+                          '-Wl,--export=emnapi_async_worker_init',
+                        ],
+                        'xcode_settings': {
+                          'OTHER_LDFLAGS': [
+                            '-Wl,--export=emnapi_async_worker_create',
+                            '-Wl,--export=emnapi_async_worker_init',
+                          ],
+                        },
+                      }],
+                    ]
+                  }],
+                ]
+              }]
+            ],
+          }],
+        ],
+      }]
     ],
   }
 }
