@@ -150,6 +150,12 @@
         },
 
         'conditions': [
+          ['target_arch == "wasm64"', {
+            'ldflags': [ "-Wl,-mwasm64" ],
+            'xcode_settings': {
+              'OTHER_LDFLAGS': [ "-Wl,-mwasm64" ],
+            },
+          }],
           ['wasm_threads != 0', {
             'cflags': [ "-matomics", "-mbulk-memory" ],
             'xcode_settings': {
@@ -166,36 +172,66 @@
               ],
             },
             'conditions': [
-              ['wasm_threads != 0', {
-                # wasi-threads
-                'cflags': [ '--target=wasm32-wasi-threads', '-pthread' ],
-                'ldflags': [ '--target=wasm32-wasi-threads', '-pthread' ],
-                'xcode_settings': {
-                  'WARNING_CFLAGS': [ '--target=wasm32-wasi-threads', '-pthread' ],
-                  'OTHER_LDFLAGS': [ '--target=wasm32-wasi-threads', '-pthread' ],
-                },
+              ['target_arch == "wasm64"', {
+                'conditions': [
+                  ['wasm_threads != 0', {
+                    # wasi-threads
+                    'cflags': [ '--target=wasm64-wasi-threads', '-pthread' ],
+                    'ldflags': [ '--target=wasm64-wasi-threads', '-pthread' ],
+                    'xcode_settings': {
+                      'WARNING_CFLAGS': [ '--target=wasm64-wasi-threads', '-pthread' ],
+                      'OTHER_LDFLAGS': [ '--target=wasm64-wasi-threads', '-pthread' ],
+                    },
+                  }, {
+                    # wasi
+                    'cflags': [ '--target=wasm64-wasi' ],
+                    'ldflags': [ '--target=wasm64-wasi' ],
+                    'xcode_settings': {
+                      'WARNING_CFLAGS': [ '--target=wasm64-wasi' ],
+                      'OTHER_LDFLAGS': [ '--target=wasm64-wasi' ],
+                    },
+                  }],
+                ],
               }, {
-                # wasi
-                'cflags': [ '--target=wasm32-wasi' ],
-                'ldflags': [ '--target=wasm32-wasi' ],
-                'xcode_settings': {
-                  'WARNING_CFLAGS': [ '--target=wasm32-wasi' ],
-                  'OTHER_LDFLAGS': [ '--target=wasm32-wasi' ],
-                },
+                'conditions': [
+                  ['wasm_threads != 0', {
+                    # wasi-threads
+                    'cflags': [ '--target=wasm32-wasi-threads', '-pthread' ],
+                    'ldflags': [ '--target=wasm32-wasi-threads', '-pthread' ],
+                    'xcode_settings': {
+                      'WARNING_CFLAGS': [ '--target=wasm32-wasi-threads', '-pthread' ],
+                      'OTHER_LDFLAGS': [ '--target=wasm32-wasi-threads', '-pthread' ],
+                    },
+                  }, {
+                    # wasi
+                    'cflags': [ '--target=wasm32-wasi' ],
+                    'ldflags': [ '--target=wasm32-wasi' ],
+                    'xcode_settings': {
+                      'WARNING_CFLAGS': [ '--target=wasm32-wasi' ],
+                      'OTHER_LDFLAGS': [ '--target=wasm32-wasi' ],
+                    },
+                  }],
+                ],
               }],
             ],
           }, {
-            # wasm32-unknown-unknown
-            'cflags': [ '--target=wasm32-unknown-unknown' ],
-            'ldflags': [
-              '--target=wasm32-unknown-unknown',
+            'conditions': [
+              ['target_arch == "wasm64"', {
+                'cflags': [ '--target=wasm64-unknown-unknown' ],
+                'ldflags': [ '--target=wasm64-unknown-unknown' ],
+                'xcode_settings': {
+                  'WARNING_CFLAGS': [ '--target=wasm64-unknown-unknown' ],
+                  'OTHER_LDFLAGS': [ '--target=wasm64-unknown-unknown' ],
+                },
+              }, {
+                'cflags': [ '--target=wasm32-unknown-unknown' ],
+                'ldflags': [ '--target=wasm32-unknown-unknown' ],
+                'xcode_settings': {
+                  'WARNING_CFLAGS': [ '--target=wasm32-unknown-unknown' ],
+                  'OTHER_LDFLAGS': [ '--target=wasm32-unknown-unknown' ],
+                },
+              }],
             ],
-            'xcode_settings': {
-              'WARNING_CFLAGS': [ '--target=wasm32-unknown-unknown' ],
-              'OTHER_LDFLAGS': [
-                '--target=wasm32-unknown-unknown',
-              ],
-            },
           }],
         ]
       }],
