@@ -615,7 +615,16 @@ cmake --build build
 
 Output code can run in recent version modern browsers and Node.js latest LTS. IE is not supported.
 
-### Using node-gyp
+### Using node-gyp (Experimental)
+
+Currently node-gyp works on Linux only and don't support static library linking in cross-compiling.
+There are opened PRs to try to make node-gyp work fine.
+
+- https://github.com/nodejs/gyp-next/pull/222
+- https://github.com/nodejs/node-gyp/pull/2974
+
+If you experienced issues on Windows or macOS, please check the PRs for upstream changes detail and see
+[emnapi-node-gyp-test](https://github.com/toyobayashi/emnapi-node-gyp-test) for examples.
 
 - Variables
 
@@ -762,8 +771,6 @@ make -C %~dp0build
 call npx.cmd node-gyp configure --arch=wasm32 --nodedir=./node_modules/emnapi -- -f make -DOS=unknown
 make -C %~dp0build
 ```
-
-See [emnapi-node-gyp-test](https://github.com/toyobayashi/emnapi-node-gyp-test) for example and more detail.
 
 ### Using Rust
 
