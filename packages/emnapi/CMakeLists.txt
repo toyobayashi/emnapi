@@ -230,7 +230,7 @@ install(DIRECTORY
 
 install(FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/dist/library_napi.js
-  DESTINATION "lib/${PROJECT_NAME}")
+  DESTINATION "dist")
 
 if(EMNAPI_INSTALL_SRC)
   install(FILES
