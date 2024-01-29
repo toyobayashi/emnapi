@@ -58,7 +58,7 @@ endif()
 math(EXPR PTHREAD_POOL_SIZE "${UV_THREADPOOL_SIZE} * 4")
 
 if(IS_WASM)
-  include_directories("${CMAKE_CURRENT_SOURCE_DIR}/../emnapi/include")
+  include_directories("${CMAKE_CURRENT_SOURCE_DIR}/../emnapi/include/node")
 else()
   include_directories(${CMAKE_JS_INC})
   include_directories("${CMAKE_CURRENT_SOURCE_DIR}/../../node_modules/node-addon-api")
@@ -87,8 +87,10 @@ if(IS_EMSCRIPTEN)
     "-sWASM_BIGINT=1"
     "-sALLOW_MEMORY_GROWTH=1"
     "-sMIN_CHROME_VERSION=84"
-    "-sSTACK_SIZE=2MB"
-    "-sDEFAULT_PTHREAD_STACK_SIZE=2MB"
+    "-sSTACK_SIZE=1048576"
+    "-sDEFAULT_PTHREAD_STACK_SIZE=1048576"
+    "-sINITIAL_MEMORY=16777216"
+    "-sMAXIMUM_MEMORY=2147483648"
     "-sSAFE_HEAP=1"
     "-sMODULARIZE=1"
     "-sEXPORTED_RUNTIME_METHODS=['ExitStatus']"
@@ -98,21 +100,21 @@ elseif(IS_WASI_THREADS)
   set(COMMON_LINK_OPTIONS
     # "-v"
     "-mexec-model=reactor"
-    "-Wl,--import-memory,--max-memory=2147483648,--export-dynamic,--export=malloc,--export=free,--export=napi_register_wasm_v1,--export-if-defined=node_api_module_get_api_version_v1,--import-undefined,--export-table"
+    "-Wl,-zstack-size=1048576,--initial-memory=16777216,--max-memory=2147483648,--import-memory,--export-dynamic,--export=malloc,--export=free,--export=napi_register_wasm_v1,--export-if-defined=node_api_module_get_api_version_v1,--import-undefined,--export-table"
   )
 elseif(IS_WASI)
   add_compile_options("-fno-exceptions")
   set(COMMON_LINK_OPTIONS
     # "-v"
     "-mexec-model=reactor"
-    "-Wl,--initial-memory=16777216,--export-dynamic,--export=malloc,--export=free,--export=napi_register_wasm_v1,--export-if-defined=node_api_module_get_api_version_v1,--import-undefined,--export-table"
+    "-Wl,-zstack-size=1048576,--initial-memory=16777216,--max-memory=2147483648,--export-dynamic,--export=malloc,--export=free,--export=napi_register_wasm_v1,--export-if-defined=node_api_module_get_api_version_v1,--import-undefined,--export-table"
   )
 elseif(IS_WASM32)
   add_compile_options("-fno-exceptions")
   set(COMMON_LINK_OPTIONS
     # "-v"
     "-nostdlib"
-    "-Wl,--no-entry,--export-dynamic,--export=malloc,--export=free,--export=napi_register_wasm_v1,--export-if-defined=node_api_module_get_api_version_v1,--import-undefined,--export-table"
+    "-Wl,-zstack-size=1048576,--initial-memory=16777216,--max-memory=2147483648,--no-entry,--export-dynamic,--export=malloc,--export=free,--export=napi_register_wasm_v1,--export-if-defined=node_api_module_get_api_version_v1,--import-undefined,--export-table"
   )
 else()
   set(COMMON_LINK_OPTIONS "")
@@ -160,7 +162,7 @@ function(add_test NAME SOURCE_LIST PTHREAD)
       if((IS_WASI AND NOT IS_WASI_THREADS) OR IS_WASM32)
         if(IS_WASM32)
           target_link_libraries(${NAME} PRIVATE "emnapi-basic-mt")
-          target_link_options(${NAME} PRIVATE "-Wl,--import-memory,--shared-memory,--max-memory=2147483648,--export=emnapi_async_worker_create,--export=emnapi_async_worker_init")
+          target_link_options(${NAME} PRIVATE "-Wl,--import-memory,--shared-memory,--export=emnapi_async_worker_create,--export=emnapi_async_worker_init")
         else()
           target_link_libraries(${NAME} PRIVATE "emnapi-basic")
         endif()
@@ -174,9 +176,6 @@ function(add_test NAME SOURCE_LIST PTHREAD)
       endif()
     else()
       target_link_libraries(${NAME} PRIVATE "emnapi-basic")
-      if(IS_WASM32)
-        target_link_options(${NAME} PRIVATE "-Wl,--initial-memory=16777216")
-      endif()
     endif()
   endif()
   target_link_options(${NAME} PRIVATE ${COMMON_LINK_OPTIONS})
@@ -214,7 +213,7 @@ function(add_naa_test NAME SOURCE_LIST DEFINES ENABLE_EXCEPTION)
     if((IS_WASI AND NOT IS_WASI_THREADS) OR IS_WASM32)
       if(IS_WASM32)
         target_link_libraries(${NAME} PRIVATE "emnapi-basic-mt")
-        target_link_options(${NAME} PRIVATE "-Wl,--import-memory,--shared-memory,--max-memory=2147483648,--export=emnapi_async_worker_create,--export=emnapi_async_worker_init")
+        target_link_options(${NAME} PRIVATE "-Wl,--import-memory,--shared-memory,--export=emnapi_async_worker_create,--export=emnapi_async_worker_init")
       else()
         target_link_libraries(${NAME} PRIVATE "emnapi-basic")
       endif()

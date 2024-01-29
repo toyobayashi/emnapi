@@ -3,7 +3,7 @@
     "includePath": [
       "${default}",
       // "${env:USERPROFILE}/AppData/Local/node-gyp/Cache/16.15.0/include/node"
-      "${workspaceFolder}/packages/emnapi/include",
+      "${workspaceFolder}/packages/emnapi/include/node",
       "${workspaceFolder}/node_modules/node-addon-api"
     ],
     "defines": ["NAPI_DISABLE_CPP_EXCEPTIONS", "NODE_ADDON_API_ENABLE_MAYBE"],

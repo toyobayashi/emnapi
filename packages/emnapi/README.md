@@ -177,7 +177,7 @@ module.exports = (function (exports) {
 emcc -O3 \
      -DBUILDING_NODE_EXTENSION \
      "-DNAPI_EXTERN=__attribute__((__import_module__(\"env\")))" \
-     -I./node_modules/emnapi/include \
+     -I./node_modules/emnapi/include/node \
      -L./node_modules/emnapi/lib/wasm32-emscripten \
      --js-library=./node_modules/emnapi/dist/library_napi.js \
      -sEXPORTED_FUNCTIONS="['_malloc','_free','_napi_register_wasm_v1','_node_api_module_get_api_version_v1']" \
@@ -194,7 +194,7 @@ emcc -O3 \
 ```bash
 clang -O3 \
       -DBUILDING_NODE_EXTENSION \
-      -I./node_modules/emnapi/include \
+      -I./node_modules/emnapi/include/node \
       -L./node_modules/emnapi/lib/wasm32-wasi \
       --target=wasm32-wasi \
       --sysroot=$WASI_SDK_PATH/share/wasi-sysroot \
@@ -222,7 +222,7 @@ Choose `libdlmalloc.a` or `libemmalloc.a` for `malloc` and `free`.
 ```bash
 clang -O3 \
       -DBUILDING_NODE_EXTENSION \
-      -I./node_modules/emnapi/include \
+      -I./node_modules/emnapi/include/node \
       -L./node_modules/emnapi/lib/wasm32 \
       --target=wasm32 \
       -nostdlib \
@@ -466,7 +466,7 @@ em++ -O3 \
      "-DNAPI_EXTERN=__attribute__((__import_module__(\"env\")))" \
      -DNAPI_DISABLE_CPP_EXCEPTIONS \
      -DNODE_ADDON_API_ENABLE_MAYBE \
-     -I./node_modules/emnapi/include \
+     -I./node_modules/emnapi/include/node \
      -I./node_modules/node-addon-api \
      -L./node_modules/emnapi/lib/wasm32-emscripten \
      --js-library=./node_modules/emnapi/dist/library_napi.js \
@@ -486,7 +486,7 @@ clang++ -O3 \
         -DBUILDING_NODE_EXTENSION \
         -DNAPI_DISABLE_CPP_EXCEPTIONS \
         -DNODE_ADDON_API_ENABLE_MAYBE \
-        -I./node_modules/emnapi/include \
+        -I./node_modules/emnapi/include/node \
         -I./node_modules/node-addon-api \
         -L./node_modules/emnapi/lib/wasm32-wasi \
         --target=wasm32-wasi \
@@ -518,7 +518,7 @@ You can still use `wasm32-unknown-unknown` target if you use Node-API C API only
 ```bash
 clang++ -O3 \
         -DBUILDING_NODE_EXTENSION \
-        -I./node_modules/emnapi/include \
+        -I./node_modules/emnapi/include/node \
         -L./node_modules/emnapi/lib/wasm32 \
         --target=wasm32 \
         -fno-exceptions \
@@ -625,158 +625,166 @@ cmake --build build
 
 Output code can run in recent version modern browsers and Node.js latest LTS. IE is not supported.
 
-### Using Rust (Experimental)
+### Using node-gyp (Experimental)
 
-Currently you can use [napi-rs](https://github.com/napi-rs/napi-rs) like this, more work is working in progress.  
+Currently node-gyp works on Linux only and don't support static library linking in cross-compiling.
+There are opened PRs to try to make node-gyp work fine.
 
-Note: WASI target require rust nightly toolchain.
+- https://github.com/nodejs/gyp-next/pull/222
+- https://github.com/nodejs/node-gyp/pull/2974
 
-<details>
-<summary>Cargo.toml</summary><br />
+If you experienced issues on Windows or macOS, please check the PRs for upstream changes detail and see
+[emnapi-node-gyp-test](https://github.com/toyobayashi/emnapi-node-gyp-test) for examples.
 
-```toml
-[package]
-edition = "2021"
-name = "binding"
-version = "0.0.0"
+- Variables
 
-# We should build binary for WASI reactor
-# https://github.com/rust-lang/rust/pull/79997
-# https://github.com/WebAssembly/WASI/issues/24
-# for wasm
-[[bin]]
-name = "binding"
-path = "src/main.rs"
+Arch: `node-gyp configure --arch=<wasm32 | wasm64>`
 
-# for native
-# [lib]
-# name = "binding"
-# path = "src/lib.rs"
-# crate-type = ["cdylib"]
+```ts
+// node-gyp configure -- -Dvariable_name=value
 
-[dependencies]
-napi = { version = "2.12.1", default-features = false, features = ["napi8"] }
-napi-sys = { version = "2.2.3", features = ["napi8"] }
-napi-derive = "2.12.2"
+declare var OS: 'emscripten' | 'wasi' | 'unknown' | ''
 
-[build-dependencies]
-napi-build = "2.0.1"
+/**
+ * Enable async work and threadsafe-functions
+ * @default 0
+ */
+declare var wasm_threads: 0 | 1
 
-[profile.release]
-strip = "symbols"
+/** @default 1048576 */
+declare var stack_size: number
+
+/** @default 16777216 */
+declare var initial_memory: number
+
+/** @default 2147483648 */
+declare var max_memory: number
+
+/** @default path.join(path.dirname(commonGypiPath,'./dist/library_napi.js')) */
+declare var emnapi_js_library: string
+
+/** @default 0 */
+declare var emnapi_manual_linking: 0 | 1
 ```
 
-</details>
+- Create `binding.gyp`
 
-<details>
-<summary>.cargo/config.toml</summary><br />
 
-```toml
-[build]
-target = [
-  "wasm32-unknown-unknown",
-  "wasm32-wasi"
-]
+```py
+{
+  "targets": [
+    {
+      "target_name": "hello",
+      "sources": [
+        "hello.c"
+      ],
+      "conditions": [
+        ["OS == 'emscripten'", {
+          "product_extension": "js", # required
 
-[target.wasm32-unknown-unknown]
-rustflags = [
-  "-L./node_modules/emnapi/lib/wasm32",
-  "-lemnapi",
-  "-ldlmalloc",
-  # "-lemmalloc",
-  "-C", "link-arg=--no-entry",
-  "-C", "link-arg=--initial-memory=16777216",
-  "-C", "link-arg=--export-dynamic",
-  "-C", "link-arg=--export=malloc",
-  "-C", "link-arg=--export=free",
-  "-C", "link-arg=--export=napi_register_wasm_v1",
-  "-C", "link-arg=--export-if-defined=node_api_module_get_api_version_v1",
-  "-C", "link-arg=--export-table",
-  "-C", "link-arg=--import-undefined",
-]
+          # Windows and Linux
+          "cflags": [],
+          "cflags_c": [],
+          "cflags_cc": [],
+          "ldflags": [],
 
-[target.wasm32-wasi]
-rustflags = [
-  "-L./node_modules/emnapi/lib/wasm32-wasi",
-  "-lemnapi",
-  "-C", "link-arg=--initial-memory=16777216",
-  "-C", "link-arg=--export-dynamic",
-  "-C", "link-arg=--export=malloc",
-  "-C", "link-arg=--export=free",
-  "-C", "link-arg=--export=napi_register_wasm_v1",
-  "-C", "link-arg=--export-if-defined=node_api_module_get_api_version_v1",
-  "-C", "link-arg=--export-table",
-  "-C", "link-arg=--import-undefined",
-  "-Z", "wasi-exec-model=reactor", # +nightly
-]
-```
-
-</details>
-
-<details>
-<summary>src/main.rs</summary><br />
-
-```rust
-#![no_main]
-
-use napi_derive::napi;
-
-#[napi]
-fn fibonacci(n: u32) -> u32 {
-  match n {
-    1 | 2 => 1,
-    _ => fibonacci(n - 1) + fibonacci(n - 2),
-  }
+          # macOS uses following config
+          'xcode_settings': {
+            "WARNING_CFLAGS": [], # cflags
+            "OTHER_CFLAGS": [], # cflags_c
+            "OTHER_CPLUSPLUSFLAGS": [], # cflags_cc
+            "OTHER_LDFLAGS": [] # ldflags
+          }
+        }],
+        ["OS == 'wasi'", {
+          # ...
+        }],
+        ["OS == 'unknown' or OS == ''", {
+          # ...
+        }]
+      ]
+    }
+  ]
 }
 ```
 
-</details>
+- Add the following environment variables.
 
-<details>
-<summary>index.js</summary><br />
+```bash
+# Linux or macOS
+export GYP_CROSSCOMPILE=1
 
-```js
-const fs = require('fs')
-const path = require('path')
-const useWASI = false
+# emscripten
+export AR_target="$EMSDK/upstream/emscripten/emar"
+export CC_target="$EMSDK/upstream/emscripten/emcc"
+export CXX_target="$EMSDK/upstream/emscripten/em++"
 
-let wasi
-if (useWASI) {
-  const { WASI } = require('wasi')
-  wasi = new WASI({ /* ... */ })
-}
-
-const { instantiateNapiModule } = require('@emnapi/core')
-
-const wasmBuffer = useWASI
-  ? fs.readFileSync(path.join(__dirname, './target/wasm32-wasi/release/binding.wasm'))
-  : fs.readFileSync(path.join(__dirname, './target/wasm32-unknown-unknown/release/binding.wasm'))
-
-instantiateNapiModule(wasmBuffer, {
-  context: require('@emnapi/runtime').getDefaultContext(),
-  wasi,
-  beforeInit ({ instance }) {
-    for (const sym in instance.exports) {
-      if (sym.startsWith('__napi_register__')) {
-        instance.exports[sym]()
-      }
-    }
-  },
-  overwriteImports (importObject) {
-    importObject.env = {
-      ...importObject.env,
-      ...importObject.napi,
-      ...importObject.emnapi
-    }
-  }
-}).then(({ napiModule }) => {
-  const binding = napiModule.exports
-  // output: 5
-  console.log(binding.fibonacci(5))
-})
+# wasi-sdk
+export AR_target="$WASI_SDK_PATH/bin/ar"
+export CC_target="$WASI_SDK_PATH/bin/clang"
+export CXX_target="$WASI_SDK_PATH/bin/clang++"
 ```
 
-</details>
+```bat
+@REM Windows
+
+set GYP_CROSSCOMPILE=1
+
+@REM emscripten
+call set AR_target=%%EMSDK:\=/%%/upstream/emscripten/emar.bat
+call set CC_target=%%EMSDK:\=/%%/upstream/emscripten/emcc.bat
+call set CXX_target=%%EMSDK:\=/%%/upstream/emscripten/em++.bat
+
+@REM wasi-sdk
+call set AR_target=%%WASI_SDK_PATH:\=/%%/bin/ar.exe
+call set CC_target=%%WASI_SDK_PATH:\=/%%/bin/clang.exe
+call set CXX_target=%%WASI_SDK_PATH:\=/%%/bin/clang++.exe
+```
+
+- Build
+
+```bash
+# Linux or macOS
+
+# emscripten
+emmake node-gyp rebuild \
+  --arch=wasm32 \
+  --nodedir=./node_modules/emnapi \
+  -- -f make -DOS=emscripten # -Dwasm_threads=1
+
+# wasi
+node-gyp rebuild \
+  --arch=wasm32 \
+  --nodedir=./node_modules/emnapi \
+  -- -f make -DOS=wasi # -Dwasm_threads=1
+
+# bare wasm32
+node-gyp rebuild \
+  --arch=wasm32 \
+  --nodedir=./node_modules/emnapi \
+  -- -f make -DOS=unknown # -Dwasm_threads=1
+```
+
+```bat
+@REM Use make generator on Windows
+@REM Run the bat file in POSIX-like environment (e.g. Cygwin)
+
+@REM emscripten
+call npx.cmd node-gyp configure --arch=wasm32 --nodedir=./node_modules/emnapi -- -f make -DOS=emscripten
+call emmake.bat make -C %~dp0build
+
+@REM wasi
+call npx.cmd node-gyp configure --arch=wasm32 --nodedir=./node_modules/emnapi -- -f make -DOS=wasi
+make -C %~dp0build
+
+@REM bare wasm32
+call npx.cmd node-gyp configure --arch=wasm32 --nodedir=./node_modules/emnapi -- -f make -DOS=unknown
+make -C %~dp0build
+```
+
+### Using Rust
+
+See [napi-rs](https://github.com/napi-rs/napi-rs) 
 
 ### Multithread
 
@@ -856,7 +864,6 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
     "-sDEFAULT_PTHREAD_STACK_SIZE=2MB"
   )
 elseif(CMAKE_C_COMPILER_TARGET STREQUAL "wasm32-wasi-threads")
-  # Experimental
   target_link_libraries(hello emnapi-mt)
   set_target_properties(hello PROPERTIES SUFFIX ".wasm")
   target_compile_options(hello PRIVATE "-fno-exceptions" "-pthread")
@@ -897,7 +904,7 @@ emcmake cmake -DCMAKE_BUILD_TYPE=Release \
               -DEMNAPI_WORKER_POOL_SIZE=4 \
               -G Ninja -H. -Bbuild
 
-# wasi-sdk with thread support (Experimental)
+# wasi-sdk with thread support
 cmake -DCMAKE_TOOLCHAIN_FILE=$WASI_SDK_PATH/share/cmake/wasi-sdk-pthread.cmake \
       -DWASI_SDK_PREFIX=$WASI_SDK_PATH \
       -DEMNAPI_FIND_NODE_ADDON_API=ON \

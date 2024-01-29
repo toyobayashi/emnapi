@@ -38,7 +38,7 @@ set(EMNAPI_THREADS_SRC
 )
 set(EMNAPI_SRC ${ENAPI_BASIC_SRC} ${EMNAPI_THREADS_SRC})
 
-set(EMNAPI_INCLUDE "${CMAKE_CURRENT_SOURCE_DIR}/include")
+set(EMNAPI_INCLUDE "${CMAKE_CURRENT_SOURCE_DIR}/include/node")
 set(EMNAPI_DEFINES "BUILDING_NODE_EXTENSION")
 
 set(EMNAPI_JS_LIB "${CMAKE_CURRENT_SOURCE_DIR}/dist/library_napi.js")
@@ -209,35 +209,41 @@ if(LIB_ARCH)
 endif()
 
 install(FILES
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/emnapi_common.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/emnapi.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/js_native_api_types.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/js_native_api.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/node_api_types.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/node_api.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/uv.h
-  DESTINATION "include/${PROJECT_NAME}")
+    ${CMAKE_CURRENT_SOURCE_DIR}/common.gypi
+    ${CMAKE_CURRENT_SOURCE_DIR}/emnapi.gyp
+  DESTINATION ".")
+
+install(FILES
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/node/emnapi_common.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/node/emnapi.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/node/js_native_api_types.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/node/js_native_api.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/node/node_api_types.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/node/node_api.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/node/uv.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/node/config.gypi
+  DESTINATION "include/node")
 
 install(DIRECTORY
-  ${CMAKE_CURRENT_SOURCE_DIR}/include/uv
-  DESTINATION "include/${PROJECT_NAME}")
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/node/uv
+  DESTINATION "include/node")
 
 install(FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/dist/library_napi.js
-  DESTINATION "lib/${PROJECT_NAME}")
+  DESTINATION "dist")
 
 if(EMNAPI_INSTALL_SRC)
   install(FILES
       ${EMNAPI_SRC}
       "${CMAKE_CURRENT_SOURCE_DIR}/src/emnapi_internal.h"
-    DESTINATION "src/${PROJECT_NAME}")
+    DESTINATION "src")
   install(DIRECTORY
     ${CMAKE_CURRENT_SOURCE_DIR}/src/uv
-    DESTINATION "src/${PROJECT_NAME}")
+    DESTINATION "src")
   install(DIRECTORY
     ${CMAKE_CURRENT_SOURCE_DIR}/src/malloc
-    DESTINATION "src/${PROJECT_NAME}")
+    DESTINATION "src")
   install(DIRECTORY
     ${CMAKE_CURRENT_SOURCE_DIR}/src/thread
-    DESTINATION "src/${PROJECT_NAME}")
+    DESTINATION "src")
 endif()
