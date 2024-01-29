@@ -13,12 +13,12 @@ class ChildProcessError extends Error {
  * @param {'inherit' | 'pipe' | 'ignore'=} stdio
  * @returns {Promise<void> & { cp: import('child_process').ChildProcess }}
  */
-function spawn (command, args, cwdPath, stdio) {
+function spawn (command, args, cwdPath, stdio, env) {
   const argsString = args.map(a => a.indexOf(' ') !== -1 ? ('"' + a + '"') : a).join(' ')
   const cwd = cwdPath || process.cwd()
   console.log(`[spawn] ${cwd}${process.platform === 'win32' ? '>' : '$'} ${command} ${argsString}`)
   const cp = require('child_process').spawn(command, args, {
-    env: process.env,
+    env: env || process.env,
     cwd,
     stdio: stdio || 'inherit'
   })

@@ -157,7 +157,10 @@ async function main () {
     '-DCMAKE_C_FLAGS=-sMEMORY64=1',
     '-H.',
     '-Bbuild/wasm64-emscripten'
-  ], cwd)
+  ], cwd, 'inherit', {
+    ...process.env,
+    CFLAGS: '-sMEMORY64=1'
+  })
 
   await spawn('cmake', [
     '--build',
