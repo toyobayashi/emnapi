@@ -5,8 +5,8 @@
 #include "js_native_api_types.h"
 #include "emnapi_common.h"
 
-#define EMNAPI_MAJOR_VERSION 0
-#define EMNAPI_MINOR_VERSION 45
+#define EMNAPI_MAJOR_VERSION 1
+#define EMNAPI_MINOR_VERSION 0
 #define EMNAPI_PATCH_VERSION 0
 
 typedef enum {

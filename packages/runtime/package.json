@@ -1,6 +1,6 @@
 {
   "name": "@emnapi/runtime",
-  "version": "0.45.0",
+  "version": "1.0.0",
   "description": "emnapi runtime",
   "main": "index.js",
   "module": "./dist/emnapi.esm-bundler.js",
