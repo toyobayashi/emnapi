@@ -750,19 +750,19 @@ call set CXX_target=%%WASI_SDK_PATH:\=/%%/bin/clang++.exe
 emmake node-gyp rebuild \
   --arch=wasm32 \
   --nodedir=./node_modules/emnapi \
-  -- -f make -DOS=emscripten # -Dwasm_threads=1
+  -- -f make-linux -DOS=emscripten # -Dwasm_threads=1
 
 # wasi
 node-gyp rebuild \
   --arch=wasm32 \
   --nodedir=./node_modules/emnapi \
-  -- -f make -DOS=wasi # -Dwasm_threads=1
+  -- -f make-linux -DOS=wasi # -Dwasm_threads=1
 
 # bare wasm32
 node-gyp rebuild \
   --arch=wasm32 \
   --nodedir=./node_modules/emnapi \
-  -- -f make -DOS=unknown # -Dwasm_threads=1
+  -- -f make-linux -DOS=unknown # -Dwasm_threads=1
 ```
 
 ```bat
@@ -770,15 +770,15 @@ node-gyp rebuild \
 @REM Run the bat file in POSIX-like environment (e.g. Cygwin)
 
 @REM emscripten
-call npx.cmd node-gyp configure --arch=wasm32 --nodedir=./node_modules/emnapi -- -f make -DOS=emscripten
+call npx.cmd node-gyp configure --arch=wasm32 --nodedir=./node_modules/emnapi -- -f make-linux -DOS=emscripten
 call emmake.bat make -C %~dp0build
 
 @REM wasi
-call npx.cmd node-gyp configure --arch=wasm32 --nodedir=./node_modules/emnapi -- -f make -DOS=wasi
+call npx.cmd node-gyp configure --arch=wasm32 --nodedir=./node_modules/emnapi -- -f make-linux -DOS=wasi
 make -C %~dp0build
 
 @REM bare wasm32
-call npx.cmd node-gyp configure --arch=wasm32 --nodedir=./node_modules/emnapi -- -f make -DOS=unknown
+call npx.cmd node-gyp configure --arch=wasm32 --nodedir=./node_modules/emnapi -- -f make-linux -DOS=unknown
 make -C %~dp0build
 ```
 
