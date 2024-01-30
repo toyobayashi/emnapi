@@ -18,6 +18,9 @@ module.exports = load('buffer').then(async binding => {
     assert.strictEqual(binding.bufferInfo(buffer), true)
     buffer = null
     await common.gcUntil(() => binding.getDeleterCallCount() === 2)
+
+    // To test this doesn't crash
+    binding.invalidObjectAsBuffer({})
   })().then(common.mustCall())
 
   process.externalBuffer = binding.newExternalBuffer()
