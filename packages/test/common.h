@@ -12,9 +12,7 @@
 #else
 #include <stddef.h>
 void console_error(const char* fmt, const char* str);
-void abort() {
-  __builtin_trap();
-}
+#define abort() __builtin_trap()
 #define EPRINT(str) console_error("%s", (str))
 #endif
 

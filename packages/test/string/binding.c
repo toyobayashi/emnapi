@@ -23,10 +23,6 @@ size_t strlen(const char *s)
 	for (; *s; s++);
 	return s-a;
 }
-
-void abort() {
-  __builtin_trap();
-}
 #endif
 
 #define NAPI_EXPERIMENTAL

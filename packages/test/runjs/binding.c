@@ -6,9 +6,6 @@
 #else
 void* malloc(size_t size);
 void free(void* p);
-void abort() {
-  __builtin_trap();
-}
 #endif
 
 static void Finalize(napi_env env, void* data, void* hint) {
