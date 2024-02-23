@@ -9,12 +9,12 @@ void free(void* p);
 
 static uint32_t finalizeCount = 0;
 
-static void FreeData(napi_env env, void* data, void* hint) {
-  NODE_API_ASSERT_RETURN_VOID(env, data != NULL, "Expects non-NULL data.");
+static void FreeData(node_api_nogc_env env, void* data, void* hint) {
+  NODE_API_NOGC_ASSERT_RETURN_VOID(data != NULL, "Expects non-NULL data.");
   free(data);
 }
 
-static void Finalize(napi_env env, void* data, void* hint) {
+static void Finalize(node_api_nogc_env env, void* data, void* hint) {
   ++finalizeCount;
 }
 
@@ -63,10 +63,10 @@ static napi_value ToUInt32Value(napi_env env, uint32_t value) {
   return result;
 }
 
-static napi_status InitRefArray(napi_env env) {
+static napi_status InitRefArray(node_api_nogc_env env) {
   // valueRefs array has one entry per napi_valuetype
   napi_ref* valueRefs = malloc(sizeof(napi_ref) * ((int)napi_bigint + 1));
-  return napi_set_instance_data(env, valueRefs, &FreeData, NULL);
+  return napi_set_instance_data(env, valueRefs, (napi_finalize)&FreeData, NULL);
 }
 
 static napi_value CreateExternal(napi_env env, napi_callback_info info) {

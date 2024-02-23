@@ -111,6 +111,11 @@ function loadPath (request, options) {
               console.log(fmtString, ...args)
               return 0
             }
+            importObject.env.console_error = function (fmt, ...args) {
+              const fmtString = UTF8ToString(fmt)
+              console.error(fmtString, ...args)
+              return 0
+            }
             importObject.env.sleep = function (n) {
               const end = Date.now() + n * 1000
               while (Date.now() < end) {
