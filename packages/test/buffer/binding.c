@@ -148,8 +148,10 @@ static napi_value invalidObjectAsBuffer(napi_env env, napi_callback_info info) {
 
   napi_value notTheBuffer = args[0];
   napi_status status = napi_get_buffer_info(env, notTheBuffer, NULL, NULL);
-  NODE_API_ASSERT(env, status == napi_invalid_arg,
-    "napi_get_buffer_info: should fail with napi_invalid_arg when passed non buffer");
+  NODE_API_ASSERT(env,
+                  status == napi_invalid_arg,
+                  "napi_get_buffer_info: should fail with napi_invalid_arg "
+                  "when passed non buffer");
 
   return notTheBuffer;
 }
