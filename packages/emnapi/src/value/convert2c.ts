@@ -3,7 +3,7 @@ import { SIZE_TYPE, from64, makeGetValue, makeSetValue } from 'emscripten:parse-
 import { $emnapiSetValueI64 as emnapiSetValueI64 } from '../util'
 import { emnapiString } from '../string'
 import { emnapiExternalMemory } from '../memory'
-import { $CHECK_ARG, $CHECK_ENV_NOT_IN_GC, $PREAMBLE } from '../macro'
+import { $CHECK_ARG, $CHECK_ENV_NOT_IN_GC, $PREAMBLE, $RETURN_STATUS_IF_FALSE } from '../macro'
 
 /**
  * @__sig ippp
@@ -165,9 +165,7 @@ export function napi_get_buffer_info (
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, buffer)
   const handle = emnapiCtx.handleStore.get(buffer)!
-  if (!handle.isBuffer()) {
-    return envObject.setLastError(napi_status.napi_invalid_arg)
-  }
+  $RETURN_STATUS_IF_FALSE!(envObject, handle.isBuffer(), napi_status.napi_invalid_arg)
   return napi_get_typedarray_info(env, buffer, 0, length, data, 0, 0)
 }
 
