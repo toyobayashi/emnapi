@@ -1,3 +1,4 @@
+#include <js_native_api.h>
 #include <limits.h>  // INT_MAX
 
 #if !defined(__wasm__) || (defined(__EMSCRIPTEN__) || defined(__wasi__))
@@ -25,8 +26,6 @@ size_t strlen(const char *s)
 }
 #endif
 
-#define NAPI_EXPERIMENTAL
-#include <js_native_api.h>
 #include "../common.h"
 #include "../entry_point.h"
 #include "test_null.h"
