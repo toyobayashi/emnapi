@@ -23,10 +23,6 @@ size_t strlen(const char *s)
 	for (; *s; s++);
 	return s-a;
 }
-
-void abort() {
-  __builtin_trap();
-}
 #endif
 
 #define NAPI_EXPERIMENTAL
@@ -116,7 +112,7 @@ static napi_value TestTwoByteImpl(napi_env env,
   return output;
 }
 
-static void free_string(napi_env env, void* data, void* hint) {
+static void free_string(node_api_nogc_env env, void* data, void* hint) {
   free(data);
 }
 

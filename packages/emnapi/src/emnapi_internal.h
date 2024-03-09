@@ -72,11 +72,11 @@ EXTERN_C_END
 
 EXTERN_C_START
 
-EMNAPI_INTERNAL_EXTERN napi_status napi_set_last_error(napi_env env,
+EMNAPI_INTERNAL_EXTERN napi_status napi_set_last_error(node_api_nogc_env env,
                                        napi_status error_code,
                                        uint32_t engine_error_code,
                                        void* engine_reserved);
-EMNAPI_INTERNAL_EXTERN napi_status napi_clear_last_error(napi_env env);
+EMNAPI_INTERNAL_EXTERN napi_status napi_clear_last_error(node_api_nogc_env env);
 
 #ifdef __EMSCRIPTEN__
 #if __EMSCRIPTEN_major__ * 10000 + __EMSCRIPTEN_minor__ * 100 + __EMSCRIPTEN_tiny__ >= 30114  // NOLINT
