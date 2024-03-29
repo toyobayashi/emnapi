@@ -3,6 +3,7 @@
   "version": "1.1.0",
   "description": "Node-API implementation for Emscripten",
   "main": "index.js",
+  "gypfile": false,
   "peerDependencies": {
     "node-addon-api": ">= 6.1.0"
   },
