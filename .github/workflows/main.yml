@@ -20,7 +20,7 @@ env:
   WASI_VERSION: '21'
   WASI_VERSION_FULL: '21.0'
   WASI_SDK_PATH: './wasi-sdk-21.0'
-  EM_VERSION: '3.1.44'
+  EM_VERSION: '3.1.57'
   EM_CACHE_FOLDER: 'emsdk-cache'
 
 jobs:
@@ -145,7 +145,7 @@ jobs:
         sudo apt-get install ninja-build
     - uses: mymindstorm/setup-emsdk@v14
       with:
-        version: ${{ env.EM_VERSION }}
+        version: '3.1.44'
         # no-cache: true
         actions-cache-folder: ${{ env.EM_CACHE_FOLDER }}
     - name: Install wasi-sdk
