@@ -50,7 +50,7 @@ jobs:
       with:
         path: ${{env.EM_CACHE_FOLDER}}
         key: ${{env.EM_VERSION}}-${{ runner.os }}-${{ matrix.target }}
-    - uses: mymindstorm/setup-emsdk@v13
+    - uses: mymindstorm/setup-emsdk@v14
       if: ${{ contains(matrix.target, 'emscripten') }}
       with:
         version: ${{ env.EM_VERSION }}
@@ -143,7 +143,7 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install ninja-build
-    - uses: mymindstorm/setup-emsdk@v13
+    - uses: mymindstorm/setup-emsdk@v14
       with:
         version: ${{ env.EM_VERSION }}
         # no-cache: true
