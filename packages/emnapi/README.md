@@ -23,6 +23,8 @@ This project aims to
 
 This project also powers the WebAssembly feature for [napi-rs](https://github.com/napi-rs/napi-rs), and enables many Node.js native addons to run on [StackBlitz](https://stackblitz.com)'s WebContainer.
 
+[Node-API changes](https://github.com/nodejs/node/pulls?q=is%3Apr+label%3Anode-api+) will be synchronized into this repo.
+
 See documentation for more details:
 - [https://toyobayashi.github.io/emnapi-docs/guide/](https://toyobayashi.github.io/emnapi-docs/guide/)
 - [https://emnapi-docs.vercel.app/guide/](https://emnapi-docs.vercel.app/guide/)
