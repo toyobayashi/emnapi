@@ -28,7 +28,15 @@ int32_t __attribute__((noinline)) EMSCRIPTEN_KEEPALIVE returns_input_i32(int32_t
 
 }
 
-emscripten::val __attribute__((noinline)) EMSCRIPTEN_KEEPALIVE ReturnsInputI32(const emscripten::val& i) {
+emscripten::val __attribute__((noinline)) SumI32(const emscripten::val& v1, const emscripten::val& v2, const emscripten::val& v3, const emscripten::val& v4, const emscripten::val& v5, const emscripten::val& v6, const emscripten::val& v7, const emscripten::val& v8, const emscripten::val& v9) {
+  return emscripten::val(sum_i32(v1.as<int32_t>(), v2.as<int32_t>(), v3.as<int32_t>(), v4.as<int32_t>(), v5.as<int32_t>(), v6.as<int32_t>(), v7.as<int32_t>(), v8.as<int32_t>(), v9.as<int32_t>()));
+}
+
+emscripten::val __attribute__((noinline)) SumDouble(const emscripten::val& v1, const emscripten::val& v2, const emscripten::val& v3, const emscripten::val& v4, const emscripten::val& v5, const emscripten::val& v6, const emscripten::val& v7, const emscripten::val& v8, const emscripten::val& v9) {
+  return emscripten::val(sum_double(v1.as<double>(), v2.as<double>(), v3.as<double>(), v4.as<double>(), v5.as<double>(), v6.as<double>(), v7.as<double>(), v8.as<double>(), v9.as<double>()));
+}
+
+emscripten::val __attribute__((noinline)) ReturnsInputI32(const emscripten::val& i) {
   return emscripten::val(i.as<int32_t>());
 }
 
@@ -60,9 +68,9 @@ void ObjectSet(emscripten::val arg, const emscripten::val& key, const emscripten
 EMSCRIPTEN_BINDINGS(embindcpp) {
   emscripten::function("emptyFunction", empty_function);
   emscripten::function("incrementCounter", increment_counter);
-  emscripten::function("sumI32", sum_i32);
-  emscripten::function("sumDouble", sum_double);
-  emscripten::function("returnsInputI32", returns_input_i32);
+  emscripten::function("sumI32", SumI32);
+  emscripten::function("sumDouble", SumDouble);
+  emscripten::function("returnsInputI32", ReturnsInputI32);
   emscripten::function("returnsInputString", ReturnsInputString);
   emscripten::function("returnsInputObject", ReturnsInputObject);
   emscripten::function("callJavaScriptFunction", CallJavaScriptFunction);

@@ -1,0 +1,59 @@
+name: Bench
+
+on:
+  workflow_dispatch:
+
+env:
+  WASI_VERSION: '21'
+  WASI_VERSION_FULL: '21.0'
+  WASI_SDK_PATH: './wasi-sdk-21.0'
+  EM_VERSION: '3.1.44'
+  EM_CACHE_FOLDER: 'emsdk-cache'
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install Ninja
+      run: |
+        sudo apt-get update
+        sudo apt-get install ninja-build
+    - name: Setup Emscripten cache
+      id: cache-system-libraries
+      uses: actions/cache@v3
+      with:
+        path: ${{env.EM_CACHE_FOLDER}}
+        key: ${{env.EM_VERSION}}-${{ runner.os }}-wasm32-unknown-emscripten
+    - uses: mymindstorm/setup-emsdk@v14
+      with:
+        version: ${{ env.EM_VERSION }}
+        # no-cache: true
+        actions-cache-folder: ${{ env.EM_CACHE_FOLDER }}
+
+    - uses: actions/setup-node@v3
+      with:
+        node-version: '20.9.0'
+        registry-url: 'https://registry.npmjs.org'
+      env:
+        NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+    - name: NPM Install
+      shell: bash
+      run: |
+        npm install -g node-gyp
+        npm install
+
+    - name: NPM Build
+      shell: bash
+      run: npm run build --workspaces --if-present
+
+    - name: Bench
+      shell: bash
+      run: |
+        npm run rebuild -w packages/bench
+        npm run start -w packages/bench

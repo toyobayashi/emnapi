@@ -1,5 +1,7 @@
-#include <emnapi.h>
 #include <napi.h>
+#ifdef __wasm__
+#include <emnapi.h>
+#endif
 #include "foo.h"
 
 namespace {
@@ -68,6 +70,7 @@ Value CreateTypedMemoryView(const CallbackInfo& info) {
   static uint8_t buf[16384] = { 0 };
   Env env = info.Env();
   napi_value ret;
+#ifdef __wasm__
   emnapi_create_memory_view(
     env,
     emnapi_uint8_array,
@@ -77,6 +80,10 @@ Value CreateTypedMemoryView(const CallbackInfo& info) {
     nullptr,
     &ret
   );
+#else
+  napi_create_external_arraybuffer(env, buf, 16384, nullptr, nullptr, &ret);
+  napi_create_typedarray(env, napi_uint8_array, 16384, ret, 0, &ret);
+#endif
   return Value(env, ret);
 }
 
@@ -89,27 +96,33 @@ Value ObjectSet(const CallbackInfo& info) {
   return Value();
 }
 
-class JsFoo : public Foo, public ObjectWrap<JsFoo> {
+class JsFoo : public ObjectWrap<JsFoo> {
  public:
   static void Init(Napi::Env env, Object exports) {
     Napi::Function ctor = DefineClass(env, "Foo", {
-      InstanceMethod<&JsFoo::IncrClassCounter>("incrClassCounter", static_cast<napi_property_attributes>(napi_writable | napi_configurable)),
-      InstanceMethod<&JsFoo::Delete>("delete", static_cast<napi_property_attributes>(napi_writable | napi_configurable)),
+      InstanceMethod<&JsFoo::IncrClassCounter>("incrClassCounter", napi_default_method),
+      InstanceMethod<&JsFoo::Delete>("delete", napi_default_method),
     });
     exports.Set("Foo", ctor);
   }
 
-  JsFoo(const CallbackInfo& info): Foo(), ObjectWrap<JsFoo>(info) {}
+  JsFoo(const CallbackInfo& info): ObjectWrap<JsFoo>(info), foo_(new Foo()) {}
 
   Napi::Value IncrClassCounter(const CallbackInfo& info) {
-    Foo::IncrClassCounter();
-    return Napi::Value();
+    foo_->IncrClassCounter();
+    return {};
   }
 
   Napi::Value Delete(const CallbackInfo& info) {
-    delete this;
+    if (foo_ != nullptr) {
+      delete foo_;
+      foo_ = nullptr;
+    }
     return Napi::Value();
   }
+
+ private:
+  Foo* foo_;
 };
 
 #define EXPORT_FUNCTION(env, exports, name, f) \

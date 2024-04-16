@@ -1,6 +1,8 @@
 #include <stdlib.h>
 #include <node_api.h>
+#ifdef __wasm__
 #include <emnapi.h>
+#endif
 #include "../../test/common.h"
 #include "foo.h"
 
@@ -94,6 +96,7 @@ napi_value CallJavaScriptFunction(napi_env env, napi_callback_info info) {
 napi_value CreateTypedMemoryView(napi_env env, napi_callback_info info) {
   static uint8_t buf[16384] = { 0 };
   napi_value ret;
+#ifdef __wasm__
   emnapi_create_memory_view(
     env,
     emnapi_uint8_array,
@@ -103,6 +106,10 @@ napi_value CreateTypedMemoryView(napi_env env, napi_callback_info info) {
     nullptr,
     &ret
   );
+#else
+  napi_create_external_arraybuffer(env, buf, 16384, nullptr, nullptr, &ret);
+  napi_create_typedarray(env, napi_uint8_array, 16384, ret, 0, &ret);
+#endif
   return ret;
 }
 
@@ -116,22 +123,17 @@ napi_value ObjectGet(napi_env env, napi_callback_info info) {
 
 napi_value ObjectSet(napi_env env, napi_callback_info info) {
   size_t argc = 3;
-  napi_value argv[3], ret;
+  napi_value argv[3];
   napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
   napi_set_property(env, argv[0], argv[1], argv[2]);
   return nullptr;
-}
-
-void FooFinalizeCallback(napi_env env, void* data, void* hint) {
-  Foo* foo = static_cast<Foo*>(data);
-  delete foo;
 }
 
 napi_value FooConstructor(napi_env env, napi_callback_info info) {
   napi_value this_arg;
   napi_get_cb_info(env, info, nullptr, nullptr, &this_arg, nullptr);
   Foo* foo = new Foo();
-  napi_wrap(env, this_arg, foo, FooFinalizeCallback, nullptr, nullptr);
+  napi_wrap(env, this_arg, foo, nullptr, nullptr, nullptr);
   return this_arg;
 }
 
@@ -151,17 +153,17 @@ napi_value FooDelete(napi_env env, napi_callback_info info) {
   napi_get_cb_info(env, info, nullptr, nullptr, &this_arg, nullptr);
 
   Foo* instance = nullptr;
-  napi_remove_wrap(env, this_arg, reinterpret_cast<void**>(&instance));
-
-  delete instance;
+  napi_status ok = napi_remove_wrap(env, this_arg, reinterpret_cast<void**>(&instance));
+  if (ok == napi_ok) {
+    delete instance;
+  }
 
   return nullptr;
 }
 
 void InitFoo(napi_env env, napi_value exports) {
   napi_value foo;
-  napi_property_attributes instance_method_attributes =
-    static_cast<napi_property_attributes>(napi_writable | napi_configurable);
+  napi_property_attributes instance_method_attributes = napi_default_method;
   napi_property_descriptor properties[2] = {
     {
       "incrClassCounter", nullptr,
@@ -182,8 +184,8 @@ void InitFoo(napi_env env, napi_value exports) {
 #define EXPORT_FUNCTION(env, exports, name, f) \
   do { \
     napi_value f##_fn; \
-    NAPI_CALL((env), napi_create_function((env), NULL, NAPI_AUTO_LENGTH, (f), NULL, &(f##_fn))); \
-    NAPI_CALL((env), napi_set_named_property((env), (exports), (name), (f##_fn))); \
+    NODE_API_CALL((env), napi_create_function((env), NULL, NAPI_AUTO_LENGTH, (f), NULL, &(f##_fn))); \
+    NODE_API_CALL((env), napi_set_named_property((env), (exports), (name), (f##_fn))); \
   } while (0)
 
 NAPI_MODULE_INIT() {

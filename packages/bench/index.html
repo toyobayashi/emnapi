@@ -5,18 +5,19 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>test</title>
+  <script type="importmap">
+    {
+      "imports": {
+        "@emnapi/runtime": "../runtime/dist/emnapi.mjs",
+        "tinybench": "../../node_modules/tinybench/dist/index.js"
+      }
+    }
+  </script>
 </head>
 <body>
   <div>
     <button id="testNapi">test napi</button>
   </div>
-  <script src="../../node_modules/lodash/lodash.min.js"></script>
-  <script src="../../node_modules/platform/platform.js"></script>
-  <script src="../../node_modules/benchmark/benchmark.js"></script>
-  <script src="../runtime/dist/emnapi.js"></script>
-  <script src="./.build/Release/embindcpp.js"></script>
-  <script src="./.build/Release/emnapic.js"></script>
-  <script src="./.build/Release/emnapicpp.js"></script>
-  <script src="./index.js"></script>
+  <script src="./index.js" type="module"></script>
 </body>
 </html>

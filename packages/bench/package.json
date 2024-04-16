@@ -2,11 +2,15 @@
   "name": "@emnapi/bench",
   "version": "0.0.0",
   "private": true,
+  "gypfile": false,
+  "type": "module",
   "scripts": {
-    "rebuild": "emcmake cmake -DCMAKE_BUILD_TYPE=Release -H. -B.build && cmake --build .build"
+    "rebuild": "node-gyp rebuild && emcmake cmake -DCMAKE_BUILD_TYPE=Release -H. -B.build && cmake --build .build",
+    "start": "node ./index.js"
   },
   "devDependencies": {
-    "node-addon-api": "^7.0.0",
-    "benchmark": "^2.1.4"
+    "node-addon-api": "^8.0.0",
+    "node-gyp": "^10.1.0",
+    "tinybench": "^2.7.0"
   }
 }

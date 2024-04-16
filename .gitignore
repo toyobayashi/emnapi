@@ -11,3 +11,5 @@ package-lock.json
 out
 /script/emnapi.zip
 *.tgz
+/packages/bench/bench.txt
+/packages/bench/build

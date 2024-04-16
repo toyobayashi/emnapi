@@ -21,6 +21,7 @@ add_link_options(
   "-sMIN_CHROME_VERSION=84"
   "-sALLOW_MEMORY_GROWTH=1"
   "-sMODULARIZE=1"
+  "-sEXPORT_ES6"
 )
 
 set(EMNAPI_FIND_NODE_ADDON_API ON)
@@ -33,13 +34,13 @@ target_link_options(embindcpp PRIVATE "-sEXPORT_NAME=embindcpp")
 add_executable(emnapic "${CMAKE_CURRENT_SOURCE_DIR}/src/node-api.cpp")
 target_link_libraries(emnapic PRIVATE emnapi-basic)
 target_link_options(emnapic PRIVATE
-  "-sEXPORTED_FUNCTIONS=['_napi_register_wasm_v1','_malloc','_free']"
+  "-sEXPORTED_FUNCTIONS=['_napi_register_wasm_v1','_node_api_module_get_api_version_v1','_malloc','_free']"
   "-sEXPORT_NAME=emnapic"
 )
 
 add_executable(emnapicpp "${CMAKE_CURRENT_SOURCE_DIR}/src/node-addon-api.cpp")
 target_link_libraries(emnapicpp PRIVATE emnapi-basic)
 target_link_options(emnapicpp PRIVATE
-  "-sEXPORTED_FUNCTIONS=['_napi_register_wasm_v1','_malloc','_free']"
+  "-sEXPORTED_FUNCTIONS=['_napi_register_wasm_v1','_node_api_module_get_api_version_v1','_malloc','_free']"
   "-sEXPORT_NAME=emnapicpp"
 )
