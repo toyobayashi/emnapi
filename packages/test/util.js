@@ -7,7 +7,7 @@ const common = require('./common.js')
 const emnapi = require('../runtime')
 const context = emnapi.getDefaultContext()
 
-function getEntry (targetName) {
+function getDir () {
   let buildDir
   if ('EMNAPI_TEST_WASI_THREADS' in process.env) {
     buildDir = process.env.MEMORY64 ? '.build/wasm64-wasi-threads' : '.build/wasm32-wasi-threads'
@@ -20,7 +20,11 @@ function getEntry (targetName) {
   } else {
     buildDir = process.env.MEMORY64 ? '.build/wasm64-unknown-emscripten' : '.build/wasm32-unknown-emscripten'
   }
-  return join(__dirname, `./${buildDir}/${common.buildType}/${targetName}.${process.env.EMNAPI_TEST_NATIVE ? 'node' : (process.env.EMNAPI_TEST_WASI || process.env.EMNAPI_TEST_WASM32) ? 'wasm' : 'js'}`)
+  return join(__dirname, buildDir, common.buildType)
+}
+
+function getEntry (targetName) {
+  return join(getDir(), `${targetName}.${process.env.EMNAPI_TEST_NATIVE ? 'node' : (process.env.EMNAPI_TEST_WASI || process.env.EMNAPI_TEST_WASM32) ? 'wasm' : 'js'}`)
 }
 
 exports.getEntry = getEntry
@@ -153,7 +157,21 @@ function loadPath (request, options) {
       return p
     }
     const p = new Promise((resolve, reject) => {
-      mod().then((Module) => {
+      mod({
+        locateFile (path, scriptDirectory) {
+          const defaultResult = scriptDirectory + path
+
+          /**
+           * emscripten 3.1.58 bug introduced by
+           * https://github.com/emscripten-core/emscripten/pull/21701
+           */
+          if (!fs.existsSync(defaultResult)) {
+            return join(getDir(), path)
+          }
+
+          return defaultResult
+        }
+      }).then((Module) => {
         p.Module = Module
         resolveEmnapiExports(Module, resolve, reject)
       }).catch(reject)
