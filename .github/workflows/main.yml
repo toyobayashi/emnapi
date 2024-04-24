@@ -20,7 +20,7 @@ env:
   WASI_VERSION: '21'
   WASI_VERSION_FULL: '21.0'
   WASI_SDK_PATH: './wasi-sdk-21.0'
-  EM_VERSION: '3.1.57'
+  EM_VERSION: '3.1.58'
   EM_CACHE_FOLDER: 'emsdk-cache'
 
 jobs:
