@@ -2,7 +2,7 @@
 # in https://github.com/lovell/sharp/pull/3522
 {
   'variables': {
-    # OS: 'emscripten' | 'wasi' | 'unknown'
+    # OS: 'emscripten' | 'wasi' | 'unknown' | 'wasm'
     'clang': 1,
     'target_arch%': 'wasm32',
     'wasm_threads%': 0,
@@ -139,7 +139,7 @@
           }],
         ],
       }], 
-      ['OS in "wasi unknown "', {
+      ['OS in "wasi wasm unknown "', {
         'configurations': {
           'Release': {
             'ldflags': [ '-Wl,--strip-debug' ],
@@ -239,7 +239,7 @@
         'target_conditions': [
           ['_type=="executable"', {
             'conditions': [
-              ['OS in "wasi unknown "', {
+              ['OS in "wasi wasm unknown "', {
                 'product_extension': 'wasm',
 
                 'ldflags': [
@@ -326,7 +326,7 @@
                   }]
                 ],
               }],
-              ['OS in "wasi unknown "', {
+              ['OS in "wasi wasm unknown "', {
                 'product_extension': 'wasm',
 
                 'ldflags': [

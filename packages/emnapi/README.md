@@ -630,9 +630,10 @@ Output code can run in recent version modern browsers and Node.js latest LTS. IE
 ### Using node-gyp (Experimental)
 
 Currently node-gyp works on Linux only and don't support static library linking in cross-compiling.
-There are opened PRs to try to make node-gyp work fine.
+There are related PRs to try to make node-gyp work fine.
 
 - https://github.com/nodejs/gyp-next/pull/222
+- https://github.com/nodejs/gyp-next/pull/240
 - https://github.com/nodejs/node-gyp/pull/2974
 
 If you experienced issues on Windows or macOS, please check the PRs for upstream changes detail and see
@@ -645,7 +646,7 @@ Arch: `node-gyp configure --arch=<wasm32 | wasm64>`
 ```ts
 // node-gyp configure -- -Dvariable_name=value
 
-declare var OS: 'emscripten' | 'wasi' | 'unknown' | ''
+declare var OS: 'emscripten' | 'wasi' | 'unknown' | 'wasm' | ''
 
 /**
  * Enable async work and threadsafe-functions
@@ -701,7 +702,7 @@ declare var emnapi_manual_linking: 0 | 1
         ["OS == 'wasi'", {
           # ...
         }],
-        ["OS == 'unknown' or OS == ''", {
+        ["OS in ' wasm unknown'", {
           # ...
         }]
       ]
@@ -752,19 +753,19 @@ call set CXX_target=%%WASI_SDK_PATH:\=/%%/bin/clang++.exe
 emmake node-gyp rebuild \
   --arch=wasm32 \
   --nodedir=./node_modules/emnapi \
-  -- -f make-linux -DOS=emscripten # -Dwasm_threads=1
+  -- -f make-emscripten # -Dwasm_threads=1
 
 # wasi
 node-gyp rebuild \
   --arch=wasm32 \
   --nodedir=./node_modules/emnapi \
-  -- -f make-linux -DOS=wasi # -Dwasm_threads=1
+  -- -f make-wasi # -Dwasm_threads=1
 
 # bare wasm32
 node-gyp rebuild \
   --arch=wasm32 \
   --nodedir=./node_modules/emnapi \
-  -- -f make-linux -DOS=unknown # -Dwasm_threads=1
+  -- -f make-wasm # -Dwasm_threads=1
 ```
 
 ```bat
@@ -772,15 +773,15 @@ node-gyp rebuild \
 @REM Run the bat file in POSIX-like environment (e.g. Cygwin)
 
 @REM emscripten
-call npx.cmd node-gyp configure --arch=wasm32 --nodedir=./node_modules/emnapi -- -f make-linux -DOS=emscripten
+call npx.cmd node-gyp configure --arch=wasm32 --nodedir=./node_modules/emnapi -- -f make-emscripten
 call emmake.bat make -C %~dp0build
 
 @REM wasi
-call npx.cmd node-gyp configure --arch=wasm32 --nodedir=./node_modules/emnapi -- -f make-linux -DOS=wasi
+call npx.cmd node-gyp configure --arch=wasm32 --nodedir=./node_modules/emnapi -- -f make-wasi
 make -C %~dp0build
 
 @REM bare wasm32
-call npx.cmd node-gyp configure --arch=wasm32 --nodedir=./node_modules/emnapi -- -f make-linux -DOS=unknown
+call npx.cmd node-gyp configure --arch=wasm32 --nodedir=./node_modules/emnapi -- -f make-wasm
 make -C %~dp0build
 ```
 
