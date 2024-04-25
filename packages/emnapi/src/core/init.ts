@@ -471,6 +471,6 @@ export var PThread = {
     }
     const worker = PThread.allocateUnusedWorker()
     PThread.loadWasmModuleToWorker(worker)
-    return worker
+    return PThread.unusedWorkers.pop()
   }
 }
