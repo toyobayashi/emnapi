@@ -69,6 +69,7 @@ export declare type BaseCreateOptions = {
   nodeBinding?: NodeBinding
   reuseWorker?: boolean
   asyncWorkPoolSize?: number
+  waitThreadStart?: boolean
   onCreateWorker?: (info: CreateWorkerInfo) => any
   print?: (str: string) => void
   printErr?: (str: string) => void

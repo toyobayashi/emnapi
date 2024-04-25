@@ -40,20 +40,27 @@ export class MessageHandler {
       const onLoad = this.onLoad
       if (type === 'load') {
         if (this.instance !== undefined) return
-        const source = onLoad(payload)
+        let source: InstantiatedSource | Promise<InstantiatedSource>
+        try {
+          source = onLoad(payload)
+        } catch (err) {
+          onLoaded.call(this, err, null, payload)
+          return
+        }
         const then = source && 'then' in source ? source.then : undefined
         if (typeof then === 'function') {
           // eslint-disable-next-line @typescript-eslint/no-floating-promises
           then.call(
             source,
-            (source) => { onLoaded.call(this, source) },
-            (err) => { throw err }
+            (source) => { onLoaded.call(this, null, source, payload) },
+            (err) => { onLoaded.call(this, err, null, payload) }
           )
         } else {
-          onLoaded.call(this, source as InstantiatedSource)
+          onLoaded.call(this, null, source as InstantiatedSource, payload)
         }
       } else if (type === 'start') {
         handleAfterLoad.call(this, e, () => {
+          notifyPthreadCreateResult(payload.sab, 1)
           this.napiModule!.startThread(payload.tid, payload.arg)
         })
       } else if (type === 'async-worker-init') {
@@ -77,17 +84,45 @@ function handleAfterLoad (this: MessageHandler, e: any, f: (e: any) => void): vo
   }
 }
 
-function onLoaded (this: MessageHandler, source: InstantiatedSource): void {
+interface LoadPayload {
+  wasmModule: WebAssembly.Module
+  wasmMemory: WebAssembly.Memory
+  sab?: Int32Array
+}
+
+function notifyPthreadCreateResult (sab: Int32Array | undefined, result: number): void {
+  if (sab) {
+    Atomics.store(sab, 0, result)
+    Atomics.notify(sab, 0)
+  }
+}
+
+function onLoaded (this: MessageHandler, err: Error | null, source: InstantiatedSource | null, payload: LoadPayload): void {
+  if (err) {
+    notifyPthreadCreateResult(payload.sab, 2)
+    throw err
+  }
+
   if (source == null) {
+    notifyPthreadCreateResult(payload.sab, 2)
     throw new TypeError('onLoad should return an object')
   }
 
   const instance = source.instance
   const napiModule = source.napiModule
 
-  if (!instance) throw new TypeError('onLoad should return an object which includes "instance"')
-  if (!napiModule) throw new TypeError('onLoad should return an object which includes "napiModule"')
-  if (!napiModule.childThread) throw new Error('napiModule should be created with `childThread: true`')
+  if (!instance) {
+    notifyPthreadCreateResult(payload.sab, 2)
+    throw new TypeError('onLoad should return an object which includes "instance"')
+  }
+  if (!napiModule) {
+    notifyPthreadCreateResult(payload.sab, 2)
+    throw new TypeError('onLoad should return an object which includes "napiModule"')
+  }
+  if (!napiModule.childThread) {
+    notifyPthreadCreateResult(payload.sab, 2)
+    throw new Error('napiModule should be created with `childThread: true`')
+  }
 
   this.instance = instance
   this.napiModule = napiModule
