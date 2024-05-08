@@ -14,3 +14,8 @@ declare interface CreateOptions {
 
 // factory parameter
 declare const options: CreateOptions
+
+declare const wasiThreads: typeof import('../../../wasi-threads/lib/typings/index')
+
+declare type ThreadManagerOptions = import('../../../wasi-threads/lib/typings/index').ThreadManagerOptions
+declare type ThreadManager = import('../../../wasi-threads/lib/typings/index').ThreadManager

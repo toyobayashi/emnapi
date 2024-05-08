@@ -1,4 +1,5 @@
 import type { Context } from '@emnapi/runtime'
+import type { ThreadManager } from '@emnapi/wasi-threads'
 
 /** @public */
 export declare interface PointerInfo {
@@ -34,6 +35,7 @@ export declare interface NapiModule {
       len?: number
     ): T
     getMemoryAddress (arrayBufferOrView: ArrayBuffer | ArrayBufferView): PointerInfo
+    addSendListener (worker: any): boolean
   }
 
   init (options: InitOptions): any
@@ -42,6 +44,10 @@ export declare interface NapiModule {
   initWorker (arg: number): void
   executeAsyncWork (work: number): void
   postMessage?: (msg: any) => any
+
+  waitThreadStart: boolean
+  /** @internal */
+  PThread: ThreadManager
 }
 
 /** @public */

@@ -86,7 +86,7 @@ var emnapiAWMT = {
     }
     try {
       for (let i = 0; i < n; ++i) {
-        const worker = onCreateWorker({ type: 'async-work' })
+        const worker = onCreateWorker({ type: 'async-work', name: 'emnapi-async-worker' })
         const p = PThread.loadWasmModuleToWorker(worker)
         emnapiAWMT.addListener(worker)
         promises.push(p.then(() => {

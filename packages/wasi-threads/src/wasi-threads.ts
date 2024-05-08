@@ -4,6 +4,7 @@ import type { ThreadManager, WorkerMessageEvent } from './thread-manager'
 /** @public */
 export interface BaseOptions {
   version?: 'preview1'
+  wasm64?: boolean
 }
 
 /** @public */
@@ -31,8 +32,6 @@ export class WASIThreads {
   private wasmMemory!: WebAssembly.Memory
   private wasmInstance!: WebAssembly.Instance
 
-  private readonly waitThreadStart: boolean
-  private readonly postMessage: ((data: any) => void) | undefined
   private readonly threadSpawn: (startArg: number, errorOrTid?: number) => number
 
   public constructor (options: WASIThreadsOptions) {
@@ -44,20 +43,20 @@ export class WASIThreads {
       }
     }
 
+    let waitThreadStart = false
     if ('waitThreadStart' in options) {
-      this.waitThreadStart = Boolean(options.waitThreadStart)
-    } else {
-      this.waitThreadStart = false
+      waitThreadStart = Boolean(options.waitThreadStart)
     }
 
+    let postMessage: ((data: any) => void) | undefined
     if ('postMessage' in options) {
       if (typeof options.postMessage !== 'function') {
         throw new TypeError('options.postMessage is not a function')
       }
-      this.postMessage = postMessage
-    } else {
-      this.postMessage = undefined
+      postMessage = options.postMessage
     }
+
+    const wasm64 = Boolean(options.wasm64)
 
     const onSpawn = (e: WorkerMessageEvent): void => {
       if (e.data.__emnapi__) {
@@ -75,18 +74,18 @@ export class WASIThreads {
       const isNewABI = errorOrTid !== undefined
       if (!isNewABI) {
         const malloc = this.wasmInstance.exports.malloc as Function
-        errorOrTid = malloc(8)
+        errorOrTid = wasm64 ? Number(malloc(BigInt(8))) : malloc(8)
         if (!errorOrTid) {
           return -48 /* ENOMEM */
         }
       }
-      const free = this.wasmInstance.exports.free as Function
+      const _free = this.wasmInstance.exports.free as Function
+      const free = wasm64 ? (ptr: number) => { _free(BigInt(ptr)) } : _free
       const struct = new Int32Array(this.wasmMemory.buffer, errorOrTid!, 2)
       Atomics.store(struct, 0, 0)
       Atomics.store(struct, 1, 0)
 
-      if (this.postMessage) {
-        const postMessage = this.postMessage
+      if (postMessage) {
         postMessage({
           __emnapi__: {
             type: 'spawn-thread',
@@ -107,7 +106,7 @@ export class WASIThreads {
       }
 
       let sab: Int32Array | undefined
-      if (this.waitThreadStart) {
+      if (waitThreadStart) {
         sab = new Int32Array(new SharedArrayBuffer(4))
         Atomics.store(sab, 0, 0)
       }
@@ -136,7 +135,7 @@ export class WASIThreads {
             }
           }
         })
-        if (this.waitThreadStart) {
+        if (waitThreadStart) {
           Atomics.wait(sab!, 0, 0)
           const r = Atomics.load(sab!, 0)
           if (r === 2) {
@@ -150,7 +149,7 @@ export class WASIThreads {
         Atomics.store(struct, 1, EAGAIN)
         Atomics.notify(struct, 1)
 
-        PThread?._options.err?.(e.message)
+        PThread?._options.printErr?.(e.message)
         if (isNewABI) {
           return 1
         }
@@ -163,7 +162,7 @@ export class WASIThreads {
       Atomics.notify(struct, 1)
 
       PThread!.runningWorkers.push(worker)
-      if (!this.waitThreadStart) {
+      if (!waitThreadStart) {
         worker.whenLoaded.catch((err: any) => {
           delete worker.whenLoaded
           PThread!.cleanThread(worker, tid, true)

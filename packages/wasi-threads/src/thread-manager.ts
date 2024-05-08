@@ -16,7 +16,7 @@ export interface WorkerMessageEvent<T = any> {
 
 /** @public */
 export interface ThreadManagerOptions {
-  err?: (message: string) => void
+  printErr?: (message: string) => void
   beforeLoad?: (worker: WorkerLike) => any
   reuseWorker?: boolean
   onCreateWorker?: (ctx: { type: string; name: string }) => WorkerLike
@@ -80,7 +80,7 @@ export class ThreadManager {
 
   public loadWasmModuleToWorker (worker: WorkerLike, sab?: Int32Array): Promise<WorkerLike> {
     if (worker.whenLoaded) return worker.whenLoaded
-    const err = this._options.err
+    const err = this._options.printErr
     const beforeLoad = this._options.beforeLoad
     worker.whenLoaded = new Promise<WorkerLike>((resolve, reject) => {
       const handleError = function (e: { message: string }): void {
@@ -190,12 +190,13 @@ export class ThreadManager {
 
   public terminateWorker (worker: WorkerLike): void {
     const tid = worker.__emnapi_tid
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
     worker.terminate()
     this.messageEvents.get(worker)?.clear()
     this.messageEvents.delete(worker);
     (worker as Worker).onmessage = (e: any) => {
       if (e.data.__emnapi__) {
-        this._options.err?.('received "' + e.data.__emnapi__.type + '" command from terminated worker: ' + tid)
+        this._options.printErr?.('received "' + e.data.__emnapi__.type + '" command from terminated worker: ' + tid)
       }
     }
   }
@@ -215,7 +216,7 @@ export class ThreadManager {
   public fireMessageEvent (worker: WorkerLike, e: WorkerMessageEvent): void {
     const listeners = this.messageEvents.get(worker)
     if (!listeners) return
-    const err = this._options.err
+    const err = this._options.printErr
     listeners.forEach((listener) => {
       try {
         listener(e)

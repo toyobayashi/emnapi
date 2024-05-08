@@ -16,6 +16,7 @@ function build () {
       target: require('typescript').ScriptTarget.ES2019,
       emitDeclarationOnly: true,
       declaration: true,
+      declarationMap: true,
       declarationDir: path.join(__dirname, '../lib/typings')
     }
   })

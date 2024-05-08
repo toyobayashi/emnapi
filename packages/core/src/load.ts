@@ -1,3 +1,4 @@
+import { WASIThreads } from '@emnapi/wasi-threads'
 import { type InputType, load, loadSync } from './util'
 import { createNapiModule } from './emnapi/index'
 import type { CreateOptions, NapiModule } from './emnapi/index'
@@ -67,16 +68,18 @@ function loadNapiModuleImpl (loadFn: Function, userNapiModule: NapiModule | unde
   }
 
   const wasi = options!.wasi
+  const wasiThreads = new WASIThreads(
+    napiModule.childThread
+      ? { postMessage: napiModule.postMessage! }
+      : {
+          threadManager: napiModule.PThread,
+          waitThreadStart: napiModule.waitThreadStart
+        }
+  )
   let importObject: WebAssembly.Imports = {
     env: napiModule.imports.env,
     napi: napiModule.imports.napi,
-    emnapi: napiModule.imports.emnapi,
-    wasi: {
-      // eslint-disable-next-line camelcase
-      'thread-spawn': function __imported_wasi_thread_spawn (startArg: number, errorOrTid: number) {
-        return napiModule.spawnThread(startArg, errorOrTid)
-      }
-    }
+    emnapi: napiModule.imports.emnapi
   }
 
   if (wasi) {
@@ -87,6 +90,8 @@ function loadNapiModuleImpl (loadFn: Function, userNapiModule: NapiModule | unde
         : { wasi_snapshot_preview1: wasi.wasiImport }
     )
   }
+
+  Object.assign(importObject, wasiThreads.getImportObject())
 
   const overwriteImports = options!.overwriteImports
   if (typeof overwriteImports === 'function') {
@@ -177,6 +182,7 @@ function loadNapiModuleImpl (loadFn: Function, userNapiModule: NapiModule | unde
       }
       wasi.initialize(instance)
     }
+    wasiThreads.setup(instance, module, memory)
 
     if (beforeInit) {
       beforeInit({

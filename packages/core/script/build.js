@@ -14,7 +14,7 @@ const dist = path.join(__dirname, '../dist')
 function build () {
   compile(path.join(__dirname, '../tsconfig.json'), {
     optionsToExtend: {
-      target: require('typescript').ScriptTarget.ES2019,
+      target: ts.ScriptTarget.ES2019,
       emitDeclarationOnly: true,
       declaration: true,
       declarationDir: path.join(__dirname, '../lib/typings')

@@ -16,7 +16,7 @@ export interface OnStartData {
 /** @public */
 export interface HandleOptions {
   onLoad (data: OnLoadData): WebAssembly.WebAssemblyInstantiatedSource | PromiseLike<WebAssembly.WebAssemblyInstantiatedSource>
-  postMessage: (message: any) => void
+  postMessage?: (message: any) => void
 }
 
 /** @public */
@@ -28,15 +28,19 @@ export class MessageHandler {
 
   public constructor (options: HandleOptions) {
     const onLoad = options.onLoad
-    const postMessage = options.postMessage
+    const postMsg = typeof options.postMessage === 'function'
+      ? options.postMessage
+      : typeof postMessage === 'function'
+        ? postMessage
+        : undefined
     if (typeof onLoad !== 'function') {
       throw new TypeError('options.onLoad is not a function')
     }
-    if (typeof postMessage !== 'function') {
+    if (typeof postMsg !== 'function') {
       throw new TypeError('options.postMessage is not a function')
     }
     this.onLoad = onLoad
-    this.postMessage = postMessage
+    this.postMessage = postMsg
     this.instance = undefined
     // this.module = undefined
     this.messagesBeforeLoad = []
@@ -100,7 +104,10 @@ export class MessageHandler {
     })
   }
 
-  private _loaded (err: Error | null, source: WebAssembly.WebAssemblyInstantiatedSource | null, payload: OnLoadData): void {
+  /** @virtual */
+  protected onLoadSuccess (_source: WebAssembly.WebAssemblyInstantiatedSource): void {}
+
+  protected _loaded (err: Error | null, source: WebAssembly.WebAssemblyInstantiatedSource | null, payload: OnLoadData): void {
     if (err) {
       notifyPthreadCreateResult(payload.sab, 2)
       throw err
@@ -119,6 +126,8 @@ export class MessageHandler {
     }
 
     this.instance = instance
+
+    this.onLoadSuccess(source)
 
     const postMessage = this.postMessage!
     postMessage({

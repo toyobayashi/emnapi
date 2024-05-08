@@ -10,6 +10,7 @@
     "outDir": "lib",
     "paths": {
       "tslib" : ["../../node_modules/tslib/tslib.d.ts"],
+      "@emnapi/wasi-threads": ["../wasi-threads/lib/typings/index.d.ts"],
       "@/*": ["./src/*"],
     },
     "lib": [
