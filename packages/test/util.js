@@ -50,6 +50,7 @@ function loadPath (request, options) {
           : -RUNTIME_UV_THREADPOOL_SIZE,
         filename: request,
         reuseWorker: true,
+        waitThreadStart: true,
         onCreateWorker () {
           return new Worker(join(__dirname, './worker.js'), {
             env: process.env,

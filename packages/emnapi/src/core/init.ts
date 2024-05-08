@@ -3,6 +3,8 @@
 
 import { makeDynCall, to64 } from 'emscripten:parse-tools'
 
+type SharedInt32Array = Int32Array
+
 export interface InitOptions {
   instance: WebAssembly.Instance
   module: WebAssembly.Module
@@ -36,6 +38,7 @@ declare const process: any
 export var ENVIRONMENT_IS_NODE = typeof process === 'object' && process !== null && typeof process.versions === 'object' && process.versions !== null && typeof process.versions.node === 'string'
 export var ENVIRONMENT_IS_PTHREAD = Boolean(options.childThread)
 export var reuseWorker = Boolean(options.reuseWorker)
+export var waitThreadStart = Boolean(options.waitThreadStart)
 
 export var wasmInstance: WebAssembly.Instance
 export var wasmModule: WebAssembly.Module
@@ -251,7 +254,32 @@ function terminateWorker (worker: any): void {
   }
 }
 
+function cleanThread (worker: any, tid: number, force?: boolean): void {
+  if (!force && reuseWorker) {
+    PThread.returnWorkerToPool(worker)
+  } else {
+    delete PThread.pthreads[tid]
+    const index = PThread.runningWorkers.indexOf(worker)
+    if (index !== -1) {
+      PThread.runningWorkers.splice(index, 1)
+    }
+    terminateWorker(worker)
+    delete worker.__emnapi_tid
+  }
+}
+
+function checkSharedWasmMemory (): void {
+  if (typeof SharedArrayBuffer === 'undefined' || !(wasmMemory.buffer instanceof SharedArrayBuffer)) {
+    throw new Error(
+      'Multithread features require shared wasm memory. ' +
+      'Try to compile with `-matomics -mbulk-memory` and use `--import-memory --shared-memory` during linking'
+    )
+  }
+}
+
 function spawnThread (startArg: number, errorOrTid: number): number {
+  checkSharedWasmMemory()
+
   const isNewABI = errorOrTid !== undefined
   if (!isNewABI) {
     errorOrTid = _malloc(to64('8'))
@@ -284,11 +312,43 @@ function spawnThread (startArg: number, errorOrTid: number): number {
     return isError ? -result : result
   }
 
+  let sab: Int32Array | undefined
+  if (waitThreadStart) {
+    sab = new Int32Array(new SharedArrayBuffer(4))
+    Atomics.store(sab, 0, 0)
+  }
+
   let worker: any
+  const tid = PThread.nextWorkerID + 43
   try {
-    worker = PThread.getNewWorker()
+    worker = PThread.getNewWorker(sab)
     if (!worker) {
       throw new Error('failed to get new worker')
+    }
+
+    const WASI_THREADS_MAX_TID = 0x1FFFFFFF
+    PThread.nextWorkerID = (PThread.nextWorkerID + 1) % (WASI_THREADS_MAX_TID - 42)
+    PThread.pthreads[tid] = worker
+    worker.__emnapi_tid = tid
+    if (ENVIRONMENT_IS_NODE) {
+      worker.ref()
+    }
+    worker.postMessage({
+      __emnapi__: {
+        type: 'start',
+        payload: {
+          tid,
+          arg: startArg,
+          sab
+        }
+      }
+    })
+    if (waitThreadStart) {
+      Atomics.wait(sab!, 0, 0)
+      const r = Atomics.load(sab!, 0)
+      if (r === 2) {
+        throw new Error('failed to start pthread')
+      }
     }
   } catch (e) {
     const EAGAIN = 6
@@ -305,30 +365,18 @@ function spawnThread (startArg: number, errorOrTid: number): number {
     return -EAGAIN
   }
 
-  const tid = PThread.nextWorkerID + 43
-
   Atomics.store(struct, 0, 0)
   Atomics.store(struct, 1, tid)
   Atomics.notify(struct, 1)
 
-  const WASI_THREADS_MAX_TID = 0x1FFFFFFF
-  PThread.nextWorkerID = (PThread.nextWorkerID + 1) % (WASI_THREADS_MAX_TID - 42)
-  PThread.pthreads[tid] = worker
-  worker.__emnapi_tid = tid
   PThread.runningWorkers.push(worker)
-  if (ENVIRONMENT_IS_NODE) {
-    worker.ref()
+  if (!waitThreadStart) {
+    worker.whenLoaded.catch((err: any) => {
+      delete worker.whenLoaded
+      cleanThread(worker, tid, true)
+      throw err
+    })
   }
-
-  worker.postMessage({
-    __emnapi__: {
-      type: 'start',
-      payload: {
-        tid,
-        arg: startArg
-      }
-    }
-  })
 
   if (isNewABI) {
     return 0
@@ -376,7 +424,7 @@ export var PThread = {
       worker.unref()
     }
   },
-  loadWasmModuleToWorker: (worker: any) => {
+  loadWasmModuleToWorker: (worker: any, sab?: SharedInt32Array) => {
     if (worker.whenLoaded) return worker.whenLoaded
     worker.whenLoaded = new Promise<any>((resolve, reject) => {
       worker.onmessage = function (e: any) {
@@ -395,14 +443,7 @@ export var PThread = {
           } else if (type === 'spawn-thread') {
             spawnThread(payload.startArg, payload.errorOrTid)
           } else if (type === 'cleanup-thread') {
-            if (reuseWorker) {
-              PThread.returnWorkerToPool(worker)
-            } else {
-              delete PThread.pthreads[payload.tid]
-              PThread.runningWorkers.splice(PThread.runningWorkers.indexOf(worker), 1)
-              terminateWorker(worker)
-              delete worker.__emnapi_tid
-            }
+            cleanThread(worker, payload.tid)
           }
         }
       }
@@ -437,17 +478,13 @@ export var PThread = {
             type: 'load',
             payload: {
               wasmModule,
-              wasmMemory
+              wasmMemory,
+              sab
             }
           }
         })
       } catch (err) {
-        if (typeof SharedArrayBuffer === 'undefined' || !(wasmMemory.buffer instanceof SharedArrayBuffer)) {
-          throw new Error(
-            'Multithread features require shared wasm memory. ' +
-            'Try to compile with `-matomics -mbulk-memory` and use `--import-memory --shared-memory` during linking'
-          )
-        }
+        checkSharedWasmMemory()
         throw err
       }
     })
@@ -461,16 +498,16 @@ export var PThread = {
     PThread.unusedWorkers.push(worker)
     return worker
   },
-  getNewWorker () {
+  getNewWorker (sab?: SharedInt32Array) {
     if (reuseWorker) {
       if (PThread.unusedWorkers.length === 0) {
         const worker = PThread.allocateUnusedWorker()
-        PThread.loadWasmModuleToWorker(worker)
+        PThread.loadWasmModuleToWorker(worker, sab)
       }
       return PThread.unusedWorkers.pop()
     }
     const worker = PThread.allocateUnusedWorker()
-    PThread.loadWasmModuleToWorker(worker)
+    PThread.loadWasmModuleToWorker(worker, sab)
     return PThread.unusedWorkers.pop()
   }
 }
