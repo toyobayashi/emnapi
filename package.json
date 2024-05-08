@@ -60,6 +60,7 @@
     "packages/runtime",
     "packages/node",
     "packages/emnapi",
+    "packages/wasi-threads",
     "packages/core",
     "packages/test",
     "packages/bench"
