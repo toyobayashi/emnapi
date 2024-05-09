@@ -1,5 +1,5 @@
 import type { WorkerMessageEvent } from './thread-manager'
-import { getPostMessage } from './util'
+import { getPostMessage, serizeErrorToBuffer } from './util'
 
 /** @public */
 export interface OnLoadData {
@@ -83,13 +83,15 @@ export class MessageHandler {
   }
 
   private _start (payload: OnStartData): void {
-    notifyPthreadCreateResult(payload.sab, 1)
     if (typeof this.instance!.exports.wasi_thread_start !== 'function') {
-      throw new TypeError('wasi_thread_start is not exported')
+      const err = new TypeError('wasi_thread_start is not exported')
+      notifyPthreadCreateResult(payload.sab, 2, err)
+      throw err
     }
     const postMessage = this.postMessage!
     const tid = payload.tid
     const startArg = payload.arg
+    notifyPthreadCreateResult(payload.sab, 1)
     ;(this.instance!.exports.wasi_thread_start as Function)(tid, startArg)
     postMessage({
       __emnapi__: {
@@ -106,20 +108,22 @@ export class MessageHandler {
 
   protected _loaded (err: Error | null, source: WebAssembly.WebAssemblyInstantiatedSource | null, payload: OnLoadData): void {
     if (err) {
-      notifyPthreadCreateResult(payload.sab, 2)
+      notifyPthreadCreateResult(payload.sab, 2, err)
       throw err
     }
 
     if (source == null) {
-      notifyPthreadCreateResult(payload.sab, 2)
-      throw new TypeError('onLoad should return an object')
+      const err = new TypeError('onLoad should return an object')
+      notifyPthreadCreateResult(payload.sab, 2, err)
+      throw err
     }
 
     const instance = source.instance
 
     if (!instance) {
-      notifyPthreadCreateResult(payload.sab, 2)
-      throw new TypeError('onLoad should return an object which includes "instance"')
+      const err = new TypeError('onLoad should return an object which includes "instance"')
+      notifyPthreadCreateResult(payload.sab, 2, err)
+      throw err
     }
 
     this.instance = instance
@@ -151,9 +155,9 @@ export class MessageHandler {
   }
 }
 
-function notifyPthreadCreateResult (sab: Int32Array | undefined, result: number): void {
+function notifyPthreadCreateResult (sab: Int32Array | undefined, result: number, error?: Error): void {
   if (sab) {
-    Atomics.store(sab, 0, result)
+    serizeErrorToBuffer(sab.buffer as SharedArrayBuffer, result, error)
     Atomics.notify(sab, 0)
   }
 }

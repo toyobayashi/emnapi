@@ -1,4 +1,4 @@
-import { ENVIRONMENT_IS_NODE, getPostMessage } from './util'
+import { ENVIRONMENT_IS_NODE, deserizeErrorFromBuffer, getPostMessage } from './util'
 import { checkSharedWasmMemory, ThreadManager } from './thread-manager'
 import type { WorkerMessageEvent, ThreadManagerOptions } from './thread-manager'
 
@@ -132,7 +132,7 @@ export class WASIThreads {
 
       let sab: Int32Array | undefined
       if (waitThreadStart) {
-        sab = new Int32Array(new SharedArrayBuffer(4))
+        sab = new Int32Array(new SharedArrayBuffer(16 + 8192))
         Atomics.store(sab, 0, 0)
       }
 
@@ -163,8 +163,8 @@ export class WASIThreads {
         if (waitThreadStart) {
           Atomics.wait(sab!, 0, 0)
           const r = Atomics.load(sab!, 0)
-          if (r === 2) {
-            throw new Error('failed to start pthread')
+          if (r > 1) {
+            throw deserizeErrorFromBuffer(sab!.buffer as SharedArrayBuffer)!
           }
         }
       } catch (e) {
@@ -174,7 +174,7 @@ export class WASIThreads {
         Atomics.store(struct, 1, EAGAIN)
         Atomics.notify(struct, 1)
 
-        PThread?.printErr(e.message)
+        PThread?.printErr(e.stack)
         if (isNewABI) {
           return 1
         }

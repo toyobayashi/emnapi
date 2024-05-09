@@ -236,7 +236,7 @@ export class ThreadManager {
       try {
         listener(e)
       } catch (e) {
-        err(e.message)
+        err(e.stack)
       }
     })
   }
