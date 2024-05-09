@@ -1,4 +1,5 @@
 import type { WorkerMessageEvent } from './thread-manager'
+import { getPostMessage } from './util'
 
 /** @public */
 export interface OnLoadData {
@@ -28,11 +29,7 @@ export class MessageHandler {
 
   public constructor (options: HandleOptions) {
     const onLoad = options.onLoad
-    const postMsg = typeof options.postMessage === 'function'
-      ? options.postMessage
-      : typeof postMessage === 'function'
-        ? postMessage
-        : undefined
+    const postMsg = getPostMessage(options)
     if (typeof onLoad !== 'function') {
       throw new TypeError('options.onLoad is not a function')
     }

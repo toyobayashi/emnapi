@@ -2,15 +2,7 @@
 /* eslint-disable no-undef */
 
 (function () {
-  // const log = (...args) => {
-  //   const str = require('util').format(...args)
-  //   require('fs').writeSync(1, str + '\n')
-  // }
-  // const error = (...args) => {
-  //   const str = require('util').format(...args)
-  //   require('fs').writeSync(2, str + '\n')
-  // }
-  let WASI, wasiThreads, name, model
+  let WASI, wasiThreads, name
 
   const ENVIRONMENT_IS_NODE =
     typeof process === 'object' && process !== null &&
@@ -20,7 +12,6 @@
   if (ENVIRONMENT_IS_NODE) {
     const nodeWorkerThreads = require('worker_threads')
     name = nodeWorkerThreads.workerData.name
-    model = nodeWorkerThreads.workerData.model
 
     const parentPort = nodeWorkerThreads.parentPort
 
@@ -44,35 +35,26 @@
 
     WASI = require('node:wasi').WASI
   } else {
+    importScripts('../../../node_modules/@tybys/wasm-util/dist/wasm-util.min.js')
     importScripts('../dist/wasi-threads.js')
     WASI = globalThis.wasmUtil.WASI
     name = globalThis.name
+    wasiThreads = globalThis.wasiThreads
   }
 
   console.log(`name: ${name}`)
 
   const { MessageHandler, WASIThreads, createInstanceProxy } = wasiThreads
-  const postMessage = typeof globalThis.postMessage === 'function'
-    ? globalThis.postMessage
-    : function (msg) {
-      parentPort.postMessage(msg)
-    }
 
   const handler = new MessageHandler({
     onLoad ({ wasmModule, wasmMemory }) {
       const wasi = new WASI({
         version: 'preview1',
-        env: process.env,
-        print: ENVIRONMENT_IS_NODE
-          ? (...args) => {
-              const str = require('util').format(...args)
-              require('fs').writeSync(1, str + '\n')
-            }
-          : function () { console.log.apply(console, arguments) }
+        ...(ENVIRONMENT_IS_NODE ? { env: process.env } : {})
       })
 
       const wasiThreads = new WASIThreads({
-        postMessage
+        childThread: true
       })
 
       const instance = createInstanceProxy(new WebAssembly.Instance(wasmModule, {
@@ -81,18 +63,17 @@
         },
         ...wasi.getImportObject(),
         ...wasiThreads.getImportObject()
-      }), wasmMemory, model)
+      }), wasmMemory)
 
       wasiThreads.setup(instance, wasmModule, wasmMemory)
-      if (model === 'reactor') {
-        wasi.initialize(instance)
-      } else {
+      if ('_start' in instance.exports) {
         wasi.start(instance)
+      } else {
+        wasi.initialize(instance)
       }
 
       return { module: wasmModule, instance }
-    },
-    postMessage
+    }
   })
 
   globalThis.onmessage = function (e) {

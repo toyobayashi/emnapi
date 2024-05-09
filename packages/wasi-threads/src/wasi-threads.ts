@@ -1,5 +1,6 @@
-import { checkSharedWasmMemory, ENVIRONMENT_IS_NODE } from './thread-manager'
-import type { ThreadManager, WorkerMessageEvent } from './thread-manager'
+import { ENVIRONMENT_IS_NODE, getPostMessage } from './util'
+import { checkSharedWasmMemory, ThreadManager } from './thread-manager'
+import type { WorkerMessageEvent, ThreadManagerOptions } from './thread-manager'
 
 /** @public */
 export interface BaseOptions {
@@ -8,14 +9,25 @@ export interface BaseOptions {
 }
 
 /** @public */
-export interface MainThreadOptions extends BaseOptions {
-  threadManager: ThreadManager | (() => ThreadManager)
+export interface MainThreadBaseOptions extends BaseOptions {
   waitThreadStart?: boolean
 }
 
 /** @public */
+export interface MainThreadOptionsWithThreadManager extends MainThreadBaseOptions {
+  threadManager: ThreadManager | (() => ThreadManager)
+}
+
+/** @public */
+export interface MainThreadOptionsCreateThreadManager extends MainThreadBaseOptions, ThreadManagerOptions {}
+
+/** @public */
+export type MainThreadOptions = MainThreadOptionsWithThreadManager | MainThreadOptionsCreateThreadManager
+
+/** @public */
 export interface ChildThreadOptions extends BaseOptions {
-  postMessage: (data: any) => void
+  childThread: true
+  postMessage?: (data: any) => void
 }
 
 /** @public */
@@ -33,13 +45,29 @@ export class WASIThreads {
   private wasmInstance!: WebAssembly.Instance
 
   private readonly threadSpawn: (startArg: number, errorOrTid?: number) => number
+  private readonly childThread: boolean
 
   public constructor (options: WASIThreadsOptions) {
+    if (!options) {
+      throw new TypeError('options is not provided')
+    }
+
+    if ('childThread' in options) {
+      this.childThread = Boolean(options.childThread)
+    } else {
+      this.childThread = false
+    }
+
+    this.PThread = undefined
     if ('threadManager' in options) {
       if (typeof options.threadManager === 'function') {
         this.PThread = options.threadManager()
       } else {
         this.PThread = options.threadManager
+      }
+    } else {
+      if (!this.childThread) {
+        this.PThread = new ThreadManager(options as ThreadManagerOptions)
       }
     }
 
@@ -48,12 +76,9 @@ export class WASIThreads {
       waitThreadStart = Boolean(options.waitThreadStart)
     }
 
-    let postMessage: ((data: any) => void) | undefined
-    if ('postMessage' in options) {
-      if (typeof options.postMessage !== 'function') {
-        throw new TypeError('options.postMessage is not a function')
-      }
-      postMessage = options.postMessage
+    const postMessage = getPostMessage(options as ChildThreadOptions)
+    if (this.childThread && typeof postMessage !== 'function') {
+      throw new TypeError('options.postMessage is not a function')
     }
 
     const wasm64 = Boolean(options.wasm64)
@@ -85,8 +110,8 @@ export class WASIThreads {
       Atomics.store(struct, 0, 0)
       Atomics.store(struct, 1, 0)
 
-      if (postMessage) {
-        postMessage({
+      if (this.childThread) {
+        postMessage!({
           __emnapi__: {
             type: 'spawn-thread',
             payload: {
@@ -149,7 +174,7 @@ export class WASIThreads {
         Atomics.store(struct, 1, EAGAIN)
         Atomics.notify(struct, 1)
 
-        PThread?._options.printErr?.(e.message)
+        PThread?.printErr(e.message)
         if (isNewABI) {
           return 1
         }

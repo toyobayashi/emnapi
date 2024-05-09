@@ -79,13 +79,15 @@ function build () {
     }
   }
 
+  const globalName = 'wasiThreads'
+
   return Promise.all(([
     {
       input: createInput(ts.ScriptTarget.ES5, false),
       output: {
         file: path.join(dist, 'wasi-threads.js'),
         format: 'umd',
-        name: 'emnapiCore',
+        name: globalName,
         exports: 'named',
         strict: false
       }
@@ -95,7 +97,7 @@ function build () {
       output: {
         file: path.join(dist, 'wasi-threads.min.js'),
         format: 'umd',
-        name: 'emnapiCore',
+        name: globalName,
         exports: 'named',
         strict: false
       }
@@ -105,7 +107,7 @@ function build () {
       output: {
         file: path.join(dist, 'wasi-threads.cjs.js'),
         format: 'cjs',
-        name: 'emnapiCore',
+        name: globalName,
         exports: 'named',
         strict: false
       }
@@ -115,7 +117,7 @@ function build () {
       output: {
         file: path.join(dist, 'wasi-threads.cjs.min.js'),
         format: 'cjs',
-        name: 'emnapiCore',
+        name: globalName,
         exports: 'named',
         strict: false
       }
@@ -125,7 +127,7 @@ function build () {
       output: {
         file: path.join(dist, 'wasi-threads.mjs'),
         format: 'esm',
-        name: 'emnapiCore',
+        name: globalName,
         exports: 'named',
         strict: false
       }
@@ -135,7 +137,7 @@ function build () {
       output: {
         file: path.join(dist, 'wasi-threads.min.mjs'),
         format: 'esm',
-        name: 'emnapiCore',
+        name: globalName,
         exports: 'named',
         strict: false
       }
@@ -145,7 +147,7 @@ function build () {
       output: {
         file: path.join(dist, 'wasi-threads.esm-bundler.js'),
         format: 'esm',
-        name: 'emnapiCore',
+        name: globalName,
         exports: 'named',
         strict: false
       }
@@ -178,7 +180,7 @@ function build () {
     fs.copyFileSync(dts, mDts)
     fs.copyFileSync(dts, cjsMinDts)
     fs.copyFileSync(dts, mjsMinDts)
-    fs.appendFileSync(dts, '\nexport as namespace wasiThreads;\n', 'utf8')
+    fs.appendFileSync(dts, `\nexport as namespace ${globalName};\n`, 'utf8')
   })
 }
 

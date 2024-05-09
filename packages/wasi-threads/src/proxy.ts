@@ -1,14 +1,7 @@
 /** @public */
-export enum ExecutionModel {
-  Command = 'command',
-  Reactor = 'reactor'
-}
-
-/** @public */
 export function createInstanceProxy (
   instance: WebAssembly.Instance,
-  memory: WebAssembly.Memory | (() => WebAssembly.Memory),
-  model: ExecutionModel = ExecutionModel.Reactor
+  memory?: WebAssembly.Memory | (() => WebAssembly.Memory)
 ): WebAssembly.Instance {
   // https://github.com/nodejs/help/issues/4102
   const originalExports = instance.exports
@@ -44,20 +37,18 @@ export function createInstanceProxy (
   const _start = (): number => 0
   handler.get = function (_target, p, receiver) {
     if (p === 'memory') {
-      return typeof memory === 'function' ? memory() : memory
+      return (typeof memory === 'function' ? memory() : memory) ?? Reflect.get(originalExports, p, receiver)
     }
     if (p === '_initialize') {
-      return model === ExecutionModel.Reactor ? _initialize : undefined
+      return p in originalExports ? _initialize : undefined
     }
     if (p === '_start') {
-      return model === ExecutionModel.Command ? _start : undefined
+      return p in originalExports ? _start : undefined
     }
     return Reflect.get(originalExports, p, receiver)
   }
   handler.has = function (_target, p) {
     if (p === 'memory') return true
-    if (p === '_initialize') return model === ExecutionModel.Reactor
-    if (p === '_start') return model === ExecutionModel.Command
     return Reflect.has(originalExports, p)
   }
   const exportsProxy = new Proxy(Object.create(null), handler)

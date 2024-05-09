@@ -1,6 +1,5 @@
 import type { Worker as NodeWorker } from 'worker_threads'
-
-export const ENVIRONMENT_IS_NODE = typeof process === 'object' && process !== null && typeof process.versions === 'object' && process.versions !== null && typeof process.versions.node === 'string'
+import { ENVIRONMENT_IS_NODE } from './util'
 
 /** @public */
 export type WorkerLike = (Worker | NodeWorker) & {
@@ -15,11 +14,14 @@ export interface WorkerMessageEvent<T = any> {
 }
 
 /** @public */
+export type WorkerFactory = (ctx: { type: string; name: string }) => WorkerLike
+
+/** @public */
 export interface ThreadManagerOptions {
   printErr?: (message: string) => void
   beforeLoad?: (worker: WorkerLike) => any
   reuseWorker?: boolean
-  onCreateWorker?: (ctx: { type: string; name: string }) => WorkerLike
+  onCreateWorker: WorkerFactory
 }
 
 const WASI_THREADS_MAX_TID = 0x1FFFFFFF
@@ -40,15 +42,26 @@ export class ThreadManager {
   public pthreads: Record<number, WorkerLike> = Object.create(null)
   public nextWorkerID = 0
 
-  /** @internal */
-  public _options: ThreadManagerOptions
-
   public wasmModule: WebAssembly.Module | null = null
   public wasmMemory: WebAssembly.Memory | null = null
   private readonly messageEvents = new WeakMap<WorkerLike, Set<(e: WorkerMessageEvent) => void>>()
 
-  public constructor (options?: ThreadManagerOptions) {
-    this._options = Object.assign({}, options)
+  private readonly _onCreateWorker: WorkerFactory
+  private readonly _reuseWorker: boolean
+  private readonly _beforeLoad?: (worker: WorkerLike) => any
+
+  /** @internal */
+  public readonly printErr: (message: string) => void
+
+  public constructor (options: ThreadManagerOptions) {
+    const onCreateWorker = options.onCreateWorker
+    if (typeof onCreateWorker !== 'function') {
+      throw new TypeError('`options.onCreateWorker` is not provided')
+    }
+    this._onCreateWorker = onCreateWorker
+    this._reuseWorker = options.reuseWorker ?? false
+    this._beforeLoad = options.beforeLoad
+    this.printErr = options.printErr ?? console.error.bind(console)
   }
 
   public init (): void {}
@@ -67,28 +80,30 @@ export class ThreadManager {
     return tid
   }
 
-  public returnWorkerToPool (worker: any): void {
+  public returnWorkerToPool (worker: WorkerLike): void {
     var tid = worker.__emnapi_tid
-    delete this.pthreads[tid]
+    if (tid !== undefined) {
+      delete this.pthreads[tid]
+    }
     this.unusedWorkers.push(worker)
     this.runningWorkers.splice(this.runningWorkers.indexOf(worker), 1)
     delete worker.__emnapi_tid
     if (ENVIRONMENT_IS_NODE) {
-      worker.unref()
+      (worker as NodeWorker).unref()
     }
   }
 
   public loadWasmModuleToWorker (worker: WorkerLike, sab?: Int32Array): Promise<WorkerLike> {
     if (worker.whenLoaded) return worker.whenLoaded
-    const err = this._options.printErr
-    const beforeLoad = this._options.beforeLoad
+    const err = this.printErr
+    const beforeLoad = this._beforeLoad
     worker.whenLoaded = new Promise<WorkerLike>((resolve, reject) => {
       const handleError = function (e: { message: string }): void {
-        const message = 'worker sent an error!'
-        // if (worker.pthread_ptr) {
-        //   message = 'Pthread ' + ptrToString(worker.pthread_ptr) + ' sent an error!'
-        // }
-        err?.(message + ' ' + e.message)
+        let message = 'worker sent an error!'
+        if (worker.__emnapi_tid !== undefined) {
+          message = 'worker (tid = ' + worker.__emnapi_tid + ') sent an error!'
+        }
+        err(message + ' ' + e.message)
         reject(e)
         throw e as Error
       }
@@ -128,7 +143,9 @@ export class ThreadManager {
         (worker as NodeWorker).on('detachedExit', function () {})
       }
 
-      beforeLoad?.(worker)
+      if (typeof beforeLoad === 'function') {
+        beforeLoad(worker)
+      }
 
       try {
         worker.postMessage({
@@ -150,17 +167,14 @@ export class ThreadManager {
   }
 
   public allocateUnusedWorker (): WorkerLike {
-    const onCreateWorker = this._options.onCreateWorker
-    if (typeof onCreateWorker !== 'function') {
-      throw new TypeError('`options.onCreateWorker` is not provided')
-    }
-    const worker = onCreateWorker({ type: 'thread', name: 'emnapi-pthread' })
+    const _onCreateWorker = this._onCreateWorker
+    const worker = _onCreateWorker({ type: 'thread', name: 'emnapi-pthread' })
     this.unusedWorkers.push(worker)
     return worker
   }
 
   public getNewWorker (sab?: Int32Array): WorkerLike | undefined {
-    if (this._options.reuseWorker) {
+    if (this._reuseWorker) {
       if (this.unusedWorkers.length === 0) {
         const worker = this.allocateUnusedWorker()
         // eslint-disable-next-line @typescript-eslint/no-floating-promises
@@ -175,7 +189,7 @@ export class ThreadManager {
   }
 
   public cleanThread (worker: WorkerLike, tid: number, force?: boolean): void {
-    if (!force && this._options.reuseWorker) {
+    if (!force && this._reuseWorker) {
       this.returnWorkerToPool(worker)
     } else {
       delete this.pthreads[tid]
@@ -196,7 +210,8 @@ export class ThreadManager {
     this.messageEvents.delete(worker);
     (worker as Worker).onmessage = (e: any) => {
       if (e.data.__emnapi__) {
-        this._options.printErr?.('received "' + e.data.__emnapi__.type + '" command from terminated worker: ' + tid)
+        const err = this.printErr
+        err('received "' + e.data.__emnapi__.type + '" command from terminated worker: ' + tid)
       }
     }
   }
@@ -216,16 +231,12 @@ export class ThreadManager {
   public fireMessageEvent (worker: WorkerLike, e: WorkerMessageEvent): void {
     const listeners = this.messageEvents.get(worker)
     if (!listeners) return
-    const err = this._options.printErr
+    const err = this.printErr
     listeners.forEach((listener) => {
       try {
         listener(e)
       } catch (e) {
-        if (err) {
-          err(e.message)
-        } else {
-          console.error(e)
-        }
+        err(e.message)
       }
     })
   }

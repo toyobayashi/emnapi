@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>test</title>
+</head>
+<body>
+  <script src="../../../node_modules/@tybys/wasm-util/dist/wasm-util.min.js"></script>
+  <script src="../dist/wasi-threads.js"></script>
+  <!-- <script src="./index.js"></script> -->
+  <script>
+    new Worker('./index.js')
+  </script>
+</body>
+</html>

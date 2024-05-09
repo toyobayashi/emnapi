@@ -30,7 +30,8 @@
     "tslib": "^2.4.0"
   },
   "scripts": {
-    "build": "node ./script/build.js"
+    "build": "node ./script/build.js",
+    "test": "node ./test/build.js && node ./test/index.js"
   },
   "repository": {
     "type": "git",

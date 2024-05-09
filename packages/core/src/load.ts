@@ -70,7 +70,10 @@ function loadNapiModuleImpl (loadFn: Function, userNapiModule: NapiModule | unde
   const wasi = options!.wasi
   const wasiThreads = new WASIThreads(
     napiModule.childThread
-      ? { postMessage: napiModule.postMessage! }
+      ? {
+          childThread: true,
+          postMessage: napiModule.postMessage!
+        }
       : {
           threadManager: napiModule.PThread,
           waitThreadStart: napiModule.waitThreadStart

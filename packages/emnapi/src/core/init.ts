@@ -24,8 +24,6 @@ export interface INapiModule {
   envObject?: Env
 
   init (options: InitOptions): any
-  spawnThread (startArg: number, errorOrTid?: number): number
-  startThread (tid: number, startArg: number): void
   initWorker (arg: number): void
   executeAsyncWork (work: number): void
   postMessage?: (msg: any) => any
@@ -73,8 +71,6 @@ export var napiModule: INapiModule = {
   filename: '',
   childThread: Boolean(options.childThread),
 
-  spawnThread: undefined!,
-  startThread: undefined!,
   initWorker: undefined!,
   executeAsyncWork: undefined!,
 
@@ -269,15 +265,6 @@ function cleanThread (worker: any, tid: number, force?: boolean): void {
     }
     terminateWorker(worker)
     delete worker.__emnapi_tid
-  }
-}
-
-function checkSharedWasmMemory (): void {
-  if (typeof SharedArrayBuffer === 'undefined' || !(wasmMemory.buffer instanceof SharedArrayBuffer)) {
-    throw new Error(
-      'Multithread features require shared wasm memory. ' +
-      'Try to compile with `-matomics -mbulk-memory` and use `--import-memory --shared-memory` during linking'
-    )
   }
 }
 

@@ -1,98 +1,93 @@
-const fs = require('node:fs')
-const { join } = require('node:path')
-const { spawnSync } = require('node:child_process')
-const { Worker } = require('node:worker_threads')
-const { WASI } = require('wasi')
-const { WASIThreads, ThreadManager, ExecutionModel } = require('..')
+(function () {
+  const ENVIRONMENT_IS_NODE = typeof process === 'object' && process !== null && typeof process.versions === 'object' && process.versions !== null && typeof process.versions.node === 'string'
 
-function build (model = ExecutionModel.Reactor) {
-  const bin = join(process.env.WASI_SDK_PATH, 'bin', 'clang') + (process.platform === 'win32' ? '.exe' : '')
-  const args = [
-    '-o', join(__dirname, model === ExecutionModel.Command ? 'main.wasm' : 'lib.wasm'),
-    '-mbulk-memory',
-    '-matomics',
-    `-mexec-model=${model}`,
-    ...(model === ExecutionModel.Command
-      ? [
-          '-D__WASI_COMMAND__=1'
-        ]
-      : [
-          '-Wl,--no-entry'
-        ]
-    ),
-    '--target=wasm32-wasi-threads',
-    // '-O3',
-    '-g',
-    '-pthread',
-    '-Wl,--import-memory',
-    '-Wl,--shared-memory',
-    '-Wl,--export-memory',
-    '-Wl,--export-dynamic',
-    '-Wl,--max-memory=2147483648',
-    '-Wl,--export=malloc,--export=free',
-    join(__dirname, 'main.c')
-  ]
-  console.log(`> "${bin}" ${args.map(s => s.includes(' ') ? `"${s}"` : s).join(' ')}`)
-  spawnSync(bin, args, {
-    stdio: 'inherit',
-    env: process.env
-  })
-}
+  let Worker, WASI, WASIThreads
+  if (ENVIRONMENT_IS_NODE) {
+    const nodeWorkerThreads = require('worker_threads')
+    Worker = nodeWorkerThreads.Worker
+    WASI = require('node:wasi').WASI
+    WASIThreads = require('..').WASIThreads
+  } else {
+    if (typeof importScripts === 'function') {
+      // eslint-disable-next-line no-undef
+      importScripts('../../../node_modules/@tybys/wasm-util/dist/wasm-util.min.js')
+      // eslint-disable-next-line no-undef
+      importScripts('../dist/wasi-threads.js')
+    }
+    Worker = globalThis.Worker
+    WASI = globalThis.wasmUtil.WASI
+    WASIThreads = globalThis.wasiThreads.WASIThreads
+  }
 
-function run (model = ExecutionModel.Reactor) {
-  const wasi = new WASI({
-    version: 'preview1',
-    env: process.env
-  })
-  const wasiThreads = new WASIThreads({
-    threadManager: new ThreadManager({
-      printErr: console.error.bind(console),
+  const ExecutionModel = {
+    Command: 'command',
+    Reactor: 'reactor'
+  }
+
+  async function run (model = ExecutionModel.Reactor) {
+    const file = model === ExecutionModel.Command ? 'main.wasm' : 'lib.wasm'
+    const wasi = new WASI({
+      version: 'preview1',
+      args: [file, ENVIRONMENT_IS_NODE ? 'node' : 'web'],
+      ...(ENVIRONMENT_IS_NODE ? { env: process.env } : {})
+    })
+    const wasiThreads = new WASIThreads({
       onCreateWorker: ({ name }) => {
-        return new Worker(join(__dirname, 'worker.js'), {
+        const workerjs = ENVIRONMENT_IS_NODE
+          ? require('node:path').join(__dirname, 'worker.js')
+          : './worker.js'
+        return new Worker(workerjs, {
           name,
           workerData: {
-            name,
-            model
+            name
           },
-          env: process.env,
+          ...(ENVIRONMENT_IS_NODE ? { env: process.env } : {}),
           execArgv: ['--experimental-wasi-unstable-preview1']
         })
-      }
+      },
+      // optional
+      waitThreadStart: ENVIRONMENT_IS_NODE
     })
-  })
-  const memory = new WebAssembly.Memory({
-    initial: 16777216 / 65536,
-    maximum: 2147483648 / 65536,
-    shared: true
-  })
-  const file = join(__dirname, model === ExecutionModel.Command ? 'main.wasm' : 'lib.wasm')
-  return WebAssembly.instantiate(fs.readFileSync(file), {
-    env: {
-      memory
-    },
-    ...wasi.getImportObject(),
-    ...wasiThreads.getImportObject()
-  }).then(({ module, instance }) => {
+    const memory = new WebAssembly.Memory({
+      initial: 16777216 / 65536,
+      maximum: 2147483648 / 65536,
+      shared: true
+    })
+    let input
+    if (ENVIRONMENT_IS_NODE) {
+      input = require('node:fs').readFileSync(require('node:path').join(__dirname, file))
+    } else {
+      const response = await fetch(file)
+      input = await response.arrayBuffer()
+    }
+    const { module, instance } = await WebAssembly.instantiate(input, {
+      env: {
+        memory
+      },
+      ...wasi.getImportObject(),
+      ...wasiThreads.getImportObject()
+    })
+
     wasiThreads.setup(instance, module, memory)
     if (model === ExecutionModel.Command) {
       return wasi.start(instance)
     } else {
       wasi.initialize(instance)
-      return instance.exports.fn()
+      return instance.exports.fn(ENVIRONMENT_IS_NODE ? 1 : 0)
+    }
+  }
+
+  async function main () {
+    console.log('-------- command --------')
+    await run(ExecutionModel.Command)
+    console.log('-------- reactor --------')
+    await run(ExecutionModel.Reactor)
+  }
+
+  main().catch(err => {
+    console.error(err)
+    if (ENVIRONMENT_IS_NODE) {
+      process.exit(1)
     }
   })
-}
-
-async function main () {
-  build(ExecutionModel.Command)
-  build(ExecutionModel.Reactor)
-  console.log('-------- command --------')
-  await run(ExecutionModel.Command)
-  console.log('-------- reactor --------')
-  await run(ExecutionModel.Reactor)
-}
-
-main().catch(err => {
-  console.error(err)
-  process.exit(1)
-})
+})()
