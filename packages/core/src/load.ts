@@ -1,4 +1,4 @@
-import { WASIThreads } from '@emnapi/wasi-threads'
+import { WASIThreads, createInstanceProxy } from '@emnapi/wasi-threads'
 import { type InputType, load, loadSync } from './util'
 import { createNapiModule } from './emnapi/index'
 import type { CreateOptions, NapiModule } from './emnapi/index'
@@ -131,54 +131,7 @@ function loadNapiModuleImpl (loadFn: Function, userNapiModule: NapiModule | unde
     const module = source.module
     if (wasi) {
       if (napiModule.childThread) {
-        // https://github.com/nodejs/help/issues/4102
-        const createHandler = function (target: WebAssembly.Exports): ProxyHandler<WebAssembly.Exports> {
-          const handlers = [
-            'apply',
-            'construct',
-            'defineProperty',
-            'deleteProperty',
-            'get',
-            'getOwnPropertyDescriptor',
-            'getPrototypeOf',
-            'has',
-            'isExtensible',
-            'ownKeys',
-            'preventExtensions',
-            'set',
-            'setPrototypeOf'
-          ]
-          const handler: ProxyHandler<WebAssembly.Exports> = {}
-          for (let i = 0; i < handlers.length; i++) {
-            const name = handlers[i] as keyof ProxyHandler<WebAssembly.Exports>
-            handler[name] = function () {
-              const args = Array.prototype.slice.call(arguments, 1)
-              args.unshift(target)
-              return (Reflect[name] as any).apply(Reflect, args)
-            }
-          }
-          return handler
-        }
-        const handler = createHandler(originalExports)
-        const noop = (): void => {}
-        handler.get = function (_target, p, receiver) {
-          if (p === 'memory') {
-            return memory
-          }
-          if (p === '_initialize') {
-            return noop
-          }
-          return Reflect.get(originalExports, p, receiver)
-        }
-        const exportsProxy = new Proxy(Object.create(null), handler)
-        instance = new Proxy(instance, {
-          get (target, p, receiver) {
-            if (p === 'exports') {
-              return exportsProxy
-            }
-            return Reflect.get(target, p, receiver)
-          }
-        })
+        instance = createInstanceProxy(instance, memory)
       }
       wasi.initialize(instance)
     }

@@ -2,3 +2,5 @@
 node_modules
 /dist
 /src/emnapi/**/*.js
+/test/**/*.wasm
+/test/**/*.wat
