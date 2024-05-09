@@ -244,37 +244,15 @@ function emnapiAddSendListener (worker: any): boolean {
 
 napiModule.emnapi.addSendListener = emnapiAddSendListener
 
-function terminateWorker (worker: any): void {
-  const tid = worker.__emnapi_tid
-  worker.terminate()
-  worker.onmessage = (e: any) => {
-    if (e.data.__emnapi__) {
-      err('received "' + e.data.__emnapi__.type + '" command from terminated worker: ' + tid)
-    }
-  }
-}
-
-function cleanThread (worker: any, tid: number, force?: boolean): void {
-  if (!force && reuseWorker) {
-    PThread.returnWorkerToPool(worker)
-  } else {
-    delete PThread.pthreads[tid]
-    const index = PThread.runningWorkers.indexOf(worker)
-    if (index !== -1) {
-      PThread.runningWorkers.splice(index, 1)
-    }
-    terminateWorker(worker)
-    delete worker.__emnapi_tid
-  }
-}
-
 export var PThread = new wasiThreads.ThreadManager({
   printErr: err,
   beforeLoad: (worker) => {
     emnapiAddSendListener(worker)
   },
   reuseWorker,
-  onCreateWorker: onCreateWorker as ThreadManagerOptions['onCreateWorker']
+  onCreateWorker: onCreateWorker as ThreadManagerOptions['onCreateWorker'] ?? (() => {
+    throw new Error('options.onCreateWorker` is not provided')
+  })
 })
 
 napiModule.PThread = PThread

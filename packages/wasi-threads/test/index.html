@@ -10,7 +10,26 @@
   <script src="../dist/wasi-threads.js"></script>
   <!-- <script src="./index.js"></script> -->
   <script>
-    new Worker('./index.js')
+    const worker = new Worker('./index.js')
+    const map = new Map()
+    worker.onmessage = (e) => {
+      const { type, payload } = e.data
+      if (type === 'new') {
+        const { id, url, options } = payload
+        const w = new Worker(url, options)
+        map.set(id, w)
+        w.onmessage = (e) => {
+          worker.postMessage({ type: 'onmessage', payload: { id, data: e.data } })
+        }
+      } else if (type === 'postMessage') {
+        const { id, data } = payload
+        map.get(id).postMessage(data)
+      } else if (type === 'terminate') {
+        const { id } = payload
+        map.get(id).terminate()
+        map.delete(id)
+      }
+    }
   </script>
 </body>
 </html>

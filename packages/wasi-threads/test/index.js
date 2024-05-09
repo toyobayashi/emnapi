@@ -9,6 +9,43 @@
     WASIThreads = require('..').WASIThreads
   } else {
     if (typeof importScripts === 'function') {
+      globalThis.Worker = class MyWorker {
+        constructor (url, options) {
+          this.id = String(Math.random())
+          self.addEventListener('message', ({ data }) => {
+            if (data.type === 'onmessage' && data.payload.id === this.id) {
+              this.onmessage?.({ data: data.payload.data })
+            }
+          })
+          postMessage({
+            type: 'new',
+            payload: {
+              id: this.id,
+              url,
+              options
+            }
+          })
+        }
+
+        postMessage (data) {
+          postMessage({
+            type: 'postMessage',
+            payload: {
+              id: this.id,
+              data
+            }
+          })
+        }
+
+        terminate () {
+          postMessage({
+            type: 'terminate',
+            payload: {
+              id: this.id
+            }
+          })
+        }
+      }
       // eslint-disable-next-line no-undef
       importScripts('../../../node_modules/@tybys/wasm-util/dist/wasm-util.min.js')
       // eslint-disable-next-line no-undef
@@ -28,7 +65,7 @@
     const file = model === ExecutionModel.Command ? 'main.wasm' : 'lib.wasm'
     const wasi = new WASI({
       version: 'preview1',
-      args: [file, ENVIRONMENT_IS_NODE ? 'node' : 'web'],
+      args: [file, 'node'],
       ...(ENVIRONMENT_IS_NODE ? { env: process.env } : {})
     })
     const wasiThreads = new WASIThreads({
@@ -46,7 +83,7 @@
         })
       },
       // optional
-      waitThreadStart: ENVIRONMENT_IS_NODE
+      waitThreadStart: true
     })
     const memory = new WebAssembly.Memory({
       initial: 16777216 / 65536,
@@ -73,7 +110,7 @@
       return wasi.start(instance)
     } else {
       wasi.initialize(instance)
-      return instance.exports.fn(ENVIRONMENT_IS_NODE ? 1 : 0)
+      return instance.exports.fn(1)
     }
   }
 
