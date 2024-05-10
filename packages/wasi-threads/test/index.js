@@ -124,7 +124,14 @@
     }
     const { module, instance } = await WebAssembly.instantiate(input, {
       env: {
-        memory
+        memory,
+        print_string: function (ptr) {
+          const HEAPU8 = new Uint8Array(memory.buffer)
+          let len = 0
+          while (HEAPU8[ptr + len] !== 0) len++
+          const string = new TextDecoder().decode(HEAPU8.slice(ptr, ptr + len))
+          console.log(string)
+        }
       },
       ...wasi.getImportObject(),
       ...wasiThreads.getImportObject()

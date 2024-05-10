@@ -73,10 +73,18 @@
       const wasiThreads = new WASIThreads({
         childThread: true
       })
+      wasiThreads.patchWasiInstance(wasi)
 
       const originalInstance = await WebAssembly.instantiate(wasmModule, {
         env: {
-          memory: wasmMemory
+          memory: wasmMemory,
+          print_string: function (ptr) {
+            const HEAPU8 = new Uint8Array(wasmMemory.buffer)
+            let len = 0
+            while (HEAPU8[ptr + len] !== 0) len++
+            const string = new TextDecoder().decode(HEAPU8.slice(ptr, ptr + len))
+            console.log(string)
+          }
         },
         ...wasi.getImportObject(),
         ...wasiThreads.getImportObject()
