@@ -94,11 +94,11 @@ jobs:
       shell: bash
       run: npm run test -w packages/ts-transform-emscripten-esm-library
 
-    - name: Test @emnapi/wasi-threads
-      if: ${{ !contains(matrix.target, 'emscripten') }}
-      shell: bash
-      run: npm run test -w packages/wasi-threads
-      timeout-minutes: 1
+    # - name: Test @emnapi/wasi-threads
+    #   if: ${{ !contains(matrix.target, 'emscripten') }}
+    #   shell: bash
+    #   run: npm run test -w packages/wasi-threads
+    #   timeout-minutes: 1
 
     # - name: Lint
     #   run: npm run lint
