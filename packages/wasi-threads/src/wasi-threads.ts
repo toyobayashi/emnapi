@@ -3,6 +3,14 @@ import { checkSharedWasmMemory, ThreadManager } from './thread-manager'
 import type { WorkerMessageEvent, ThreadManagerOptions } from './thread-manager'
 
 /** @public */
+export interface WASIInstance {
+  readonly wasiImport?: Record<string, any>
+  initialize (instance: object): void
+  start (instance: object): void
+  getImportObject? (): any
+}
+
+/** @public */
 export interface BaseOptions {
   version?: 'preview1'
   wasm64?: boolean
@@ -46,6 +54,7 @@ export class WASIThreads {
 
   private readonly threadSpawn: (startArg: number, errorOrTid?: number) => number
   private readonly childThread: boolean
+  private readonly postMessage: ((message: any) => void) | undefined
 
   public constructor (options: WASIThreadsOptions) {
     if (!options) {
@@ -80,6 +89,7 @@ export class WASIThreads {
     if (this.childThread && typeof postMessage !== 'function') {
       throw new TypeError('options.postMessage is not a function')
     }
+    this.postMessage = postMessage
 
     const wasm64 = Boolean(options.wasm64)
 
@@ -89,6 +99,8 @@ export class WASIThreads {
         const payload = e.data.__emnapi__.payload
         if (type === 'spawn-thread') {
           threadSpawn(payload.startArg, payload.errorOrTid)
+        } else if (type === 'terminate-all-threads') {
+          this.terminateAllThreads()
         }
       }
     }
@@ -227,6 +239,33 @@ export class WASIThreads {
     this.wasmMemory = wasmMemory
     if (this.PThread) {
       this.PThread.setup(wasmModule, wasmMemory)
+    }
+  }
+
+  public patchWasiInstance<T extends WASIInstance> (wasi: T): T {
+    if (!wasi) return wasi
+    const wasiImport = wasi.wasiImport
+    if (wasiImport) {
+      const proc_exit = wasiImport.proc_exit
+      // eslint-disable-next-line @typescript-eslint/no-this-alias
+      const _this = this
+      wasiImport.proc_exit = function (code: number): number {
+        _this.terminateAllThreads()
+        return proc_exit.call(this, code)
+      }
+    }
+    return wasi
+  }
+
+  public terminateAllThreads (): void {
+    if (!this.childThread) {
+      this.PThread?.terminateAllThreads()
+    } else {
+      this.postMessage!({
+        __emnapi__: {
+          type: 'terminate-all-threads'
+        }
+      })
     }
   }
 }

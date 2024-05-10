@@ -35,12 +35,14 @@ export function checkSharedWasmMemory (wasmMemory?: WebAssembly.Memory | null): 
   }
 }
 
+let nextWorkerID = 0
+
 /** @public */
 export class ThreadManager {
   public unusedWorkers: WorkerLike[] = []
   public runningWorkers: WorkerLike[] = []
   public pthreads: Record<number, WorkerLike> = Object.create(null)
-  public nextWorkerID = 0
+  public get nextWorkerID (): number { return nextWorkerID }
 
   public wasmModule: WebAssembly.Module | null = null
   public wasmMemory: WebAssembly.Memory | null = null
@@ -73,8 +75,8 @@ export class ThreadManager {
 
   public markId (worker: WorkerLike): number {
     if (worker.__emnapi_tid) return worker.__emnapi_tid
-    const tid = this.nextWorkerID + 43
-    this.nextWorkerID = (this.nextWorkerID + 1) % (WASI_THREADS_MAX_TID - 42)
+    const tid = nextWorkerID + 43
+    nextWorkerID = (nextWorkerID + 1) % (WASI_THREADS_MAX_TID - 42)
     this.pthreads[tid] = worker
     worker.__emnapi_tid = tid
     return tid
@@ -121,7 +123,9 @@ export class ThreadManager {
             //   err('failed to load in child thread: ' + (payload.err.message || payload.err))
             // }
           } else if (type === 'cleanup-thread') {
-            this.cleanThread(worker, payload.tid)
+            if (payload.tid in this.pthreads) {
+              this.cleanThread(worker, payload.tid)
+            }
           }
         }
       };
@@ -214,6 +218,18 @@ export class ThreadManager {
         err('received "' + e.data.__emnapi__.type + '" command from terminated worker: ' + tid)
       }
     }
+  }
+
+  public terminateAllThreads (): void {
+    for (let i = 0; i < this.runningWorkers.length; ++i) {
+      this.terminateWorker(this.runningWorkers[i])
+    }
+    for (let i = 0; i < this.unusedWorkers.length; ++i) {
+      this.terminateWorker(this.unusedWorkers[i])
+    }
+    this.unusedWorkers = []
+    this.runningWorkers = []
+    this.pthreads = Object.create(null)
   }
 
   public addMessageEventListener (worker: WorkerLike, onMessage: (e: WorkerMessageEvent) => void): () => void {

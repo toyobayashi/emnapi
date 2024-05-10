@@ -108,6 +108,7 @@
       // optional
       waitThreadStart: 1000
     })
+    wasiThreads.patchWasiInstance(wasi)
     const memory = new WebAssembly.Memory({
       initial: 16777216 / 65536,
       maximum: 2147483648 / 65536,
@@ -116,7 +117,8 @@
     let input
     try {
       input = require('node:fs').readFileSync(require('node:path').join(__dirname, file))
-    } catch (_) {
+    } catch (err) {
+      console.warn(err)
       const response = await fetch(file)
       input = await response.arrayBuffer()
     }
@@ -130,7 +132,9 @@
 
     wasiThreads.setup(instance, module, memory)
     if (model === ExecutionModel.Command) {
-      return wasi.start(instance)
+      const code = wasi.start(instance)
+      // wasiThreads.terminateAllThreads()
+      return code
     } else {
       wasi.initialize(instance)
       return instance.exports.fn(1)

@@ -2,6 +2,7 @@ export type { ThreadManagerOptions, WorkerLike, WorkerMessageEvent, WorkerFactor
 export { ThreadManager } from './thread-manager'
 
 export type {
+  WASIInstance,
   WASIThreadsOptions,
   MainThreadOptions,
   ChildThreadOptions,

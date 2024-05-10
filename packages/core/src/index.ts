@@ -24,8 +24,7 @@ export type {
 export type {
   LoadOptions,
   InstantiateOptions,
-  InstantiatedSource,
-  ReactorWASI
+  InstantiatedSource
 } from './load'
 
 export type {

@@ -1,4 +1,4 @@
-import { WASIThreads, createInstanceProxy } from '@emnapi/wasi-threads'
+import { type WASIInstance, WASIThreads, createInstanceProxy } from '@emnapi/wasi-threads'
 import { type InputType, load, loadSync } from './util'
 import { createNapiModule } from './emnapi/index'
 import type { CreateOptions, NapiModule } from './emnapi/index'
@@ -9,15 +9,8 @@ export interface InstantiatedSource extends WebAssembly.WebAssemblyInstantiatedS
 }
 
 /** @public */
-export interface ReactorWASI {
-  readonly wasiImport?: Record<string, any>
-  initialize (instance: object): void
-  getImportObject? (): any
-}
-
-/** @public */
 export interface LoadOptions {
-  wasi?: ReactorWASI
+  wasi?: WASIInstance
   overwriteImports?: (importObject: WebAssembly.Imports) => WebAssembly.Imports
   beforeInit?: (source: WebAssembly.WebAssemblyInstantiatedSource) => void
   getMemory?: (exports: WebAssembly.Exports) => WebAssembly.Memory
