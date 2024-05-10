@@ -59,8 +59,8 @@
     "packages/rollup-plugin-emscripten-esm-library",
     "packages/runtime",
     "packages/node",
-    "packages/emnapi",
     "packages/wasi-threads",
+    "packages/emnapi",
     "packages/core",
     "packages/test",
     "packages/bench"
