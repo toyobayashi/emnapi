@@ -13,7 +13,7 @@ export type {
 } from './wasi-threads'
 export { WASIThreads } from './wasi-threads'
 
-export { MessageHandler } from './worker'
-export type { OnLoadData, HandleOptions } from './worker'
+export { ThreadMessageHandler } from './worker'
+export type { InstantiatePayload, ThreadMessageHandlerOptions } from './worker'
 
 export { createInstanceProxy } from './proxy'

@@ -44,9 +44,9 @@
 
   console.log(`name: ${name}`)
 
-  const { MessageHandler, WASIThreads, createInstanceProxy } = wasiThreads
+  const { ThreadMessageHandler, WASIThreads, createInstanceProxy } = wasiThreads
 
-  const handler = new MessageHandler({
+  const handler = new ThreadMessageHandler({
     onLoad ({ wasmModule, wasmMemory }) {
       const wasi = new WASI({
         version: 'preview1',

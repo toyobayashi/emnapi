@@ -9,49 +9,48 @@
     WASIThreads = require('..').WASIThreads
   } else {
     if (typeof importScripts === 'function') {
-      globalThis.Worker = class MyWorker {
-        constructor (url, options) {
-          this.id = String(Math.random())
-          self.addEventListener('message', ({ data }) => {
-            if (data.type === 'onmessage' && data.payload.id === this.id) {
-              this.onmessage?.({ data: data.payload.data })
-            }
-          })
-          postMessage({
-            type: 'new',
-            payload: {
-              id: this.id,
-              url,
-              options
-            }
-          })
-        }
-
-        postMessage (data) {
-          postMessage({
-            type: 'postMessage',
-            payload: {
-              id: this.id,
-              data
-            }
-          })
-        }
-
-        terminate () {
-          postMessage({
-            type: 'terminate',
-            payload: {
-              id: this.id
-            }
-          })
-        }
-      }
       // eslint-disable-next-line no-undef
       importScripts('../../../node_modules/@tybys/wasm-util/dist/wasm-util.min.js')
       // eslint-disable-next-line no-undef
       importScripts('../dist/wasi-threads.js')
     }
-    Worker = globalThis.Worker
+    Worker = class MainThreadWorker {
+      constructor (url, options) {
+        this.id = String(Math.random())
+        self.addEventListener('message', ({ data }) => {
+          if (data.type === 'onmessage' && data.payload.id === this.id) {
+            this.onmessage?.({ data: data.payload.data })
+          }
+        })
+        postMessage({
+          type: 'new',
+          payload: {
+            id: this.id,
+            url,
+            options
+          }
+        })
+      }
+
+      postMessage (data) {
+        postMessage({
+          type: 'postMessage',
+          payload: {
+            id: this.id,
+            data
+          }
+        })
+      }
+
+      terminate () {
+        postMessage({
+          type: 'terminate',
+          payload: {
+            id: this.id
+          }
+        })
+      }
+    }
     WASI = globalThis.wasmUtil.WASI
     WASIThreads = globalThis.wasiThreads.WASIThreads
   }
@@ -83,7 +82,7 @@
         })
       },
       // optional
-      waitThreadStart: true
+      waitThreadStart: 1000
     })
     const memory = new WebAssembly.Memory({
       initial: 16777216 / 65536,

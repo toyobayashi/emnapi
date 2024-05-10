@@ -43,7 +43,7 @@ export declare interface NapiModule {
   executeAsyncWork (work: number): void
   postMessage?: (msg: any) => any
 
-  waitThreadStart: boolean
+  waitThreadStart: boolean | number
   /** @internal */
   PThread: ThreadManager
 }
@@ -73,7 +73,7 @@ export declare type BaseCreateOptions = {
   nodeBinding?: NodeBinding
   reuseWorker?: boolean
   asyncWorkPoolSize?: number
-  waitThreadStart?: boolean
+  waitThreadStart?: boolean | number
   onCreateWorker?: (info: CreateWorkerInfo) => any
   print?: (str: string) => void
   printErr?: (str: string) => void

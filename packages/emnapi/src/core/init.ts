@@ -28,7 +28,7 @@ export interface INapiModule {
   executeAsyncWork (work: number): void
   postMessage?: (msg: any) => any
 
-  waitThreadStart: boolean
+  waitThreadStart: boolean | number
   PThread: ThreadManager
 }
 
@@ -37,7 +37,7 @@ declare const process: any
 export var ENVIRONMENT_IS_NODE = typeof process === 'object' && process !== null && typeof process.versions === 'object' && process.versions !== null && typeof process.versions.node === 'string'
 export var ENVIRONMENT_IS_PTHREAD = Boolean(options.childThread)
 export var reuseWorker = Boolean(options.reuseWorker)
-export var waitThreadStart = Boolean(options.waitThreadStart)
+export var waitThreadStart = typeof options.waitThreadStart === 'number' ? options.waitThreadStart : Boolean(options.waitThreadStart)
 
 export var wasmInstance: WebAssembly.Instance
 export var wasmModule: WebAssembly.Module

@@ -29,10 +29,12 @@ export type {
 } from './load'
 
 export type {
-  OnLoadData,
-  HandleOptions
+  InstantiatePayload,
+  MessageHandlerOptions
 } from './worker'
 
 export type {
   InputType
 } from './util'
+
+export * from '@emnapi/wasi-threads'

@@ -2,7 +2,7 @@ import type { WorkerMessageEvent } from './thread-manager'
 import { getPostMessage, serizeErrorToBuffer } from './util'
 
 /** @public */
-export interface OnLoadData {
+export interface InstantiatePayload {
   wasmModule: WebAssembly.Module
   wasmMemory: WebAssembly.Memory
   sab?: Int32Array
@@ -15,32 +15,36 @@ export interface OnStartData {
 }
 
 /** @public */
-export interface HandleOptions {
-  onLoad (data: OnLoadData): WebAssembly.WebAssemblyInstantiatedSource | PromiseLike<WebAssembly.WebAssemblyInstantiatedSource>
+export interface ThreadMessageHandlerOptions {
+  onLoad?: (data: InstantiatePayload) => WebAssembly.WebAssemblyInstantiatedSource | PromiseLike<WebAssembly.WebAssemblyInstantiatedSource>
   postMessage?: (message: any) => void
 }
 
 /** @public */
-export class MessageHandler {
-  onLoad: (data: OnLoadData) => WebAssembly.WebAssemblyInstantiatedSource | PromiseLike<WebAssembly.WebAssemblyInstantiatedSource>
-  instance: WebAssembly.Instance | undefined
-  messagesBeforeLoad: any[]
-  postMessage: (message: any) => void
+export class ThreadMessageHandler {
+  protected instance: WebAssembly.Instance | undefined
+  private messagesBeforeLoad: any[]
+  protected postMessage: (message: any) => void
+  protected onLoad?: (data: InstantiatePayload) => WebAssembly.WebAssemblyInstantiatedSource | PromiseLike<WebAssembly.WebAssemblyInstantiatedSource>
 
-  public constructor (options: HandleOptions) {
-    const onLoad = options.onLoad
+  public constructor (options?: ThreadMessageHandlerOptions) {
     const postMsg = getPostMessage(options)
-    if (typeof onLoad !== 'function') {
-      throw new TypeError('options.onLoad is not a function')
-    }
     if (typeof postMsg !== 'function') {
       throw new TypeError('options.postMessage is not a function')
     }
-    this.onLoad = onLoad
     this.postMessage = postMsg
+    this.onLoad = options?.onLoad
     this.instance = undefined
     // this.module = undefined
     this.messagesBeforeLoad = []
+  }
+
+  /** @virtual */
+  public instantiate (data: InstantiatePayload): WebAssembly.WebAssemblyInstantiatedSource | PromiseLike<WebAssembly.WebAssemblyInstantiatedSource> {
+    if (typeof this.onLoad === 'function') {
+      return this.onLoad(data)
+    }
+    throw new Error('ThreadMessageHandler.prototype.instantiate is not implemented')
   }
 
   /** @virtual */
@@ -59,12 +63,11 @@ export class MessageHandler {
     }
   }
 
-  private _load (payload: OnLoadData): void {
+  private _load (payload: InstantiatePayload): void {
     if (this.instance !== undefined) return
-    const onLoad = this.onLoad
     let source: WebAssembly.WebAssemblyInstantiatedSource | PromiseLike<WebAssembly.WebAssemblyInstantiatedSource>
     try {
-      source = onLoad(payload)
+      source = this.instantiate(payload)
     } catch (err) {
       this._loaded(err, null, payload)
       return
@@ -103,10 +106,7 @@ export class MessageHandler {
     })
   }
 
-  /** @virtual */
-  protected onLoadSuccess (_source: WebAssembly.WebAssemblyInstantiatedSource): void {}
-
-  protected _loaded (err: Error | null, source: WebAssembly.WebAssemblyInstantiatedSource | null, payload: OnLoadData): void {
+  protected _loaded (err: Error | null, source: WebAssembly.WebAssemblyInstantiatedSource | null, payload: InstantiatePayload): void {
     if (err) {
       notifyPthreadCreateResult(payload.sab, 2, err)
       throw err
@@ -127,8 +127,6 @@ export class MessageHandler {
     }
 
     this.instance = instance
-
-    this.onLoadSuccess(source)
 
     const postMessage = this.postMessage!
     postMessage({

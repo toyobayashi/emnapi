@@ -5,7 +5,7 @@ declare interface CreateOptions {
   childThread?: boolean
   reuseWorker?: boolean
   asyncWorkPoolSize?: number
-  waitThreadStart?: boolean
+  waitThreadStart?: boolean | number
   onCreateWorker?: () => any
   print?: (str: string) => void
   printErr?: (str: string) => void

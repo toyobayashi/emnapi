@@ -1,20 +1,41 @@
 import {
-  MessageHandler as WASIThreadsMessageHandler,
-  type HandleOptions,
-  type OnLoadData
+  ThreadMessageHandler,
+  type ThreadMessageHandlerOptions,
+  type InstantiatePayload
 } from '@emnapi/wasi-threads'
 import type { NapiModule } from './emnapi/index'
 import type { InstantiatedSource } from './load'
 
-export type { HandleOptions, OnLoadData }
+export type { ThreadMessageHandlerOptions, InstantiatePayload }
 
 /** @public */
-export class MessageHandler extends WASIThreadsMessageHandler {
-  napiModule: NapiModule | undefined
+export interface MessageHandlerOptions extends ThreadMessageHandlerOptions {
+  onLoad: (data: InstantiatePayload) => InstantiatedSource | PromiseLike<InstantiatedSource>
+}
 
-  constructor (options: HandleOptions) {
+/** @public */
+export class MessageHandler extends ThreadMessageHandler {
+  public napiModule: NapiModule | undefined
+
+  public constructor (options: MessageHandlerOptions) {
+    if (typeof options.onLoad !== 'function') {
+      throw new TypeError('options.onLoad is not a function')
+    }
     super(options)
     this.napiModule = undefined
+  }
+
+  public override instantiate (data: InstantiatePayload): InstantiatedSource | PromiseLike<InstantiatedSource> {
+    const source = this.onLoad!(data) as InstantiatedSource | PromiseLike<InstantiatedSource>
+    const then = (source as PromiseLike<InstantiatedSource>).then
+    if (typeof then === 'function') {
+      return (source as PromiseLike<InstantiatedSource>).then((result) => {
+        this.napiModule = result.napiModule
+        return result
+      })
+    }
+    this.napiModule = (source as InstantiatedSource).napiModule
+    return source
   }
 
   public override handle (e: any): void {
@@ -33,9 +54,5 @@ export class MessageHandler extends WASIThreadsMessageHandler {
         })
       }
     }
-  }
-
-  protected override onLoadSuccess (source: InstantiatedSource): void {
-    this.napiModule = source.napiModule
   }
 }

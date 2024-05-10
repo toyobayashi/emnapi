@@ -10,7 +10,7 @@ export interface BaseOptions {
 
 /** @public */
 export interface MainThreadBaseOptions extends BaseOptions {
-  waitThreadStart?: boolean
+  waitThreadStart?: boolean | number
 }
 
 /** @public */
@@ -71,9 +71,9 @@ export class WASIThreads {
       }
     }
 
-    let waitThreadStart = false
+    let waitThreadStart: boolean | number = false
     if ('waitThreadStart' in options) {
-      waitThreadStart = Boolean(options.waitThreadStart)
+      waitThreadStart = typeof options.waitThreadStart === 'number' ? options.waitThreadStart : Boolean(options.waitThreadStart)
     }
 
     const postMessage = getPostMessage(options as ChildThreadOptions)
@@ -130,8 +130,10 @@ export class WASIThreads {
         return isError ? -result : result
       }
 
+      const shouldWait = waitThreadStart || (waitThreadStart === 0)
+
       let sab: Int32Array | undefined
-      if (waitThreadStart) {
+      if (shouldWait) {
         sab = new Int32Array(new SharedArrayBuffer(16 + 8192))
         Atomics.store(sab, 0, 0)
       }
@@ -160,8 +162,15 @@ export class WASIThreads {
             }
           }
         })
-        if (waitThreadStart) {
-          Atomics.wait(sab!, 0, 0)
+        if (shouldWait) {
+          if (typeof waitThreadStart === 'number') {
+            const waitResult = Atomics.wait(sab!, 0, 0, waitThreadStart)
+            if (waitResult === 'timed-out') {
+              throw new Error('Spawning thread timed out. Please check if the worker is created successfully and if message is handled properly in the worker.')
+            }
+          } else {
+            Atomics.wait(sab!, 0, 0)
+          }
           const r = Atomics.load(sab!, 0)
           if (r > 1) {
             throw deserizeErrorFromBuffer(sab!.buffer as SharedArrayBuffer)!
@@ -187,7 +196,7 @@ export class WASIThreads {
       Atomics.notify(struct, 1)
 
       PThread!.runningWorkers.push(worker)
-      if (!waitThreadStart) {
+      if (!shouldWait) {
         worker.whenLoaded.catch((err: any) => {
           delete worker.whenLoaded
           PThread!.cleanThread(worker, tid, true)
