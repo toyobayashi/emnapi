@@ -1,69 +1,88 @@
 /* eslint-disable no-eval */
-/* eslint-disable no-undef */
 
-(function () {
-  let WASI, wasiThreads, name
-
+(function (main) {
   const ENVIRONMENT_IS_NODE =
     typeof process === 'object' && process !== null &&
     typeof process.versions === 'object' && process.versions !== null &&
     typeof process.versions.node === 'string'
 
   if (ENVIRONMENT_IS_NODE) {
-    const nodeWorkerThreads = require('worker_threads')
-    name = nodeWorkerThreads.workerData.name
+    const _require = function (request) {
+      if (request === '@emnapi/wasi-threads') return require('..')
+      return require(request)
+    }
 
-    const parentPort = nodeWorkerThreads.parentPort
+    const _init = function () {
+      const nodeWorkerThreads = require('node:worker_threads')
+      const parentPort = nodeWorkerThreads.parentPort
 
-    wasiThreads = require('..')
+      parentPort.on('message', (data) => {
+        globalThis.onmessage({ data })
+      })
 
-    parentPort.on('message', (data) => {
-      globalThis.onmessage({ data })
-    })
+      Object.assign(globalThis, {
+        self: globalThis,
+        require,
+        Worker: nodeWorkerThreads.Worker,
+        importScripts: function (f) {
+          (0, eval)(require('node:fs').readFileSync(f, 'utf8') + '//# sourceURL=' + f)
+        },
+        postMessage: function (msg) {
+          parentPort.postMessage(msg)
+        }
+      })
+    }
 
-    Object.assign(globalThis, {
-      self: globalThis,
-      require,
-      Worker: nodeWorkerThreads.Worker,
-      importScripts: function (f) {
-        (0, eval)(fs.readFileSync(f, 'utf8') + '//# sourceURL=' + f)
-      },
-      postMessage: function (msg) {
-        parentPort.postMessage(msg)
-      }
-    })
-
-    WASI = require('node:wasi').WASI
+    main(_require, _init)
   } else {
+    // eslint-disable-next-line no-undef
     importScripts('../../../node_modules/@tybys/wasm-util/dist/wasm-util.min.js')
+    // eslint-disable-next-line no-undef
     importScripts('../dist/wasi-threads.js')
-    WASI = globalThis.wasmUtil.WASI
-    name = globalThis.name
-    wasiThreads = globalThis.wasiThreads
+
+    const nodeWasi = { WASI: globalThis.wasmUtil.WASI }
+    const nodeWorkerThreads = {
+      workerData: {
+        name: globalThis.name
+      }
+    }
+    const _require = function (request) {
+      if (request === '@emnapi/wasi-threads') return globalThis.wasiThreads
+      if (request === 'node:worker_threads' || request === 'worker_threads') return nodeWorkerThreads
+      if (request === 'node:wasi' || request === 'wasi') return nodeWasi
+      throw new Error('Can not find module: ' + request)
+    }
+    const _init = function () {}
+    main(_require, _init)
   }
+})(function main (require, init) {
+  init()
 
-  console.log(`name: ${name}`)
+  const { WASI } = require('node:wasi')
+  const { workerData } = require('node:worker_threads')
+  const { ThreadMessageHandler, WASIThreads, createInstanceProxy } = require('@emnapi/wasi-threads')
 
-  const { ThreadMessageHandler, WASIThreads, createInstanceProxy } = wasiThreads
+  console.log(`name: ${workerData.name}`)
 
   const handler = new ThreadMessageHandler({
-    onLoad ({ wasmModule, wasmMemory }) {
+    async onLoad ({ wasmModule, wasmMemory }) {
       const wasi = new WASI({
-        version: 'preview1',
-        ...(ENVIRONMENT_IS_NODE ? { env: process.env } : {})
+        version: 'preview1'
       })
 
       const wasiThreads = new WASIThreads({
         childThread: true
       })
 
-      const instance = createInstanceProxy(new WebAssembly.Instance(wasmModule, {
+      const originalInstance = await WebAssembly.instantiate(wasmModule, {
         env: {
           memory: wasmMemory
         },
         ...wasi.getImportObject(),
         ...wasiThreads.getImportObject()
-      }), wasmMemory)
+      })
+
+      const instance = createInstanceProxy(originalInstance, wasmMemory)
 
       wasiThreads.setup(instance, wasmModule, wasmMemory)
       if ('_start' in instance.exports) {
@@ -80,4 +99,4 @@
     handler.handle(e)
     // handle other messages
   }
-})()
+})

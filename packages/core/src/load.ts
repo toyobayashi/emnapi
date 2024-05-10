@@ -68,17 +68,8 @@ function loadNapiModuleImpl (loadFn: Function, userNapiModule: NapiModule | unde
   }
 
   const wasi = options!.wasi
-  const wasiThreads = new WASIThreads(
-    napiModule.childThread
-      ? {
-          childThread: true,
-          postMessage: napiModule.postMessage!
-        }
-      : {
-          threadManager: napiModule.PThread,
-          waitThreadStart: napiModule.waitThreadStart
-        }
-  )
+  let wasiThreads: WASIThreads | undefined
+
   let importObject: WebAssembly.Imports = {
     env: napiModule.imports.env,
     napi: napiModule.imports.napi,
@@ -92,9 +83,20 @@ function loadNapiModuleImpl (loadFn: Function, userNapiModule: NapiModule | unde
         ? wasi.getImportObject()
         : { wasi_snapshot_preview1: wasi.wasiImport }
     )
-  }
 
-  Object.assign(importObject, wasiThreads.getImportObject())
+    wasiThreads = new WASIThreads(
+      napiModule.childThread
+        ? {
+            childThread: true,
+            postMessage: napiModule.postMessage!
+          }
+        : {
+            threadManager: napiModule.PThread,
+            waitThreadStart: napiModule.waitThreadStart
+          }
+    )
+    Object.assign(importObject, wasiThreads.getImportObject())
+  }
 
   const overwriteImports = options!.overwriteImports
   if (typeof overwriteImports === 'function') {
@@ -136,9 +138,15 @@ function loadNapiModuleImpl (loadFn: Function, userNapiModule: NapiModule | unde
       if (napiModule.childThread) {
         instance = createInstanceProxy(instance, memory)
       }
-      wasi.initialize(instance)
+      wasiThreads!.setup(instance, module, memory)
+      if ('_start' in originalExports) {
+        wasi.start(instance)
+      } else {
+        wasi.initialize(instance)
+      }
+    } else {
+      napiModule.PThread.setup(module, memory)
     }
-    wasiThreads.setup(instance, module, memory)
 
     if (beforeInit) {
       beforeInit({

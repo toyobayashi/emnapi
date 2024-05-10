@@ -25,6 +25,7 @@ env:
 
 jobs:
   build:
+    timeout-minutes: 15
     name: Build
     runs-on: ubuntu-latest
     strategy:
@@ -92,6 +93,12 @@ jobs:
     - name: Test Emscripten ESM library
       shell: bash
       run: npm run test -w packages/ts-transform-emscripten-esm-library
+
+    - name: Test @emnapi/wasi-threads
+      if: ${{ !contains(matrix.target, 'emscripten') }}
+      shell: bash
+      run: npm run test -w packages/wasi-threads
+      timeout-minutes: 1
 
     # - name: Lint
     #   run: npm run lint

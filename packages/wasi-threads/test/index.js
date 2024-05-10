@@ -1,12 +1,15 @@
-(function () {
-  const ENVIRONMENT_IS_NODE = typeof process === 'object' && process !== null && typeof process.versions === 'object' && process.versions !== null && typeof process.versions.node === 'string'
+(function (main) {
+  const ENVIRONMENT_IS_NODE =
+    typeof process === 'object' && process !== null &&
+    typeof process.versions === 'object' && process.versions !== null &&
+    typeof process.versions.node === 'string'
 
-  let Worker, WASI, WASIThreads
   if (ENVIRONMENT_IS_NODE) {
-    const nodeWorkerThreads = require('worker_threads')
-    Worker = nodeWorkerThreads.Worker
-    WASI = require('node:wasi').WASI
-    WASIThreads = require('..').WASIThreads
+    const _require = function (request) {
+      if (request === '@emnapi/wasi-threads') return require('..')
+      return require(request)
+    }
+    main(_require, process, __dirname)
   } else {
     if (typeof importScripts === 'function') {
       // eslint-disable-next-line no-undef
@@ -14,46 +17,70 @@
       // eslint-disable-next-line no-undef
       importScripts('../dist/wasi-threads.js')
     }
-    Worker = class MainThreadWorker {
-      constructor (url, options) {
-        this.id = String(Math.random())
-        self.addEventListener('message', ({ data }) => {
-          if (data.type === 'onmessage' && data.payload.id === this.id) {
-            this.onmessage?.({ data: data.payload.data })
-          }
-        })
-        postMessage({
-          type: 'new',
-          payload: {
-            id: this.id,
-            url,
-            options
-          }
-        })
-      }
 
-      postMessage (data) {
-        postMessage({
-          type: 'postMessage',
-          payload: {
-            id: this.id,
-            data
-          }
-        })
-      }
-
-      terminate () {
-        postMessage({
-          type: 'terminate',
-          payload: {
-            id: this.id
-          }
-        })
+    const nodeWasi = { WASI: globalThis.wasmUtil.WASI }
+    const nodePath = {
+      join: function () {
+        return Array.prototype.join.call(arguments, '/')
       }
     }
-    WASI = globalThis.wasmUtil.WASI
-    WASIThreads = globalThis.wasiThreads.WASIThreads
+    const nodeWorkerThreads = {
+      Worker: class MainThreadWorker {
+        constructor (url, options) {
+          this.id = String(Math.random())
+          self.addEventListener('message', ({ data }) => {
+            if (data.type === 'onmessage' && data.payload.id === this.id) {
+              this.onmessage?.({ data: data.payload.data })
+            }
+          })
+          postMessage({
+            type: 'new',
+            payload: {
+              id: this.id,
+              url,
+              options
+            }
+          })
+        }
+
+        postMessage (data) {
+          postMessage({
+            type: 'postMessage',
+            payload: {
+              id: this.id,
+              data
+            }
+          })
+        }
+
+        terminate () {
+          postMessage({
+            type: 'terminate',
+            payload: {
+              id: this.id
+            }
+          })
+        }
+      }
+    }
+    const _require = function (request) {
+      if (request === '@emnapi/wasi-threads') return globalThis.wasiThreads
+      if (request === 'node:worker_threads' || request === 'worker_threads') return nodeWorkerThreads
+      if (request === 'node:wasi' || request === 'wasi') return nodeWasi
+      if (request === 'node:path' || request === 'path') return nodePath
+      throw new Error('Can not find module: ' + request)
+    }
+    const _process = {
+      env: {},
+      exit: () => {}
+    }
+    main(_require, _process, '.')
   }
+})(function (require, process, __dirname) {
+  const { WASI } = require('node:wasi')
+  const { WASIThreads } = require('@emnapi/wasi-threads')
+  const { Worker } = require('node:worker_threads')
+  const { join } = require('node:path')
 
   const ExecutionModel = {
     Command: 'command',
@@ -65,19 +92,16 @@
     const wasi = new WASI({
       version: 'preview1',
       args: [file, 'node'],
-      ...(ENVIRONMENT_IS_NODE ? { env: process.env } : {})
+      env: process.env
     })
     const wasiThreads = new WASIThreads({
       onCreateWorker: ({ name }) => {
-        const workerjs = ENVIRONMENT_IS_NODE
-          ? require('node:path').join(__dirname, 'worker.js')
-          : './worker.js'
-        return new Worker(workerjs, {
+        return new Worker(join(__dirname, 'worker.js'), {
           name,
           workerData: {
             name
           },
-          ...(ENVIRONMENT_IS_NODE ? { env: process.env } : {}),
+          env: process.env,
           execArgv: ['--experimental-wasi-unstable-preview1']
         })
       },
@@ -90,9 +114,9 @@
       shared: true
     })
     let input
-    if (ENVIRONMENT_IS_NODE) {
+    try {
       input = require('node:fs').readFileSync(require('node:path').join(__dirname, file))
-    } else {
+    } catch (_) {
       const response = await fetch(file)
       input = await response.arrayBuffer()
     }
@@ -122,8 +146,6 @@
 
   main().catch(err => {
     console.error(err)
-    if (ENVIRONMENT_IS_NODE) {
-      process.exit(1)
-    }
+    process.exit(1)
   })
-})()
+})
