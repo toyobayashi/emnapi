@@ -4,7 +4,12 @@ import { createNapiModule } from './emnapi/index'
 import type { CreateOptions, NapiModule } from './emnapi/index'
 
 /** @public */
-export interface InstantiatedSource extends WebAssembly.WebAssemblyInstantiatedSource {
+export interface LoadedSource extends WebAssembly.WebAssemblyInstantiatedSource {
+  usedInstance: WebAssembly.Instance
+}
+
+/** @public */
+export interface InstantiatedSource extends LoadedSource {
   napiModule: NapiModule
 }
 
@@ -70,13 +75,6 @@ function loadNapiModuleImpl (loadFn: Function, userNapiModule: NapiModule | unde
   }
 
   if (wasi) {
-    Object.assign(
-      importObject,
-      typeof wasi.getImportObject === 'function'
-        ? wasi.getImportObject()
-        : { wasi_snapshot_preview1: wasi.wasiImport }
-    )
-
     wasiThreads = new WASIThreads(
       napiModule.childThread
         ? {
@@ -88,6 +86,15 @@ function loadNapiModuleImpl (loadFn: Function, userNapiModule: NapiModule | unde
             waitThreadStart: napiModule.waitThreadStart
           }
     )
+    wasiThreads.patchWasiInstance(wasi)
+
+    Object.assign(
+      importObject,
+      typeof wasi.getImportObject === 'function'
+        ? wasi.getImportObject()
+        : { wasi_snapshot_preview1: wasi.wasiImport }
+    )
+
     Object.assign(importObject, wasiThreads.getImportObject())
   }
 
@@ -127,13 +134,20 @@ function loadNapiModuleImpl (loadFn: Function, userNapiModule: NapiModule | unde
       instance = { exports }
     }
     const module = source.module
+
+    const isCommand = ('_start' in originalExports) && (typeof originalExports._start === 'function')
+
     if (wasi) {
       if (napiModule.childThread) {
         instance = createInstanceProxy(instance, memory)
       }
       wasiThreads!.setup(instance, module, memory)
-      if ('_start' in originalExports) {
-        wasi.start(instance)
+      if (isCommand) {
+        if (napiModule.childThread) {
+          wasi.start(instance)
+        } else {
+          setupInstance(wasi, instance)
+        }
       } else {
         wasi.initialize(instance)
       }
@@ -155,7 +169,11 @@ function loadNapiModuleImpl (loadFn: Function, userNapiModule: NapiModule | unde
       table
     })
 
-    const ret: any = { instance: originalInstance, module }
+    const ret: any = {
+      instance: originalInstance,
+      module,
+      usedInstance: instance
+    }
     if (!isLoad) {
       ret.napiModule = napiModule
     }
@@ -192,7 +210,7 @@ export function loadNapiModule (
   /** Only support `BufferSource` or `WebAssembly.Module` on Node.js */
   wasmInput: InputType | Promise<InputType>,
   options?: LoadOptions
-): Promise<WebAssembly.WebAssemblyInstantiatedSource> {
+): Promise<LoadedSource> {
   if (typeof napiModule !== 'object' || napiModule === null) {
     throw new TypeError('Invalid napiModule')
   }
@@ -204,7 +222,7 @@ export function loadNapiModuleSync (
   napiModule: NapiModule,
   wasmInput: BufferSource | WebAssembly.Module,
   options?: LoadOptions
-): WebAssembly.WebAssemblyInstantiatedSource {
+): LoadedSource {
   if (typeof napiModule !== 'object' || napiModule === null) {
     throw new TypeError('Invalid napiModule')
   }
@@ -226,4 +244,19 @@ export function instantiateNapiModuleSync (
   options: InstantiateOptions
 ): InstantiatedSource {
   return loadNapiModuleImpl(loadSyncCallback, undefined, wasmInput, options)
+}
+
+function setupInstance (wasi: WASIInstance, instance: WebAssembly.Instance): void {
+  const symbols = Object.getOwnPropertySymbols(wasi)
+  const selectDescription = (description: string) => (s: symbol) => {
+    if (s.description) {
+      return s.description === description
+    }
+    return s.toString() === `Symbol(${description})`
+  }
+  const kInstance = symbols.filter(selectDescription('kInstance'))[0]
+  const kSetMemory = symbols.filter(selectDescription('kSetMemory'))[0];
+
+  (wasi as any)[kInstance] = instance;
+  (wasi as any)[kSetMemory](instance.exports.memory)
 }

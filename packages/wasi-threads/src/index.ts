@@ -18,3 +18,5 @@ export { ThreadMessageHandler } from './worker'
 export type { InstantiatePayload, ThreadMessageHandlerOptions } from './worker'
 
 export { createInstanceProxy } from './proxy'
+
+export { isTrapError } from './util'

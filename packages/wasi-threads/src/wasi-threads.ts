@@ -1,4 +1,4 @@
-import { ENVIRONMENT_IS_NODE, deserizeErrorFromBuffer, getPostMessage } from './util'
+import { ENVIRONMENT_IS_NODE, deserizeErrorFromBuffer, getPostMessage, isTrapError } from './util'
 import { checkSharedWasmMemory, ThreadManager } from './thread-manager'
 import type { WorkerMessageEvent, ThreadManagerOptions } from './thread-manager'
 
@@ -6,7 +6,7 @@ import type { WorkerMessageEvent, ThreadManagerOptions } from './thread-manager'
 export interface WASIInstance {
   readonly wasiImport?: Record<string, any>
   initialize (instance: object): void
-  start (instance: object): void
+  start (instance: object): number
   getImportObject? (): any
 }
 
@@ -244,14 +244,27 @@ export class WASIThreads {
 
   public patchWasiInstance<T extends WASIInstance> (wasi: T): T {
     if (!wasi) return wasi
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    const _this = this
     const wasiImport = wasi.wasiImport
     if (wasiImport) {
       const proc_exit = wasiImport.proc_exit
-      // eslint-disable-next-line @typescript-eslint/no-this-alias
-      const _this = this
       wasiImport.proc_exit = function (code: number): number {
         _this.terminateAllThreads()
         return proc_exit.call(this, code)
+      }
+    }
+    const start = wasi.start
+    if (typeof start === 'function') {
+      wasi.start = function (instance: object): number {
+        try {
+          return start.call(this, instance)
+        } catch (err) {
+          if (isTrapError(err)) {
+            _this.terminateAllThreads()
+          }
+          throw err
+        }
       }
     }
     return wasi

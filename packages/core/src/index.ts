@@ -24,6 +24,7 @@ export type {
 export type {
   LoadOptions,
   InstantiateOptions,
+  LoadedSource,
   InstantiatedSource
 } from './load'
 

@@ -57,3 +57,8 @@ export function deserizeErrorFromBuffer (sab: SharedArrayBuffer): Error | null {
   })
   return error
 }
+
+/** @public */
+export function isTrapError (e: Error): e is WebAssembly.RuntimeError {
+  return (e instanceof WebAssembly.RuntimeError) && (e.message === 'unreachable')
+}

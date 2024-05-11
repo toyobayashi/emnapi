@@ -99,6 +99,8 @@ export class ThreadManager {
     if (worker.whenLoaded) return worker.whenLoaded
     const err = this.printErr
     const beforeLoad = this._beforeLoad
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    const _this = this
     worker.whenLoaded = new Promise<WorkerLike>((resolve, reject) => {
       const handleError = function (e: { message: string }): void {
         let message = 'worker sent an error!'
@@ -106,6 +108,11 @@ export class ThreadManager {
           message = 'worker (tid = ' + worker.__emnapi_tid + ') sent an error!'
         }
         err(message + ' ' + e.message)
+        if (e.message === 'unreachable') {
+          try {
+            _this.terminateAllThreads()
+          } catch (_) {}
+        }
         reject(e)
         throw e as Error
       }

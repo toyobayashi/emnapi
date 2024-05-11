@@ -1,5 +1,5 @@
 import type { WorkerMessageEvent } from './thread-manager'
-import { getPostMessage, serizeErrorToBuffer } from './util'
+import { getPostMessage, isTrapError, serizeErrorToBuffer } from './util'
 
 /** @public */
 export interface InstantiatePayload {
@@ -95,7 +95,18 @@ export class ThreadMessageHandler {
     const tid = payload.tid
     const startArg = payload.arg
     notifyPthreadCreateResult(payload.sab, 1)
-    ;(this.instance!.exports.wasi_thread_start as Function)(tid, startArg)
+    try {
+      (this.instance!.exports.wasi_thread_start as Function)(tid, startArg)
+    } catch (err) {
+      if (isTrapError(err)) {
+        postMessage({
+          __emnapi__: {
+            type: 'terminate-all-threads'
+          }
+        })
+      }
+      throw err
+    }
     postMessage({
       __emnapi__: {
         type: 'cleanup-thread',
