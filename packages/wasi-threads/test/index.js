@@ -95,6 +95,7 @@
       env: process.env
     })
     const wasiThreads = new WASIThreads({
+      wasi,
       onCreateWorker: ({ name }) => {
         return new Worker(join(__dirname, 'worker.js'), {
           name,
@@ -108,7 +109,6 @@
       // optional
       waitThreadStart: 1000
     })
-    wasiThreads.patchWasiInstance(wasi)
     const memory = new WebAssembly.Memory({
       initial: 16777216 / 65536,
       maximum: 2147483648 / 65536,
@@ -122,7 +122,7 @@
       const response = await fetch(file)
       input = await response.arrayBuffer()
     }
-    const { module, instance } = await WebAssembly.instantiate(input, {
+    let { module, instance } = await WebAssembly.instantiate(input, {
       env: {
         memory,
         print_string: function (ptr) {
@@ -137,13 +137,12 @@
       ...wasiThreads.getImportObject()
     })
 
-    wasiThreads.setup(instance, module, memory)
+    instance = wasiThreads.initialize(instance, module, memory)
+
     if (model === ExecutionModel.Command) {
       const code = wasi.start(instance)
-      // wasiThreads.terminateAllThreads()
       return code
     } else {
-      wasi.initialize(instance)
       return instance.exports.fn(1)
     }
   }

@@ -1,6 +1,8 @@
 import { ENVIRONMENT_IS_NODE, deserizeErrorFromBuffer, getPostMessage, isTrapError } from './util'
 import { checkSharedWasmMemory, ThreadManager } from './thread-manager'
 import type { WorkerMessageEvent, ThreadManagerOptions } from './thread-manager'
+import { type CommandPayloadMap, type MessageEventData, createMessage, type SpawnThreadPayload } from './command'
+import { createInstanceProxy } from './proxy'
 
 /** @public */
 export interface WASIInstance {
@@ -12,6 +14,7 @@ export interface WASIInstance {
 
 /** @public */
 export interface BaseOptions {
+  wasi: WASIInstance
   version?: 'preview1'
   wasm64?: boolean
 }
@@ -46,6 +49,8 @@ export interface WASIThreadsImports {
   'thread-spawn': (startArg: number, errorOrTid?: number) => number
 }
 
+const patchedWasiInstances = new WeakMap<WASIThreads, WeakSet<WASIInstance>>()
+
 /** @public */
 export class WASIThreads {
   public PThread: ThreadManager | undefined
@@ -53,13 +58,24 @@ export class WASIThreads {
   private wasmInstance!: WebAssembly.Instance
 
   private readonly threadSpawn: (startArg: number, errorOrTid?: number) => number
-  private readonly childThread: boolean
+  public readonly childThread: boolean
   private readonly postMessage: ((message: any) => void) | undefined
+  public readonly wasi: WASIInstance
 
   public constructor (options: WASIThreadsOptions) {
     if (!options) {
-      throw new TypeError('options is not provided')
+      throw new TypeError('WASIThreads(): options is not provided')
     }
+
+    if (!options.wasi) {
+      throw new TypeError('WASIThreads(): options.wasi is not provided')
+    }
+
+    patchedWasiInstances.set(this, new WeakSet())
+
+    const wasi = options.wasi
+    patchWasiInstance(this, wasi)
+    this.wasi = wasi
 
     if ('childThread' in options) {
       this.childThread = Boolean(options.childThread)
@@ -93,12 +109,15 @@ export class WASIThreads {
 
     const wasm64 = Boolean(options.wasm64)
 
-    const onSpawn = (e: WorkerMessageEvent): void => {
+    const onMessage = (e: WorkerMessageEvent<MessageEventData<keyof CommandPayloadMap>>): void => {
       if (e.data.__emnapi__) {
         const type = e.data.__emnapi__.type
         const payload = e.data.__emnapi__.payload
         if (type === 'spawn-thread') {
-          threadSpawn(payload.startArg, payload.errorOrTid)
+          threadSpawn(
+            (payload as SpawnThreadPayload).startArg,
+            (payload as SpawnThreadPayload).errorOrTid
+          )
         } else if (type === 'terminate-all-threads') {
           this.terminateAllThreads()
         }
@@ -123,15 +142,10 @@ export class WASIThreads {
       Atomics.store(struct, 1, 0)
 
       if (this.childThread) {
-        postMessage!({
-          __emnapi__: {
-            type: 'spawn-thread',
-            payload: {
-              startArg,
-              errorOrTid: errorOrTid!
-            }
-          }
-        })
+        postMessage!(createMessage('spawn-thread', {
+          startArg,
+          errorOrTid: errorOrTid!
+        }))
         Atomics.wait(struct, 1, 0)
         const isError = Atomics.load(struct, 0)
         const result = Atomics.load(struct, 1)
@@ -158,22 +172,17 @@ export class WASIThreads {
         if (!worker) {
           throw new Error('failed to get new worker')
         }
-        PThread!.addMessageEventListener(worker, onSpawn)
+        PThread!.addMessageEventListener(worker, onMessage)
 
         tid = PThread!.markId(worker)
         if (ENVIRONMENT_IS_NODE) {
           worker.ref()
         }
-        worker.postMessage({
-          __emnapi__: {
-            type: 'start',
-            payload: {
-              tid,
-              arg: startArg,
-              sab
-            }
-          }
-        })
+        worker.postMessage(createMessage('start', {
+          tid,
+          arg: startArg,
+          sab
+        }))
         if (shouldWait) {
           if (typeof waitThreadStart === 'number') {
             const waitResult = Atomics.wait(sab!, 0, 0, waitThreadStart)
@@ -234,7 +243,8 @@ export class WASIThreads {
     }
   }
 
-  public setup (wasmInstance: WebAssembly.Instance, wasmModule: WebAssembly.Module, wasmMemory: WebAssembly.Memory): void {
+  public setup (wasmInstance: WebAssembly.Instance, wasmModule: WebAssembly.Module, wasmMemory?: WebAssembly.Memory): void {
+    wasmMemory ??= wasmInstance.exports.memory as WebAssembly.Memory
     this.wasmInstance = wasmInstance
     this.wasmMemory = wasmMemory
     if (this.PThread) {
@@ -242,43 +252,89 @@ export class WASIThreads {
     }
   }
 
-  public patchWasiInstance<T extends WASIInstance> (wasi: T): T {
-    if (!wasi) return wasi
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
-    const _this = this
-    const wasiImport = wasi.wasiImport
-    if (wasiImport) {
-      const proc_exit = wasiImport.proc_exit
-      wasiImport.proc_exit = function (code: number): number {
-        _this.terminateAllThreads()
-        return proc_exit.call(this, code)
-      }
+  public initialize (instance: WebAssembly.Instance, module: WebAssembly.Module, memory?: WebAssembly.Memory): WebAssembly.Instance {
+    const exports = instance.exports
+    memory ??= exports.memory as WebAssembly.Memory
+    if (this.childThread) {
+      instance = createInstanceProxy(instance, memory)
     }
-    const start = wasi.start
-    if (typeof start === 'function') {
-      wasi.start = function (instance: object): number {
+    this!.setup(instance, module, memory)
+    const wasi = this.wasi
+    if (('_start' in exports) && (typeof exports._start === 'function')) {
+      if (this.childThread) {
+        wasi.start(instance)
         try {
-          return start.call(this, instance)
-        } catch (err) {
-          if (isTrapError(err)) {
-            _this.terminateAllThreads()
-          }
-          throw err
-        }
+          const kStarted = getWasiSymbol(wasi, 'kStarted');
+          (wasi as any)[kStarted!] = false
+        } catch (_) {}
+      } else {
+        setupInstance(wasi, instance)
       }
+    } else {
+      wasi.initialize(instance)
     }
-    return wasi
+    return instance
   }
 
   public terminateAllThreads (): void {
     if (!this.childThread) {
       this.PThread?.terminateAllThreads()
     } else {
-      this.postMessage!({
-        __emnapi__: {
-          type: 'terminate-all-threads'
-        }
-      })
+      this.postMessage!(createMessage('terminate-all-threads', {}))
     }
   }
+}
+
+function patchWasiInstance (wasiThreads: WASIThreads, wasi: WASIInstance): void {
+  const patched = patchedWasiInstances.get(wasiThreads)!
+  if (patched.has(wasi)) {
+    return
+  }
+  patched.add(wasi)
+
+  const _this = wasiThreads
+  const wasiImport = wasi.wasiImport
+  if (wasiImport) {
+    const proc_exit = wasiImport.proc_exit
+    wasiImport.proc_exit = function (code: number): number {
+      _this.terminateAllThreads()
+      return proc_exit.call(this, code)
+    }
+  }
+  const start = wasi.start
+  if (typeof start === 'function') {
+    wasi.start = function (instance: object): number {
+      try {
+        return start.call(this, instance)
+      } catch (err) {
+        if (isTrapError(err)) {
+          _this.terminateAllThreads()
+        }
+        throw err
+      }
+    }
+  }
+}
+
+function getWasiSymbol (wasi: WASIInstance, description: string): symbol | undefined
+function getWasiSymbol (wasi: WASIInstance, description: string[]): Array<symbol | undefined>
+function getWasiSymbol (wasi: WASIInstance, description: string | string[]): symbol | undefined | Array<symbol | undefined> {
+  const symbols = Object.getOwnPropertySymbols(wasi)
+  const selectDescription = (description: string) => (s: symbol) => {
+    if (s.description) {
+      return s.description === description
+    }
+    return s.toString() === `Symbol(${description})`
+  }
+  if (Array.isArray(description)) {
+    return description.map(d => symbols.filter(selectDescription(d))[0])
+  }
+  return symbols.filter(selectDescription(description))[0]
+}
+
+function setupInstance (wasi: WASIInstance, instance: WebAssembly.Instance): void {
+  const [kInstance, kSetMemory] = getWasiSymbol(wasi, ['kInstance', 'kSetMemory']);
+
+  (wasi as any)[kInstance!] = instance;
+  (wasi as any)[kSetMemory!](instance.exports.memory)
 }

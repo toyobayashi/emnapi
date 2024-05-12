@@ -1,4 +1,4 @@
-import { type WASIInstance, WASIThreads, createInstanceProxy } from '@emnapi/wasi-threads'
+import { type WASIInstance, WASIThreads } from '@emnapi/wasi-threads'
 import { type InputType, load, loadSync } from './util'
 import { createNapiModule } from './emnapi/index'
 import type { CreateOptions, NapiModule } from './emnapi/index'
@@ -78,15 +78,16 @@ function loadNapiModuleImpl (loadFn: Function, userNapiModule: NapiModule | unde
     wasiThreads = new WASIThreads(
       napiModule.childThread
         ? {
+            wasi,
             childThread: true,
             postMessage: napiModule.postMessage!
           }
         : {
+            wasi,
             threadManager: napiModule.PThread,
             waitThreadStart: napiModule.waitThreadStart
           }
     )
-    wasiThreads.patchWasiInstance(wasi)
 
     Object.assign(
       importObject,
@@ -135,22 +136,8 @@ function loadNapiModuleImpl (loadFn: Function, userNapiModule: NapiModule | unde
     }
     const module = source.module
 
-    const isCommand = ('_start' in originalExports) && (typeof originalExports._start === 'function')
-
     if (wasi) {
-      if (napiModule.childThread) {
-        instance = createInstanceProxy(instance, memory)
-      }
-      wasiThreads!.setup(instance, module, memory)
-      if (isCommand) {
-        if (napiModule.childThread) {
-          wasi.start(instance)
-        } else {
-          setupInstance(wasi, instance)
-        }
-      } else {
-        wasi.initialize(instance)
-      }
+      instance = wasiThreads!.initialize(instance, module, memory)
     } else {
       napiModule.PThread.setup(module, memory)
     }
@@ -244,19 +231,4 @@ export function instantiateNapiModuleSync (
   options: InstantiateOptions
 ): InstantiatedSource {
   return loadNapiModuleImpl(loadSyncCallback, undefined, wasmInput, options)
-}
-
-function setupInstance (wasi: WASIInstance, instance: WebAssembly.Instance): void {
-  const symbols = Object.getOwnPropertySymbols(wasi)
-  const selectDescription = (description: string) => (s: symbol) => {
-    if (s.description) {
-      return s.description === description
-    }
-    return s.toString() === `Symbol(${description})`
-  }
-  const kInstance = symbols.filter(selectDescription('kInstance'))[0]
-  const kSetMemory = symbols.filter(selectDescription('kSetMemory'))[0];
-
-  (wasi as any)[kInstance] = instance;
-  (wasi as any)[kSetMemory](instance.exports.memory)
 }

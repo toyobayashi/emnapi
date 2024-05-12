@@ -1,5 +1,6 @@
 import type { Worker as NodeWorker } from 'worker_threads'
 import { ENVIRONMENT_IS_NODE } from './util'
+import { type MessageEventData, createMessage, type CommandPayloadMap, type CleanupThreadPayload } from './command'
 
 /** @public */
 export type WorkerLike = (Worker | NodeWorker) & {
@@ -116,7 +117,7 @@ export class ThreadManager {
         reject(e)
         throw e as Error
       }
-      const handleMessage = (data: any): void => {
+      const handleMessage = (data: MessageEventData<keyof CommandPayloadMap>): void => {
         if (data.__emnapi__) {
           const type = data.__emnapi__.type
           const payload = data.__emnapi__.payload
@@ -130,8 +131,8 @@ export class ThreadManager {
             //   err('failed to load in child thread: ' + (payload.err.message || payload.err))
             // }
           } else if (type === 'cleanup-thread') {
-            if (payload.tid in this.pthreads) {
-              this.cleanThread(worker, payload.tid)
+            if ((payload as CleanupThreadPayload).tid in this.pthreads) {
+              this.cleanThread(worker, (payload as CleanupThreadPayload).tid)
             }
           }
         }
@@ -159,16 +160,11 @@ export class ThreadManager {
       }
 
       try {
-        worker.postMessage({
-          __emnapi__: {
-            type: 'load',
-            payload: {
-              wasmModule: this.wasmModule,
-              wasmMemory: this.wasmMemory,
-              sab
-            }
-          }
-        })
+        worker.postMessage(createMessage('load', {
+          wasmModule: this.wasmModule!,
+          wasmMemory: this.wasmMemory!,
+          sab
+        }))
       } catch (err) {
         checkSharedWasmMemory(this.wasmMemory)
         throw err

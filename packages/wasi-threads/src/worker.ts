@@ -1,3 +1,4 @@
+import { createMessage } from './command'
 import type { WorkerMessageEvent } from './thread-manager'
 import { getPostMessage, isTrapError, serizeErrorToBuffer } from './util'
 
@@ -99,22 +100,11 @@ export class ThreadMessageHandler {
       (this.instance!.exports.wasi_thread_start as Function)(tid, startArg)
     } catch (err) {
       if (isTrapError(err)) {
-        postMessage({
-          __emnapi__: {
-            type: 'terminate-all-threads'
-          }
-        })
+        postMessage(createMessage('terminate-all-threads', {}))
       }
       throw err
     }
-    postMessage({
-      __emnapi__: {
-        type: 'cleanup-thread',
-        payload: {
-          tid
-        }
-      }
-    })
+    postMessage(createMessage('cleanup-thread', { tid }))
   }
 
   protected _loaded (err: Error | null, source: WebAssembly.WebAssemblyInstantiatedSource | null, payload: InstantiatePayload): void {
@@ -140,12 +130,7 @@ export class ThreadMessageHandler {
     this.instance = instance
 
     const postMessage = this.postMessage!
-    postMessage({
-      __emnapi__: {
-        type: 'loaded',
-        payload: {}
-      }
-    })
+    postMessage(createMessage('loaded', {}))
 
     const messages = this.messagesBeforeLoad
     this.messagesBeforeLoad = []

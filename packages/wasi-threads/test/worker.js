@@ -60,7 +60,7 @@
 
   const { WASI } = require('node:wasi')
   const { workerData } = require('node:worker_threads')
-  const { ThreadMessageHandler, WASIThreads, createInstanceProxy } = require('@emnapi/wasi-threads')
+  const { ThreadMessageHandler, WASIThreads } = require('@emnapi/wasi-threads')
 
   console.log(`name: ${workerData.name}`)
 
@@ -71,9 +71,9 @@
       })
 
       const wasiThreads = new WASIThreads({
+        wasi,
         childThread: true
       })
-      wasiThreads.patchWasiInstance(wasi)
 
       const originalInstance = await WebAssembly.instantiate(wasmModule, {
         env: {
@@ -90,14 +90,7 @@
         ...wasiThreads.getImportObject()
       })
 
-      const instance = createInstanceProxy(originalInstance, wasmMemory)
-
-      wasiThreads.setup(instance, wasmModule, wasmMemory)
-      if ('_start' in instance.exports) {
-        wasi.start(instance)
-      } else {
-        wasi.initialize(instance)
-      }
+      const instance = wasiThreads.initialize(originalInstance, wasmModule, wasmMemory)
 
       return { module: wasmModule, instance }
     }
