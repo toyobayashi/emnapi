@@ -3,12 +3,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-#ifdef __wasm__
-__attribute__((import_module("env"), import_name("print_string")))
-void print_string(const char *str);
-#else
+// #ifdef __wasm__
+// __attribute__((import_module("env"), import_name("print_string")))
+// void print_string(const char *str);
+// #else
 #define print_string(str) printf("%s\n", (str))
-#endif
+// #endif
 
 void *print_message_function(void *ptr) {
   char *message;

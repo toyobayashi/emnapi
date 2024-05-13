@@ -16,6 +16,8 @@
       importScripts('../../../node_modules/@tybys/wasm-util/dist/wasm-util.min.js')
       // eslint-disable-next-line no-undef
       importScripts('../dist/wasi-threads.js')
+      // eslint-disable-next-line no-undef
+      importScripts('./proxy.js')
     }
 
     const nodeWasi = { WASI: globalThis.wasmUtil.WASI }
@@ -25,43 +27,7 @@
       }
     }
     const nodeWorkerThreads = {
-      Worker: class MainThreadWorker {
-        constructor (url, options) {
-          this.id = String(Math.random())
-          self.addEventListener('message', ({ data }) => {
-            if (data.type === 'onmessage' && data.payload.id === this.id) {
-              this.onmessage?.({ data: data.payload.data })
-            }
-          })
-          postMessage({
-            type: 'new',
-            payload: {
-              id: this.id,
-              url,
-              options
-            }
-          })
-        }
-
-        postMessage (data) {
-          postMessage({
-            type: 'postMessage',
-            payload: {
-              id: this.id,
-              data
-            }
-          })
-        }
-
-        terminate () {
-          postMessage({
-            type: 'terminate',
-            payload: {
-              id: this.id
-            }
-          })
-        }
-      }
+      Worker: globalThis.proxyWorker.Worker
     }
     const _require = function (request) {
       if (request === '@emnapi/wasi-threads') return globalThis.wasiThreads
@@ -76,19 +42,13 @@
     }
     main(_require, _process, '.')
   }
-})(function (require, process, __dirname) {
+})(async function (require, process, __dirname) {
   const { WASI } = require('node:wasi')
   const { WASIThreads } = require('@emnapi/wasi-threads')
   const { Worker } = require('node:worker_threads')
   const { join } = require('node:path')
 
-  const ExecutionModel = {
-    Command: 'command',
-    Reactor: 'reactor'
-  }
-
-  async function run (model = ExecutionModel.Reactor) {
-    const file = model === ExecutionModel.Command ? 'main.wasm' : 'lib.wasm'
+  async function run (file) {
     const wasi = new WASI({
       version: 'preview1',
       args: [file, 'node'],
@@ -137,25 +97,17 @@
       ...wasiThreads.getImportObject()
     })
 
-    instance = wasiThreads.initialize(instance, module, memory)
-
-    if (model === ExecutionModel.Command) {
-      const code = wasi.start(instance)
-      return code
+    if (typeof instance.exports._start === 'function') {
+      const { exitCode } = wasiThreads.start(instance, module, memory)
+      return exitCode
     } else {
+      instance = wasiThreads.initialize(instance, module, memory)
       return instance.exports.fn(1)
     }
   }
 
-  async function main () {
-    console.log('-------- command --------')
-    await run(ExecutionModel.Command)
-    console.log('-------- reactor --------')
-    await run(ExecutionModel.Reactor)
-  }
-
-  main().catch(err => {
-    console.error(err)
-    process.exit(1)
-  })
+  console.log('-------- command --------')
+  await run('main.wasm')
+  console.log('-------- reactor --------')
+  await run('lib.wasm')
 })
