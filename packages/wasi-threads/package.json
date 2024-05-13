@@ -31,7 +31,8 @@
   },
   "scripts": {
     "build": "node ./script/build.js",
-    "test": "node ./test/build.js && node ./test/index.js"
+    "build:test": "node ./test/build.js",
+    "test": "node ./test/index.js"
   },
   "repository": {
     "type": "git",
