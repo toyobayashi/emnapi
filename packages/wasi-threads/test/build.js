@@ -1,4 +1,4 @@
-const { join } = require('node:path')
+const { join, resolve } = require('node:path')
 const { spawnSync } = require('node:child_process')
 
 const ExecutionModel = {
@@ -7,7 +7,7 @@ const ExecutionModel = {
 }
 
 function build (model) {
-  const bin = join(process.env.WASI_SDK_PATH, 'bin', 'clang') + (process.platform === 'win32' ? '.exe' : '')
+  const bin = resolve(process.env.WASI_SDK_PATH, 'bin', 'clang') + (process.platform === 'win32' ? '.exe' : '')
   const args = [
     '-o', join(__dirname, model === ExecutionModel.Command ? 'main.wasm' : 'lib.wasm'),
     '-mbulk-memory',
@@ -35,10 +35,13 @@ function build (model) {
   ]
   const quote = s => s.includes(' ') ? `"${s}"` : s
   console.log(`> ${quote(bin)} ${args.map(quote).join(' ')}`)
-  spawnSync(bin, args, {
+  const { error } = spawnSync(bin, args, {
     stdio: 'inherit',
     env: process.env
   })
+  if (error) {
+    throw error
+  }
 }
 
 build(ExecutionModel.Command)
