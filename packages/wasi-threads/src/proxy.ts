@@ -1,8 +1,12 @@
+export const kIsProxy = Symbol('kIsProxy')
+
 /** @public */
 export function createInstanceProxy (
   instance: WebAssembly.Instance,
   memory?: WebAssembly.Memory | (() => WebAssembly.Memory)
 ): WebAssembly.Instance {
+  if ((instance as any)[kIsProxy]) return instance
+
   // https://github.com/nodejs/help/issues/4102
   const originalExports = instance.exports
   const createHandler = function (target: WebAssembly.Exports): ProxyHandler<WebAssembly.Exports> {
@@ -56,6 +60,9 @@ export function createInstanceProxy (
     get (target, p, receiver) {
       if (p === 'exports') {
         return exportsProxy
+      }
+      if (p === kIsProxy) {
+        return true
       }
       return Reflect.get(target, p, receiver)
     }

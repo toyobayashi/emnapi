@@ -29,7 +29,6 @@ export type {
 } from './load'
 
 export type {
-  InstantiatePayload,
   MessageHandlerOptions
 } from './worker'
 

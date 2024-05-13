@@ -49,6 +49,12 @@ export interface WASIThreadsImports {
   'thread-spawn': (startArg: number, errorOrTid?: number) => number
 }
 
+/** @public */
+export interface StartResult {
+  exitCode: number
+  instance: WebAssembly.Instance
+}
+
 const patchedWasiInstances = new WeakMap<WASIThreads, WeakSet<WASIInstance>>()
 
 /** @public */
@@ -276,6 +282,17 @@ export class WASIThreads {
     return instance
   }
 
+  public start (instance: WebAssembly.Instance, module: WebAssembly.Module, memory?: WebAssembly.Memory): StartResult {
+    const exports = instance.exports
+    memory ??= exports.memory as WebAssembly.Memory
+    if (this.childThread) {
+      instance = createInstanceProxy(instance, memory)
+    }
+    this!.setup(instance, module, memory)
+    const exitCode = this.wasi.start(instance)
+    return { exitCode, instance }
+  }
+
   public terminateAllThreads (): void {
     if (!this.childThread) {
       this.PThread?.terminateAllThreads()
@@ -290,7 +307,6 @@ function patchWasiInstance (wasiThreads: WASIThreads, wasi: WASIInstance): void 
   if (patched.has(wasi)) {
     return
   }
-  patched.add(wasi)
 
   const _this = wasiThreads
   const wasiImport = wasi.wasiImport
@@ -314,6 +330,7 @@ function patchWasiInstance (wasiThreads: WASIThreads, wasi: WASIInstance): void 
       }
     }
   }
+  patched.add(wasi)
 }
 
 function getWasiSymbol (wasi: WASIInstance, description: string): symbol | undefined

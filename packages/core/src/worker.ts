@@ -1,16 +1,16 @@
 import {
   ThreadMessageHandler,
   type ThreadMessageHandlerOptions,
-  type InstantiatePayload
+  type LoadPayload
 } from '@emnapi/wasi-threads'
 import type { NapiModule } from './emnapi/index'
 import type { InstantiatedSource } from './load'
 
-export type { ThreadMessageHandlerOptions, InstantiatePayload }
+export type { ThreadMessageHandlerOptions, LoadPayload }
 
 /** @public */
 export interface MessageHandlerOptions extends ThreadMessageHandlerOptions {
-  onLoad: (data: InstantiatePayload) => InstantiatedSource | PromiseLike<InstantiatedSource>
+  onLoad: (data: LoadPayload) => InstantiatedSource | PromiseLike<InstantiatedSource>
 }
 
 /** @public */
@@ -25,7 +25,7 @@ export class MessageHandler extends ThreadMessageHandler {
     this.napiModule = undefined
   }
 
-  public override instantiate (data: InstantiatePayload): InstantiatedSource | PromiseLike<InstantiatedSource> {
+  public override instantiate (data: LoadPayload): InstantiatedSource | PromiseLike<InstantiatedSource> {
     const source = this.onLoad!(data) as InstantiatedSource | PromiseLike<InstantiatedSource>
     const then = (source as PromiseLike<InstantiatedSource>).then
     if (typeof then === 'function') {

@@ -3,6 +3,7 @@ export { ThreadManager } from './thread-manager'
 
 export type {
   WASIInstance,
+  StartResult,
   WASIThreadsOptions,
   MainThreadOptions,
   ChildThreadOptions,
@@ -15,8 +16,10 @@ export type {
 export { WASIThreads } from './wasi-threads'
 
 export { ThreadMessageHandler } from './worker'
-export type { InstantiatePayload, ThreadMessageHandlerOptions } from './worker'
+export type { ThreadMessageHandlerOptions } from './worker'
 
 export { createInstanceProxy } from './proxy'
 
 export { isTrapError } from './util'
+
+export type { LoadPayload } from './command'

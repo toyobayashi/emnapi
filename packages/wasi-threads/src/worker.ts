@@ -1,13 +1,6 @@
-import { createMessage } from './command'
+import { type LoadPayload, createMessage } from './command'
 import type { WorkerMessageEvent } from './thread-manager'
 import { getPostMessage, isTrapError, serizeErrorToBuffer } from './util'
-
-/** @public */
-export interface InstantiatePayload {
-  wasmModule: WebAssembly.Module
-  wasmMemory: WebAssembly.Memory
-  sab?: Int32Array
-}
 
 export interface OnStartData {
   tid: number
@@ -17,7 +10,7 @@ export interface OnStartData {
 
 /** @public */
 export interface ThreadMessageHandlerOptions {
-  onLoad?: (data: InstantiatePayload) => WebAssembly.WebAssemblyInstantiatedSource | PromiseLike<WebAssembly.WebAssemblyInstantiatedSource>
+  onLoad?: (data: LoadPayload) => WebAssembly.WebAssemblyInstantiatedSource | PromiseLike<WebAssembly.WebAssemblyInstantiatedSource>
   postMessage?: (message: any) => void
 }
 
@@ -26,7 +19,7 @@ export class ThreadMessageHandler {
   protected instance: WebAssembly.Instance | undefined
   private messagesBeforeLoad: any[]
   protected postMessage: (message: any) => void
-  protected onLoad?: (data: InstantiatePayload) => WebAssembly.WebAssemblyInstantiatedSource | PromiseLike<WebAssembly.WebAssemblyInstantiatedSource>
+  protected onLoad?: (data: LoadPayload) => WebAssembly.WebAssemblyInstantiatedSource | PromiseLike<WebAssembly.WebAssemblyInstantiatedSource>
 
   public constructor (options?: ThreadMessageHandlerOptions) {
     const postMsg = getPostMessage(options)
@@ -41,7 +34,7 @@ export class ThreadMessageHandler {
   }
 
   /** @virtual */
-  public instantiate (data: InstantiatePayload): WebAssembly.WebAssemblyInstantiatedSource | PromiseLike<WebAssembly.WebAssemblyInstantiatedSource> {
+  public instantiate (data: LoadPayload): WebAssembly.WebAssemblyInstantiatedSource | PromiseLike<WebAssembly.WebAssemblyInstantiatedSource> {
     if (typeof this.onLoad === 'function') {
       return this.onLoad(data)
     }
@@ -64,7 +57,7 @@ export class ThreadMessageHandler {
     }
   }
 
-  private _load (payload: InstantiatePayload): void {
+  private _load (payload: LoadPayload): void {
     if (this.instance !== undefined) return
     let source: WebAssembly.WebAssemblyInstantiatedSource | PromiseLike<WebAssembly.WebAssemblyInstantiatedSource>
     try {
@@ -107,7 +100,7 @@ export class ThreadMessageHandler {
     postMessage(createMessage('cleanup-thread', { tid }))
   }
 
-  protected _loaded (err: Error | null, source: WebAssembly.WebAssemblyInstantiatedSource | null, payload: InstantiatePayload): void {
+  protected _loaded (err: Error | null, source: WebAssembly.WebAssemblyInstantiatedSource | null, payload: LoadPayload): void {
     if (err) {
       notifyPthreadCreateResult(payload.sab, 2, err)
       throw err
