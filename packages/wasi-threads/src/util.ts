@@ -1,3 +1,10 @@
+declare const WXWebAssembly: typeof WebAssembly | undefined
+const _WebAssembly = typeof WebAssembly !== 'undefined'
+  ? WebAssembly
+  : typeof WXWebAssembly !== 'undefined'
+    ? WXWebAssembly
+    : undefined!
+
 export const ENVIRONMENT_IS_NODE = typeof process === 'object' && process !== null &&
   typeof process.versions === 'object' && process.versions !== null &&
   typeof process.versions.node === 'string'
@@ -60,5 +67,9 @@ export function deserizeErrorFromBuffer (sab: SharedArrayBuffer): Error | null {
 
 /** @public */
 export function isTrapError (e: Error): e is WebAssembly.RuntimeError {
-  return (e instanceof WebAssembly.RuntimeError) && (e.message === 'unreachable')
+  try {
+    return e instanceof _WebAssembly.RuntimeError
+  } catch (_) {
+    return false
+  }
 }

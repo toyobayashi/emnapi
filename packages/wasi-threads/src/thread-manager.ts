@@ -109,7 +109,7 @@ export class ThreadManager {
           message = 'worker (tid = ' + worker.__emnapi_tid + ') sent an error!'
         }
         err(message + ' ' + e.message)
-        if (e.message === 'unreachable') {
+        if (e.message.indexOf('RuntimeError') !== -1 || e.message.indexOf('unreachable') !== -1) {
           try {
             _this.terminateAllThreads()
           } catch (_) {}
