@@ -98,7 +98,7 @@ jobs:
       if: ${{ matrix.target == 'wasm32-wasi-threads' }}
       shell: bash
       run: |
-        npm run build:test -w packages/wasi-threads
+        node ./packages/wasi-threads/test/build.js
         npm run test -w packages/wasi-threads
       timeout-minutes: 1
 
