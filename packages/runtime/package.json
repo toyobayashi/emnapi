@@ -23,8 +23,7 @@
     },
     "./dist/emnapi.min.mjs": {
       "types": "./dist/emnapi.d.mts",
-      "import": "./dist/emnapi.min.mjs",
-      "require": null
+      "default": "./dist/emnapi.min.mjs"
     }
   },
   "dependencies": {

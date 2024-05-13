@@ -23,11 +23,11 @@
     },
     "./dist/emnapi-core.min.mjs": {
       "types": "./dist/emnapi-core.d.mts",
-      "import": "./dist/emnapi-core.min.mjs",
-      "require": null
+      "default": "./dist/emnapi-core.min.mjs"
     }
   },
   "dependencies": {
+    "@emnapi/wasi-threads": "1.0.0",
     "tslib": "^2.4.0"
   },
   "scripts": {

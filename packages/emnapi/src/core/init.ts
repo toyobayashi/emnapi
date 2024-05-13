@@ -244,7 +244,7 @@ function emnapiAddSendListener (worker: any): boolean {
 
 napiModule.emnapi.addSendListener = emnapiAddSendListener
 
-export var PThread = new wasiThreads.ThreadManager({
+export var PThread = new ThreadManager({
   printErr: err,
   beforeLoad: (worker) => {
     emnapiAddSendListener(worker)
