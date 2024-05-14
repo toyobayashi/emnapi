@@ -1,4 +1,5 @@
 import type { Context } from '@emnapi/runtime'
+import type { ThreadManager } from '@emnapi/wasi-threads'
 
 /** @public */
 export declare interface PointerInfo {
@@ -34,14 +35,17 @@ export declare interface NapiModule {
       len?: number
     ): T
     getMemoryAddress (arrayBufferOrView: ArrayBuffer | ArrayBufferView): PointerInfo
+    addSendListener (worker: any): boolean
   }
 
   init (options: InitOptions): any
-  spawnThread (startArg: number, errorOrTid?: number): number
-  startThread (tid: number, startArg: number): void
   initWorker (arg: number): void
   executeAsyncWork (work: number): void
   postMessage?: (msg: any) => any
+
+  waitThreadStart: boolean | number
+  /** @internal */
+  PThread: ThreadManager
 }
 
 /** @public */
@@ -69,7 +73,7 @@ export declare type BaseCreateOptions = {
   nodeBinding?: NodeBinding
   reuseWorker?: boolean
   asyncWorkPoolSize?: number
-  waitThreadStart?: boolean
+  waitThreadStart?: boolean | number
   onCreateWorker?: (info: CreateWorkerInfo) => any
   print?: (str: string) => void
   printErr?: (str: string) => void

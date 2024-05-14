@@ -1,22 +1,21 @@
+import { type WASIInstance, WASIThreads } from '@emnapi/wasi-threads'
 import { type InputType, load, loadSync } from './util'
 import { createNapiModule } from './emnapi/index'
 import type { CreateOptions, NapiModule } from './emnapi/index'
 
 /** @public */
-export interface InstantiatedSource extends WebAssembly.WebAssemblyInstantiatedSource {
+export interface LoadedSource extends WebAssembly.WebAssemblyInstantiatedSource {
+  usedInstance: WebAssembly.Instance
+}
+
+/** @public */
+export interface InstantiatedSource extends LoadedSource {
   napiModule: NapiModule
 }
 
 /** @public */
-export interface ReactorWASI {
-  readonly wasiImport?: Record<string, any>
-  initialize (instance: object): void
-  getImportObject? (): any
-}
-
-/** @public */
 export interface LoadOptions {
-  wasi?: ReactorWASI
+  wasi?: WASIInstance
   overwriteImports?: (importObject: WebAssembly.Imports) => WebAssembly.Imports
   beforeInit?: (source: WebAssembly.WebAssemblyInstantiatedSource) => void
   getMemory?: (exports: WebAssembly.Exports) => WebAssembly.Memory
@@ -67,25 +66,37 @@ function loadNapiModuleImpl (loadFn: Function, userNapiModule: NapiModule | unde
   }
 
   const wasi = options!.wasi
+  let wasiThreads: WASIThreads | undefined
+
   let importObject: WebAssembly.Imports = {
     env: napiModule.imports.env,
     napi: napiModule.imports.napi,
-    emnapi: napiModule.imports.emnapi,
-    wasi: {
-      // eslint-disable-next-line camelcase
-      'thread-spawn': function __imported_wasi_thread_spawn (startArg: number, errorOrTid: number) {
-        return napiModule.spawnThread(startArg, errorOrTid)
-      }
-    }
+    emnapi: napiModule.imports.emnapi
   }
 
   if (wasi) {
+    wasiThreads = new WASIThreads(
+      napiModule.childThread
+        ? {
+            wasi,
+            childThread: true,
+            postMessage: napiModule.postMessage!
+          }
+        : {
+            wasi,
+            threadManager: napiModule.PThread,
+            waitThreadStart: napiModule.waitThreadStart
+          }
+    )
+
     Object.assign(
       importObject,
       typeof wasi.getImportObject === 'function'
         ? wasi.getImportObject()
         : { wasi_snapshot_preview1: wasi.wasiImport }
     )
+
+    Object.assign(importObject, wasiThreads.getImportObject())
   }
 
   const overwriteImports = options!.overwriteImports
@@ -124,58 +135,11 @@ function loadNapiModuleImpl (loadFn: Function, userNapiModule: NapiModule | unde
       instance = { exports }
     }
     const module = source.module
+
     if (wasi) {
-      if (napiModule.childThread) {
-        // https://github.com/nodejs/help/issues/4102
-        const createHandler = function (target: WebAssembly.Exports): ProxyHandler<WebAssembly.Exports> {
-          const handlers = [
-            'apply',
-            'construct',
-            'defineProperty',
-            'deleteProperty',
-            'get',
-            'getOwnPropertyDescriptor',
-            'getPrototypeOf',
-            'has',
-            'isExtensible',
-            'ownKeys',
-            'preventExtensions',
-            'set',
-            'setPrototypeOf'
-          ]
-          const handler: ProxyHandler<WebAssembly.Exports> = {}
-          for (let i = 0; i < handlers.length; i++) {
-            const name = handlers[i] as keyof ProxyHandler<WebAssembly.Exports>
-            handler[name] = function () {
-              const args = Array.prototype.slice.call(arguments, 1)
-              args.unshift(target)
-              return (Reflect[name] as any).apply(Reflect, args)
-            }
-          }
-          return handler
-        }
-        const handler = createHandler(originalExports)
-        const noop = (): void => {}
-        handler.get = function (_target, p, receiver) {
-          if (p === 'memory') {
-            return memory
-          }
-          if (p === '_initialize') {
-            return noop
-          }
-          return Reflect.get(originalExports, p, receiver)
-        }
-        const exportsProxy = new Proxy(Object.create(null), handler)
-        instance = new Proxy(instance, {
-          get (target, p, receiver) {
-            if (p === 'exports') {
-              return exportsProxy
-            }
-            return Reflect.get(target, p, receiver)
-          }
-        })
-      }
-      wasi.initialize(instance)
+      instance = wasiThreads!.initialize(instance, module, memory)
+    } else {
+      napiModule.PThread.setup(module, memory)
     }
 
     if (beforeInit) {
@@ -192,7 +156,11 @@ function loadNapiModuleImpl (loadFn: Function, userNapiModule: NapiModule | unde
       table
     })
 
-    const ret: any = { instance: originalInstance, module }
+    const ret: any = {
+      instance: originalInstance,
+      module,
+      usedInstance: instance
+    }
     if (!isLoad) {
       ret.napiModule = napiModule
     }
@@ -229,7 +197,7 @@ export function loadNapiModule (
   /** Only support `BufferSource` or `WebAssembly.Module` on Node.js */
   wasmInput: InputType | Promise<InputType>,
   options?: LoadOptions
-): Promise<WebAssembly.WebAssemblyInstantiatedSource> {
+): Promise<LoadedSource> {
   if (typeof napiModule !== 'object' || napiModule === null) {
     throw new TypeError('Invalid napiModule')
   }
@@ -241,7 +209,7 @@ export function loadNapiModuleSync (
   napiModule: NapiModule,
   wasmInput: BufferSource | WebAssembly.Module,
   options?: LoadOptions
-): WebAssembly.WebAssemblyInstantiatedSource {
+): LoadedSource {
   if (typeof napiModule !== 'object' || napiModule === null) {
     throw new TypeError('Invalid napiModule')
   }

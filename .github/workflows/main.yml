@@ -10,6 +10,7 @@ on:
     - test-*
     tags:
     - v*
+    - wasi-threads-v*
   pull_request:
     paths-ignore:
     - '**/*.md'
@@ -25,6 +26,7 @@ env:
 
 jobs:
   build:
+    timeout-minutes: 15
     name: Build
     runs-on: ubuntu-latest
     strategy:
@@ -93,6 +95,14 @@ jobs:
       shell: bash
       run: npm run test -w packages/ts-transform-emscripten-esm-library
 
+    - name: Test @emnapi/wasi-threads
+      if: ${{ matrix.target == 'wasm32-wasi-threads' }}
+      shell: bash
+      run: |
+        node ./packages/wasi-threads/test/build.js
+        npm run test -w packages/wasi-threads
+      timeout-minutes: 1
+
     # - name: Lint
     #   run: npm run lint
 
@@ -133,7 +143,7 @@ jobs:
 
   release:
     name: Release
-    if: ${{ startsWith(github.event.ref, 'refs/tags') }}
+    if: ${{ startsWith(github.event.ref, 'refs/tags/v') }}
     needs: build
     runs-on: ubuntu-latest
 
@@ -187,3 +197,31 @@ jobs:
         prerelease: false
         generate_release_notes: true
         files: ./script/emnapi.zip
+
+  release-wasi-threads:
+    name: Release
+    if: ${{ startsWith(github.event.ref, 'refs/tags/wasi-threads-v') }}
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v3
+      with:
+        node-version: '20.9.0'
+        registry-url: 'https://registry.npmjs.org'
+      env:
+        NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+    - name: NPM Install
+      shell: bash
+      run: |
+        npm install -g node-gyp
+        npm install
+
+    - name: NPM Build
+      shell: bash
+      run: npm run build -w packages/wasi-threads
+
+    - name: Publish
+      run: npm publish --ignore-scripts -w packages/wasi-threads

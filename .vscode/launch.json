@@ -22,7 +22,15 @@
       "program": "${file}",
       "args": [],
       "preLaunchTask": "CMake: build ${input:target}"
-    }
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "wasi-threads test",
+      "runtimeArgs": [],
+      "program": "${workspaceFolder}/packages/wasi-threads/test/index.js",
+      "args": []
+    },
   ],
   "inputs": [
     {

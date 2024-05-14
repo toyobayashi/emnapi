@@ -52,6 +52,7 @@ module.exports = {
         '@typescript-eslint/no-unnecessary-type-assertion': 'off',
         '@typescript-eslint/no-unsafe-argument': 'off',
         '@typescript-eslint/unbound-method': 'off',
+        '@typescript-eslint/no-empty-interface': 'off',
         '@typescript-eslint/member-delimiter-style': ['error', {
           multiline: {
             delimiter: 'none',

@@ -1,0 +1,10 @@
+.vscode
+node_modules
+/script
+/lib
+/src
+.gitignore
+.npmignore
+api-extractor.json
+tsconfig.json
+/test

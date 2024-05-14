@@ -8,24 +8,17 @@ const rollupReplace = require('@rollup/plugin-replace').default
 const rollupTerser = require('@rollup/plugin-terser').default
 const rollupAlias = require('@rollup/plugin-alias').default
 const { compile } = require('@tybys/tsapi')
-const { globSync } = require('glob')
 const dist = path.join(__dirname, '../dist')
 
 function build () {
   compile(path.join(__dirname, '../tsconfig.json'), {
     optionsToExtend: {
-      target: ts.ScriptTarget.ES2019,
+      target: require('typescript').ScriptTarget.ES2019,
       emitDeclarationOnly: true,
       declaration: true,
+      declarationMap: true,
       declarationDir: path.join(__dirname, '../lib/typings')
     }
-  })
-
-  globSync('**/*.d.ts', { cwd: path.join(__dirname, '../src/emnapi') }).forEach(file => {
-    const from = path.join(path.join(__dirname, '../src/emnapi', file))
-    const to = path.join(path.join(__dirname, '../lib/typings/emnapi', file))
-    fs.mkdirSync(path.dirname(to), { recursive: true })
-    fs.copyFileSync(from, to)
   })
 
   /**
@@ -86,13 +79,15 @@ function build () {
     }
   }
 
+  const globalName = 'wasiThreads'
+
   return Promise.all(([
     {
       input: createInput(ts.ScriptTarget.ES5, false),
       output: {
-        file: path.join(dist, 'emnapi-core.js'),
+        file: path.join(dist, 'wasi-threads.js'),
         format: 'umd',
-        name: 'emnapiCore',
+        name: globalName,
         exports: 'named',
         strict: false
       }
@@ -100,59 +95,59 @@ function build () {
     {
       input: createInput(ts.ScriptTarget.ES5, true),
       output: {
-        file: path.join(dist, 'emnapi-core.min.js'),
+        file: path.join(dist, 'wasi-threads.min.js'),
         format: 'umd',
-        name: 'emnapiCore',
+        name: globalName,
         exports: 'named',
         strict: false
       }
     },
     {
-      input: createInput(ts.ScriptTarget.ES2019, false, ['tslib', '@emnapi/wasi-threads']),
+      input: createInput(ts.ScriptTarget.ES2019, false, ['tslib']),
       output: {
-        file: path.join(dist, 'emnapi-core.cjs.js'),
+        file: path.join(dist, 'wasi-threads.cjs.js'),
         format: 'cjs',
-        name: 'emnapiCore',
+        name: globalName,
         exports: 'named',
         strict: false
       }
     },
     {
-      input: createInput(ts.ScriptTarget.ES2019, true, ['tslib', '@emnapi/wasi-threads']),
+      input: createInput(ts.ScriptTarget.ES2019, true, ['tslib']),
       output: {
-        file: path.join(dist, 'emnapi-core.cjs.min.js'),
+        file: path.join(dist, 'wasi-threads.cjs.min.js'),
         format: 'cjs',
-        name: 'emnapiCore',
+        name: globalName,
         exports: 'named',
         strict: false
       }
     },
     {
-      input: createInput(ts.ScriptTarget.ES2019, false, ['tslib', '@emnapi/wasi-threads']),
+      input: createInput(ts.ScriptTarget.ES2019, false, ['tslib']),
       output: {
-        file: path.join(dist, 'emnapi-core.mjs'),
+        file: path.join(dist, 'wasi-threads.mjs'),
         format: 'esm',
-        name: 'emnapiCore',
+        name: globalName,
         exports: 'named',
         strict: false
       }
     },
     {
-      input: createInput(ts.ScriptTarget.ES2019, true, ['tslib', '@emnapi/wasi-threads']),
+      input: createInput(ts.ScriptTarget.ES2019, true, ['tslib']),
       output: {
-        file: path.join(dist, 'emnapi-core.min.mjs'),
+        file: path.join(dist, 'wasi-threads.min.mjs'),
         format: 'esm',
-        name: 'emnapiCore',
+        name: globalName,
         exports: 'named',
         strict: false
       }
     },
     {
-      input: createInput(ts.ScriptTarget.ES5, false, ['tslib', '@emnapi/wasi-threads']),
+      input: createInput(ts.ScriptTarget.ES5, false, ['tslib']),
       output: {
-        file: path.join(dist, 'emnapi-core.esm-bundler.js'),
+        file: path.join(dist, 'wasi-threads.esm-bundler.js'),
         format: 'esm',
-        name: 'emnapiCore',
+        name: globalName,
         exports: 'named',
         strict: false
       }
@@ -179,13 +174,13 @@ function build () {
 
     const dts = extractorConfig.publicTrimmedFilePath
 
-    const mDts = path.join(__dirname, '../dist/emnapi-core.d.mts')
-    const cjsMinDts = path.join(__dirname, '../dist/emnapi-core.cjs.min.d.ts')
-    const mjsMinDts = path.join(__dirname, '../dist/emnapi-core.min.d.mts')
+    const mDts = path.join(__dirname, '../dist/wasi-threads.d.mts')
+    const cjsMinDts = path.join(__dirname, '../dist/wasi-threads.cjs.min.d.ts')
+    const mjsMinDts = path.join(__dirname, '../dist/wasi-threads.min.d.mts')
     fs.copyFileSync(dts, mDts)
     fs.copyFileSync(dts, cjsMinDts)
     fs.copyFileSync(dts, mjsMinDts)
-    fs.appendFileSync(dts, '\nexport as namespace emnapiCore;\n', 'utf8')
+    fs.appendFileSync(dts, `\nexport as namespace ${globalName};\n`, 'utf8')
   })
 }
 
