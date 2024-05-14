@@ -26,7 +26,7 @@ export interface MainThreadBaseOptions extends BaseOptions {
 
 /** @public */
 export interface MainThreadOptionsWithThreadManager extends MainThreadBaseOptions {
-  threadManager: ThreadManager | (() => ThreadManager)
+  threadManager?: ThreadManager | (() => ThreadManager)
 }
 
 /** @public */
@@ -258,6 +258,13 @@ export class WASIThreads {
     }
   }
 
+  /**
+   * It's ok to call this method to a WASI command module.
+   *
+   * in child thread, must call this method instead of {@link WASIThreads.start} even if it's a WASI command module
+   *
+   * @returns A proxied WebAssembly instance if in child thread, other wise the original instance
+   */
   public initialize (instance: WebAssembly.Instance, module: WebAssembly.Module, memory?: WebAssembly.Memory): WebAssembly.Instance {
     const exports = instance.exports
     memory ??= exports.memory as WebAssembly.Memory
@@ -282,6 +289,13 @@ export class WASIThreads {
     return instance
   }
 
+  /**
+   * Equivalent to calling {@link WASIThreads.initialize} and then calling {@link WASIInstance.start}
+   * ```js
+   * this.initialize(instance, module, memory)
+   * this.wasi.start(instance)
+   * ```
+   */
   public start (instance: WebAssembly.Instance, module: WebAssembly.Module, memory?: WebAssembly.Memory): StartResult {
     const exports = instance.exports
     memory ??= exports.memory as WebAssembly.Memory
