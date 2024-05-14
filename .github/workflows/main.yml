@@ -10,6 +10,7 @@ on:
     - test-*
     tags:
     - v*
+    - wasi-threads-v*
   pull_request:
     paths-ignore:
     - '**/*.md'
