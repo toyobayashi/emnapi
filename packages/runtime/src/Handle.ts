@@ -47,8 +47,9 @@ export class Handle<S> {
     return (ArrayBuffer.isView(this.value)) && !(this.value instanceof DataView)
   }
 
-  public isBuffer (): boolean {
-    return typeof _Buffer === 'function' && _Buffer.isBuffer(this.value)
+  public isBuffer (BufferConstructor?: BufferCtor): boolean {
+    BufferConstructor ??= _Buffer
+    return typeof BufferConstructor === 'function' && BufferConstructor.isBuffer(this.value)
   }
 
   public isDataView (): boolean {

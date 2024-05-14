@@ -165,7 +165,7 @@ export function napi_get_buffer_info (
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, buffer)
   const handle = emnapiCtx.handleStore.get(buffer)!
-  $RETURN_STATUS_IF_FALSE!(envObject, handle.isBuffer(), napi_status.napi_invalid_arg)
+  $RETURN_STATUS_IF_FALSE!(envObject, handle.isBuffer(emnapiCtx.feature.Buffer), napi_status.napi_invalid_arg)
   return napi_get_typedarray_info(env, buffer, 0, length, data, 0, 0)
 }
 
