@@ -946,7 +946,7 @@ instantiateNapiModule(input, {
    * since browser disallow blocking the main thread (Atomics.wait).
    * @defaultValue false
    */
-  waitThreadStart: isNode || (isBrowser && !isBrowserMainThread)
+  waitThreadStart: isNode || (isBrowser && !isBrowserMainThread),
 
   /**
    * Reuse the thread worker after thread exit to avoid re-creatation
