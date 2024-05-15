@@ -938,7 +938,22 @@ instantiateNapiModule(input, {
    */
   asyncWorkPoolSize: 4, // 0: single thread mock, > 0: schedule async work in web worker
   wasi: new WASI(/* ... */),
-  // reuseWorker: true,
+
+  /**
+   * Setting this to `true` or a delay (ms) makes
+   * pthread_create() do not return until worker actually start.
+   * It will throw error if emnapi runs in browser main thread
+   * since browser disallow blocking the main thread (Atomics.wait).
+   * @defaultValue false
+   */
+  waitThreadStart: isNode || (isBrowser && !isBrowserMainThread)
+
+  /**
+   * Reuse the thread worker after thread exit to avoid re-creatation
+   * @defaultValue false
+   */
+  reuseWorker: true,
+
   onCreateWorker () {
     return new Worker('./worker.js')
     // Node.js
@@ -991,7 +1006,7 @@ instantiateNapiModule(input, {
       }
     })
 
-    WASI = require('./wasi').WASI
+    WASI = require('wasi').WASI
     emnapiCore = require('@emnapi/core')
   } else {
     importScripts('./node_modules/memfs-browser/dist/memfs.js')
