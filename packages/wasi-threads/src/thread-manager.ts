@@ -224,15 +224,21 @@ export class ThreadManager {
   }
 
   public terminateAllThreads (): void {
-    for (let i = 0; i < this.runningWorkers.length; ++i) {
-      this.terminateWorker(this.runningWorkers[i])
+    if (this._reuseWorker) {
+      while (this.runningWorkers.length > 0) {
+        this.returnWorkerToPool(this.runningWorkers[0])
+      }
+    } else {
+      for (let i = 0; i < this.runningWorkers.length; ++i) {
+        this.terminateWorker(this.runningWorkers[i])
+      }
+      for (let i = 0; i < this.unusedWorkers.length; ++i) {
+        this.terminateWorker(this.unusedWorkers[i])
+      }
+      this.unusedWorkers = []
+      this.runningWorkers = []
+      this.pthreads = Object.create(null)
     }
-    for (let i = 0; i < this.unusedWorkers.length; ++i) {
-      this.terminateWorker(this.unusedWorkers[i])
-    }
-    this.unusedWorkers = []
-    this.runningWorkers = []
-    this.pthreads = Object.create(null)
   }
 
   public addMessageEventListener (worker: WorkerLike, onMessage: (e: WorkerMessageEvent) => void): () => void {
