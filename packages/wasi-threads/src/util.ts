@@ -54,7 +54,7 @@ export function deserizeErrorFromBuffer (sab: SharedArrayBuffer): Error | null {
   const message = new TextDecoder().decode(messageBuffer)
   const stack = new TextDecoder().decode(stackBuffer)
 
-  const ErrorConstructor = (globalThis as any)[name] ?? Error
+  const ErrorConstructor = (globalThis as any)[name] ?? (name === 'RuntimeError' ? (_WebAssembly.RuntimeError ?? Error) : Error)
   const error = new ErrorConstructor(message)
   Object.defineProperty(error, 'stack', {
     value: stack,
