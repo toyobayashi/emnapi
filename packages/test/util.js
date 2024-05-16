@@ -49,7 +49,10 @@ function loadPath (request, options) {
           ? RUNTIME_UV_THREADPOOL_SIZE
           : -RUNTIME_UV_THREADPOOL_SIZE,
         filename: request,
-        reuseWorker: true,
+        reuseWorker: {
+          size: RUNTIME_UV_THREADPOOL_SIZE * 4,
+          strict: true
+        },
         waitThreadStart: 1000,
         onCreateWorker () {
           return new Worker(join(__dirname, './worker.js'), {
