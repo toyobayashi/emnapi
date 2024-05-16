@@ -1,5 +1,5 @@
 import type { Worker as NodeWorker } from 'worker_threads'
-import { ENVIRONMENT_IS_NODE } from './util'
+import { ENVIRONMENT_IS_NODE, isSharedArrayBuffer } from './util'
 import { type MessageEventData, createMessage, type CommandPayloadMap, type CleanupThreadPayload } from './command'
 
 /** @public */
@@ -54,7 +54,7 @@ export interface ThreadManagerOptionsChild extends ThreadManagerOptionsBase {
 const WASI_THREADS_MAX_TID = 0x1FFFFFFF
 
 export function checkSharedWasmMemory (wasmMemory?: WebAssembly.Memory | null): void {
-  if (typeof SharedArrayBuffer === 'undefined' || (wasmMemory && !(wasmMemory.buffer instanceof SharedArrayBuffer))) {
+  if (wasmMemory ? !isSharedArrayBuffer(wasmMemory.buffer) : (typeof SharedArrayBuffer === 'undefined')) {
     throw new Error(
       'Multithread features require shared wasm memory. ' +
       'Try to compile with `-matomics -mbulk-memory` and use `--import-memory --shared-memory` during linking'

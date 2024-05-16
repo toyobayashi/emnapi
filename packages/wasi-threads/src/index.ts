@@ -29,6 +29,6 @@ export type { ThreadMessageHandlerOptions } from './worker'
 
 export { createInstanceProxy } from './proxy'
 
-export { isTrapError } from './util'
+export { isTrapError, isSharedArrayBuffer } from './util'
 
 export type { LoadPayload } from './command'

@@ -1,4 +1,4 @@
-import { type WASIInstance, WASIThreads } from '@emnapi/wasi-threads'
+import { type WASIInstance, WASIThreads, isSharedArrayBuffer } from '@emnapi/wasi-threads'
 import { type InputType, load, loadSync } from './util'
 import { createNapiModule } from './emnapi/index'
 import type { CreateOptions, NapiModule } from './emnapi/index'
@@ -168,12 +168,14 @@ function loadNapiModuleImpl (loadFn: Function, userNapiModule: NapiModule | unde
       return ret
     }
 
-    if (napiModule.PThread.shouldPreloadWorkers()) {
-      const poolReady = napiModule.PThread.loadWasmModuleToAllWorkers()
-      if (loadFn === loadCallback) {
-        return poolReady.then(emnapiInit)
+    if (typeof originalInstance.exports.wasi_thread_start === 'function' && isSharedArrayBuffer(memory.buffer)) {
+      if (napiModule.PThread.shouldPreloadWorkers()) {
+        const poolReady = napiModule.PThread.loadWasmModuleToAllWorkers()
+        if (loadFn === loadCallback) {
+          return poolReady.then(emnapiInit)
+        }
+        return emnapiInit()
       }
-      return emnapiInit()
     }
 
     return emnapiInit()
