@@ -19,7 +19,14 @@ export type WorkerFactory = (ctx: { type: string; name: string }) => WorkerLike
 
 /** @public */
 export interface ReuseWorkerOptions {
+  /**
+   * @see {@link https://emscripten.org/docs/tools_reference/settings_reference.html#pthread-pool-size | PTHREAD_POOL_SIZE}
+   */
   size: number
+
+  /**
+   * @see {@link https://emscripten.org/docs/tools_reference/settings_reference.html#pthread-pool-size-strict | PTHREAD_POOL_SIZE_STRICT}
+   */
   strict?: boolean
 }
 

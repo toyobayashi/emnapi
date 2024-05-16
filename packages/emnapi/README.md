@@ -952,7 +952,17 @@ instantiateNapiModule(input, {
    * Reuse the thread worker after thread exit to avoid re-creatation
    * @defaultValue false
    */
-  reuseWorker: true,
+  reuseWorker: {
+    /**
+     * @see {@link https://emscripten.org/docs/tools_reference/settings_reference.html#pthread-pool-size | PTHREAD_POOL_SIZE}
+     */
+    size: 0,
+
+    /**
+     * @see {@link https://emscripten.org/docs/tools_reference/settings_reference.html#pthread-pool-size-strict | PTHREAD_POOL_SIZE_STRICT}
+     */
+    strict: false
+  },
 
   onCreateWorker () {
     return new Worker('./worker.js')
