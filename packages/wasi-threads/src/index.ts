@@ -1,4 +1,13 @@
-export type { ThreadManagerOptions, WorkerLike, WorkerMessageEvent, WorkerFactory } from './thread-manager'
+export type {
+  ReuseWorkerOptions,
+  ThreadManagerOptionsBase,
+  ThreadManagerOptionsMain,
+  ThreadManagerOptionsChild,
+  ThreadManagerOptions,
+  WorkerLike,
+  WorkerMessageEvent,
+  WorkerFactory
+} from './thread-manager'
 export { ThreadManager } from './thread-manager'
 
 export type {

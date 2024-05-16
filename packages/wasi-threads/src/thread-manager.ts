@@ -18,11 +18,30 @@ export interface WorkerMessageEvent<T = any> {
 export type WorkerFactory = (ctx: { type: string; name: string }) => WorkerLike
 
 /** @public */
-export interface ThreadManagerOptions {
+export interface ReuseWorkerOptions {
+  size: number
+  strict?: boolean
+}
+
+/** @public */
+export type ThreadManagerOptions = ThreadManagerOptionsMain | ThreadManagerOptionsChild
+
+/** @public */
+export interface ThreadManagerOptionsBase {
   printErr?: (message: string) => void
+}
+
+/** @public */
+export interface ThreadManagerOptionsMain extends ThreadManagerOptionsBase {
   beforeLoad?: (worker: WorkerLike) => any
-  reuseWorker?: boolean
+  reuseWorker?: boolean | number | ReuseWorkerOptions
   onCreateWorker: WorkerFactory
+  childThread?: false
+}
+
+/** @public */
+export interface ThreadManagerOptionsChild extends ThreadManagerOptionsBase {
+  childThread: true
 }
 
 const WASI_THREADS_MAX_TID = 0x1FFFFFFF
@@ -34,6 +53,27 @@ export function checkSharedWasmMemory (wasmMemory?: WebAssembly.Memory | null): 
       'Try to compile with `-matomics -mbulk-memory` and use `--import-memory --shared-memory` during linking'
     )
   }
+}
+
+function getReuseWorker (value?: boolean | number | ReuseWorkerOptions): false | Required<ReuseWorkerOptions> {
+  if (typeof value === 'boolean') {
+    return value ? { size: 0, strict: false } : false
+  }
+  if (typeof value === 'number') {
+    if (!(value >= 0)) {
+      throw new RangeError('reuseWorker: size must be a non-negative integer')
+    }
+    return { size: value, strict: false }
+  }
+  if (!value) {
+    return false
+  }
+  const size = Number(value.size) ?? 0
+  const strict = Boolean(value.strict)
+  if (!(size > 0) && strict) {
+    throw new RangeError('reuseWorker: size must be set to positive integer if strict is set to true')
+  }
+  return { size, strict }
 }
 
 let nextWorkerID = 0
@@ -49,25 +89,81 @@ export class ThreadManager {
   public wasmMemory: WebAssembly.Memory | null = null
   private readonly messageEvents = new WeakMap<WorkerLike, Set<(e: WorkerMessageEvent) => void>>()
 
+  private readonly _childThread: boolean
   private readonly _onCreateWorker: WorkerFactory
-  private readonly _reuseWorker: boolean
+  private readonly _reuseWorker: false | Required<ReuseWorkerOptions>
   private readonly _beforeLoad?: (worker: WorkerLike) => any
 
   /** @internal */
   public readonly printErr: (message: string) => void
 
   public constructor (options: ThreadManagerOptions) {
-    const onCreateWorker = options.onCreateWorker
-    if (typeof onCreateWorker !== 'function') {
-      throw new TypeError('`options.onCreateWorker` is not provided')
+    if (!options) {
+      throw new TypeError('ThreadManager(): options is not provided')
     }
-    this._onCreateWorker = onCreateWorker
-    this._reuseWorker = options.reuseWorker ?? false
-    this._beforeLoad = options.beforeLoad
+
+    if ('childThread' in options) {
+      this._childThread = Boolean(options.childThread)
+    } else {
+      this._childThread = false
+    }
+
+    if (this._childThread) {
+      this._onCreateWorker = undefined!
+      this._reuseWorker = false
+      this._beforeLoad = undefined!
+    } else {
+      const onCreateWorker = (options as ThreadManagerOptionsMain).onCreateWorker
+      if (typeof onCreateWorker !== 'function') {
+        throw new TypeError('`options.onCreateWorker` is not provided')
+      }
+      this._onCreateWorker = onCreateWorker
+      this._reuseWorker = getReuseWorker((options as ThreadManagerOptionsMain).reuseWorker)
+      this._beforeLoad = (options as ThreadManagerOptionsMain).beforeLoad
+    }
+
     this.printErr = options.printErr ?? console.error.bind(console)
   }
 
-  public init (): void {}
+  public init (): void {
+    if (!this._childThread) {
+      this.initMainThread()
+    }
+  }
+
+  public initMainThread (): void {
+    this.preparePool()
+  }
+
+  private preparePool (): void {
+    if (this._reuseWorker) {
+      if (this._reuseWorker.size) {
+        let pthreadPoolSize = this._reuseWorker.size
+        while (pthreadPoolSize--) {
+          const worker = this.allocateUnusedWorker()
+          if (ENVIRONMENT_IS_NODE) {
+            (worker as NodeWorker).unref()
+          }
+        }
+      }
+    }
+  }
+
+  public shouldPreloadWorkers (): boolean {
+    return !this._childThread && this._reuseWorker && this._reuseWorker.size > 0
+  }
+
+  public loadWasmModuleToAllWorkers (): Promise<WorkerLike[]> {
+    const poolReady = Promise.all(
+      this.unusedWorkers.map((worker) =>
+        this.loadWasmModuleToWorker(worker))
+    )
+    return poolReady
+      .catch((err) => {
+        this.terminateAllThreads()
+        throw err
+      })
+  }
 
   public setup (wasmModule: WebAssembly.Module, wasmMemory: WebAssembly.Memory): void {
     this.wasmModule = wasmModule
@@ -183,6 +279,14 @@ export class ThreadManager {
   public getNewWorker (sab?: Int32Array): WorkerLike | undefined {
     if (this._reuseWorker) {
       if (this.unusedWorkers.length === 0) {
+        if (this._reuseWorker.strict) {
+          if (!ENVIRONMENT_IS_NODE) {
+            const err = this.printErr
+            err('Tried to spawn a new thread, but the thread pool is exhausted.\n' +
+              'This might result in a deadlock unless some threads eventually exit or the code explicitly breaks out to the event loop.')
+            return
+          }
+        }
         const worker = this.allocateUnusedWorker()
         // eslint-disable-next-line @typescript-eslint/no-floating-promises
         this.loadWasmModuleToWorker(worker, sab)
@@ -224,21 +328,17 @@ export class ThreadManager {
   }
 
   public terminateAllThreads (): void {
-    if (this._reuseWorker) {
-      while (this.runningWorkers.length > 0) {
-        this.returnWorkerToPool(this.runningWorkers[0])
-      }
-    } else {
-      for (let i = 0; i < this.runningWorkers.length; ++i) {
-        this.terminateWorker(this.runningWorkers[i])
-      }
-      for (let i = 0; i < this.unusedWorkers.length; ++i) {
-        this.terminateWorker(this.unusedWorkers[i])
-      }
-      this.unusedWorkers = []
-      this.runningWorkers = []
-      this.pthreads = Object.create(null)
+    for (let i = 0; i < this.runningWorkers.length; ++i) {
+      this.terminateWorker(this.runningWorkers[i])
     }
+    for (let i = 0; i < this.unusedWorkers.length; ++i) {
+      this.terminateWorker(this.unusedWorkers[i])
+    }
+    this.unusedWorkers = []
+    this.runningWorkers = []
+    this.pthreads = Object.create(null)
+
+    this.preparePool()
   }
 
   public addMessageEventListener (worker: WorkerLike, onMessage: (e: WorkerMessageEvent) => void): () => void {

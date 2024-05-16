@@ -1,5 +1,5 @@
 import type { Context } from '@emnapi/runtime'
-import type { ThreadManager } from '@emnapi/wasi-threads'
+import type { ThreadManager, ThreadManagerOptionsMain, MainThreadBaseOptions } from '@emnapi/wasi-threads'
 
 /** @public */
 export declare interface PointerInfo {
@@ -65,15 +65,16 @@ export declare interface NodeBinding {
 /** @public */
 export declare interface CreateWorkerInfo {
   type: 'thread' | 'async-work'
+  name: string
 }
 
 /** @public */
 export declare type BaseCreateOptions = {
   filename?: string
   nodeBinding?: NodeBinding
-  reuseWorker?: boolean
+  reuseWorker?: ThreadManagerOptionsMain['reuseWorker']
   asyncWorkPoolSize?: number
-  waitThreadStart?: boolean | number
+  waitThreadStart?: MainThreadBaseOptions['waitThreadStart']
   onCreateWorker?: (info: CreateWorkerInfo) => any
   print?: (str: string) => void
   printErr?: (str: string) => void

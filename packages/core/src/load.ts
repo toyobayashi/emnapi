@@ -149,22 +149,34 @@ function loadNapiModuleImpl (loadFn: Function, userNapiModule: NapiModule | unde
       })
     }
 
-    napiModule.init({
-      instance,
-      module,
-      memory,
-      table
-    })
+    const emnapiInit = (): LoadedSource | InstantiatedSource => {
+      napiModule.init({
+        instance,
+        module,
+        memory,
+        table
+      })
 
-    const ret: any = {
-      instance: originalInstance,
-      module,
-      usedInstance: instance
+      const ret: LoadedSource | InstantiatedSource = {
+        instance: originalInstance,
+        module,
+        usedInstance: instance
+      }
+      if (!isLoad) {
+        (ret as InstantiatedSource).napiModule = napiModule
+      }
+      return ret
     }
-    if (!isLoad) {
-      ret.napiModule = napiModule
+
+    if (napiModule.PThread.shouldPreloadWorkers()) {
+      const poolReady = napiModule.PThread.loadWasmModuleToAllWorkers()
+      if (loadFn === loadCallback) {
+        return poolReady.then(emnapiInit)
+      }
+      return emnapiInit()
     }
-    return ret
+
+    return emnapiInit()
   })
 }
 

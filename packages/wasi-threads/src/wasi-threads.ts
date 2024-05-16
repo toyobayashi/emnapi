@@ -1,6 +1,6 @@
 import { ENVIRONMENT_IS_NODE, deserizeErrorFromBuffer, getPostMessage, isTrapError } from './util'
 import { checkSharedWasmMemory, ThreadManager } from './thread-manager'
-import type { WorkerMessageEvent, ThreadManagerOptions } from './thread-manager'
+import type { WorkerMessageEvent, ThreadManagerOptions, ThreadManagerOptionsMain } from './thread-manager'
 import { type CommandPayloadMap, type MessageEventData, createMessage, type SpawnThreadPayload } from './command'
 import { createInstanceProxy } from './proxy'
 
@@ -30,7 +30,7 @@ export interface MainThreadOptionsWithThreadManager extends MainThreadBaseOption
 }
 
 /** @public */
-export interface MainThreadOptionsCreateThreadManager extends MainThreadBaseOptions, ThreadManagerOptions {}
+export interface MainThreadOptionsCreateThreadManager extends MainThreadBaseOptions, ThreadManagerOptionsMain {}
 
 /** @public */
 export type MainThreadOptions = MainThreadOptionsWithThreadManager | MainThreadOptionsCreateThreadManager
