@@ -149,8 +149,6 @@ export class ThreadManager {
         while (pthreadPoolSize--) {
           const worker = this.allocateUnusedWorker()
           if (ENVIRONMENT_IS_NODE) {
-            // https://github.com/nodejs/node/issues/53036
-            (worker as NodeWorker).once('message', () => {});
             (worker as NodeWorker).unref()
           }
         }

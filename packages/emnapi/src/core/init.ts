@@ -259,5 +259,4 @@ export var PThread = new ThreadManager(
       }
 )
 
-PThread.init()
 napiModule.PThread = PThread
