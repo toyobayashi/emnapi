@@ -159,15 +159,25 @@ export class ThreadManager {
   }
 
   public loadWasmModuleToAllWorkers (): Promise<WorkerLike[]> {
-    const poolReady = Promise.all(
-      this.unusedWorkers.map((worker) =>
-        this.loadWasmModuleToWorker(worker))
-    )
-    return poolReady
-      .catch((err) => {
-        this.terminateAllThreads()
-        throw err
-      })
+    const promises: Array<Promise<WorkerLike>> = Array(this.unusedWorkers.length)
+    for (let i = 0; i < this.unusedWorkers.length; ++i) {
+      const worker = this.unusedWorkers[i]
+      if (ENVIRONMENT_IS_NODE) (worker as NodeWorker).ref()
+      promises[i] = this.loadWasmModuleToWorker(worker).then(
+        (w) => {
+          if (ENVIRONMENT_IS_NODE) (worker as NodeWorker).unref()
+          return w
+        },
+        (e) => {
+          if (ENVIRONMENT_IS_NODE) (worker as NodeWorker).unref()
+          throw e
+        }
+      )
+    }
+    return Promise.all(promises).catch((err) => {
+      this.terminateAllThreads()
+      throw err
+    })
   }
 
   public preloadWorkers (): Promise<WorkerLike[]> {
