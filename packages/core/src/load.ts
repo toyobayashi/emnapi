@@ -1,4 +1,4 @@
-import { type WASIInstance, WASIThreads, isSharedArrayBuffer } from '@emnapi/wasi-threads'
+import { type WASIInstance, WASIThreads } from '@emnapi/wasi-threads'
 import { type InputType, load, loadSync } from './util'
 import { createNapiModule } from './emnapi/index'
 import type { CreateOptions, NapiModule } from './emnapi/index'
