@@ -66,6 +66,14 @@ export function deserizeErrorFromBuffer (sab: SharedArrayBuffer): Error | null {
 }
 
 /** @public */
+export function isSharedArrayBuffer (value: any): value is SharedArrayBuffer {
+  return (
+    (typeof SharedArrayBuffer === 'function' && value instanceof SharedArrayBuffer) ||
+    (Object.prototype.toString.call(value.constructor) === '[object SharedArrayBuffer]')
+  )
+}
+
+/** @public */
 export function isTrapError (e: Error): e is WebAssembly.RuntimeError {
   try {
     return e instanceof _WebAssembly.RuntimeError

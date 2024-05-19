@@ -1,6 +1,6 @@
 import { ENVIRONMENT_IS_NODE, deserizeErrorFromBuffer, getPostMessage, isTrapError } from './util'
 import { checkSharedWasmMemory, ThreadManager } from './thread-manager'
-import type { WorkerMessageEvent, ThreadManagerOptions } from './thread-manager'
+import type { WorkerMessageEvent, ThreadManagerOptions, ThreadManagerOptionsMain, WorkerLike } from './thread-manager'
 import { type CommandPayloadMap, type MessageEventData, createMessage, type SpawnThreadPayload } from './command'
 import { createInstanceProxy } from './proxy'
 
@@ -30,7 +30,7 @@ export interface MainThreadOptionsWithThreadManager extends MainThreadBaseOption
 }
 
 /** @public */
-export interface MainThreadOptionsCreateThreadManager extends MainThreadBaseOptions, ThreadManagerOptions {}
+export interface MainThreadOptionsCreateThreadManager extends MainThreadBaseOptions, ThreadManagerOptionsMain {}
 
 /** @public */
 export type MainThreadOptions = MainThreadOptionsWithThreadManager | MainThreadOptionsCreateThreadManager
@@ -99,6 +99,7 @@ export class WASIThreads {
     } else {
       if (!this.childThread) {
         this.PThread = new ThreadManager(options as ThreadManagerOptions)
+        this.PThread.init()
       }
     }
 
@@ -262,6 +263,13 @@ export class WASIThreads {
     if (this.PThread) {
       this.PThread.setup(wasmModule, wasmMemory)
     }
+  }
+
+  public preloadWorkers (): Promise<WorkerLike[]> {
+    if (this.PThread) {
+      return this.PThread.preloadWorkers()
+    }
+    return Promise.resolve([])
   }
 
   /**

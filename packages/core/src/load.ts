@@ -142,29 +142,41 @@ function loadNapiModuleImpl (loadFn: Function, userNapiModule: NapiModule | unde
       napiModule.PThread.setup(module, memory)
     }
 
-    if (beforeInit) {
-      beforeInit({
-        instance: originalInstance,
-        module
+    const emnapiInit = (): LoadedSource | InstantiatedSource => {
+      if (beforeInit) {
+        beforeInit({
+          instance: originalInstance,
+          module
+        })
+      }
+      napiModule.init({
+        instance,
+        module,
+        memory,
+        table
       })
+
+      const ret: LoadedSource | InstantiatedSource = {
+        instance: originalInstance,
+        module,
+        usedInstance: instance
+      }
+      if (!isLoad) {
+        (ret as InstantiatedSource).napiModule = napiModule
+      }
+      return ret
     }
 
-    napiModule.init({
-      instance,
-      module,
-      memory,
-      table
-    })
+    if (napiModule.PThread.shouldPreloadWorkers()) {
+      const poolReady = napiModule.PThread.loadWasmModuleToAllWorkers()
+      if (loadFn === loadCallback) {
+        return poolReady.then(emnapiInit)
+      } else {
+        throw new Error('Synchronous loading is not supported with worker pool (reuseWorker.size > 0)')
+      }
+    }
 
-    const ret: any = {
-      instance: originalInstance,
-      module,
-      usedInstance: instance
-    }
-    if (!isLoad) {
-      ret.napiModule = napiModule
-    }
-    return ret
+    return emnapiInit()
   })
 }
 

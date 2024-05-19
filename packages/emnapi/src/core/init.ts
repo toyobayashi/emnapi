@@ -36,7 +36,6 @@ declare const process: any
 
 export var ENVIRONMENT_IS_NODE = typeof process === 'object' && process !== null && typeof process.versions === 'object' && process.versions !== null && typeof process.versions.node === 'string'
 export var ENVIRONMENT_IS_PTHREAD = Boolean(options.childThread)
-export var reuseWorker = Boolean(options.reuseWorker)
 export var waitThreadStart = typeof options.waitThreadStart === 'number' ? options.waitThreadStart : Boolean(options.waitThreadStart)
 
 export var wasmInstance: WebAssembly.Instance
@@ -69,7 +68,7 @@ export var napiModule: INapiModule = {
   emnapi: {},
   loaded: false,
   filename: '',
-  childThread: Boolean(options.childThread),
+  childThread: ENVIRONMENT_IS_PTHREAD,
 
   initWorker: undefined!,
   executeAsyncWork: undefined!,
@@ -244,15 +243,20 @@ function emnapiAddSendListener (worker: any): boolean {
 
 napiModule.emnapi.addSendListener = emnapiAddSendListener
 
-export var PThread = new ThreadManager({
-  printErr: err,
-  beforeLoad: (worker) => {
-    emnapiAddSendListener(worker)
-  },
-  reuseWorker,
-  onCreateWorker: onCreateWorker as ThreadManagerOptions['onCreateWorker'] ?? (() => {
-    throw new Error('options.onCreateWorker` is not provided')
-  })
-})
+export var PThread = new ThreadManager(
+  ENVIRONMENT_IS_PTHREAD
+    ? {
+        printErr: err,
+        childThread: true
+      }
+    : {
+        printErr: err,
+        beforeLoad: (worker) => {
+          emnapiAddSendListener(worker)
+        },
+        reuseWorker: options.reuseWorker,
+        onCreateWorker: onCreateWorker as ThreadManagerOptionsMain['onCreateWorker']
+      }
+)
 
 napiModule.PThread = PThread

@@ -1,4 +1,13 @@
-export type { ThreadManagerOptions, WorkerLike, WorkerMessageEvent, WorkerFactory } from './thread-manager'
+export type {
+  ReuseWorkerOptions,
+  ThreadManagerOptionsBase,
+  ThreadManagerOptionsMain,
+  ThreadManagerOptionsChild,
+  ThreadManagerOptions,
+  WorkerLike,
+  WorkerMessageEvent,
+  WorkerFactory
+} from './thread-manager'
 export { ThreadManager } from './thread-manager'
 
 export type {
@@ -20,6 +29,6 @@ export type { ThreadMessageHandlerOptions } from './worker'
 
 export { createInstanceProxy } from './proxy'
 
-export { isTrapError } from './util'
+export { isTrapError, isSharedArrayBuffer } from './util'
 
 export type { LoadPayload } from './command'

@@ -45,18 +45,26 @@ function loadPath (request, options) {
       })
       const napiModule = createNapiModule({
         context,
+        filename: request,
         asyncWorkPoolSize: process.env.EMNAPI_TEST_WASI_THREADS
           ? RUNTIME_UV_THREADPOOL_SIZE
           : -RUNTIME_UV_THREADPOOL_SIZE,
-        filename: request,
-        reuseWorker: true,
-        waitThreadStart: 1000,
-        onCreateWorker () {
-          return new Worker(join(__dirname, './worker.js'), {
-            env: process.env,
-            execArgv: ['--experimental-wasi-unstable-preview1']
-          })
-        },
+        ...(process.env.EMNAPI_TEST_WASI_THREADS
+          ? {
+              reuseWorker: {
+                size: RUNTIME_UV_THREADPOOL_SIZE * 4,
+                strict: true
+              },
+              waitThreadStart: 1000,
+              onCreateWorker () {
+                return new Worker(join(__dirname, './worker.js'), {
+                  env: process.env,
+                  execArgv: ['--experimental-wasi-unstable-preview1']
+                })
+              }
+            }
+          : {}
+        ),
         ...(options || {})
       })
 
