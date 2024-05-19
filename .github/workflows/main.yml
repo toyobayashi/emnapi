@@ -85,7 +85,7 @@ jobs:
       shell: bash
       run: |
         npm install -g node-gyp
-        npm install
+        npm install --ignore-scripts
 
     - name: NPM Build
       shell: bash
@@ -175,7 +175,7 @@ jobs:
       shell: bash
       run: |
         npm install -g node-gyp
-        npm install
+        npm install --ignore-scripts
 
     - name: NPM Build
       shell: bash
@@ -217,7 +217,7 @@ jobs:
       shell: bash
       run: |
         npm install -g node-gyp
-        npm install
+        npm install --ignore-scripts
 
     - name: NPM Build
       shell: bash
