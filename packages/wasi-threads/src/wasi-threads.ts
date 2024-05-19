@@ -132,9 +132,24 @@ export class WASIThreads {
     }
 
     const threadSpawn = (startArg: number, errorOrTid?: number): number => {
-      checkSharedWasmMemory(this.wasmMemory)
-
+      const EAGAIN = 6
       const isNewABI = errorOrTid !== undefined
+
+      try {
+        checkSharedWasmMemory(this.wasmMemory)
+      } catch (err) {
+        this.PThread?.printErr(err.stack)
+        if (isNewABI) {
+          const struct = new Int32Array(this.wasmMemory.buffer, errorOrTid!, 2)
+          Atomics.store(struct, 0, 1)
+          Atomics.store(struct, 1, EAGAIN)
+          Atomics.notify(struct, 1)
+          return 1
+        } else {
+          return -EAGAIN
+        }
+      }
+
       if (!isNewABI) {
         const malloc = this.wasmInstance.exports.malloc as Function
         errorOrTid = wasm64 ? Number(malloc(BigInt(8))) : malloc(8)
@@ -211,8 +226,6 @@ export class WASIThreads {
           }
         }
       } catch (e) {
-        const EAGAIN = 6
-
         Atomics.store(struct, 0, 1)
         Atomics.store(struct, 1, EAGAIN)
         Atomics.notify(struct, 1)

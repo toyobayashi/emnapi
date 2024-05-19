@@ -54,11 +54,18 @@ export interface ThreadManagerOptionsChild extends ThreadManagerOptionsBase {
 const WASI_THREADS_MAX_TID = 0x1FFFFFFF
 
 export function checkSharedWasmMemory (wasmMemory?: WebAssembly.Memory | null): void {
-  if (wasmMemory ? !isSharedArrayBuffer(wasmMemory.buffer) : (typeof SharedArrayBuffer === 'undefined')) {
-    throw new Error(
-      'Multithread features require shared wasm memory. ' +
-      'Try to compile with `-matomics -mbulk-memory` and use `--import-memory --shared-memory` during linking'
-    )
+  if (wasmMemory) {
+    if (!isSharedArrayBuffer(wasmMemory.buffer)) {
+      throw new Error(
+        'Multithread features require shared wasm memory. ' +
+        'Try to compile with `-matomics -mbulk-memory` and use `--import-memory --shared-memory` during linking, ' +
+        'then create WebAssembly.Memory with `shared: true` option'
+      )
+    }
+  } else {
+    if (typeof SharedArrayBuffer === 'undefined') {
+      throw new Error('Current environment does not support SharedArrayBuffer, threads are not available!')
+    }
   }
 }
 
