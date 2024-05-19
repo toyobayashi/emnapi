@@ -40,7 +40,7 @@ This package makes [wasi-threads proposal](https://github.com/WebAssembly/wasi-t
   const { WASI } = require('wasi')
   const Worker = require('worker_threads')
   const { WASIThreads } = require('@emnapi/wasi-threads')
-  
+
   const wasi = new WASI({
     version: 'preview1'
   })
@@ -70,12 +70,14 @@ This package makes [wasi-threads proposal](https://github.com/WebAssembly/wasi-t
     wasi_snapshot_preview1: wasi.wasiImport,
     ...wasiThreads.getImportObject()
   })
-  
+
+  wasiThreads.setup(instance, module, memory)
+  await wasiThreads.preloadWorkers()
+
   if (typeof instance.exports._start === 'function') {
-    const { exitCode } = wasiThreads.start(instance, module, memory)
-    return exitCode
+    return wasi.start(instance)
   } else {
-    instance = wasiThreads.initialize(instance, module, memory)
+    wasi.initialize(instance)
     // instance.exports.exported_wasm_function()
   }
 })

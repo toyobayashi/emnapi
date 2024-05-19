@@ -120,11 +120,7 @@ export class ThreadManager {
       this._reuseWorker = false
       this._beforeLoad = undefined!
     } else {
-      const onCreateWorker = (options as ThreadManagerOptionsMain).onCreateWorker
-      if (typeof onCreateWorker !== 'function') {
-        throw new TypeError('`options.onCreateWorker` is not provided')
-      }
-      this._onCreateWorker = onCreateWorker
+      this._onCreateWorker = (options as ThreadManagerOptionsMain).onCreateWorker
       this._reuseWorker = getReuseWorker((options as ThreadManagerOptionsMain).reuseWorker)
       this._beforeLoad = (options as ThreadManagerOptionsMain).beforeLoad
     }
@@ -172,6 +168,13 @@ export class ThreadManager {
         this.terminateAllThreads()
         throw err
       })
+  }
+
+  public preloadWorkers (): Promise<WorkerLike[]> {
+    if (this.shouldPreloadWorkers()) {
+      return this.loadWasmModuleToAllWorkers()
+    }
+    return Promise.resolve([])
   }
 
   public setup (wasmModule: WebAssembly.Module, wasmMemory: WebAssembly.Memory): void {
@@ -280,6 +283,9 @@ export class ThreadManager {
 
   public allocateUnusedWorker (): WorkerLike {
     const _onCreateWorker = this._onCreateWorker
+    if (typeof _onCreateWorker !== 'function') {
+      throw new TypeError('`options.onCreateWorker` is not provided')
+    }
     const worker = _onCreateWorker({ type: 'thread', name: 'emnapi-pthread' })
     this.unusedWorkers.push(worker)
     return worker

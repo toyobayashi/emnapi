@@ -142,14 +142,13 @@ function loadNapiModuleImpl (loadFn: Function, userNapiModule: NapiModule | unde
       napiModule.PThread.setup(module, memory)
     }
 
-    if (beforeInit) {
-      beforeInit({
-        instance: originalInstance,
-        module
-      })
-    }
-
     const emnapiInit = (): LoadedSource | InstantiatedSource => {
+      if (beforeInit) {
+        beforeInit({
+          instance: originalInstance,
+          module
+        })
+      }
       napiModule.init({
         instance,
         module,
@@ -168,13 +167,12 @@ function loadNapiModuleImpl (loadFn: Function, userNapiModule: NapiModule | unde
       return ret
     }
 
-    if (typeof originalInstance.exports.wasi_thread_start === 'function' && isSharedArrayBuffer(memory.buffer)) {
-      if (napiModule.PThread.shouldPreloadWorkers()) {
-        const poolReady = napiModule.PThread.loadWasmModuleToAllWorkers()
-        if (loadFn === loadCallback) {
-          return poolReady.then(emnapiInit)
-        }
-        return emnapiInit()
+    if (napiModule.PThread.shouldPreloadWorkers()) {
+      const poolReady = napiModule.PThread.loadWasmModuleToAllWorkers()
+      if (loadFn === loadCallback) {
+        return poolReady.then(emnapiInit)
+      } else {
+        throw new Error('Synchronous loading is not supported with worker pool (reuseWorker.size > 0)')
       }
     }
 
