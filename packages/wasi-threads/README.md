@@ -36,9 +36,9 @@ This package makes [wasi-threads proposal](https://github.com/WebAssembly/wasi-t
     }
     main(_require)
   }
-})(async function () {
+})(async function (require) {
   const { WASI } = require('wasi')
-  const Worker = require('worker_threads')
+  const { Worker } = require('worker_threads')
   const { WASIThreads } = require('@emnapi/wasi-threads')
 
   const wasi = new WASI({
