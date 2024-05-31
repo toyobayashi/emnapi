@@ -63,7 +63,7 @@
         ]
       },
       'conditions': [
-        ['wasm_threads != 0 and OS in " unknown wasi"', {
+        ['wasm_threads != 0 and OS in " unknown wasm wasi"', {
           'sources': [
             'src/thread/async_worker_create.c',
             'src/thread/async_worker_init.S',

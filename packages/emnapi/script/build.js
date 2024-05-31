@@ -129,6 +129,7 @@ async function build () {
           })
           const parsedCode = compiler.parseCode(code)
           return `import { _WebAssembly as WebAssembly } from '@/util'
+import { ThreadManager } from '@emnapi/wasi-threads'
 
 export function createNapiModule (options) {
   ${parsedCode}

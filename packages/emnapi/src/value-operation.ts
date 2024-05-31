@@ -221,7 +221,7 @@ export function napi_is_buffer (env: napi_env, value: napi_value, result: Pointe
   const h = emnapiCtx.handleStore.get(value)!
   from64('result')
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const r = h.isBuffer() ? 1 : 0
+  const r = h.isBuffer(emnapiCtx.feature.Buffer) ? 1 : 0
   makeSetValue('result', 0, 'r', 'i8')
   return envObject.clearLastError()
 }

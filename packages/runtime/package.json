@@ -1,6 +1,6 @@
 {
   "name": "@emnapi/runtime",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "description": "emnapi runtime",
   "main": "index.js",
   "module": "./dist/emnapi.esm-bundler.js",
@@ -23,8 +23,7 @@
     },
     "./dist/emnapi.min.mjs": {
       "types": "./dist/emnapi.d.mts",
-      "import": "./dist/emnapi.min.mjs",
-      "require": null
+      "default": "./dist/emnapi.min.mjs"
     }
   },
   "dependencies": {

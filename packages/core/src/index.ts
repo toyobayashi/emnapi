@@ -24,15 +24,16 @@ export type {
 export type {
   LoadOptions,
   InstantiateOptions,
-  InstantiatedSource,
-  ReactorWASI
+  LoadedSource,
+  InstantiatedSource
 } from './load'
 
 export type {
-  OnLoadData,
-  HandleOptions
+  MessageHandlerOptions
 } from './worker'
 
 export type {
   InputType
 } from './util'
+
+export * from '@emnapi/wasi-threads'

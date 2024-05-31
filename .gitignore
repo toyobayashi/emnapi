@@ -10,6 +10,7 @@ package-lock.json
 /example/build
 out
 /script/emnapi.zip
+/script/*.cmake
 *.tgz
 /packages/bench/bench.txt
 /packages/bench/build

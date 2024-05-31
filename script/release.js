@@ -69,9 +69,11 @@ async function main () {
     sysroot
   ], cwd)
 
+  const wasiToolchainFile = `${WASI_SDK_PATH}/share/cmake/wasi-sdk.cmake`
+
   await spawn('cmake', [
     ...generatorOptions,
-    `-DCMAKE_TOOLCHAIN_FILE=${WASI_SDK_PATH}/share/cmake/wasi-sdk.cmake`,
+    `-DCMAKE_TOOLCHAIN_FILE=${wasiToolchainFile}`,
     `-DWASI_SDK_PREFIX=${WASI_SDK_PATH}`,
     '-DCMAKE_BUILD_TYPE=Release',
     '-DCMAKE_VERBOSE_MAKEFILE=1',
@@ -88,6 +90,36 @@ async function main () {
   await spawn('cmake', [
     '--install',
     'build/wasm32-wasi',
+    '--prefix',
+    sysroot
+  ], cwd)
+
+  const wasip1ToolchainFile = path.join(__dirname, 'wasip1.cmake')
+  fs.writeFileSync(
+    wasip1ToolchainFile,
+    fs.readFileSync(wasiToolchainFile, 'utf8').replace(/wasm32-wasi/g, 'wasm32-wasip1'),
+    'utf8'
+  )
+
+  await spawn('cmake', [
+    ...generatorOptions,
+    `-DCMAKE_TOOLCHAIN_FILE=${wasip1ToolchainFile.replace(/\\/g, '/')}`,
+    `-DWASI_SDK_PREFIX=${WASI_SDK_PATH}`,
+    '-DCMAKE_BUILD_TYPE=Release',
+    '-DCMAKE_VERBOSE_MAKEFILE=1',
+    `-DNAPI_VERSION=${runtimeNapiVersion}`,
+    '-H.',
+    '-Bbuild/wasm32-wasip1'
+  ], cwd)
+
+  await spawn('cmake', [
+    '--build',
+    'build/wasm32-wasip1'
+  ], cwd)
+
+  await spawn('cmake', [
+    '--install',
+    'build/wasm32-wasip1',
     '--prefix',
     sysroot
   ], cwd)
@@ -119,6 +151,36 @@ async function main () {
     await spawn('cmake', [
       '--install',
       'build/wasm32-wasi-threads',
+      '--prefix',
+      sysroot
+    ], cwd)
+
+    const wasip1ThreadsToolchainFile = path.join(__dirname, 'wasip1-threads.cmake')
+    fs.writeFileSync(
+      wasip1ThreadsToolchainFile,
+      fs.readFileSync(WASI_THREADS_CMAKE_TOOLCHAIN_FILE, 'utf8').replace(/wasm32-wasi-threads/g, 'wasm32-wasip1-threads'),
+      'utf8'
+    )
+
+    await spawn('cmake', [
+      ...generatorOptions,
+      `-DCMAKE_TOOLCHAIN_FILE=${wasip1ThreadsToolchainFile.replace(/\\/g, '/')}`,
+      `-DWASI_SDK_PREFIX=${WASI_SDK_PATH}`,
+      '-DCMAKE_BUILD_TYPE=Release',
+      '-DCMAKE_VERBOSE_MAKEFILE=1',
+      `-DNAPI_VERSION=${runtimeNapiVersion}`,
+      '-H.',
+      '-Bbuild/wasm32-wasip1-threads'
+    ], cwd)
+
+    await spawn('cmake', [
+      '--build',
+      'build/wasm32-wasip1-threads'
+    ], cwd)
+
+    await spawn('cmake', [
+      '--install',
+      'build/wasm32-wasip1-threads',
       '--prefix',
       sysroot
     ], cwd)
@@ -211,9 +273,11 @@ async function main () {
   fs.copySync(path.join(sysroot, 'lib/wasm32-emscripten'), path.join(__dirname, '../packages/emnapi/lib/wasm32-emscripten'))
   fs.copySync(path.join(sysroot, 'lib/wasm64-emscripten'), path.join(__dirname, '../packages/emnapi/lib/wasm64-emscripten'))
   fs.copySync(path.join(sysroot, 'lib/wasm32-wasi'), path.join(__dirname, '../packages/emnapi/lib/wasm32-wasi'))
+  fs.copySync(path.join(sysroot, 'lib/wasm32-wasip1'), path.join(__dirname, '../packages/emnapi/lib/wasm32-wasip1'))
   fs.copySync(path.join(sysroot, 'lib/wasm32'), path.join(__dirname, '../packages/emnapi/lib/wasm32'))
   if (WASI_THREADS_CMAKE_TOOLCHAIN_FILE) {
     fs.copySync(path.join(sysroot, 'lib/wasm32-wasi-threads'), path.join(__dirname, '../packages/emnapi/lib/wasm32-wasi-threads'))
+    fs.copySync(path.join(sysroot, 'lib/wasm32-wasip1-threads'), path.join(__dirname, '../packages/emnapi/lib/wasm32-wasip1-threads'))
   }
 
   crossZip.zipSync(sysroot, path.join(__dirname, 'emnapi.zip'))

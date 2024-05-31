@@ -1,4 +1,4 @@
-import { napiModule } from 'emnapi:shared'
+import { napiModule, PThread } from 'emnapi:shared'
 
 import * as asyncMod from './async'
 import * as memoryMod from './memory'
@@ -41,6 +41,7 @@ emnapiAWST.init()
 emnapiExternalMemory.init()
 emnapiString.init()
 emnapiTSFN.init()
+PThread.init()
 
 napiModule.emnapi.syncMemory = emnapiMod.$emnapiSyncMemory
 napiModule.emnapi.getMemoryAddress = emnapiMod.$emnapiGetMemoryAddress
