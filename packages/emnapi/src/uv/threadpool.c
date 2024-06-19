@@ -331,6 +331,7 @@ void uv__work_submit(uv_loop_t* loop,
 static int uv__work_cancel(uv_loop_t* loop, uv_req_t* req, struct uv__work* w) {
   int cancelled;
 
+  uv_once(&once, init_once);  /* Ensure |mutex| is initialized. */
   uv_mutex_lock(&mutex);
   uv_mutex_lock(&w->loop->wq_mutex);
 
