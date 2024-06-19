@@ -24,9 +24,11 @@
 
 #if defined(__EMSCRIPTEN_PTHREADS__) || defined(_REENTRANT)
 
+#include "uv.h"
+#include "internal.h"
+
 #include <stdlib.h>
 #include <sched.h>
-#include "../uv-common.h"
 #include "emnapi_common.h"
 
 #if defined(__clang__) ||                                                     \
@@ -42,19 +44,6 @@ UV_UNUSED(static int cmpxchgi(int* ptr, int oldval, int newval));
 UV_UNUSED(static int cmpxchgi(int* ptr, int oldval, int newval)) {
   return __sync_val_compare_and_swap(ptr, oldval, newval);
 }
-
-#ifndef EMNAPI_NEXTTICK_TYPE
-#define EMNAPI_NEXTTICK_TYPE 0
-#endif
-#if EMNAPI_NEXTTICK_TYPE == 0
-EMNAPI_INTERNAL_EXTERN void _emnapi_set_immediate(void (*callback)(void*), void* data);
-#define NEXT_TICK(callback, data) _emnapi_set_immediate((callback), (data))
-#elif EMNAPI_NEXTTICK_TYPE == 1
-EMNAPI_INTERNAL_EXTERN void _emnapi_next_tick(void (*callback)(void*), void* data);
-#define NEXT_TICK(callback, data) _emnapi_next_tick((callback), (data))
-#else
-#error "Invalid EMNAPI_NEXTTICK_TYPE"
-#endif
 
 #if EMNAPI_USE_PROXYING
 #include <emscripten/threading.h>
@@ -89,11 +78,13 @@ void _emnapi_destroy_proxying_queue(uv_loop_t* loop) {}
 #endif
 
 int uv_async_init(uv_loop_t* loop, uv_async_t* handle, uv_async_cb async_cb) {
-  handle->loop = loop;
-  handle->type = UV_ASYNC;
+  uv__handle_init(loop, (uv_handle_t*)handle, UV_ASYNC);
   handle->async_cb = async_cb;
   handle->pending = 0;
+  handle->u.fd = 0; /* This will be used as a busy flag. */
+
   QUEUE_INSERT_TAIL(&loop->async_handles, &handle->queue);
+  uv__handle_start(handle);
   return 0;
 }
 
@@ -216,7 +207,7 @@ int uv_async_send(uv_async_t* handle) {
 void uv__async_close(uv_async_t* handle) {
   uv__async_spin(handle);
   QUEUE_REMOVE(&handle->queue);
-  NEXT_TICK(((void (*)(void *))handle->close_cb), handle);
+  uv__handle_stop(handle);
 }
 
 #endif

@@ -3,6 +3,12 @@
 
 #if defined(__EMSCRIPTEN_PTHREADS__) || defined(_REENTRANT)
 
+/* Internal type, do not use. */
+struct uv__queue {
+  struct uv__queue* next;
+  struct uv__queue* prev;
+};
+
 #include <stddef.h>
 #include "uv/unix.h"
 
@@ -29,6 +35,8 @@ typedef struct uv_work_s uv_work_t;
 typedef struct uv_handle_s uv_handle_t;
 typedef struct uv_async_s uv_async_t;
 
+typedef struct uv_metrics_s uv_metrics_t;
+
 typedef void (*uv_work_cb)(uv_work_t* req);
 typedef void (*uv_after_work_cb)(uv_work_t* req, int status);
 
@@ -40,10 +48,22 @@ struct uv_req_s {
   UV_REQ_FIELDS
 };
 
+typedef void* (*uv_malloc_func)(size_t size);
+typedef void* (*uv_realloc_func)(void* ptr, size_t size);
+typedef void* (*uv_calloc_func)(size_t count, size_t size);
+typedef void (*uv_free_func)(void* ptr);
+
 UV_EXTERN void uv_library_shutdown(void);
+
+UV_EXTERN int uv_replace_allocator(uv_malloc_func malloc_func,
+                                   uv_realloc_func realloc_func,
+                                   uv_calloc_func calloc_func,
+                                   uv_free_func free_func);
+
 UV_EXTERN uv_loop_t* uv_default_loop(void);
 UV_EXTERN int uv_loop_init(uv_loop_t* loop);
 UV_EXTERN int uv_loop_close(uv_loop_t* loop);
+UV_EXTERN uint64_t uv_hrtime(void);
 UV_EXTERN void uv_sleep(unsigned int msec);
 
 UV_EXTERN int uv_sem_init(uv_sem_t* sem, unsigned int value);
@@ -111,6 +131,12 @@ typedef void (*uv_async_cb)(uv_async_t* handle);
   uv_loop_t* loop;                                                            \
   uv_handle_type type;                                                        \
   uv_close_cb close_cb;                                                       \
+  void* handle_queue[2];                                                      \
+  union {                                                                     \
+    int fd;                                                                   \
+    void* reserved[4];                                                        \
+  } u;                                                                        \
+  UV_HANDLE_PRIVATE_FIELDS                                                    \
 
 struct uv_handle_s {
   UV_HANDLE_FIELDS
@@ -129,15 +155,30 @@ UV_EXTERN int uv_async_init(uv_loop_t*,
 UV_EXTERN int uv_async_send(uv_async_t* async);
 
 UV_EXTERN void uv_close(uv_handle_t* handle, uv_close_cb close_cb);
+UV_EXTERN int uv_is_closing(const uv_handle_t* handle);
+
+struct uv_metrics_s {
+  uint64_t loop_count;
+  uint64_t events;
+  uint64_t events_waiting;
+  /* private */
+  uint64_t* reserved[13];
+};
+
+UV_EXTERN int uv_metrics_info(uv_loop_t* loop, uv_metrics_t* metrics);
+UV_EXTERN uint64_t uv_metrics_idle_time(uv_loop_t* loop);
 
 struct uv_loop_s {
   void* data;
+  unsigned int active_handles;
+  void* handle_queue[2];
   union {
     void* unused;
     unsigned int count;
   } active_reqs;
-  void* wq[2];
+  void* internal_fields;
 
+  void* wq[2];
   uv_mutex_t wq_mutex;
   uv_async_t wq_async;
   void* async_handles[2];

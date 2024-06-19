@@ -18,4 +18,8 @@ typedef pthread_cond_t uv_cond_t;
 
 #endif
 
+#define UV_HANDLE_PRIVATE_FIELDS                                              \
+  uv_handle_t* next_closing;                                                  \
+  unsigned int flags;                                                         \
+
 #endif /* UV_UNIX_H */
