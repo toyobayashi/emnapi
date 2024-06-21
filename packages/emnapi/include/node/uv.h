@@ -3,18 +3,12 @@
 
 #if defined(__EMSCRIPTEN_PTHREADS__) || defined(_REENTRANT)
 
-/* Internal type, do not use. */
-struct uv__queue {
-  struct uv__queue* next;
-  struct uv__queue* prev;
-};
-
-#include <stddef.h>
-#include "uv/unix.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+#include <stddef.h>
+#include "uv/unix.h"
 
 /* Internal type, do not use. */
 struct uv__queue {
