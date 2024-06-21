@@ -19,6 +19,8 @@
  * IN THE SOFTWARE.
  */
 
+#if !defined(__wasm__) || (defined(__EMSCRIPTEN__) || defined(__wasi__))
+
 #include "uv.h"
 #include "internal.h"
 
@@ -34,3 +36,5 @@ uint64_t uv__hrtime(uv_clocktype_t type) {
 
   return t.tv_sec * (uint64_t) 1e9 + t.tv_nsec;
 }
+
+#endif
