@@ -1,7 +1,7 @@
 #include "node_api.h"
 #include "emnapi_internal.h"
 
-#if EMNAPI_HAVE_THREADS
+#if EMNAPI_HAVE_THREADS && !defined(EMNAPI_DISABLE_UV)
 #include "uv.h"
 #endif
 
@@ -31,7 +31,7 @@ napi_get_node_version(node_api_basic_env env,
 
 napi_status napi_get_uv_event_loop(node_api_basic_env env,
                                    struct uv_loop_s** loop) {
-#if EMNAPI_HAVE_THREADS
+#if EMNAPI_HAVE_THREADS && !defined(EMNAPI_DISABLE_UV)
   CHECK_ENV(env);
   CHECK_ARG(env, loop);
   // Though this is fake libuv loop
