@@ -5,9 +5,8 @@
 #include <stdatomic.h>
 #include <pthread.h>
 #include <errno.h>
-#include "uv/queue.h"
-
 #include "uv.h"
+#include "uv/queue.h"
 
 EXTERN_C_START
 
@@ -21,7 +20,7 @@ static const unsigned int kMaxIterationCount = 1000;
 
 struct data_queue_node {
   void* data;
-  void* q[2];
+  struct uv__queue q;
 };
 
 struct napi_threadsafe_function__ {

@@ -8,13 +8,15 @@ extern "C" {
 #endif
 
 #include <stddef.h>
-#include "uv/unix.h"
+#include <stdint.h>
 
 /* Internal type, do not use. */
 struct uv__queue {
   struct uv__queue* next;
   struct uv__queue* prev;
 };
+
+#include "uv/unix.h"
 
 #define UV_EXTERN /* nothing */
 
