@@ -28,9 +28,9 @@ int uv_loop_init(uv_loop_t* loop) {
          0,
          sizeof(lfields->loop_metrics.metrics));
 
-  QUEUE_INIT(&loop->wq);
-  QUEUE_INIT(&loop->async_handles);
-  QUEUE_INIT(&loop->handle_queue);
+  uv__queue_init(&loop->wq);
+  uv__queue_init(&loop->async_handles);
+  uv__queue_init(&loop->handle_queue);
   err = _emnapi_create_proxying_queue(loop);
   if (err) goto fail_proxying_queue_init;
   err = uv_mutex_init(&loop->wq_mutex);
@@ -57,7 +57,7 @@ void uv__loop_close(uv_loop_t* loop) {
   uv__loop_internal_fields_t* lfields;
 
   uv_mutex_lock(&loop->wq_mutex);
-  assert(QUEUE_EMPTY(&loop->wq) && "thread pool work queue not empty!");
+  assert(uv__queue_empty(&loop->wq) && "thread pool work queue not empty!");
   assert(!uv__has_active_reqs(loop));
   _emnapi_destroy_proxying_queue(loop);
   uv_mutex_unlock(&loop->wq_mutex);

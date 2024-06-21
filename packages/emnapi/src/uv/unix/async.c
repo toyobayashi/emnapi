@@ -83,7 +83,7 @@ int uv_async_init(uv_loop_t* loop, uv_async_t* handle, uv_async_cb async_cb) {
   handle->pending = 0;
   handle->u.fd = 0; /* This will be used as a busy flag. */
 
-  QUEUE_INSERT_TAIL(&loop->async_handles, &handle->queue);
+  uv__queue_insert_tail(&loop->async_handles, &handle->queue);
   uv__handle_start(handle);
   return 0;
 }
@@ -120,17 +120,17 @@ static int uv__async_spin(uv_async_t* handle) {
 }
 
 static void uv__async_io(uv_loop_t* loop) {
-  QUEUE queue;
-  QUEUE* q;
+  struct uv__queue queue;
+  struct uv__queue* q;
   uv_async_t* h;
 
-  QUEUE_MOVE(&loop->async_handles, &queue);
-  while (!QUEUE_EMPTY(&queue)) {
-    q = QUEUE_HEAD(&queue);
-    h = QUEUE_DATA(q, uv_async_t, queue);
+  uv__queue_move(&loop->async_handles, &queue);
+  while (!uv__queue_empty(&queue)) {
+    q = uv__queue_head(&queue);
+    h = uv__queue_data(q, uv_async_t, queue);
 
-    QUEUE_REMOVE(q);
-    QUEUE_INSERT_TAIL(&loop->async_handles, q);
+    uv__queue_remove(q);
+    uv__queue_insert_tail(&loop->async_handles, q);
 
     if (0 == uv__async_spin(h))
       continue;  /* Not pending. */
@@ -206,7 +206,7 @@ int uv_async_send(uv_async_t* handle) {
 
 void uv__async_close(uv_async_t* handle) {
   uv__async_spin(handle);
-  QUEUE_REMOVE(&handle->queue);
+  uv__queue_remove(&handle->queue);
   uv__handle_stop(handle);
 }
 

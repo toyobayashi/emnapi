@@ -30,7 +30,7 @@ struct napi_threadsafe_function__ {
   pthread_mutex_t mutex;
   pthread_cond_t* cond;
   size_t queue_size;
-  void* queue[2];
+  struct uv__queue queue;
   uv_async_t async;
   size_t thread_count;
   bool is_closing;
@@ -92,7 +92,7 @@ _emnapi_tsfn_create(napi_env env,
   pthread_mutex_init(&ts_fn->mutex, NULL);
   ts_fn->cond = NULL;
   ts_fn->queue_size = 0;
-  QUEUE_INIT(&ts_fn->queue);
+  uv__queue_init(&ts_fn->queue);
   ts_fn->thread_count = initial_thread_count;
   ts_fn->is_closing = false;
   ts_fn->dispatch_state = kDispatchIdle;
@@ -125,13 +125,13 @@ static void _emnapi_tsfn_destroy(napi_threadsafe_function func) {
     func->cond = NULL;
   }
 
-  QUEUE* tmp;
+  struct uv__queue* tmp;
   struct data_queue_node* node;
-  QUEUE_FOREACH(tmp, &func->queue) {
-    node = QUEUE_DATA(tmp, struct data_queue_node, q);
+  uv__queue_foreach(tmp, &func->queue) {
+    node = uv__queue_data(tmp, struct data_queue_node, q);
     free(node);
   }
-  QUEUE_INIT(&func->queue);
+  uv__queue_init(&func->queue);
 
   if (func->ref != NULL) {
     EMNAPI_ASSERT_CALL(napi_delete_reference(func->env, func->ref));
@@ -187,14 +187,14 @@ static napi_status _emnapi_tsfn_init(napi_threadsafe_function func) {
 }
 
 static void _emnapi_tsfn_empty_queue_and_delete(napi_threadsafe_function func) {
-  while (!QUEUE_EMPTY(&func->queue)) {
-    QUEUE* q = QUEUE_HEAD(&func->queue);
-    struct data_queue_node* node = QUEUE_DATA(q, struct data_queue_node, q);
+  while (!uv__queue_empty(&func->queue)) {
+    struct uv__queue* q = uv__queue_head(&func->queue);
+    struct data_queue_node* node = uv__queue_data(q, struct data_queue_node, q);
 
     func->call_js_cb(NULL, NULL, func->context, node->data);
 
-    QUEUE_REMOVE(q);
-    QUEUE_INIT(q);
+    uv__queue_remove(q);
+    uv__queue_init(q);
     func->queue_size--;
     free(node);
   }
@@ -295,10 +295,10 @@ static bool _emnapi_tsfn_dispatch_one(napi_threadsafe_function func) {
     } else {
       size_t size = func->queue_size;
       if (size > 0) {
-        QUEUE* q = QUEUE_HEAD(&func->queue);
-        struct data_queue_node* node = QUEUE_DATA(q, struct data_queue_node, q);
-        QUEUE_REMOVE(q);
-        QUEUE_INIT(q);
+        struct uv__queue* q = uv__queue_head(&func->queue);
+        struct data_queue_node* node = uv__queue_data(q, struct data_queue_node, q);
+        uv__queue_remove(q);
+        uv__queue_init(q);
         func->queue_size--;
         data = node->data;
         free(node);
@@ -519,7 +519,7 @@ napi_call_threadsafe_function(napi_threadsafe_function func,
       return napi_generic_failure;
     }
     queue_node->data = data;
-    QUEUE_INSERT_TAIL(&func->queue, &queue_node->q);
+    uv__queue_insert_tail(&func->queue, &queue_node->q);
     func->queue_size++;
     _emnapi_tsfn_send(func);
     pthread_mutex_unlock(&func->mutex);

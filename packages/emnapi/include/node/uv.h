@@ -16,6 +16,12 @@ struct uv__queue {
 extern "C" {
 #endif
 
+/* Internal type, do not use. */
+struct uv__queue {
+  struct uv__queue* next;
+  struct uv__queue* prev;
+};
+
 #define UV_EXTERN /* nothing */
 
 typedef enum {
@@ -131,7 +137,7 @@ typedef void (*uv_async_cb)(uv_async_t* handle);
   uv_loop_t* loop;                                                            \
   uv_handle_type type;                                                        \
   uv_close_cb close_cb;                                                       \
-  void* handle_queue[2];                                                      \
+  struct uv__queue handle_queue;                                              \
   union {                                                                     \
     int fd;                                                                   \
     void* reserved[4];                                                        \
@@ -145,7 +151,7 @@ struct uv_handle_s {
 struct uv_async_s {
   UV_HANDLE_FIELDS
   uv_async_cb async_cb;
-  void* queue[2];
+  struct uv__queue queue;
   int pending;
 };
 
@@ -171,17 +177,17 @@ UV_EXTERN uint64_t uv_metrics_idle_time(uv_loop_t* loop);
 struct uv_loop_s {
   void* data;
   unsigned int active_handles;
-  void* handle_queue[2];
+  struct uv__queue handle_queue;
   union {
     void* unused;
     unsigned int count;
   } active_reqs;
   void* internal_fields;
 
-  void* wq[2];
+  struct uv__queue wq;
   uv_mutex_t wq_mutex;
   uv_async_t wq_async;
-  void* async_handles[2];
+  struct uv__queue async_handles;
   void* em_queue;
 };
 
