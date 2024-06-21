@@ -32,7 +32,7 @@ static void uv__finish_close(uv_handle_t* handle) {
   handle->flags |= UV_HANDLE_CLOSED;
 
   uv__handle_unref(handle);
-  QUEUE_REMOVE(&handle->handle_queue);
+  uv__queue_remove(&handle->handle_queue);
 
   if (handle->close_cb) {
     handle->close_cb(handle);

@@ -112,8 +112,8 @@ uv_loop_t* uv_default_loop(void) {
 }
 
 int uv_loop_close(uv_loop_t* loop) {
-  // QUEUE* q;
-  // uv_handle_t* h;
+  struct uv__queue* q;
+  uv_handle_t* h;
 #ifndef NDEBUG
   void* saved_data;
 #endif
@@ -121,11 +121,11 @@ int uv_loop_close(uv_loop_t* loop) {
   if (uv__has_active_reqs(loop))
     return EBUSY;
 
-  // QUEUE_FOREACH(q, &loop->handle_queue) {
-  //   h = QUEUE_DATA(q, uv_handle_t, handle_queue);
-  //   if (!(h->flags & UV_HANDLE_INTERNAL))
-  //     return UV_EBUSY;
-  // }
+  uv__queue_foreach(q, &loop->handle_queue) {
+    h = uv__queue_data(q, uv_handle_t, handle_queue);
+    if (!(h->flags & UV_HANDLE_INTERNAL))
+      return EBUSY;
+  }
 
   uv__loop_close(loop);
 
