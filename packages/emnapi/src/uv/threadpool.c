@@ -19,7 +19,7 @@
  * IN THE SOFTWARE.
  */
 
-// from libuv 1.43.0
+// from libuv 1.48.0
 
 #if defined(__EMSCRIPTEN_PTHREADS__) || defined(_REENTRANT)
 
