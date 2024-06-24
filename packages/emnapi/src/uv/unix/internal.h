@@ -19,23 +19,36 @@
  * IN THE SOFTWARE.
  */
 
-/*
- * This file is private to libuv. It provides common functionality to both
- * Windows and Unix backends.
- */
+#ifndef UV_UNIX_INTERNAL_H_
+#define UV_UNIX_INTERNAL_H_
 
-#ifndef UV_THREADPOOL_H_
-#define UV_THREADPOOL_H_
+#include "../uv-common.h"
+#include "emnapi_common.h"
+#include <stdint.h>
 
-#if defined(__EMSCRIPTEN_PTHREADS__) || defined(_REENTRANT)
-
-struct uv__work {
-  void (*work)(struct uv__work *w);
-  void (*done)(struct uv__work *w, int status);
-  struct uv_loop_s* loop;
-  struct uv__queue wq;
-};
-
+#ifndef EMNAPI_NEXTTICK_TYPE
+#define EMNAPI_NEXTTICK_TYPE 0
+#endif
+#if EMNAPI_NEXTTICK_TYPE == 0
+EMNAPI_INTERNAL_EXTERN void _emnapi_set_immediate(void (*callback)(void*), void* data);
+#define NEXT_TICK(callback, data) _emnapi_set_immediate((callback), (data))
+#elif EMNAPI_NEXTTICK_TYPE == 1
+EMNAPI_INTERNAL_EXTERN void _emnapi_next_tick(void (*callback)(void*), void* data);
+#define NEXT_TICK(callback, data) _emnapi_next_tick((callback), (data))
+#else
+#error "Invalid EMNAPI_NEXTTICK_TYPE"
 #endif
 
-#endif /* UV_THREADPOOL_H_ */
+typedef enum {
+  UV_CLOCK_PRECISE = 0,  /* Use the highest resolution clock available. */
+  UV_CLOCK_FAST = 1      /* Use the fastest clock with <= 1ms granularity. */
+} uv_clocktype_t;
+
+uint64_t uv__hrtime(uv_clocktype_t type);
+
+#if defined(__EMSCRIPTEN_PTHREADS__) || defined(_REENTRANT)
+void uv__async_close(uv_async_t* handle);
+void uv__make_close_pending(uv_handle_t* handle);
+#endif
+
+#endif /* UV_UNIX_INTERNAL_H_ */

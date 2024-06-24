@@ -47,6 +47,9 @@
     {
       'target_name': 'emnapi_basic',
       'type': 'static_library',
+      'defines': [
+        'EMNAPI_DISABLE_UV'
+      ],
       'sources': [
         'src/js_native_api.c',
         'src/node_api.c',

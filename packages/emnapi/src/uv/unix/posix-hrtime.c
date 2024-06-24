@@ -1,4 +1,4 @@
-/* Copyright Joyent, Inc. and other Node contributors. All rights reserved.
+/* Copyright libuv project contributors. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -19,23 +19,22 @@
  * IN THE SOFTWARE.
  */
 
-/*
- * This file is private to libuv. It provides common functionality to both
- * Windows and Unix backends.
- */
+#if !defined(__wasm__) || (defined(__EMSCRIPTEN__) || defined(__wasi__))
 
-#ifndef UV_THREADPOOL_H_
-#define UV_THREADPOOL_H_
+#include "uv.h"
+#include "internal.h"
 
-#if defined(__EMSCRIPTEN_PTHREADS__) || defined(_REENTRANT)
+#include <stdint.h>
+#include <stdlib.h>
+#include <time.h>
 
-struct uv__work {
-  void (*work)(struct uv__work *w);
-  void (*done)(struct uv__work *w, int status);
-  struct uv_loop_s* loop;
-  struct uv__queue wq;
-};
+uint64_t uv__hrtime(uv_clocktype_t type) {
+  struct timespec t;
+
+  if (clock_gettime(CLOCK_MONOTONIC, &t))
+    abort();
+
+  return t.tv_sec * (uint64_t) 1e9 + t.tv_nsec;
+}
 
 #endif
-
-#endif /* UV_THREADPOOL_H_ */
