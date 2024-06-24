@@ -140,8 +140,10 @@ endif()
 
 add_library(${EMNAPI_BASIC_TARGET_NAME} STATIC ${ENAPI_BASIC_SRC})
 target_include_directories(${EMNAPI_BASIC_TARGET_NAME} PUBLIC ${EMNAPI_INCLUDE})
-target_compile_definitions(${EMNAPI_BASIC_TARGET_NAME} PUBLIC ${EMNAPI_DEFINES})
-target_compile_definitions(${EMNAPI_BASIC_TARGET_NAME} PRIVATE "EMNAPI_DISABLE_UV")
+target_compile_definitions(${EMNAPI_BASIC_TARGET_NAME}
+  PUBLIC ${EMNAPI_DEFINES}
+  PRIVATE "EMNAPI_DISABLE_UV"
+)
 if(IS_EMSCRIPTEN)
   set_target_properties(${EMNAPI_BASIC_TARGET_NAME} PROPERTIES INTERFACE_LINK_DEPENDS ${EMNAPI_JS_LIB})
   target_link_options(${EMNAPI_BASIC_TARGET_NAME} INTERFACE "--js-library=${EMNAPI_JS_LIB}")
@@ -161,8 +163,10 @@ if(EMNAPI_BUILD_BASIC_MT)
   )
   target_compile_options(${EMNAPI_BASIC_MT_TARGET_NAME} PUBLIC "-matomics" "-mbulk-memory")
   target_include_directories(${EMNAPI_BASIC_MT_TARGET_NAME} PUBLIC ${EMNAPI_INCLUDE})
-  target_compile_definitions(${EMNAPI_BASIC_MT_TARGET_NAME} PUBLIC ${EMNAPI_DEFINES})
-  target_compile_definitions(${EMNAPI_BASIC_MT_TARGET_NAME} PRIVATE "EMNAPI_DISABLE_UV")
+  target_compile_definitions(${EMNAPI_BASIC_MT_TARGET_NAME}
+    PUBLIC ${EMNAPI_DEFINES}
+    PRIVATE "EMNAPI_DISABLE_UV"
+  )
 
   if(IS_EMSCRIPTEN)
     set_target_properties(${EMNAPI_BASIC_MT_TARGET_NAME} PROPERTIES INTERFACE_LINK_DEPENDS ${EMNAPI_JS_LIB})
@@ -178,7 +182,10 @@ endif()
 
 if(EMNAPI_BUILD_MT)
   add_library(${EMNAPI_MT_TARGET_NAME} STATIC ${EMNAPI_SRC} ${UV_SRC})
-  target_compile_options(${EMNAPI_MT_TARGET_NAME} PRIVATE ${EMNAPI_MT_CFLAGS})
+  target_compile_options(${EMNAPI_MT_TARGET_NAME}
+    PUBLIC "-matomics" "-mbulk-memory"
+    PRIVATE ${EMNAPI_MT_CFLAGS}
+  )
   target_include_directories(${EMNAPI_MT_TARGET_NAME} PUBLIC ${EMNAPI_INCLUDE})
   target_compile_definitions(${EMNAPI_MT_TARGET_NAME} PUBLIC ${EMNAPI_DEFINES})
   if(IS_EMSCRIPTEN)
