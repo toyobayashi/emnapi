@@ -183,7 +183,7 @@ export function emnapiUnwrap (env: napi_env, js_object: napi_value, result: void
     }
     if (action === UnwrapAction.RemoveWrap) {
       binding.wrapped = 0
-      if (ref.ownership() === ReferenceOwnership.kUserland) {
+      if ((ref.ownership() as unknown as ReferenceOwnership) === ReferenceOwnership.kUserland) {
         // When the wrap is been removed, the finalizer should be reset.
         ref.resetFinalizer()
       } else {

@@ -21,7 +21,7 @@ import {
 } from './util'
 import { CallbackInfoStack } from './CallbackInfo'
 import { NotSupportWeakRefError, NotSupportBufferError } from './errors'
-import { Reference, ReferenceWithData, ReferenceWithFinalizer } from './Reference'
+import { Reference, ReferenceWithData, ReferenceWithFinalizer, type ReferenceOwnership } from './Reference'
 import { type IDeferrdValue, Deferred } from './Deferred'
 import { Store } from './Store'
 import { TrackedFinalizer } from './TrackedFinalizer'

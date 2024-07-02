@@ -21,11 +21,6 @@ declare const enum GlobalHandle {
   GLOBAL
 }
 
-declare const enum ReferenceOwnership {
-  kRuntime,
-  kUserland
-}
-
 declare const enum Version {
   NODE_API_SUPPORTED_VERSION_MIN = 1,
   NODE_API_DEFAULT_MODULE_API_VERSION = 8,

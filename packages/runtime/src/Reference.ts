@@ -5,6 +5,11 @@ import type { Handle } from './Handle'
 import { RefTracker } from './RefTracker'
 import { Finalizer } from './Finalizer'
 
+export enum ReferenceOwnership {
+  kRuntime,
+  kUserland
+}
+
 function canBeHeldWeakly (value: Handle<any>): boolean {
   return value.isObject() || value.isFunction() || value.isSymbol()
 }
