@@ -45,46 +45,46 @@ export function emnapi_create_memory_view (
     let viewDescriptor: MemoryViewDescriptor
     switch (typedarray_type) {
       case emnapi_memory_view_type.emnapi_int8_array:
-        viewDescriptor = { Ctor: Int8Array, address: external_data, length: byte_length, ownership: Ownership.kUserland, runtimeAllocated: 0 }
+        viewDescriptor = { Ctor: Int8Array, address: external_data, length: byte_length, ownership: ReferenceOwnership.kUserland, runtimeAllocated: 0 }
         break
       case emnapi_memory_view_type.emnapi_uint8_array:
-        viewDescriptor = { Ctor: Uint8Array, address: external_data, length: byte_length, ownership: Ownership.kUserland, runtimeAllocated: 0 }
+        viewDescriptor = { Ctor: Uint8Array, address: external_data, length: byte_length, ownership: ReferenceOwnership.kUserland, runtimeAllocated: 0 }
         break
       case emnapi_memory_view_type.emnapi_uint8_clamped_array:
-        viewDescriptor = { Ctor: Uint8ClampedArray, address: external_data, length: byte_length, ownership: Ownership.kUserland, runtimeAllocated: 0 }
+        viewDescriptor = { Ctor: Uint8ClampedArray, address: external_data, length: byte_length, ownership: ReferenceOwnership.kUserland, runtimeAllocated: 0 }
         break
       case emnapi_memory_view_type.emnapi_int16_array:
-        viewDescriptor = { Ctor: Int16Array, address: external_data, length: byte_length >> 1, ownership: Ownership.kUserland, runtimeAllocated: 0 }
+        viewDescriptor = { Ctor: Int16Array, address: external_data, length: byte_length >> 1, ownership: ReferenceOwnership.kUserland, runtimeAllocated: 0 }
         break
       case emnapi_memory_view_type.emnapi_uint16_array:
-        viewDescriptor = { Ctor: Uint16Array, address: external_data, length: byte_length >> 1, ownership: Ownership.kUserland, runtimeAllocated: 0 }
+        viewDescriptor = { Ctor: Uint16Array, address: external_data, length: byte_length >> 1, ownership: ReferenceOwnership.kUserland, runtimeAllocated: 0 }
         break
       case emnapi_memory_view_type.emnapi_int32_array:
-        viewDescriptor = { Ctor: Int32Array, address: external_data, length: byte_length >> 2, ownership: Ownership.kUserland, runtimeAllocated: 0 }
+        viewDescriptor = { Ctor: Int32Array, address: external_data, length: byte_length >> 2, ownership: ReferenceOwnership.kUserland, runtimeAllocated: 0 }
         break
       case emnapi_memory_view_type.emnapi_uint32_array:
-        viewDescriptor = { Ctor: Uint32Array, address: external_data, length: byte_length >> 2, ownership: Ownership.kUserland, runtimeAllocated: 0 }
+        viewDescriptor = { Ctor: Uint32Array, address: external_data, length: byte_length >> 2, ownership: ReferenceOwnership.kUserland, runtimeAllocated: 0 }
         break
       case emnapi_memory_view_type.emnapi_float32_array:
-        viewDescriptor = { Ctor: Float32Array, address: external_data, length: byte_length >> 2, ownership: Ownership.kUserland, runtimeAllocated: 0 }
+        viewDescriptor = { Ctor: Float32Array, address: external_data, length: byte_length >> 2, ownership: ReferenceOwnership.kUserland, runtimeAllocated: 0 }
         break
       case emnapi_memory_view_type.emnapi_float64_array:
-        viewDescriptor = { Ctor: Float64Array, address: external_data, length: byte_length >> 3, ownership: Ownership.kUserland, runtimeAllocated: 0 }
+        viewDescriptor = { Ctor: Float64Array, address: external_data, length: byte_length >> 3, ownership: ReferenceOwnership.kUserland, runtimeAllocated: 0 }
         break
       case emnapi_memory_view_type.emnapi_bigint64_array:
-        viewDescriptor = { Ctor: BigInt64Array, address: external_data, length: byte_length >> 3, ownership: Ownership.kUserland, runtimeAllocated: 0 }
+        viewDescriptor = { Ctor: BigInt64Array, address: external_data, length: byte_length >> 3, ownership: ReferenceOwnership.kUserland, runtimeAllocated: 0 }
         break
       case emnapi_memory_view_type.emnapi_biguint64_array:
-        viewDescriptor = { Ctor: BigUint64Array, address: external_data, length: byte_length >> 3, ownership: Ownership.kUserland, runtimeAllocated: 0 }
+        viewDescriptor = { Ctor: BigUint64Array, address: external_data, length: byte_length >> 3, ownership: ReferenceOwnership.kUserland, runtimeAllocated: 0 }
         break
       case emnapi_memory_view_type.emnapi_data_view:
-        viewDescriptor = { Ctor: DataView, address: external_data, length: byte_length, ownership: Ownership.kUserland, runtimeAllocated: 0 }
+        viewDescriptor = { Ctor: DataView, address: external_data, length: byte_length, ownership: ReferenceOwnership.kUserland, runtimeAllocated: 0 }
         break
       case emnapi_memory_view_type.emnapi_buffer: {
         if (!emnapiCtx.feature.Buffer) {
           throw emnapiCtx.createNotSupportBufferError('emnapi_create_memory_view', '')
         }
-        viewDescriptor = { Ctor: emnapiCtx.feature.Buffer!, address: external_data, length: byte_length, ownership: Ownership.kUserland, runtimeAllocated: 0 }
+        viewDescriptor = { Ctor: emnapiCtx.feature.Buffer!, address: external_data, length: byte_length, ownership: ReferenceOwnership.kUserland, runtimeAllocated: 0 }
         break
       }
       default: return envObject.setLastError(napi_status.napi_invalid_arg)
