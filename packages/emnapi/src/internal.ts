@@ -143,12 +143,14 @@ export function emnapiWrap (env: napi_env, js_object: napi_value, native_object:
     let reference: Reference
     if (result) {
       if (!finalize_cb) return envObject.setLastError(napi_status.napi_invalid_arg)
-      reference = emnapiCtx.createReference(envObject, handle.id, 0, Ownership.kUserland as any, finalize_cb, native_object, finalize_hint)
+      reference = emnapiCtx.createReferenceWithFinalizer(envObject, handle.id, 0, ReferenceOwnership.kUserland as any, finalize_cb, native_object, finalize_hint)
       from64('result')
       referenceId = reference.id
       makeSetValue('result', 0, 'referenceId', '*')
+    } else if (finalize_cb) {
+      reference = emnapiCtx.createReferenceWithFinalizer(envObject, handle.id, 0, ReferenceOwnership.kRuntime as any, finalize_cb, native_object, finalize_hint)
     } else {
-      reference = emnapiCtx.createReference(envObject, handle.id, 0, Ownership.kRuntime as any, finalize_cb, native_object, !finalize_cb ? finalize_cb : finalize_hint)
+      reference = emnapiCtx.createReferenceWithData(envObject, handle.id, 0, ReferenceOwnership.kRuntime as any, native_object)
     }
 
     envObject.getObjectBinding(handle.value).wrapped = reference.id
@@ -181,7 +183,7 @@ export function emnapiUnwrap (env: napi_env, js_object: napi_value, result: void
     }
     if (action === UnwrapAction.RemoveWrap) {
       binding.wrapped = 0
-      if (ref.ownership() === Ownership.kUserland) {
+      if (ref.ownership() === ReferenceOwnership.kUserland) {
         // When the wrap is been removed, the finalizer should be reset.
         ref.resetFinalizer()
       } else {

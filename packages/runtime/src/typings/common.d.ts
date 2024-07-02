@@ -21,7 +21,7 @@ declare const enum GlobalHandle {
   GLOBAL
 }
 
-declare const enum Ownership {
+declare const enum ReferenceOwnership {
   kRuntime,
   kUserland
 }

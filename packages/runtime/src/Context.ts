@@ -21,7 +21,7 @@ import {
 } from './util'
 import { CallbackInfoStack } from './CallbackInfo'
 import { NotSupportWeakRefError, NotSupportBufferError } from './errors'
-import { Reference } from './Reference'
+import { Reference, ReferenceWithData, ReferenceWithFinalizer } from './Reference'
 import { type IDeferrdValue, Deferred } from './Deferred'
 import { Store } from './Store'
 import { TrackedFinalizer } from './TrackedFinalizer'
@@ -164,12 +164,42 @@ export class Context {
     envObject: Env,
     handle_id: napi_value,
     initialRefcount: uint32_t,
-    ownership: 0 | 1,
+    ownership: ReferenceOwnership
+  ): Reference {
+    return Reference.create(
+      envObject,
+      handle_id,
+      initialRefcount,
+      ownership
+    )
+  }
+
+  public createReferenceWithData (
+    envObject: Env,
+    handle_id: napi_value,
+    initialRefcount: uint32_t,
+    ownership: ReferenceOwnership,
+    data: void_p
+  ): Reference {
+    return ReferenceWithData.create(
+      envObject,
+      handle_id,
+      initialRefcount,
+      ownership,
+      data
+    )
+  }
+
+  public createReferenceWithFinalizer (
+    envObject: Env,
+    handle_id: napi_value,
+    initialRefcount: uint32_t,
+    ownership: ReferenceOwnership,
     finalize_callback: napi_finalize = 0,
     finalize_data: void_p = 0,
     finalize_hint: void_p = 0
   ): Reference {
-    return Reference.create(
+    return ReferenceWithFinalizer.create(
       envObject,
       handle_id,
       initialRefcount,

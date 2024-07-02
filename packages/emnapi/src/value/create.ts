@@ -98,7 +98,7 @@ export function napi_create_external (env: napi_env, data: void_p, finalize_cb: 
     }
     const externalHandle = emnapiCtx.getCurrentScope()!.addExternal(envObject, data)
     if (finalize_cb) {
-      emnapiCtx.createReference(envObject, externalHandle.id, 0, Ownership.kRuntime as any, finalize_cb, data, finalize_hint)
+      emnapiCtx.createReferenceWithFinalizer(envObject, externalHandle.id, 0, ReferenceOwnership.kRuntime as any, finalize_cb, data, finalize_hint)
     }
     from64('result')
     value = externalHandle.id
@@ -151,7 +151,7 @@ export function napi_create_external_arraybuffer (
       u8arr.set(new Uint8Array(wasmMemory.buffer).subarray(external_data, external_data + byte_length))
       emnapiExternalMemory.table.set(arrayBuffer, {
         address: external_data,
-        ownership: Ownership.kUserland,
+        ownership: ReferenceOwnership.kUserland,
         runtimeAllocated: 0
       })
     }
@@ -262,7 +262,7 @@ export function napi_create_typedarray (
             Ctor: Type as any,
             address: byte_offset,
             length,
-            ownership: Ownership.kUserland,
+            ownership: ReferenceOwnership.kUserland,
             runtimeAllocated: 0
           })
         }
@@ -343,7 +343,7 @@ export function napi_create_buffer (
         Ctor: Buffer,
         address: pointer,
         length: size,
-        ownership: emnapiExternalMemory.registry ? Ownership.kRuntime : Ownership.kUserland,
+        ownership: emnapiExternalMemory.registry ? ReferenceOwnership.kRuntime : ReferenceOwnership.kUserland,
         runtimeAllocated: 1
       }
       emnapiExternalMemory.wasmMemoryViewTable.set(buffer, viewDescriptor)
@@ -451,7 +451,7 @@ export function napi_create_dataview (
           Ctor: DataView,
           address: byte_offset,
           length: byte_length,
-          ownership: Ownership.kUserland,
+          ownership: ReferenceOwnership.kUserland,
           runtimeAllocated: 0
         })
       }

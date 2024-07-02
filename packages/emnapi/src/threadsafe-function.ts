@@ -682,7 +682,7 @@ export function napi_create_threadsafe_function (
       return envObject.setLastError(napi_status.napi_invalid_arg)
     }
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    ref = emnapiCtx.createReference(envObject, func, 1, Ownership.kUserland as any).id
+    ref = emnapiCtx.createReference(envObject, func, 1, ReferenceOwnership.kUserland as any).id
   }
 
   let asyncResourceObject: any
@@ -709,7 +709,7 @@ export function napi_create_threadsafe_function (
   const tsfn = _malloc(to64('sizeofTSFN'))
   if (!tsfn) return envObject.setLastError(napi_status.napi_generic_failure)
   new Uint8Array(wasmMemory.buffer).subarray(tsfn, tsfn + sizeofTSFN).fill(0)
-  const resourceRef = emnapiCtx.createReference(envObject, resource, 1, Ownership.kUserland as any)
+  const resourceRef = emnapiCtx.createReference(envObject, resource, 1, ReferenceOwnership.kUserland as any)
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const resource_ = resourceRef.id
   makeSetValue('tsfn', 0, 'resource_', '*')
