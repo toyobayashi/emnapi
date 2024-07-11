@@ -19,6 +19,7 @@ import type {
   VisitResult,
   Statement
 } from 'typescript'
+import { cloneNode, type CloneNodeOptions } from 'ts-clone-node'
 
 import ts = require('typescript')
 import { join, resolve } from 'path'
@@ -104,9 +105,25 @@ function getDataViewSetMethod (defines: Record<string, any>, type: Type): string
   }
 }
 
+function parseExpression (input: string, factory?: NodeFactory): Expression {
+  const expression: Expression = (ts.createSourceFile('', input, ts.ScriptTarget.ESNext, true, ts.ScriptKind.TS).statements[0] as ExpressionStatement).expression
+  const cloneOptions: Partial<CloneNodeOptions<Expression>> = {
+    typescript: ts,
+    factory,
+    setOriginalNodes: true,
+    setParents: true,
+    preserveComments: true,
+    preserveSymbols: true
+  }
+  return cloneNode(expression, cloneOptions)
+}
+
 function byteOffsetParameter (factory: NodeFactory, defines: Record<string, any>, param: Expression): NumericLiteral | Expression {
-  if (ts.isNumericLiteral(param) || ts.isStringLiteral(param)) {
+  if (ts.isNumericLiteral(param)) {
     return factory.createNumericLiteral(param.text)
+  }
+  if (ts.isStringLiteral(param)) {
+    return parseExpression(param.text, factory)
   }
   if (ts.isIdentifier(param)) {
     if (param.text === 'POINTER_SIZE') {
@@ -120,7 +137,7 @@ function byteOffsetParameter (factory: NodeFactory, defines: Record<string, any>
       if (!ts.isStringLiteral(left)) throw new Error('left must be string literal')
       if (!ts.isIdentifier(right)) throw new Error('right must be identifier')
       if (right.text !== 'POINTER_SIZE') throw new Error('right.text !== "POINTER_SIZE"')
-      return factory.createNumericLiteral(`${left.text as string}${defines.MEMORY64 ? '8' : '4'}`)
+      return parseExpression(`${left.text as string}${defines.MEMORY64 ? '8' : '4'}`, factory)
     }
     if (param.operatorToken.kind === ts.SyntaxKind.AsteriskToken) {
       const left = param.left
@@ -544,9 +561,9 @@ class Transform {
       undefined,
       [
         ((ts.isNumericLiteral(argv1) || ts.isStringLiteral(argv1)) && argv1.text === '0')
-          ? this.ctx.factory.createNumericLiteral(argv0.text)
+          ? parseExpression(argv0.text, this.ctx.factory)
           : (this.ctx.factory.createBinaryExpression(
-              this.ctx.factory.createNumericLiteral(argv0.text),
+              parseExpression(argv0.text, this.ctx.factory),
               this.ctx.factory.createToken(ts.SyntaxKind.PlusToken),
               byteOffsetParameter(this.ctx.factory, this.defines, argv1)
             )),
@@ -591,9 +608,9 @@ class Transform {
       undefined,
       [
         ((ts.isNumericLiteral(argv1) || ts.isStringLiteral(argv1)) && argv1.text === '0')
-          ? this.ctx.factory.createNumericLiteral(argv0.text)
+          ? parseExpression(argv0.text, this.ctx.factory)
           : (this.ctx.factory.createBinaryExpression(
-              this.ctx.factory.createNumericLiteral(argv0.text),
+              parseExpression(argv0.text, this.ctx.factory),
               this.ctx.factory.createToken(ts.SyntaxKind.PlusToken),
               byteOffsetParameter(this.ctx.factory, this.defines, argv1)
             )),
@@ -601,9 +618,9 @@ class Transform {
           ? (this.ctx.factory.createCallExpression(
               this.ctx.factory.createIdentifier('BigInt'),
               undefined,
-              [this.ctx.factory.createNumericLiteral(argv2.text)]
+              [parseExpression(argv2.text, this.ctx.factory)]
             ))
-          : this.ctx.factory.createNumericLiteral(argv2.text),
+          : parseExpression(argv2.text, this.ctx.factory),
         this.ctx.factory.createTrue()
       ]
     )
@@ -625,7 +642,7 @@ class Transform {
         this.ctx.factory.createCallExpression(
           this.ctx.factory.createIdentifier(this.defines.MEMORY64 ? 'BigInt' : 'Number'),
           undefined,
-          [this.ctx.factory.createNumericLiteral(argv1.text)]
+          [parseExpression(argv1.text, this.ctx.factory)]
         )
       ]
     )
@@ -655,9 +672,9 @@ class Transform {
           ? (this.ctx.factory.createCallExpression(
               this.ctx.factory.createIdentifier('Number'),
               undefined,
-              [this.ctx.factory.createNumericLiteral(argv1.text)]
+              [parseExpression(argv1.text, this.ctx.factory)]
             ))
-          : this.ctx.factory.createNumericLiteral(argv1.text)
+          : parseExpression(argv1.text, this.ctx.factory)
       ]
     ))
   }
