@@ -5,14 +5,14 @@
   "description": "emnapi test",
   "main": "index.js",
   "devDependencies": {
-    "@tybys/wasm-util": "^0.8.0",
-    "chalk": "^4.1.1",
-    "cmake-js": "^7.1.1",
+    "@tybys/wasm-util": "^0.8.3",
+    "chalk": "^4.1.2",
+    "cmake-js": "^7.3.0",
     "cross-env": "^7.0.3",
-    "glob": "^7.2.0",
-    "memfs-browser": "^3.4.13000",
-    "node-addon-api": "7.0.0",
-    "why-is-node-running": "^2.2.2"
+    "glob": "^7.2.3",
+    "memfs-browser": "^3.5.10302",
+    "node-addon-api": "8.1.0",
+    "why-is-node-running": "^2.3.0"
   },
   "scripts": {
     "rebuild": "cross-env UV_THREADPOOL_SIZE=2 node ./script/build-emscripten.js Debug",
