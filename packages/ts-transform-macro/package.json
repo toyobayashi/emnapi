@@ -1,6 +1,6 @@
 {
   "name": "@emnapi/ts-transform-macro",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "C style define macros for TypeScript",
   "type": "commonjs",
   "main": "./lib/index.js",

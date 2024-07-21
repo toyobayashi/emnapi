@@ -92,7 +92,9 @@ class Transform {
       const enumValue = checker.getConstantValue(node)
       if (typeof enumValue === 'number') {
         return ts.addSyntheticTrailingComment(
-          factory.createNumericLiteral(enumValue),
+          enumValue < 0
+            ? factory.createPrefixUnaryExpression(ts.SyntaxKind.MinusToken, factory.createNumericLiteral(-enumValue))
+            : factory.createNumericLiteral(enumValue),
           ts.SyntaxKind.MultiLineCommentTrivia,
           ` ${node.expression.text as string}.${node.name.text as string} `,
           false
