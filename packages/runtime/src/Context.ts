@@ -110,6 +110,7 @@ class NodejsWaitingRequestCounter {
 export class Context {
   private _isStopping = false
   private _canCallIntoJs = true
+  private _suppressDestroy = false
 
   public envStore = new Store<Env>()
   public scopeStore = new ScopeStore()
@@ -137,9 +138,23 @@ export class Context {
     if (typeof process === 'object' && process !== null && typeof process.once === 'function') {
       this.refCounter = new NodejsWaitingRequestCounter()
       process.once('beforeExit', () => {
-        this.destroy()
+        if (!this._suppressDestroy) {
+          this.destroy()
+        }
       })
     }
+  }
+
+  /**
+   * Suppress the destroy on `beforeExit` event in Node.js.
+   * Call this method if you want to keep the context and
+   * all associated {@link Env | Env} alive,
+   * this also means that cleanup hooks will not be called.
+   * After call this method, you should call
+   * {@link Context.destroy | `Context.prototype.destroy`} method manually.
+   */
+  public suppressDestroy (): void {
+    this._suppressDestroy = true
   }
 
   // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
@@ -267,6 +282,10 @@ export class Context {
     return this._canCallIntoJs && !this._isStopping
   }
 
+  /**
+   * Destroy the context and call cleanup hooks.
+   * Associated {@link Env | Env} will be destroyed.
+   */
   public destroy (): void {
     this.setStopping(true)
     this.setCanCallIntoJs(false)
