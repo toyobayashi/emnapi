@@ -12,7 +12,7 @@ EMNAPI_INTERNAL_EXTERN void _emnapi_get_node_version(uint32_t* major,
                                      uint32_t* patch);
 
 napi_status
-napi_get_node_version(napi_env env,
+napi_get_node_version(node_api_basic_env env,
                       const napi_node_version** version) {
   CHECK_ENV(env);
   CHECK_ARG(env, version);
@@ -29,7 +29,7 @@ napi_get_node_version(napi_env env,
   return napi_clear_last_error(env);
 }
 
-napi_status napi_get_uv_event_loop(napi_env env,
+napi_status napi_get_uv_event_loop(node_api_basic_env env,
                                    struct uv_loop_s** loop) {
 #if EMNAPI_HAVE_THREADS
   CHECK_ENV(env);
@@ -44,7 +44,7 @@ napi_status napi_get_uv_event_loop(napi_env env,
 
 EMNAPI_INTERNAL_EXTERN int _emnapi_get_filename(napi_env env, char* buf, int len);
 
-napi_status node_api_get_module_file_name(napi_env env,
+napi_status node_api_get_module_file_name(node_api_basic_env env,
                                           const char** result) {
   CHECK_ENV(env);
   CHECK_ARG(env, result);

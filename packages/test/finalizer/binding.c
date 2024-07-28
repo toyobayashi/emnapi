@@ -18,16 +18,16 @@ typedef struct {
   napi_ref js_func;
 } FinalizerData;
 
-static void finalizerOnlyCallback(node_api_nogc_env env,
+static void finalizerOnlyCallback(node_api_basic_env env,
                                   void* finalize_data,
                                   void* finalize_hint) {
   FinalizerData* data = (FinalizerData*)finalize_data;
   int32_t count = ++data->finalize_count;
 
   // It is safe to access instance data
-  NODE_API_NOGC_CALL_RETURN_VOID(env,
+  NODE_API_BASIC_CALL_RETURN_VOID(env,
                                  napi_get_instance_data(env, (void**)&data));
-  NODE_API_NOGC_ASSERT_RETURN_VOID(count = data->finalize_count,
+  NODE_API_BASIC_ASSERT_RETURN_VOID(count = data->finalize_count,
                                    "Expected to be the same FinalizerData");
 }
 
@@ -47,16 +47,16 @@ static void finalizerCallingJSCallback(napi_env env,
 }
 
 // Schedule async finalizer to run JavaScript-touching code.
-static void finalizerWithJSCallback(node_api_nogc_env env,
+static void finalizerWithJSCallback(node_api_basic_env env,
                                     void* finalize_data,
                                     void* finalize_hint) {
-  NODE_API_NOGC_CALL_RETURN_VOID(
+  NODE_API_BASIC_CALL_RETURN_VOID(
       env,
       node_api_post_finalizer(
           env, finalizerCallingJSCallback, finalize_data, finalize_hint));
 }
 
-static void finalizerWithFailedJSCallback(node_api_nogc_env nogc_env,
+static void finalizerWithFailedJSCallback(node_api_basic_env nogc_env,
                                           void* finalize_data,
                                           void* finalize_hint) {
   // Intentionally cast to a napi_env to test the fatal failure.
