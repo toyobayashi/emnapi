@@ -44,7 +44,7 @@ void console_error(const char* fmt, const char* str);
     const char* err_message = error_info->error_message;                       \
     const char* error_message =                                                \
         err_message != NULL ? err_message : "empty error message";             \
-    fprintf(stderr, "%s\n", error_message);                                    \
+    EPRINT(error_message);                                                     \
     abort();                                                                   \
   } while (0)
 
@@ -62,7 +62,7 @@ void console_error(const char* fmt, const char* str);
 #define NODE_API_BASIC_ASSERT_BASE(assertion, message, ret_val)                \
   do {                                                                         \
     if (!(assertion)) {                                                        \
-      fprintf(stderr, "assertion (" #assertion ") failed: " message);          \
+      EPRINT("assertion (" #assertion ") failed: " message);                   \
       abort();                                                                 \
       return ret_val;                                                          \
     }                                                                          \
