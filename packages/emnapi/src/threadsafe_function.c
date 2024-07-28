@@ -584,7 +584,7 @@ napi_release_threadsafe_function(napi_threadsafe_function func,
 }
 
 napi_status
-napi_unref_threadsafe_function(napi_env env, napi_threadsafe_function func) {
+napi_unref_threadsafe_function(node_api_basic_env env, napi_threadsafe_function func) {
 #if EMNAPI_HAVE_THREADS
   if (func->async_ref) {
     EMNAPI_KEEPALIVE_POP();
@@ -598,7 +598,7 @@ napi_unref_threadsafe_function(napi_env env, napi_threadsafe_function func) {
 }
 
 napi_status
-napi_ref_threadsafe_function(napi_env env, napi_threadsafe_function func) {
+napi_ref_threadsafe_function(node_api_basic_env env, napi_threadsafe_function func) {
 #if EMNAPI_HAVE_THREADS
   if (!func->async_ref) {
     EMNAPI_KEEPALIVE_PUSH();

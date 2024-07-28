@@ -101,7 +101,7 @@ _emnapi_ach_handle_delete(napi_async_cleanup_hook_handle handle) {
 }
 
 napi_status
-napi_add_async_cleanup_hook(napi_env env,
+napi_add_async_cleanup_hook(node_api_basic_env env,
                             napi_async_cleanup_hook hook,
                             void* arg,
                             napi_async_cleanup_hook_handle* remove_handle) {

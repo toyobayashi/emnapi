@@ -198,7 +198,7 @@ napi_status napi_delete_async_work(napi_env env, napi_async_work work) {
 #endif
 }
 
-napi_status napi_queue_async_work(napi_env env, napi_async_work work) {
+napi_status napi_queue_async_work(node_api_basic_env env, napi_async_work work) {
 #if EMNAPI_HAVE_THREADS
   CHECK_ENV(env);
   CHECK_ARG(env, work);
@@ -220,7 +220,7 @@ napi_status napi_queue_async_work(napi_env env, napi_async_work work) {
     }                                                                   \
   } while (0)
 
-napi_status napi_cancel_async_work(napi_env env, napi_async_work work) {
+napi_status napi_cancel_async_work(node_api_basic_env env, napi_async_work work) {
 #if EMNAPI_HAVE_THREADS
   CHECK_ENV(env);
   CHECK_ARG(env, work);

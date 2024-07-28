@@ -35,8 +35,9 @@ EMNAPI_INTERNAL_EXTERN void _emnapi_get_last_error_info(napi_env env,
                                         void** engine_reserved);
 
 napi_status napi_get_last_error_info(
-    napi_env env, const napi_extended_error_info** result) {
+    node_api_basic_env basic_env, const napi_extended_error_info** result) {
   static napi_extended_error_info last_error;
+  napi_env env = (napi_env) basic_env;
   CHECK_ENV(env);
   CHECK_ARG(env, result);
 

@@ -24,7 +24,7 @@ void console_error(const char* fmt, const char* str);
     const napi_extended_error_info *error_info;                          \
     napi_get_last_error_info((env), &error_info);                        \
     bool is_pending;                                                     \
-    const char* err_message = error_info->error_message;                 \
+    const char* err_message = error_info->error_message;                  \
     napi_is_exception_pending((env), &is_pending);                       \
     /* If an exception is already pending, don't rethrow it */           \
     if (!is_pending) {                                                   \
@@ -35,7 +35,7 @@ void console_error(const char* fmt, const char* str);
     }                                                                    \
   } while (0)
 
-// The nogc version of GET_AND_THROW_LAST_ERROR. We cannot access any
+// The basic version of GET_AND_THROW_LAST_ERROR. We cannot access any
 // exceptions and we cannot fail by way of JS exception, so we abort.
 #define FATALLY_FAIL_WITH_LAST_ERROR(env)                                      \
   do {                                                                         \
@@ -59,7 +59,7 @@ void console_error(const char* fmt, const char* str);
     }                                                                    \
   } while (0)
 
-#define NODE_API_NOGC_ASSERT_BASE(assertion, message, ret_val)                 \
+#define NODE_API_BASIC_ASSERT_BASE(assertion, message, ret_val)                \
   do {                                                                         \
     if (!(assertion)) {                                                        \
       EPRINT("assertion (" #assertion ") failed: " message);                   \
@@ -78,8 +78,8 @@ void console_error(const char* fmt, const char* str);
 #define NODE_API_ASSERT_RETURN_VOID(env, assertion, message)             \
   NODE_API_ASSERT_BASE(env, assertion, message, NODE_API_RETVAL_NOTHING)
 
-#define NODE_API_NOGC_ASSERT_RETURN_VOID(assertion, message)                   \
-  NODE_API_NOGC_ASSERT_BASE(assertion, message, NODE_API_RETVAL_NOTHING)
+#define NODE_API_BASIC_ASSERT_RETURN_VOID(assertion, message)                  \
+  NODE_API_BASIC_ASSERT_BASE(assertion, message, NODE_API_RETVAL_NOTHING)
 
 #define NODE_API_CALL_BASE(env, the_call, ret_val)                       \
   do {                                                                   \
@@ -89,7 +89,7 @@ void console_error(const char* fmt, const char* str);
     }                                                                    \
   } while (0)
 
-#define NODE_API_NOGC_CALL_BASE(env, the_call, ret_val)                        \
+#define NODE_API_BASIC_CALL_BASE(env, the_call, ret_val)                       \
   do {                                                                         \
     if ((the_call) != napi_ok) {                                               \
       FATALLY_FAIL_WITH_LAST_ERROR((env));                                     \
@@ -105,18 +105,18 @@ void console_error(const char* fmt, const char* str);
 #define NODE_API_CALL_RETURN_VOID(env, the_call)                         \
   NODE_API_CALL_BASE(env, the_call, NODE_API_RETVAL_NOTHING)
 
-#define NODE_API_NOGC_CALL_RETURN_VOID(env, the_call)                          \
-  NODE_API_NOGC_CALL_BASE(env, the_call, NODE_API_RETVAL_NOTHING)
+#define NODE_API_BASIC_CALL_RETURN_VOID(env, the_call)                         \
+  NODE_API_BASIC_CALL_BASE(env, the_call, NODE_API_RETVAL_NOTHING)
 
-#define NODE_API_CHECK_STATUS(the_call)                                  \
-  do {                                                                   \
-    napi_status status = (the_call);                                     \
-    if (status != napi_ok) {                                             \
-      return status;                                                     \
-    }                                                                    \
+#define NODE_API_CHECK_STATUS(the_call)                                   \
+  do {                                                                         \
+    napi_status status = (the_call);                                           \
+    if (status != napi_ok) {                                                   \
+      return status;                                                           \
+    }                                                                          \
   } while (0)
 
-#define NODE_API_ASSERT_STATUS(env, assertion, message)                  \
+#define NODE_API_ASSERT_STATUS(env, assertion, message)                        \
   NODE_API_ASSERT_BASE(env, assertion, message, napi_generic_failure)
 
 #define DECLARE_NODE_API_PROPERTY(name, func)                            \
