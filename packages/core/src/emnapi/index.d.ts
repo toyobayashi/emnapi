@@ -1,10 +1,10 @@
-import type { Context } from '@emnapi/runtime'
+import type { Context, ReferenceOwnership } from '@emnapi/runtime'
 import type { ThreadManager, ThreadManagerOptionsMain, MainThreadBaseOptions } from '@emnapi/wasi-threads'
 
 /** @public */
 export declare interface PointerInfo {
   address: number
-  ownership: 0 | 1
+  ownership: ReferenceOwnership
   runtimeAllocated: 0 | 1
 }
 

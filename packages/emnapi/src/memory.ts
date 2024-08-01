@@ -19,7 +19,7 @@ export type ViewConstuctor =
 
 export interface ArrayBufferPointer {
   address: void_p
-  ownership: Ownership
+  ownership: ReferenceOwnership
   runtimeAllocated: 0 | 1
 }
 
@@ -75,7 +75,7 @@ export const emnapiExternalMemory: {
   getArrayBufferPointer: function (arrayBuffer: ArrayBuffer, shouldCopy: boolean): ArrayBufferPointer {
     const info: ArrayBufferPointer = {
       address: 0,
-      ownership: Ownership.kRuntime,
+      ownership: ReferenceOwnership.kRuntime,
       runtimeAllocated: 0
     }
     if (arrayBuffer === wasmMemory.buffer) {
@@ -89,7 +89,7 @@ export const emnapiExternalMemory: {
         cachedInfo.address = 0
         return cachedInfo
       }
-      if (shouldCopy && cachedInfo.ownership === Ownership.kRuntime && cachedInfo.runtimeAllocated === 1) {
+      if (shouldCopy && cachedInfo.ownership === ReferenceOwnership.kRuntime && cachedInfo.runtimeAllocated === 1) {
         new Uint8Array(wasmMemory.buffer).set(new Uint8Array(arrayBuffer), cachedInfo.address)
       }
       return cachedInfo
@@ -108,7 +108,7 @@ export const emnapiExternalMemory: {
     new Uint8Array(wasmMemory.buffer).set(new Uint8Array(arrayBuffer), pointer)
 
     info.address = pointer
-    info.ownership = emnapiExternalMemory.registry ? Ownership.kRuntime : Ownership.kUserland
+    info.ownership = emnapiExternalMemory.registry ? ReferenceOwnership.kRuntime : ReferenceOwnership.kUserland
     info.runtimeAllocated = 1
 
     emnapiExternalMemory.table.set(arrayBuffer, info)
@@ -123,7 +123,7 @@ export const emnapiExternalMemory: {
           Ctor: view.constructor as any,
           address: view.byteOffset,
           length: view instanceof DataView ? view.byteLength : (view as any).length,
-          ownership: Ownership.kUserland,
+          ownership: ReferenceOwnership.kUserland,
           runtimeAllocated: 0
         })
       }
@@ -156,7 +156,7 @@ export const emnapiExternalMemory: {
         const { address, ownership, runtimeAllocated } = emnapiExternalMemory.wasmMemoryViewTable.get(view)!
         return { address, ownership, runtimeAllocated, view }
       }
-      return { address: view.byteOffset, ownership: Ownership.kUserland, runtimeAllocated: 0, view }
+      return { address: view.byteOffset, ownership: ReferenceOwnership.kUserland, runtimeAllocated: 0, view }
     }
 
     const { address, ownership, runtimeAllocated } = emnapiExternalMemory.getArrayBufferPointer(view.buffer, shouldCopy)
