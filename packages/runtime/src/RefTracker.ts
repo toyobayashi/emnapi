@@ -1,5 +1,8 @@
 export class RefTracker {
   /** @virtual */
+  public dispose (): void {}
+
+  /** @virtual */
   public finalize (): void {}
 
   private _next: RefTracker | null = null

@@ -86,7 +86,7 @@ export function napi_create_reference (
     }
   }
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const ref = emnapiCtx.createReference(envObject, handle.id, initial_refcount >>> 0, Ownership.kUserland as any)
+  const ref = emnapiCtx.createReference(envObject, handle.id, initial_refcount >>> 0, ReferenceOwnership.kUserland as any)
   from64('result')
   makeSetValue('result', 0, 'ref.id', '*')
   return envObject.clearLastError()
@@ -129,7 +129,7 @@ export function napi_reference_unref (
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, ref)
   const reference = emnapiCtx.refStore.get(ref)!
-  const refcount = reference.refCount()
+  const refcount = reference.refcount()
 
   if (refcount === 0) {
     return envObject.setLastError(napi_status.napi_generic_failure)
@@ -154,7 +154,7 @@ export function napi_get_reference_value (
   $CHECK_ARG!(envObject, result)
   const reference = emnapiCtx.refStore.get(ref)!
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleId = reference.get()
+  const handleId = reference.get(envObject)
   from64('result')
   makeSetValue('result', 0, 'handleId', '*')
   return envObject.clearLastError()

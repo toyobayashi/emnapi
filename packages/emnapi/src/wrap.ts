@@ -194,11 +194,11 @@ export function napi_add_finalizer (env: napi_env, js_object: napi_value, finali
   }
   const handle = handleResult.handle!
 
-  const ownership: Ownership = !result ? Ownership.kRuntime : Ownership.kUserland
+  const ownership: ReferenceOwnership = !result ? ReferenceOwnership.kRuntime : ReferenceOwnership.kUserland
   from64('finalize_data')
   from64('finalize_cb')
   from64('finalize_hint')
-  const reference = emnapiCtx.createReference(envObject, handle.id, 0, ownership as any, finalize_cb, finalize_data, finalize_hint)
+  const reference = emnapiCtx.createReferenceWithFinalizer(envObject, handle.id, 0, ownership as any, finalize_cb, finalize_data, finalize_hint)
   if (result) {
     from64('result')
     // eslint-disable-next-line @typescript-eslint/no-unused-vars

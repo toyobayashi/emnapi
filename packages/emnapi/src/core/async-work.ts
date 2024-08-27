@@ -277,7 +277,7 @@ export var napi_create_async_work = singleThreadAsyncWork
     if (!aw) return envObject.setLastError(napi_status.napi_generic_failure)
     new Uint8Array(wasmMemory.buffer).subarray(aw, aw + sizeofAW).fill(0)
     const s = envObject.ensureHandleId(resourceObject)
-    const resourceRef = emnapiCtx.createReference(envObject, s, 1, Ownership.kUserland as any)
+    const resourceRef = emnapiCtx.createReference(envObject, s, 1, ReferenceOwnership.kUserland as any)
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const resource_ = resourceRef.id
     makeSetValue('aw', 0, 'resource_', '*')

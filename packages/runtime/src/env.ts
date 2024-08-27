@@ -9,7 +9,7 @@ import {
   NODE_API_DEFAULT_MODULE_API_VERSION
 } from './util'
 import { RefTracker } from './RefTracker'
-import { RefBase } from './RefBase'
+import { TrackedFinalizer } from './TrackedFinalizer'
 
 function throwNodeApiVersionError (moduleName: string, moduleApiVersion: number): never {
   const errorMessage = `${
@@ -32,12 +32,12 @@ export interface IReferenceBinding {
   data: void_p
 }
 
-export class Env implements IStoreValue {
+export abstract class Env implements IStoreValue {
   public id: number
 
   public openHandleScopes: number = 0
 
-  public instanceData: RefBase | null = null
+  public instanceData: TrackedFinalizer | null = null
 
   public tryCatch = new TryCatch()
 
@@ -131,16 +131,7 @@ export class Env implements IStoreValue {
   }
 
   /** @virtual */
-  public callFinalizer (cb: napi_finalize, data: void_p, hint: void_p): void {
-    const f = this.makeDynCall_vppp(cb)
-    const env: napi_env = this.id
-    const scope = this.ctx.openScope(this)
-    try {
-      this.callIntoModule(() => { f(env, data, hint) })
-    } finally {
-      this.ctx.closeScope(this, scope)
-    }
-  }
+  public abstract callFinalizer (cb: napi_finalize, data: void_p, hint: void_p): void
 
   public invokeFinalizerFromGC (finalizer: RefTracker): void {
     if (this.moduleApiVersion !== NAPI_VERSION_EXPERIMENTAL) {
@@ -186,8 +177,8 @@ export class Env implements IStoreValue {
 
   /** @virtual */
   public deleteMe (): void {
-    RefBase.finalizeAll(this.finalizing_reflist)
-    RefBase.finalizeAll(this.reflist)
+    RefTracker.finalizeAll(this.finalizing_reflist)
+    RefTracker.finalizeAll(this.reflist)
 
     this.tryCatch.extractException()
     this.ctx.envStore.remove(this.id)
@@ -196,6 +187,9 @@ export class Env implements IStoreValue {
   public dispose (): void {
     if (this.id === 0) return
     this.deleteMe()
+
+    this.finalizing_reflist.dispose()
+    this.reflist.dispose()
     this.id = 0
   }
 
@@ -222,7 +216,7 @@ export class Env implements IStoreValue {
     if (this.instanceData) {
       this.instanceData.dispose()
     }
-    this.instanceData = new RefBase(this, 0, Ownership.kRuntime, finalize_cb, data, finalize_hint)
+    this.instanceData = TrackedFinalizer.create(this, finalize_cb, data, finalize_hint)
   }
 
   public getInstanceData (): number {
