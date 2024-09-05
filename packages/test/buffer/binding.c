@@ -190,6 +190,64 @@ static napi_value getMemoryDataAsArray(napi_env env, napi_callback_info info) {
   return ret;
 }
 
+NAPI_EXTERN napi_status NAPI_CDECL
+node_api_create_buffer_from_arraybuffer(napi_env env,
+                                        napi_value arraybuffer,
+                                        size_t byte_offset,
+                                        size_t byte_length,
+                                        napi_value* result);
+
+static napi_value testBufferFromArrayBuffer(napi_env env,
+                                            napi_callback_info info) {
+  napi_status status;
+  napi_value arraybuffer;
+  void* data;
+  napi_value buffer;
+  size_t byte_length = 1024;
+  size_t byte_offset = 0;
+
+  status = napi_create_arraybuffer(env, byte_length, &data, &arraybuffer);
+  NODE_API_ASSERT(env, status == napi_ok, "Failed to create arraybuffer");
+
+  status = node_api_create_buffer_from_arraybuffer(
+      env, arraybuffer, byte_offset, byte_length, &buffer);
+  NODE_API_ASSERT(
+      env, status == napi_ok, "Failed to create buffer from arraybuffer");
+
+  void* buffer_data;
+  size_t buffer_length;
+  status = napi_get_buffer_info(env, buffer, &buffer_data, &buffer_length);
+  NODE_API_ASSERT(env, status == napi_ok, "Failed to get buffer info");
+  NODE_API_ASSERT(env, buffer_length == byte_length, "Buffer length mismatch");
+
+  bool is_buffer;
+  status = napi_is_buffer(env, buffer, &is_buffer);
+  NODE_API_ASSERT(env, status == napi_ok, "Failed to check if value is buffer");
+  NODE_API_ASSERT(env, is_buffer, "Expected a Buffer but did not get one");
+
+  status = node_api_create_buffer_from_arraybuffer(
+      env, arraybuffer, byte_length, byte_length + 1, &buffer);
+  NODE_API_ASSERT(env,
+                  status == 10,
+                  "Expected range error for invalid byte offset");
+  napi_value last_error;
+  status = napi_get_and_clear_last_exception(env, &last_error);
+  NODE_API_ASSERT(env, status == napi_ok, "Failed to call napi_get_and_clear_last_exception");
+
+  napi_value non_arraybuffer;
+  status = napi_create_uint32(env, 123, &non_arraybuffer);
+  NODE_API_ASSERT(
+      env, status == napi_ok, "Failed to create non-arraybuffer value");
+
+  status = node_api_create_buffer_from_arraybuffer(
+      env, non_arraybuffer, byte_offset, byte_length, &buffer);
+  NODE_API_ASSERT(env,
+                  status == napi_invalid_arg,
+                  "Expected invalid arg error for non-arraybuffer input");
+
+  return arraybuffer;
+}
+
 static napi_value Init(napi_env env, napi_value exports) {
   napi_value theValue;
 
@@ -208,6 +266,8 @@ static napi_value Init(napi_env env, napi_value exports) {
     DECLARE_NODE_API_PROPERTY("staticBuffer", staticBuffer),
     DECLARE_NODE_API_PROPERTY("invalidObjectAsBuffer", invalidObjectAsBuffer),
     DECLARE_NODE_API_PROPERTY("getMemoryDataAsArray", getMemoryDataAsArray),
+    DECLARE_NODE_API_PROPERTY("testBufferFromArrayBuffer",
+                                testBufferFromArrayBuffer),
   };
 
   NODE_API_CALL(env, napi_define_properties(
