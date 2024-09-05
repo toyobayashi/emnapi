@@ -58,4 +58,6 @@ module.exports = load('buffer').then(async binding => {
   assert.deepStrictEqual(binding.getMemoryDataAsArray(buffer), Array(6).fill(99))
   assert.deepStrictEqual(binding.getMemoryDataAsArray(typedArray), Array(6).fill(99))
   assert.deepStrictEqual(binding.getMemoryDataAsArray(dataView), Array(6).fill(99))
+
+  binding.testBufferFromArrayBuffer()
 })
