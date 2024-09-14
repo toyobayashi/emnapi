@@ -168,6 +168,20 @@ export function node_api_create_external_string_utf16 (
 /**
  * @__sig ipppp
  */
+export function node_api_create_property_key_latin1 (env: napi_env, str: const_char16_t_p, length: size_t, result: Pointer<napi_value>): napi_status {
+  return napi_create_string_latin1(env, str, length, result)
+}
+
+/**
+ * @__sig ipppp
+ */
+export function node_api_create_property_key_utf8 (env: napi_env, str: const_char16_t_p, length: size_t, result: Pointer<napi_value>): napi_status {
+  return napi_create_string_utf8(env, str, length, result)
+}
+
+/**
+ * @__sig ipppp
+ */
 export function node_api_create_property_key_utf16 (env: napi_env, str: const_char16_t_p, length: size_t, result: Pointer<napi_value>): napi_status {
   return napi_create_string_utf16(env, str, length, result)
 }
