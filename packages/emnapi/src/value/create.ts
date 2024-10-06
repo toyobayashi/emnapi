@@ -415,6 +415,63 @@ export function napi_create_external_buffer (
 /**
  * @__sig ippppp
  */
+export function node_api_create_buffer_from_arraybuffer (
+  env: napi_env,
+  arraybuffer: napi_value,
+  byte_offset: size_t,
+  byte_length: size_t,
+  result: Pointer<napi_value>
+): napi_status {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  let value: number
+
+  return $PREAMBLE!(env, (envObject) => {
+    $CHECK_ARG!(envObject, arraybuffer)
+    $CHECK_ARG!(envObject, result)
+    from64('byte_offset')
+    from64('byte_length')
+    byte_offset = byte_offset >>> 0
+    byte_length = byte_length >>> 0
+    const handle = emnapiCtx.handleStore.get(arraybuffer)!
+    const buffer = handle.value
+    if (!(buffer instanceof ArrayBuffer)) {
+      return envObject.setLastError(napi_status.napi_invalid_arg)
+    }
+
+    if ((byte_length + byte_offset) > buffer.byteLength) {
+      const err: RangeError & { code?: string } = new RangeError('The byte offset + length is out of range')
+      err.code = 'ERR_OUT_OF_RANGE'
+      throw err
+    }
+
+    const Buffer = emnapiCtx.feature.Buffer!
+    if (!Buffer) {
+      throw emnapiCtx.createNotSupportBufferError('node_api_create_buffer_from_arraybuffer', '')
+    }
+    const out = Buffer.from(buffer, byte_offset, byte_length)
+    if (buffer === wasmMemory.buffer) {
+      if (!emnapiExternalMemory.wasmMemoryViewTable.has(out)) {
+        emnapiExternalMemory.wasmMemoryViewTable.set(out, {
+          Ctor: Buffer,
+          address: byte_offset,
+          length: byte_length,
+          ownership: ReferenceOwnership.kUserland,
+          runtimeAllocated: 0
+        })
+      }
+    }
+    from64('result')
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    value = emnapiCtx.addToCurrentScope(out).id
+    makeSetValue('result', 0, 'value', '*')
+    return envObject.getReturnStatus()
+  })
+}
+
+/**
+ * @__sig ippppp
+ */
 export function napi_create_dataview (
   env: napi_env,
   byte_length: size_t,
