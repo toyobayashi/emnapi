@@ -16,6 +16,7 @@ const sources = [
   path.join(__dirname, './src/uv/uv-common.c'),
   path.join(__dirname, './src/uv/threadpool.c'),
   path.join(__dirname, './src/uv/unix/loop.c'),
+  path.join(__dirname, './src/uv/unix/posix-hrtime.c'),
   path.join(__dirname, './src/uv/unix/thread.c'),
   path.join(__dirname, './src/uv/unix/async.c'),
   path.join(__dirname, './src/uv/unix/core.c')
