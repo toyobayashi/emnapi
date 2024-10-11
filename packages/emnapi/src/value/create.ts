@@ -229,10 +229,10 @@ export function napi_create_typedarray (
     $CHECK_ARG!(envObject, result)
 
     const handle = emnapiCtx.handleStore.get(arraybuffer)!
-    const buffer = handle.value
-    if (!(buffer instanceof ArrayBuffer)) {
+    if (!handle.isArrayBuffer()) {
       return envObject.setLastError(napi_status.napi_invalid_arg)
     }
+    const buffer = handle.value
 
     from64('byte_offset')
     from64('length')
@@ -433,10 +433,10 @@ export function node_api_create_buffer_from_arraybuffer (
     byte_offset = byte_offset >>> 0
     byte_length = byte_length >>> 0
     const handle = emnapiCtx.handleStore.get(arraybuffer)!
-    const buffer = handle.value
-    if (!(buffer instanceof ArrayBuffer)) {
+    if (!handle.isArrayBuffer()) {
       return envObject.setLastError(napi_status.napi_invalid_arg)
     }
+    const buffer = handle.value
 
     if ((byte_length + byte_offset) > buffer.byteLength) {
       const err: RangeError & { code?: string } = new RangeError('The byte offset + length is out of range')
@@ -490,10 +490,10 @@ export function napi_create_dataview (
     byte_length = byte_length >>> 0
     byte_offset = byte_offset >>> 0
     const handle = emnapiCtx.handleStore.get(arraybuffer)!
-    const buffer = handle.value
-    if (!(buffer instanceof ArrayBuffer)) {
+    if (!handle.isArrayBuffer()) {
       return envObject.setLastError(napi_status.napi_invalid_arg)
     }
+    const buffer = handle.value
 
     if ((byte_length + byte_offset) > buffer.byteLength) {
       const err: RangeError & { code?: string } = new RangeError('byte_offset + byte_length should be less than or equal to the size in bytes of the array passed in')

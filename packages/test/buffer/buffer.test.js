@@ -21,6 +21,9 @@ module.exports = load('buffer').then(async binding => {
 
     // To test this doesn't crash
     binding.invalidObjectAsBuffer({})
+
+    const testBuffer = binding.bufferFromArrayBuffer()
+    assert(testBuffer instanceof Buffer, 'Expected a Buffer')
   })().then(common.mustCall())
 
   process.externalBuffer = binding.newExternalBuffer()
@@ -58,6 +61,4 @@ module.exports = load('buffer').then(async binding => {
   assert.deepStrictEqual(binding.getMemoryDataAsArray(buffer), Array(6).fill(99))
   assert.deepStrictEqual(binding.getMemoryDataAsArray(typedArray), Array(6).fill(99))
   assert.deepStrictEqual(binding.getMemoryDataAsArray(dataView), Array(6).fill(99))
-
-  binding.testBufferFromArrayBuffer()
 })
