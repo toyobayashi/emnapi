@@ -45,6 +45,7 @@ You will need to install:
 - npm `>= v8`
 - Emscripten `>= v3.1.9` / wasi-sdk / LLVM clang with wasm support
 - (Optional) CMake `>= v3.13`
+- (Optional) node-gyp `>= v10.2.0`
 - (Optional) ninja
 - (Optional) make
 - (Optional) [node-addon-api](https://github.com/nodejs/node-addon-api) `>= 6.1.0`
@@ -67,6 +68,9 @@ emcc -v
 # clang -print-targets # ensure wasm32 target exists
 
 cmake --version
+
+# if you use node-gyp
+node-gyp --version
 
 # if you use ninja
 ninja --version
@@ -629,15 +633,9 @@ Output code can run in recent version modern browsers and Node.js latest LTS. IE
 
 ### Using node-gyp (Experimental)
 
-Currently node-gyp works on Linux only and don't support static library linking in cross-compiling.
-There are related PRs to try to make node-gyp work fine.
+Require node-gyp `>= 10.2.0`
 
-- https://github.com/nodejs/gyp-next/pull/222
-- https://github.com/nodejs/gyp-next/pull/240
-- https://github.com/nodejs/node-gyp/pull/2974
-
-If you experienced issues on Windows or macOS, please check the PRs for upstream changes detail and see
-[emnapi-node-gyp-test](https://github.com/toyobayashi/emnapi-node-gyp-test) for examples.
+See [emnapi-node-gyp-test](https://github.com/toyobayashi/emnapi-node-gyp-test) for examples.
 
 - Variables
 
@@ -685,19 +683,10 @@ declare var emnapi_manual_linking: 0 | 1
         ["OS == 'emscripten'", {
           "product_extension": "js", # required
 
-          # Windows and Linux
           "cflags": [],
           "cflags_c": [],
           "cflags_cc": [],
-          "ldflags": [],
-
-          # macOS uses following config
-          'xcode_settings': {
-            "WARNING_CFLAGS": [], # cflags
-            "OTHER_CFLAGS": [], # cflags_c
-            "OTHER_CPLUSPLUSFLAGS": [], # cflags_cc
-            "OTHER_LDFLAGS": [] # ldflags
-          }
+          "ldflags": []
         }],
         ["OS == 'wasi'", {
           # ...
