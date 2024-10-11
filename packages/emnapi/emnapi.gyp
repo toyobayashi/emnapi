@@ -102,6 +102,7 @@
         'src/uv/uv-common.c',
         'src/uv/threadpool.c',
         'src/uv/unix/loop.c',
+        'src/uv/unix/posix-hrtime.c',
         'src/uv/unix/thread.c',
         'src/uv/unix/async.c',
         'src/uv/unix/core.c',
