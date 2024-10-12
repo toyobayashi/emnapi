@@ -48,6 +48,7 @@ export class Handle<S> {
   }
 
   public isBuffer (BufferConstructor?: BufferCtor): boolean {
+    if (ArrayBuffer.isView(this.value)) return true
     BufferConstructor ??= _Buffer
     return typeof BufferConstructor === 'function' && BufferConstructor.isBuffer(this.value)
   }

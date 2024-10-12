@@ -166,6 +166,9 @@ export function napi_get_buffer_info (
   $CHECK_ARG!(envObject, buffer)
   const handle = emnapiCtx.handleStore.get(buffer)!
   $RETURN_STATUS_IF_FALSE!(envObject, handle.isBuffer(emnapiCtx.feature.Buffer), napi_status.napi_invalid_arg)
+  if (handle.isDataView()) {
+    return napi_get_dataview_info(env, buffer, length, data, 0, 0)
+  }
   return napi_get_typedarray_info(env, buffer, 0, length, data, 0, 0)
 }
 
