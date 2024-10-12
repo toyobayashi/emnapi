@@ -21,6 +21,9 @@ module.exports = load('buffer').then(async binding => {
 
     // To test this doesn't crash
     binding.invalidObjectAsBuffer({})
+
+    const testBuffer = binding.bufferFromArrayBuffer()
+    assert(testBuffer instanceof Buffer, 'Expected a Buffer')
   })().then(common.mustCall())
 
   process.externalBuffer = binding.newExternalBuffer()
