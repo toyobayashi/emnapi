@@ -11,7 +11,11 @@
 
 #else
 #include <stddef.h>
+
+EXTERN_C_START
 void console_error(const char* fmt, const char* str);
+EXTERN_C_END
+
 #define abort() __builtin_trap()
 #define EPRINT(str) console_error("%s", (str))
 #endif
