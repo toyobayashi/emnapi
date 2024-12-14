@@ -17,6 +17,8 @@ void operator delete(void* p) noexcept {
 }
 #endif
 
+typedef int32_t FinalizerData;
+
 napi_ref MyObject::constructor;
 
 MyObject::MyObject(double value)
@@ -24,10 +26,16 @@ MyObject::MyObject(double value)
 
 MyObject::~MyObject() { napi_delete_reference(env_, wrapper_); }
 
-void MyObject::Destructor(
-  napi_env env, void* nativeObject, void* /*finalize_hint*/) {
+void MyObject::Destructor(node_api_basic_env env,
+                          void* nativeObject,
+                          void* /*finalize_hint*/) {
   MyObject* obj = static_cast<MyObject*>(nativeObject);
   delete obj;
+
+  FinalizerData* data;
+  NODE_API_BASIC_CALL_RETURN_VOID(
+      env, napi_get_instance_data(env, reinterpret_cast<void**>(&data)));
+  *data += 1;
 }
 
 void MyObject::Init(napi_env env, napi_value exports) {
@@ -169,7 +177,7 @@ napi_value MyObject::Multiply(napi_env env, napi_callback_info info) {
 }
 
 // This finalizer should never be invoked.
-void ObjectWrapDanglingReferenceFinalizer(napi_env env,
+void ObjectWrapDanglingReferenceFinalizer(node_api_basic_env env,
                                           void* finalize_data,
                                           void* finalize_hint) {
   __builtin_trap();
@@ -214,8 +222,30 @@ napi_value ObjectWrapDanglingReferenceTest(napi_env env,
   return ret;
 }
 
+static napi_value GetFinalizerCallCount(napi_env env, napi_callback_info info) {
+  size_t argc = 1;
+  napi_value argv[1];
+  FinalizerData* data;
+  napi_value result;
+
+  NODE_API_CALL(env,
+                napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr));
+  NODE_API_CALL(env,
+                napi_get_instance_data(env, reinterpret_cast<void**>(&data)));
+  NODE_API_CALL(env, napi_create_int32(env, *data, &result));
+  return result;
+}
+
+static void finalizeData(napi_env env, void* data, void* hint) {
+  delete reinterpret_cast<FinalizerData*>(data);
+}
+
 EXTERN_C_START
 napi_value Init(napi_env env, napi_value exports) {
+  FinalizerData* data = new FinalizerData;
+  *data = 0;
+  NODE_API_CALL(env, napi_set_instance_data(env, data, finalizeData, nullptr));
+
   MyObject::Init(env, exports);
 
   napi_property_descriptor descriptors[] = {
@@ -223,6 +253,7 @@ napi_value Init(napi_env env, napi_value exports) {
                             ObjectWrapDanglingReference),
       DECLARE_NODE_API_PROPERTY("objectWrapDanglingReferenceTest",
                             ObjectWrapDanglingReferenceTest),
+      DECLARE_NODE_API_PROPERTY("getFinalizerCallCount", GetFinalizerCallCount),
   };
 
   NODE_API_CALL(

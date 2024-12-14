@@ -2,7 +2,8 @@ const sharedRules = {
   'spaced-comment': 'off',
   'no-new-func': 'off',
   'no-implied-eval': 'off',
-  'no-var': 'off'
+  'no-var': 'off',
+  'camelcase': 'off'
 }
 
 module.exports = {
