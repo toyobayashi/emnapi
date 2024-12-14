@@ -97,7 +97,8 @@ export function napi_delete_reference (
   env: napi_env,
   ref: napi_ref
 ): napi_status {
-  const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
+  $CHECK_ENV!(env)
+  const envObject = emnapiCtx.envStore.get(env)!
   $CHECK_ARG!(envObject, ref)
   emnapiCtx.refStore.get(ref)!.dispose()
   return envObject.clearLastError()
