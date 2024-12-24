@@ -93,7 +93,7 @@ if(IS_EMSCRIPTEN)
     "-sMAXIMUM_MEMORY=2147483648"
     "-sSAFE_HEAP=1"
     "-sMODULARIZE=1"
-    "-sEXPORTED_RUNTIME_METHODS=['ExitStatus']"
+    "-sEXPORTED_RUNTIME_METHODS=['emnapiInit','ExitStatus']"
   )
 elseif(IS_WASI_THREADS)
   add_compile_options("-fno-exceptions")
@@ -317,7 +317,7 @@ target_compile_definitions("runjs_cnrj" PRIVATE "NAPI_EXPERIMENTAL")
 if(IS_WASM)
   if(IS_EMSCRIPTEN)
     add_test("emnapitest" "./emnapitest/binding.c" OFF)
-    target_link_options("emnapitest" PRIVATE "-sEXPORTED_RUNTIME_METHODS=['emnapiSyncMemory']")
+    target_link_options("emnapitest" PRIVATE "-sEXPORTED_RUNTIME_METHODS=['emnapiInit','ExitStatus','emnapiSyncMemory']")
   else()
     add_test("emnapitest" "./emnapitest/binding.c" OFF)
   endif()
