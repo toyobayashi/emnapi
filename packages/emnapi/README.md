@@ -187,6 +187,7 @@ emcc -O3 \
      -L./node_modules/emnapi/lib/wasm32-emscripten \
      --js-library=./node_modules/emnapi/dist/library_napi.js \
      -sEXPORTED_FUNCTIONS="['_malloc','_free','_napi_register_wasm_v1','_node_api_module_get_api_version_v1']" \
+     -sEXPORTED_RUNTIME_METHODS=['emnapiInit'] \
      -o hello.js \
      hello.c \
      -lemnapi
@@ -477,6 +478,7 @@ em++ -O3 \
      -L./node_modules/emnapi/lib/wasm32-emscripten \
      --js-library=./node_modules/emnapi/dist/library_napi.js \
      -sEXPORTED_FUNCTIONS="['_malloc','_free','_napi_register_wasm_v1','_node_api_module_get_api_version_v1']" \
+     -sEXPORTED_RUNTIME_METHODS=['emnapiInit'] \
      -o hello.js \
      hello.cpp \
      -lemnapi
@@ -580,6 +582,7 @@ target_link_libraries(hello emnapi)
 if(CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
   target_link_options(hello PRIVATE
     "-sEXPORTED_FUNCTIONS=['_malloc','_free','_napi_register_wasm_v1','_node_api_module_get_api_version_v1']"
+    "-sEXPORTED_RUNTIME_METHODS=['emnapiInit']"
   )
 elseif(CMAKE_SYSTEM_NAME STREQUAL "WASI")
   set_target_properties(hello PROPERTIES SUFFIX ".wasm")
@@ -849,6 +852,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
   target_link_options(hello PRIVATE
     "-sALLOW_MEMORY_GROWTH=1"
     "-sEXPORTED_FUNCTIONS=['_malloc','_free','_napi_register_wasm_v1','_node_api_module_get_api_version_v1']"
+    "-sEXPORTED_RUNTIME_METHODS=['emnapiInit']"
     "-pthread"
     "-sPTHREAD_POOL_SIZE=4"
     # try to specify stack size if you experience pthread errors
