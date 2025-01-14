@@ -27,7 +27,7 @@ export function $PREAMBLE (env: napi_env, fn: (envObject: Env) => napi_status): 
   $RETURN_STATUS_IF_FALSE!(
     envObject,
     envObject.canCallIntoJs(),
-    envObject.moduleApiVersion === Version.NAPI_VERSION_EXPERIMENTAL
+    envObject.moduleApiVersion >= 10
       ? napi_status.napi_cannot_run_js
       : napi_status.napi_pending_exception
   )
