@@ -3,6 +3,7 @@ export { createContext, getDefaultContext, Context, type CleanupHookCallbackFunc
 export { Deferred, type IDeferrdValue } from './Deferred'
 export { Env, NodeEnv, type IReferenceBinding } from './env'
 export { EmnapiError, NotSupportWeakRefError, NotSupportBufferError } from './errors'
+export { External, isExternal, getExternalValue } from './External'
 export { Finalizer } from './Finalizer'
 export { TrackedFinalizer } from './TrackedFinalizer'
 export { Handle, ConstHandle, HandleStore } from './Handle'

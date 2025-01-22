@@ -1,5 +1,5 @@
-import type { Env } from './env'
-import { isReferenceType, _global, _Buffer } from './util'
+import { External, getExternalValue, isExternal } from './External'
+import { _global, _Buffer } from './util'
 
 export class Handle<S> {
   public constructor (
@@ -7,8 +7,8 @@ export class Handle<S> {
     public value: S
   ) {}
 
-  public data (envObject: Env): void_p {
-    return envObject.getObjectBinding(this.value as any).data
+  public data (): void_p {
+    return getExternalValue(this.value as External) as void_p
   }
 
   public isNumber (): boolean {
@@ -28,7 +28,7 @@ export class Handle<S> {
   }
 
   public isExternal (): boolean {
-    return (isReferenceType(this.value) && Object.getPrototypeOf(this.value) === null)
+    return isExternal(this.value)
   }
 
   public isObject (): boolean {
@@ -93,11 +93,6 @@ export class ConstHandle<S extends undefined | null | boolean | typeof globalThi
 
   public override dispose (): void {}
 }
-
-export function External (this: any): void {
-  Object.setPrototypeOf(this, null)
-}
-External.prototype = null as any
 
 export class HandleStore {
   public static UNDEFINED = new ConstHandle(GlobalHandle.UNDEFINED, undefined)
