@@ -1,20 +1,16 @@
 {
   "extends": "../shared/tsconfig.base.json",
   "compilerOptions": {
-    "target": "ES5",
+    "target": "ES2021",
     "module": "ESNext",
     "noEmitHelpers": true,
     "importHelpers": true,
     "moduleResolution": "Bundler",
-    "outDir": "lib",
     "paths": {
       "tslib" : ["../../node_modules/tslib/tslib.d.ts"]
     },
     "lib": [
-      "ES5",
-      "ES2015",
-      "ES2020.BigInt",
-      "ES2021.WeakRef",
+      "ES2021",
       "DOM"
     ]
   },

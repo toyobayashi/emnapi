@@ -1,4 +1,5 @@
 const sharedRules = {
+  'prefer-const': 'off',
   'spaced-comment': 'off',
   'no-new-func': 'off',
   'no-implied-eval': 'off',

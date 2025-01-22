@@ -14,7 +14,8 @@ const dist = path.join(__dirname, '../dist')
 function build () {
   compile(path.join(__dirname, '../tsconfig.json'), {
     optionsToExtend: {
-      target: ts.ScriptTarget.ES2019,
+      target: ts.ScriptTarget.ES2021,
+      outDir: path.join(__dirname, '../lib'),
       emitDeclarationOnly: true,
       declaration: true,
       declarationDir: path.join(__dirname, '../lib/typings')
@@ -88,7 +89,7 @@ function build () {
 
   return Promise.all(([
     {
-      input: createInput(ts.ScriptTarget.ES5, false),
+      input: createInput(ts.ScriptTarget.ES2021, false),
       output: {
         file: path.join(dist, 'emnapi-core.js'),
         format: 'umd',
@@ -98,7 +99,7 @@ function build () {
       }
     },
     {
-      input: createInput(ts.ScriptTarget.ES5, true),
+      input: createInput(ts.ScriptTarget.ES2021, true),
       output: {
         file: path.join(dist, 'emnapi-core.min.js'),
         format: 'umd',
@@ -108,7 +109,7 @@ function build () {
       }
     },
     {
-      input: createInput(ts.ScriptTarget.ES2019, false, ['tslib', '@emnapi/wasi-threads']),
+      input: createInput(ts.ScriptTarget.ES2021, false, ['tslib', '@emnapi/wasi-threads']),
       output: {
         file: path.join(dist, 'emnapi-core.cjs.js'),
         format: 'cjs',
@@ -118,7 +119,7 @@ function build () {
       }
     },
     {
-      input: createInput(ts.ScriptTarget.ES2019, true, ['tslib', '@emnapi/wasi-threads']),
+      input: createInput(ts.ScriptTarget.ES2021, true, ['tslib', '@emnapi/wasi-threads']),
       output: {
         file: path.join(dist, 'emnapi-core.cjs.min.js'),
         format: 'cjs',
@@ -128,7 +129,7 @@ function build () {
       }
     },
     {
-      input: createInput(ts.ScriptTarget.ES2019, false, ['tslib', '@emnapi/wasi-threads']),
+      input: createInput(ts.ScriptTarget.ES2021, false, ['tslib', '@emnapi/wasi-threads']),
       output: {
         file: path.join(dist, 'emnapi-core.mjs'),
         format: 'esm',
@@ -138,7 +139,7 @@ function build () {
       }
     },
     {
-      input: createInput(ts.ScriptTarget.ES2019, true, ['tslib', '@emnapi/wasi-threads']),
+      input: createInput(ts.ScriptTarget.ES2021, true, ['tslib', '@emnapi/wasi-threads']),
       output: {
         file: path.join(dist, 'emnapi-core.min.mjs'),
         format: 'esm',
@@ -148,7 +149,7 @@ function build () {
       }
     },
     {
-      input: createInput(ts.ScriptTarget.ES5, false, ['tslib', '@emnapi/wasi-threads']),
+      input: createInput(ts.ScriptTarget.ES2021, false, ['tslib', '@emnapi/wasi-threads']),
       output: {
         file: path.join(dist, 'emnapi-core.esm-bundler.js'),
         format: 'esm',

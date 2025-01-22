@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "ES5",
+    "target": "ES2021",
     "module": "none",
     "noImplicitAny": true,
     "noImplicitReturns": true,
@@ -14,11 +14,7 @@
     "noEmit": true,
     "types": [],
     "lib": [
-      "ES5",
-      "ES2015",
-      "ES2020.BigInt",
-      "ES2021.WeakRef",
-      "ES2017.SharedMemory",
+      "ES2021",
       "DOM"
     ]
   },

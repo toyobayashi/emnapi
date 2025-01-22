@@ -2,20 +2,7 @@ import { _free, wasmMemory, _malloc } from 'emscripten:runtime'
 import { emnapiCtx } from 'emnapi:shared'
 import { to64 } from 'emscripten:parse-tools'
 
-export type ViewConstuctor =
-  Int8ArrayConstructor |
-  Uint8ArrayConstructor |
-  Uint8ClampedArrayConstructor |
-  Int16ArrayConstructor |
-  Uint16ArrayConstructor |
-  Int32ArrayConstructor |
-  Uint32ArrayConstructor |
-  BigInt64ArrayConstructor |
-  BigUint64ArrayConstructor |
-  Float32ArrayConstructor |
-  Float64ArrayConstructor |
-  DataViewConstructor |
-  BufferCtor
+export type ViewConstuctor = new (...args: any[]) => ArrayBufferView
 
 export interface ArrayBufferPointer {
   address: void_p

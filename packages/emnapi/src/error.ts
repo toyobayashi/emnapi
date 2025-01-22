@@ -17,7 +17,7 @@ export function _emnapi_get_last_error_info (env: napi_env, error_code: Pointer<
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const engineErrorCode = lastError.engineErrorCode >>> 0
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const engineReserved = lastError.engineReserved
+  let engineReserved = lastError.engineReserved
   from64('engineReserved')
 
   makeSetValue('error_code', 0, 'errorCode', 'i32')
