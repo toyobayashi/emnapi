@@ -38,7 +38,7 @@ export function napi_get_cb_info (env: napi_env, cbinfo: napi_callback_info, arg
 
   if (argv) {
     $CHECK_ARG!(envObject, argc)
-    const argcValue = makeGetValue('argc', 0, SIZE_TYPE)
+    let argcValue = makeGetValue('argc', 0, SIZE_TYPE)
     from64('argcValue')
 
     const len = cbinfoValue.args.length
