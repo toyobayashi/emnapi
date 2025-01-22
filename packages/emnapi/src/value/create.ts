@@ -96,7 +96,7 @@ export function napi_create_external (env: napi_env, data: void_p, finalize_cb: 
     if (!emnapiCtx.feature.supportFinalizer && finalize_cb) {
       throw emnapiCtx.createNotSupportWeakRefError('napi_create_external', 'Parameter "finalize_cb" must be 0(NULL)')
     }
-    const externalHandle = emnapiCtx.getCurrentScope()!.addExternal(envObject, data)
+    const externalHandle = emnapiCtx.getCurrentScope()!.addExternal(data)
     if (finalize_cb) {
       emnapiCtx.createReferenceWithFinalizer(envObject, externalHandle.id, 0, ReferenceOwnership.kRuntime as any, finalize_cb, data, finalize_hint)
     }

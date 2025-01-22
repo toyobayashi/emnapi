@@ -29,7 +29,6 @@ function handleThrow (envObject: Env, value: any): void {
 export interface IReferenceBinding {
   wrapped: number // wrapped Reference id
   tag: Uint32Array | null
-  data: void_p
 }
 
 export abstract class Env implements IStoreValue {
@@ -198,8 +197,7 @@ export abstract class Env implements IStoreValue {
   public initObjectBinding<S extends object> (value: S): IReferenceBinding {
     const binding: IReferenceBinding = {
       wrapped: 0,
-      tag: null,
-      data: 0
+      tag: null
     }
     this._bindingMap.set(value, binding)
     return binding
