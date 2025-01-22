@@ -1,6 +1,5 @@
-import type { Env } from './env'
 import type { Handle, HandleStore } from './Handle'
-import { External } from './Handle'
+import { External } from './External'
 
 export class HandleScope {
   public handleStore: HandleStore
@@ -28,13 +27,8 @@ export class HandleScope {
     return h
   }
 
-  public addExternal (envObject: Env, data: void_p): Handle<object> {
-    const value = new (External as any)()
-    const h = envObject.ctx.handleStore.push(value)
-    const binding = envObject.initObjectBinding(value)
-    binding.data = data
-    this.end++
-    return h
+  public addExternal (data: void_p): Handle<object> {
+    return this.add(new External(data))
   }
 
   public dispose (): void {

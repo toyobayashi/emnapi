@@ -422,7 +422,7 @@ export function napi_get_value_external (env: napi_env, value: napi_value, resul
   from64('result')
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const p = handle.data(envObject)
+  const p = handle.data()
   makeSetValue('result', 0, 'p', '*')
   return envObject.clearLastError()
 }
