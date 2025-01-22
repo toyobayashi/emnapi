@@ -12,7 +12,8 @@ const { compile } = require('@tybys/tsapi')
 function build () {
   compile(path.join(__dirname, '../tsconfig.json'), {
     optionsToExtend: {
-      target: require('typescript').ScriptTarget.ES2019,
+      target: require('typescript').ScriptTarget.ES2021,
+      outDir: path.join(__dirname, '../lib'),
       emitDeclarationOnly: true,
       declaration: true,
       declarationMap: true,
@@ -80,7 +81,7 @@ function build () {
 
   return Promise.all(([
     {
-      input: createInput(ts.ScriptTarget.ES5, false),
+      input: createInput(ts.ScriptTarget.ES2021, false),
       output: {
         file: runtimeOut,
         format: 'iife',
@@ -90,7 +91,7 @@ function build () {
       }
     },
     {
-      input: createInput(ts.ScriptTarget.ES5, false),
+      input: createInput(ts.ScriptTarget.ES2021, false),
       output: {
         file: path.join(path.dirname(runtimeOut), 'emnapi.js'),
         format: 'umd',
@@ -100,7 +101,7 @@ function build () {
       }
     },
     {
-      input: createInput(ts.ScriptTarget.ES5, true),
+      input: createInput(ts.ScriptTarget.ES2021, true),
       output: {
         file: path.join(path.dirname(runtimeOut), 'emnapi.min.js'),
         format: 'umd',
@@ -110,7 +111,7 @@ function build () {
       }
     },
     {
-      input: createInput(ts.ScriptTarget.ES2019, false, ['tslib']),
+      input: createInput(ts.ScriptTarget.ES2021, false, ['tslib']),
       output: {
         file: path.join(path.dirname(runtimeOut), 'emnapi.cjs.js'),
         format: 'cjs',
@@ -120,7 +121,7 @@ function build () {
       }
     },
     {
-      input: createInput(ts.ScriptTarget.ES2019, true, ['tslib']),
+      input: createInput(ts.ScriptTarget.ES2021, true, ['tslib']),
       output: {
         file: path.join(path.dirname(runtimeOut), 'emnapi.cjs.min.js'),
         format: 'cjs',
@@ -130,7 +131,7 @@ function build () {
       }
     },
     {
-      input: createInput(ts.ScriptTarget.ES2019, false, ['tslib']),
+      input: createInput(ts.ScriptTarget.ES2021, false, ['tslib']),
       output: {
         file: path.join(path.dirname(runtimeOut), 'emnapi.mjs'),
         format: 'esm',
@@ -140,7 +141,7 @@ function build () {
       }
     },
     {
-      input: createInput(ts.ScriptTarget.ES2019, true, ['tslib']),
+      input: createInput(ts.ScriptTarget.ES2021, true, ['tslib']),
       output: {
         file: path.join(path.dirname(runtimeOut), 'emnapi.min.mjs'),
         format: 'esm',
@@ -150,7 +151,7 @@ function build () {
       }
     },
     {
-      input: createInput(ts.ScriptTarget.ES5, false, ['tslib']),
+      input: createInput(ts.ScriptTarget.ES2021, false, ['tslib']),
       output: {
         file: path.join(path.dirname(runtimeOut), 'emnapi.esm-bundler.js'),
         format: 'esm',

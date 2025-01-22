@@ -110,11 +110,13 @@ const _require = /*#__PURE__*/ (function () {
   return nativeRequire
 })()
 
+const getBuiltinModule: (id: string) => any = _global.process?.getBuiltinModule ?? _require
+
 export const _MessageChannel: typeof MessageChannel | undefined = typeof MessageChannel === 'function'
   ? MessageChannel
   : /*#__PURE__*/ (function () {
       try {
-        return _require!('worker_threads').MessageChannel
+        return getBuiltinModule('worker_threads').MessageChannel
       } catch (_) {}
 
       return undefined
@@ -143,7 +145,7 @@ export const _Buffer: BufferCtor | undefined = typeof Buffer === 'function'
   ? Buffer
   : /*#__PURE__*/ (function () {
       try {
-        return _require!('buffer').Buffer
+        return getBuiltinModule('buffer').Buffer
       } catch (_) {}
 
       return undefined
