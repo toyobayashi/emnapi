@@ -13,6 +13,10 @@ void* operator new(size_t size) {
 void operator delete(void* p) noexcept {
   free(p);
 }
+
+void operator delete(void* p, size_t) noexcept {
+  free(p);
+}
 #endif
 
 size_t finalize_count = 0;
