@@ -37,6 +37,8 @@ See documentation for more details:
 
 [How to build Node-API official examples](https://github.com/toyobayashi/node-addon-examples)
 
+If you want to deep dive into WebAssembly, highly recommend you to visit [https://learn-wasm.dev/](https://learn-wasm.dev/).
+
 ## Prerequests
 
 You will need to install:
