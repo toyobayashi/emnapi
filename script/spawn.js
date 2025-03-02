@@ -20,7 +20,8 @@ function spawn (command, args, cwdPath, stdio, env) {
   const cp = require('child_process').spawn(command, args, {
     env: env || process.env,
     cwd,
-    stdio: stdio || 'inherit'
+    stdio: stdio || 'inherit',
+    shell: command.endsWith('.bat') || command.endsWith('.bat"')
   })
   const p = new Promise((resolve, reject) => {
     cp.once('exit', (code, reason) => {
