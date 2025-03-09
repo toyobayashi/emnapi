@@ -12,14 +12,12 @@
       "types": {
         "module": "./dist/wasi-threads.d.ts",
         "module-sync": "./dist/wasi-threads.d.ts",
-        "import": "./dist/wasi-threads.d.ts",
+        "import": "./dist/wasi-threads.d.cts",
         "require": "./dist/wasi-threads.d.cts",
         "default": "./dist/wasi-threads.d.cts"
       },
       "module": "./dist/wasi-threads.js",
       "module-sync": "./dist/wasi-threads.js",
-      "import": "./dist/wasi-threads.js",
-      "require": "./dist/wasi-threads.cjs",
       "default": "./dist/wasi-threads.cjs"
     },
     "./package.json": "./package.json"
