@@ -60,7 +60,7 @@ function createConfig (options: CreateConfigOptions): RollupOptions {
       values: {
         __FORMAT__: JSON.stringify(format),
         __DEV__: format === 'umd' || format === 'esm-browser' ? (minify ? 'false' : 'true') : '(process.env.NODE_ENV !== "production")',
-        'process.env.NODE_ENV': JSON.stringify(minify ? 'production' : 'development'),
+        ...(format === 'umd' || format === 'esm-browser' ? { 'process.env.NODE_ENV': minify ? '"production"' : '"development"' } : {}),
         ...defines
       }
     }),
