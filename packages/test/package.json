@@ -14,6 +14,7 @@
     "node-addon-api": "8.1.0",
     "why-is-node-running": "^2.3.0"
   },
+  "type": "commonjs",
   "scripts": {
     "rebuild": "cross-env UV_THREADPOOL_SIZE=2 node ./script/build-emscripten.js Debug",
     "rebuild:r": "cross-env UV_THREADPOOL_SIZE=2 node ./script/build-emscripten.js Release",

@@ -6,12 +6,11 @@
   <title>test</title>
 </head>
 <body>
-  <script src="../../../node_modules/@tybys/wasm-util/dist/wasm-util.min.js"></script>
-  <script src="../dist/wasi-threads.js"></script>
-  <script src="./proxy.js"></script>
-  <script>
-    const worker = new Worker('./index.js')
-    proxyWorker.addProxyListener(worker)
+  <script type="module">
+    import { Worker, addProxyListener } from './proxy.js'
+    const worker = new Worker(new URL('./browser.js', import.meta.url), { type: 'module' })
+    worker.onerror = (e) => console.error(e)
+    addProxyListener(worker)
   </script>
 </body>
 </html>

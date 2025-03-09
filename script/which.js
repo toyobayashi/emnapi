@@ -1,19 +1,18 @@
 #!/usr/bin/env node
 
-'use strict'
+import { pathToFileURL } from 'url'
+import path from 'path'
+import fs from 'fs'
 
 /**
  * @param {string} cmd
  * @param {NodeJS.ProcessEnv} env
  * @returns {string}
  */
-function which (cmd, env = process.env) {
+export function which (cmd, env = process.env) {
   const PATH = process.platform === 'win32' ? env.Path : env.PATH
   const pathList = PATH ? (process.platform === 'win32' ? PATH.split(';') : PATH.split(':')) : undefined
   if (pathList === undefined || pathList.length === 0) return ''
-
-  const path = require('path')
-  const fs = require('fs')
 
   const PATHEXT = process.platform === 'win32' ? (env.PATHEXT ? env.PATHEXT : '.COM;.EXE;.BAT;.CMD;.VBS;.VBE;.JS;.JSE;.WSF;.WSH;.MSC;.RB;.RBW') : ''
   const extlist = process.platform === 'win32' ? PATHEXT.split(';').map(v => v.toLowerCase()) : ['', '.sh']
@@ -49,10 +48,7 @@ function which (cmd, env = process.env) {
   return ''
 }
 
-exports.which = which
-Object.defineProperty(exports, '__esModule', { value: true })
-
-if (require.main === module) {
+if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   const p = which(process.argv[2])
   if (p) {
     console.log(p)

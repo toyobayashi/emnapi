@@ -1,4 +1,6 @@
-class ChildProcessError extends Error {
+import childProcess from 'child_process'
+
+export class ChildProcessError extends Error {
   constructor (message, code) {
     super(message)
     this.code = code
@@ -13,11 +15,11 @@ class ChildProcessError extends Error {
  * @param {'inherit' | 'pipe' | 'ignore'=} stdio
  * @returns {Promise<void> & { cp: import('child_process').ChildProcess }}
  */
-function spawn (command, args, cwdPath, stdio, env) {
+export function spawn (command, args, cwdPath, stdio, env) {
   const argsString = args.map(a => a.indexOf(' ') !== -1 ? ('"' + a + '"') : a).join(' ')
   const cwd = cwdPath || process.cwd()
   console.log(`[spawn] ${cwd}${process.platform === 'win32' ? '>' : '$'} ${command} ${argsString}`)
-  const cp = require('child_process').spawn(command, args, {
+  const cp = childProcess.spawn(command, args, {
     env: env || process.env,
     cwd,
     stdio: stdio || 'inherit',
@@ -39,11 +41,11 @@ function spawn (command, args, cwdPath, stdio, env) {
   return p
 }
 
-function spawnSync (command, args, cwdPath) {
+export function spawnSync (command, args, cwdPath) {
   const argsString = args.map(a => a.indexOf(' ') !== -1 ? ('"' + a + '"') : a).join(' ')
   const cwd = cwdPath || process.cwd()
   console.log(`[spawn] ${cwd}${process.platform === 'win32' ? '>' : '$'} ${command} ${argsString}`)
-  const result = require('child_process').spawnSync(command, args, {
+  const result = childProcess.spawnSync(command, args, {
     env: process.env,
     cwd
   })
@@ -55,7 +57,3 @@ function spawnSync (command, args, cwdPath) {
   }
   return result
 }
-
-exports.spawn = spawn
-exports.spawnSync = spawnSync
-exports.ChildProcessError = ChildProcessError

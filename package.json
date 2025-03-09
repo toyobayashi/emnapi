@@ -1,6 +1,7 @@
 {
   "private": true,
   "version": "0.0.0",
+  "type": "module",
   "scripts": {
     "prepare": "npm run build",
     "build": "npm run build --workspaces --if-present",
@@ -53,6 +54,7 @@
     "typescript": "~5.7.2"
   },
   "workspaces": [
+    "packages/shared",
     "packages/ts-transform-macro",
     "packages/ts-transform-emscripten-esm-library",
     "packages/ts-transform-emscripten-parse-tools",

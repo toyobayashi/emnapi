@@ -4,7 +4,7 @@ const sharedRules = {
   'no-new-func': 'off',
   'no-implied-eval': 'off',
   'no-var': 'off',
-  'camelcase': 'off'
+  camelcase: 'off'
 }
 
 module.exports = {
@@ -72,7 +72,7 @@ module.exports = {
         project: './tsconfig.json',
         tsconfigRootDir: __dirname,
         createDefaultProgram: true
-      },
+      }
     }
   ]
 }
