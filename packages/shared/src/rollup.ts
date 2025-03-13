@@ -10,22 +10,23 @@ const rollupReplace = require('@rollup/plugin-replace').default as typeof import
 const transformPureClass = require('@tybys/ts-transform-pure-class').default as typeof import('@tybys/ts-transform-pure-class').default
 const rollupTerser = require('@rollup/plugin-terser').default
 
-export type Format = 'esm' | 'cjs' | 'umd' | 'esm-browser'
+export type Format = 'esm' | 'cjs' | 'umd' | 'esm-browser' | 'iife'
 
-export interface Options extends Omit<InputOptions, 'external'> {
+export interface MakeConfigOptions extends Omit<InputOptions, 'external'> {
   outputName: string
   outputFile: string
+  format: Format
+  minify?: boolean
   compilerOptions?: ts.CompilerOptions
   defines?: Record<string, any>
   external?: ExternalOption | ((source: string, importer: string | undefined, isResolved: boolean, format: Format) => boolean | NullValue)
 }
 
-interface CreateConfigOptions extends Options {
-  format: Format
-  minify?: boolean
+export interface Options extends Omit<MakeConfigOptions, 'format' | 'minify'> {
+  browser?: boolean
 }
 
-function createConfig (options: CreateConfigOptions): RollupOptions {
+export function makeConfig (options: MakeConfigOptions): RollupOptions {
   const {
     input,
     outputName,
@@ -99,14 +100,21 @@ function createConfig (options: CreateConfigOptions): RollupOptions {
       format: 'umd',
       name: outputName,
       exports: 'named'
+    } satisfies RollupOptions['output'],
+    iife: {
+      file: `${outputDir}/${outputFile}.iife${minify ? '.min' : ''}.cjs`,
+      format: 'iife',
+      name: outputName,
+      exports: 'named'
     } satisfies RollupOptions['output']
   }
 
-  const defaultExternals: Record<CreateConfigOptions['format'], string[]> = {
+  const defaultExternals: Record<MakeConfigOptions['format'], string[]> = {
     esm: ['tslib'],
     'esm-browser': [],
     cjs: ['tslib'],
-    umd: []
+    umd: [],
+    iife: []
   }
 
   return {
@@ -131,14 +139,19 @@ function createConfig (options: CreateConfigOptions): RollupOptions {
 }
 
 export function defineConfig (options: Options): RollupOptions[] {
+  const { browser = true } = options
   return ([
     ['esm', false],
     ['cjs', false],
-    ['umd', false],
-    ['umd', true],
-    ['esm-browser', false],
-    ['esm-browser', true]
-  ] as const).map(([format, minify]) => createConfig({
+    ...(browser
+      ? [
+          ['umd', false],
+          ['umd', true],
+          ['esm-browser', false],
+          ['esm-browser', true]
+        ] as const
+      : [])
+  ] as const).map(([format, minify]) => makeConfig({
     ...options,
     format,
     minify
