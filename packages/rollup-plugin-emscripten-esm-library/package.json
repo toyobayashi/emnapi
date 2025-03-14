@@ -2,23 +2,26 @@
   "name": "@emnapi/rollup-plugin-emscripten-esm-library",
   "version": "1.0.0",
   "description": "Using ESM to write Emscripten JavaScript library",
-  "type": "commonjs",
-  "main": "./lib/index.js",
-  "types": "./lib/index.d.ts",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.cts",
+  "sideEffects": false,
   "exports": {
     ".": {
-      "import": {
-        "types": "./lib/index.d.mts",
-        "default": "./lib/index.mjs"
+      "types": {
+        "module-sync": "./dist/index.d.ts",
+        "import": "./dist/index.d.cts",
+        "require": "./dist/index.d.cts",
+        "default": "./dist/index.d.cts"
       },
-      "require": {
-        "types": "./lib/index.d.ts",
-        "default": "./lib/index.js"
-      }
-    }
+      "module-sync": "./dist/index.js",
+      "default": "./dist/index.cjs"
+    },
+    "./package.json": "./package.json"
   },
   "scripts": {
-    "build": "tsc"
+    "build": "rollup -c"
   },
   "repository": {
     "type": "git",

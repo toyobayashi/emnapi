@@ -30,6 +30,7 @@ function rollupApiExtractor (options?: RollupApiExtractorOptions): Plugin {
     name: 'rollup-plugin-api-extractor',
     async writeBundle (outputOptions) {
       const configObjectFullPath = path.resolve('api-extractor.json')
+      if (!fs.existsSync(configObjectFullPath)) return
       const configFromConfigFile = ExtractorConfig.loadFile(configObjectFullPath)
       const config = {
         ...configFromConfigFile,
@@ -66,6 +67,7 @@ export interface MakeConfigOptions extends Omit<InputOptions, 'external'> {
   outputName: string
   outputFile: string
   format: Format
+  sourcemap?: boolean | 'inline' | 'hidden'
   minify?: boolean
   compilerOptions?: ts.CompilerOptions
   defines?: Record<string, any>
@@ -88,6 +90,7 @@ export function makeConfig (options: MakeConfigOptions): RollupOptions {
     format,
     defines,
     external,
+    sourcemap,
     apiExtractorCallback,
     ...restInput
   } = options ?? {}
@@ -160,29 +163,34 @@ export function makeConfig (options: MakeConfigOptions): RollupOptions {
     esm: {
       file: `${outputDir}/${outputFile}${minify ? '.min' : ''}.js`,
       format: 'esm',
-      exports: 'named'
+      exports: 'named',
+      sourcemap
     } satisfies RollupOptions['output'],
     'esm-browser': {
       file: `${outputDir}/${outputFile}.browser${minify ? '.min' : ''}.js`,
       format: 'esm',
-      exports: 'named'
+      exports: 'named',
+      sourcemap
     } satisfies RollupOptions['output'],
     cjs: {
       file: `${outputDir}/${outputFile}${minify ? '.min' : ''}.cjs`,
       format: 'cjs',
-      exports: 'named'
+      exports: 'named',
+      sourcemap
     } satisfies RollupOptions['output'],
     umd: {
       file: `${outputDir}/${outputFile}.umd${minify ? '.min' : ''}.cjs`,
       format: 'umd',
       name: outputName,
-      exports: 'named'
+      exports: 'named',
+      sourcemap
     } satisfies RollupOptions['output'],
     iife: {
       file: `${outputDir}/${outputFile}.iife${minify ? '.min' : ''}.cjs`,
       format: 'iife',
       name: outputName,
-      exports: 'named'
+      exports: 'named',
+      sourcemap
     } satisfies RollupOptions['output']
   }
 
@@ -194,8 +202,11 @@ export function makeConfig (options: MakeConfigOptions): RollupOptions {
     iife: []
   }
 
+  const defaultCjsEntry = './src/index.cts'
+  const defaultEsmEntry = './src/index.ts'
+
   return {
-    input: input ?? 'src/index.ts',
+    input: input ?? ((format === 'cjs' || format === 'umd') ? (fs.existsSync(path.resolve(defaultCjsEntry)) ? defaultCjsEntry : defaultEsmEntry) : defaultEsmEntry),
     external: typeof external === 'function'
       ? function (this: any, id: string, parent, isResolved) {
         const result = external.call(this, id, parent, isResolved, format)
@@ -216,7 +227,7 @@ export function makeConfig (options: MakeConfigOptions): RollupOptions {
 }
 
 export function defineConfig (options: Options): RollupOptions[] {
-  const { browser = true } = options
+  const { browser = true, ...restOptions } = options
   return ([
     ['esm', false],
     ['cjs', false],
@@ -229,7 +240,7 @@ export function defineConfig (options: Options): RollupOptions[] {
         ] as const
       : [])
   ] as const).map(([format, minify], index) => makeConfig({
-    ...options,
+    ...restOptions,
     ...(index === 0
       ? {
           compilerOptions: {
@@ -237,7 +248,7 @@ export function defineConfig (options: Options): RollupOptions[] {
             declarationMap: true,
             declarationDir: 'dist/types',
             emitDeclarationOnly: true,
-            ...options.compilerOptions
+            ...restOptions.compilerOptions
           }
         }
       : {}),

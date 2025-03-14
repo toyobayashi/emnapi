@@ -6,6 +6,7 @@ import pkg from './package.json' with { type: "json" }
 export default defineConfig({
   outputName: 'emnapi',
   outputFile: 'emnapi',
+  sourcemap: true,
   defines: {
     __VERSION__: JSON.stringify(pkg.version)
   },
