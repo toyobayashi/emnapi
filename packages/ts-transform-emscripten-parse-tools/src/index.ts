@@ -21,7 +21,7 @@ import type {
 } from 'typescript'
 import { cloneNode, type CloneNodeOptions } from 'ts-clone-node'
 
-import ts = require('typescript')
+import * as ts from 'typescript'
 import { join, resolve } from 'path'
 import { getDefaultBaseOptions, type BaseTransformOptions } from '@emnapi/ts-transform-emscripten-esm-library'
 
