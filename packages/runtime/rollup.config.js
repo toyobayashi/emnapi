@@ -1,10 +1,14 @@
 import { defineConfig } from '@emnapi/shared'
 import fs from 'fs'
 import path from 'path'
+import pkg from './package.json'
 
 export default defineConfig({
   outputName: 'emnapi',
   outputFile: 'emnapi',
+  defines: {
+    __VERSION__: JSON.stringify(pkg.version)
+  },
   apiExtractorCallback: (result) => {
     if (result.succeeded) {
       let dts = ''
