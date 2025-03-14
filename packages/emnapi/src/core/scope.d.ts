@@ -15,8 +15,8 @@ declare interface CreateOptions {
 // factory parameter
 declare const options: CreateOptions
 
-declare type MainThreadBaseOptions = import('../../../wasi-threads/lib/typings/index').MainThreadBaseOptions
-declare type ThreadManagerOptionsMain = import('../../../wasi-threads/lib/typings/index').ThreadManagerOptionsMain
-declare const ThreadManager: typeof import('../../../wasi-threads/lib/typings/index').ThreadManager
+declare type MainThreadBaseOptions = import('../../../wasi-threads/dist/types/index').MainThreadBaseOptions
+declare type ThreadManagerOptionsMain = import('../../../wasi-threads/dist/types/index').ThreadManagerOptionsMain
+declare const ThreadManager: typeof import('../../../wasi-threads/dist/types/index').ThreadManager
 // eslint-disable-next-line @typescript-eslint/no-redeclare
-declare type ThreadManager = import('../../../wasi-threads/lib/typings/index').ThreadManager
+declare type ThreadManager = import('../../../wasi-threads/dist/types/index').ThreadManager

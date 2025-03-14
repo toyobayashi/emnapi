@@ -1,5 +1,14 @@
-import type { InputPluginOption, InputOptions, RollupOptions, NullValue, ExternalOption } from 'rollup'
+import type { InputPluginOption, InputOptions, RollupOptions, NullValue, ExternalOption, Plugin } from 'rollup'
 import ts from 'typescript'
+import path from 'path'
+import fs from 'fs'
+import {
+  Extractor,
+  ExtractorConfig,
+  type IConfigFile,
+  type ExtractorResult
+} from '@microsoft/api-extractor'
+import { PackageJsonLookup } from '@rushstack/node-core-library'
 
 import { createRequire } from 'module'
 const require = createRequire(import.meta.url)
@@ -9,6 +18,47 @@ const rollupNodeResolve = require('@rollup/plugin-node-resolve').default as type
 const rollupReplace = require('@rollup/plugin-replace').default as typeof import('@rollup/plugin-replace').default
 const transformPureClass = require('@tybys/ts-transform-pure-class').default as typeof import('@tybys/ts-transform-pure-class').default
 const rollupTerser = require('@rollup/plugin-terser').default
+
+interface RollupApiExtractorOptions {
+  configObject?: IConfigFile
+  callback?: (result: ExtractorResult) => any
+}
+
+function rollupApiExtractor (options?: RollupApiExtractorOptions): Plugin {
+  const { callback, configObject } = options ?? {}
+  return {
+    name: 'rollup-plugin-api-extractor',
+    async writeBundle (outputOptions) {
+      const configObjectFullPath = path.resolve('api-extractor.json')
+      const configFromConfigFile = ExtractorConfig.loadFile(configObjectFullPath)
+      const config = {
+        ...configFromConfigFile,
+        ...configObject,
+        dtsRollup: {
+          ...configFromConfigFile.dtsRollup,
+          enabled: true,
+          untrimmedFilePath: '',
+          publicTrimmedFilePath: outputOptions.file?.replace(/\.cjs$/, '.d.cts').replace(/\.js$/, '.d.ts'),
+          ...configObject?.dtsRollup
+        }
+      }
+      const packageJsonLookup = new PackageJsonLookup()
+      const packageJsonFullPath = packageJsonLookup.tryGetPackageJsonFilePathFor(configObjectFullPath)
+      const extractorConfig = ExtractorConfig.prepare({
+        configObject: config,
+        configObjectFullPath,
+        packageJsonFullPath
+      })
+      const extractorResult = Extractor.invoke(extractorConfig, {
+        localBuild: true,
+        showVerboseMessages: true
+      })
+      if (typeof callback === 'function') {
+        await Promise.resolve(callback(extractorResult))
+      }
+    }
+  }
+}
 
 export type Format = 'esm' | 'cjs' | 'umd' | 'esm-browser' | 'iife'
 
@@ -20,6 +70,7 @@ export interface MakeConfigOptions extends Omit<InputOptions, 'external'> {
   compilerOptions?: ts.CompilerOptions
   defines?: Record<string, any>
   external?: ExternalOption | ((source: string, importer: string | undefined, isResolved: boolean, format: Format) => boolean | NullValue)
+  apiExtractorCallback?: (result: ExtractorResult, format: Format) => any
 }
 
 export interface Options extends Omit<MakeConfigOptions, 'format' | 'minify'> {
@@ -33,10 +84,11 @@ export function makeConfig (options: MakeConfigOptions): RollupOptions {
     outputFile,
     compilerOptions,
     plugins,
-    minify,
+    minify = false,
     format,
     defines,
     external,
+    apiExtractorCallback,
     ...restInput
   } = options ?? {}
   const target = compilerOptions?.target ?? ts.ScriptTarget.ES2021
@@ -53,6 +105,31 @@ export function makeConfig (options: MakeConfigOptions): RollupOptions {
         ]
       }
     }),
+    ...(minify || format === 'esm-browser' || format === 'iife'
+      ? []
+      : [
+          rollupApiExtractor({
+            configObject: {
+              mainEntryPointFilePath: 'dist/types/index.d.ts'
+            },
+            callback (result) {
+              if (result.succeeded) {
+                if (format === 'umd') {
+                  fs.appendFileSync(result.extractorConfig.publicTrimmedFilePath, '\nexport as namespace ' + outputName)
+                }
+                apiExtractorCallback?.(result, format)
+              } else {
+                if (typeof apiExtractorCallback === 'function') {
+                  apiExtractorCallback(result, format)
+                  return
+                }
+                const errmsg = `API Extractor completed with ${result.errorCount} errors and ${result.warningCount} warnings`
+                throw new Error(errmsg)
+              }
+            }
+          })
+        ]
+    ),
     rollupNodeResolve({
       mainFields: ['module', 'module-sync', 'import', 'main']
     }),
@@ -151,8 +228,19 @@ export function defineConfig (options: Options): RollupOptions[] {
           ['esm-browser', true]
         ] as const
       : [])
-  ] as const).map(([format, minify]) => makeConfig({
+  ] as const).map(([format, minify], index) => makeConfig({
     ...options,
+    ...(index === 0
+      ? {
+          compilerOptions: {
+            declaration: true,
+            declarationMap: true,
+            declarationDir: 'dist/types',
+            emitDeclarationOnly: true,
+            ...options.compilerOptions
+          }
+        }
+      : {}),
     format,
     minify
   }))
