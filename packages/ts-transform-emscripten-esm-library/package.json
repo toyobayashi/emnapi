@@ -2,9 +2,22 @@
   "name": "@emnapi/ts-transform-emscripten-esm-library",
   "version": "1.0.0",
   "description": "Using ESM to write Emscripten JavaScript library",
-  "type": "commonjs",
-  "main": "./lib/index.js",
-  "types": "./lib/index.d.ts",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": {
+        "module-sync": "./dist/index.d.ts",
+        "import": "./dist/index.d.ts",
+        "require": "./dist/index.d.ts",
+        "default": "./dist/index.d.ts"
+      },
+      "module-sync": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
   "scripts": {
     "build": "tsc",
     "test": "node --test ./test/index.js"
