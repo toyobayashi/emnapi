@@ -10,6 +10,8 @@
     ".": {
       "types": {
         "module-sync": "./dist/index.d.ts",
+        "import": "./dist/index.d.ts",
+        "require": "./dist/index.d.ts",
         "default": "./dist/index.d.ts"
       },
       "module-sync": "./dist/index.js",

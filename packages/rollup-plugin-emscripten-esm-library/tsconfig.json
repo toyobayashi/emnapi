@@ -2,15 +2,13 @@
   "extends": "../shared/tsconfig.base.json",
   "compilerOptions": {
     "target": "ES2021",
-    "module": "ESNext",
-    "moduleResolution": "Bundler",
+    "module": "NodeNext",
+    "moduleResolution": "nodenext",
     "strict": true,
     "declaration": true,
     "sourceMap": true,
     "declarationMap": true,
-    "declarationDir": "dist/types",
-    "outDir": "dist",
-    "rewriteRelativeImportExtensions": true
+    "outDir": "dist"
   },
   "include": [
     "./src/**/*",
