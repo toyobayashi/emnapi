@@ -55,7 +55,7 @@ This doc will explain the structure of this project and some points need to note
 
     Macros are powered by `packages/ts-transform-macro`
 
-- `packages/core` (`dependencies`)
+- `packages/core` (`dependencies`, follow emnapi version)
 
     This package is designed for using emnapi on non-Emscripten platform, it is a trasformed output of `packages/emnapi`
     by using `packages/ts-transform-emscripten-parse-tools`.
@@ -64,14 +64,24 @@ This doc will explain the structure of this project and some points need to note
     We need to manually provide imported symbols to the second parameter of `WebAssembly.instantiate`,
     so this is the use case of this package.
 
-- `packages/runtime` (`dependencies`)
+- `packages/runtime` (`dependencies`, follow emnapi version)
 
     Provide runtime implementation of `napi_value` / `napi_handle_scope` / `napi_ref` etc.
 
-- `packages/node` (`dependencies`)
+- `packages/node` (`dependencies`, follow emnapi version)
 
     Some APIs make sense on Node.js only, such as `napi_async_init`, `napi_async_destroy` and `napi_make_callback`.
     This package provide native Node.js bindings for JavaScript implementation as bridge.
+
+- `packages/rollup-plugin-emscripten-esm-library` (`devDependencies`, independent)
+
+- `packages/ts-transform-emscripten-esm-library` (`devDependencies`, independent)
+
+- `packages/ts-transform-emscripten-parse-tools` (`devDependencies`, follow emnapi version, private)
+
+- `packages/ts-transform-emscripten-parse-tools` (`devDependencies`, independent)
+
+- `packages/wasi-threads` (`dependencies`, independent)
 
 ## Environment Requirements
 

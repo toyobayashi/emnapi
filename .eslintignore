@@ -3,6 +3,7 @@
 node_modules
 /lib/typings
 .eslintrc.js
+.eslintrc.cjs
 /example
 /test/.build
 /test/CMakeFiles
@@ -13,4 +14,4 @@ node_modules
 /packages/**/test/**/actual
 /packages/**/test/**/expected
 /packages/**/test/**/rollup/src
-/out
+out

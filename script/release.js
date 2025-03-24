@@ -1,8 +1,10 @@
-const fs = require('fs-extra')
-const path = require('path')
-const crossZip = require('@tybys/cross-zip')
-const { which } = require('./which.js')
-const { spawn, spawnSync, ChildProcessError } = require('./spawn.js')
+import fs from 'fs-extra'
+import path from 'path'
+import crossZip from '@tybys/cross-zip'
+import { which } from './which.js'
+import { spawn, spawnSync, ChildProcessError } from './spawn.js'
+
+const __dirname = import.meta.dirname
 
 async function main () {
   await Promise.resolve()
@@ -41,7 +43,7 @@ async function main () {
 
   let runtimeNapiVersion
   try {
-    runtimeNapiVersion = require('@emnapi/runtime').NAPI_VERSION_EXPERIMENTAL
+    runtimeNapiVersion = (await import('@emnapi/runtime')).NAPI_VERSION_EXPERIMENTAL
   } catch (_) {
     runtimeNapiVersion = 0x7fffffff
   }

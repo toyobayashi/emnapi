@@ -21,7 +21,7 @@ import type {
 } from 'typescript'
 import { cloneNode, type CloneNodeOptions } from 'ts-clone-node'
 
-import ts = require('typescript')
+import * as ts from 'typescript'
 import { join, resolve } from 'path'
 import { getDefaultBaseOptions, type BaseTransformOptions } from '@emnapi/ts-transform-emscripten-esm-library'
 
@@ -820,7 +820,7 @@ function createTransformerFactory (program: Program, config: TransformOptions): 
 
       injectedSrc = factory.updateSourceFile(injectedSrc, newStatements)
 
-      const doNotInsertImport = join(__dirname, '../../emnapi/src/core/init.ts')
+      const doNotInsertImport = join(import.meta.dirname, '../../emnapi/src/core/init.ts')
 
       if (process.platform === 'win32') {
         const resolvedFileName = resolve(src.fileName)

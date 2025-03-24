@@ -13,7 +13,7 @@ export function getDefaultOptions (options?: PluginOptions): Required<PluginOpti
   }
 }
 
-export default function (options?: PluginOptions): Plugin {
+export function plugin (options?: PluginOptions): Plugin {
   const {
     modifyOutput,
     runtimeModuleSpecifier,

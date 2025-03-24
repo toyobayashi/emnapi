@@ -1,6 +1,6 @@
 {
   "files.associations": {
-    "**/api-extractor.json": "jsonc"
+    "**/api-extractor*.json": "jsonc"
   },
   "typescript.tsdk": "./node_modules/typescript/lib",
   "cmake.sourceDirectory": "${workspaceFolder}/packages/test",
@@ -17,5 +17,9 @@
     "launch": {
       "statusBarVisibility": "hidden"
     }
+  },
+  "livePreview.httpHeaders": {
+    "Cross-Origin-Embedder-Policy": "require-corp",
+    "Cross-Origin-Opener-Policy": "same-origin"
   }
 }

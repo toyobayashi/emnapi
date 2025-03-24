@@ -43,7 +43,7 @@ If you want to deep dive into WebAssembly, highly recommend you to visit [learn-
 
 You will need to install:
 
-- Node.js `>= v16.15.0`
+- Node.js `>= v22.12.0` for developing this repository on local machine, `>= v16.15.0` for user runtime.
 - npm `>= v8`
 - Emscripten `>= v3.1.9` / wasi-sdk / LLVM clang with wasm support
 - (Optional) CMake `>= v3.13`
@@ -303,7 +303,7 @@ declare namespace Module {
 ```
 
 ```html
-<script src="node_modules/@emnapi/runtime/dist/emnapi.min.js"></script>
+<script src="node_modules/@emnapi/runtime/dist/emnapi.umd.min.js"></script>
 <script src="hello.js"></script>
 <script>
 Module.onRuntimeInitialized = function () {
@@ -359,8 +359,8 @@ Module({ /* Emscripten module init options */ }).then((Module) => {
 For non-emscripten, you need to use `@emnapi/core`. The initialization is similar to emscripten.
 
 ```html
-<script src="node_modules/@emnapi/runtime/dist/emnapi.min.js"></script>
-<script src="node_modules/@emnapi/core/dist/emnapi-core.min.js"></script>
+<script src="node_modules/@emnapi/runtime/dist/emnapi.umd.min.js"></script>
+<script src="node_modules/@emnapi/core/dist/emnapi-core.umd.min.js"></script>
 <script>
 emnapiCore.instantiateNapiModule(fetch('./hello.wasm'), {
   context: emnapi.getDefaultContext(),

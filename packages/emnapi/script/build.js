@@ -50,7 +50,7 @@ async function build () {
           { find: sharedModuleSpecifier, replacement: path.join(__dirname, '../src/emscripten/init.ts') }
         ]
       }),
-      require('@emnapi/rollup-plugin-emscripten-esm-library').default({
+      require('@emnapi/rollup-plugin-emscripten-esm-library').plugin({
         defaultLibraryFuncsToInclude: ['$emnapiInit'],
         exportedRuntimeMethods: ['emnapiInit'],
         runtimeModuleSpecifier,
