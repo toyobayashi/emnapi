@@ -15,8 +15,9 @@ import type {
 } from 'typescript'
 
 import { EOL } from 'os'
+import { normalize } from 'path'
 
-import ts = require('typescript')
+import * as ts from 'typescript'
 
 export interface BaseTransformOptions {
   /** @default 'emscripten:runtime' */
@@ -54,7 +55,7 @@ class Transformer {
 
   transform (source: SourceFile): SourceFile {
     source = ts.visitNode(source, this.parseToolsVisitor) as SourceFile
-    ts.visitNode(source, this.collectExportedFunctionVisitor) as SourceFile
+    ts.visitNode(source, this.collectExportedFunctionVisitor)
 
     const result = ts.visitEachChild(source, this.finalVisitor, this.ctx)
     let statements = [
@@ -452,7 +453,7 @@ function transform (fileName: string, sourceText: string, options?: BaseTransfor
   }
   const source = ts.createSourceFile(fileName, sourceText, ts.ScriptTarget.ESNext, true, ts.ScriptKind.JS)
   const host = ts.createCompilerHost(compilerOptions, true)
-  host.getSourceFile = filePath => filePath === fileName ? source : undefined
+  host.getSourceFile = filePath => normalize(filePath) === fileName ? source : undefined
   const program = ts.createProgram({
     rootNames: [fileName],
     options: compilerOptions,

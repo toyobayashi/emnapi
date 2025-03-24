@@ -1,5 +1,5 @@
 {
-  "extends": "../shared/tsconfig.base.json",
+  "extends": "./tsconfig.base.json",
   "compilerOptions": {
     "target": "ES2021",
     "module": "NodeNext",
@@ -8,10 +8,10 @@
     "declaration": true,
     "sourceMap": true,
     "declarationMap": true,
-    "outDir": "dist"
+    "outDir": "out",
+    "rewriteRelativeImportExtensions": true
   },
   "include": [
-    "./src/**/*",
-    "../../runtime/src/typings/*.d.ts"
+    "src/**/*.ts"
   ]
 }

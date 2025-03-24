@@ -1,7 +1,7 @@
-declare type Env = import('../../../runtime/lib/typings/index').Env
-declare type NodeEnv = import('../../../runtime/lib/typings/index').NodeEnv
-declare type Handle<S> = import('../../../runtime/lib/typings/index').Handle<S>
-declare type Context = import('../../../runtime/lib/typings/index').Context
-declare type Reference = import('../../../runtime/lib/typings/index').Reference
+declare type Env = import('../../../runtime/dist/types/index').Env
+declare type NodeEnv = import('../../../runtime/dist/types/index').NodeEnv
+declare type Handle<S> = import('../../../runtime/dist/types/index').Handle<S>
+declare type Context = import('../../../runtime/dist/types/index').Context
+declare type Reference = import('../../../runtime/dist/types/index').Reference
 
 declare type NodeBinding = typeof import('../../../node/index')
