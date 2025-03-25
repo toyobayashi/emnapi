@@ -9,7 +9,6 @@
     "chalk": "^4.1.2",
     "cmake-js": "^7.3.0",
     "cross-env": "^7.0.3",
-    "glob": "^7.2.3",
     "memfs-browser": "^3.5.10302",
     "node-addon-api": "8.1.0",
     "why-is-node-running": "^2.3.0"

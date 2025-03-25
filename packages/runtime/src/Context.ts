@@ -157,7 +157,6 @@ export class Context {
     this._suppressDestroy = true
   }
 
-  // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
   getRuntimeVersions () {
     return {
       version,

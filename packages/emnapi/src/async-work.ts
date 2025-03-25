@@ -86,7 +86,6 @@ export var emnapiAWST = {
   },
 
   callComplete: function (work: AsyncWork, status: napi_status): void {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const complete = work.complete
     const env = work.env
     const data = work.data

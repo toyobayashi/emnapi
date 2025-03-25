@@ -77,7 +77,7 @@ export function napi_create_date (env: napi_env, time: double, result: Pointer<n
   return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, result)
     from64('result')
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
     value = emnapiCtx.addToCurrentScope(new Date(time)).id
     makeSetValue('result', 0, 'value', '*')
     return envObject.getReturnStatus()
@@ -270,7 +270,6 @@ export function napi_create_typedarray (
 
       from64('result')
 
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       value = emnapiCtx.addToCurrentScope(out).id
       makeSetValue('result', 0, 'value', '*')
       return envObject.getReturnStatus()
@@ -462,7 +461,6 @@ export function node_api_create_buffer_from_arraybuffer (
     }
     from64('result')
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     value = emnapiCtx.addToCurrentScope(out).id
     makeSetValue('result', 0, 'value', '*')
     return envObject.getReturnStatus()
@@ -515,7 +513,6 @@ export function napi_create_dataview (
     }
     from64('result')
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     value = emnapiCtx.addToCurrentScope(dataview).id
     makeSetValue('result', 0, 'value', '*')
     return envObject.getReturnStatus()

@@ -38,7 +38,6 @@ function loadNapiModuleImpl<T> (
   options?: LoadOptions | InstantiateOptions
 ): InstantiatedSource
 function loadNapiModuleImpl (loadFn: Function, userNapiModule: NapiModule | undefined, wasmInput: InputType | Promise<InputType>, options?: any): any {
-  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   options = options ?? {} as InstantiateOptions
 
   const getMemory = options!.getMemory

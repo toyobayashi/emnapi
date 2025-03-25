@@ -43,7 +43,6 @@ export function napi_define_class (
     let propertyName: string | symbol
 
     for (let i = 0; i < property_count; i++) {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       propPtr = properties + (i * (POINTER_SIZE * 8))
       const utf8Name = makeGetValue('propPtr', 0, '*')
       const name = makeGetValue('propPtr', POINTER_SIZE, '*')
@@ -74,7 +73,6 @@ export function napi_define_class (
       emnapiDefineProperty(envObject, F.prototype, propertyName, method, getter, setter, value, attributes, data)
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const valueHandle = emnapiCtx.addToCurrentScope(F)
     valueHandleId = valueHandle.id
     from64('result')

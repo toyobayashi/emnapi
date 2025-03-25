@@ -42,7 +42,7 @@ if (process.env.EMNAPI_TEST_NATIVE) {
   ])]
 }
 
-let files = glob.sync(subdir
+let files = glob.globSync(subdir
   ? subdir.endsWith('.js')
     ? subdir
     : `${subdir}/**/*.test.js`

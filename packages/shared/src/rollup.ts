@@ -98,6 +98,7 @@ export function makeConfig (options: MakeConfigOptions): RollupOptions {
 
   const defaultPlugins: InputPluginOption[] = [
     rollupTypescript({
+      tslib: require.resolve('tslib'),
       compilerOptions: {
         ...(target !== ts.ScriptTarget.ES5 ? { removeComments: true, downlevelIteration: false } : {}),
         ...options?.compilerOptions

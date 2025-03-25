@@ -76,7 +76,6 @@ export function napi_coerce_to_number (env: napi_env, value: napi_value, result:
     }
     from64('result')
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     v = emnapiCtx.addToCurrentScope(Number(handle.value)).id
     makeSetValue('result', 0, 'v', '*')
     return envObject.getReturnStatus()
@@ -97,7 +96,6 @@ export function napi_coerce_to_object (env: napi_env, value: napi_value, result:
     }
     from64('result')
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     v = envObject.ensureHandleId(Object(handle.value))
     makeSetValue('result', 0, 'v', '*')
     return envObject.getReturnStatus()
@@ -118,7 +116,6 @@ export function napi_coerce_to_string (env: napi_env, value: napi_value, result:
     }
     from64('result')
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     v = emnapiCtx.addToCurrentScope(String(handle.value)).id
     makeSetValue('result', 0, 'v', '*')
     return envObject.getReturnStatus()

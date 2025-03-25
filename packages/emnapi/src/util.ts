@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/indent */
-
 import { runtimeKeepalivePop, runtimeKeepalivePush } from 'emscripten:runtime'
 import { from64, makeSetValue, makeDynCall } from 'emscripten:parse-tools'
 import { emnapiCtx } from 'emnapi:shared'
@@ -74,7 +72,6 @@ export function _emnapi_set_immediate (callback: number, data: number): void {
  * @__sig vpp
  */
 export function _emnapi_next_tick (callback: number, data: number): void {
-  // eslint-disable-next-line @typescript-eslint/no-floating-promises
   Promise.resolve().then(() => {
     makeDynCall('vp', 'callback')(data)
   })

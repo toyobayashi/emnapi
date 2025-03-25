@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/indent */
+/* eslint-disable @stylistic/indent */
 
 import { wasmMemory } from 'emscripten:runtime'
 import { getUnsharedTextDecoderView, makeSetValue, from64 } from 'emscripten:parse-tools'

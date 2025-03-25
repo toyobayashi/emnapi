@@ -1,6 +1,4 @@
-/* eslint-disable @typescript-eslint/indent */
-/* eslint-disable no-new-func */
-/* eslint-disable @typescript-eslint/no-implied-eval */
+/* eslint-disable @stylistic/indent */
 
 import { emnapiCtx } from 'emnapi:shared'
 import { from64, makeDynCall, makeSetValue } from 'emscripten:parse-tools'
@@ -177,7 +175,6 @@ export function emnapiUnwrap (env: napi_env, js_object: napi_value, result: void
     if (result) {
       from64('result')
 
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       data = ref.data()
       makeSetValue('result', 0, 'data', '*')
     }

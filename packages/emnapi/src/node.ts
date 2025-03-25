@@ -56,7 +56,7 @@ export function _emnapi_node_close_callback_scope (scope: Pointer<int64_t>): voi
 /** @__sig ipppppddp */
 export function _emnapi_node_make_callback (env: napi_env, async_resource: napi_value, cb: napi_value, argv: Pointer<napi_value>, size: size_t, async_id: double, trigger_async_id: double, result: Pointer<napi_value>): void {
   let i = 0
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
   let v: number
 
   if (!emnapiNodeBinding) return
@@ -189,7 +189,7 @@ export function napi_make_callback (env: napi_env, async_context: Pointer<int64_
 
     if (result) {
       from64('result')
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
       v = envObject.ensureHandleId(ret.value)
       makeSetValue('result', 0, 'v', '*')
     }

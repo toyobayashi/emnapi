@@ -133,7 +133,6 @@ export function napi_get_all_property_names (
 
     from64('result')
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     value = emnapiCtx.addToCurrentScope(ret).id
     makeSetValue('result', 0, 'value', '*')
     return envObject.getReturnStatus()
@@ -213,7 +212,7 @@ export function napi_get_property (env: napi_env, object: napi_value, key: napi_
       return envObject.setLastError(napi_status.napi_object_expected)
     }
     from64('result')
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
     value = envObject.ensureHandleId(v[emnapiCtx.handleStore.get(key)!.value])
     makeSetValue('result', 0, 'value', '*')
     return envObject.getReturnStatus()
@@ -352,7 +351,6 @@ export function napi_get_named_property (env: napi_env, object: napi_value, utf8
     from64('utf8name')
     from64('result')
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     value = envObject.ensureHandleId(v[emnapiString.UTF8ToString(utf8name, -1)])
     makeSetValue('result', 0, 'value', '*')
     return envObject.getReturnStatus()
@@ -417,7 +415,7 @@ export function napi_get_element (env: napi_env, object: napi_value, index: uint
       return envObject.setLastError(napi_status.napi_object_expected)
     }
     from64('result')
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
     value = envObject.ensureHandleId(v[index >>> 0])
     makeSetValue('result', 0, 'value', '*')
     return envObject.getReturnStatus()
@@ -481,7 +479,6 @@ export function napi_define_properties (
     let propertyName: string | symbol
 
     for (let i = 0; i < property_count; i++) {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       propPtr = properties + (i * (POINTER_SIZE * 8))
       const utf8Name = makeGetValue('propPtr', 0, '*')
       const name = makeGetValue('propPtr', POINTER_SIZE, '*')

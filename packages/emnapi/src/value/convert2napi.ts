@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/indent */
+/* eslint-disable @stylistic/indent */
 
 import { emnapiCtx } from 'emnapi:shared'
 import { from64, makeGetValue, makeSetValue } from 'emscripten:parse-tools'

@@ -151,13 +151,13 @@ export class WASIThreads {
       }
 
       if (!isNewABI) {
-        const malloc = this.wasmInstance.exports.malloc as Function
-        errorOrTid = wasm64 ? Number(malloc(BigInt(8))) : malloc(8)
+        const malloc = this.wasmInstance.exports.malloc as (size: number | bigint) => (number | bigint)
+        errorOrTid = wasm64 ? Number(malloc(BigInt(8))) : malloc(8) as number
         if (!errorOrTid) {
           return -48 /* ENOMEM */
         }
       }
-      const _free = this.wasmInstance.exports.free as Function
+      const _free = this.wasmInstance.exports.free as (ptr: number | bigint) => void
       const free = wasm64 ? (ptr: number) => { _free(BigInt(ptr)) } : _free
       const struct = new Int32Array(this.wasmMemory.buffer, errorOrTid!, 2)
       Atomics.store(struct, 0, 0)

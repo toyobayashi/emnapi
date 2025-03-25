@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable @typescript-eslint/prefer-nullish-coalescing */
 
 import { makeDynCall, to64 } from 'emscripten:parse-tools'
 
@@ -104,7 +103,7 @@ export var napiModule: INapiModule = {
       if (typeof node_api_module_get_api_version_v1 === 'function') {
         moduleApiVersion = node_api_module_get_api_version_v1()
       }
-      // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+
       const envObject = napiModule.envObject || (napiModule.envObject = emnapiCtx.createEnv(
         napiModule.filename,
         moduleApiVersion,
@@ -218,7 +217,6 @@ function emnapiAddSendListener (worker: any): boolean {
         const postMessage = napiModule.postMessage!
         postMessage({ __emnapi__ })
       } else {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const callback = __emnapi__.payload.callback
         makeDynCall('vp', 'callback')(__emnapi__.payload.data)
       }

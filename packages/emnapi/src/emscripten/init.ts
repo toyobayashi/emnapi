@@ -1,7 +1,3 @@
-/* eslint-disable no-unreachable */
-/* eslint-disable no-new-func */
-/* eslint-disable @typescript-eslint/no-implied-eval */
-
 import { makeDynCall, to64 } from 'emscripten:parse-tools'
 import { abort } from 'emscripten:runtime'
 
@@ -78,7 +74,6 @@ export function emnapiInit (options: InitOptions): any {
 
   const moduleApiVersion = _node_api_module_get_api_version_v1()
 
-  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
   const envObject = emnapiModule.envObject || (emnapiModule.envObject = emnapiCtx.createEnv(
     filename,
     moduleApiVersion,

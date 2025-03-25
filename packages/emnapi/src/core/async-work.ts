@@ -69,7 +69,6 @@ var emnapiAWMT = {
   },
   initWorkers (n: number): Promise<any> {
     if (ENVIRONMENT_IS_PTHREAD) {
-      // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
       return emnapiAWMT.workerReady || (emnapiAWMT.workerReady = Promise.resolve() as any)
     }
     if (emnapiAWMT.workerReady) return emnapiAWMT.workerReady

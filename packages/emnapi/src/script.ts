@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/indent */
+/* eslint-disable @stylistic/indent */
 
 import { emnapiCtx } from 'emnapi:shared'
 import { from64, makeSetValue } from 'emscripten:parse-tools'
@@ -23,7 +23,6 @@ export function napi_run_script (env: napi_env, script: napi_value, result: Poin
     const ret = g.eval(v8Script.value)
     from64('result')
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     value = envObject.ensureHandleId(ret)
     makeSetValue('result', 0, 'value', '*')
     status = envObject.getReturnStatus()
