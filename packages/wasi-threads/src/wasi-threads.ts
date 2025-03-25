@@ -1,3 +1,4 @@
+import type { Worker } from 'worker_threads'
 import { ENVIRONMENT_IS_NODE, deserizeErrorFromBuffer, getPostMessage, isTrapError } from './util'
 import { checkSharedWasmMemory, ThreadManager } from './thread-manager'
 import type { WorkerMessageEvent, ThreadManagerOptions, ThreadManagerOptionsMain, WorkerLike } from './thread-manager'
@@ -186,7 +187,7 @@ export class WASIThreads {
         Atomics.store(sab, 0, 0)
       }
 
-      let worker: any
+      let worker: WorkerLike | undefined
       let tid: number
       const PThread = this.PThread
       try {
@@ -198,7 +199,7 @@ export class WASIThreads {
 
         tid = PThread!.markId(worker)
         if (ENVIRONMENT_IS_NODE) {
-          worker.ref()
+          (worker as Worker).ref()
         }
         worker.postMessage(createMessage('start', {
           tid,
@@ -244,7 +245,7 @@ export class WASIThreads {
 
       PThread!.runningWorkers.push(worker)
       if (!shouldWait) {
-        worker.whenLoaded.catch((err: any) => {
+        worker.whenLoaded!.catch((err: any) => {
           delete worker.whenLoaded
           PThread!.cleanThread(worker, tid, true)
           throw err

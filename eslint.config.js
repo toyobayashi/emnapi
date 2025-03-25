@@ -3,16 +3,27 @@ import tseslint from 'typescript-eslint'
 import neostandard from 'neostandard'
 
 export default tseslint.config(
+  {
+    ignores: [
+      '**/node_modules',
+      '**/{dist,lib,out}',
+      '**/CMakeFiles',
+      '**/.build',
+      '**/test',
+      'packages/core/src/emnapi'
+    ]
+  },
   eslint.configs.recommended,
   tseslint.configs.recommended,
   ...neostandard({ ts: true }),
   {
-    ignores: [
-      'packages/*/{dist,lib,out}/**',
-      '**/CMakeFiles',
-    ]
-  },
-  {
+    languageOptions: {
+      parser: tseslint.parser,
+      parserOptions: {
+        projectService: true,
+        tsconfigRootDir: import.meta.dirname
+      },
+    },
     rules: {
       'prefer-const': 'off',
       'spaced-comment': 'off',
@@ -26,7 +37,15 @@ export default tseslint.config(
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-implied-eval': 'off',
       '@typescript-eslint/restrict-plus-operands': 'off',
-      '@typescript-eslint/no-unused-vars': 'error',
+      '@typescript-eslint/no-unused-vars': ['error', {
+        args: 'all',
+        argsIgnorePattern: '^_',
+        caughtErrors: 'all',
+        caughtErrorsIgnorePattern: '^_',
+        destructuredArrayIgnorePattern: '^_',
+        varsIgnorePattern: '^_',
+        ignoreRestSiblings: true
+      }],
       '@typescript-eslint/no-namespace': 'off',
       '@typescript-eslint/no-var-requires': 'off',
       '@typescript-eslint/promise-function-async': 'off',
@@ -67,5 +86,15 @@ export default tseslint.config(
         },
       }]
     }
+  },
+  {
+    files: ['packages/emnapi/**'],
+    rules: {
+      '@typescript-eslint/no-unused-vars': 'off',
+    }
+  },
+  {
+    files: ['**/*.js', '**/*.cjs', '**/*.mjs'],
+    extends: [tseslint.configs.disableTypeChecked]
   }
 )

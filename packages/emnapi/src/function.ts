@@ -5,7 +5,6 @@ import { $PREAMBLE, $CHECK_ARG, $CHECK_ENV, $CHECK_ENV_NOT_IN_GC } from './macro
 
 /** @__sig ipppppp */
 export function napi_create_function (env: napi_env, utf8name: Pointer<const_char>, length: size_t, cb: napi_callback, data: void_p, result: Pointer<napi_value>): napi_status {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let value: number
 
   return $PREAMBLE!(env, (envObject) => {
@@ -46,7 +45,6 @@ export function napi_get_cb_info (env: napi_env, cbinfo: napi_callback_info, arg
     let i = 0
 
     for (; i < arrlen; i++) {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const argVal = envObject.ensureHandleId(cbinfoValue.args[i])
       makeSetValue('argv', 'i * ' + POINTER_SIZE, 'argVal', '*')
     }
@@ -62,7 +60,6 @@ export function napi_get_cb_info (env: napi_env, cbinfo: napi_callback_info, arg
   if (this_arg) {
     from64('this_arg')
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const v = envObject.ensureHandleId(cbinfoValue.thiz)
     makeSetValue('this_arg', 0, 'v', '*')
   }
@@ -83,7 +80,7 @@ export function napi_call_function (
   result: Pointer<napi_value>
 ): napi_status {
   let i = 0
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
   let v: number
 
   return $PREAMBLE!(env, (envObject) => {
@@ -124,7 +121,7 @@ export function napi_new_instance (
   result: Pointer<napi_value>
 ): napi_status {
   let i: number
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
   let v: number
 
   return $PREAMBLE!(env, (envObject) => {
@@ -180,7 +177,6 @@ export function napi_get_new_target (
   from64('result')
 
   const cbinfoValue = emnapiCtx.cbinfoStack.get(cbinfo)!
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const value = cbinfoValue.getNewTarget(envObject)
   makeSetValue('result', 0, 'value', '*')
   return envObject.clearLastError()

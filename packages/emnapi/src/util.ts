@@ -28,7 +28,6 @@ export function _emnapi_get_node_version (major: number, minor: number, patch: n
   from64('minor')
   from64('patch')
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const versions: [number, number, number] =
     (
       typeof process === 'object' && process !== null &&
@@ -122,7 +121,7 @@ export function _emnapi_ctx_decrease_waiting_request_counter (): void {
 
 export function $emnapiSetValueI64 (result: Pointer<int64_t>, numberValue: number): void {
   let tempDouble: number
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
   const tempI64 = [
     numberValue >>> 0,
     (tempDouble = numberValue, +Math.abs(tempDouble) >= 1 ? tempDouble > 0 ? (Math.min(+Math.floor(tempDouble / 4294967296), 4294967295) | 0) >>> 0 : ~~+Math.ceil((tempDouble - +(~~tempDouble >>> 0)) / 4294967296) >>> 0 : 0)

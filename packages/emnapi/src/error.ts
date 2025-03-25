@@ -12,11 +12,8 @@ export function _emnapi_get_last_error_info (env: napi_env, error_code: Pointer<
   const envObject = emnapiCtx.envStore.get(env)!
 
   const lastError = envObject.lastError
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const errorCode = lastError.errorCode
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const engineErrorCode = lastError.engineErrorCode >>> 0
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let engineReserved = lastError.engineReserved
   from64('engineReserved')
 
@@ -98,7 +95,6 @@ export function node_api_throw_syntax_error (env: napi_env, code: const_char_p, 
 export function napi_is_exception_pending (env: napi_env, result: Pointer<bool>): napi_status {
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, result)
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const r = envObject.tryCatch.hasCaught()
   from64('result')
   makeSetValue('result', 0, 'r ? 1 : 0', 'i8')
@@ -126,7 +122,6 @@ export function napi_create_error (env: napi_env, code: napi_value, msg: napi_va
 
   from64('result')
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const value = emnapiCtx.addToCurrentScope(error).id
   makeSetValue('result', 0, 'value', '*')
   return envObject.clearLastError()
@@ -152,7 +147,6 @@ export function napi_create_type_error (env: napi_env, code: napi_value, msg: na
 
   from64('result')
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const value = emnapiCtx.addToCurrentScope(error).id
   makeSetValue('result', 0, 'value', '*')
   return envObject.clearLastError()
@@ -177,7 +171,6 @@ export function napi_create_range_error (env: napi_env, code: napi_value, msg: n
   }
   from64('result')
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const value = emnapiCtx.addToCurrentScope(error).id
   makeSetValue('result', 0, 'value', '*')
   return envObject.clearLastError()
@@ -202,7 +195,6 @@ export function node_api_create_syntax_error (env: napi_env, code: napi_value, m
   }
   from64('result')
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const value = emnapiCtx.addToCurrentScope(error).id
   makeSetValue('result', 0, 'value', '*')
   return envObject.clearLastError()
@@ -219,7 +211,6 @@ export function napi_get_and_clear_last_exception (env: napi_env, result: Pointe
     return envObject.clearLastError()
   } else {
     const err = envObject.tryCatch.exception()!
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const value = envObject.ensureHandleId(err)
     makeSetValue('result', 0, 'value', '*')
     envObject.tryCatch.reset()

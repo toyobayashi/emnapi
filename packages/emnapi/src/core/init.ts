@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-
 import { makeDynCall, to64 } from 'emscripten:parse-tools'
 
 export interface InitOptions {

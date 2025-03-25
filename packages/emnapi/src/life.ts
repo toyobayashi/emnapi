@@ -6,7 +6,6 @@ import { $CHECK_ENV_NOT_IN_GC, $CHECK_ARG, $CHECK_ENV } from './macro'
 export function napi_open_handle_scope (env: napi_env, result: Pointer<napi_handle_scope>): napi_status {
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, result)
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const scope = emnapiCtx.openScope(envObject)
   from64('result')
   makeSetValue('result', 0, 'scope.id', '*')
@@ -29,7 +28,6 @@ export function napi_close_handle_scope (env: napi_env, scope: napi_handle_scope
 export function napi_open_escapable_handle_scope (env: napi_env, result: Pointer<napi_escapable_handle_scope>): napi_status {
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, result)
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const scope = emnapiCtx.openScope(envObject)
   from64('result')
   makeSetValue('result', 0, 'scope.id', '*')
@@ -60,7 +58,6 @@ export function napi_escape_handle (env: napi_env, scope: napi_escapable_handle_
     from64('result')
 
     const newHandle = scopeObject.escape(escapee)
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const value = newHandle ? newHandle.id : 0
     makeSetValue('result', 0, 'value', '*')
     return envObject.clearLastError()
@@ -85,7 +82,7 @@ export function napi_create_reference (
       return envObject.setLastError(napi_status.napi_invalid_arg)
     }
   }
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
   const ref = emnapiCtx.createReference(envObject, handle.id, initial_refcount >>> 0, ReferenceOwnership.kUserland as any)
   from64('result')
   makeSetValue('result', 0, 'ref.id', '*')
@@ -112,7 +109,7 @@ export function napi_reference_ref (
 ): napi_status {
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, ref)
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
   const count = emnapiCtx.refStore.get(ref)!.ref()
   if (result) {
     from64('result')
@@ -135,7 +132,7 @@ export function napi_reference_unref (
   if (refcount === 0) {
     return envObject.setLastError(napi_status.napi_generic_failure)
   }
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
   const count = reference.unref()
   if (result) {
     from64('result')
@@ -154,7 +151,6 @@ export function napi_get_reference_value (
   $CHECK_ARG!(envObject, ref)
   $CHECK_ARG!(envObject, result)
   const reference = emnapiCtx.refStore.get(ref)!
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleId = reference.get(envObject)
   from64('result')
   makeSetValue('result', 0, 'handleId', '*')

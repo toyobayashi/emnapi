@@ -14,7 +14,7 @@
     "test:version": "node ./packages/test/script/test-build-all-napi-version.js",
     "release": "node ./script/release.js",
     "bump": "npm version -w packages/emnapi -w packages/runtime -w packages/core -w packages/node -w packages/ts-transform-emscripten-parse-tools",
-    "lint": "eslint \"packages/**/*.ts\""
+    "lint": "eslint"
   },
   "author": "toyobayashi",
   "repository": {

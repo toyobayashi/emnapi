@@ -87,7 +87,7 @@ export function emnapiInit (options: InitOptions): any {
   try {
     envObject.callIntoModule((_envObject) => {
       const exports = emnapiModule.exports
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
       const exportsHandle = scope.add(exports)
       const napiValue = _napi_register_wasm_v1(to64('_envObject.id'), to64('exportsHandle.id'))
       emnapiModule.exports = (!napiValue) ? exports : emnapiCtx.handleStore.get(napiValue)!.value

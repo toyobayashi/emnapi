@@ -1,5 +1,5 @@
 import { defineConfig } from '@emnapi/shared'
-import pkg from './package.json' with { type: "json" }
+import pkg from './package.json' with { type: 'json' }
 
 export default defineConfig({
   outputName: 'emnapiCore',

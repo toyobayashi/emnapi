@@ -13,7 +13,6 @@ export function napi_get_all_property_names (
   key_conversion: napi_key_conversion,
   result: Pointer<napi_value>
 ): napi_status {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let value: number
 
   return $PREAMBLE!(env, (envObject) => {
@@ -168,7 +167,6 @@ export function napi_set_property (env: napi_env, object: napi_value, key: napi_
 
 /** @__sig ipppp */
 export function napi_has_property (env: napi_env, object: napi_value, key: napi_value, result: Pointer<bool>): napi_status {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let r: number
 
   return $PREAMBLE!(env, (envObject) => {
@@ -194,7 +192,6 @@ export function napi_has_property (env: napi_env, object: napi_value, key: napi_
 
 /** @__sig ipppp */
 export function napi_get_property (env: napi_env, object: napi_value, key: napi_value, result: Pointer<napi_value>): napi_status {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let value: number
 
   return $PREAMBLE!(env, (envObject) => {
@@ -221,7 +218,6 @@ export function napi_get_property (env: napi_env, object: napi_value, key: napi_
 
 /** @__sig ipppp */
 export function napi_delete_property (env: napi_env, object: napi_value, key: napi_value, result: Pointer<bool>): napi_status {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let r: boolean
 
   return $PREAMBLE!(env, (envObject) => {
@@ -251,7 +247,6 @@ export function napi_delete_property (env: napi_env, object: napi_value, key: na
 
 /** @__sig ipppp */
 export function napi_has_own_property (env: napi_env, object: napi_value, key: napi_value, result: Pointer<bool>): napi_status {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let value: number, r: boolean
 
   return $PREAMBLE!(env, (envObject) => {
@@ -299,7 +294,6 @@ export function napi_set_named_property (env: napi_env, object: napi_value, cnam
 
 /** @__sig ipppp */
 export function napi_has_named_property (env: napi_env, object: napi_value, utf8name: const_char_p, result: Pointer<bool>): napi_status {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let r: boolean
 
   return $PREAMBLE!(env, (envObject) => {
@@ -329,7 +323,6 @@ export function napi_has_named_property (env: napi_env, object: napi_value, utf8
 
 /** @__sig ipppp */
 export function napi_get_named_property (env: napi_env, object: napi_value, utf8name: const_char_p, result: Pointer<napi_value>): napi_status {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let value: number
 
   return $PREAMBLE!(env, (envObject) => {
@@ -373,7 +366,6 @@ export function napi_set_element (env: napi_env, object: napi_value, index: uint
 
 /** @__sig ippip */
 export function napi_has_element (env: napi_env, object: napi_value, index: uint32_t, result: Pointer<bool>): napi_status {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let r: number
 
   return $PREAMBLE!(env, (envObject) => {
@@ -398,7 +390,6 @@ export function napi_has_element (env: napi_env, object: napi_value, index: uint
 
 /** @__sig ippip */
 export function napi_get_element (env: napi_env, object: napi_value, index: uint32_t, result: Pointer<napi_value>): napi_status {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let value: number
 
   return $PREAMBLE!(env, (envObject) => {
@@ -424,7 +415,6 @@ export function napi_get_element (env: napi_env, object: napi_value, index: uint
 
 /** @__sig ippip */
 export function napi_delete_element (env: napi_env, object: napi_value, index: uint32_t, result: Pointer<bool>): napi_status {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let r: boolean
 
   return $PREAMBLE!(env, (envObject) => {
@@ -457,7 +447,6 @@ export function napi_define_properties (
   property_count: size_t,
   properties: Const<Pointer<napi_property_descriptor>>
 ): napi_status {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let propPtr: number, attributes: number
 
   return $PREAMBLE!(env, (envObject) => {

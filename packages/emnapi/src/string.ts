@@ -223,7 +223,7 @@ export var emnapiString = {
       return String.fromCharCode.apply(null, new Uint16Array(wasmMemory.buffer, ptr, length / 2) as any)
     }
 // #endif
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
     const HEAPU8 = new Uint8Array(wasmMemory.buffer)
     return emnapiString.utf16Decoder.decode(getUnsharedTextDecoderView('HEAPU8', 'ptr', 'end') as Uint8Array)
   },
@@ -236,7 +236,6 @@ export var emnapiString = {
     var startPtr = outPtr
     var numCharsToWrite = (maxBytesToWrite < str.length * 2) ? (maxBytesToWrite / 2) : str.length
     for (var i = 0; i < numCharsToWrite; ++i) {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       var codeUnit = str.charCodeAt(i)
       makeSetValue('outPtr', 0, 'codeUnit', 'i16')
       outPtr += 2
@@ -264,7 +263,7 @@ export var emnapiString = {
     from64('str')
     const strValue = stringMaker(str, autoLength, sizelength)
     from64('result')
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
     const value = emnapiCtx.addToCurrentScope(strValue).id
     makeSetValue('result', 0, 'value', '*')
     return envObject.clearLastError()
