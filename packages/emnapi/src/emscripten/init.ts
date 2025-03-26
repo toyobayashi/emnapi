@@ -1,7 +1,3 @@
-/* eslint-disable no-unreachable */
-/* eslint-disable no-new-func */
-/* eslint-disable @typescript-eslint/no-implied-eval */
-
 import { makeDynCall, to64 } from 'emscripten:parse-tools'
 import { abort } from 'emscripten:runtime'
 
@@ -78,7 +74,6 @@ export function emnapiInit (options: InitOptions): any {
 
   const moduleApiVersion = _node_api_module_get_api_version_v1()
 
-  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
   const envObject = emnapiModule.envObject || (emnapiModule.envObject = emnapiCtx.createEnv(
     filename,
     moduleApiVersion,
@@ -92,7 +87,7 @@ export function emnapiInit (options: InitOptions): any {
   try {
     envObject.callIntoModule((_envObject) => {
       const exports = emnapiModule.exports
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
       const exportsHandle = scope.add(exports)
       const napiValue = _napi_register_wasm_v1(to64('_envObject.id'), to64('exportsHandle.id'))
       emnapiModule.exports = (!napiValue) ? exports : emnapiCtx.handleStore.get(napiValue)!.value

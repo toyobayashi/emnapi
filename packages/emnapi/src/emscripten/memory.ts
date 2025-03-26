@@ -4,7 +4,7 @@ import { from64, makeSetValue } from 'emscripten:parse-tools'
 import { $emnapiSetValueI64 as emnapiSetValueI64 } from '../util'
 import { $CHECK_ENV } from '../macro'
 
-/* eslint-disable @typescript-eslint/indent */
+/* eslint-disable @stylistic/indent */
 declare function _emscripten_resize_heap (requested: number): boolean
 
 /**

@@ -17,7 +17,6 @@ export function emnapi_create_memory_view (
   finalize_hint: void_p,
   result: Pointer<napi_value>
 ): napi_status {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let value: number
 
   return $PREAMBLE!(env, (envObject) => {
@@ -189,7 +188,6 @@ export function $emnapiSyncMemory<T extends ArrayBuffer | ArrayBufferView> (
  * @__sig ipippp
  */
 export function emnapi_sync_memory (env: napi_env, js_to_wasm: bool, arraybuffer_or_view: Pointer<napi_value>, offset: size_t, len: size_t): napi_status {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let v: number
 
   return $PREAMBLE!(env, (envObject) => {
@@ -242,7 +240,6 @@ export function $emnapiGetMemoryAddress (arrayBufferOrView: ArrayBuffer | ArrayB
  * @__sig ipppp
  */
 export function emnapi_get_memory_address (env: napi_env, arraybuffer_or_view: napi_value, address: Pointer<void_pp>, ownership: Pointer<int>, runtime_allocated: Pointer<bool>): napi_status {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let p: number, runtimeAllocated: number, ownershipOut: number
   let info: ArrayBufferPointer
 
@@ -290,7 +287,6 @@ export function emnapi_get_runtime_version (env: napi_env, version: number): nap
     return envObject.setLastError(napi_status.napi_generic_failure)
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const versions = runtimeVersion.split('.')
     .map((n: string) => Number(n)) as [number, number, number]
 

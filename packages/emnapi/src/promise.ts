@@ -4,7 +4,6 @@ import { $PREAMBLE, $CHECK_ARG, $CHECK_ENV_NOT_IN_GC } from './macro'
 
 /** @__sig ippp */
 export function napi_create_promise (env: napi_env, deferred: Pointer<napi_deferred>, promise: Pointer<napi_value>): napi_status {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let deferredObjectId: number, value: number
 
   return $PREAMBLE!(env, (envObject) => {
@@ -19,7 +18,6 @@ export function napi_create_promise (env: napi_env, deferred: Pointer<napi_defer
     })
     from64('promise')
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     value = emnapiCtx.addToCurrentScope(p).id
     makeSetValue('promise', 0, 'value', '*')
     return envObject.getReturnStatus()
@@ -55,7 +53,7 @@ export function napi_is_promise (env: napi_env, value: napi_value, is_promise: P
   $CHECK_ARG!(envObject, is_promise)
   const h = emnapiCtx.handleStore.get(value)!
   from64('is_promise')
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
   const r = h.isPromise() ? 1 : 0
   makeSetValue('is_promise', 0, 'r', 'i8')
   return envObject.clearLastError()

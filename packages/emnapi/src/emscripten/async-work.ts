@@ -22,7 +22,6 @@ export function napi_create_async_work (env: napi_env, resource: napi_value, res
 
   const resourceName = String(emnapiCtx.handleStore.get(resource_name)!.value)
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const id = emnapiAWST.create(env, resourceObject, resourceName, execute, complete, data)
   makeSetValue('result', 0, 'id', '*')
   return envObject.clearLastError()

@@ -33,7 +33,6 @@ export function napi_typeof (env: napi_env, value: napi_value, result: Pointer<n
   } else if (v.isSymbol()) {
     r = napi_valuetype.napi_symbol
   } else if (v.isNull()) {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     r = napi_valuetype.napi_null
   } else {
   // Should not get here unless V8 has added some new kind of value.
@@ -47,7 +46,6 @@ export function napi_typeof (env: napi_env, value: napi_value, result: Pointer<n
 
 /** @__sig ippp */
 export function napi_coerce_to_bool (env: napi_env, value: napi_value, result: Pointer<napi_value>): napi_status {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let v: number
 
   return $PREAMBLE!(env, (envObject) => {
@@ -64,7 +62,6 @@ export function napi_coerce_to_bool (env: napi_env, value: napi_value, result: P
 
 /** @__sig ippp */
 export function napi_coerce_to_number (env: napi_env, value: napi_value, result: Pointer<napi_value>): napi_status {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let v: number
 
   return $PREAMBLE!(env, (envObject) => {
@@ -76,7 +73,6 @@ export function napi_coerce_to_number (env: napi_env, value: napi_value, result:
     }
     from64('result')
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     v = emnapiCtx.addToCurrentScope(Number(handle.value)).id
     makeSetValue('result', 0, 'v', '*')
     return envObject.getReturnStatus()
@@ -85,7 +81,6 @@ export function napi_coerce_to_number (env: napi_env, value: napi_value, result:
 
 /** @__sig ippp */
 export function napi_coerce_to_object (env: napi_env, value: napi_value, result: Pointer<napi_value>): napi_status {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let v: number
 
   return $PREAMBLE!(env, (envObject) => {
@@ -97,7 +92,6 @@ export function napi_coerce_to_object (env: napi_env, value: napi_value, result:
     }
     from64('result')
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     v = envObject.ensureHandleId(Object(handle.value))
     makeSetValue('result', 0, 'v', '*')
     return envObject.getReturnStatus()
@@ -106,7 +100,6 @@ export function napi_coerce_to_object (env: napi_env, value: napi_value, result:
 
 /** @__sig ippp */
 export function napi_coerce_to_string (env: napi_env, value: napi_value, result: Pointer<napi_value>): napi_status {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let v: number
 
   return $PREAMBLE!(env, (envObject) => {
@@ -118,7 +111,6 @@ export function napi_coerce_to_string (env: napi_env, value: napi_value, result:
     }
     from64('result')
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     v = emnapiCtx.addToCurrentScope(String(handle.value)).id
     makeSetValue('result', 0, 'v', '*')
     return envObject.getReturnStatus()
@@ -127,7 +119,6 @@ export function napi_coerce_to_string (env: napi_env, value: napi_value, result:
 
 /** @__sig ipppp */
 export function napi_instanceof (env: napi_env, object: napi_value, constructor: napi_value, result: Pointer<bool>): napi_status {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let r: number
 
   return $PREAMBLE!(env, (envObject) => {
@@ -155,7 +146,7 @@ export function napi_is_array (env: napi_env, value: napi_value, result: Pointer
   $CHECK_ARG!(envObject, result)
   const h = emnapiCtx.handleStore.get(value)!
   from64('result')
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
   const r = h.isArray() ? 1 : 0
   makeSetValue('result', 0, 'r', 'i8')
   return envObject.clearLastError()
@@ -168,7 +159,7 @@ export function napi_is_arraybuffer (env: napi_env, value: napi_value, result: P
   $CHECK_ARG!(envObject, result)
   const h = emnapiCtx.handleStore.get(value)!
   from64('result')
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
   const r = h.isArrayBuffer() ? 1 : 0
   makeSetValue('result', 0, 'r', 'i8')
   return envObject.clearLastError()
@@ -181,7 +172,7 @@ export function napi_is_date (env: napi_env, value: napi_value, result: Pointer<
   $CHECK_ARG!(envObject, result)
   const h = emnapiCtx.handleStore.get(value)!
   from64('result')
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
   const r = h.isDate() ? 1 : 0
   makeSetValue('result', 0, 'r', 'i8')
   return envObject.clearLastError()
@@ -194,7 +185,7 @@ export function napi_is_error (env: napi_env, value: napi_value, result: Pointer
   $CHECK_ARG!(envObject, result)
   const val = emnapiCtx.handleStore.get(value)!.value
   from64('result')
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
   const r = (val instanceof Error) ? 1 : 0
   makeSetValue('result', 0, 'r', 'i8')
   return envObject.clearLastError()
@@ -207,7 +198,7 @@ export function napi_is_typedarray (env: napi_env, value: napi_value, result: Po
   $CHECK_ARG!(envObject, result)
   const h = emnapiCtx.handleStore.get(value)!
   from64('result')
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
   const r = h.isTypedArray() ? 1 : 0
   makeSetValue('result', 0, 'r', 'i8')
   return envObject.clearLastError()
@@ -220,7 +211,7 @@ export function napi_is_buffer (env: napi_env, value: napi_value, result: Pointe
   $CHECK_ARG!(envObject, result)
   const h = emnapiCtx.handleStore.get(value)!
   from64('result')
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
   const r = h.isBuffer(emnapiCtx.feature.Buffer) ? 1 : 0
   makeSetValue('result', 0, 'r', 'i8')
   return envObject.clearLastError()
@@ -233,7 +224,7 @@ export function napi_is_dataview (env: napi_env, value: napi_value, result: Poin
   $CHECK_ARG!(envObject, result)
   const h = emnapiCtx.handleStore.get(value)!
   from64('result')
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
   const r = h.isDataView() ? 1 : 0
   makeSetValue('result', 0, 'r', 'i8')
   return envObject.clearLastError()
@@ -241,7 +232,6 @@ export function napi_is_dataview (env: napi_env, value: napi_value, result: Poin
 
 /** @__sig ipppp */
 export function napi_strict_equals (env: napi_env, lhs: napi_value, rhs: napi_value, result: Pointer<bool>): napi_status {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let r: number
 
   return $PREAMBLE!(env, (envObject) => {

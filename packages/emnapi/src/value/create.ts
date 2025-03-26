@@ -14,7 +14,7 @@ export function napi_create_array (env: napi_env, result: Pointer<napi_value>): 
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, result)
   from64('result')
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
   const value = emnapiCtx.addToCurrentScope([]).id
   makeSetValue('result', 0, 'value', '*')
   return envObject.clearLastError()
@@ -29,7 +29,7 @@ export function napi_create_array_with_length (env: napi_env, length: size_t, re
   from64('length')
   from64('result')
   length = length >>> 0
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
   const value = emnapiCtx.addToCurrentScope(new Array(length)).id
   makeSetValue('result', 0, 'value', '*')
   return envObject.clearLastError()
@@ -42,7 +42,7 @@ function emnapiCreateArrayBuffer (byte_length: size_t, data: void_pp): ArrayBuff
 
   if (data) {
     from64('data')
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
     const p = emnapiExternalMemory.getArrayBufferPointer(arrayBuffer, true).address
     makeSetValue('data', 0, 'p', '*')
   }
@@ -54,7 +54,6 @@ function emnapiCreateArrayBuffer (byte_length: size_t, data: void_pp): ArrayBuff
  * @__sig ipppp
  */
 export function napi_create_arraybuffer (env: napi_env, byte_length: size_t, data: void_pp, result: Pointer<napi_value>): napi_status {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let value: number
 
   return $PREAMBLE!(env, (envObject) => {
@@ -71,13 +70,12 @@ export function napi_create_arraybuffer (env: napi_env, byte_length: size_t, dat
  * @__sig ipdp
  */
 export function napi_create_date (env: napi_env, time: double, result: Pointer<napi_value>): napi_status {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let value: number
 
   return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, result)
     from64('result')
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
     value = emnapiCtx.addToCurrentScope(new Date(time)).id
     makeSetValue('result', 0, 'value', '*')
     return envObject.getReturnStatus()
@@ -88,7 +86,6 @@ export function napi_create_date (env: napi_env, time: double, result: Pointer<n
  * @__sig ippppp
  */
 export function napi_create_external (env: napi_env, data: void_p, finalize_cb: napi_finalize, finalize_hint: void_p, result: Pointer<napi_value>): napi_status {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let value: number
 
   return $PREAMBLE!(env, (envObject) => {
@@ -118,7 +115,6 @@ export function napi_create_external_arraybuffer (
   finalize_hint: void_p,
   result: Pointer<napi_value>
 ): napi_status {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let value: number
 
   return $PREAMBLE!(env, (envObject) => {
@@ -179,7 +175,7 @@ export function napi_create_object (env: napi_env, result: Pointer<napi_value>):
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, result)
   from64('result')
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
   const value = emnapiCtx.addToCurrentScope({}).id
   makeSetValue('result', 0, 'value', '*')
   return envObject.clearLastError()
@@ -194,7 +190,7 @@ export function napi_create_symbol (env: napi_env, description: napi_value, resu
   from64('result')
 
   if (!description) {
-    // eslint-disable-next-line symbol-description, @typescript-eslint/no-unused-vars
+    // eslint-disable-next-line symbol-description
     const value = emnapiCtx.addToCurrentScope(Symbol()).id
     makeSetValue('result', 0, 'value', '*')
   } else {
@@ -203,7 +199,7 @@ export function napi_create_symbol (env: napi_env, description: napi_value, resu
     if (typeof desc !== 'string') {
       return envObject.setLastError(napi_status.napi_string_expected)
     }
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
     const v = emnapiCtx.addToCurrentScope(Symbol(desc)).id
     makeSetValue('result', 0, 'v', '*')
   }
@@ -221,7 +217,6 @@ export function napi_create_typedarray (
   byte_offset: size_t,
   result: Pointer<napi_value>
 ): napi_status {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let value: number
 
   return $PREAMBLE!(env, (envObject) => {
@@ -270,7 +265,6 @@ export function napi_create_typedarray (
 
       from64('result')
 
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       value = emnapiCtx.addToCurrentScope(out).id
       makeSetValue('result', 0, 'value', '*')
       return envObject.getReturnStatus()
@@ -315,7 +309,6 @@ export function napi_create_buffer (
   data: Pointer<Pointer<void>>,
   result: Pointer<napi_value>
 ): napi_status {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let value: number, pointer: number
 
   return $PREAMBLE!(env, (envObject) => {
@@ -369,7 +362,6 @@ export function napi_create_buffer_copy (
   result_data: Pointer<Pointer<void>>,
   result: Pointer<napi_value>
 ): napi_status {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let value: number
 
   return $PREAMBLE!(env, (envObject) => {
@@ -422,7 +414,6 @@ export function node_api_create_buffer_from_arraybuffer (
   byte_length: size_t,
   result: Pointer<napi_value>
 ): napi_status {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let value: number
 
   return $PREAMBLE!(env, (envObject) => {
@@ -462,7 +453,6 @@ export function node_api_create_buffer_from_arraybuffer (
     }
     from64('result')
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     value = emnapiCtx.addToCurrentScope(out).id
     makeSetValue('result', 0, 'value', '*')
     return envObject.getReturnStatus()
@@ -479,7 +469,6 @@ export function napi_create_dataview (
   byte_offset: size_t,
   result: Pointer<napi_value>
 ): napi_status {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let value: number
 
   return $PREAMBLE!(env, (envObject) => {
@@ -515,7 +504,6 @@ export function napi_create_dataview (
     }
     from64('result')
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     value = emnapiCtx.addToCurrentScope(dataview).id
     makeSetValue('result', 0, 'value', '*')
     return envObject.getReturnStatus()
@@ -544,7 +532,6 @@ export function node_api_symbol_for (env: napi_env, utf8description: const_char_
 
   const descriptionString = emnapiString.UTF8ToString(utf8description, length)
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const value = emnapiCtx.addToCurrentScope(Symbol.for(descriptionString)).id
   makeSetValue('result', 0, 'value', '*')
   return envObject.clearLastError()

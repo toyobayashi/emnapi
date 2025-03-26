@@ -69,7 +69,6 @@ var emnapiAWMT = {
   },
   initWorkers (n: number): Promise<any> {
     if (ENVIRONMENT_IS_PTHREAD) {
-      // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
       return emnapiAWMT.workerReady || (emnapiAWMT.workerReady = Promise.resolve() as any)
     }
     if (emnapiAWMT.workerReady) return emnapiAWMT.workerReady
@@ -106,7 +105,6 @@ var emnapiAWMT = {
       }
     } catch (err) {
       for (let i = 0; i < n; ++i) {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const arg = args[i]
         _free(to64('arg'))
       }
@@ -253,7 +251,6 @@ export var napi_create_async_work = singleThreadAsyncWork
 
     const resourceName = String(emnapiCtx.handleStore.get(resource_name)!.value)
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const id = emnapiAWST.create(env, resourceObject, resourceName, execute, complete, data)
     makeSetValue('result', 0, 'id', '*')
     return envObject.clearLastError()
@@ -278,7 +275,7 @@ export var napi_create_async_work = singleThreadAsyncWork
     new Uint8Array(wasmMemory.buffer).subarray(aw, aw + sizeofAW).fill(0)
     const s = envObject.ensureHandleId(resourceObject)
     const resourceRef = emnapiCtx.createReference(envObject, s, 1, ReferenceOwnership.kUserland as any)
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
     const resource_ = resourceRef.id
     makeSetValue('aw', 0, 'resource_', '*')
     _emnapi_node_emit_async_init(s, resource_name, -1, aw + emnapiAWMT.offset.async_id)
@@ -370,7 +367,7 @@ function initWorker (startArg: number): void {
 }
 function executeAsyncWork (work: number): void {
   if (!ENVIRONMENT_IS_PTHREAD) return
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
   const execute = emnapiAWMT.getExecute(work)
   const env = emnapiAWMT.getEnv(work)
   const data = emnapiAWMT.getData(work)

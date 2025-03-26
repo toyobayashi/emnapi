@@ -82,7 +82,7 @@ function getReuseWorker (value?: boolean | number | ReuseWorkerOptions): false |
   if (!value) {
     return false
   }
-  const size = Number(value.size) ?? 0
+  const size = Number(value.size) || 0
   const strict = Boolean(value.strict)
   if (!(size > 0) && strict) {
     throw new RangeError('reuseWorker: size must be set to positive integer if strict is set to true')
@@ -320,13 +320,13 @@ export class ThreadManager {
           }
         }
         const worker = this.allocateUnusedWorker()
-        // eslint-disable-next-line @typescript-eslint/no-floating-promises
+
         this.loadWasmModuleToWorker(worker, sab)
       }
       return this.unusedWorkers.pop()
     }
     const worker = this.allocateUnusedWorker()
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
+
     this.loadWasmModuleToWorker(worker, sab)
     return this.unusedWorkers.pop()
   }
@@ -347,7 +347,7 @@ export class ThreadManager {
 
   public terminateWorker (worker: WorkerLike): void {
     const tid = worker.__emnapi_tid
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
+
     worker.terminate()
     this.messageEvents.get(worker)?.clear()
     this.messageEvents.delete(worker);

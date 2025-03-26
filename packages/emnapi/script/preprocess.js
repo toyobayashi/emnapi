@@ -157,7 +157,7 @@ class Compilation {
   }
 
   _evalCondition (/** @type {string} */ condition) {
-    condition = condition.replace(/defined\((.+?)\)/g, (substring, one) => {
+    condition = condition.replace(/defined\((.+?)\)/g, (_substring, one) => {
       return `(${typeof this.defines[one] !== 'undefined'})`
     })
     try {
@@ -272,7 +272,7 @@ class Compilation {
     return currentIf.line
   }
 
-  _errorDirective (lineNumber, error) {
+  _errorDirective (_lineNumber, error) {
     throw new Error(`#error: ${error}`)
   }
 }

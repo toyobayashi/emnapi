@@ -43,7 +43,6 @@ export function $emnapiAddSendListener (worker: any): boolean {
       if (ENVIRONMENT_IS_PTHREAD) {
         postMessage({ __emnapi__ })
       } else {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const callback = __emnapi__.payload.callback
         makeDynCall('vp', 'callback')(__emnapi__.payload.data)
       }

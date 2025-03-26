@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/indent */
-
 import { emnapiCtx } from 'emnapi:shared'
 import { wasmMemory } from 'emscripten:runtime'
 import { from64, makeSetValue } from 'emscripten:parse-tools'

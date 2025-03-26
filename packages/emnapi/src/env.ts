@@ -20,7 +20,6 @@ export function napi_get_instance_data (env: napi_env, data: void_pp): napi_stat
   $CHECK_ARG!(envObject, data)
   from64('data')
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const value = envObject.getInstanceData()
   makeSetValue('data', 0, 'value', '*')
   return envObject.clearLastError()

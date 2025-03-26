@@ -86,7 +86,6 @@ export var emnapiAWST = {
   },
 
   callComplete: function (work: AsyncWork, status: napi_status): void {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const complete = work.complete
     const env = work.env
     const data = work.data
@@ -125,7 +124,6 @@ export var emnapiAWST = {
       emnapiAWST.queued.add(id)
       const env = work.env
       const data = work.data
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const execute = work.execute
       work.status = 2
       emnapiCtx.feature.setImmediate(() => {
