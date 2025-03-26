@@ -12,18 +12,19 @@ export function emnapiCreateFunction<F extends (...args: any[]) => any> (envObje
   const functionName = (!utf8name || !length) ? '' : (emnapiString.UTF8ToString(utf8name, length))
 
   let f: F
+  const napiCallback = makeDynCall('ppp', 'cb')
 
   const makeFunction = () => function (this: any): any {
     'use strict'
-    const cbinfo = emnapiCtx.cbinfoStack.push(this, data, arguments, f)
     const scope = emnapiCtx.openScope(envObject)
+    scope.setCallbackInfo({ thiz: this, data, args: arguments, fn: f })
     try {
       return envObject.callIntoModule((envObject) => {
-        const napiValue = makeDynCall('ppp', 'cb')(envObject.id, cbinfo)
+        const napiValue = napiCallback(envObject.id, scope.id)
         return (!napiValue) ? undefined : emnapiCtx.handleStore.get(napiValue)!.value
       })
     } finally {
-      emnapiCtx.cbinfoStack.pop()
+      scope.setCallbackInfo(null)
       emnapiCtx.closeScope(envObject, scope)
     }
   }
