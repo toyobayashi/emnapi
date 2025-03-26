@@ -1,6 +1,4 @@
-/* eslint-disable @typescript-eslint/indent */
-/* eslint-disable no-new-func */
-/* eslint-disable @typescript-eslint/no-implied-eval */
+/* eslint-disable @stylistic/indent */
 
 import { emnapiCtx } from 'emnapi:shared'
 import { from64, makeDynCall, makeSetValue } from 'emscripten:parse-tools'
@@ -126,7 +124,6 @@ export function emnapiGetHandle (js_object: napi_value): { status: napi_status; 
 }
 
 export function emnapiWrap (env: napi_env, js_object: napi_value, native_object: void_p, finalize_cb: napi_finalize, finalize_hint: void_p, result: Pointer<napi_ref>): napi_status {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let referenceId: number
   return $PREAMBLE!(env, (envObject) => {
     if (!emnapiCtx.feature.supportFinalizer) {
@@ -168,7 +165,6 @@ export function emnapiWrap (env: napi_env, js_object: napi_value, native_object:
 }
 
 export function emnapiUnwrap (env: napi_env, js_object: napi_value, result: void_pp, action: UnwrapAction): napi_status {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let data: number
   return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, js_object)
@@ -186,7 +182,6 @@ export function emnapiUnwrap (env: napi_env, js_object: napi_value, result: void
     if (result) {
       from64('result')
 
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       data = ref.data()
       makeSetValue('result', 0, 'data', '*')
     }

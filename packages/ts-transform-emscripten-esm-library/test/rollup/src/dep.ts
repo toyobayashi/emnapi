@@ -1,6 +1,6 @@
 const fortyTwo = 42
 
-export function x() {
+export function x () {
   console.log(fortyTwo)
 }
 

@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-floating-promises */
-
 import { napiModule } from 'emnapi:shared'
 import { ENVIRONMENT_IS_NODE, wasmMemory, ENVIRONMENT_IS_PTHREAD, PThread } from 'emscripten:runtime'
 import { POINTER_SIZE, makeDynCall, makeGetValue, to64 } from 'emscripten:parse-tools'

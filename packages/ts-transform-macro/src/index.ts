@@ -23,7 +23,7 @@ import type {
   Declaration
 } from 'typescript'
 
-import ts = require('typescript')
+import ts from 'typescript'
 import { cloneNode } from 'ts-clone-node'
 
 function preserveMultiLine (node: Node, sourceNode: Node): Node {

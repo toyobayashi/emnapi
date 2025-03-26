@@ -1,5 +1,3 @@
-/* eslint-disable no-undef */
-
 declare const WXWebAssembly: typeof WebAssembly | undefined
 declare const wx: any
 declare const __wxConfig: any

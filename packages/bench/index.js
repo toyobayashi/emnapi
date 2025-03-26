@@ -1,5 +1,4 @@
 if (typeof require === 'function') {
-  // eslint-disable-next-line no-var
   var Benchmark = require('benchmark')
 }
 

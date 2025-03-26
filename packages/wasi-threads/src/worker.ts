@@ -68,7 +68,6 @@ export class ThreadMessageHandler {
     }
     const then = source && 'then' in source ? source.then : undefined
     if (typeof then === 'function') {
-      // eslint-disable-next-line @typescript-eslint/no-floating-promises
       then.call(
         source,
         (source) => { this._loaded(null, source, payload) },
@@ -90,7 +89,7 @@ export class ThreadMessageHandler {
     const startArg = payload.arg
     notifyPthreadCreateResult(payload.sab, 1)
     try {
-      (this.instance!.exports.wasi_thread_start as Function)(tid, startArg)
+      (this.instance!.exports.wasi_thread_start as (tid: number, startArg: number) => void)(tid, startArg)
     } catch (err) {
       if (isTrapError(err)) {
         postMessage(createMessage('terminate-all-threads', {}))

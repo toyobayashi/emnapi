@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/indent */
+/* eslint-disable @stylistic/indent */
 
 import { ENVIRONMENT_IS_NODE, _malloc, wasmMemory, _free, ENVIRONMENT_IS_PTHREAD, abort, PThread } from 'emscripten:runtime'
 import { emnapiCtx, emnapiNodeBinding } from 'emnapi:shared'
@@ -98,7 +98,7 @@ export const emnapiTSFN = {
     const queue = emnapiTSFN.loadSizeTypeValue(func + emnapiTSFN.offset.queue, false)
     const head = emnapiTSFN.loadSizeTypeValue(queue, false)
     const tail = emnapiTSFN.loadSizeTypeValue(queue + POINTER_SIZE, false)
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
     const size = 2 * POINTER_SIZE
     const node = _malloc(to64('size'))
     if (!node) throw new Error('OOM')
@@ -441,11 +441,10 @@ export const emnapiTSFN = {
   },
   emptyQueueAndDelete (func: number) {
     const callJsCb = emnapiTSFN.getCallJSCb(func)
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
     const context = emnapiTSFN.getContext(func)
     let data: number
     while (emnapiTSFN.getQueueSize(func) > 0) {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       data = emnapiTSFN.shiftQueue(func)
       if (callJsCb) {
         makeDynCall('vpppp', 'callJsCb')(to64('0'), to64('0'), to64('context'), to64('data'))
@@ -459,9 +458,9 @@ export const emnapiTSFN = {
     emnapiCtx.openScope(envObject)
 
     const finalize = emnapiTSFN.getFinalizeCb(func)
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
     const data = emnapiTSFN.getFinalizeData(func)
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
     const context = emnapiTSFN.getContext(func)
 
     const f = (): void => {
@@ -523,7 +522,6 @@ export const emnapiTSFN = {
     }
   },
   dispatchOne (func: number): boolean {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     let data = 0
     let popped_value = false
     let has_more = false
@@ -569,7 +567,6 @@ export const emnapiTSFN = {
           const ref = emnapiTSFN.getRef(func)
           const js_callback = ref ? emnapiCtx.refStore.get(ref)!.get() : 0
           if (callJsCb) {
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const context = emnapiTSFN.getContext(func)
             makeDynCall('vpppp', 'callJsCb')(to64('env'), to64('js_callback'), to64('context'), to64('data'))
           } else {
@@ -681,7 +678,7 @@ export function napi_create_threadsafe_function (
     if (typeof funcValue !== 'function') {
       return envObject.setLastError(napi_status.napi_invalid_arg)
     }
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
     ref = emnapiCtx.createReference(envObject, func, 1, ReferenceOwnership.kUserland as any).id
   }
 
@@ -710,7 +707,7 @@ export function napi_create_threadsafe_function (
   if (!tsfn) return envObject.setLastError(napi_status.napi_generic_failure)
   new Uint8Array(wasmMemory.buffer).subarray(tsfn, tsfn + sizeofTSFN).fill(0)
   const resourceRef = emnapiCtx.createReference(envObject, resource, 1, ReferenceOwnership.kUserland as any)
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
   const resource_ = resourceRef.id
   makeSetValue('tsfn', 0, 'resource_', '*')
   if (!emnapiTSFN.initQueue(tsfn)) {
@@ -748,7 +745,7 @@ export function napi_get_threadsafe_function_context (func: number, result: void
   }
   from64('func')
   from64('result')
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
   const context = emnapiTSFN.getContext(func)
   makeSetValue('result', 0, 'context', '*')
   return napi_status.napi_ok

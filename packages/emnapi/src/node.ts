@@ -14,7 +14,7 @@ export function _emnapi_node_emit_async_init (
   const resource_name = emnapiCtx.handleStore.get(async_resource_name)!.value
 
   const asyncContext = emnapiNodeBinding.node.emitAsyncInit(resource, resource_name, trigger_async_id)
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
   const asyncId = asyncContext.asyncId; const triggerAsyncId = asyncContext.triggerAsyncId
   if (result) {
     from64('result')
@@ -56,7 +56,7 @@ export function _emnapi_node_close_callback_scope (scope: Pointer<int64_t>): voi
 /** @__sig ipppppddp */
 export function _emnapi_node_make_callback (env: napi_env, async_resource: napi_value, cb: napi_value, argv: Pointer<napi_value>, size: size_t, async_id: double, trigger_async_id: double, result: Pointer<napi_value>): void {
   let i = 0
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
   let v: number
 
   if (!emnapiNodeBinding) return
@@ -77,7 +77,7 @@ export function _emnapi_node_make_callback (env: napi_env, async_resource: napi_
   if (result) {
     from64('result')
     const envObject = emnapiCtx.envStore.get(env)!
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
     v = envObject.ensureHandleId(ret)
     makeSetValue('result', 0, 'v', '*')
   }
@@ -106,9 +106,9 @@ export function _emnapi_async_init_js (async_resource: napi_value, async_resourc
       numberValue = numberValue - (BigInt(1) << BigInt(64))
     }
   }
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
   const low = Number(numberValue & BigInt(0xffffffff))
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
   const high = Number(numberValue >> BigInt(32))
   from64('result')
   makeSetValue('result', 0, 'low', 'i32')
@@ -149,7 +149,7 @@ export function napi_close_callback_scope (env: napi_env, scope: number): napi_s
 /** @__sig ippppppp */
 export function napi_make_callback (env: napi_env, async_context: Pointer<int64_t>, recv: napi_value, func: napi_value, argc: size_t, argv: Pointer<napi_value>, result: Pointer<napi_value>): napi_status {
   let i = 0
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
   let v: number
 
   return $PREAMBLE!(env, (envObject) => {
@@ -189,7 +189,7 @@ export function napi_make_callback (env: napi_env, async_context: Pointer<int64_
 
     if (result) {
       from64('result')
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
       v = envObject.ensureHandleId(ret.value)
       makeSetValue('result', 0, 'v', '*')
     }

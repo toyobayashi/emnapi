@@ -279,7 +279,7 @@ export class NodeEnv extends Env {
               console.warn(warning.toString())
             } else {
               const prefix = code ? `[${code}] ` : ''
-              // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+
               console.warn(`${prefix}${type || 'Warning'}: ${warning}`)
             }
           }

@@ -1,3 +1,4 @@
+import type { Worker } from 'worker_threads'
 import { ENVIRONMENT_IS_NODE, deserizeErrorFromBuffer, getPostMessage, isTrapError } from './util'
 import { checkSharedWasmMemory, ThreadManager } from './thread-manager'
 import type { WorkerMessageEvent, ThreadManagerOptions, ThreadManagerOptionsMain, WorkerLike } from './thread-manager'
@@ -151,13 +152,13 @@ export class WASIThreads {
       }
 
       if (!isNewABI) {
-        const malloc = this.wasmInstance.exports.malloc as Function
-        errorOrTid = wasm64 ? Number(malloc(BigInt(8))) : malloc(8)
+        const malloc = this.wasmInstance.exports.malloc as (size: number | bigint) => (number | bigint)
+        errorOrTid = wasm64 ? Number(malloc(BigInt(8))) : malloc(8) as number
         if (!errorOrTid) {
           return -48 /* ENOMEM */
         }
       }
-      const _free = this.wasmInstance.exports.free as Function
+      const _free = this.wasmInstance.exports.free as (ptr: number | bigint) => void
       const free = wasm64 ? (ptr: number) => { _free(BigInt(ptr)) } : _free
       const struct = new Int32Array(this.wasmMemory.buffer, errorOrTid!, 2)
       Atomics.store(struct, 0, 0)
@@ -186,7 +187,7 @@ export class WASIThreads {
         Atomics.store(sab, 0, 0)
       }
 
-      let worker: any
+      let worker: WorkerLike | undefined
       let tid: number
       const PThread = this.PThread
       try {
@@ -198,7 +199,7 @@ export class WASIThreads {
 
         tid = PThread!.markId(worker)
         if (ENVIRONMENT_IS_NODE) {
-          worker.ref()
+          (worker as Worker).ref()
         }
         worker.postMessage(createMessage('start', {
           tid,
@@ -244,7 +245,7 @@ export class WASIThreads {
 
       PThread!.runningWorkers.push(worker)
       if (!shouldWait) {
-        worker.whenLoaded.catch((err: any) => {
+        worker.whenLoaded!.catch((err: any) => {
           delete worker.whenLoaded
           PThread!.cleanThread(worker, tid, true)
           throw err

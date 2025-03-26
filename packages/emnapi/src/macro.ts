@@ -1,9 +1,3 @@
-/* eslint-disable eqeqeq */
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable @typescript-eslint/indent */
-/* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
-/* eslint-disable @typescript-eslint/explicit-function-return-type */
-
 /** @macro */
 export function $CHECK_ENV (env: napi_env): any {
   if (!env) return napi_status.napi_invalid_arg

@@ -18,7 +18,6 @@ export function napi_define_class (
   properties: Const<Pointer<napi_property_descriptor>>,
   result: Pointer<napi_value>
 ): napi_status {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let propPtr: number, valueHandleId: number, attributes: number
 
   return $PREAMBLE!(env, (envObject) => {
@@ -43,7 +42,6 @@ export function napi_define_class (
     let propertyName: string | symbol
 
     for (let i = 0; i < property_count; i++) {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       propPtr = properties + (i * (POINTER_SIZE * 8))
       const utf8Name = makeGetValue('propPtr', 0, '*')
       const name = makeGetValue('propPtr', POINTER_SIZE, '*')
@@ -74,7 +72,6 @@ export function napi_define_class (
       emnapiDefineProperty(envObject, F.prototype, propertyName, method, getter, setter, value, attributes, data)
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const valueHandle = emnapiCtx.addToCurrentScope(F)
     valueHandleId = valueHandle.id
     from64('result')
@@ -136,7 +133,7 @@ export function napi_type_tag_object (env: napi_env, object: napi_value, type_ta
  * @__sig ipppp
  */
 export function napi_check_object_type_tag (env: napi_env, object: napi_value, type_tag: Const<Pointer<unknown>>, result: Pointer<bool>): napi_status {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars, one-var
+  // eslint-disable-next-line one-var
   let ret = true, i: number
 
   return $PREAMBLE!(env, (envObject) => {
@@ -201,7 +198,7 @@ export function napi_add_finalizer (env: napi_env, js_object: napi_value, finali
   const reference = emnapiCtx.createReferenceWithFinalizer(envObject, handle.id, 0, ownership as any, finalize_cb, finalize_data, finalize_hint)
   if (result) {
     from64('result')
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
     const referenceId = reference.id
     makeSetValue('result', 0, 'referenceId', '*')
   }
