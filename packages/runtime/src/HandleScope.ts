@@ -16,7 +16,7 @@ export class HandleScope {
   public start: number
   public end: number
   private _escapeCalled: boolean
-  private _callbackInfo: ICallbackInfo | null
+  public callbackInfo: ICallbackInfo
 
   public constructor (handleStore: HandleStore, id: number, parentScope: HandleScope | null, start: number, end = start) {
     this.handleStore = handleStore
@@ -27,19 +27,12 @@ export class HandleScope {
     this.start = start
     this.end = end
     this._escapeCalled = false
-    this._callbackInfo = null
-  }
-
-  public hasCallbackInfo (): boolean {
-    return this._callbackInfo !== null
-  }
-
-  public setCallbackInfo (cbInfo: ICallbackInfo | null) {
-    this._callbackInfo = cbInfo
-  }
-
-  public getCallbackInfo (): ICallbackInfo | null {
-    return this._callbackInfo
+    this.callbackInfo = {
+      thiz: undefined,
+      data: 0,
+      args: undefined!,
+      fn: undefined!
+    }
   }
 
   public add<V> (value: V): Handle<V> {
