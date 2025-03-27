@@ -13,31 +13,31 @@ export function emnapiCreateFunction<F extends (...args: any[]) => any> (envObje
 
   let f: F
   const napiCallback = makeDynCall('ppp', 'cb')
+  const callback = (envObject: Env) => {
+    return napiCallback(envObject.id, envObject.ctx.scopeStore.currentScope.id)
+  }
 
-  const makeFunction = () => function (this: any, ...args: any[]): any {
-    const scope = emnapiCtx.openScope(envObject)
+  const makeFunction = (envObject: Env, callback: (env: Env) => any) => function (this: any, ...args: any[]): any {
+    const scope = envObject.ctx.openScope(envObject)
     const callbackInfo = scope.callbackInfo
     callbackInfo.data = data
     callbackInfo.args = args
     callbackInfo.thiz = this
     callbackInfo.fn = f
-    const cbinfo = scope.id
     try {
-      const napiValue = envObject.callIntoModule((envObject) => {
-        return napiCallback(envObject.id, cbinfo)
-      })
-      return (!napiValue) ? undefined : emnapiCtx.handleStore.get(napiValue)!.value
+      const napiValue = envObject.callIntoModule(callback)
+      return (!napiValue) ? undefined : envObject.ctx.handleStore.get(napiValue)!.value
     } finally {
       callbackInfo.data = 0
       callbackInfo.args = undefined!
       callbackInfo.thiz = undefined
       callbackInfo.fn = undefined!
-      emnapiCtx.closeScope(envObject, scope)
+      envObject.ctx.closeScope(envObject, scope)
     }
   }
 
   if (functionName === '') {
-    f = makeFunction() as F
+    f = makeFunction(envObject, callback) as F
     return { status: napi_status.napi_ok, f }
   }
 
@@ -47,7 +47,7 @@ export function emnapiCreateFunction<F extends (...args: any[]) => any> (envObje
 
 // #if DYNAMIC_EXECUTION
     if (emnapiCtx.feature.supportNewFunction) {
-      const _ = makeFunction()
+      const _ = makeFunction(envObject, callback)
       try {
         f = (new Function('_',
           'return function ' + functionName + '(){' +
@@ -56,15 +56,15 @@ export function emnapiCreateFunction<F extends (...args: any[]) => any> (envObje
           '};'
         ))(_)
       } catch (_err) {
-        f = makeFunction() as F
+        f = makeFunction(envObject, callback) as F
         if (emnapiCtx.feature.canSetFunctionName) Object.defineProperty(f, 'name', { value: functionName })
       }
     } else {
-      f = makeFunction() as F
+      f = makeFunction(envObject, callback) as F
       if (emnapiCtx.feature.canSetFunctionName) Object.defineProperty(f, 'name', { value: functionName })
     }
 // #else
-    f = makeFunction() as F
+    f = makeFunction(envObject, callback) as F
     if (emnapiCtx.feature.canSetFunctionName) Object.defineProperty(f, 'name', { value: functionName })
 // #endif
   return { status: napi_status.napi_ok, f }
