@@ -6,8 +6,8 @@
 #include "emnapi_common.h"
 
 #define EMNAPI_MAJOR_VERSION 1
-#define EMNAPI_MINOR_VERSION 3
-#define EMNAPI_PATCH_VERSION 1
+#define EMNAPI_MINOR_VERSION 4
+#define EMNAPI_PATCH_VERSION 0
 
 typedef enum {
   emnapi_runtime,
