@@ -19,7 +19,6 @@ import {
   NAPI_VERSION_EXPERIMENTAL,
   NODE_API_DEFAULT_MODULE_API_VERSION
 } from './util'
-import { CallbackInfoStack } from './CallbackInfo'
 import { NotSupportWeakRefError, NotSupportBufferError } from './errors'
 import { Reference, ReferenceWithData, ReferenceWithFinalizer, type ReferenceOwnership } from './Reference'
 import { type IDeferrdValue, Deferred } from './Deferred'
@@ -117,7 +116,6 @@ export class Context {
   public refStore = new Store<Reference>()
   public deferredStore = new Store<Deferred>()
   public handleStore = new HandleStore()
-  public cbinfoStack = new CallbackInfoStack()
   private readonly refCounter?: NodejsWaitingRequestCounter
   private readonly cleanupQueue: CleanupQueue
 

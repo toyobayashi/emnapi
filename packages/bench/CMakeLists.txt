@@ -19,7 +19,7 @@ add_compile_definitions(
   "NODE_ADDON_API_ENABLE_MAYBE"
 )
 add_link_options(
-  "-sMIN_CHROME_VERSION=84"
+  "-sMIN_CHROME_VERSION=85"
   "-sALLOW_MEMORY_GROWTH=1"
   "-sMODULARIZE=1"
 )
@@ -38,6 +38,7 @@ target_link_libraries(emnapic PRIVATE emnapi-basic fib)
 target_link_options(emnapic PRIVATE
   "-sEXPORTED_FUNCTIONS=['_napi_register_wasm_v1','_malloc','_free']"
   "-sEXPORT_NAME=emnapic"
+  "-sEXPORTED_RUNTIME_METHODS=['emnapiInit']"
 )
 
 add_executable(emnapicpp "${CMAKE_CURRENT_SOURCE_DIR}/src/lib.cpp")
@@ -45,4 +46,5 @@ target_link_libraries(emnapicpp PRIVATE emnapi-basic fib)
 target_link_options(emnapicpp PRIVATE
   "-sEXPORTED_FUNCTIONS=['_napi_register_wasm_v1','_malloc','_free']"
   "-sEXPORT_NAME=emnapicpp"
+  "-sEXPORTED_RUNTIME_METHODS=['emnapiInit']"
 )

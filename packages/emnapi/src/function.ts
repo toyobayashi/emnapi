@@ -31,7 +31,7 @@ export function napi_get_cb_info (env: napi_env, cbinfo: napi_callback_info, arg
   $CHECK_ENV!(env)
   const envObject = emnapiCtx.envStore.get(env)!
   if (!cbinfo) return envObject.setLastError(napi_status.napi_invalid_arg)
-  const cbinfoValue = emnapiCtx.cbinfoStack.get(cbinfo)!
+  const cbinfoValue = emnapiCtx.scopeStore.get(cbinfo)!.callbackInfo
 
   from64('argc')
   from64('argv')
@@ -179,9 +179,15 @@ export function napi_get_new_target (
 
   from64('result')
 
-  const cbinfoValue = emnapiCtx.cbinfoStack.get(cbinfo)!
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const value = cbinfoValue.getNewTarget(envObject)
+  const cbinfoValue = emnapiCtx.scopeStore.get(cbinfo)!.callbackInfo
+  const { thiz, fn } = cbinfoValue
+
+  const value = thiz == null || thiz.constructor == null
+    ? 0
+    : thiz instanceof fn
+      ? envObject.ensureHandleId(thiz.constructor)
+      : 0
+
   makeSetValue('result', 0, 'value', '*')
   return envObject.clearLastError()
 }
