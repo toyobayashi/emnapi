@@ -17,12 +17,11 @@ export function emnapiCreateFunction<F extends (...args: any[]) => any> (envObje
     return napiCallback(envObject.id, envObject.ctx.scopeStore.currentScope.id)
   }
 
-  const makeFunction = (envObject: Env, callback: (env: Env) => any) => function (this: any): any {
-    'use strict'
+  const makeFunction = (envObject: Env, callback: (env: Env) => any) => function (this: any, ...args: any[]): any {
     const scope = envObject.ctx.openScope(envObject)
     const callbackInfo = scope.callbackInfo
     callbackInfo.data = data
-    callbackInfo.args = arguments
+    callbackInfo.args = args
     callbackInfo.thiz = this
     callbackInfo.fn = f
     try {
