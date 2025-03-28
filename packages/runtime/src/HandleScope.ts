@@ -1,6 +1,13 @@
 import type { Handle, HandleStore } from './Handle'
 import { External } from './External'
 
+export interface ICallbackInfo {
+  thiz: any
+  data: void_p
+  args: ArrayLike<any>
+  fn: Function
+}
+
 export class HandleScope {
   public handleStore: HandleStore
   public id: number
@@ -8,7 +15,8 @@ export class HandleScope {
   public child: HandleScope | null
   public start: number
   public end: number
-  public _escapeCalled: boolean
+  private _escapeCalled: boolean
+  public callbackInfo: ICallbackInfo
 
   public constructor (handleStore: HandleStore, id: number, parentScope: HandleScope | null, start: number, end = start) {
     this.handleStore = handleStore
@@ -19,6 +27,12 @@ export class HandleScope {
     this.start = start
     this.end = end
     this._escapeCalled = false
+    this.callbackInfo = {
+      thiz: undefined,
+      data: 0,
+      args: undefined!,
+      fn: undefined!
+    }
   }
 
   public add<V> (value: V): Handle<V> {
@@ -32,6 +46,7 @@ export class HandleScope {
   }
 
   public dispose (): void {
+    if (this._escapeCalled) this._escapeCalled = false
     if (this.start === this.end) return
     this.handleStore.erase(this.start, this.end)
   }

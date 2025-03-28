@@ -5,22 +5,16 @@ import { HandleScope } from './HandleScope'
 export class ScopeStore {
   private readonly _rootScope: HandleScope
   public currentScope: HandleScope
+  private readonly _values: [undefined, ...HandleScope[]]
 
   constructor () {
     this._rootScope = new HandleScope(null!, 0, null, 1, HandleStore.MIN_ID)
     this.currentScope = this._rootScope
+    this._values = [undefined]
   }
 
   get (id: number): HandleScope | undefined {
-    id = Number(id)
-    let scope = this.currentScope
-    while (scope !== this._rootScope) {
-      if (scope.id === id) {
-        return scope
-      }
-      scope = scope.parent!
-    }
-    return undefined
+    return this._values[id]
   }
 
   openScope (envObject: Env): HandleScope {
@@ -29,9 +23,10 @@ export class ScopeStore {
 
     if (scope !== null) {
       scope.start = scope.end = currentScope.end
-      scope._escapeCalled = false
     } else {
-      scope = new HandleScope(envObject.ctx.handleStore, currentScope.id + 1, currentScope, currentScope.end)
+      const id = currentScope.id + 1
+      scope = new HandleScope(envObject.ctx.handleStore, id, currentScope, currentScope.end)
+      this._values[id] = scope
     }
     this.currentScope = scope
 
@@ -48,18 +43,7 @@ export class ScopeStore {
   }
 
   dispose (): void {
-    let scope: HandleScope | null = this.currentScope
-    while (scope !== null) {
-      scope.handleStore = null!
-      scope.id = 0
-      scope.parent = null
-      scope.start = HandleStore.MIN_ID
-      scope.end = HandleStore.MIN_ID
-      scope._escapeCalled = false
-      const child: HandleScope | null = scope.child
-      scope.child = null
-      scope = child
-    }
-    this.currentScope = null!
+    this.currentScope = this._rootScope
+    this._values.length = 1
   }
 }
