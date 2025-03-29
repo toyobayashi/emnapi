@@ -10,8 +10,8 @@ export function _emnapi_node_emit_async_init (
   result: Pointer<[double, double]>
 ): void {
   if (!emnapiNodeBinding) return
-  const resource = emnapiCtx.handleStore.get(async_resource)!.value
-  const resource_name = emnapiCtx.handleStore.get(async_resource_name)!.value
+  const resource = emnapiCtx.jsValueFromNapiValue(async_resource)!
+  const resource_name = emnapiCtx.jsValueFromNapiValue<string>(async_resource_name)!
 
   const asyncContext = emnapiNodeBinding.node.emitAsyncInit(resource, resource_name, trigger_async_id)
 
@@ -57,18 +57,18 @@ export function _emnapi_node_close_callback_scope (scope: Pointer<int64_t>): voi
 export function _emnapi_node_make_callback (env: napi_env, async_resource: napi_value, cb: napi_value, argv: Pointer<napi_value>, size: size_t, async_id: double, trigger_async_id: double, result: Pointer<napi_value>): void {
   let i = 0
 
-  let v: number
+  let v: napi_value
 
   if (!emnapiNodeBinding) return
-  const resource = emnapiCtx.handleStore.get(async_resource)!.value
-  const callback = emnapiCtx.handleStore.get(cb)!.value
+  const resource = emnapiCtx.jsValueFromNapiValue(async_resource)!
+  const callback = emnapiCtx.jsValueFromNapiValue<any>(cb)!
   from64('argv')
   from64('size')
   size = size >>> 0
   const arr = Array(size)
   for (; i < size; i++) {
     const argVal = makeGetValue('argv', 'i * ' + POINTER_SIZE, '*')
-    arr[i] = emnapiCtx.handleStore.get(argVal)!.value
+    arr[i] = emnapiCtx.jsValueFromNapiValue(argVal)!
   }
   const ret = emnapiNodeBinding.node.makeCallback(resource, callback, arr, {
     asyncId: async_id,
@@ -76,9 +76,9 @@ export function _emnapi_node_make_callback (env: napi_env, async_resource: napi_
   })
   if (result) {
     from64('result')
-    const envObject = emnapiCtx.envStore.get(env)!
+    const envObject = emnapiCtx.getEnv(env)!
 
-    v = envObject.ensureHandleId(ret)
+    v = emnapiCtx.napiValueFromJsValue(ret)
     makeSetValue('result', 0, 'v', '*')
   }
 }
@@ -92,10 +92,10 @@ export function _emnapi_async_init_js (async_resource: napi_value, async_resourc
   let resource: object | undefined
 
   if (async_resource) {
-    resource = Object(emnapiCtx.handleStore.get(async_resource)!.value)
+    resource = Object(emnapiCtx.jsValueFromNapiValue(async_resource)!)
   }
 
-  const name = emnapiCtx.handleStore.get(async_resource_name)!.value
+  const name = emnapiCtx.jsValueFromNapiValue<string>(async_resource_name)!
   const ret = emnapiNodeBinding.napi.asyncInit(resource, name)
   if (ret.status !== 0) return ret.status
 
@@ -150,7 +150,7 @@ export function napi_close_callback_scope (env: napi_env, scope: number): napi_s
 export function napi_make_callback (env: napi_env, async_context: Pointer<int64_t>, recv: napi_value, func: napi_value, argc: size_t, argv: Pointer<napi_value>, result: Pointer<napi_value>): napi_status {
   let i = 0
 
-  let v: number
+  let v: napi_value
 
   return $PREAMBLE!(env, (envObject) => {
     if (!emnapiNodeBinding) {
@@ -161,8 +161,8 @@ export function napi_make_callback (env: napi_env, async_context: Pointer<int64_
       $CHECK_ARG!(envObject, argv)
     }
 
-    const v8recv = Object(emnapiCtx.handleStore.get(recv)!.value)
-    const v8func = emnapiCtx.handleStore.get(func)!.value
+    const v8recv = Object(emnapiCtx.jsValueFromNapiValue(recv)!)
+    const v8func = emnapiCtx.jsValueFromNapiValue<any>(func)!
     if (typeof v8func !== 'function') {
       return envObject.setLastError(napi_status.napi_invalid_arg)
     }
@@ -178,7 +178,7 @@ export function napi_make_callback (env: napi_env, async_context: Pointer<int64_
     const arr = Array(argc)
     for (; i < argc; i++) {
       const argVal = makeGetValue('argv', 'i * ' + POINTER_SIZE, '*')
-      arr[i] = emnapiCtx.handleStore.get(argVal)!.value
+      arr[i] = emnapiCtx.jsValueFromNapiValue(argVal)!
     }
     const ret = emnapiNodeBinding.napi.makeCallback(ctx, v8recv, v8func, arr)
     if (ret.error) {
@@ -190,7 +190,7 @@ export function napi_make_callback (env: napi_env, async_context: Pointer<int64_
     if (result) {
       from64('result')
 
-      v = envObject.ensureHandleId(ret.value)
+      v = emnapiCtx.napiValueFromJsValue(ret.value)
       makeSetValue('result', 0, 'v', '*')
     }
     return envObject.getReturnStatus()
@@ -199,6 +199,6 @@ export function napi_make_callback (env: napi_env, async_context: Pointer<int64_
 
 /** @__sig vp */
 export function _emnapi_env_check_gc_access (env: napi_env): void {
-  const envObject = emnapiCtx.envStore.get(env)!
+  const envObject = emnapiCtx.getEnv(env)!
   envObject.checkGCAccess()
 }

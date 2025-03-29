@@ -1,11 +1,21 @@
+import { Disposable } from './Disaposable'
 import { External, getExternalValue, isExternal } from './External'
-import { _global, _Buffer } from './util'
+import { ReusableArrayStore, type StoreValue } from './Store'
+import { Features } from './util'
 
-export class Handle<S> {
-  public constructor (
-    public id: number,
-    public value: S
-  ) {}
+export class Handle<S> extends Disposable implements StoreValue {
+  public id: number | bigint
+  public value: S
+
+  public constructor (value: S, id = 0) {
+    super()
+    this.id = id
+    this.value = value
+  }
+
+  public reuse (value: S): void {
+    this.value = value
+  }
 
   public data (): void_p {
     return getExternalValue(this.value as External) as void_p
@@ -49,7 +59,6 @@ export class Handle<S> {
 
   public isBuffer (BufferConstructor?: BufferCtor): boolean {
     if (ArrayBuffer.isView(this.value)) return true
-    BufferConstructor ??= _Buffer
     return typeof BufferConstructor === 'function' && BufferConstructor.isBuffer(this.value)
   }
 
@@ -87,71 +96,66 @@ export class Handle<S> {
 }
 
 export class ConstHandle<S extends undefined | null | boolean | typeof globalThis> extends Handle<S> {
-  public constructor (id: number, value: S) {
-    super(id, value)
+  public constructor (value: S, id: number) {
+    super(value, id)
   }
 
   public override dispose (): void {}
 }
 
-export class HandleStore {
-  public static UNDEFINED = new ConstHandle(GlobalHandle.UNDEFINED, undefined)
-  public static NULL = new ConstHandle(GlobalHandle.NULL, null)
-  public static FALSE = new ConstHandle(GlobalHandle.FALSE, false)
-  public static TRUE = new ConstHandle(GlobalHandle.TRUE, true)
-  public static GLOBAL = new ConstHandle(GlobalHandle.GLOBAL, _global)
+export class HandleStore extends ReusableArrayStore<Handle<any>> {
+  public static UNDEFINED = new ConstHandle(undefined, GlobalHandle.UNDEFINED)
+  public static NULL = new ConstHandle(null, GlobalHandle.NULL)
+  public static FALSE = new ConstHandle(false, GlobalHandle.FALSE)
+  public static TRUE = new ConstHandle(true, GlobalHandle.TRUE)
 
   public static MIN_ID = 6 as const
 
-  private readonly _values: Array<Handle<any>> = [
-    undefined!,
-    HandleStore.UNDEFINED,
-    HandleStore.NULL,
-    HandleStore.FALSE,
-    HandleStore.TRUE,
-    HandleStore.GLOBAL
-  ]
+  public constructor (features: Features) {
+    super(HandleStore.MIN_ID)
 
-  private _next: number = HandleStore.MIN_ID
+    this._values[GlobalHandle.UNDEFINED] = HandleStore.UNDEFINED
+    this._values[GlobalHandle.NULL] = HandleStore.NULL
+    this._values[GlobalHandle.FALSE] = HandleStore.FALSE
+    this._values[GlobalHandle.TRUE] = HandleStore.TRUE
+    this._values[GlobalHandle.GLOBAL] = new ConstHandle(features.getGlobalThis(), GlobalHandle.GLOBAL)
+  }
 
-  public push<S> (value: S): Handle<S> {
+  protected override _set (id: number | bigint, value: Handle<any>): void {
+    while (id >= this._values.length) {
+      const cap = this._values.length
+      this._values.length = cap + (cap >> 1) + 16
+    }
+    super._set(id, value)
+  }
+
+  /* public push<S> (value: S): Handle<S> {
     let h: Handle<S>
-    const next = this._next
+    const next = this._allocator.aquire()
     const values = this._values
     if (next < values.length) {
-      h = values[next]
+      h = values[next]!
       h.value = value
     } else {
-      h = new Handle(next, value)
+      h = new Handle(value, next)
       values[next] = h
     }
-    this._next++
     return h
-  }
+  } */
 
   public erase (start: number, end: number): void {
-    this._next = start
-    const values = this._values
+    this._allocator.next = start
     for (let i = start; i < end; ++i) {
-      values[i].dispose()
+      this._delete(i)
     }
-  }
-
-  public get (id: Ptr): Handle<any> | undefined {
-    return this._values[id as any]
   }
 
   public swap (a: number, b: number): void {
     const values = this._values
-    const h = values[a]
+    const h = values[a]!
     values[a] = values[b]
     values[a]!.id = Number(a)
     values[b] = h
     h.id = Number(b)
-  }
-
-  public dispose (): void {
-    this._values.length = HandleStore.MIN_ID
-    this._next = HandleStore.MIN_ID
   }
 }

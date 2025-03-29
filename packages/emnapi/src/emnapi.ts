@@ -17,7 +17,7 @@ export function emnapi_create_memory_view (
   finalize_hint: void_p,
   result: Pointer<napi_value>
 ): napi_status {
-  let value: number
+  let value: napi_value
 
   return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, result)
@@ -34,68 +34,68 @@ export function emnapi_create_memory_view (
     if (byte_length > 2147483647) {
       throw new RangeError('Cannot create a memory view larger than 2147483647 bytes')
     }
-    if ((external_data + byte_length) > wasmMemory.buffer.byteLength) {
+    if ((external_data as number + byte_length) > wasmMemory.buffer.byteLength) {
       throw new RangeError('Memory out of range')
     }
-    if (!emnapiCtx.feature.supportFinalizer && finalize_cb) {
+    if (!emnapiCtx.features.finalizer && finalize_cb) {
       throw emnapiCtx.createNotSupportWeakRefError('emnapi_create_memory_view', 'Parameter "finalize_cb" must be 0(NULL)')
     }
 
     let viewDescriptor: MemoryViewDescriptor
     switch (typedarray_type) {
       case emnapi_memory_view_type.emnapi_int8_array:
-        viewDescriptor = { Ctor: Int8Array, address: external_data, length: byte_length, ownership: ReferenceOwnership.kUserland, runtimeAllocated: 0 }
+        viewDescriptor = { Ctor: Int8Array, address: external_data as number, length: byte_length, ownership: ReferenceOwnership.kUserland, runtimeAllocated: 0 }
         break
       case emnapi_memory_view_type.emnapi_uint8_array:
-        viewDescriptor = { Ctor: Uint8Array, address: external_data, length: byte_length, ownership: ReferenceOwnership.kUserland, runtimeAllocated: 0 }
+        viewDescriptor = { Ctor: Uint8Array, address: external_data as number, length: byte_length, ownership: ReferenceOwnership.kUserland, runtimeAllocated: 0 }
         break
       case emnapi_memory_view_type.emnapi_uint8_clamped_array:
-        viewDescriptor = { Ctor: Uint8ClampedArray, address: external_data, length: byte_length, ownership: ReferenceOwnership.kUserland, runtimeAllocated: 0 }
+        viewDescriptor = { Ctor: Uint8ClampedArray, address: external_data as number, length: byte_length, ownership: ReferenceOwnership.kUserland, runtimeAllocated: 0 }
         break
       case emnapi_memory_view_type.emnapi_int16_array:
-        viewDescriptor = { Ctor: Int16Array, address: external_data, length: byte_length >> 1, ownership: ReferenceOwnership.kUserland, runtimeAllocated: 0 }
+        viewDescriptor = { Ctor: Int16Array, address: external_data as number, length: byte_length >> 1, ownership: ReferenceOwnership.kUserland, runtimeAllocated: 0 }
         break
       case emnapi_memory_view_type.emnapi_uint16_array:
-        viewDescriptor = { Ctor: Uint16Array, address: external_data, length: byte_length >> 1, ownership: ReferenceOwnership.kUserland, runtimeAllocated: 0 }
+        viewDescriptor = { Ctor: Uint16Array, address: external_data as number, length: byte_length >> 1, ownership: ReferenceOwnership.kUserland, runtimeAllocated: 0 }
         break
       case emnapi_memory_view_type.emnapi_int32_array:
-        viewDescriptor = { Ctor: Int32Array, address: external_data, length: byte_length >> 2, ownership: ReferenceOwnership.kUserland, runtimeAllocated: 0 }
+        viewDescriptor = { Ctor: Int32Array, address: external_data as number, length: byte_length >> 2, ownership: ReferenceOwnership.kUserland, runtimeAllocated: 0 }
         break
       case emnapi_memory_view_type.emnapi_uint32_array:
-        viewDescriptor = { Ctor: Uint32Array, address: external_data, length: byte_length >> 2, ownership: ReferenceOwnership.kUserland, runtimeAllocated: 0 }
+        viewDescriptor = { Ctor: Uint32Array, address: external_data as number, length: byte_length >> 2, ownership: ReferenceOwnership.kUserland, runtimeAllocated: 0 }
         break
       case emnapi_memory_view_type.emnapi_float32_array:
-        viewDescriptor = { Ctor: Float32Array, address: external_data, length: byte_length >> 2, ownership: ReferenceOwnership.kUserland, runtimeAllocated: 0 }
+        viewDescriptor = { Ctor: Float32Array, address: external_data as number, length: byte_length >> 2, ownership: ReferenceOwnership.kUserland, runtimeAllocated: 0 }
         break
       case emnapi_memory_view_type.emnapi_float64_array:
-        viewDescriptor = { Ctor: Float64Array, address: external_data, length: byte_length >> 3, ownership: ReferenceOwnership.kUserland, runtimeAllocated: 0 }
+        viewDescriptor = { Ctor: Float64Array, address: external_data as number, length: byte_length >> 3, ownership: ReferenceOwnership.kUserland, runtimeAllocated: 0 }
         break
       case emnapi_memory_view_type.emnapi_bigint64_array:
-        viewDescriptor = { Ctor: BigInt64Array, address: external_data, length: byte_length >> 3, ownership: ReferenceOwnership.kUserland, runtimeAllocated: 0 }
+        viewDescriptor = { Ctor: BigInt64Array, address: external_data as number, length: byte_length >> 3, ownership: ReferenceOwnership.kUserland, runtimeAllocated: 0 }
         break
       case emnapi_memory_view_type.emnapi_biguint64_array:
-        viewDescriptor = { Ctor: BigUint64Array, address: external_data, length: byte_length >> 3, ownership: ReferenceOwnership.kUserland, runtimeAllocated: 0 }
+        viewDescriptor = { Ctor: BigUint64Array, address: external_data as number, length: byte_length >> 3, ownership: ReferenceOwnership.kUserland, runtimeAllocated: 0 }
         break
       case emnapi_memory_view_type.emnapi_data_view:
-        viewDescriptor = { Ctor: DataView, address: external_data, length: byte_length, ownership: ReferenceOwnership.kUserland, runtimeAllocated: 0 }
+        viewDescriptor = { Ctor: DataView, address: external_data as number, length: byte_length, ownership: ReferenceOwnership.kUserland, runtimeAllocated: 0 }
         break
       case emnapi_memory_view_type.emnapi_buffer: {
-        if (!emnapiCtx.feature.Buffer) {
+        if (!emnapiCtx.features.Buffer) {
           throw emnapiCtx.createNotSupportBufferError('emnapi_create_memory_view', '')
         }
-        viewDescriptor = { Ctor: emnapiCtx.feature.Buffer!, address: external_data, length: byte_length, ownership: ReferenceOwnership.kUserland, runtimeAllocated: 0 }
+        viewDescriptor = { Ctor: emnapiCtx.features.Buffer!, address: external_data as number, length: byte_length, ownership: ReferenceOwnership.kUserland, runtimeAllocated: 0 }
         break
       }
       default: return envObject.setLastError(napi_status.napi_invalid_arg)
     }
     const Ctor = viewDescriptor.Ctor
     const typedArray = typedarray_type === emnapi_memory_view_type.emnapi_buffer
-      ? emnapiCtx.feature.Buffer!.from(wasmMemory.buffer, viewDescriptor.address, viewDescriptor.length)
+      ? emnapiCtx.features.Buffer!.from(wasmMemory.buffer, viewDescriptor.address, viewDescriptor.length)
       : new Ctor(wasmMemory.buffer, viewDescriptor.address, viewDescriptor.length)
-    const handle = emnapiCtx.addToCurrentScope(typedArray)
+    value = emnapiCtx.napiValueFromJsValue(typedArray)
     emnapiExternalMemory.wasmMemoryViewTable.set(typedArray, viewDescriptor)
     if (finalize_cb) {
-      const status = napi_add_finalizer(env, handle.id, external_data, finalize_cb, finalize_hint, /* NULL */ 0)
+      const status = napi_add_finalizer(env, value, external_data, finalize_cb, finalize_hint, /* NULL */ 0)
       if (status === napi_status.napi_pending_exception) {
         const err = envObject.tryCatch.extractException()
         envObject.clearLastError()
@@ -104,7 +104,6 @@ export function emnapi_create_memory_view (
         return envObject.setLastError(status)
       }
     }
-    value = handle.id
     makeSetValue('result', 0, 'value', '*')
     return envObject.getReturnStatus()
   })
@@ -114,14 +113,14 @@ export function emnapi_create_memory_view (
  * @__sig i
  */
 export function emnapi_is_support_weakref (): int {
-  return emnapiCtx.feature.supportFinalizer ? 1 : 0
+  return emnapiCtx.features.finalizer ? 1 : 0
 }
 
 /**
  * @__sig i
  */
 export function emnapi_is_support_bigint (): int {
-  return emnapiCtx.feature.supportBigInt ? 1 : 0
+  return emnapiCtx.features.BigInt ? 1 : 0
 }
 
 /**
@@ -152,9 +151,9 @@ export function $emnapiSyncMemory<T extends ArrayBuffer | ArrayBufferView> (
 
     const wasmMemoryU8 = new Uint8Array(wasmMemory.buffer)
     if (!js_to_wasm) {
-      view.set(wasmMemoryU8.subarray(pointer, pointer + len))
+      view.set(wasmMemoryU8.subarray(pointer as number, pointer as number + len))
     } else {
-      wasmMemoryU8.set(view, pointer)
+      wasmMemoryU8.set(view, pointer as number)
     }
 
     return arrayBufferOrView
@@ -174,9 +173,9 @@ export function $emnapiSyncMemory<T extends ArrayBuffer | ArrayBufferView> (
 
     const wasmMemoryU8 = new Uint8Array(wasmMemory.buffer)
     if (!js_to_wasm) {
-      view.set(wasmMemoryU8.subarray(pointer, pointer + len))
+      view.set(wasmMemoryU8.subarray(pointer as number, pointer as number + len))
     } else {
-      wasmMemoryU8.set(view, pointer)
+      wasmMemoryU8.set(view, pointer as number)
     }
 
     return latestView
@@ -188,7 +187,7 @@ export function $emnapiSyncMemory<T extends ArrayBuffer | ArrayBufferView> (
  * @__sig ipippp
  */
 export function emnapi_sync_memory (env: napi_env, js_to_wasm: bool, arraybuffer_or_view: Pointer<napi_value>, offset: size_t, len: size_t): napi_status {
-  let v: number
+  let v: napi_value
 
   return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, arraybuffer_or_view)
@@ -199,7 +198,7 @@ export function emnapi_sync_memory (env: napi_env, js_to_wasm: bool, arraybuffer
 
     const handleId = makeGetValue('arraybuffer_or_view', 0, '*')
 
-    const handle: Handle<ArrayBuffer | ArrayBufferView> = envObject.ctx.handleStore.get(handleId)!
+    const handle = emnapiCtx.handleFromNapiValue<ArrayBuffer | ArrayBufferView>(handleId)!
     if (!handle.isArrayBuffer() && !handle.isTypedArray() && !handle.isDataView()) {
       return envObject.setLastError(napi_status.napi_invalid_arg)
     }
@@ -207,7 +206,7 @@ export function emnapi_sync_memory (env: napi_env, js_to_wasm: bool, arraybuffer
 
     if (handle.value !== ret) {
       from64('arraybuffer_or_view')
-      v = envObject.ensureHandleId(ret)
+      v = emnapiCtx.napiValueFromJsValue(ret)
       makeSetValue('arraybuffer_or_view', 0, 'v', '*')
     }
 
@@ -249,8 +248,8 @@ export function emnapi_get_memory_address (env: napi_env, arraybuffer_or_view: n
       return envObject.setLastError(napi_status.napi_invalid_arg)
     }
 
-    const handle: Handle<ArrayBuffer | ArrayBufferView> = envObject.ctx.handleStore.get(arraybuffer_or_view)!
-    info = $emnapiGetMemoryAddress(handle.value)
+    const value = emnapiCtx.jsValueFromNapiValue<ArrayBuffer | ArrayBufferView>(arraybuffer_or_view)!
+    info = $emnapiGetMemoryAddress(value)
 
     p = info.address
     if (address) {
@@ -277,7 +276,7 @@ export function emnapi_get_memory_address (env: napi_env, arraybuffer_or_view: n
  */
 export function emnapi_get_runtime_version (env: napi_env, version: number): napi_status {
   $CHECK_ENV!(env)
-  const envObject = emnapiCtx.envStore.get(env)!
+  const envObject = emnapiCtx.getEnv(env)!
   $CHECK_ARG!(envObject, version)
 
   let runtimeVersion: string

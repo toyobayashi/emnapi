@@ -15,7 +15,7 @@ export function napi_create_array (env: napi_env, result: Pointer<napi_value>): 
   $CHECK_ARG!(envObject, result)
   from64('result')
 
-  const value = emnapiCtx.addToCurrentScope([]).id
+  const value = emnapiCtx.napiValueFromJsValue([])
   makeSetValue('result', 0, 'value', '*')
   return envObject.clearLastError()
 }
@@ -30,7 +30,7 @@ export function napi_create_array_with_length (env: napi_env, length: size_t, re
   from64('result')
   length = length >>> 0
 
-  const value = emnapiCtx.addToCurrentScope(new Array(length)).id
+  const value = emnapiCtx.napiValueFromJsValue(new Array(length))
   makeSetValue('result', 0, 'value', '*')
   return envObject.clearLastError()
 }
@@ -54,13 +54,13 @@ function emnapiCreateArrayBuffer (byte_length: size_t, data: void_pp): ArrayBuff
  * @__sig ipppp
  */
 export function napi_create_arraybuffer (env: napi_env, byte_length: size_t, data: void_pp, result: Pointer<napi_value>): napi_status {
-  let value: number
+  let value: napi_value
 
   return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, result)
     from64('result')
     const arrayBuffer = emnapiCreateArrayBuffer(byte_length, data)
-    value = emnapiCtx.addToCurrentScope(arrayBuffer).id
+    value = emnapiCtx.napiValueFromJsValue(arrayBuffer)
     makeSetValue('result', 0, 'value', '*')
     return envObject.getReturnStatus()
   })
@@ -70,13 +70,13 @@ export function napi_create_arraybuffer (env: napi_env, byte_length: size_t, dat
  * @__sig ipdp
  */
 export function napi_create_date (env: napi_env, time: double, result: Pointer<napi_value>): napi_status {
-  let value: number
+  let value: napi_value
 
   return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, result)
     from64('result')
 
-    value = emnapiCtx.addToCurrentScope(new Date(time)).id
+    value = emnapiCtx.napiValueFromJsValue(new Date(time))
     makeSetValue('result', 0, 'value', '*')
     return envObject.getReturnStatus()
   })
@@ -86,11 +86,11 @@ export function napi_create_date (env: napi_env, time: double, result: Pointer<n
  * @__sig ippppp
  */
 export function napi_create_external (env: napi_env, data: void_p, finalize_cb: napi_finalize, finalize_hint: void_p, result: Pointer<napi_value>): napi_status {
-  let value: number
+  let value: number | bigint
 
   return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, result)
-    if (!emnapiCtx.feature.supportFinalizer && finalize_cb) {
+    if (!emnapiCtx.features.finalizer && finalize_cb) {
       throw emnapiCtx.createNotSupportWeakRefError('napi_create_external', 'Parameter "finalize_cb" must be 0(NULL)')
     }
     const externalHandle = emnapiCtx.getCurrentScope()!.addExternal(data)
@@ -115,7 +115,7 @@ export function napi_create_external_arraybuffer (
   finalize_hint: void_p,
   result: Pointer<napi_value>
 ): napi_status {
-  let value: number
+  let value: napi_value
 
   return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, result)
@@ -129,31 +129,31 @@ export function napi_create_external_arraybuffer (
       byte_length = 0
     }
 
-    if ((external_data + byte_length) > wasmMemory.buffer.byteLength) {
+    if ((external_data as number + byte_length) > wasmMemory.buffer.byteLength) {
       throw new RangeError('Memory out of range')
     }
-    if (!emnapiCtx.feature.supportFinalizer && finalize_cb) {
+    if (!emnapiCtx.features.finalizer && finalize_cb) {
       throw emnapiCtx.createNotSupportWeakRefError('napi_create_external_arraybuffer', 'Parameter "finalize_cb" must be 0(NULL)')
     }
     const arrayBuffer = new ArrayBuffer(byte_length)
     if (byte_length === 0) {
       try {
-        const MessageChannel = emnapiCtx.feature.MessageChannel
+        const MessageChannel = emnapiCtx.features.MessageChannel
         const messageChannel = new MessageChannel!()
         messageChannel.port1.postMessage(arrayBuffer, [arrayBuffer])
       } catch (_) {}
     } else {
       const u8arr = new Uint8Array(arrayBuffer)
-      u8arr.set(new Uint8Array(wasmMemory.buffer).subarray(external_data, external_data + byte_length))
+      u8arr.set(new Uint8Array(wasmMemory.buffer).subarray(external_data as number, external_data as number + byte_length))
       emnapiExternalMemory.table.set(arrayBuffer, {
-        address: external_data,
+        address: external_data as number,
         ownership: ReferenceOwnership.kUserland,
         runtimeAllocated: 0
       })
     }
-    const handle = emnapiCtx.addToCurrentScope(arrayBuffer)
+    value = emnapiCtx.napiValueFromJsValue(arrayBuffer)
     if (finalize_cb) {
-      const status = napi_add_finalizer(env, handle.id, external_data, finalize_cb, finalize_hint, /* NULL */ 0)
+      const status = napi_add_finalizer(env, value, external_data, finalize_cb, finalize_hint, /* NULL */ 0)
       if (status === napi_status.napi_pending_exception) {
         const err = envObject.tryCatch.extractException()
         envObject.clearLastError()
@@ -162,7 +162,6 @@ export function napi_create_external_arraybuffer (
         return envObject.setLastError(status)
       }
     }
-    value = handle.id
     makeSetValue('result', 0, 'value', '*')
     return envObject.getReturnStatus()
   })
@@ -176,7 +175,7 @@ export function napi_create_object (env: napi_env, result: Pointer<napi_value>):
   $CHECK_ARG!(envObject, result)
   from64('result')
 
-  const value = emnapiCtx.addToCurrentScope({}).id
+  const value = emnapiCtx.napiValueFromJsValue({})
   makeSetValue('result', 0, 'value', '*')
   return envObject.clearLastError()
 }
@@ -191,16 +190,15 @@ export function napi_create_symbol (env: napi_env, description: napi_value, resu
 
   if (!description) {
     // eslint-disable-next-line symbol-description
-    const value = emnapiCtx.addToCurrentScope(Symbol()).id
+    const value = emnapiCtx.napiValueFromJsValue(Symbol())
     makeSetValue('result', 0, 'value', '*')
   } else {
-    const handle = emnapiCtx.handleStore.get(description)!
-    const desc = handle.value
+    const desc = emnapiCtx.jsValueFromNapiValue(description)!
     if (typeof desc !== 'string') {
       return envObject.setLastError(napi_status.napi_string_expected)
     }
 
-    const v = emnapiCtx.addToCurrentScope(Symbol(desc)).id
+    const v = emnapiCtx.napiValueFromJsValue(Symbol(desc))
     makeSetValue('result', 0, 'v', '*')
   }
   return envObject.clearLastError()
@@ -217,13 +215,13 @@ export function napi_create_typedarray (
   byte_offset: size_t,
   result: Pointer<napi_value>
 ): napi_status {
-  let value: number
+  let value: napi_value
 
   return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, arraybuffer)
     $CHECK_ARG!(envObject, result)
 
-    const handle = emnapiCtx.handleStore.get(arraybuffer)!
+    const handle = emnapiCtx.handleFromNapiValue(arraybuffer)!
     if (!handle.isArrayBuffer()) {
       return envObject.setLastError(napi_status.napi_invalid_arg)
     }
@@ -265,7 +263,7 @@ export function napi_create_typedarray (
 
       from64('result')
 
-      value = emnapiCtx.addToCurrentScope(out).id
+      value = emnapiCtx.napiValueFromJsValue(out)
       makeSetValue('result', 0, 'value', '*')
       return envObject.getReturnStatus()
     }
@@ -309,12 +307,12 @@ export function napi_create_buffer (
   data: Pointer<Pointer<void>>,
   result: Pointer<napi_value>
 ): napi_status {
-  let value: number, pointer: number
+  let value: napi_value, pointer: number
 
   return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, result)
 
-    const Buffer = emnapiCtx.feature.Buffer
+    const Buffer = emnapiCtx.features.Buffer
     if (!Buffer) {
       throw emnapiCtx.createNotSupportBufferError('napi_create_buffer', '')
     }
@@ -325,11 +323,12 @@ export function napi_create_buffer (
     size = size >>> 0
     if (!data || (size === 0)) {
       buffer = Buffer.alloc(size)
-      value = emnapiCtx.addToCurrentScope(buffer).id
+      value = emnapiCtx.napiValueFromJsValue(buffer)
       makeSetValue('result', 0, 'value', '*')
     } else {
-      pointer = _malloc(to64('size'))
+      pointer = _malloc(to64('size')) as number
       if (!pointer) throw new Error('Out of memory')
+      from64('pointer')
       new Uint8Array(wasmMemory.buffer).subarray(pointer, pointer + size).fill(0)
       const buffer = Buffer.from(wasmMemory.buffer, pointer, size)
       const viewDescriptor: MemoryViewDescriptor = {
@@ -342,7 +341,7 @@ export function napi_create_buffer (
       emnapiExternalMemory.wasmMemoryViewTable.set(buffer, viewDescriptor)
       emnapiExternalMemory.registry?.register(viewDescriptor, pointer)
 
-      value = emnapiCtx.addToCurrentScope(buffer).id
+      value = emnapiCtx.napiValueFromJsValue(buffer)
       makeSetValue('result', 0, 'value', '*')
       from64('data')
       makeSetValue('data', 0, 'pointer', '*')
@@ -362,11 +361,11 @@ export function napi_create_buffer_copy (
   result_data: Pointer<Pointer<void>>,
   result: Pointer<napi_value>
 ): napi_status {
-  let value: number
+  let value: napi_value
 
   return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, result)
-    const Buffer = emnapiCtx.feature.Buffer!
+    const Buffer = emnapiCtx.features.Buffer!
     if (!Buffer) {
       throw emnapiCtx.createNotSupportBufferError('napi_create_buffer_copy', '')
     }
@@ -374,8 +373,8 @@ export function napi_create_buffer_copy (
     const buffer = Buffer.from(arrayBuffer)
     from64('data')
     from64('length')
-    buffer.set(new Uint8Array(wasmMemory.buffer).subarray(data, data + length))
-    value = emnapiCtx.addToCurrentScope(buffer).id
+    buffer.set(new Uint8Array(wasmMemory.buffer).subarray(data as number, data as number + length))
+    value = emnapiCtx.napiValueFromJsValue(buffer)
     from64('result')
     makeSetValue('result', 0, 'value', '*')
     return envObject.getReturnStatus()
@@ -414,7 +413,7 @@ export function node_api_create_buffer_from_arraybuffer (
   byte_length: size_t,
   result: Pointer<napi_value>
 ): napi_status {
-  let value: number
+  let value: napi_value
 
   return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, arraybuffer)
@@ -423,7 +422,7 @@ export function node_api_create_buffer_from_arraybuffer (
     from64('byte_length')
     byte_offset = byte_offset >>> 0
     byte_length = byte_length >>> 0
-    const handle = emnapiCtx.handleStore.get(arraybuffer)!
+    const handle = emnapiCtx.handleFromNapiValue(arraybuffer)!
     if (!handle.isArrayBuffer()) {
       return envObject.setLastError(napi_status.napi_invalid_arg)
     }
@@ -435,7 +434,7 @@ export function node_api_create_buffer_from_arraybuffer (
       throw err
     }
 
-    const Buffer = emnapiCtx.feature.Buffer!
+    const Buffer = emnapiCtx.features.Buffer!
     if (!Buffer) {
       throw emnapiCtx.createNotSupportBufferError('node_api_create_buffer_from_arraybuffer', '')
     }
@@ -453,7 +452,7 @@ export function node_api_create_buffer_from_arraybuffer (
     }
     from64('result')
 
-    value = emnapiCtx.addToCurrentScope(out).id
+    value = emnapiCtx.napiValueFromJsValue(out)
     makeSetValue('result', 0, 'value', '*')
     return envObject.getReturnStatus()
   })
@@ -469,7 +468,7 @@ export function napi_create_dataview (
   byte_offset: size_t,
   result: Pointer<napi_value>
 ): napi_status {
-  let value: number
+  let value: napi_value
 
   return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, arraybuffer)
@@ -478,7 +477,7 @@ export function napi_create_dataview (
     from64('byte_offset')
     byte_length = byte_length >>> 0
     byte_offset = byte_offset >>> 0
-    const handle = emnapiCtx.handleStore.get(arraybuffer)!
+    const handle = emnapiCtx.handleFromNapiValue(arraybuffer)!
     if (!handle.isArrayBuffer()) {
       return envObject.setLastError(napi_status.napi_invalid_arg)
     }
@@ -504,7 +503,7 @@ export function napi_create_dataview (
     }
     from64('result')
 
-    value = emnapiCtx.addToCurrentScope(dataview).id
+    value = emnapiCtx.napiValueFromJsValue(dataview)
     makeSetValue('result', 0, 'value', '*')
     return envObject.getReturnStatus()
   })
@@ -530,9 +529,9 @@ export function node_api_symbol_for (env: napi_env, utf8description: const_char_
     return envObject.setLastError(napi_status.napi_invalid_arg)
   }
 
-  const descriptionString = emnapiString.UTF8ToString(utf8description, length)
+  const descriptionString = emnapiString.UTF8ToString(utf8description as number, length)
 
-  const value = emnapiCtx.addToCurrentScope(Symbol.for(descriptionString)).id
+  const value = emnapiCtx.napiValueFromJsValue(Symbol.for(descriptionString))
   makeSetValue('result', 0, 'value', '*')
   return envObject.clearLastError()
 }
