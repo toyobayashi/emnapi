@@ -270,15 +270,16 @@ export var napi_create_async_work = singleThreadAsyncWork
     $CHECK_ARG!(envObject, resource_name)
 
     const sizeofAW = emnapiAWMT.offset.end
-    const aw = _malloc(to64('sizeofAW'))
+    let aw = _malloc(to64('sizeofAW') as size_t)
     if (!aw) return envObject.setLastError(napi_status.napi_generic_failure)
-    new Uint8Array(wasmMemory.buffer).subarray(aw, aw + sizeofAW).fill(0)
+    from64('aw')
+    new Uint8Array(wasmMemory.buffer).subarray(aw as number, aw as number + sizeofAW).fill(0)
     const s = emnapiCtx.napiValueFromJsValue(resourceObject)
     const resourceRef = emnapiCtx.createReference(envObject, s, 1, ReferenceOwnership.kUserland as any)
 
     const resource_ = resourceRef.id
     makeSetValue('aw', 0, 'resource_', '*')
-    _emnapi_node_emit_async_init(s, resource_name, -1, aw + emnapiAWMT.offset.async_id)
+    _emnapi_node_emit_async_init(s, resource_name, -1, aw as number + emnapiAWMT.offset.async_id)
     makeSetValue('aw', 'emnapiAWMT.offset.env', 'env', '*')
     makeSetValue('aw', 'emnapiAWMT.offset.execute', 'execute', '*')
     makeSetValue('aw', 'emnapiAWMT.offset.complete', 'complete', '*')

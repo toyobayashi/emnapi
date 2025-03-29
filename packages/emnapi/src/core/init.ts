@@ -41,8 +41,8 @@ export var wasmMemory: WebAssembly.Memory
 
 export var wasmTable: WebAssembly.Table
 
-export var _malloc: any
-export var _free: any
+export var _malloc: (size: size_t) => void_p
+export var _free: (ptr: void_p) => void
 
 export function abort (msg?: string): never {
   if (typeof WebAssembly.RuntimeError === 'function') {
@@ -91,8 +91,8 @@ export var napiModule: INapiModule = {
     wasmTable = table
     if (typeof exports.malloc !== 'function') throw new TypeError('malloc is not exported')
     if (typeof exports.free !== 'function') throw new TypeError('free is not exported')
-    _malloc = exports.malloc
-    _free = exports.free
+    _malloc = exports.malloc as (size: size_t) => void_p
+    _free = exports.free as (ptr: void_p) => void
 
     if (!napiModule.childThread) {
       // main thread only

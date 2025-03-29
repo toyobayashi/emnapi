@@ -82,7 +82,7 @@ export const emnapiTSFN = {
   },
   initQueue (func: number): boolean {
     const size = 2 * POINTER_SIZE
-    const queue = _malloc(to64('size'))
+    let queue = _malloc(to64('size'))
     if (!queue) return false
     from64('queue')
     new Uint8Array(wasmMemory.buffer, queue as number, size).fill(0)
@@ -101,7 +101,7 @@ export const emnapiTSFN = {
     const tail = emnapiTSFN.loadSizeTypeValue(queue + POINTER_SIZE, false)
 
     const size = 2 * POINTER_SIZE
-    const node = _malloc(to64('size'))
+    let node = _malloc(to64('size'))
     if (!node) throw new Error('OOM')
     from64('node')
     emnapiTSFN.storeSizeTypeValue(node as number, data, false)
@@ -705,7 +705,7 @@ export function napi_create_threadsafe_function (
 
   // tsfn create
   const sizeofTSFN = emnapiTSFN.offset.end
-  const tsfn = _malloc(to64('sizeofTSFN'))
+  let tsfn = _malloc(to64('sizeofTSFN'))
   if (!tsfn) return envObject.setLastError(napi_status.napi_generic_failure)
   from64('tsfn')
   new Uint8Array(wasmMemory.buffer).subarray(tsfn as number, tsfn as number + sizeofTSFN).fill(0)
