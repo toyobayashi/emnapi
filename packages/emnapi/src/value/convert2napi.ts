@@ -13,7 +13,7 @@ export function napi_create_int32 (env: napi_env, value: int32_t, result: Pointe
   $CHECK_ARG!(envObject, result)
   from64('result')
 
-  const v = emnapiCtx.addToCurrentScope(value).id
+  const v = emnapiCtx.napiValueFromJsValue(value)
   makeSetValue('result', 0, 'v', '*')
   return envObject.clearLastError()
 }
@@ -26,7 +26,7 @@ export function napi_create_uint32 (env: napi_env, value: uint32_t, result: Poin
   $CHECK_ARG!(envObject, result)
   from64('result')
 
-  const v = emnapiCtx.addToCurrentScope(value >>> 0).id
+  const v = emnapiCtx.napiValueFromJsValue(value >>> 0)
   makeSetValue('result', 0, 'v', '*')
   return envObject.clearLastError()
 }
@@ -43,14 +43,14 @@ export function napi_create_int64 (env: napi_env, low: int32_t, high: int32_t, r
   if (!high) return envObject.setLastError(napi_status.napi_invalid_arg)
   value = Number(low)
 
-  const v1 = emnapiCtx.addToCurrentScope(value).id
+  const v1 = emnapiCtx.napiValueFromJsValue(value)
   from64('high')
   makeSetValue('high', 0, 'v1', '*')
 // #else
   if (!result) return envObject.setLastError(napi_status.napi_invalid_arg)
   value = (low >>> 0) + (high * Math.pow(2, 32))
 
-  const v2 = emnapiCtx.addToCurrentScope(value).id
+  const v2 = emnapiCtx.napiValueFromJsValue(value)
   makeSetValue('result', 0, 'v2', '*')
 // #endif
 
@@ -65,7 +65,7 @@ export function napi_create_double (env: napi_env, value: double, result: Pointe
   $CHECK_ARG!(envObject, result)
   from64('result')
 
-  const v = emnapiCtx.addToCurrentScope(value).id
+  const v = emnapiCtx.napiValueFromJsValue(value)
   makeSetValue('result', 0, 'v', '*')
   return envObject.clearLastError()
 }
@@ -74,7 +74,7 @@ export function napi_create_double (env: napi_env, value: double, result: Pointe
  * @__sig ipppp
  */
 export function napi_create_string_latin1 (env: napi_env, str: const_char_p, length: size_t, result: Pointer<napi_value>): napi_status {
-  return emnapiString.newString(env, str, length, result, (str, autoLength, sizeLength) => {
+  return emnapiString.newString(env, str as number, length, result, (str, autoLength, sizeLength) => {
     let latin1String = ''
     let len = 0
     if (autoLength) {
@@ -101,7 +101,7 @@ export function napi_create_string_latin1 (env: napi_env, str: const_char_p, len
  * @__sig ipppp
  */
 export function napi_create_string_utf16 (env: napi_env, str: const_char16_t_p, length: size_t, result: Pointer<napi_value>): napi_status {
-  return emnapiString.newString(env, str, length, result, (str) => {
+  return emnapiString.newString(env, str as number, length, result, (str) => {
     return emnapiString.UTF16ToString(str, length)
   })
 }
@@ -110,7 +110,7 @@ export function napi_create_string_utf16 (env: napi_env, str: const_char16_t_p, 
  * @__sig ipppp
  */
 export function napi_create_string_utf8 (env: napi_env, str: const_char_p, length: size_t, result: Pointer<napi_value>): napi_status {
-  return emnapiString.newString(env, str, length, result, (str) => {
+  return emnapiString.newString(env, str as number, length, result, (str) => {
     return emnapiString.UTF8ToString(str, length)
   })
 }
@@ -191,7 +191,7 @@ export function node_api_create_property_key_utf16 (env: napi_env, str: const_ch
  */
 export function napi_create_bigint_int64 (env: napi_env, low: int32_t, high: int32_t, result: Pointer<napi_value>): napi_status {
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
-  if (!emnapiCtx.feature.supportBigInt) {
+  if (!emnapiCtx.features.BigInt) {
     return envObject.setLastError(napi_status.napi_generic_failure)
   }
 
@@ -201,14 +201,14 @@ export function napi_create_bigint_int64 (env: napi_env, low: int32_t, high: int
   if (!high) return envObject.setLastError(napi_status.napi_invalid_arg)
   value = low as unknown as bigint
 
-  const v1 = emnapiCtx.addToCurrentScope(value).id
+  const v1 = emnapiCtx.napiValueFromJsValue(value)
   from64('high')
   makeSetValue('high', 0, 'v1', '*')
 // #else
   if (!result) return envObject.setLastError(napi_status.napi_invalid_arg)
   value = BigInt(low >>> 0) | (BigInt(high) << BigInt(32))
 
-  const v2 = emnapiCtx.addToCurrentScope(value).id
+  const v2 = emnapiCtx.napiValueFromJsValue(value)
   makeSetValue('result', 0, 'v2', '*')
 // #endif
 
@@ -220,7 +220,7 @@ export function napi_create_bigint_int64 (env: napi_env, low: int32_t, high: int
  */
 export function napi_create_bigint_uint64 (env: napi_env, low: int32_t, high: int32_t, result: Pointer<napi_value>): napi_status {
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
-  if (!emnapiCtx.feature.supportBigInt) {
+  if (!emnapiCtx.features.BigInt) {
     return envObject.setLastError(napi_status.napi_generic_failure)
   }
 
@@ -230,14 +230,14 @@ export function napi_create_bigint_uint64 (env: napi_env, low: int32_t, high: in
   if (!high) return envObject.setLastError(napi_status.napi_invalid_arg)
   value = (low as unknown as bigint) & ((BigInt(1) << BigInt(64)) - BigInt(1))
 
-  const v1 = emnapiCtx.addToCurrentScope(value).id
+  const v1 = emnapiCtx.napiValueFromJsValue(value)
   from64('high')
   makeSetValue('high', 0, 'v1', '*')
 // #else
   if (!result) return envObject.setLastError(napi_status.napi_invalid_arg)
   value = BigInt(low >>> 0) | (BigInt(high >>> 0) << BigInt(32))
 
-  const v2 = emnapiCtx.addToCurrentScope(value).id
+  const v2 = emnapiCtx.napiValueFromJsValue(value)
   makeSetValue('result', 0, 'v2', '*')
 // #endif
 
@@ -248,10 +248,10 @@ export function napi_create_bigint_uint64 (env: napi_env, low: int32_t, high: in
  * @__sig ipippp
  */
 export function napi_create_bigint_words (env: napi_env, sign_bit: int, word_count: size_t, words: Const<Pointer<uint64_t>>, result: Pointer<napi_value>): napi_status {
-  let v: number, i: number
+  let v: number | bigint, i: number
 
   return $PREAMBLE!(env, (envObject) => {
-    if (!emnapiCtx.feature.supportBigInt) {
+    if (!emnapiCtx.features.BigInt) {
       return envObject.setLastError(napi_status.napi_generic_failure)
     }
     $CHECK_ARG!(envObject, result)
@@ -273,7 +273,7 @@ export function napi_create_bigint_words (env: napi_env, sign_bit: int, word_cou
     }
     value *= ((BigInt(sign_bit) % BigInt(2) === BigInt(0)) ? BigInt(1) : BigInt(-1))
     from64('result')
-    v = emnapiCtx.addToCurrentScope(value).id
+    v = emnapiCtx.napiValueFromJsValue(value)
     makeSetValue('result', 0, 'v', '*')
     return envObject.getReturnStatus()
   })

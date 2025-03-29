@@ -1,4 +1,6 @@
-export class RefTracker {
+import { Disposable } from './Disaposable'
+
+export class RefTracker extends Disposable {
   /** @virtual */
   public dispose (): void {}
 
