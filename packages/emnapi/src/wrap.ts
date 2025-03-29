@@ -18,7 +18,7 @@ export function napi_define_class (
   properties: Const<Pointer<napi_property_descriptor>>,
   result: Pointer<napi_value>
 ): napi_status {
-  let propPtr: number, valueHandleId: number, attributes: number
+  let propPtr: number, valueHandleId: napi_value, attributes: number
 
   return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, result)
@@ -42,7 +42,7 @@ export function napi_define_class (
     let propertyName: string | symbol
 
     for (let i = 0; i < property_count; i++) {
-      propPtr = properties + (i * (POINTER_SIZE * 8))
+      propPtr = (properties as number) + (i * (POINTER_SIZE * 8))
       const utf8Name = makeGetValue('propPtr', 0, '*')
       const name = makeGetValue('propPtr', POINTER_SIZE, '*')
       const method = makeGetValue('propPtr', POINTER_SIZE * 2, '*')
@@ -59,7 +59,7 @@ export function napi_define_class (
         if (!name) {
           return envObject.setLastError(napi_status.napi_name_expected)
         }
-        propertyName = emnapiCtx.handleStore.get(name)!.value
+        propertyName = emnapiCtx.jsValueFromNapiValue(name)!
         if (typeof propertyName !== 'string' && typeof propertyName !== 'symbol') {
           return envObject.setLastError(napi_status.napi_name_expected)
         }
@@ -72,8 +72,7 @@ export function napi_define_class (
       emnapiDefineProperty(envObject, F.prototype, propertyName, method, getter, setter, value, attributes, data)
     }
 
-    const valueHandle = emnapiCtx.addToCurrentScope(F)
-    valueHandleId = valueHandle.id
+    valueHandleId = emnapiCtx.napiValueFromJsValue(F)
     from64('result')
     makeSetValue('result', 0, 'valueHandleId', '*')
     return envObject.getReturnStatus()
@@ -109,7 +108,7 @@ export function napi_type_tag_object (env: napi_env, object: napi_value, type_ta
     if (!object) {
       return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_invalid_arg)
     }
-    const value = emnapiCtx.handleStore.get(object)!
+    const value = emnapiCtx.handleFromNapiValue(object)!
     if (!(value.isObject() || value.isFunction())) {
       return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_object_expected)
     }
@@ -122,7 +121,7 @@ export function napi_type_tag_object (env: napi_env, object: napi_value, type_ta
       return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_invalid_arg)
     }
     const tag = new Uint8Array(16)
-    tag.set(new Uint8Array(wasmMemory.buffer, type_tag, 16))
+    tag.set(new Uint8Array(wasmMemory.buffer, type_tag as number, 16))
     binding.tag = new Uint32Array(tag.buffer)
 
     return envObject.getReturnStatus()
@@ -140,7 +139,7 @@ export function napi_check_object_type_tag (env: napi_env, object: napi_value, t
     if (!object) {
       return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_invalid_arg)
     }
-    const value = emnapiCtx.handleStore.get(object)!
+    const value = emnapiCtx.handleFromNapiValue(object)!
     if (!(value.isObject() || value.isFunction())) {
       return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_object_expected)
     }
@@ -154,7 +153,7 @@ export function napi_check_object_type_tag (env: napi_env, object: napi_value, t
     if (binding.tag !== null) {
       from64('type_tag')
       const tag = binding.tag
-      const typeTag = new Uint32Array(wasmMemory.buffer, type_tag, 4)
+      const typeTag = new Uint32Array(wasmMemory.buffer, type_tag as number, 4)
       ret = (
         tag[0] === typeTag[0] &&
         tag[1] === typeTag[1] &&
@@ -178,7 +177,7 @@ export function napi_check_object_type_tag (env: napi_env, object: napi_value, t
 export function napi_add_finalizer (env: napi_env, js_object: napi_value, finalize_data: void_p, finalize_cb: napi_finalize, finalize_hint: void_p, result: Pointer<napi_ref>): napi_status {
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
 
-  if (!emnapiCtx.feature.supportFinalizer) {
+  if (!emnapiCtx.features.finalizer) {
     return envObject.setLastError(napi_status.napi_generic_failure)
   }
 
@@ -211,7 +210,7 @@ export function napi_add_finalizer (env: napi_env, js_object: napi_value, finali
  */
 export function node_api_post_finalizer (env: napi_env, finalize_cb: napi_finalize, finalize_data: void_p, finalize_hint: void_p): napi_status {
   $CHECK_ENV!(env)
-  const envObject = emnapiCtx.envStore.get(env)!
+  const envObject = emnapiCtx.getEnv(env)!
   envObject.enqueueFinalizer(
     emnapiCtx.createTrackedFinalizer(
       envObject,

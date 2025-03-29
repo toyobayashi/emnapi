@@ -6,7 +6,7 @@ import { emnapiCtx } from 'emnapi:shared'
  * @__sig ipiip
  */
 export function napi_set_last_error (env: napi_env, error_code: napi_status, engine_error_code: uint32_t, engine_reserved: void_p): napi_status {
-  const envObject = emnapiCtx.envStore.get(env)!
+  const envObject = emnapiCtx.getEnv(env)!
   return envObject.setLastError(error_code, engine_error_code, engine_reserved)
 }
 
@@ -14,7 +14,7 @@ export function napi_set_last_error (env: napi_env, error_code: napi_status, eng
  * @__sig ip
  */
 export function napi_clear_last_error (env: napi_env): napi_status {
-  const envObject = emnapiCtx.envStore.get(env)!
+  const envObject = emnapiCtx.getEnv(env)!
   return envObject.clearLastError()
 }
 
@@ -62,7 +62,7 @@ export function _emnapi_runtime_keepalive_pop (): void {
  * @__sig vpp
  */
 export function _emnapi_set_immediate (callback: number, data: number): void {
-  emnapiCtx.feature.setImmediate(() => {
+  emnapiCtx.features.setImmediate(() => {
     makeDynCall('vp', 'callback')(data)
   })
 }
@@ -80,7 +80,7 @@ export function _emnapi_next_tick (callback: number, data: number): void {
  * @__sig vipppi
  */
 export function _emnapi_callback_into_module (forceUncaught: int, env: napi_env, callback: number, data: number, close_scope_if_throw: int): void {
-  const envObject = emnapiCtx.envStore.get(env)!
+  const envObject = emnapiCtx.getEnv(env)!
   const scope = emnapiCtx.openScope(envObject)
   try {
     (envObject as NodeEnv).callbackIntoModule(Boolean(forceUncaught), () => {
@@ -100,7 +100,7 @@ export function _emnapi_callback_into_module (forceUncaught: int, env: napi_env,
  * @__sig vipppp
  */
 export function _emnapi_call_finalizer (forceUncaught: int, env: napi_env, callback: number, data: number, hint: number): void {
-  const envObject = emnapiCtx.envStore.get(env)!
+  const envObject = emnapiCtx.getEnv(env)!
   from64('callback')
   ;(envObject as NodeEnv).callFinalizerInternal(forceUncaught, callback, data, hint)
 }

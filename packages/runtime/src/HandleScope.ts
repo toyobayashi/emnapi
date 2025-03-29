@@ -1,4 +1,5 @@
-import type { Handle, HandleStore } from './Handle'
+import { Handle, HandleStore } from './Handle'
+import { Disposable } from './Disaposable'
 import { External } from './External'
 
 export interface ICallbackInfo {
@@ -8,9 +9,9 @@ export interface ICallbackInfo {
   fn: Function
 }
 
-export class HandleScope {
-  public handleStore: HandleStore
-  public id: number
+export class HandleScope extends Disposable {
+  private handleStore: HandleStore
+  public id: number | bigint
   public parent: HandleScope | null
   public child: HandleScope | null
   public start: number
@@ -18,9 +19,10 @@ export class HandleScope {
   private _escapeCalled: boolean
   public callbackInfo: ICallbackInfo
 
-  public constructor (handleStore: HandleStore, id: number, parentScope: HandleScope | null, start: number, end = start) {
+  public constructor (parentScope: HandleScope | null, handleStore: HandleStore, start = parentScope?.end ?? 1, end = start) {
+    super()
     this.handleStore = handleStore
-    this.id = id
+    this.id = 0
     this.parent = parentScope
     this.child = null
     if (parentScope !== null) parentScope.child = this
@@ -35,19 +37,23 @@ export class HandleScope {
     }
   }
 
+  public reuse (parentScope: HandleScope) {
+    this.start = this.end = parentScope.end
+    this._escapeCalled = false
+  }
+
   public add<V> (value: V): Handle<V> {
-    const h = this.handleStore.push(value)
+    const h = this.handleStore.alloc(Handle<V>, value)
     this.end++
     return h
   }
 
-  public addExternal (data: void_p): Handle<object> {
+  public addExternal (data: number | bigint): Handle<External> {
     return this.add(new External(data))
   }
 
   public dispose (): void {
-    if (this._escapeCalled) this._escapeCalled = false
-    if (this.start === this.end) return
+    if (this.start === this.end || this.id === 0) return
     this.handleStore.erase(this.start, this.end)
   }
 
@@ -60,7 +66,7 @@ export class HandleScope {
     }
 
     this.handleStore.swap(handle, this.start)
-    const h = this.handleStore.get(this.start)!
+    const h = this.handleStore.deref(this.start)!
     this.start++
     this.parent!.end++
     return h

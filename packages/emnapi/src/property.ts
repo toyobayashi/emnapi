@@ -13,12 +13,12 @@ export function napi_get_all_property_names (
   key_conversion: napi_key_conversion,
   result: Pointer<napi_value>
 ): napi_status {
-  let value: number
+  let value: napi_value
 
   return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, result)
     $CHECK_ARG!(envObject, object)
-    const h = emnapiCtx.handleStore.get(object)!
+    const h = emnapiCtx.handleFromNapiValue(object)!
     if (h.value == null) {
       throw new TypeError('Cannot convert undefined or null to object')
     }
@@ -132,7 +132,7 @@ export function napi_get_all_property_names (
 
     from64('result')
 
-    value = emnapiCtx.addToCurrentScope(ret).id
+    value = emnapiCtx.napiValueFromJsValue(ret)
     makeSetValue('result', 0, 'value', '*')
     return envObject.getReturnStatus()
   })
@@ -156,11 +156,11 @@ export function napi_set_property (env: napi_env, object: napi_value, key: napi_
     $CHECK_ARG!(envObject, key)
     $CHECK_ARG!(envObject, value)
     $CHECK_ARG!(envObject, object)
-    const h = emnapiCtx.handleStore.get(object)!
+    const h = emnapiCtx.handleFromNapiValue(object)!
     if (!(h.isObject() || h.isFunction())) {
       return envObject.setLastError(napi_status.napi_object_expected)
     }
-    h.value[emnapiCtx.handleStore.get(key)!.value] = emnapiCtx.handleStore.get(value)!.value
+    h.value[emnapiCtx.handleFromNapiValue(key)!.value] = emnapiCtx.handleFromNapiValue(value)!.value
     return envObject.getReturnStatus()
   })
 }
@@ -173,7 +173,7 @@ export function napi_has_property (env: napi_env, object: napi_value, key: napi_
     $CHECK_ARG!(envObject, key)
     $CHECK_ARG!(envObject, result)
     $CHECK_ARG!(envObject, object)
-    const h = emnapiCtx.handleStore.get(object)!
+    const h = emnapiCtx.handleFromNapiValue(object)!
     if (h.value == null) {
       throw new TypeError('Cannot convert undefined or null to object')
     }
@@ -184,7 +184,7 @@ export function napi_has_property (env: napi_env, object: napi_value, key: napi_
       return envObject.setLastError(napi_status.napi_object_expected)
     }
     from64('result')
-    r = (emnapiCtx.handleStore.get(key)!.value in v) ? 1 : 0
+    r = (emnapiCtx.handleFromNapiValue(key)!.value in v) ? 1 : 0
     makeSetValue('result', 0, 'r', 'i8')
     return envObject.getReturnStatus()
   })
@@ -192,13 +192,13 @@ export function napi_has_property (env: napi_env, object: napi_value, key: napi_
 
 /** @__sig ipppp */
 export function napi_get_property (env: napi_env, object: napi_value, key: napi_value, result: Pointer<napi_value>): napi_status {
-  let value: number
+  let value: napi_value
 
   return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, key)
     $CHECK_ARG!(envObject, result)
     $CHECK_ARG!(envObject, object)
-    const h = emnapiCtx.handleStore.get(object)!
+    const h = emnapiCtx.handleFromNapiValue(object)!
     if (h.value == null) {
       throw new TypeError('Cannot convert undefined or null to object')
     }
@@ -210,7 +210,7 @@ export function napi_get_property (env: napi_env, object: napi_value, key: napi_
     }
     from64('result')
 
-    value = envObject.ensureHandleId(v[emnapiCtx.handleStore.get(key)!.value])
+    value = emnapiCtx.napiValueFromJsValue(v[emnapiCtx.handleFromNapiValue(key)!.value])
     makeSetValue('result', 0, 'value', '*')
     return envObject.getReturnStatus()
   })
@@ -223,13 +223,13 @@ export function napi_delete_property (env: napi_env, object: napi_value, key: na
   return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, key)
     $CHECK_ARG!(envObject, object)
-    const h = emnapiCtx.handleStore.get(object)!
+    const h = emnapiCtx.handleFromNapiValue(object)!
     if (!(h.isObject() || h.isFunction())) {
       return envObject.setLastError(napi_status.napi_object_expected)
     }
-    const propertyKey = emnapiCtx.handleStore.get(key)!.value
-    if (emnapiCtx.feature.supportReflect) {
-      r = Reflect.deleteProperty(h.value, propertyKey)
+    const propertyKey = emnapiCtx.handleFromNapiValue(key)!.value
+    if (emnapiCtx.features.Reflect) {
+      r = emnapiCtx.features.Reflect.deleteProperty(h.value, propertyKey)
     } else {
       try {
         r = delete h.value[propertyKey]
@@ -253,7 +253,7 @@ export function napi_has_own_property (env: napi_env, object: napi_value, key: n
     $CHECK_ARG!(envObject, key)
     $CHECK_ARG!(envObject, result)
     $CHECK_ARG!(envObject, object)
-    const h = emnapiCtx.handleStore.get(object)!
+    const h = emnapiCtx.handleFromNapiValue(object)!
     if (h.value == null) {
       throw new TypeError('Cannot convert undefined or null to object')
     }
@@ -263,11 +263,11 @@ export function napi_has_own_property (env: napi_env, object: napi_value, key: n
     } catch (_) {
       return envObject.setLastError(napi_status.napi_object_expected)
     }
-    const prop = emnapiCtx.handleStore.get(key)!.value
+    const prop = emnapiCtx.handleFromNapiValue(key)!.value
     if (typeof prop !== 'string' && typeof prop !== 'symbol') {
       return envObject.setLastError(napi_status.napi_name_expected)
     }
-    r = Object.prototype.hasOwnProperty.call(v, emnapiCtx.handleStore.get(key)!.value)
+    r = Object.prototype.hasOwnProperty.call(v, emnapiCtx.handleFromNapiValue(key)!.value)
     from64('result')
     makeSetValue('result', 0, 'r ? 1 : 0', 'i8')
     return envObject.getReturnStatus()
@@ -279,7 +279,7 @@ export function napi_set_named_property (env: napi_env, object: napi_value, cnam
   return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, value)
     $CHECK_ARG!(envObject, object)
-    const h = emnapiCtx.handleStore.get(object)!
+    const h = emnapiCtx.handleFromNapiValue(object)!
     if (!(h.isObject() || h.isFunction())) {
       return envObject.setLastError(napi_status.napi_object_expected)
     }
@@ -287,7 +287,7 @@ export function napi_set_named_property (env: napi_env, object: napi_value, cnam
       return envObject.setLastError(napi_status.napi_invalid_arg)
     }
     from64('cname')
-    emnapiCtx.handleStore.get(object)!.value[emnapiString.UTF8ToString(cname, -1)] = emnapiCtx.handleStore.get(value)!.value
+    emnapiCtx.handleFromNapiValue(object)!.value[emnapiString.UTF8ToString(cname as number, -1)] = emnapiCtx.handleFromNapiValue(value)!.value
     return envObject.getReturnStatus()
   })
 }
@@ -302,7 +302,7 @@ export function napi_has_named_property (env: napi_env, object: napi_value, utf8
     if (!utf8name) {
       return envObject.setLastError(napi_status.napi_invalid_arg)
     }
-    const h = emnapiCtx.handleStore.get(object)!
+    const h = emnapiCtx.handleFromNapiValue(object)!
     if (h.value == null) {
       throw new TypeError('Cannot convert undefined or null to object')
     }
@@ -315,7 +315,7 @@ export function napi_has_named_property (env: napi_env, object: napi_value, utf8
     from64('utf8name')
     from64('result')
 
-    r = emnapiString.UTF8ToString(utf8name, -1) in v
+    r = emnapiString.UTF8ToString(utf8name as number, -1) in v
     makeSetValue('result', 0, 'r ? 1 : 0', 'i8')
     return envObject.getReturnStatus()
   })
@@ -323,7 +323,7 @@ export function napi_has_named_property (env: napi_env, object: napi_value, utf8
 
 /** @__sig ipppp */
 export function napi_get_named_property (env: napi_env, object: napi_value, utf8name: const_char_p, result: Pointer<napi_value>): napi_status {
-  let value: number
+  let value: napi_value
 
   return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, result)
@@ -331,7 +331,7 @@ export function napi_get_named_property (env: napi_env, object: napi_value, utf8
     if (!utf8name) {
       return envObject.setLastError(napi_status.napi_invalid_arg)
     }
-    const h = emnapiCtx.handleStore.get(object)!
+    const h = emnapiCtx.handleFromNapiValue(object)!
     if (h.value == null) {
       throw new TypeError('Cannot convert undefined or null to object')
     }
@@ -344,7 +344,7 @@ export function napi_get_named_property (env: napi_env, object: napi_value, utf8
     from64('utf8name')
     from64('result')
 
-    value = envObject.ensureHandleId(v[emnapiString.UTF8ToString(utf8name, -1)])
+    value = emnapiCtx.napiValueFromJsValue(v[emnapiString.UTF8ToString(utf8name as number, -1)])
     makeSetValue('result', 0, 'value', '*')
     return envObject.getReturnStatus()
   })
@@ -355,11 +355,11 @@ export function napi_set_element (env: napi_env, object: napi_value, index: uint
   return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, value)
     $CHECK_ARG!(envObject, object)
-    const h = emnapiCtx.handleStore.get(object)!
+    const h = emnapiCtx.handleFromNapiValue(object)!
     if (!(h.isObject() || h.isFunction())) {
       return envObject.setLastError(napi_status.napi_object_expected)
     }
-    h.value[index >>> 0] = emnapiCtx.handleStore.get(value)!.value
+    h.value[index >>> 0] = emnapiCtx.handleFromNapiValue(value)!.value
     return envObject.getReturnStatus()
   })
 }
@@ -371,7 +371,7 @@ export function napi_has_element (env: napi_env, object: napi_value, index: uint
   return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, result)
     $CHECK_ARG!(envObject, object)
-    const h = emnapiCtx.handleStore.get(object)!
+    const h = emnapiCtx.handleFromNapiValue(object)!
     if (h.value == null) {
       throw new TypeError('Cannot convert undefined or null to object')
     }
@@ -390,12 +390,12 @@ export function napi_has_element (env: napi_env, object: napi_value, index: uint
 
 /** @__sig ippip */
 export function napi_get_element (env: napi_env, object: napi_value, index: uint32_t, result: Pointer<napi_value>): napi_status {
-  let value: number
+  let value: napi_value
 
   return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, result)
     $CHECK_ARG!(envObject, object)
-    const h = emnapiCtx.handleStore.get(object)!
+    const h = emnapiCtx.handleFromNapiValue(object)!
     if (h.value == null) {
       throw new TypeError('Cannot convert undefined or null to object')
     }
@@ -407,7 +407,7 @@ export function napi_get_element (env: napi_env, object: napi_value, index: uint
     }
     from64('result')
 
-    value = envObject.ensureHandleId(v[index >>> 0])
+    value = emnapiCtx.napiValueFromJsValue(v[index >>> 0])
     makeSetValue('result', 0, 'value', '*')
     return envObject.getReturnStatus()
   })
@@ -419,12 +419,12 @@ export function napi_delete_element (env: napi_env, object: napi_value, index: u
 
   return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, object)
-    const h = emnapiCtx.handleStore.get(object)!
+    const h = emnapiCtx.handleFromNapiValue(object)!
     if (!(h.isObject() || h.isFunction())) {
       return envObject.setLastError(napi_status.napi_object_expected)
     }
-    if (emnapiCtx.feature.supportReflect) {
-      r = Reflect.deleteProperty(h.value, index >>> 0)
+    if (emnapiCtx.features.Reflect) {
+      r = emnapiCtx.features.Reflect.deleteProperty(h.value, index >>> 0)
     } else {
       try {
         r = delete h.value[index >>> 0]
@@ -459,7 +459,7 @@ export function napi_define_properties (
       if (!properties) return envObject.setLastError(napi_status.napi_invalid_arg)
     }
     if (!object) return envObject.setLastError(napi_status.napi_invalid_arg)
-    const h = emnapiCtx.handleStore.get(object)!
+    const h = emnapiCtx.handleFromNapiValue(object)!
     const maybeObject = h.value
     if (!(h.isObject() || h.isFunction())) {
       return envObject.setLastError(napi_status.napi_object_expected)
@@ -468,7 +468,7 @@ export function napi_define_properties (
     let propertyName: string | symbol
 
     for (let i = 0; i < property_count; i++) {
-      propPtr = properties + (i * (POINTER_SIZE * 8))
+      propPtr = properties as number + (i * (POINTER_SIZE * 8))
       const utf8Name = makeGetValue('propPtr', 0, '*')
       const name = makeGetValue('propPtr', POINTER_SIZE, '*')
       const method = makeGetValue('propPtr', POINTER_SIZE * 2, '*')
@@ -485,7 +485,7 @@ export function napi_define_properties (
         if (!name) {
           return envObject.setLastError(napi_status.napi_name_expected)
         }
-        propertyName = emnapiCtx.handleStore.get(name)!.value
+        propertyName = emnapiCtx.handleFromNapiValue(name)!.value
         if (typeof propertyName !== 'string' && typeof propertyName !== 'symbol') {
           return envObject.setLastError(napi_status.napi_name_expected)
         }
@@ -500,7 +500,7 @@ export function napi_define_properties (
 export function napi_object_freeze (env: napi_env, object: napi_value): napi_status {
   return $PREAMBLE!(env, (envObject) => {
     if (!object) return envObject.setLastError(napi_status.napi_invalid_arg)
-    const h = emnapiCtx.handleStore.get(object)!
+    const h = emnapiCtx.handleFromNapiValue(object)!
     const maybeObject = h.value
     if (!(h.isObject() || h.isFunction())) {
       return envObject.setLastError(napi_status.napi_object_expected)
@@ -514,7 +514,7 @@ export function napi_object_freeze (env: napi_env, object: napi_value): napi_sta
 export function napi_object_seal (env: napi_env, object: napi_value): napi_status {
   return $PREAMBLE!(env, (envObject) => {
     if (!object) return envObject.setLastError(napi_status.napi_invalid_arg)
-    const h = emnapiCtx.handleStore.get(object)!
+    const h = emnapiCtx.handleFromNapiValue(object)!
     const maybeObject = h.value
     if (!(h.isObject() || h.isFunction())) {
       return envObject.setLastError(napi_status.napi_object_expected)

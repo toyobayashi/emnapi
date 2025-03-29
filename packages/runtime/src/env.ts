@@ -1,15 +1,14 @@
-import type { Handle } from './Handle'
 import type { Context } from './Context'
-import type { IStoreValue } from './Store'
+import type { StoreValue } from './Store'
 import {
   TryCatch,
-  _setImmediate,
   NODE_API_SUPPORTED_VERSION_MAX,
   NAPI_VERSION_EXPERIMENTAL,
   NODE_API_DEFAULT_MODULE_API_VERSION
 } from './util'
 import { RefTracker } from './RefTracker'
 import { TrackedFinalizer } from './TrackedFinalizer'
+import { Disposable } from './Disaposable'
 
 function throwNodeApiVersionError (moduleName: string, moduleApiVersion: number): never {
   const errorMessage = `${
@@ -31,8 +30,8 @@ export interface IReferenceBinding {
   tag: Uint32Array | null
 }
 
-export abstract class Env implements IStoreValue {
-  public id: number
+export abstract class Env extends Disposable implements StoreValue {
+  public id: number | bigint
 
   public openHandleScopes: number = 0
 
@@ -62,6 +61,7 @@ export abstract class Env implements IStoreValue {
     public makeDynCall_vp: (cb: Ptr) => (a: Ptr) => void,
     public abort: (msg?: string) => never
   ) {
+    super()
     this.id = 0
   }
 
@@ -83,14 +83,6 @@ export abstract class Env implements IStoreValue {
     if (this.refs === 0) {
       this.dispose()
     }
-  }
-
-  public ensureHandle<S> (value: S): Handle<S> {
-    return this.ctx.ensureHandle(value)
-  }
-
-  public ensureHandleId (value: any): napi_value {
-    return this.ensureHandle(value).id
   }
 
   public clearLastError (): napi_status {
@@ -180,7 +172,7 @@ export abstract class Env implements IStoreValue {
     RefTracker.finalizeAll(this.reflist)
 
     this.tryCatch.extractException()
-    this.ctx.envStore.remove(this.id)
+    this.ctx.envStore.dealloc(this.id)
   }
 
   public dispose (): void {
@@ -217,7 +209,7 @@ export abstract class Env implements IStoreValue {
     this.instanceData = TrackedFinalizer.create(this, finalize_cb, data, finalize_hint)
   }
 
-  public getInstanceData (): number {
+  public getInstanceData (): number | bigint {
     return this.instanceData ? this.instanceData.data() : 0
   }
 }
@@ -314,7 +306,7 @@ export class NodeEnv extends Env {
     if (!this.finalizationScheduled && !this.destructing) {
       this.finalizationScheduled = true
       this.ref()
-      _setImmediate(() => {
+      this.ctx.features.setImmediate(() => {
         this.finalizationScheduled = false
         this.unref()
         this.drainFinalizerQueue()
@@ -346,8 +338,16 @@ export function newEnv (
   } else if (moduleApiVersion > NODE_API_SUPPORTED_VERSION_MAX && moduleApiVersion !== NAPI_VERSION_EXPERIMENTAL) {
     throwNodeApiVersionError(filename, moduleApiVersion)
   }
-  const env = new NodeEnv(ctx, filename, moduleApiVersion, makeDynCall_vppp, makeDynCall_vp, abort, nodeBinding)
-  ctx.envStore.add(env)
+  const env = ctx.envStore.alloc(
+    NodeEnv,
+    ctx,
+    filename,
+    moduleApiVersion,
+    makeDynCall_vppp,
+    makeDynCall_vp,
+    abort,
+    nodeBinding
+  )
   ctx.addCleanupHook(env, () => { env.unref() }, 0)
   return env
 }

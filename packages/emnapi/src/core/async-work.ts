@@ -188,7 +188,7 @@ var emnapiAWMT = {
     if (index !== -1) {
       emnapiAWMT.workQueue.splice(index, 1)
 
-      emnapiCtx.feature.setImmediate(() => {
+      emnapiCtx.features.setImmediate(() => {
         _emnapi_runtime_keepalive_pop()
         emnapiCtx.decreaseWaitingRequestCounter()
         emnapiAWMT.checkIdleWorker()
@@ -203,7 +203,7 @@ var emnapiAWMT = {
     const complete = emnapiAWMT.getComplete(work)
     const env = emnapiAWMT.getEnv(work)
     const data = emnapiAWMT.getData(work)
-    const envObject = emnapiCtx.envStore.get(env)!
+    const envObject = emnapiCtx.getEnv(env)!
     const scope = emnapiCtx.openScope(envObject)
     const callback = (): void => {
       if (!complete) return
@@ -215,8 +215,8 @@ var emnapiAWMT = {
     try {
       if (emnapiNodeBinding) {
         const resource = emnapiAWMT.getResource(work)
-        const resource_value = emnapiCtx.refStore.get(resource)!.get()
-        const resourceObject = emnapiCtx.handleStore.get(resource_value)!.value
+        const resource_value = emnapiCtx.getRef(resource)!.get()
+        const resourceObject = emnapiCtx.jsValueFromNapiValue(resource_value)!
         const view = new DataView(wasmMemory.buffer)
         const asyncId = view.getFloat64(work + emnapiAWMT.offset.async_id, true)
         const triggerAsyncId = view.getFloat64(work + emnapiAWMT.offset.trigger_async_id, true)
@@ -242,14 +242,14 @@ export var napi_create_async_work = singleThreadAsyncWork
 
     let resourceObject: any
     if (resource) {
-      resourceObject = Object(emnapiCtx.handleStore.get(resource)!.value)
+      resourceObject = Object(emnapiCtx.jsValueFromNapiValue(resource)!)
     } else {
       resourceObject = {}
     }
 
     $CHECK_ARG!(envObject, resource_name)
 
-    const resourceName = String(emnapiCtx.handleStore.get(resource_name)!.value)
+    const resourceName = String(emnapiCtx.jsValueFromNapiValue(resource_name)!)
 
     const id = emnapiAWST.create(env, resourceObject, resourceName, execute, complete, data)
     makeSetValue('result', 0, 'id', '*')
@@ -262,7 +262,7 @@ export var napi_create_async_work = singleThreadAsyncWork
 
     let resourceObject: any
     if (resource) {
-      resourceObject = Object(emnapiCtx.handleStore.get(resource)!.value)
+      resourceObject = Object(emnapiCtx.jsValueFromNapiValue(resource)!)
     } else {
       resourceObject = {}
     }
@@ -273,7 +273,7 @@ export var napi_create_async_work = singleThreadAsyncWork
     const aw = _malloc(to64('sizeofAW'))
     if (!aw) return envObject.setLastError(napi_status.napi_generic_failure)
     new Uint8Array(wasmMemory.buffer).subarray(aw, aw + sizeofAW).fill(0)
-    const s = envObject.ensureHandleId(resourceObject)
+    const s = emnapiCtx.napiValueFromJsValue(resourceObject)
     const resourceRef = emnapiCtx.createReference(envObject, s, 1, ReferenceOwnership.kUserland as any)
 
     const resource_ = resourceRef.id
@@ -302,7 +302,7 @@ export var napi_delete_async_work = singleThreadAsyncWork
     $CHECK_ARG!(envObject, work)
 
     const resource = emnapiAWMT.getResource(work)
-    emnapiCtx.refStore.get(resource)!.dispose()
+    emnapiCtx.getRef(resource)!.dispose()
 
     if (emnapiNodeBinding) {
       const view = new DataView(wasmMemory.buffer)
@@ -319,7 +319,7 @@ export var napi_delete_async_work = singleThreadAsyncWork
 export var napi_queue_async_work = singleThreadAsyncWork
   ? function (env: napi_env, work: number): napi_status {
     $CHECK_ENV!(env)
-    const envObject = emnapiCtx.envStore.get(env)!
+    const envObject = emnapiCtx.getEnv(env)!
     $CHECK_ARG!(envObject, work)
 
     emnapiAWST.queue(work)
@@ -327,7 +327,7 @@ export var napi_queue_async_work = singleThreadAsyncWork
   }
   : function (env: napi_env, work: number): napi_status {
     $CHECK_ENV!(env)
-    const envObject = emnapiCtx.envStore.get(env)!
+    const envObject = emnapiCtx.getEnv(env)!
     $CHECK_ARG!(envObject, work)
 
     emnapiAWMT.scheduleWork(work)
@@ -338,7 +338,7 @@ export var napi_queue_async_work = singleThreadAsyncWork
 export var napi_cancel_async_work = singleThreadAsyncWork
   ? function (env: napi_env, work: number): napi_status {
     $CHECK_ENV!(env)
-    const envObject = emnapiCtx.envStore.get(env)!
+    const envObject = emnapiCtx.getEnv(env)!
     $CHECK_ARG!(envObject, work)
 
     const status = emnapiAWST.cancel(work)
@@ -347,7 +347,7 @@ export var napi_cancel_async_work = singleThreadAsyncWork
   }
   : function (env: napi_env, work: number): napi_status {
     $CHECK_ENV!(env)
-    const envObject = emnapiCtx.envStore.get(env)!
+    const envObject = emnapiCtx.getEnv(env)!
     $CHECK_ARG!(envObject, work)
 
     const status = emnapiAWMT.cancelWork(work)

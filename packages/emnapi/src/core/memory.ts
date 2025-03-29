@@ -11,7 +11,7 @@ export function napi_adjust_external_memory (
   adjusted_value: number
 ): napi_status {
   $CHECK_ENV!(env)
-  const envObject = emnapiCtx.envStore.get(env)!
+  const envObject = emnapiCtx.getEnv(env)!
   $CHECK_ARG!(envObject, adjusted_value)
 
   const change_in_bytes_number = Number(change_in_bytes)
@@ -28,7 +28,7 @@ export function napi_adjust_external_memory (
   }
 
   from64('adjusted_value')
-  if (emnapiCtx.feature.supportBigInt) {
+  if (emnapiCtx.features.BigInt) {
     makeSetValue('adjusted_value', 0, 'wasmMemory.buffer.byteLength', 'i64')
   } else {
     emnapiSetValueI64(adjusted_value, wasmMemory.buffer.byteLength)

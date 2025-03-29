@@ -1,4 +1,4 @@
-import type { IStoreValue } from './Store'
+import type { StoreValue } from './Store'
 import type { Env } from './env'
 import { Persistent } from './Persistent'
 import type { Handle } from './Handle'
@@ -14,7 +14,7 @@ function canBeHeldWeakly (value: Handle<any>): boolean {
   return value.isObject() || value.isFunction() || value.isSymbol()
 }
 
-export class Reference extends RefTracker implements IStoreValue {
+export class Reference extends RefTracker implements StoreValue {
   private static weakCallback (ref: Reference): void {
     ref.persistent.reset()
     ref.invokeFinalizerFromGC()
@@ -37,13 +37,15 @@ export class Reference extends RefTracker implements IStoreValue {
     _unused2?: void_p,
     _unused3?: void_p
   ): Reference {
-    const ref = new Reference(envObject, handle_id, initialRefcount, ownership)
-    envObject.ctx.refStore.add(ref)
+    const ref = envObject.ctx.refStore.alloc(
+      Reference,
+      envObject, handle_id, initialRefcount, ownership
+    )
     ref.link(envObject.reflist)
     return ref
   }
 
-  protected constructor (
+  public constructor (
     envObject: Env,
     handle_id: napi_value,
     initialRefcount: uint32_t,
@@ -53,7 +55,7 @@ export class Reference extends RefTracker implements IStoreValue {
     this.envObject = envObject
     this._refcount = initialRefcount
     this._ownership = ownership
-    const handle = envObject.ctx.handleStore.get(handle_id)!
+    const handle = envObject.ctx.handleStore.deref(handle_id)!
     this.canBeWeak = canBeHeldWeakly(handle)
     this.persistent = new Persistent(handle.value)
     this.id = 0
@@ -90,7 +92,7 @@ export class Reference extends RefTracker implements IStoreValue {
       return 0
     }
     const obj = this.persistent.deref()
-    const handle = envObject.ensureHandle(obj)
+    const handle = envObject.ctx.handleFromJsValue(obj)
     return handle.id
   }
 
@@ -134,7 +136,7 @@ export class Reference extends RefTracker implements IStoreValue {
     if (this.id === 0) return
     this.unlink()
     this.persistent.reset()
-    this.envObject.ctx.refStore.remove(this.id)
+    this.envObject.ctx.refStore.dealloc(this.id)
     super.dispose()
     this.envObject = undefined!
     this.id = 0
@@ -149,13 +151,15 @@ export class ReferenceWithData extends Reference {
     ownership: ReferenceOwnership,
     data: void_p
   ): ReferenceWithData {
-    const reference = new ReferenceWithData(envObject, value, initialRefcount, ownership, data)
-    envObject.ctx.refStore.add(reference)
+    const reference = envObject.ctx.refStore.alloc(
+      ReferenceWithData,
+      envObject, value, initialRefcount, ownership, data
+    )
     reference.link(envObject.reflist)
     return reference
   }
 
-  private constructor (
+  public constructor (
     envObject: Env,
     value: napi_value,
     initialRefcount: uint32_t,
@@ -182,13 +186,15 @@ export class ReferenceWithFinalizer extends Reference {
     finalize_data: void_p,
     finalize_hint: void_p
   ): ReferenceWithFinalizer {
-    const reference = new ReferenceWithFinalizer(envObject, value, initialRefcount, ownership, finalize_callback, finalize_data, finalize_hint)
-    envObject.ctx.refStore.add(reference)
+    const reference = envObject.ctx.refStore.alloc(
+      ReferenceWithFinalizer,
+      envObject, value, initialRefcount, ownership, finalize_callback, finalize_data, finalize_hint
+    )
     reference.link(envObject.finalizing_reflist)
     return reference
   }
 
-  private constructor (
+  public constructor (
     envObject: Env,
     value: napi_value,
     initialRefcount: uint32_t,

@@ -4,7 +4,7 @@ import { $PREAMBLE, $CHECK_ARG, $CHECK_ENV_NOT_IN_GC } from './macro'
 
 /** @__sig ippp */
 export function napi_create_promise (env: napi_env, deferred: Pointer<napi_deferred>, promise: Pointer<napi_value>): napi_status {
-  let deferredObjectId: number, value: number
+  let deferredObjectId: number, value: napi_value
 
   return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, deferred)
@@ -18,7 +18,7 @@ export function napi_create_promise (env: napi_env, deferred: Pointer<napi_defer
     })
     from64('promise')
 
-    value = emnapiCtx.addToCurrentScope(p).id
+    value = emnapiCtx.napiValueFromJsValue(p)
     makeSetValue('promise', 0, 'value', '*')
     return envObject.getReturnStatus()
   })
@@ -29,8 +29,8 @@ export function napi_resolve_deferred (env: napi_env, deferred: napi_deferred, r
   return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, deferred)
     $CHECK_ARG!(envObject, resolution)
-    const deferredObject = emnapiCtx.deferredStore.get(deferred)!
-    deferredObject.resolve(emnapiCtx.handleStore.get(resolution)!.value)
+    const deferredObject = emnapiCtx.getDeferred(deferred)!
+    deferredObject.resolve(emnapiCtx.jsValueFromNapiValue(resolution)!)
     return envObject.getReturnStatus()
   })
 }
@@ -40,8 +40,8 @@ export function napi_reject_deferred (env: napi_env, deferred: napi_deferred, re
   return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, deferred)
     $CHECK_ARG!(envObject, resolution)
-    const deferredObject = emnapiCtx.deferredStore.get(deferred)!
-    deferredObject.reject(emnapiCtx.handleStore.get(resolution)!.value)
+    const deferredObject = emnapiCtx.getDeferred(deferred)!
+    deferredObject.reject(emnapiCtx.jsValueFromNapiValue(resolution)!)
     return envObject.getReturnStatus()
   })
 }
@@ -51,7 +51,7 @@ export function napi_is_promise (env: napi_env, value: napi_value, is_promise: P
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, value)
   $CHECK_ARG!(envObject, is_promise)
-  const h = emnapiCtx.handleStore.get(value)!
+  const h = emnapiCtx.handleFromNapiValue(value)!
   from64('is_promise')
 
   const r = h.isPromise() ? 1 : 0

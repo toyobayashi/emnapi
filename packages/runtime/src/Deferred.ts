@@ -1,25 +1,26 @@
-import type { Context } from './Context'
-import type { IStoreValue } from './Store'
+import { Disposable } from './Disaposable'
+import { ArrayStore, type CountIdReuseAllocator, type StoreValue } from './Store'
 
 export interface IDeferrdValue<T = any> {
   resolve: (value: T) => void
   reject: (reason?: any) => void
 }
 
-export class Deferred<T = any> implements IStoreValue {
-  public static create<T = any> (ctx: Context, value: IDeferrdValue<T>): Deferred {
-    const deferred = new Deferred<T>(ctx, value)
-    ctx.deferredStore.add(deferred)
-    return deferred
+export class DeferredStore extends ArrayStore<Deferred, CountIdReuseAllocator> {}
+
+export class Deferred<T = any> extends Disposable implements StoreValue {
+  public static create<T = any> (store: DeferredStore, value: IDeferrdValue<T>): Deferred<T> {
+    return store.alloc(Deferred<T>, store, value)
   }
 
   public id: number
-  public ctx: Context
+  public store: DeferredStore
   public value: IDeferrdValue<T>
 
-  public constructor (ctx: Context, value: IDeferrdValue<T>) {
+  public constructor (store: DeferredStore, value: IDeferrdValue<T>) {
+    super()
     this.id = 0
-    this.ctx = ctx
+    this.store = store
     this.value = value
   }
 
@@ -34,9 +35,10 @@ export class Deferred<T = any> implements IStoreValue {
   }
 
   public dispose (): void {
-    this.ctx.deferredStore.remove(this.id)
+    if (this.id === 0) return
+    this.store.dealloc(this.id)
     this.id = 0
     this.value = null!
-    this.ctx = null!
+    this.store = null!
   }
 }

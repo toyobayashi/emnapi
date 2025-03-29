@@ -1,29 +1,22 @@
 import { ScopeStore } from './ScopeStore'
 import { HandleStore } from './Handle'
 import type { Handle } from './Handle'
-import type { HandleScope } from './HandleScope'
+import type { HandleScope, ICallbackInfo } from './HandleScope'
 import { Env, newEnv } from './env'
 import {
-  _global,
-  supportReflect,
-  supportFinalizer,
-  supportWeakSymbol,
-  supportBigInt,
-  supportNewFunction,
-  canSetFunctionName,
-  _setImmediate,
-  _Buffer,
-  _MessageChannel,
   version,
   NODE_API_SUPPORTED_VERSION_MAX,
   NAPI_VERSION_EXPERIMENTAL,
-  NODE_API_DEFAULT_MODULE_API_VERSION
+  NODE_API_DEFAULT_MODULE_API_VERSION,
+  detectFeatures,
+  Features
 } from './util'
 import { NotSupportWeakRefError, NotSupportBufferError } from './errors'
 import { Reference, ReferenceWithData, ReferenceWithFinalizer, type ReferenceOwnership } from './Reference'
-import { type IDeferrdValue, Deferred } from './Deferred'
-import { Store } from './Store'
+import { type IDeferrdValue, Deferred, DeferredStore } from './Deferred'
+import { ArrayStore, CountIdReuseAllocator } from './Store'
 import { TrackedFinalizer } from './TrackedFinalizer'
+import { External } from './External'
 
 export type CleanupHookCallbackFunction = number | ((arg: number) => void)
 
@@ -85,8 +78,8 @@ class NodejsWaitingRequestCounter {
   private readonly refHandle: { ref: () => void; unref: () => void }
   private count: number
 
-  constructor () {
-    this.refHandle = new _MessageChannel!().port1 as unknown as import('worker_threads').MessagePort
+  constructor (MessageChannel: typeof globalThis.MessageChannel) {
+    this.refHandle = new MessageChannel().port1 as unknown as import('worker_threads').MessagePort
     this.count = 0
   }
 
@@ -110,35 +103,35 @@ class NodejsWaitingRequestCounter {
   }
 }
 
+let _globalThis: typeof globalThis
+
+export interface ContextOptions {
+  features?: Partial<Features>
+}
+
 export class Context {
   private _isStopping = false
   private _canCallIntoJs = true
   private _suppressDestroy = false
 
-  public envStore = new Store<Env>()
-  public scopeStore = new ScopeStore()
-  public refStore = new Store<Reference>()
-  public deferredStore = new Store<Deferred>()
-  public handleStore = new HandleStore()
+  public envStore = new ArrayStore<Env, CountIdReuseAllocator>(new CountIdReuseAllocator())
+  private scopeStore = new ScopeStore()
+  public refStore = new ArrayStore<Reference, CountIdReuseAllocator>(new CountIdReuseAllocator())
+  private deferredStore = new DeferredStore(new CountIdReuseAllocator())
   private readonly refCounter?: NodejsWaitingRequestCounter
   private readonly cleanupQueue: CleanupQueue
 
-  public feature = {
-    supportReflect,
-    supportFinalizer,
-    supportWeakSymbol,
-    supportBigInt,
-    supportNewFunction,
-    canSetFunctionName,
-    setImmediate: _setImmediate,
-    Buffer: _Buffer,
-    MessageChannel: _MessageChannel
-  }
+  public readonly features: Features = detectFeatures()
 
-  public constructor () {
+  public handleStore: HandleStore
+
+  public constructor (options?: ContextOptions) {
+    this.features = detectFeatures(options?.features)
+    this.handleStore = new HandleStore(this.features)
+    _globalThis ??= this.features.getGlobalThis()
     this.cleanupQueue = new CleanupQueue()
-    if (typeof process === 'object' && process !== null && typeof process.once === 'function') {
-      this.refCounter = new NodejsWaitingRequestCounter()
+    if (typeof process === 'object' && process !== null && typeof process.once === 'function' && this.features.MessageChannel) {
+      this.refCounter = new NodejsWaitingRequestCounter(this.features.MessageChannel)
       process.once('beforeExit', () => {
         if (!this._suppressDestroy) {
           this.destroy()
@@ -159,7 +152,7 @@ export class Context {
     this._suppressDestroy = true
   }
 
-  getRuntimeVersions () {
+  public getRuntimeVersions () {
     return {
       version,
       NODE_API_SUPPORTED_VERSION_MAX,
@@ -168,11 +161,11 @@ export class Context {
     }
   }
 
-  createNotSupportWeakRefError (api: string, message: string): NotSupportWeakRefError {
+  public createNotSupportWeakRefError (api: string, message: string): NotSupportWeakRefError {
     return new NotSupportWeakRefError(api, message)
   }
 
-  createNotSupportBufferError (api: string, message: string): NotSupportBufferError {
+  public createNotSupportBufferError (api: string, message: string): NotSupportBufferError {
     return new NotSupportBufferError(api, message)
   }
 
@@ -226,11 +219,11 @@ export class Context {
     )
   }
 
-  createDeferred<T = any> (value: IDeferrdValue<T>): Deferred<T> {
-    return Deferred.create(this, value)
+  public createDeferred<T = any> (value: IDeferrdValue<T>): Deferred<T> {
+    return this.deferredStore.alloc(Deferred<T>, this.deferredStore, value)
   }
 
-  createEnv (
+  public createEnv (
     filename: string,
     moduleApiVersion: number,
     makeDynCall_vppp: (cb: Ptr) => (a: Ptr, b: Ptr, c: Ptr) => void,
@@ -241,7 +234,7 @@ export class Context {
     return newEnv(this, filename, moduleApiVersion, makeDynCall_vppp, makeDynCall_vp, abort, nodeBinding)
   }
 
-  createTrackedFinalizer (
+  public createTrackedFinalizer (
     envObject: Env,
     finalize_callback: napi_finalize,
     finalize_data: void_p,
@@ -250,33 +243,74 @@ export class Context {
     return TrackedFinalizer.create(envObject, finalize_callback, finalize_data, finalize_hint)
   }
 
-  getCurrentScope (): HandleScope | null {
+  public createExternal (data: number | bigint): External {
+    return new External(data)
+  }
+
+  public getCurrentScope (): HandleScope | null {
     return this.scopeStore.currentScope
   }
 
-  addToCurrentScope<V> (value: V): Handle<V> {
-    return this.scopeStore.currentScope.add(value)
+  public openScope (envObject: Env): HandleScope {
+    const scope = this.scopeStore.openScope(this.handleStore)
+    envObject.openHandleScopes++
+    return scope
   }
 
-  openScope (envObject: Env): HandleScope {
-    return this.scopeStore.openScope(envObject)
+  public closeScope (envObject: Env, _scope?: HandleScope): void {
+    this.scopeStore.closeScope()
+    envObject.openHandleScopes--
   }
 
-  closeScope (envObject: Env, _scope?: HandleScope): void {
-    this.scopeStore.closeScope(envObject)
+  public handleFromNapiValue<S = any> (napiValue: number | bigint): Handle<S> | undefined {
+    return this.handleStore.deref<Handle<S>>(napiValue)
   }
 
-  ensureHandle<S> (value: S): Handle<S> {
+  public handleFromJsValue<S> (value: S): Handle<S> {
     switch (value as any) {
-      case undefined: return HandleStore.UNDEFINED as any
-      case null: return HandleStore.NULL as any
-      case true: return HandleStore.TRUE as any
-      case false: return HandleStore.FALSE as any
-      case _global: return HandleStore.GLOBAL as any
-      default: break
+      case undefined: return HandleStore.UNDEFINED as Handle<S>
+      case null: return HandleStore.NULL as Handle<S>
+      case true: return HandleStore.TRUE as Handle<S>
+      case false: return HandleStore.FALSE as Handle<S>
+      case _globalThis: return this.handleStore.deref(GlobalHandle.GLOBAL)! as Handle<S>
+      default: return this.scopeStore.currentScope.add(value)
     }
+  }
 
-    return this.addToCurrentScope(value)
+  public getEnv (env: napi_env): Env | undefined {
+    return this.envStore.deref(env)
+  }
+
+  public getRef (ref: napi_ref): Reference | undefined {
+    return this.refStore.deref(ref)
+  }
+
+  public getHandleScope (scope: napi_handle_scope): HandleScope | undefined {
+    return this.scopeStore.deref(scope)
+  }
+
+  public getCallbackInfo (info: napi_callback_info): ICallbackInfo {
+    return this.scopeStore.deref(info)!.callbackInfo
+  }
+
+  public getDeferred<T = any> (deferred: napi_deferred): Deferred<T> | undefined {
+    return this.deferredStore.deref(deferred)
+  }
+
+  public napiValueFromJsValue (value: unknown): number | bigint {
+    return this.handleFromJsValue(value).id
+  }
+
+  public napiValueFromHandle (handle: Handle<any>): number | bigint {
+    return handle.id
+  }
+
+  public jsValueFromNapiValue<T> (napiValue: number | bigint): T | undefined {
+    return this.handleFromNapiValue<T>(napiValue)?.value
+  }
+
+  public jsValueFromHandle<T> (handle: Handle<T>): T | undefined {
+    return handle.value
   }
 
   public addCleanupHook (envObject: Env, fn: CleanupHookCallbackFunction, arg: number): void {

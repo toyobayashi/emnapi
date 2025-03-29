@@ -9,7 +9,7 @@ export function _emnapi_get_last_error_info (env: napi_env, error_code: Pointer<
   from64('error_code')
   from64('engine_error_code')
   from64('engine_reserved')
-  const envObject = emnapiCtx.envStore.get(env)!
+  const envObject = emnapiCtx.getEnv(env)!
 
   const lastError = envObject.lastError
   const errorCode = lastError.errorCode
@@ -26,7 +26,7 @@ export function _emnapi_get_last_error_info (env: napi_env, error_code: Pointer<
 export function napi_throw (env: napi_env, error: napi_value): napi_status {
   return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, error)
-    envObject.tryCatch.setError(emnapiCtx.handleStore.get(error)!.value)
+    envObject.tryCatch.setError(emnapiCtx.jsValueFromNapiValue(error)!)
     return envObject.clearLastError()
   })
 }
@@ -38,8 +38,8 @@ export function napi_throw_error (env: napi_env, code: const_char_p, msg: const_
     from64('code')
     from64('msg')
 
-    const error: Error & { code?: string } = new Error(emnapiString.UTF8ToString(msg, -1))
-    if (code) error.code = emnapiString.UTF8ToString(code, -1)
+    const error: Error & { code?: string } = new Error(emnapiString.UTF8ToString(msg as number, -1))
+    if (code) error.code = emnapiString.UTF8ToString(code as number, -1)
 
     envObject.tryCatch.setError(error)
     return envObject.clearLastError()
@@ -53,8 +53,8 @@ export function napi_throw_type_error (env: napi_env, code: const_char_p, msg: c
     from64('code')
     from64('msg')
 
-    const error: TypeError & { code?: string } = new TypeError(emnapiString.UTF8ToString(msg, -1))
-    if (code) error.code = emnapiString.UTF8ToString(code, -1)
+    const error: TypeError & { code?: string } = new TypeError(emnapiString.UTF8ToString(msg as number, -1))
+    if (code) error.code = emnapiString.UTF8ToString(code as number, -1)
 
     envObject.tryCatch.setError(error)
     return envObject.clearLastError()
@@ -68,8 +68,8 @@ export function napi_throw_range_error (env: napi_env, code: const_char_p, msg: 
     from64('code')
     from64('msg')
 
-    const error: RangeError & { code?: string } = new RangeError(emnapiString.UTF8ToString(msg, -1))
-    if (code) error.code = emnapiString.UTF8ToString(code, -1)
+    const error: RangeError & { code?: string } = new RangeError(emnapiString.UTF8ToString(msg as number, -1))
+    if (code) error.code = emnapiString.UTF8ToString(code as number, -1)
 
     envObject.tryCatch.setError(error)
     return envObject.clearLastError()
@@ -83,8 +83,8 @@ export function node_api_throw_syntax_error (env: napi_env, code: const_char_p, 
     from64('code')
     from64('msg')
 
-    const error: SyntaxError & { code?: string } = new SyntaxError(emnapiString.UTF8ToString(msg, -1))
-    if (code) error.code = emnapiString.UTF8ToString(code, -1)
+    const error: SyntaxError & { code?: string } = new SyntaxError(emnapiString.UTF8ToString(msg as number, -1))
+    if (code) error.code = emnapiString.UTF8ToString(code as number, -1)
 
     envObject.tryCatch.setError(error)
     return envObject.clearLastError()
@@ -106,14 +106,14 @@ export function napi_create_error (env: napi_env, code: napi_value, msg: napi_va
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, msg)
   $CHECK_ARG!(envObject, result)
-  const msgValue = emnapiCtx.handleStore.get(msg)!.value
+  const msgValue = emnapiCtx.jsValueFromNapiValue(msg)!
   if (typeof msgValue !== 'string') {
     return envObject.setLastError(napi_status.napi_string_expected)
   }
 
   const error = new Error(msgValue)
   if (code) {
-    const codeValue = emnapiCtx.handleStore.get(code)!.value
+    const codeValue = emnapiCtx.jsValueFromNapiValue(code)!
     if (typeof codeValue !== 'string') {
       return envObject.setLastError(napi_status.napi_string_expected)
     }
@@ -122,7 +122,7 @@ export function napi_create_error (env: napi_env, code: napi_value, msg: napi_va
 
   from64('result')
 
-  const value = emnapiCtx.addToCurrentScope(error).id
+  const value = emnapiCtx.napiValueFromJsValue(error)
   makeSetValue('result', 0, 'value', '*')
   return envObject.clearLastError()
 }
@@ -132,13 +132,13 @@ export function napi_create_type_error (env: napi_env, code: napi_value, msg: na
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, msg)
   $CHECK_ARG!(envObject, result)
-  const msgValue = emnapiCtx.handleStore.get(msg)!.value
+  const msgValue = emnapiCtx.jsValueFromNapiValue(msg)!
   if (typeof msgValue !== 'string') {
     return envObject.setLastError(napi_status.napi_string_expected)
   }
   const error = new TypeError(msgValue)
   if (code) {
-    const codeValue = emnapiCtx.handleStore.get(code)!.value
+    const codeValue = emnapiCtx.jsValueFromNapiValue(code)!
     if (typeof codeValue !== 'string') {
       return envObject.setLastError(napi_status.napi_string_expected)
     }
@@ -147,7 +147,7 @@ export function napi_create_type_error (env: napi_env, code: napi_value, msg: na
 
   from64('result')
 
-  const value = emnapiCtx.addToCurrentScope(error).id
+  const value = emnapiCtx.napiValueFromJsValue(error)
   makeSetValue('result', 0, 'value', '*')
   return envObject.clearLastError()
 }
@@ -157,13 +157,13 @@ export function napi_create_range_error (env: napi_env, code: napi_value, msg: n
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, msg)
   $CHECK_ARG!(envObject, result)
-  const msgValue = emnapiCtx.handleStore.get(msg)!.value
+  const msgValue = emnapiCtx.jsValueFromNapiValue(msg)!
   if (typeof msgValue !== 'string') {
     return envObject.setLastError(napi_status.napi_string_expected)
   }
   const error = new RangeError(msgValue)
   if (code) {
-    const codeValue = emnapiCtx.handleStore.get(code)!.value
+    const codeValue = emnapiCtx.jsValueFromNapiValue(code)!
     if (typeof codeValue !== 'string') {
       return envObject.setLastError(napi_status.napi_string_expected)
     }
@@ -171,7 +171,7 @@ export function napi_create_range_error (env: napi_env, code: napi_value, msg: n
   }
   from64('result')
 
-  const value = emnapiCtx.addToCurrentScope(error).id
+  const value = emnapiCtx.napiValueFromJsValue(error)
   makeSetValue('result', 0, 'value', '*')
   return envObject.clearLastError()
 }
@@ -181,13 +181,13 @@ export function node_api_create_syntax_error (env: napi_env, code: napi_value, m
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, msg)
   $CHECK_ARG!(envObject, result)
-  const msgValue = emnapiCtx.handleStore.get(msg)!.value
+  const msgValue = emnapiCtx.jsValueFromNapiValue(msg)!
   if (typeof msgValue !== 'string') {
     return envObject.setLastError(napi_status.napi_string_expected)
   }
   const error = new SyntaxError(msgValue)
   if (code) {
-    const codeValue = emnapiCtx.handleStore.get(code)!.value
+    const codeValue = emnapiCtx.jsValueFromNapiValue(code)!
     if (typeof codeValue !== 'string') {
       return envObject.setLastError(napi_status.napi_string_expected)
     }
@@ -195,7 +195,7 @@ export function node_api_create_syntax_error (env: napi_env, code: napi_value, m
   }
   from64('result')
 
-  const value = emnapiCtx.addToCurrentScope(error).id
+  const value = emnapiCtx.napiValueFromJsValue(error)
   makeSetValue('result', 0, 'value', '*')
   return envObject.clearLastError()
 }
@@ -211,7 +211,7 @@ export function napi_get_and_clear_last_exception (env: napi_env, result: Pointe
     return envObject.clearLastError()
   } else {
     const err = envObject.tryCatch.exception()!
-    const value = envObject.ensureHandleId(err)
+    const value = emnapiCtx.napiValueFromJsValue(err)
     makeSetValue('result', 0, 'value', '*')
     envObject.tryCatch.reset()
   }
@@ -225,8 +225,8 @@ export function napi_fatal_error (location: const_char_p, location_len: size_t, 
   from64('message')
   from64('message_len')
 
-  const locationStr = emnapiString.UTF8ToString(location, location_len)
-  const messageStr = emnapiString.UTF8ToString(message, message_len)
+  const locationStr = emnapiString.UTF8ToString(location as number, location_len)
+  const messageStr = emnapiString.UTF8ToString(message as number, message_len)
   if (emnapiNodeBinding) {
     emnapiNodeBinding.napi.fatalError(locationStr, messageStr)
   } else {
@@ -238,9 +238,9 @@ export function napi_fatal_error (location: const_char_p, location_len: size_t, 
 export function napi_fatal_exception (env: napi_env, err: napi_value): napi_status {
   return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, err)
-    const error = envObject.ctx.handleStore.get(err)!
+    const error = emnapiCtx.jsValueFromNapiValue(err)!
     try {
-      (envObject as NodeEnv).triggerFatalException(error.value)
+      (envObject as NodeEnv).triggerFatalException(error)
     } catch (_) {
       return envObject.setLastError(napi_status.napi_generic_failure)
     }

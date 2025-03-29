@@ -9,20 +9,20 @@ import { napi_set_last_error } from './util'
 export function napi_run_script (env: napi_env, script: napi_value, result: Pointer<napi_value>): napi_status {
   let status: napi_status
 // #if DYNAMIC_EXECUTION
-  let value: number
+  let value: napi_value
   // @ts-expect-error
   $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, script)
     $CHECK_ARG!(envObject, result)
-    const v8Script = emnapiCtx.handleStore.get(script)!
+    const v8Script = emnapiCtx.handleFromNapiValue(script)!
     if (!v8Script.isString()) {
       return envObject.setLastError(napi_status.napi_string_expected)
     }
-    const g = emnapiCtx.handleStore.get(GlobalHandle.GLOBAL)!.value as typeof globalThis
+    const g = emnapiCtx.jsValueFromNapiValue<typeof globalThis>(GlobalHandle.GLOBAL)!
     const ret = g.eval(v8Script.value)
     from64('result')
 
-    value = envObject.ensureHandleId(ret)
+    value = emnapiCtx.napiValueFromJsValue(ret)
     makeSetValue('result', 0, 'value', '*')
     status = envObject.getReturnStatus()
   })

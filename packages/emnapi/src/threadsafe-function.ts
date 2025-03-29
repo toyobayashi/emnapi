@@ -84,8 +84,9 @@ export const emnapiTSFN = {
     const size = 2 * POINTER_SIZE
     const queue = _malloc(to64('size'))
     if (!queue) return false
-    new Uint8Array(wasmMemory.buffer, queue, size).fill(0)
-    emnapiTSFN.storeSizeTypeValue(func + emnapiTSFN.offset.queue, queue, false)
+    from64('queue')
+    new Uint8Array(wasmMemory.buffer, queue as number, size).fill(0)
+    emnapiTSFN.storeSizeTypeValue(func + emnapiTSFN.offset.queue, queue as number, false)
     return true
   },
   destroyQueue (func: number) {
@@ -102,14 +103,15 @@ export const emnapiTSFN = {
     const size = 2 * POINTER_SIZE
     const node = _malloc(to64('size'))
     if (!node) throw new Error('OOM')
-    emnapiTSFN.storeSizeTypeValue(node, data, false)
-    emnapiTSFN.storeSizeTypeValue(node + POINTER_SIZE, 0, false)
+    from64('node')
+    emnapiTSFN.storeSizeTypeValue(node as number, data, false)
+    emnapiTSFN.storeSizeTypeValue(node as number + POINTER_SIZE, 0, false)
     if (head === 0 && tail === 0) {
-      emnapiTSFN.storeSizeTypeValue(queue, node, false)
-      emnapiTSFN.storeSizeTypeValue(queue + POINTER_SIZE, node, false)
+      emnapiTSFN.storeSizeTypeValue(queue, node as number, false)
+      emnapiTSFN.storeSizeTypeValue(queue + POINTER_SIZE, node as number, false)
     } else {
-      emnapiTSFN.storeSizeTypeValue(tail + POINTER_SIZE, node, false)
-      emnapiTSFN.storeSizeTypeValue(queue + POINTER_SIZE, node, false)
+      emnapiTSFN.storeSizeTypeValue(tail + POINTER_SIZE, node as number, false)
+      emnapiTSFN.storeSizeTypeValue(queue + POINTER_SIZE, node as number, false)
     }
     emnapiTSFN.addQueueSize(func)
   },
@@ -411,10 +413,10 @@ export const emnapiTSFN = {
   destroy (func: number) {
     emnapiTSFN.destroyQueue(func)
     const env = emnapiTSFN.getEnv(func)
-    const envObject = emnapiCtx.envStore.get(env)!
+    const envObject = emnapiCtx.getEnv(env)!
     const ref = emnapiTSFN.getRef(func)
     if (ref) {
-      emnapiCtx.refStore.get(ref)!.dispose()
+      emnapiCtx.getRef(ref)!.dispose()
     }
     emnapiCtx.removeCleanupHook(envObject, emnapiTSFN.cleanup, func)
     envObject.unref()
@@ -428,7 +430,7 @@ export const emnapiTSFN = {
     }
 
     const resource = emnapiTSFN.getResource(func)
-    emnapiCtx.refStore.get(resource)!.dispose()
+    emnapiCtx.getRef(resource)!.dispose()
 
     if (emnapiNodeBinding) {
       const view = new DataView(wasmMemory.buffer)
@@ -454,7 +456,7 @@ export const emnapiTSFN = {
   },
   finalize (func: number) {
     const env = emnapiTSFN.getEnv(func)
-    const envObject = emnapiCtx.envStore.get(env)!
+    const envObject = emnapiCtx.getEnv(env)!
     emnapiCtx.openScope(envObject)
 
     const finalize = emnapiTSFN.getFinalizeCb(func)
@@ -476,8 +478,8 @@ export const emnapiTSFN = {
       if (finalize) {
         if (emnapiNodeBinding) {
           const resource = emnapiTSFN.getResource(func)
-          const resource_value = emnapiCtx.refStore.get(resource)!.get()
-          const resourceObject = emnapiCtx.handleStore.get(resource_value)!.value
+          const resource_value = emnapiCtx.getRef(resource)!.get()
+          const resourceObject = emnapiCtx.jsValueFromNapiValue(resource_value)!
           const view = new DataView(wasmMemory.buffer)
           const asyncId = view.getFloat64(func + emnapiTSFN.offset.async_id, true)
           const triggerAsyncId = view.getFloat64(func + emnapiTSFN.offset.trigger_async_id, true)
@@ -499,7 +501,7 @@ export const emnapiTSFN = {
   },
   closeHandlesAndMaybeDelete (func: number, set_closing: number) {
     const env = emnapiTSFN.getEnv(func)
-    const envObject = emnapiCtx.envStore.get(env)!
+    const envObject = emnapiCtx.getEnv(env)!
     emnapiCtx.openScope(envObject)
     try {
       if (set_closing) {
@@ -514,7 +516,7 @@ export const emnapiTSFN = {
         return
       }
       emnapiTSFN.setHandlesClosing(func, 1)
-      emnapiCtx.feature.setImmediate(() => {
+      emnapiCtx.features.setImmediate(() => {
         emnapiTSFN.finalize(func)
       })
     } finally {
@@ -558,19 +560,19 @@ export const emnapiTSFN = {
 
     if (popped_value) {
       const env = emnapiTSFN.getEnv(func)
-      const envObject = emnapiCtx.envStore.get(env)!
+      const envObject = emnapiCtx.getEnv(env)!
       emnapiCtx.openScope(envObject)
 
       const f = (): void => {
         (envObject as NodeEnv).callbackIntoModule(false, () => {
           const callJsCb = emnapiTSFN.getCallJSCb(func)
           const ref = emnapiTSFN.getRef(func)
-          const js_callback = ref ? emnapiCtx.refStore.get(ref)!.get() : 0
+          const js_callback = ref ? emnapiCtx.getRef(ref)!.get() : 0
           if (callJsCb) {
             const context = emnapiTSFN.getContext(func)
             makeDynCall('vpppp', 'callJsCb')(to64('env'), to64('js_callback'), to64('context'), to64('data'))
           } else {
-            const jsCallback = js_callback ? emnapiCtx.handleStore.get(js_callback)!.value : null
+            const jsCallback = js_callback ? emnapiCtx.jsValueFromNapiValue(js_callback)! : null
             if (typeof jsCallback === 'function') {
               jsCallback()
             }
@@ -581,8 +583,8 @@ export const emnapiTSFN = {
       try {
         if (emnapiNodeBinding) {
           const resource = emnapiTSFN.getResource(func)
-          const resource_value = emnapiCtx.refStore.get(resource)!.get()
-          const resourceObject = emnapiCtx.handleStore.get(resource_value)!.value
+          const resource_value = emnapiCtx.getRef(resource)!.get()
+          const resourceObject = emnapiCtx.jsValueFromNapiValue(resource_value)!
           const view = new DataView(wasmMemory.buffer)
           emnapiNodeBinding.node.makeCallback(resourceObject, f, [], {
             asyncId: view.getFloat64(func + emnapiTSFN.offset.async_id, true),
@@ -632,7 +634,7 @@ export const emnapiTSFN = {
         }
       })
     } else {
-      emnapiCtx.feature.setImmediate(() => {
+      emnapiCtx.features.setImmediate(() => {
         emnapiTSFN.dispatch(func)
       })
     }
@@ -653,7 +655,7 @@ export function napi_create_threadsafe_function (
   call_js_cb: number,
   result: number
 ): napi_status {
-  const envObject = $CHECK_ENV_NOT_IN_GC!(env)
+  const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, async_resource_name)
   from64('max_queue_size')
   from64('initial_thread_count')
@@ -674,7 +676,7 @@ export function napi_create_threadsafe_function (
   if (!func) {
     $CHECK_ARG!(envObject, call_js_cb)
   } else {
-    const funcValue = emnapiCtx.handleStore.get(func)!.value
+    const funcValue = emnapiCtx.jsValueFromNapiValue(func)!
     if (typeof funcValue !== 'function') {
       return envObject.setLastError(napi_status.napi_invalid_arg)
     }
@@ -684,7 +686,7 @@ export function napi_create_threadsafe_function (
 
   let asyncResourceObject: any
   if (async_resource) {
-    asyncResourceObject = emnapiCtx.handleStore.get(async_resource)!.value
+    asyncResourceObject = emnapiCtx.jsValueFromNapiValue(async_resource)!
     if (asyncResourceObject == null) {
       return envObject.setLastError(napi_status.napi_object_expected)
     }
@@ -692,30 +694,31 @@ export function napi_create_threadsafe_function (
   } else {
     asyncResourceObject = {}
   }
-  const resource = envObject.ensureHandleId(asyncResourceObject)
+  const resource = emnapiCtx.napiValueFromJsValue(asyncResourceObject)
 
-  let asyncResourceName = emnapiCtx.handleStore.get(async_resource_name)!.value
+  let asyncResourceName = emnapiCtx.jsValueFromNapiValue(async_resource_name)!
   if (typeof asyncResourceName === 'symbol') {
     return envObject.setLastError(napi_status.napi_string_expected)
   }
   asyncResourceName = String(asyncResourceName)
-  const resource_name = envObject.ensureHandleId(asyncResourceName)
+  const resource_name = emnapiCtx.napiValueFromJsValue(asyncResourceName)
 
   // tsfn create
   const sizeofTSFN = emnapiTSFN.offset.end
   const tsfn = _malloc(to64('sizeofTSFN'))
   if (!tsfn) return envObject.setLastError(napi_status.napi_generic_failure)
-  new Uint8Array(wasmMemory.buffer).subarray(tsfn, tsfn + sizeofTSFN).fill(0)
+  from64('tsfn')
+  new Uint8Array(wasmMemory.buffer).subarray(tsfn as number, tsfn as number + sizeofTSFN).fill(0)
   const resourceRef = emnapiCtx.createReference(envObject, resource, 1, ReferenceOwnership.kUserland as any)
 
   const resource_ = resourceRef.id
   makeSetValue('tsfn', 0, 'resource_', '*')
-  if (!emnapiTSFN.initQueue(tsfn)) {
+  if (!emnapiTSFN.initQueue(tsfn as number)) {
     _free(to64('tsfn') as number)
     resourceRef.dispose()
     return envObject.setLastError(napi_status.napi_generic_failure)
   }
-  _emnapi_node_emit_async_init(resource, resource_name, -1, tsfn + emnapiTSFN.offset.async_id)
+  _emnapi_node_emit_async_init(resource, resource_name, -1, tsfn as number + emnapiTSFN.offset.async_id)
   makeSetValue('tsfn', 'emnapiTSFN.offset.thread_count', 'initial_thread_count', SIZE_TYPE)
   makeSetValue('tsfn', 'emnapiTSFN.offset.context', 'context', '*')
   makeSetValue('tsfn', 'emnapiTSFN.offset.max_queue_size', 'max_queue_size', SIZE_TYPE)
@@ -724,7 +727,7 @@ export function napi_create_threadsafe_function (
   makeSetValue('tsfn', 'emnapiTSFN.offset.finalize_data', 'thread_finalize_data', '*')
   makeSetValue('tsfn', 'emnapiTSFN.offset.finalize_cb', 'thread_finalize_cb', '*')
   makeSetValue('tsfn', 'emnapiTSFN.offset.call_js_cb', 'call_js_cb', '*')
-  emnapiCtx.addCleanupHook(envObject, emnapiTSFN.cleanup, tsfn)
+  emnapiCtx.addCleanupHook(envObject, emnapiTSFN.cleanup, tsfn as number)
   envObject.ref()
 
   _emnapi_runtime_keepalive_push()
@@ -760,7 +763,7 @@ export function napi_call_threadsafe_function (func: number, data: void_p, mode:
   from64('func')
   from64('data')
 
-  return emnapiTSFN.push(func, data, mode)
+  return emnapiTSFN.push(func, data as number, mode)
 }
 
 /** @__sig ip */
