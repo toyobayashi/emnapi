@@ -1,5 +1,4 @@
 import type { Context } from './Context'
-import type { StoreValue } from './Store'
 import {
   TryCatch,
   NODE_API_SUPPORTED_VERSION_MAX,
@@ -30,7 +29,7 @@ export interface IReferenceBinding {
   tag: Uint32Array | null
 }
 
-export abstract class Env extends Disposable implements StoreValue {
+export abstract class Env extends Disposable {
   public id: number | bigint
 
   public openHandleScopes: number = 0
@@ -338,8 +337,7 @@ export function newEnv (
   } else if (moduleApiVersion > NODE_API_SUPPORTED_VERSION_MAX && moduleApiVersion !== NAPI_VERSION_EXPERIMENTAL) {
     throwNodeApiVersionError(filename, moduleApiVersion)
   }
-  const env = ctx.envStore.alloc(
-    NodeEnv,
+  const env = new NodeEnv(
     ctx,
     filename,
     moduleApiVersion,

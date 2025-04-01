@@ -13,8 +13,8 @@ import {
 } from './util'
 import { NotSupportWeakRefError, NotSupportBufferError } from './errors'
 import { Reference, ReferenceWithData, ReferenceWithFinalizer, type ReferenceOwnership } from './Reference'
-import { type IDeferrdValue, Deferred, DeferredStore } from './Deferred'
-import { ArrayStore, CountIdReuseAllocator } from './Store'
+import { type IDeferrdValue, Deferred } from './Deferred'
+import { ArrayStore } from './Store'
 import { TrackedFinalizer } from './TrackedFinalizer'
 import { External } from './External'
 
@@ -114,10 +114,10 @@ export class Context {
   private _canCallIntoJs = true
   private _suppressDestroy = false
 
-  public envStore = new ArrayStore<Env, CountIdReuseAllocator>(new CountIdReuseAllocator())
+  public envStore = new ArrayStore<Env>()
   private scopeStore = new ScopeStore()
-  public refStore = new ArrayStore<Reference, CountIdReuseAllocator>(new CountIdReuseAllocator())
-  private deferredStore = new DeferredStore(new CountIdReuseAllocator())
+  public refStore = new ArrayStore<Reference>()
+  private deferredStore = new ArrayStore<Deferred>()
   private readonly refCounter?: NodejsWaitingRequestCounter
   private readonly cleanupQueue: CleanupQueue
 
@@ -175,7 +175,7 @@ export class Context {
     initialRefcount: uint32_t,
     ownership: ReferenceOwnership
   ): Reference {
-    return Reference.create(
+    return this.refStore.alloc(Reference.create,
       envObject,
       handle_id,
       initialRefcount,
@@ -190,7 +190,7 @@ export class Context {
     ownership: ReferenceOwnership,
     data: void_p
   ): Reference {
-    return ReferenceWithData.create(
+    return this.refStore.alloc(ReferenceWithData.create,
       envObject,
       handle_id,
       initialRefcount,
@@ -208,7 +208,7 @@ export class Context {
     finalize_data: void_p = 0,
     finalize_hint: void_p = 0
   ): Reference {
-    return ReferenceWithFinalizer.create(
+    return this.refStore.alloc(ReferenceWithFinalizer.create,
       envObject,
       handle_id,
       initialRefcount,
@@ -220,7 +220,7 @@ export class Context {
   }
 
   public createDeferred<T = any> (value: IDeferrdValue<T>): Deferred<T> {
-    return this.deferredStore.alloc(Deferred<T>, this.deferredStore, value)
+    return this.deferredStore.alloc(Deferred.create<T>, this.deferredStore, value)
   }
 
   public createEnv (
@@ -231,7 +231,7 @@ export class Context {
     abort: (msg?: string) => never,
     nodeBinding?: any
   ): Env {
-    return newEnv(this, filename, moduleApiVersion, makeDynCall_vppp, makeDynCall_vp, abort, nodeBinding)
+    return this.envStore.alloc(newEnv, this, filename, moduleApiVersion, makeDynCall_vppp, makeDynCall_vp, abort, nodeBinding)
   }
 
   public createTrackedFinalizer (

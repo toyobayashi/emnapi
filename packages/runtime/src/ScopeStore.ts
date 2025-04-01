@@ -1,8 +1,8 @@
 import { HandleStore } from './Handle'
 import { HandleScope } from './HandleScope'
-import { ReusableArrayStore } from './Store'
+import { BaseArrayStore } from './Store'
 
-export class ScopeStore extends ReusableArrayStore<HandleScope> {
+export class ScopeStore extends BaseArrayStore<HandleScope> {
   private readonly _rootScope: HandleScope
   public currentScope: HandleScope
 
@@ -19,7 +19,9 @@ export class ScopeStore extends ReusableArrayStore<HandleScope> {
       scope.reuse(currentScope)
     } else {
       scope = new HandleScope(currentScope, handleStore)
-      this._set(currentScope.id as number + 1, scope)
+      const id = currentScope.id as number + 1
+      scope.id = id
+      this._values[id as number] = scope
     }
     this.currentScope = scope
     return scope

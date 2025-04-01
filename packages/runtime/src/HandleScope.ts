@@ -10,14 +10,18 @@ export interface ICallbackInfo {
 }
 
 export class HandleScope extends Disposable {
-  private handleStore: HandleStore
+  protected handleStore: HandleStore
   public id: number | bigint
   public parent: HandleScope | null
   public child: HandleScope | null
   public start: number
   public end: number
-  private _escapeCalled: boolean
+  private _escapeCalled: boolean = false
   public callbackInfo: ICallbackInfo
+
+  public static create (parentScope: HandleScope | null, handleStore: HandleStore, start = parentScope?.end ?? 1, end = start): HandleScope {
+    return new HandleScope(parentScope, handleStore, start, end)
+  }
 
   public constructor (parentScope: HandleScope | null, handleStore: HandleStore, start = parentScope?.end ?? 1, end = start) {
     super()
@@ -28,7 +32,6 @@ export class HandleScope extends Disposable {
     if (parentScope !== null) parentScope.child = this
     this.start = start
     this.end = end
-    this._escapeCalled = false
     this.callbackInfo = {
       thiz: undefined,
       data: 0,
@@ -43,7 +46,7 @@ export class HandleScope extends Disposable {
   }
 
   public add<V> (value: V): Handle<V> {
-    const h = this.handleStore.alloc(Handle<V>, value)
+    const h = this.handleStore.push(value)
     this.end++
     return h
   }
@@ -53,7 +56,7 @@ export class HandleScope extends Disposable {
   }
 
   public dispose (): void {
-    if (this.start === this.end || this.id === 0) return
+    if (this.start === this.end) return
     this.handleStore.erase(this.start, this.end)
   }
 
