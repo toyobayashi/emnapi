@@ -58,7 +58,7 @@ export function napi_escape_handle (env: napi_env, scope: napi_escapable_handle_
     from64('result')
 
     const newHandle = scopeObject.escape(escapee as number)
-    const value = newHandle ? newHandle.id : 0
+    const value = newHandle
     makeSetValue('result', 0, 'value', '*')
     return envObject.clearLastError()
   }
@@ -76,14 +76,15 @@ export function napi_create_reference (
   $CHECK_ARG!(envObject, value)
   $CHECK_ARG!(envObject, result)
 
-  const handle = emnapiCtx.handleFromNapiValue(value)!
+  const handle = emnapiCtx.jsValueFromNapiValue(value)!
+  const type = typeof handle
   if (envObject.moduleApiVersion < 10) {
-    if (!(handle.isObject() || handle.isFunction() || handle.isSymbol())) {
+    if (!((type === 'object' && handle !== null) || type === 'function' || typeof handle === 'symbol')) {
       return envObject.setLastError(napi_status.napi_invalid_arg)
     }
   }
 
-  const ref = emnapiCtx.createReference(envObject, handle.id, initial_refcount >>> 0, ReferenceOwnership.kUserland as any)
+  const ref = emnapiCtx.createReference(envObject, value, initial_refcount >>> 0, ReferenceOwnership.kUserland as any)
   from64('result')
   makeSetValue('result', 0, 'ref.id', '*')
   return envObject.clearLastError()

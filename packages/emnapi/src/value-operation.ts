@@ -7,32 +7,33 @@ export function napi_typeof (env: napi_env, value: napi_value, result: Pointer<n
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, value)
   $CHECK_ARG!(envObject, result)
-  const v = emnapiCtx.handleFromNapiValue(value)!
+  const v = emnapiCtx.jsValueFromNapiValue(value)!
+  const type = typeof v
   from64('result')
   let r: napi_valuetype
-  if (v.isNumber()) {
+  if (type === 'number') {
     r = napi_valuetype.napi_number
-  } else if (v.isBigInt()) {
+  } else if (type === 'bigint') {
     r = napi_valuetype.napi_bigint
-  } else if (v.isString()) {
+  } else if (type === 'string') {
     r = napi_valuetype.napi_string
-  } else if (v.isFunction()) {
+  } else if (type === 'function') {
   // This test has to come before IsObject because IsFunction
   // implies IsObject
     r = napi_valuetype.napi_function
-  } else if (v.isExternal()) {
+  } else if (emnapiCtx.isExternal(v)) {
   // This test has to come before IsObject because IsExternal
   // implies IsObject
     r = napi_valuetype.napi_external
-  } else if (v.isObject()) {
+  } else if (type === 'object' && v !== null) {
     r = napi_valuetype.napi_object
-  } else if (v.isBoolean()) {
+  } else if (type === 'boolean') {
     r = napi_valuetype.napi_boolean
-  } else if (v.isUndefined()) {
+  } else if (type === 'undefined') {
     r = napi_valuetype.napi_undefined
-  } else if (v.isSymbol()) {
+  } else if (type === 'symbol') {
     r = napi_valuetype.napi_symbol
-  } else if (v.isNull()) {
+  } else if (v === null) {
     r = napi_valuetype.napi_null
   } else {
   // Should not get here unless V8 has added some new kind of value.
@@ -51,10 +52,10 @@ export function napi_coerce_to_bool (env: napi_env, value: napi_value, result: P
   return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, value)
     $CHECK_ARG!(envObject, result)
-    const handle = emnapiCtx.handleFromNapiValue(value)!
+    const jsValue = emnapiCtx.jsValueFromNapiValue(value)!
     from64('result')
 
-    v = handle.value ? GlobalHandle.TRUE : GlobalHandle.FALSE
+    v = jsValue ? GlobalHandle.TRUE : GlobalHandle.FALSE
     makeSetValue('result', 0, 'v', '*')
     return envObject.getReturnStatus()
   })
@@ -67,13 +68,13 @@ export function napi_coerce_to_number (env: napi_env, value: napi_value, result:
   return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, value)
     $CHECK_ARG!(envObject, result)
-    const handle = emnapiCtx.handleFromNapiValue(value)!
-    if (handle.isBigInt()) {
+    const jsValue = emnapiCtx.jsValueFromNapiValue(value)!
+    if (typeof jsValue === 'bigint') {
       throw new TypeError('Cannot convert a BigInt value to a number')
     }
     from64('result')
 
-    v = emnapiCtx.napiValueFromJsValue(Number(handle.value))
+    v = emnapiCtx.napiValueFromJsValue(Number(jsValue))
     makeSetValue('result', 0, 'v', '*')
     return envObject.getReturnStatus()
   })
@@ -86,13 +87,13 @@ export function napi_coerce_to_object (env: napi_env, value: napi_value, result:
   return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, value)
     $CHECK_ARG!(envObject, result)
-    const handle = emnapiCtx.handleFromNapiValue(value)!
-    if (handle.value == null) {
+    const jsValue = emnapiCtx.jsValueFromNapiValue(value)!
+    if (jsValue == null) {
       throw new TypeError('Cannot convert undefined or null to object')
     }
     from64('result')
 
-    v = emnapiCtx.napiValueFromJsValue(Object(handle.value))
+    v = emnapiCtx.napiValueFromJsValue(Object(jsValue))
     makeSetValue('result', 0, 'v', '*')
     return envObject.getReturnStatus()
   })
@@ -105,13 +106,13 @@ export function napi_coerce_to_string (env: napi_env, value: napi_value, result:
   return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, value)
     $CHECK_ARG!(envObject, result)
-    const handle = emnapiCtx.handleFromNapiValue(value)!
-    if (handle.isSymbol()) {
+    const jsValue = emnapiCtx.jsValueFromNapiValue(value)!
+    if (typeof jsValue === 'symbol') {
       throw new TypeError('Cannot convert a Symbol value to a string')
     }
     from64('result')
 
-    v = emnapiCtx.napiValueFromJsValue(String(handle.value))
+    v = emnapiCtx.napiValueFromJsValue(String(jsValue))
     makeSetValue('result', 0, 'v', '*')
     return envObject.getReturnStatus()
   })
@@ -127,12 +128,12 @@ export function napi_instanceof (env: napi_env, object: napi_value, constructor:
     $CHECK_ARG!(envObject, constructor)
     from64('result')
     makeSetValue('result', 0, '0', 'i8')
-    const ctor = emnapiCtx.handleFromNapiValue(constructor)!
-    if (!ctor.isFunction()) {
+    const ctor = emnapiCtx.jsValueFromNapiValue(constructor)!
+    if (typeof ctor !== 'function') {
       return envObject.setLastError(napi_status.napi_function_expected)
     }
     const val = emnapiCtx.jsValueFromNapiValue(object)!
-    const ret = val instanceof ctor.value
+    const ret = val instanceof ctor
     r = ret ? 1 : 0
     makeSetValue('result', 0, 'r', 'i8')
     return envObject.getReturnStatus()
@@ -144,10 +145,10 @@ export function napi_is_array (env: napi_env, value: napi_value, result: Pointer
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, value)
   $CHECK_ARG!(envObject, result)
-  const h = emnapiCtx.handleFromNapiValue(value)!
+  const jsValue = emnapiCtx.jsValueFromNapiValue(value)!
   from64('result')
 
-  const r = h.isArray() ? 1 : 0
+  const r = Array.isArray(jsValue) ? 1 : 0
   makeSetValue('result', 0, 'r', 'i8')
   return envObject.clearLastError()
 }
@@ -157,10 +158,10 @@ export function napi_is_arraybuffer (env: napi_env, value: napi_value, result: P
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, value)
   $CHECK_ARG!(envObject, result)
-  const h = emnapiCtx.handleFromNapiValue(value)!
+  const h = emnapiCtx.jsValueFromNapiValue(value)!
   from64('result')
 
-  const r = h.isArrayBuffer() ? 1 : 0
+  const r = h instanceof ArrayBuffer ? 1 : 0
   makeSetValue('result', 0, 'r', 'i8')
   return envObject.clearLastError()
 }
@@ -170,10 +171,10 @@ export function napi_is_date (env: napi_env, value: napi_value, result: Pointer<
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, value)
   $CHECK_ARG!(envObject, result)
-  const h = emnapiCtx.handleFromNapiValue(value)!
+  const h = emnapiCtx.jsValueFromNapiValue(value)!
   from64('result')
 
-  const r = h.isDate() ? 1 : 0
+  const r = h instanceof Date ? 1 : 0
   makeSetValue('result', 0, 'r', 'i8')
   return envObject.clearLastError()
 }
@@ -196,10 +197,10 @@ export function napi_is_typedarray (env: napi_env, value: napi_value, result: Po
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, value)
   $CHECK_ARG!(envObject, result)
-  const h = emnapiCtx.handleFromNapiValue(value)!
+  const h = emnapiCtx.jsValueFromNapiValue(value)!
   from64('result')
 
-  const r = h.isTypedArray() ? 1 : 0
+  const r = (ArrayBuffer.isView(h)) && !(h instanceof DataView) ? 1 : 0
   makeSetValue('result', 0, 'r', 'i8')
   return envObject.clearLastError()
 }
@@ -209,10 +210,11 @@ export function napi_is_buffer (env: napi_env, value: napi_value, result: Pointe
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, value)
   $CHECK_ARG!(envObject, result)
-  const h = emnapiCtx.handleFromNapiValue(value)!
+  const h = emnapiCtx.jsValueFromNapiValue(value)!
   from64('result')
 
-  const r = h.isBuffer(emnapiCtx.features.Buffer) ? 1 : 0
+  const Buffer = emnapiCtx.features.Buffer
+  const r = (ArrayBuffer.isView(h) || (typeof Buffer === 'function' && Buffer.isBuffer(h))) ? 1 : 0
   makeSetValue('result', 0, 'r', 'i8')
   return envObject.clearLastError()
 }
@@ -222,10 +224,10 @@ export function napi_is_dataview (env: napi_env, value: napi_value, result: Poin
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, value)
   $CHECK_ARG!(envObject, result)
-  const h = emnapiCtx.handleFromNapiValue(value)!
+  const h = emnapiCtx.jsValueFromNapiValue(value)!
   from64('result')
 
-  const r = h.isDataView() ? 1 : 0
+  const r = h instanceof DataView ? 1 : 0
   makeSetValue('result', 0, 'r', 'i8')
   return envObject.clearLastError()
 }
@@ -274,12 +276,12 @@ export function napi_is_detached_arraybuffer (env: napi_env, arraybuffer: napi_v
   return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, arraybuffer)
     $CHECK_ARG!(envObject, result)
-    const h = emnapiCtx.handleFromNapiValue(arraybuffer)!
+    const h = emnapiCtx.jsValueFromNapiValue(arraybuffer)!
     from64('result')
-    if (h.isArrayBuffer() && h.value.byteLength === 0) {
+    if (h instanceof ArrayBuffer && h.byteLength === 0) {
       try {
         // eslint-disable-next-line no-new
-        new Uint8Array(h.value as ArrayBuffer)
+        new Uint8Array(h as ArrayBuffer)
       } catch (_) {
         makeSetValue('result', 0, '1', 'i8')
         return envObject.getReturnStatus()

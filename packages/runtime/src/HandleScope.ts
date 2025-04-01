@@ -1,4 +1,4 @@
-import { Handle, HandleStore } from './Handle'
+import { HandleStore } from './Handle'
 import { Disposable } from './Disaposable'
 import { External } from './External'
 
@@ -45,13 +45,13 @@ export class HandleScope extends Disposable {
     this._escapeCalled = false
   }
 
-  public add<V> (value: V): Handle<V> {
+  public add<V> (value: V): number {
     const h = this.handleStore.push(value)
     this.end++
     return h
   }
 
-  public addExternal (data: number | bigint): Handle<External> {
+  public addExternal (data: number | bigint): number {
     return this.add(new External(data))
   }
 
@@ -60,19 +60,19 @@ export class HandleScope extends Disposable {
     this.handleStore.erase(this.start, this.end)
   }
 
-  public escape (handle: number): Handle<any> | null {
-    if (this._escapeCalled) return null
+  public escape (handle: number): number {
+    if (this._escapeCalled) return 0
     this._escapeCalled = true
 
     if (handle < this.start || handle >= this.end) {
-      return null
+      return 0
     }
 
-    this.handleStore.swap(handle, this.start)
-    const h = this.handleStore.deref(this.start)!
+    const id = this.start
+    this.handleStore.swap(handle, id)
     this.start++
     this.parent!.end++
-    return h
+    return id
   }
 
   public escapeCalled (): boolean {

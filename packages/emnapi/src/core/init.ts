@@ -117,7 +117,7 @@ export var napiModule: INapiModule = {
           const exports = napiModule.exports
           const exportsHandle = scope.add(exports)
           const napi_register_wasm_v1 = instance.exports.napi_register_wasm_v1 as Function
-          const napiValue = napi_register_wasm_v1(to64('_envObject.id'), to64('exportsHandle.id'))
+          const napiValue = napi_register_wasm_v1(to64('_envObject.id'), to64('exportsHandle'))
           napiModule.exports = (!napiValue) ? exports : emnapiCtx.jsValueFromNapiValue(napiValue)!
         })
       } finally {

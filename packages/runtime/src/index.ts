@@ -6,7 +6,7 @@ export { EmnapiError, NotSupportWeakRefError, NotSupportBufferError } from './er
 export { External, isExternal, getExternalValue } from './External'
 export { Finalizer } from './Finalizer'
 export { TrackedFinalizer } from './TrackedFinalizer'
-export { Handle, ConstHandle, HandleStore } from './Handle'
+export { HandleStore } from './Handle'
 export { HandleScope, type ICallbackInfo } from './HandleScope'
 export { Persistent } from './Persistent'
 export { Reference, ReferenceWithData, ReferenceWithFinalizer, ReferenceOwnership } from './Reference'

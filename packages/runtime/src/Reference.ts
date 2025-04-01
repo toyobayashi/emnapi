@@ -1,6 +1,5 @@
 import type { Env } from './env'
 import { Persistent } from './Persistent'
-import type { Handle } from './Handle'
 import { RefTracker } from './RefTracker'
 import { Finalizer } from './Finalizer'
 
@@ -9,8 +8,10 @@ export enum ReferenceOwnership {
   kUserland
 }
 
-function canBeHeldWeakly (value: Handle<any>): boolean {
-  return value.isObject() || value.isFunction() || value.isSymbol()
+function canBeHeldWeakly (value: any): boolean {
+  if (!value) return false
+  const type = typeof value
+  return type === 'object' || type === 'function' || type === 'symbol'
 }
 
 export class Reference extends RefTracker {
@@ -55,7 +56,7 @@ export class Reference extends RefTracker {
     this._ownership = ownership
     const handle = envObject.ctx.handleStore.deref(handle_id)!
     this.canBeWeak = canBeHeldWeakly(handle)
-    this.persistent = new Persistent(handle.value)
+    this.persistent = new Persistent(handle)
     this.id = 0
     if (initialRefcount === 0) {
       this._setWeak()
@@ -90,8 +91,7 @@ export class Reference extends RefTracker {
       return 0
     }
     const obj = this.persistent.deref()
-    const handle = envObject.ctx.handleFromJsValue(obj)
-    return handle.id
+    return envObject.ctx.napiValueFromJsValue(obj)
   }
 
   /** @virtual */

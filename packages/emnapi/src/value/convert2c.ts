@@ -12,13 +12,13 @@ export function napi_get_array_length (env: napi_env, value: napi_value, result:
   return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, value)
     $CHECK_ARG!(envObject, result)
-    const handle = emnapiCtx.handleFromNapiValue(value)!
-    if (!handle.isArray()) {
+    const handle = emnapiCtx.jsValueFromNapiValue(value)!
+    if (!Array.isArray(handle)) {
       return envObject.setLastError(napi_status.napi_array_expected)
     }
     from64('result')
 
-    const v = handle.value.length >>> 0
+    const v = handle.length >>> 0
     makeSetValue('result', 0, 'v', 'u32')
     return envObject.getReturnStatus()
   })
@@ -30,19 +30,19 @@ export function napi_get_array_length (env: napi_env, value: napi_value, result:
 export function napi_get_arraybuffer_info (env: napi_env, arraybuffer: napi_value, data: void_pp, byte_length: Pointer<size_t>): napi_status {
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, arraybuffer)
-  const handle = emnapiCtx.handleFromNapiValue(arraybuffer)!
-  if (!handle.isArrayBuffer()) {
+  const handle = emnapiCtx.jsValueFromNapiValue(arraybuffer)!
+  if (!(handle instanceof ArrayBuffer)) {
     return envObject.setLastError(napi_status.napi_invalid_arg)
   }
   if (data) {
     from64('data')
 
-    const p = emnapiExternalMemory.getArrayBufferPointer(handle.value, true).address
+    const p = emnapiExternalMemory.getArrayBufferPointer(handle, true).address
     makeSetValue('data', 0, 'p', '*')
   }
   if (byte_length) {
     from64('byte_length')
-    makeSetValue('byte_length', 0, 'handle.value.byteLength', SIZE_TYPE)
+    makeSetValue('byte_length', 0, 'handle.byteLength', SIZE_TYPE)
   }
   return envObject.clearLastError()
 }
@@ -54,13 +54,14 @@ export function napi_get_prototype (env: napi_env, value: napi_value, result: Po
   return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, value)
     $CHECK_ARG!(envObject, result)
-    const handle = emnapiCtx.handleFromNapiValue(value)!
-    if (handle.value == null) {
+    const handle = emnapiCtx.jsValueFromNapiValue(value)!
+    if (handle == null) {
       throw new TypeError('Cannot convert undefined or null to object')
     }
+    const type = typeof handle
     let v: any
     try {
-      v = handle.isObject() || handle.isFunction() ? handle.value : Object(handle.value)
+      v = (type === 'object' && handle !== null) || type === 'function' ? handle : Object(handle)
     } catch (_) {
       return envObject.setLastError(napi_status.napi_object_expected)
     }
@@ -86,11 +87,11 @@ export function napi_get_typedarray_info (
 ): napi_status {
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, typedarray)
-  const handle = emnapiCtx.handleFromNapiValue(typedarray)!
-  if (!handle.isTypedArray()) {
+  const handle = emnapiCtx.jsValueFromNapiValue(typedarray)!
+  if (!(ArrayBuffer.isView(handle)) && !(handle instanceof DataView)) {
     return envObject.setLastError(napi_status.napi_invalid_arg)
   }
-  const v: ArrayBufferView = handle.value
+  const v: ArrayBufferView = handle
   if (type) {
     from64('type')
     let t: napi_typedarray_type
@@ -159,9 +160,11 @@ export function napi_get_buffer_info (
 ): napi_status {
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, buffer)
-  const handle = emnapiCtx.handleFromNapiValue(buffer)!
-  $RETURN_STATUS_IF_FALSE!(envObject, handle.isBuffer(emnapiCtx.features.Buffer), napi_status.napi_invalid_arg)
-  if (handle.isDataView()) {
+  const handle = emnapiCtx.jsValueFromNapiValue(buffer)!
+  const Buffer = emnapiCtx.features.Buffer
+  const bool = (ArrayBuffer.isView(handle) || (typeof Buffer === 'function' && Buffer.isBuffer(handle)))
+  $RETURN_STATUS_IF_FALSE!(envObject, bool, napi_status.napi_invalid_arg)
+  if (handle instanceof DataView) {
     return napi_get_dataview_info(env, buffer, length, data, 0, 0)
   }
   return napi_get_typedarray_info(env, buffer, 0, length, data, 0, 0)
@@ -180,11 +183,11 @@ export function napi_get_dataview_info (
 ): napi_status {
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, dataview)
-  const handle = emnapiCtx.handleFromNapiValue(dataview)!
-  if (!handle.isDataView()) {
+  const handle = emnapiCtx.jsValueFromNapiValue(dataview)!
+  if (!(handle instanceof DataView)) {
     return envObject.setLastError(napi_status.napi_invalid_arg)
   }
-  const v = handle.value as DataView
+  const v = handle as DataView
   if (byte_length) {
     from64('byte_length')
     makeSetValue('byte_length', 0, 'v.byteLength', SIZE_TYPE)
@@ -221,12 +224,12 @@ export function napi_get_date_value (env: napi_env, value: napi_value, result: P
   return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, value)
     $CHECK_ARG!(envObject, result)
-    const handle = emnapiCtx.handleFromNapiValue(value)!
-    if (!handle.isDate()) {
+    const handle = emnapiCtx.jsValueFromNapiValue(value)!
+    if (!(handle instanceof Date)) {
       return envObject.setLastError(napi_status.napi_invalid_arg)
     }
     from64('result')
-    v = (handle.value as Date).valueOf()
+    v = (handle as Date).valueOf()
     makeSetValue('result', 0, 'v', 'double')
     return envObject.getReturnStatus()
   })
@@ -239,13 +242,13 @@ export function napi_get_value_bool (env: napi_env, value: napi_value, result: P
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, value)
   $CHECK_ARG!(envObject, result)
-  const handle = emnapiCtx.handleFromNapiValue(value)!
-  if (typeof handle.value !== 'boolean') {
+  const handle = emnapiCtx.jsValueFromNapiValue(value)!
+  if (typeof handle !== 'boolean') {
     return envObject.setLastError(napi_status.napi_boolean_expected)
   }
   from64('result')
 
-  const r = handle.value ? 1 : 0
+  const r = handle ? 1 : 0
   makeSetValue('result', 0, 'r', 'i8')
   return envObject.clearLastError()
 }
@@ -257,13 +260,13 @@ export function napi_get_value_double (env: napi_env, value: napi_value, result:
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, value)
   $CHECK_ARG!(envObject, result)
-  const handle = emnapiCtx.handleFromNapiValue(value)!
-  if (typeof handle.value !== 'number') {
+  const handle = emnapiCtx.jsValueFromNapiValue(value)!
+  if (typeof handle !== 'number') {
     return envObject.setLastError(napi_status.napi_number_expected)
   }
   from64('result')
 
-  const r = handle.value
+  const r = handle
   makeSetValue('result', 0, 'r', 'double')
   return envObject.clearLastError()
 }
@@ -279,8 +282,8 @@ export function napi_get_value_bigint_int64 (env: napi_env, value: napi_value, r
   $CHECK_ARG!(envObject, value)
   $CHECK_ARG!(envObject, result)
   $CHECK_ARG!(envObject, lossless)
-  const handle = emnapiCtx.handleFromNapiValue(value)!
-  let numberValue = handle.value
+  const handle = emnapiCtx.jsValueFromNapiValue(value)!
+  let numberValue = handle
   if (typeof numberValue !== 'bigint') {
     return envObject.setLastError(napi_status.napi_number_expected)
   }
@@ -315,8 +318,8 @@ export function napi_get_value_bigint_uint64 (env: napi_env, value: napi_value, 
   $CHECK_ARG!(envObject, value)
   $CHECK_ARG!(envObject, result)
   $CHECK_ARG!(envObject, lossless)
-  const handle = emnapiCtx.handleFromNapiValue(value)!
-  let numberValue = handle.value
+  const handle = emnapiCtx.jsValueFromNapiValue(value)!
+  let numberValue = handle
   if (typeof numberValue !== 'bigint') {
     return envObject.setLastError(napi_status.napi_number_expected)
   }
@@ -353,11 +356,11 @@ export function napi_get_value_bigint_words (
   }
   $CHECK_ARG!(envObject, value)
   $CHECK_ARG!(envObject, word_count)
-  const handle = emnapiCtx.handleFromNapiValue(value)!
-  if (!handle.isBigInt()) {
+  const handle = emnapiCtx.jsValueFromNapiValue(value)!
+  if (typeof handle !== 'bigint') {
     return envObject.setLastError(napi_status.napi_bigint_expected)
   }
-  const isMinus = handle.value < BigInt(0)
+  const isMinus = handle < BigInt(0)
 
   from64('sign_bit')
   from64('words')
@@ -367,12 +370,12 @@ export function napi_get_value_bigint_words (
   from64('word_count_int')
 
   let wordCount = 0
-  let bigintValue: bigint = isMinus ? (handle.value * BigInt(-1)) : handle.value
+  let bigintValue: bigint = isMinus ? (handle * BigInt(-1)) : handle
   while (bigintValue !== BigInt(0)) {
     wordCount++
     bigintValue = bigintValue >> BigInt(64)
   }
-  bigintValue = isMinus ? (handle.value * BigInt(-1)) : handle.value
+  bigintValue = isMinus ? (handle * BigInt(-1)) : handle
   if (!sign_bit && !words) {
     word_count_int = wordCount
     makeSetValue('word_count', 0, 'word_count_int', SIZE_TYPE)
@@ -406,13 +409,13 @@ export function napi_get_value_external (env: napi_env, value: napi_value, resul
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, value)
   $CHECK_ARG!(envObject, result)
-  const handle = emnapiCtx.handleFromNapiValue(value)!
-  if (!handle.isExternal()) {
+  const handle = emnapiCtx.jsValueFromNapiValue(value)!
+  if (!emnapiCtx.isExternal(handle)) {
     return envObject.setLastError(napi_status.napi_invalid_arg)
   }
   from64('result')
 
-  const p = handle.data()
+  const p = emnapiCtx.getExternalValue(handle)
   makeSetValue('result', 0, 'p', '*')
   return envObject.clearLastError()
 }
@@ -424,13 +427,13 @@ export function napi_get_value_int32 (env: napi_env, value: napi_value, result: 
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, value)
   $CHECK_ARG!(envObject, result)
-  const handle = emnapiCtx.handleFromNapiValue(value)!
-  if (typeof handle.value !== 'number') {
+  const handle = emnapiCtx.jsValueFromNapiValue(value)!
+  if (typeof handle !== 'number') {
     return envObject.setLastError(napi_status.napi_number_expected)
   }
   from64('result')
 
-  const v = new Int32Array([handle.value])[0]
+  const v = new Int32Array([handle])[0]
   makeSetValue('result', 0, 'v', 'i32')
   return envObject.clearLastError()
 }
@@ -442,11 +445,11 @@ export function napi_get_value_int64 (env: napi_env, value: napi_value, result: 
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, value)
   $CHECK_ARG!(envObject, result)
-  const handle = emnapiCtx.handleFromNapiValue(value)!
-  if (typeof handle.value !== 'number') {
+  const handle = emnapiCtx.jsValueFromNapiValue(value)!
+  if (typeof handle !== 'number') {
     return envObject.setLastError(napi_status.napi_number_expected)
   }
-  const numberValue = handle.value
+  const numberValue = handle
   from64('result')
 
   if (numberValue === Number.POSITIVE_INFINITY || numberValue === Number.NEGATIVE_INFINITY || isNaN(numberValue)) {
@@ -475,18 +478,18 @@ export function napi_get_value_string_latin1 (env: napi_env, value: napi_value, 
   from64('buf_size')
 
   buf_size = buf_size >>> 0
-  const handle = emnapiCtx.handleFromNapiValue(value)!
-  if (typeof handle.value !== 'string') {
+  const handle = emnapiCtx.jsValueFromNapiValue(value)!
+  if (typeof handle !== 'string') {
     return envObject.setLastError(napi_status.napi_string_expected)
   }
   if (!buf) {
     if (!result) return envObject.setLastError(napi_status.napi_invalid_arg)
-    makeSetValue('result', 0, 'handle.value.length', SIZE_TYPE)
+    makeSetValue('result', 0, 'handle.length', SIZE_TYPE)
   } else if (buf_size !== 0) {
     let copied: number = 0
     let v: number
     for (let i = 0; i < buf_size - 1; ++i) {
-      v = handle.value.charCodeAt(i) & 0xff
+      v = handle.charCodeAt(i) & 0xff
       makeSetValue('buf', 'i', 'v', 'u8')
 
       copied++
@@ -512,17 +515,17 @@ export function napi_get_value_string_utf8 (env: napi_env, value: napi_value, bu
   from64('buf_size')
 
   buf_size = buf_size >>> 0
-  const handle = emnapiCtx.handleFromNapiValue(value)!
-  if (typeof handle.value !== 'string') {
+  const handle = emnapiCtx.jsValueFromNapiValue(value)!
+  if (typeof handle !== 'string') {
     return envObject.setLastError(napi_status.napi_string_expected)
   }
   if (!buf) {
     if (!result) return envObject.setLastError(napi_status.napi_invalid_arg)
 
-    const strLength = emnapiString.lengthBytesUTF8(handle.value)
+    const strLength = emnapiString.lengthBytesUTF8(handle)
     makeSetValue('result', 0, 'strLength', SIZE_TYPE)
   } else if (buf_size !== 0) {
-    const copied = emnapiString.stringToUTF8(handle.value, buf as number, buf_size)
+    const copied = emnapiString.stringToUTF8(handle, buf as number, buf_size)
     if (result) {
       makeSetValue('result', 0, 'copied', SIZE_TYPE)
     }
@@ -543,15 +546,15 @@ export function napi_get_value_string_utf16 (env: napi_env, value: napi_value, b
   from64('buf_size')
 
   buf_size = buf_size >>> 0
-  const handle = emnapiCtx.handleFromNapiValue(value)!
-  if (typeof handle.value !== 'string') {
+  const handle = emnapiCtx.jsValueFromNapiValue(value)!
+  if (typeof handle !== 'string') {
     return envObject.setLastError(napi_status.napi_string_expected)
   }
   if (!buf) {
     if (!result) return envObject.setLastError(napi_status.napi_invalid_arg)
-    makeSetValue('result', 0, 'handle.value.length', SIZE_TYPE)
+    makeSetValue('result', 0, 'handle.length', SIZE_TYPE)
   } else if (buf_size !== 0) {
-    const copied = emnapiString.stringToUTF16(handle.value, buf as number, buf_size * 2)
+    const copied = emnapiString.stringToUTF16(handle, buf as number, buf_size * 2)
     if (result) {
       makeSetValue('result', 0, 'copied / 2', SIZE_TYPE)
     }
@@ -568,13 +571,13 @@ export function napi_get_value_uint32 (env: napi_env, value: napi_value, result:
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, value)
   $CHECK_ARG!(envObject, result)
-  const handle = emnapiCtx.handleFromNapiValue(value)!
-  if (typeof handle.value !== 'number') {
+  const handle = emnapiCtx.jsValueFromNapiValue(value)!
+  if (typeof handle !== 'number') {
     return envObject.setLastError(napi_status.napi_number_expected)
   }
   from64('result')
 
-  const v = new Uint32Array([handle.value])[0]
+  const v = new Uint32Array([handle])[0]
   makeSetValue('result', 0, 'v', 'u32')
   return envObject.clearLastError()
 }

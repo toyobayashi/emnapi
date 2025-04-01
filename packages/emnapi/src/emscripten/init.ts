@@ -89,7 +89,7 @@ export function emnapiInit (options: InitOptions): any {
       const exports = emnapiModule.exports
 
       const exportsHandle = scope.add(exports)
-      const napiValue = _napi_register_wasm_v1(to64('_envObject.id'), to64('exportsHandle.id'))
+      const napiValue = _napi_register_wasm_v1(to64('_envObject.id'), to64('exportsHandle'))
       emnapiModule.exports = (!napiValue) ? exports : emnapiCtx.jsValueFromNapiValue(napiValue)!
     })
   } catch (err) {

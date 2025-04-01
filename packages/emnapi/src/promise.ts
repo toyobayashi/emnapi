@@ -51,10 +51,10 @@ export function napi_is_promise (env: napi_env, value: napi_value, is_promise: P
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, value)
   $CHECK_ARG!(envObject, is_promise)
-  const h = emnapiCtx.handleFromNapiValue(value)!
+  const promise = emnapiCtx.jsValueFromNapiValue(value)!
   from64('is_promise')
 
-  const r = h.isPromise() ? 1 : 0
+  const r = promise instanceof Promise ? 1 : 0
   makeSetValue('is_promise', 0, 'r', 'i8')
   return envObject.clearLastError()
 }
