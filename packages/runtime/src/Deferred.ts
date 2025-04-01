@@ -1,23 +1,21 @@
 import { Disposable } from './Disaposable'
-import { ArrayStore, type CountIdReuseAllocator, type StoreValue } from './Store'
+import { ArrayStore } from './Store'
 
 export interface IDeferrdValue<T = any> {
   resolve: (value: T) => void
   reject: (reason?: any) => void
 }
 
-export class DeferredStore extends ArrayStore<Deferred, CountIdReuseAllocator> {}
-
-export class Deferred<T = any> extends Disposable implements StoreValue {
-  public static create<T = any> (store: DeferredStore, value: IDeferrdValue<T>): Deferred<T> {
-    return store.alloc(Deferred<T>, store, value)
+export class Deferred<T = any> extends Disposable {
+  public static create<T = any> (store: ArrayStore<Deferred>, value: IDeferrdValue<T>): Deferred<T> {
+    return new Deferred<T>(store, value)
   }
 
   public id: number
-  public store: DeferredStore
+  public store: ArrayStore<Deferred>
   public value: IDeferrdValue<T>
 
-  public constructor (store: DeferredStore, value: IDeferrdValue<T>) {
+  public constructor (store: ArrayStore<Deferred>, value: IDeferrdValue<T>) {
     super()
     this.id = 0
     this.store = store

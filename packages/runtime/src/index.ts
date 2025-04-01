@@ -1,5 +1,5 @@
 export { createContext, getDefaultContext, Context, type CleanupHookCallbackFunction, type ContextOptions } from './Context'
-export { Deferred, type IDeferrdValue, DeferredStore } from './Deferred'
+export { Deferred, type IDeferrdValue } from './Deferred'
 export { Disposable } from './Disaposable'
 export { Env, NodeEnv, type IReferenceBinding } from './env'
 export { EmnapiError, NotSupportWeakRefError, NotSupportBufferError } from './errors'

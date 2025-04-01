@@ -1,10 +1,6 @@
 import { Disposable } from './Disaposable'
 
-export interface StoreValue extends Disposable {
-  id: number | bigint
-}
-
-export interface ReusableStoreValue extends StoreValue {
+export interface ReusableStoreValue extends Disposable {
   reuse (...args: any[]): void
 }
 
@@ -54,108 +50,63 @@ export class CountIdReuseAllocator extends CountIdAllocator implements IdAllocat
 }
 
 export interface ObjectAllocator<T> extends Disposable {
-  deref (id: number | bigint): T | undefined
-  alloc<Ctor extends new (...args: any[]) => T> (Contructor: Ctor, ...args: ConstructorParameters<Ctor>): InstanceType<Ctor>
+  deref<R extends T = T> (id: number | bigint): R | undefined
+  alloc<P extends any[]> (factory: (...args: P) => T, ...args: P): T
   dealloc (id: number | bigint): void
 }
 
-export abstract class Store<V extends StoreValue, A extends IdAllocator> extends Disposable implements ObjectAllocator<V> {
-  protected readonly _allocator: A
+export class BaseArrayStore<T> extends Disposable implements ObjectAllocator<T> {
+  protected _values: [undefined, ...(T | undefined)[]]
 
-  public constructor (allocator: A) {
+  public constructor (initialCapacity = 1) {
     super()
-    this._allocator = allocator
+    this._values = Array(initialCapacity) as [undefined, ...(T | undefined)[]]
+  }
+
+  public deref<R extends T = T> (id: number | bigint): R | undefined {
+    return this._values[id as number] as R
   }
 
   /** @virtual */
-  protected abstract _get (id: number | bigint): V | undefined
-
-  /** @virtual */
-  protected abstract _set (id: number | bigint, value: V): void
-
-  /** @virtual */
-  protected abstract _delete (id: number | bigint): boolean
-
-  /** @virtual */
-  public deref <T extends V = V> (id: number | bigint): T | undefined {
-    return this._get(id) as T
-  }
-
-  /** @virtual */
-  public alloc<Ctor extends new (...args: any[]) => V> (Contructor: Ctor, ...args: ConstructorParameters<Ctor>): InstanceType<Ctor> {
-    const value = new Contructor(...args) as InstanceType<Ctor>
-    const id = this._allocator.aquire()
-    this._set(id, value)
-    return value
+  public alloc <P extends any[]> (factory: (...args: P) => T, ...args: P): T {
+    return factory(...args)
   }
 
   /** @virtual */
   public dealloc (id: number | bigint): void {
-    if (this._delete(id)) {
-      this._allocator.release(id as number)
-    }
-  }
-}
-
-export class ArrayStore<V extends StoreValue, A extends IdAllocator> extends Store<V, A> {
-  protected _values: [undefined, ...(V | undefined)[]]
-
-  public constructor (allocator: A, initialCapacity = 1) {
-    super(allocator)
-    this._values = Array(initialCapacity) as [undefined, ...(V | undefined)[]]
-  }
-
-  /** @virtual */
-  protected _get (id: number | bigint): V | undefined {
-    return this._values[id as number]
-  }
-
-  /** @virtual */
-  protected _set (id: number | bigint, value: V): void {
-    value.id = id
-    this._values[id as number] = value
-  }
-
-  /** @virtual */
-  protected _delete (id: number | bigint): boolean {
     this._values[id as number] = undefined
-    return true
   }
 
   /** @virtual */
   public dispose (): void {
-    this._values
-      .filter((v) => v != null)
-      .forEach((v) => this.dealloc(v!.id))
+    this._values.forEach((_, i) => this.dealloc(i))
   }
 }
 
-export class ReusableArrayStore<V extends ReusableStoreValue> extends ArrayStore<V, CountIdAllocator> {
-  public constructor (initialCapacity = 1) {
-    super(new CountIdAllocator(initialCapacity), initialCapacity)
+export class ArrayStore<T extends { id: number | bigint }> extends BaseArrayStore<T> {
+  protected _allocator: IdAllocator
+
+  public constructor (initialCapacity = 4) {
+    super(initialCapacity)
+    this._allocator = new CountIdReuseAllocator(1)
   }
 
   /** @virtual */
-  protected _delete (id: number | bigint): boolean {
-    this._values[id as number]!.dispose()
-    return false
-  }
-
-  /** @virtual */
-  public override alloc<Ctor extends new (...args: any[]) => V>(Contructor: Ctor, ...args: ConstructorParameters<Ctor>): InstanceType<Ctor> {
+  public override alloc<P extends any[]> (factory: (...args: P) => T, ...args: P): T {
     const id = this._allocator.aquire()
-    let value = this._values[id as number]! as InstanceType<Ctor>
-    if (value) {
-      value.reuse(...args)
-    } else {
-      value = new Contructor(...args) as InstanceType<Ctor>
-      this._set(id, value)
+    while (id >= this._values.length) {
+      const cap = this._values.length
+      this._values.length = cap + (cap >> 1) + 16
     }
+    const value = factory(...args)
+    value.id = id
+    this._values[id as number] = value
     return value
   }
 
   /** @virtual */
   public override dealloc (id: number | bigint): void {
-    this._delete(id)
+    this._allocator.release(id as number)
+    super.dealloc(id)
   }
 }

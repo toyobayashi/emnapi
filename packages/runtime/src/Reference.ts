@@ -1,4 +1,3 @@
-import type { StoreValue } from './Store'
 import type { Env } from './env'
 import { Persistent } from './Persistent'
 import type { Handle } from './Handle'
@@ -14,7 +13,7 @@ function canBeHeldWeakly (value: Handle<any>): boolean {
   return value.isObject() || value.isFunction() || value.isSymbol()
 }
 
-export class Reference extends RefTracker implements StoreValue {
+export class Reference extends RefTracker {
   private static weakCallback (ref: Reference): void {
     ref.persistent.reset()
     ref.invokeFinalizerFromGC()
@@ -37,8 +36,7 @@ export class Reference extends RefTracker implements StoreValue {
     _unused2?: void_p,
     _unused3?: void_p
   ): Reference {
-    const ref = envObject.ctx.refStore.alloc(
-      Reference,
+    const ref = new Reference(
       envObject, handle_id, initialRefcount, ownership
     )
     ref.link(envObject.reflist)
@@ -151,8 +149,7 @@ export class ReferenceWithData extends Reference {
     ownership: ReferenceOwnership,
     data: void_p
   ): ReferenceWithData {
-    const reference = envObject.ctx.refStore.alloc(
-      ReferenceWithData,
+    const reference = new ReferenceWithData(
       envObject, value, initialRefcount, ownership, data
     )
     reference.link(envObject.reflist)
@@ -186,8 +183,7 @@ export class ReferenceWithFinalizer extends Reference {
     finalize_data: void_p,
     finalize_hint: void_p
   ): ReferenceWithFinalizer {
-    const reference = envObject.ctx.refStore.alloc(
-      ReferenceWithFinalizer,
+    const reference = new ReferenceWithFinalizer(
       envObject, value, initialRefcount, ownership, finalize_callback, finalize_data, finalize_hint
     )
     reference.link(envObject.finalizing_reflist)

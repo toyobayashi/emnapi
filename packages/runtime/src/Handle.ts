@@ -1,9 +1,9 @@
 import { Disposable } from './Disaposable'
 import { External, getExternalValue, isExternal } from './External'
-import { ReusableArrayStore, type StoreValue } from './Store'
+import { BaseArrayStore, CountIdAllocator } from './Store'
 import { Features } from './util'
 
-export class Handle<S> extends Disposable implements StoreValue {
+export class Handle<S> extends Disposable {
   public id: number | bigint
   public value: S
 
@@ -103,7 +103,7 @@ export class ConstHandle<S extends undefined | null | boolean | typeof globalThi
   public override dispose (): void {}
 }
 
-export class HandleStore extends ReusableArrayStore<Handle<any>> {
+export class HandleStore extends BaseArrayStore<Handle<any>> {
   public static UNDEFINED = new ConstHandle(undefined, GlobalHandle.UNDEFINED)
   public static NULL = new ConstHandle(null, GlobalHandle.NULL)
   public static FALSE = new ConstHandle(false, GlobalHandle.FALSE)
@@ -111,8 +111,11 @@ export class HandleStore extends ReusableArrayStore<Handle<any>> {
 
   public static MIN_ID = 6 as const
 
+  private _allocator: CountIdAllocator
+
   public constructor (features: Features) {
     super(HandleStore.MIN_ID)
+    this._allocator = new CountIdAllocator(HandleStore.MIN_ID)
 
     this._values[GlobalHandle.UNDEFINED] = HandleStore.UNDEFINED
     this._values[GlobalHandle.NULL] = HandleStore.NULL
@@ -121,15 +124,7 @@ export class HandleStore extends ReusableArrayStore<Handle<any>> {
     this._values[GlobalHandle.GLOBAL] = new ConstHandle(features.getGlobalThis(), GlobalHandle.GLOBAL)
   }
 
-  protected override _set (id: number | bigint, value: Handle<any>): void {
-    while (id >= this._values.length) {
-      const cap = this._values.length
-      this._values.length = cap + (cap >> 1) + 16
-    }
-    super._set(id, value)
-  }
-
-  /* public push<S> (value: S): Handle<S> {
+  public push<S> (value: S): Handle<S> {
     let h: Handle<S>
     const next = this._allocator.aquire()
     const values = this._values
@@ -141,12 +136,16 @@ export class HandleStore extends ReusableArrayStore<Handle<any>> {
       values[next] = h
     }
     return h
-  } */
+  }
+
+  public override dealloc (i: number | bigint): void {
+    this._values[i as number]!.dispose()
+  }
 
   public erase (start: number, end: number): void {
     this._allocator.next = start
     for (let i = start; i < end; ++i) {
-      this._delete(i)
+      this.dealloc(i)
     }
   }
 
