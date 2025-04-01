@@ -107,19 +107,21 @@ export function emnapiDefineProperty (envObject: Env, obj: object, propertyName:
   }
 }
 
-export function emnapiGetHandle (js_object: napi_value): { status: napi_status; handle?: Handle<any> } {
-  let handle = emnapiCtx.handleFromNapiValue(js_object)!
-  if (!(handle.isObject() || handle.isFunction())) {
+export function emnapiGetHandle (js_object: napi_value): { status: napi_status; value?: any } {
+  let handle = emnapiCtx.jsValueFromNapiValue(js_object)!
+  const type = typeof handle
+  if (!((type === 'object' && handle !== null) || type === 'function')) {
     return { status: napi_status.napi_invalid_arg }
   }
 
-  if (typeof emnapiExternalMemory !== 'undefined' && ArrayBuffer.isView(handle.value)) {
-    if (emnapiExternalMemory.wasmMemoryViewTable.has(handle.value)) {
-      handle = emnapiCtx.handleFromJsValue(emnapiExternalMemory.wasmMemoryViewTable.get(handle.value)!)
+  if (typeof emnapiExternalMemory !== 'undefined' && ArrayBuffer.isView(handle)) {
+    if (emnapiExternalMemory.wasmMemoryViewTable.has(handle)) {
+      handle = emnapiExternalMemory.wasmMemoryViewTable.get(handle)!
+      // handle = emnapiCtx.handleFromJsValue(emnapiExternalMemory.wasmMemoryViewTable.get(handle)!)
     }
   }
 
-  return { status: napi_status.napi_ok, handle }
+  return { status: napi_status.napi_ok, value: handle }
 }
 
 export function emnapiWrap (env: napi_env, js_object: napi_value, native_object: void_p, finalize_cb: napi_finalize, finalize_hint: void_p, result: Pointer<napi_ref>): napi_status {
@@ -139,26 +141,27 @@ export function emnapiWrap (env: napi_env, js_object: napi_value, native_object:
     if (handleResult.status !== napi_status.napi_ok) {
       return envObject.setLastError(handleResult.status)
     }
-    const handle = handleResult.handle!
+    const v = handleResult.value!
 
-    if (envObject.getObjectBinding(handle.value).wrapped !== 0) {
+    if (envObject.getObjectBinding(v).wrapped !== 0) {
       return envObject.setLastError(napi_status.napi_invalid_arg)
     }
 
+    const id = emnapiCtx.napiValueFromJsValue(v)
     let reference: Reference
     if (result) {
       if (!finalize_cb) return envObject.setLastError(napi_status.napi_invalid_arg)
-      reference = emnapiCtx.createReferenceWithFinalizer(envObject, handle.id, 0, ReferenceOwnership.kUserland as any, finalize_cb, native_object, finalize_hint)
+      reference = emnapiCtx.createReferenceWithFinalizer(envObject, id, 0, ReferenceOwnership.kUserland as any, finalize_cb, native_object, finalize_hint)
       from64('result')
       referenceId = reference.id
       makeSetValue('result', 0, 'referenceId', '*')
     } else if (finalize_cb) {
-      reference = emnapiCtx.createReferenceWithFinalizer(envObject, handle.id, 0, ReferenceOwnership.kRuntime as any, finalize_cb, native_object, finalize_hint)
+      reference = emnapiCtx.createReferenceWithFinalizer(envObject, id, 0, ReferenceOwnership.kRuntime as any, finalize_cb, native_object, finalize_hint)
     } else {
-      reference = emnapiCtx.createReferenceWithData(envObject, handle.id, 0, ReferenceOwnership.kRuntime as any, native_object)
+      reference = emnapiCtx.createReferenceWithData(envObject, id, 0, ReferenceOwnership.kRuntime as any, native_object)
     }
 
-    envObject.getObjectBinding(handle.value).wrapped = reference.id
+    envObject.getObjectBinding(v).wrapped = reference.id
     return envObject.getReturnStatus()
   })
 }
@@ -170,11 +173,12 @@ export function emnapiUnwrap (env: napi_env, js_object: napi_value, result: void
     if (action === UnwrapAction.KeepWrap) {
       if (!result) return envObject.setLastError(napi_status.napi_invalid_arg)
     }
-    const value = emnapiCtx.handleFromNapiValue(js_object)!
-    if (!(value.isObject() || value.isFunction())) {
+    const value = emnapiCtx.jsValueFromNapiValue(js_object)!
+    const type = typeof value
+    if (!((type === 'object' && value !== null) || type === 'function')) {
       return envObject.setLastError(napi_status.napi_invalid_arg)
     }
-    const binding = envObject.getObjectBinding(value.value)
+    const binding = envObject.getObjectBinding(value)
     const referenceId = binding.wrapped
     const ref = emnapiCtx.getRef(referenceId)
     if (!ref) return envObject.setLastError(napi_status.napi_invalid_arg)

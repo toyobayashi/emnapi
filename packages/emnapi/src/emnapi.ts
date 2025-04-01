@@ -198,13 +198,16 @@ export function emnapi_sync_memory (env: napi_env, js_to_wasm: bool, arraybuffer
 
     const handleId = makeGetValue('arraybuffer_or_view', 0, '*')
 
-    const handle = emnapiCtx.handleFromNapiValue<ArrayBuffer | ArrayBufferView>(handleId)!
-    if (!handle.isArrayBuffer() && !handle.isTypedArray() && !handle.isDataView()) {
+    const handle = emnapiCtx.jsValueFromNapiValue<ArrayBuffer | ArrayBufferView>(handleId)!
+    const isArrayBuffer = handle instanceof ArrayBuffer
+    const isDataView = handle instanceof DataView
+    const isTypedArray = ArrayBuffer.isView(handle) && !isDataView
+    if (!isArrayBuffer && !isTypedArray && !isDataView) {
       return envObject.setLastError(napi_status.napi_invalid_arg)
     }
-    const ret = $emnapiSyncMemory(Boolean(js_to_wasm), handle.value, offset, len)
+    const ret = $emnapiSyncMemory(Boolean(js_to_wasm), handle, offset, len)
 
-    if (handle.value !== ret) {
+    if (handle !== ret) {
       from64('arraybuffer_or_view')
       v = emnapiCtx.napiValueFromJsValue(ret)
       makeSetValue('arraybuffer_or_view', 0, 'v', '*')

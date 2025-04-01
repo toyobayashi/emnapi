@@ -108,15 +108,16 @@ export function napi_type_tag_object (env: napi_env, object: napi_value, type_ta
     if (!object) {
       return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_invalid_arg)
     }
-    const value = emnapiCtx.handleFromNapiValue(object)!
-    if (!(value.isObject() || value.isFunction())) {
+    const value = emnapiCtx.jsValueFromNapiValue(object)!
+    const type = typeof value
+    if (!((type === 'object' && value !== null) || type === 'function')) {
       return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_object_expected)
     }
     from64('type_tag')
     if (!type_tag) {
       return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_invalid_arg)
     }
-    const binding = envObject.getObjectBinding(value.value)
+    const binding = envObject.getObjectBinding(value)
     if (binding.tag !== null) {
       return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_invalid_arg)
     }
@@ -139,8 +140,9 @@ export function napi_check_object_type_tag (env: napi_env, object: napi_value, t
     if (!object) {
       return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_invalid_arg)
     }
-    const value = emnapiCtx.handleFromNapiValue(object)!
-    if (!(value.isObject() || value.isFunction())) {
+    const value = emnapiCtx.jsValueFromNapiValue(object)!
+    const type = typeof value
+    if (!((type === 'object' && value !== null) || type === 'function')) {
       return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_object_expected)
     }
     if (!type_tag) {
@@ -149,7 +151,7 @@ export function napi_check_object_type_tag (env: napi_env, object: napi_value, t
     if (!result) {
       return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_invalid_arg)
     }
-    const binding = envObject.getObjectBinding(value.value)
+    const binding = envObject.getObjectBinding(value)
     if (binding.tag !== null) {
       from64('type_tag')
       const tag = binding.tag
@@ -188,13 +190,13 @@ export function napi_add_finalizer (env: napi_env, js_object: napi_value, finali
   if (handleResult.status !== napi_status.napi_ok) {
     return envObject.setLastError(handleResult.status)
   }
-  const handle = handleResult.handle!
+  const id = emnapiCtx.napiValueFromJsValue(handleResult.value!)
 
   const ownership: ReferenceOwnership = !result ? ReferenceOwnership.kRuntime : ReferenceOwnership.kUserland
   from64('finalize_data')
   from64('finalize_cb')
   from64('finalize_hint')
-  const reference = emnapiCtx.createReferenceWithFinalizer(envObject, handle.id, 0, ownership as any, finalize_cb, finalize_data, finalize_hint)
+  const reference = emnapiCtx.createReferenceWithFinalizer(envObject, id, 0, ownership as any, finalize_cb, finalize_data, finalize_hint)
   if (result) {
     from64('result')
 

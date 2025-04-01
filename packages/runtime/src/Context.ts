@@ -1,6 +1,5 @@
 import { ScopeStore } from './ScopeStore'
 import { HandleStore } from './Handle'
-import type { Handle } from './Handle'
 import type { HandleScope, ICallbackInfo } from './HandleScope'
 import { Env, newEnv } from './env'
 import {
@@ -16,7 +15,7 @@ import { Reference, ReferenceWithData, ReferenceWithFinalizer, type ReferenceOwn
 import { type IDeferrdValue, Deferred } from './Deferred'
 import { ArrayStore } from './Store'
 import { TrackedFinalizer } from './TrackedFinalizer'
-import { External } from './External'
+import { External, isExternal, getExternalValue } from './External'
 
 export type CleanupHookCallbackFunction = number | ((arg: number) => void)
 
@@ -247,6 +246,10 @@ export class Context {
     return new External(data)
   }
 
+  public getExternalValue (external: External): number | bigint {
+    return getExternalValue(external)
+  }
+
   public getCurrentScope (): HandleScope | null {
     return this.scopeStore.currentScope
   }
@@ -262,7 +265,7 @@ export class Context {
     envObject.openHandleScopes--
   }
 
-  public handleFromNapiValue<S = any> (napiValue: number | bigint): Handle<S> | undefined {
+  /* public handleFromNapiValue<S = any> (napiValue: number | bigint): Handle<S> | undefined {
     return this.handleStore.deref<Handle<S>>(napiValue)
   }
 
@@ -275,7 +278,7 @@ export class Context {
       case _globalThis: return this.handleStore.deref(GlobalHandle.GLOBAL)! as Handle<S>
       default: return this.scopeStore.currentScope.add(value)
     }
-  }
+  } */
 
   public getEnv (env: napi_env): Env | undefined {
     return this.envStore.deref(env)
@@ -298,20 +301,24 @@ export class Context {
   }
 
   public napiValueFromJsValue (value: unknown): number | bigint {
-    return this.handleFromJsValue(value).id
+    return this.scopeStore.currentScope.add(value)
   }
 
-  public napiValueFromHandle (handle: Handle<any>): number | bigint {
-    return handle.id
+  // public napiValueFromHandle (handle: Handle<any>): number | bigint {
+  //   return handle.id
+  // }
+
+  public jsValueFromNapiValue<T = any> (napiValue: number | bigint): T | undefined {
+    return this.handleStore.deref(napiValue)
   }
 
-  public jsValueFromNapiValue<T> (napiValue: number | bigint): T | undefined {
-    return this.handleFromNapiValue<T>(napiValue)?.value
+  public isExternal (value: unknown): boolean {
+    return isExternal(value)
   }
 
-  public jsValueFromHandle<T> (handle: Handle<T>): T | undefined {
-    return handle.value
-  }
+  // public jsValueFromHandle<T> (handle: Handle<T>): T | undefined {
+  //   return handle.value
+  // }
 
   public addCleanupHook (envObject: Env, fn: CleanupHookCallbackFunction, arg: number): void {
     this.cleanupQueue.add(envObject, fn, arg)
