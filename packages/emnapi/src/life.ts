@@ -76,10 +76,10 @@ export function napi_create_reference (
   $CHECK_ARG!(envObject, value)
   $CHECK_ARG!(envObject, result)
 
-  const handle = emnapiCtx.jsValueFromNapiValue(value)!
-  const type = typeof handle
+  const jsValue = emnapiCtx.jsValueFromNapiValue(value)!
+  const type = typeof jsValue
   if (envObject.moduleApiVersion < 10) {
-    if (!((type === 'object' && handle !== null) || type === 'function' || typeof handle === 'symbol')) {
+    if (!((type === 'object' && jsValue !== null) || type === 'function' || typeof jsValue === 'symbol')) {
       return envObject.setLastError(napi_status.napi_invalid_arg)
     }
   }
@@ -152,9 +152,9 @@ export function napi_get_reference_value (
   $CHECK_ARG!(envObject, ref)
   $CHECK_ARG!(envObject, result)
   const reference = emnapiCtx.getRef(ref)!
-  const handleId = reference.get(envObject)
+  const id = reference.get(envObject)
   from64('result')
-  makeSetValue('result', 0, 'handleId', '*')
+  makeSetValue('result', 0, 'id', '*')
   return envObject.clearLastError()
 }
 

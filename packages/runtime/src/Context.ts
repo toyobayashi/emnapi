@@ -265,21 +265,6 @@ export class Context {
     envObject.openHandleScopes--
   }
 
-  /* public handleFromNapiValue<S = any> (napiValue: number | bigint): Handle<S> | undefined {
-    return this.handleStore.deref<Handle<S>>(napiValue)
-  }
-
-  public handleFromJsValue<S> (value: S): Handle<S> {
-    switch (value as any) {
-      case undefined: return HandleStore.UNDEFINED as Handle<S>
-      case null: return HandleStore.NULL as Handle<S>
-      case true: return HandleStore.TRUE as Handle<S>
-      case false: return HandleStore.FALSE as Handle<S>
-      case _globalThis: return this.handleStore.deref(GlobalHandle.GLOBAL)! as Handle<S>
-      default: return this.scopeStore.currentScope.add(value)
-    }
-  } */
-
   public getEnv (env: napi_env): Env | undefined {
     return this.envStore.deref(env)
   }
@@ -304,10 +289,6 @@ export class Context {
     return this.scopeStore.currentScope.add(value)
   }
 
-  // public napiValueFromHandle (handle: Handle<any>): number | bigint {
-  //   return handle.id
-  // }
-
   public jsValueFromNapiValue<T = any> (napiValue: number | bigint): T | undefined {
     return this.handleStore.deref(napiValue)
   }
@@ -315,10 +296,6 @@ export class Context {
   public isExternal (value: unknown): boolean {
     return isExternal(value)
   }
-
-  // public jsValueFromHandle<T> (handle: Handle<T>): T | undefined {
-  //   return handle.value
-  // }
 
   public addCleanupHook (envObject: Env, fn: CleanupHookCallbackFunction, arg: number): void {
     this.cleanupQueue.add(envObject, fn, arg)

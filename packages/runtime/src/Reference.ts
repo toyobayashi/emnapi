@@ -54,9 +54,9 @@ export class Reference extends RefTracker {
     this.envObject = envObject
     this._refcount = initialRefcount
     this._ownership = ownership
-    const handle = envObject.ctx.handleStore.deref(handle_id)!
-    this.canBeWeak = canBeHeldWeakly(handle)
-    this.persistent = new Persistent(handle)
+    const value = envObject.ctx.handleStore.deref(handle_id)!
+    this.canBeWeak = canBeHeldWeakly(value)
+    this.persistent = new Persistent(value)
     this.id = 0
     if (initialRefcount === 0) {
       this._setWeak()
