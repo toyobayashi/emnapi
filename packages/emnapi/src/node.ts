@@ -34,7 +34,7 @@ export function _emnapi_node_emit_async_destroy (async_id: double, trigger_async
 
 /* vpddp export function _emnapi_node_open_callback_scope (async_resource: napi_value, async_id: double, trigger_async_id: double, result: Pointer<int64_t>): void {
   if (!emnapiNodeBinding || !result) return
-  const resource = emnapiCtx.handleStore.get(async_resource)!.value
+  const resource = emnapiCtx.jsValueFromNapiValue(async_resource)!
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const nativeCallbackScopePointer = emnapiNodeBinding.node.openCallbackScope(resource, {
     asyncId: async_id,

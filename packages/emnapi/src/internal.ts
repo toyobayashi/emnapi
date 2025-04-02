@@ -108,20 +108,19 @@ export function emnapiDefineProperty (envObject: Env, obj: object, propertyName:
 }
 
 export function emnapiGetHandle (js_object: napi_value): { status: napi_status; value?: any } {
-  let handle = emnapiCtx.jsValueFromNapiValue(js_object)!
-  const type = typeof handle
-  if (!((type === 'object' && handle !== null) || type === 'function')) {
+  let jsValue = emnapiCtx.jsValueFromNapiValue(js_object)!
+  const type = typeof jsValue
+  if (!((type === 'object' && jsValue !== null) || type === 'function')) {
     return { status: napi_status.napi_invalid_arg }
   }
 
-  if (typeof emnapiExternalMemory !== 'undefined' && ArrayBuffer.isView(handle)) {
-    if (emnapiExternalMemory.wasmMemoryViewTable.has(handle)) {
-      handle = emnapiExternalMemory.wasmMemoryViewTable.get(handle)!
-      // handle = emnapiCtx.handleFromJsValue(emnapiExternalMemory.wasmMemoryViewTable.get(handle)!)
+  if (typeof emnapiExternalMemory !== 'undefined' && ArrayBuffer.isView(jsValue)) {
+    if (emnapiExternalMemory.wasmMemoryViewTable.has(jsValue)) {
+      jsValue = emnapiExternalMemory.wasmMemoryViewTable.get(jsValue)!
     }
   }
 
-  return { status: napi_status.napi_ok, value: handle }
+  return { status: napi_status.napi_ok, value: jsValue }
 }
 
 export function emnapiWrap (env: napi_env, js_object: napi_value, native_object: void_p, finalize_cb: napi_finalize, finalize_hint: void_p, result: Pointer<napi_ref>): napi_status {
