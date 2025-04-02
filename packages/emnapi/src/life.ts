@@ -52,13 +52,13 @@ export function napi_escape_handle (env: napi_env, scope: napi_escapable_handle_
   $CHECK_ARG!(envObject, scope)
   $CHECK_ARG!(envObject, escapee)
   $CHECK_ARG!(envObject, result)
-  const scopeObject = emnapiCtx.scopeStore.get(scope)!
+  const scopeObject = emnapiCtx.getHandleScope(scope)!
   if (!scopeObject.escapeCalled()) {
     from64('escapee')
     from64('result')
 
-    const newHandle = scopeObject.escape(escapee)
-    const value = newHandle ? newHandle.id : 0
+    const newHandle = scopeObject.escape(escapee as number)
+    const value = newHandle
     makeSetValue('result', 0, 'value', '*')
     return envObject.clearLastError()
   }
@@ -76,14 +76,15 @@ export function napi_create_reference (
   $CHECK_ARG!(envObject, value)
   $CHECK_ARG!(envObject, result)
 
-  const handle = emnapiCtx.handleStore.get(value)!
+  const jsValue = emnapiCtx.jsValueFromNapiValue(value)!
+  const type = typeof jsValue
   if (envObject.moduleApiVersion < 10) {
-    if (!(handle.isObject() || handle.isFunction() || handle.isSymbol())) {
+    if (!((type === 'object' && jsValue !== null) || type === 'function' || typeof jsValue === 'symbol')) {
       return envObject.setLastError(napi_status.napi_invalid_arg)
     }
   }
 
-  const ref = emnapiCtx.createReference(envObject, handle.id, initial_refcount >>> 0, ReferenceOwnership.kUserland as any)
+  const ref = emnapiCtx.createReference(envObject, value, initial_refcount >>> 0, ReferenceOwnership.kUserland as any)
   from64('result')
   makeSetValue('result', 0, 'ref.id', '*')
   return envObject.clearLastError()
@@ -95,9 +96,9 @@ export function napi_delete_reference (
   ref: napi_ref
 ): napi_status {
   $CHECK_ENV!(env)
-  const envObject = emnapiCtx.envStore.get(env)!
+  const envObject = emnapiCtx.getEnv(env)!
   $CHECK_ARG!(envObject, ref)
-  emnapiCtx.refStore.get(ref)!.dispose()
+  emnapiCtx.getRef(ref)!.dispose()
   return envObject.clearLastError()
 }
 
@@ -110,7 +111,7 @@ export function napi_reference_ref (
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, ref)
 
-  const count = emnapiCtx.refStore.get(ref)!.ref()
+  const count = emnapiCtx.getRef(ref)!.ref()
   if (result) {
     from64('result')
     makeSetValue('result', 0, 'count', 'u32')
@@ -126,7 +127,7 @@ export function napi_reference_unref (
 ): napi_status {
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, ref)
-  const reference = emnapiCtx.refStore.get(ref)!
+  const reference = emnapiCtx.getRef(ref)!
   const refcount = reference.refcount()
 
   if (refcount === 0) {
@@ -150,17 +151,17 @@ export function napi_get_reference_value (
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, ref)
   $CHECK_ARG!(envObject, result)
-  const reference = emnapiCtx.refStore.get(ref)!
-  const handleId = reference.get(envObject)
+  const reference = emnapiCtx.getRef(ref)!
+  const id = reference.get(envObject)
   from64('result')
-  makeSetValue('result', 0, 'handleId', '*')
+  makeSetValue('result', 0, 'id', '*')
   return envObject.clearLastError()
 }
 
 /** @__sig ippp */
 export function napi_add_env_cleanup_hook (env: napi_env, fun: number, arg: number): napi_status {
   $CHECK_ENV!(env)
-  const envObject = emnapiCtx.envStore.get(env)!
+  const envObject = emnapiCtx.getEnv(env)!
   $CHECK_ARG!(envObject, fun)
 
   from64('fun')
@@ -174,7 +175,7 @@ export function napi_add_env_cleanup_hook (env: napi_env, fun: number, arg: numb
 /** @__sig ippp */
 export function napi_remove_env_cleanup_hook (env: napi_env, fun: number, arg: number): napi_status {
   $CHECK_ENV!(env)
-  const envObject = emnapiCtx.envStore.get(env)!
+  const envObject = emnapiCtx.getEnv(env)!
   $CHECK_ARG!(envObject, fun)
 
   from64('fun')
@@ -187,12 +188,12 @@ export function napi_remove_env_cleanup_hook (env: napi_env, fun: number, arg: n
 
 /** @__sig vp */
 export function _emnapi_env_ref (env: napi_env): void {
-  const envObject = emnapiCtx.envStore.get(env)!
+  const envObject = emnapiCtx.getEnv(env)!
   envObject.ref()
 }
 
 /** @__sig vp */
 export function _emnapi_env_unref (env: napi_env): void {
-  const envObject = emnapiCtx.envStore.get(env)!
+  const envObject = emnapiCtx.getEnv(env)!
   envObject.unref()
 }
