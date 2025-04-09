@@ -91,16 +91,20 @@ export class ArrayStore<T extends { id: number | bigint }> extends BaseArrayStor
     this._allocator = new CountIdReuseAllocator(1)
   }
 
-  /** @virtual */
-  public override alloc<P extends any[]> (factory: (...args: P) => T, ...args: P): T {
+  public insert (value: T): void {
     const id = this._allocator.aquire()
     while (id >= this._values.length) {
       const cap = this._values.length
       this._values.length = cap + (cap >> 1) + 16
     }
-    const value = factory(...args)
     value.id = id
     this._values[id as number] = value
+  }
+
+  /** @virtual */
+  public override alloc<P extends any[]> (factory: (...args: P) => T, ...args: P): T {
+    const value = factory(...args)
+    this.insert(value)
     return value
   }
 

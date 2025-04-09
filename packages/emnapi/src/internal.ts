@@ -11,63 +11,29 @@ export function emnapiCreateFunction<F extends (...args: any[]) => any> (envObje
 
   const functionName = (!utf8name || !length) ? '' : (emnapiString.UTF8ToString(utf8name as number, length))
 
-  let f: F
-  const napiCallback = makeDynCall('ppp', 'cb')
-  const callback = (envObject: Env) => {
-    return napiCallback(envObject.id, envObject.ctx.getCurrentScope()!.id)
-  }
+  let dynamicExecution: boolean
 
-  const makeFunction = (envObject: Env, callback: (env: Env) => any) => function (this: any, ...args: any[]): any {
-    const scope = envObject.ctx.openScope(envObject)
-    const callbackInfo = scope.callbackInfo
-    callbackInfo.data = data
-    callbackInfo.args = args
-    callbackInfo.thiz = this
-    callbackInfo.fn = f
-    try {
-      const napiValue = envObject.callIntoModule(callback)
-      return (!napiValue) ? undefined : envObject.ctx.jsValueFromNapiValue(napiValue)!
-    } finally {
-      callbackInfo.data = 0
-      callbackInfo.args = undefined!
-      callbackInfo.thiz = undefined
-      callbackInfo.fn = undefined!
-      envObject.ctx.closeScope(envObject, scope)
+// #if DYNAMIC_EXECUTION == 0
+  dynamicExecution = false
+// #else
+  dynamicExecution = true
+// #endif
+
+  if (!functionName) {
+    return {
+      status: napi_status.napi_ok,
+      f: emnapiCtx.createFunction(envObject, makeDynCall('ppp', 'cb'), data, functionName, dynamicExecution) as F
     }
-  }
-
-  if (functionName === '') {
-    f = makeFunction(envObject, callback) as F
-    return { status: napi_status.napi_ok, f }
   }
 
   if (!(/^[_$a-zA-Z][_$a-zA-Z0-9]*$/.test(functionName))) {
     return { status: napi_status.napi_invalid_arg, f: undefined! }
   }
 
-// #if DYNAMIC_EXECUTION
-    if (emnapiCtx.features.makeDynamicFunction) {
-      const _ = makeFunction(envObject, callback)
-      try {
-        f = (emnapiCtx.features.makeDynamicFunction('_',
-          'return function ' + functionName + '(){' +
-            '"use strict";' +
-            'return _.apply(this,arguments);' +
-          '};'
-        ))(_)
-      } catch (_err) {
-        f = makeFunction(envObject, callback) as F
-        if (emnapiCtx.features.setFunctionName) emnapiCtx.features.setFunctionName(f, functionName)
-      }
-    } else {
-      f = makeFunction(envObject, callback) as F
-      if (emnapiCtx.features.setFunctionName) emnapiCtx.features.setFunctionName(f, functionName)
-    }
-// #else
-    f = makeFunction(envObject, callback) as F
-    if (emnapiCtx.features.setFunctionName) emnapiCtx.features.setFunctionName(f, functionName)
-// #endif
-  return { status: napi_status.napi_ok, f }
+  return {
+    status: napi_status.napi_ok,
+    f: emnapiCtx.createFunction(envObject, makeDynCall('ppp', 'cb'), data, functionName, dynamicExecution) as F
+  }
 }
 
 export function emnapiDefineProperty (envObject: Env, obj: object, propertyName: string | symbol, method: napi_callback, getter: napi_callback, setter: napi_callback, value: napi_value, attributes: number, data: void_p): void {

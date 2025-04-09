@@ -2,6 +2,7 @@ import type { Env } from './env'
 import { Persistent } from './Persistent'
 import { RefTracker } from './RefTracker'
 import { Finalizer } from './Finalizer'
+import type { ArrayStore } from './Store'
 
 export enum ReferenceOwnership {
   kRuntime,
@@ -22,6 +23,7 @@ export class Reference extends RefTracker {
 
   public id: number
   public envObject!: Env
+  private store: ArrayStore<Reference>
 
   private readonly canBeWeak!: boolean
   private _refcount: number
@@ -29,6 +31,7 @@ export class Reference extends RefTracker {
   public persistent!: Persistent<object>
 
   public static create (
+    store: ArrayStore<Reference>,
     envObject: Env,
     handle_id: napi_value,
     initialRefcount: uint32_t,
@@ -38,13 +41,14 @@ export class Reference extends RefTracker {
     _unused3?: void_p
   ): Reference {
     const ref = new Reference(
-      envObject, handle_id, initialRefcount, ownership
+      store, envObject, handle_id, initialRefcount, ownership
     )
     ref.link(envObject.reflist)
     return ref
   }
 
   public constructor (
+    store: ArrayStore<Reference>,
     envObject: Env,
     handle_id: napi_value,
     initialRefcount: uint32_t,
@@ -54,10 +58,12 @@ export class Reference extends RefTracker {
     this.envObject = envObject
     this._refcount = initialRefcount
     this._ownership = ownership
-    const value = envObject.ctx.handleStore.deref(handle_id)!
+    const value = envObject.ctx.jsValueFromNapiValue(handle_id)!
     this.canBeWeak = canBeHeldWeakly(value)
     this.persistent = new Persistent(value)
     this.id = 0
+    this.store = store
+    store.insert(this)
     if (initialRefcount === 0) {
       this._setWeak()
     }
@@ -134,7 +140,7 @@ export class Reference extends RefTracker {
     if (this.id === 0) return
     this.unlink()
     this.persistent.reset()
-    this.envObject.ctx.refStore.dealloc(this.id)
+    this.store.dealloc(this.id)
     super.dispose()
     this.envObject = undefined!
     this.id = 0
@@ -143,6 +149,7 @@ export class Reference extends RefTracker {
 
 export class ReferenceWithData extends Reference {
   public static override create (
+    store: ArrayStore<Reference>,
     envObject: Env,
     value: napi_value,
     initialRefcount: uint32_t,
@@ -150,20 +157,21 @@ export class ReferenceWithData extends Reference {
     data: void_p
   ): ReferenceWithData {
     const reference = new ReferenceWithData(
-      envObject, value, initialRefcount, ownership, data
+      store, envObject, value, initialRefcount, ownership, data
     )
     reference.link(envObject.reflist)
     return reference
   }
 
   public constructor (
+    store: ArrayStore<Reference>,
     envObject: Env,
     value: napi_value,
     initialRefcount: uint32_t,
     ownership: ReferenceOwnership,
     private readonly _data: void_p
   ) {
-    super(envObject, value, initialRefcount, ownership)
+    super(store, envObject, value, initialRefcount, ownership)
   }
 
   public data (): void_p {
@@ -175,6 +183,7 @@ export class ReferenceWithFinalizer extends Reference {
   private _finalizer: Finalizer
 
   public static override create (
+    store: ArrayStore<Reference>,
     envObject: Env,
     value: napi_value,
     initialRefcount: uint32_t,
@@ -184,13 +193,14 @@ export class ReferenceWithFinalizer extends Reference {
     finalize_hint: void_p
   ): ReferenceWithFinalizer {
     const reference = new ReferenceWithFinalizer(
-      envObject, value, initialRefcount, ownership, finalize_callback, finalize_data, finalize_hint
+      store, envObject, value, initialRefcount, ownership, finalize_callback, finalize_data, finalize_hint
     )
     reference.link(envObject.finalizing_reflist)
     return reference
   }
 
   public constructor (
+    store: ArrayStore<Reference>,
     envObject: Env,
     value: napi_value,
     initialRefcount: uint32_t,
@@ -199,7 +209,7 @@ export class ReferenceWithFinalizer extends Reference {
     finalize_data: void_p,
     finalize_hint: void_p
   ) {
-    super(envObject, value, initialRefcount, ownership)
+    super(store, envObject, value, initialRefcount, ownership)
     this._finalizer = new Finalizer(envObject, finalize_callback, finalize_data, finalize_hint)
   }
 

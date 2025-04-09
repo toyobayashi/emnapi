@@ -20,6 +20,7 @@ export class Deferred<T = any> extends Disposable {
     this.id = 0
     this.store = store
     this.value = value
+    store.insert(this)
   }
 
   public resolve (value: T): void {

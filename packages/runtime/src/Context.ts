@@ -1,7 +1,7 @@
 import { ScopeStore } from './ScopeStore'
 import { HandleStore } from './Handle'
 import type { HandleScope, ICallbackInfo } from './HandleScope'
-import { Env, newEnv } from './env'
+import { Env, NodeEnv } from './env'
 import {
   version,
   NODE_API_SUPPORTED_VERSION_MAX,
@@ -18,6 +18,29 @@ import { TrackedFinalizer } from './TrackedFinalizer'
 import { External, isExternal, getExternalValue } from './External'
 
 export type CleanupHookCallbackFunction = number | ((arg: number) => void)
+
+const callbackWrapper = (envObject: Env, callback: (env: Env) => napi_value) => {
+  const napiValue = envObject.callIntoModule(callback)
+  return (!napiValue) ? undefined : envObject.ctx.jsValueFromNapiValue(napiValue)!
+}
+
+const withScope = (envObject: Env, thiz: any, args: any[], data: number | bigint, getFunction: () => Function, wrapper: (envObject: Env, callback: (env: Env) => napi_value) => any, callback: (env: Env) => napi_value) => {
+  const scope = envObject.ctx.openScope(envObject)
+  const callbackInfo = scope.callbackInfo
+  callbackInfo.data = data
+  callbackInfo.args = args
+  callbackInfo.thiz = thiz
+  callbackInfo.fn = getFunction
+  try {
+    return wrapper(envObject, callback)
+  } finally {
+    callbackInfo.data = 0
+    callbackInfo.args = undefined!
+    callbackInfo.thiz = undefined
+    callbackInfo.fn = undefined!
+    envObject.ctx.closeScope(envObject, scope)
+  }
+}
 
 class CleanupHookCallback {
   constructor (
@@ -113,16 +136,16 @@ export class Context {
   private _canCallIntoJs = true
   private _suppressDestroy = false
 
-  public envStore = new ArrayStore<Env>()
+  private envStore = new ArrayStore<Env>()
   private scopeStore = new ScopeStore()
-  public refStore = new ArrayStore<Reference>()
+  private refStore = new ArrayStore<Reference>()
   private deferredStore = new ArrayStore<Deferred>()
   private readonly refCounter?: NodejsWaitingRequestCounter
   private readonly cleanupQueue: CleanupQueue
 
   public readonly features: Features = detectFeatures()
 
-  public handleStore: HandleStore
+  private handleStore: HandleStore
 
   public constructor (options?: ContextOptions) {
     this.features = detectFeatures(options?.features)
@@ -174,7 +197,8 @@ export class Context {
     initialRefcount: uint32_t,
     ownership: ReferenceOwnership
   ): Reference {
-    return this.refStore.alloc(Reference.create,
+    return Reference.create(
+      this.refStore,
       envObject,
       handle_id,
       initialRefcount,
@@ -189,7 +213,8 @@ export class Context {
     ownership: ReferenceOwnership,
     data: void_p
   ): Reference {
-    return this.refStore.alloc(ReferenceWithData.create,
+    return ReferenceWithData.create(
+      this.refStore,
       envObject,
       handle_id,
       initialRefcount,
@@ -207,7 +232,8 @@ export class Context {
     finalize_data: void_p = 0,
     finalize_hint: void_p = 0
   ): Reference {
-    return this.refStore.alloc(ReferenceWithFinalizer.create,
+    return ReferenceWithFinalizer.create(
+      this.refStore,
       envObject,
       handle_id,
       initialRefcount,
@@ -219,7 +245,7 @@ export class Context {
   }
 
   public createDeferred<T = any> (value: IDeferrdValue<T>): Deferred<T> {
-    return this.deferredStore.alloc(Deferred.create<T>, this.deferredStore, value)
+    return new Deferred(this.deferredStore, value)
   }
 
   public createEnv (
@@ -230,7 +256,77 @@ export class Context {
     abort: (msg?: string) => never,
     nodeBinding?: any
   ): Env {
-    return this.envStore.alloc(newEnv, this, filename, moduleApiVersion, makeDynCall_vppp, makeDynCall_vp, abort, nodeBinding)
+    moduleApiVersion = typeof moduleApiVersion !== 'number' ? NODE_API_DEFAULT_MODULE_API_VERSION : moduleApiVersion
+    // Validate module_api_version.
+    if (moduleApiVersion < NODE_API_DEFAULT_MODULE_API_VERSION) {
+      moduleApiVersion = NODE_API_DEFAULT_MODULE_API_VERSION
+    } else if (moduleApiVersion > NODE_API_SUPPORTED_VERSION_MAX && moduleApiVersion !== NAPI_VERSION_EXPERIMENTAL) {
+      const errorMessage = `${
+        filename} requires Node-API version ${
+          moduleApiVersion}, but this version of Node.js only supports version ${
+            NODE_API_SUPPORTED_VERSION_MAX} add-ons.`
+      throw new Error(errorMessage)
+    }
+    const env = new NodeEnv(
+      this,
+      this.envStore,
+      filename,
+      moduleApiVersion,
+      makeDynCall_vppp,
+      makeDynCall_vp,
+      abort,
+      nodeBinding
+    )
+    this.addCleanupHook(env, () => { env.unref() }, 0)
+    return env
+  }
+
+  public createFunction (
+    envObject: Env,
+    napiCallback: (env: napi_env, info: napi_callback_info) => void_p,
+    data: number | bigint,
+    name: string,
+    dynamicExecution: boolean
+  ) {
+    if (envObject.ctx !== this) {
+      throw new Error(`The napi_env (${envObject.id}) is not created by this context`)
+    }
+
+    const callback = (envObject: Env) => {
+      return napiCallback(envObject.id, envObject.ctx.getCurrentScope()!.id)
+    }
+
+    let _: Function
+
+    // @ts-expect-error
+    const staticFunctionWrapper = (withScope, envObject, data, callbackWrapper, callback) => {
+      return function (this: any, ...args: any[]) {
+        return withScope(envObject, this, args, data, _, callbackWrapper, callback)
+      }
+    }
+
+    let functionWrapper: Function
+
+    if (name && dynamicExecution && this.features.makeDynamicFunction) {
+      try {
+        functionWrapper = this.features.makeDynamicFunction('withScope', 'envObject', 'data', 'callbackWrapper', 'callback',
+          'return function ' + name + '(...args){' +
+            'return withScope(envObject,this,args,data,' + name + ',callbackWrapper,callback)' +
+          '};'
+        )
+      } catch (_) {
+        functionWrapper = staticFunctionWrapper
+      }
+    } else {
+      functionWrapper = staticFunctionWrapper
+    }
+
+    _ = functionWrapper(withScope, envObject, data, callbackWrapper, callback)
+    if (functionWrapper === staticFunctionWrapper && this.features.setFunctionName && name) {
+      this.features.setFunctionName(_, name)
+    }
+
+    return _
   }
 
   public createTrackedFinalizer (
