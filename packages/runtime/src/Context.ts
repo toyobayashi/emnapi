@@ -92,7 +92,9 @@ class NodejsWaitingRequestCounter {
 
   public increase (): void {
     if (this.count === 0) {
-      this.refHandle.ref()
+      if (this.refHandle.ref) {
+        this.refHandle.ref()
+      }
     }
     this.count++
   }
@@ -100,7 +102,9 @@ class NodejsWaitingRequestCounter {
   public decrease (): void {
     if (this.count === 0) return
     if (this.count === 1) {
-      this.refHandle.unref()
+      if (this.refHandle.unref) {
+        this.refHandle.unref()
+      }
     }
     this.count--
   }
