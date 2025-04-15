@@ -734,11 +734,8 @@ class Transform {
             ),
             undefined,
             [factory.createPropertyAccessExpression(
-              factory.createPropertyAccessExpression(
-                factory.createIdentifier(heap),
-                factory.createIdentifier('buffer')
-              ),
-              factory.createIdentifier('constructor')
+              factory.createIdentifier(heap),
+              factory.createIdentifier('buffer')
             )]
           ),
           factory.createToken(ts.SyntaxKind.EqualsEqualsEqualsToken),
