@@ -69,7 +69,7 @@ export function deserizeErrorFromBuffer (sab: SharedArrayBuffer): Error | null {
 export function isSharedArrayBuffer (value: any): value is SharedArrayBuffer {
   return (
     (typeof SharedArrayBuffer === 'function' && value instanceof SharedArrayBuffer) ||
-    (Object.prototype.toString.call(value.constructor) === '[object SharedArrayBuffer]')
+    (Object.prototype.toString.call(value) === '[object SharedArrayBuffer]')
   )
 }
 
