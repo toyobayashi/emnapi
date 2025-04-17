@@ -6,7 +6,7 @@ export interface AsyncWork {
   resource: object
   asyncId: number
   triggerAsyncId: number
-  env: number
+  env: napi_env
   data: number
   execute: number
   complete: number
@@ -91,7 +91,7 @@ export var emnapiAWST = {
     const data = work.data
     const callback = (): void => {
       if (!complete) return
-      const envObject = emnapiCtx.envStore.get(env)!
+      const envObject = emnapiCtx.getEnv(env)!
       const scope = emnapiCtx.openScope(envObject)
       try {
         (envObject as NodeEnv).callbackIntoModule(true, () => {
@@ -126,12 +126,12 @@ export var emnapiAWST = {
       const data = work.data
       const execute = work.execute
       work.status = 2
-      emnapiCtx.feature.setImmediate(() => {
+      emnapiCtx.features.setImmediate(() => {
         makeDynCall('vpp', 'execute')(env, data)
         emnapiAWST.queued.delete(id)
         work.status = 3
 
-        emnapiCtx.feature.setImmediate(() => {
+        emnapiCtx.features.setImmediate(() => {
           emnapiAWST.callComplete(work, napi_status.napi_ok)
         })
 
@@ -152,7 +152,7 @@ export var emnapiAWST = {
         work.status = 4
         emnapiAWST.pending.splice(index, 1)
 
-        emnapiCtx.feature.setImmediate(() => {
+        emnapiCtx.features.setImmediate(() => {
           emnapiAWST.callComplete(work, napi_status.napi_cancelled)
         })
 

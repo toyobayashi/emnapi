@@ -1,11 +1,11 @@
 import { _free, wasmMemory, _malloc } from 'emscripten:runtime'
 import { emnapiCtx } from 'emnapi:shared'
-import { to64 } from 'emscripten:parse-tools'
+import { from64, to64 } from 'emscripten:parse-tools'
 
 export type ViewConstuctor = new (...args: any[]) => ArrayBufferView
 
 export interface ArrayBufferPointer {
-  address: void_p
+  address: number
   ownership: ReferenceOwnership
   runtimeAllocated: 0 | 1
 }
@@ -90,16 +90,17 @@ export const emnapiExternalMemory: {
       return info
     }
 
-    const pointer = _malloc(to64('arrayBuffer.byteLength'))
+    let pointer = _malloc(to64('arrayBuffer.byteLength'))
     if (!pointer) throw new Error('Out of memory')
-    new Uint8Array(wasmMemory.buffer).set(new Uint8Array(arrayBuffer), pointer)
+    from64('pointer')
+    new Uint8Array(wasmMemory.buffer).set(new Uint8Array(arrayBuffer), pointer as number)
 
-    info.address = pointer
+    info.address = pointer as number
     info.ownership = emnapiExternalMemory.registry ? ReferenceOwnership.kRuntime : ReferenceOwnership.kUserland
     info.runtimeAllocated = 1
 
     emnapiExternalMemory.table.set(arrayBuffer, info)
-    emnapiExternalMemory.registry?.register(arrayBuffer, pointer)
+    emnapiExternalMemory.registry?.register(arrayBuffer, pointer as number)
     return info
   },
 
@@ -123,7 +124,7 @@ export const emnapiExternalMemory: {
       const info = emnapiExternalMemory.wasmMemoryViewTable.get(view)!
       const Ctor = info.Ctor
       let newView: ArrayBufferView
-      const Buffer = emnapiCtx.feature.Buffer
+      const Buffer = emnapiCtx.features.Buffer
       if (typeof Buffer === 'function' && Ctor === Buffer) {
         newView = Buffer.from(wasmMemory.buffer, info.address, info.length)
       } else {

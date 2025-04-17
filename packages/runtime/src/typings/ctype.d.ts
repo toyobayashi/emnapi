@@ -1,5 +1,5 @@
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-declare type Pointer<T> = number
+declare type Pointer<T> = number | bigint
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 declare type PointerPointer<T> = number
 declare type FunctionPointer<T extends (...args: any[]) => any> = Pointer<T>
@@ -13,8 +13,10 @@ declare type char_p = Pointer<char>
 declare type unsigned_char = number
 declare type const_char = Const<char>
 declare type const_char_p = Pointer<const_char>
-declare type char16_t_p = number
-declare type const_char16_t_p = number
+declare type char16_t = number
+declare type const_char16_t = number
+declare type char16_t_p = Pointer<char16_t>
+declare type const_char16_t_p = Pointer<const_char16_t>
 
 declare type short = number
 declare type unsigned_short = number

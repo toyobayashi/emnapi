@@ -1,65 +1,116 @@
-export interface IStoreValue {
-  id: number
-  dispose (): void
-  [x: string]: any
+import { Disposable } from './Disaposable'
+
+export interface ReusableStoreValue extends Disposable {
+  reuse (...args: any[]): void
 }
 
-export interface IReusableStoreValue extends IStoreValue {
-  init (...args: any[]): void
+export interface IdAllocator extends Disposable {
+  aquire (): number
+  release (id: number): void
 }
 
-export class Store<V extends IStoreValue> {
-  protected _values: Array<V | undefined>
-  private _freeList: number[]
-  private _size: number
+export class CountIdAllocator extends Disposable implements IdAllocator {
+  public next: number
 
-  public constructor () {
-    this._values = [undefined]
-    this._values.length = 4
-    this._size = 1
-    this._freeList = []
+  public constructor (initialNext = 1) {
+    super()
+    this.next = initialNext
   }
 
-  public add (value: V): void {
-    let id: number
+  /** @virtual */
+  public aquire (): number {
+    return this.next++
+  }
+
+  /** @virtual */
+  public release (_: number): void {}
+
+  /** @virtual */
+  public dispose (): void {}
+}
+
+export class CountIdReuseAllocator extends CountIdAllocator implements IdAllocator {
+  private _freeList: number[] = []
+
+  public override aquire (): number {
     if (this._freeList.length) {
-      id = this._freeList.shift()!
-    } else {
-      id = this._size
-      this._size++
-      const capacity = this._values.length
-      if (id >= capacity) {
-        this._values.length = capacity + (capacity >> 1) + 16
-      }
+      return this._freeList.shift()!
+    }
+    return super.aquire()
+  }
+
+  public override release (id: number): void {
+    this._freeList.push(id)
+  }
+
+  public override dispose (): void {
+    this._freeList.length = 0
+    super.dispose()
+  }
+}
+
+export interface ObjectAllocator<T> extends Disposable {
+  deref<R extends T = T> (id: number | bigint): R | undefined
+  alloc<P extends any[]> (factory: (...args: P) => T, ...args: P): T
+  dealloc (id: number | bigint): void
+}
+
+export class BaseArrayStore<T> extends Disposable implements ObjectAllocator<T> {
+  protected _values: [undefined, ...(T | undefined)[]]
+
+  public constructor (initialCapacity = 1) {
+    super()
+    this._values = Array(initialCapacity) as [undefined, ...(T | undefined)[]]
+  }
+
+  public deref<R extends T = T> (id: number | bigint): R | undefined {
+    return this._values[id as number] as R
+  }
+
+  /** @virtual */
+  public alloc <P extends any[]> (factory: (...args: P) => T, ...args: P): T {
+    return factory(...args)
+  }
+
+  /** @virtual */
+  public dealloc (id: number | bigint): void {
+    this._values[id as number] = undefined
+  }
+
+  /** @virtual */
+  public dispose (): void {
+    this._values.forEach((_, i) => this.dealloc(i))
+  }
+}
+
+export class ArrayStore<T extends { id: number | bigint }> extends BaseArrayStore<T> {
+  protected _allocator: IdAllocator
+
+  public constructor (initialCapacity = 4) {
+    super(initialCapacity)
+    this._allocator = new CountIdReuseAllocator(1)
+  }
+
+  public insert (value: T): void {
+    const id = this._allocator.aquire()
+    while (id >= this._values.length) {
+      const cap = this._values.length
+      this._values.length = cap + (cap >> 1) + 16
     }
     value.id = id
-    this._values[id] = value
+    this._values[id as number] = value
   }
 
-  public get (id: Ptr): V | undefined {
-    return this._values[id as any]
+  /** @virtual */
+  public override alloc<P extends any[]> (factory: (...args: P) => T, ...args: P): T {
+    const value = factory(...args)
+    this.insert(value)
+    return value
   }
 
-  public has (id: Ptr): boolean {
-    return this._values[id as any] !== undefined
-  }
-
-  public remove (id: Ptr): void {
-    const value = this._values[id as any]
-    if (value) {
-      value.id = 0
-      this._values[id as any] = undefined
-      this._freeList.push(Number(id))
-    }
-  }
-
-  public dispose (): void {
-    for (let i = 1; i < this._size; ++i) {
-      const value = this._values[i]
-      value?.dispose()
-    }
-    this._values = [undefined]
-    this._size = 1
-    this._freeList = []
+  /** @virtual */
+  public override dealloc (id: number | bigint): void {
+    this._allocator.release(id as number)
+    super.dealloc(id)
   }
 }
