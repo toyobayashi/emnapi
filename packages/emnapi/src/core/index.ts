@@ -54,7 +54,7 @@ function addImports (mod: any): void {
 
     if (k.indexOf('emnapi_') === 0) {
       napiModule.imports.emnapi[k] = mod[k]
-    } else if (k.indexOf('_emnapi_') === 0 || k === 'napi_set_last_error' || k === 'napi_clear_last_error') {
+    } else if (k.indexOf('_emnapi_') === 0 || k.indexOf('_v8_') === 0 || k === 'napi_set_last_error' || k === 'napi_clear_last_error') {
       napiModule.imports.env[k] = mod[k]
     } else {
       napiModule.imports.napi[k] = mod[k]

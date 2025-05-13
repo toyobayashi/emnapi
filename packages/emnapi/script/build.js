@@ -16,6 +16,7 @@ async function build () {
   const libTsconfig = JSON.parse(fs.readFileSync(libTsconfigPath, 'utf8'))
 
   const libOut = path.join(path.dirname(libTsconfigPath), './dist/library_napi.js')
+  const libOutV8 = path.join(path.dirname(libTsconfigPath), './dist/library_v8.js')
   const runtimeRequire = createRequire(path.join(__dirname, '../../runtime/index.js'))
 
   const runtimeModuleSpecifier = 'emscripten:runtime'
@@ -60,6 +61,49 @@ async function build () {
   })
   await emnapiRollupBuild.write({
     file: libOut,
+    format: 'esm',
+    exports: 'named',
+    strict: false
+  })
+
+  const v8RollupBuild = await rollup({
+    input: path.join(__dirname, '../src/emscripten/index-v8.ts'),
+    treeshake: false,
+    plugins: [
+      rollupTypescript({
+        tsconfig: libTsconfigPath,
+        tslib: path.join(
+          path.dirname(runtimeRequire.resolve('tslib')),
+          JSON.parse(fs.readFileSync(path.join(path.dirname(runtimeRequire.resolve('tslib')), 'package.json'))).module
+        ),
+        compilerOptions: {
+          module: ts.ModuleKind.ESNext
+        },
+        include: libTsconfig.include.map(s => path.join(__dirname, '..', s)),
+        transformers: {
+          before: [
+            {
+              type: 'program',
+              factory: require('@emnapi/ts-transform-macro').createTransformerFactory
+            }
+          ]
+        }
+      }),
+      rollupAlias({
+        entries: [
+          { find: sharedModuleSpecifier, replacement: path.join(__dirname, '../src/emscripten/init.ts') }
+        ]
+      }),
+      require('@emnapi/rollup-plugin-emscripten-esm-library').plugin({
+        defaultLibraryFuncsToInclude: ['$emnapiInit'],
+        exportedRuntimeMethods: ['emnapiInit'],
+        runtimeModuleSpecifier,
+        parseToolsModuleSpecifier
+      })
+    ]
+  })
+  await v8RollupBuild.write({
+    file: libOutV8,
     format: 'esm',
     exports: 'named',
     strict: false

@@ -351,14 +351,22 @@ export class Context {
   }
 
   public openScope (envObject: Env): HandleScope {
-    const scope = this.scopeStore.openScope(this.handleStore)
+    const scope = this.openScopeRaw()
     envObject.openHandleScopes++
     return scope
   }
 
-  public closeScope (envObject: Env, _scope?: HandleScope): void {
-    this.scopeStore.closeScope()
+  public openScopeRaw (): HandleScope {
+    return this.scopeStore.openScope(this.handleStore)
+  }
+
+  public closeScope (envObject: Env, scope?: HandleScope): void {
+    this.closeScopeRaw(scope)
     envObject.openHandleScopes--
+  }
+
+  public closeScopeRaw (_scope?: HandleScope): void {
+    this.scopeStore.closeScope()
   }
 
   public getEnv (env: napi_env): Env | undefined {

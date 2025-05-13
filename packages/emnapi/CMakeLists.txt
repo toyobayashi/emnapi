@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.13)
 
-project(emnapi LANGUAGES C ASM)
+project(emnapi LANGUAGES C CXX ASM)
 
 option(EMNAPI_INSTALL_SRC "EMNAPI_INSTALL_SRC" OFF)
 option(EMNAPI_FIND_NODE_ADDON_API "EMNAPI_FIND_NODE_ADDON_API" OFF)
@@ -29,6 +29,10 @@ else()
   set(IS_WASM32_WASIP1_THREADS OFF)
 endif()
 
+set(V8_SRC
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/v8/v8.cc"
+)
+
 set(UV_SRC
   "${CMAKE_CURRENT_SOURCE_DIR}/src/uv/uv-common.c"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/uv/threadpool.c"
@@ -55,6 +59,7 @@ set(EMNAPI_INCLUDE "${CMAKE_CURRENT_SOURCE_DIR}/include/node")
 set(EMNAPI_DEFINES "BUILDING_NODE_EXTENSION")
 
 set(EMNAPI_JS_LIB "${CMAKE_CURRENT_SOURCE_DIR}/dist/library_napi.js")
+set(V8_JS_LIB "${CMAKE_CURRENT_SOURCE_DIR}/dist/library_v8.js")
 
 if(IS_EMSCRIPTEN)
   set(EMNAPI_MT_CFLAGS "-pthread" "-sWASM_WORKERS=1")
@@ -74,6 +79,8 @@ set(DLMALLOC_TARGET_NAME "dlmalloc")
 set(DLMALLOC_MT_TARGET_NAME "dlmalloc-mt")
 set(EMMALLOC_TARGET_NAME "emmalloc")
 set(EMMALLOC_MT_TARGET_NAME "emmalloc-mt")
+set(V8_TARGET_NAME "v8")
+set(V8_MT_TARGET_NAME "v8-mt")
 
 if(EMNAPI_FIND_NODE_ADDON_API)
   execute_process(
@@ -124,6 +131,14 @@ if(IS_WASM32)
   target_compile_options(${EMMALLOC_MT_TARGET_NAME} PRIVATE "-fno-strict-aliasing")
   target_compile_options(${EMMALLOC_MT_TARGET_NAME} PUBLIC "-matomics" "-mbulk-memory")
   target_compile_definitions(${EMMALLOC_MT_TARGET_NAME} PRIVATE "PAGESIZE=65536" "__EMSCRIPTEN_SHARED_MEMORY__=1")
+endif()
+
+add_library(${V8_TARGET_NAME} STATIC ${V8_SRC})
+target_include_directories(${V8_TARGET_NAME} PUBLIC ${EMNAPI_INCLUDE})
+target_compile_definitions(${V8_TARGET_NAME} PUBLIC ${EMNAPI_DEFINES})
+if(IS_EMSCRIPTEN)
+  set_target_properties(${V8_TARGET_NAME} PROPERTIES INTERFACE_LINK_DEPENDS ${EMNAPI_JS_LIB})
+  target_link_options(${V8_TARGET_NAME} INTERFACE "--js-library=${EMNAPI_JS_LIB}" "--js-library=${V8_JS_LIB}")
 endif()
 
 if(NAPI_VERSION)
@@ -200,6 +215,18 @@ if(EMNAPI_BUILD_MT)
   endif()
   if(EMNAPI_USE_PROXYING)
     target_compile_definitions(${EMNAPI_MT_TARGET_NAME} PRIVATE "EMNAPI_USE_PROXYING=${EMNAPI_USE_PROXYING}")
+  endif()
+
+  add_library(${V8_MT_TARGET_NAME} STATIC ${V8_SRC})
+  target_compile_options(${V8_MT_TARGET_NAME}
+    PUBLIC "-matomics" "-mbulk-memory"
+    PRIVATE ${EMNAPI_MT_CFLAGS}
+  )
+  target_include_directories(${V8_MT_TARGET_NAME} PUBLIC ${EMNAPI_INCLUDE})
+  target_compile_definitions(${V8_MT_TARGET_NAME} PUBLIC ${EMNAPI_DEFINES})
+  if(IS_EMSCRIPTEN)
+    set_target_properties(${V8_MT_TARGET_NAME} PROPERTIES INTERFACE_LINK_DEPENDS ${EMNAPI_JS_LIB})
+    target_link_options(${V8_MT_TARGET_NAME} INTERFACE "--js-library=${EMNAPI_JS_LIB}" "--js-library=${V8_JS_LIB}")
   endif()
 endif()
 
