@@ -78,7 +78,7 @@ struct FunctionCallbackInfoImpl {
     _v8_get_cb_info(info, &argc, nullptr, nullptr, nullptr);
     internal::Address* list = new internal::Address[7 + argc];
     implicit_args_ = list;
-    values_ = list + 8;
+    values_ = list + 7;
     length_ = argc;
     _v8_get_cb_info(info, &argc, values_, list, reinterpret_cast<void**>(list + 4));
     // *(list) = reinterpret_cast<internal::Address>(_v8_cbinfo_this(info));
@@ -87,8 +87,8 @@ struct FunctionCallbackInfoImpl {
     *(list + 3) = reinterpret_cast<internal::Address>(_v8_cbinfo_rv(info));
     // *(list + 4) = reinterpret_cast<internal::Address>(_v8_cbinfo_data(info));
     *(list + 5) = reinterpret_cast<internal::Address>(_v8_cbinfo_new_target(info));
-    *(list + 6) = argc;
-    *(list + 7) = *list;
+    // *(list + 6) = argc;
+    *(list + 6) = *list;
   }
 
   FunctionCallbackInfoImpl(const FunctionCallbackInfoImpl&) = delete;
