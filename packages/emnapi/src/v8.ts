@@ -1,12 +1,23 @@
-import { from64, makeSetValue, makeGetValue, SIZE_TYPE, POINTER_SIZE } from 'emscripten:parse-tools'
+import { from64, makeSetValue, makeGetValue, SIZE_TYPE, POINTER_SIZE, makeDynCall } from 'emscripten:parse-tools'
 
+declare var emnapiString: typeof import('./string').emnapiString
 declare var emnapiCtx: Context
+declare function emnapiGetHandle (value: napi_value): { status: napi_status; value?: any }
+
+const finalizerRegistry = new FinalizationRegistry((value: {
+  finalize_data: Pointer<unknown>
+  finalize_cb: (data: Pointer<unknown>, hint: Pointer<unknown>) => void
+  finalize_hint: Pointer<unknown>
+}) => {
+  const { finalize_data, finalize_cb, finalize_hint } = value
+  finalize_cb(finalize_data, finalize_hint)
+})
 
 /**
  * @__sig p
  */
 export function _v8_isolate_get_current (): number {
-  return -1
+  return 0
 }
 
 /**
@@ -96,7 +107,9 @@ export function _v8_function_template_new (
   allowed_receiver_instance_type_range_start: number,
   allowed_receiver_instance_type_range_end: number
 ): Pointer<unknown> {
-  return 0
+  const jsCb = makeDynCall('ppp', 'callback')
+  const tpl = emnapiCtx.createFunctionTemplate(jsCb, cb, data)
+  return emnapiCtx.napiValueFromJsValue(tpl)
 }
 
 /**
@@ -104,7 +117,7 @@ export function _v8_function_template_new (
  * @__sig pp
  */
 export function _v8_cbinfo_rv (info: napi_callback_info): Pointer<unknown> {
-  return 0
+  return 1
 }
 
 /**
@@ -122,4 +135,90 @@ export function _v8_cbinfo_new_target (info: napi_callback_info): Pointer<unknow
       : 0
 
   return value
+}
+
+/**
+ * @__deps $emnapiGetHandle
+ * @__deps $emnapiCtx
+ * @__sig ipppp
+ */
+export function _v8_add_finalizer (js_object: void_p, finalize_data: void_p, finalize_cb: void_p, finalize_hint: void_p): number {
+  if (!emnapiCtx.features.finalizer) {
+    return 9
+  }
+
+  if (!js_object) return 1
+  if (!finalize_cb) return 1
+
+  const handleResult = emnapiGetHandle(js_object)
+  if (handleResult.status !== napi_status.napi_ok) {
+    return handleResult.status
+  }
+
+  const value = handleResult.value!
+
+  from64('finalize_data')
+  from64('finalize_cb')
+  from64('finalize_hint')
+  finalizerRegistry.register(value!, {
+    finalize_data,
+    finalize_cb: makeDynCall('vpp', 'finalize_cb'),
+    finalize_hint
+  }, value!)
+
+  return 0
+}
+
+/**
+ * @__deps $emnapiCtx
+ * @__sig ppp
+ */
+export function _v8_function_template_get_function (template: Ptr, context: Ptr) {
+  const tpl = emnapiCtx.jsValueFromNapiValue<FunctionTemplate>(template)
+  if (!tpl) return 0
+  return emnapiCtx.napiValueFromJsValue(tpl.getFunction())
+}
+
+/**
+ * @__deps $emnapiCtx
+ * @__deps $emnapiString
+ * @__sig pppii
+ */
+export function _v8_string_new_from_utf8 (isolate: Ptr, data: Ptr, type: number, length: number): Ptr {
+  from64('data')
+  from64('length')
+  const str = emnapiString.UTF8ToString(data as number, length)
+  return emnapiCtx.napiValueFromJsValue(str)
+}
+
+/**
+ * @__deps $emnapiCtx
+ * @__sig vpp
+ */
+export function _v8_function_set_name (fn: Ptr, name: Ptr): void {
+  if (!emnapiCtx.features.setFunctionName) {
+    return
+  }
+  const str = emnapiCtx.jsValueFromNapiValue(name)
+  const func = emnapiCtx.jsValueFromNapiValue(fn)
+  emnapiCtx.features.setFunctionName(func, str)
+}
+
+/**
+ * @__deps $emnapiCtx
+ * @__sig ippppp
+ */
+export function _v8_object_set (obj: Ptr, context: Ptr, key: Ptr, value: Ptr, success: Ptr): number {
+  let r = false
+  try {
+    r = Reflect.set(emnapiCtx.jsValueFromNapiValue(obj), emnapiCtx.jsValueFromNapiValue(key), emnapiCtx.jsValueFromNapiValue(value))
+  } catch (_) {
+    return 10
+  }
+  from64('success')
+  if (success) {
+    const v = r ? 1 : 0
+    makeSetValue('success', 0, 'v', 'i32')
+  }
+  return 0
 }

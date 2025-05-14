@@ -16,6 +16,7 @@ import { type IDeferrdValue, Deferred } from './Deferred'
 import { ArrayStore } from './Store'
 import { TrackedFinalizer } from './TrackedFinalizer'
 import { External, isExternal, getExternalValue } from './External'
+import { FunctionTemplate } from './FunctionTemplate'
 
 export type CleanupHookCallbackFunction = number | ((arg: number) => void)
 
@@ -279,6 +280,21 @@ export class Context {
     )
     this.addCleanupHook(env, () => { env.unref() }, 0)
     return env
+  }
+
+  public createFunctionTemplate (
+    callback: (info: napi_callback_info, v8FunctionCallback: Ptr) => Ptr,
+    v8FunctionCallback: Ptr,
+    data: Ptr
+  ) {
+    const functionTemplate = new FunctionTemplate(
+      this,
+      callback,
+      v8FunctionCallback,
+      data
+    )
+
+    return functionTemplate
   }
 
   public createFunction (
