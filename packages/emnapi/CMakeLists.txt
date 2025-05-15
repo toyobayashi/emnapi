@@ -280,6 +280,7 @@ install(DIRECTORY
 
 install(FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/dist/library_napi.js
+    ${CMAKE_CURRENT_SOURCE_DIR}/dist/library_v8.js
   DESTINATION "dist")
 
 if(EMNAPI_INSTALL_SRC)
@@ -295,5 +296,8 @@ if(EMNAPI_INSTALL_SRC)
     DESTINATION "src")
   install(DIRECTORY
     ${CMAKE_CURRENT_SOURCE_DIR}/src/thread
+    DESTINATION "src")
+  install(DIRECTORY
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/v8
     DESTINATION "src")
 endif()
