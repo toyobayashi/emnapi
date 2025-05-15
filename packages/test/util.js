@@ -40,6 +40,7 @@ function loadPath (request, options) {
     if (process.env.EMNAPI_TEST_WASI) {
       const { WASI } = require('./wasi')
       const { createNapiModule, loadNapiModule } = require('@emnapi/core')
+      const { v8 } = require('@emnapi/core/plugins')
       const wasi = new WASI({
         fs
       })
@@ -65,6 +66,7 @@ function loadPath (request, options) {
             }
           : {}
         ),
+        plugins: [v8],
         ...(options || {})
       })
 
@@ -90,6 +92,7 @@ function loadPath (request, options) {
 
     if (process.env.EMNAPI_TEST_WASM32) {
       const { createNapiModule, loadNapiModule } = require('@emnapi/core')
+      const { v8 } = require('@emnapi/core/plugins')
       const napiModule = createNapiModule({
         context,
         asyncWorkPoolSize: RUNTIME_UV_THREADPOOL_SIZE,
@@ -98,6 +101,7 @@ function loadPath (request, options) {
             env: process.env
           })
         },
+        plugins: [v8],
         ...(options || {})
       })
       const p = new Promise((resolve, reject) => {

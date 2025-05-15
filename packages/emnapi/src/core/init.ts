@@ -27,6 +27,8 @@ export interface INapiModule {
 
   waitThreadStart: boolean | number
   PThread: ThreadManager
+
+  plugins?: EmnapiPlugin[]
 }
 
 declare const process: any
@@ -96,6 +98,24 @@ export var napiModule: INapiModule = {
 
     if (!napiModule.childThread) {
       // main thread only
+      if (typeof instance.exports.node_register_module_v1 === 'function') {
+        const scope = emnapiCtx.openScopeRaw()
+        try {
+          const exports = napiModule.exports
+
+          const exportsHandle = scope.add(exports)
+          const moduleHandle = scope.add(napiModule)
+          instance.exports.node_register_module_v1(to64('exportsHandle'), to64('moduleHandle'), to64('5'))
+        } catch (err) {
+          emnapiCtx.closeScopeRaw(scope)
+          throw err
+        }
+        emnapiCtx.closeScopeRaw(scope)
+        napiModule.loaded = true
+        delete napiModule.envObject
+        return napiModule.exports
+      }
+
       let moduleApiVersion = Version.NODE_API_DEFAULT_MODULE_API_VERSION
       const node_api_module_get_api_version_v1 = instance.exports.node_api_module_get_api_version_v1
       if (typeof node_api_module_get_api_version_v1 === 'function') {

@@ -73,6 +73,7 @@ export interface MakeConfigOptions extends Omit<InputOptions, 'external'> {
   defines?: Record<string, any>
   external?: ExternalOption | ((source: string, importer: string | undefined, isResolved: boolean, format: Format) => boolean | NullValue)
   apiExtractorCallback?: (result: ExtractorResult, format: Format) => any
+  dtsEntry?: string
 }
 
 export interface Options extends Omit<MakeConfigOptions, 'format' | 'minify'> {
@@ -92,6 +93,7 @@ export function makeConfig (options: MakeConfigOptions): RollupOptions {
     external,
     sourcemap,
     apiExtractorCallback,
+    dtsEntry = 'dist/types/index.d.ts',
     ...restInput
   } = options ?? {}
   const target = compilerOptions?.target ?? ts.ScriptTarget.ES2021
@@ -114,7 +116,7 @@ export function makeConfig (options: MakeConfigOptions): RollupOptions {
       : [
           rollupApiExtractor({
             configObject: {
-              mainEntryPointFilePath: 'dist/types/index.d.ts'
+              mainEntryPointFilePath: dtsEntry
             },
             callback (result) {
               if (result.succeeded) {

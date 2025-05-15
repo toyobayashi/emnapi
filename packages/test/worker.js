@@ -10,7 +10,7 @@
   //   const str = require('util').format(...args)
   //   require('fs').writeSync(2, str + '\n')
   // }
-  let fs, WASI, emnapiCore
+  let fs, WASI, emnapiCore, emnapiCorePlugins
 
   const ENVIRONMENT_IS_NODE =
     typeof process === 'object' && process !== null &&
@@ -42,11 +42,14 @@
 
     WASI = require('./wasi').WASI
     emnapiCore = require('@emnapi/core')
+    emnapiCorePlugins = require('@emnapi/core/plugins')
   } else {
     importScripts('../../node_modules/memfs-browser/dist/memfs.js')
     importScripts('../../node_modules/@tybys/wasm-util/dist/wasm-util.min.js')
-    importScripts('../../node_modules/@emnapi/core/dist/emnapi-core.js')
+    importScripts('../../node_modules/@emnapi/core/dist/emnapi-core.umd.cjs')
+    importScripts('../../node_modules/@emnapi/core/dist/emnapi-core-plugins.umd.cjs')
     emnapiCore = globalThis.emnapiCore
+    emnapiCorePlugins = globalThis.emnapiCorePlugins
 
     const { Volume, createFsFromVolume } = memfs
     fs = createFsFromVolume(Volume.fromJSON({
@@ -57,6 +60,7 @@
   }
 
   const { instantiateNapiModuleSync, MessageHandler } = emnapiCore
+  const { v8 } = emnapiCorePlugins
 
   const handler = new MessageHandler({
     onLoad ({ wasmModule, wasmMemory }) {
@@ -96,7 +100,8 @@
               // ignore
             }
           }
-        }
+        },
+        plugins: [v8]
       })
     }
   })

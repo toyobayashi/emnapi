@@ -191,6 +191,77 @@ export function createNapiModule (options) {
     name: 'napiModule',
     strict: false
   })
+
+  const coreV8RollupBuild = await rollup({
+    input: path.join(__dirname, '../src/core/index-v8.ts'),
+    treeshake: false,
+    plugins: [
+      rollupTypescript({
+        tsconfig: coreTsconfigPath,
+        tslib: path.join(
+          path.dirname(runtimeRequire.resolve('tslib')),
+          JSON.parse(fs.readFileSync(path.join(path.dirname(runtimeRequire.resolve('tslib')), 'package.json'))).module
+        ),
+        compilerOptions: {
+          module: ts.ModuleKind.ESNext
+        },
+        include: coreTsconfig.include.map(s => path.join(__dirname, '../src/core', s)),
+        transformers: {
+          before: [
+            {
+              type: 'program',
+              factory: require('@emnapi/ts-transform-macro').createTransformerFactory
+            },
+            {
+              type: 'program',
+              factory (program) {
+                return require('@emnapi/ts-transform-emscripten-parse-tools').createTransformerFactory(program, {
+                  defines: {
+                    MEMORY64: 0
+                  },
+                  plugin: true,
+                  runtimeModuleSpecifier,
+                  parseToolsModuleSpecifier
+                })
+              }
+            }
+          ]
+        }
+      }),
+      {
+        name: 'preprocess',
+        renderChunk (code) {
+          const { Compiler } = require('./preprocess.js')
+          const compiler = new Compiler({
+            defines: {
+              DYNAMIC_EXECUTION: 1,
+              TEXTDECODER: 1,
+              LEGACY_RUNTIME: 1,
+              WASM_BIGINT: 1,
+              MEMORY64: 0
+            }
+          })
+          const parsedCode = compiler.parseCode(code)
+          return `export default function (ctx) {
+  const { wasmMemory, wasmTable, emnapiCtx, emnapiString } = ctx
+  ${parsedCode}
+  return {
+    importObject: (original) => {
+      Object.assign(original.env, exports)
+    }
+  };
+}
+`
+        }
+      }
+    ]
+  })
+  await coreV8RollupBuild.write({
+    file: path.join(outputDir, 'v8.js'),
+    format: 'iife',
+    name: 'exports',
+    strict: false
+  })
 }
 
 exports.build = build

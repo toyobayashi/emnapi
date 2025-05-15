@@ -1,3 +1,16 @@
+declare interface PluginContext {
+  wasmMemory: () => WebAssembly.Memory
+  wasmTable: () => WebAssembly.Table
+  emnapiCtx: Context
+  emnapiString: typeof import('../string').emnapiString
+}
+
+declare interface EmnapiPlugin {
+  importObject?: (originalImports: WebAssembly.Imports) => (WebAssembly.Imports | void)
+}
+
+declare type PluginFactory = (ctx: PluginContext) => EmnapiPlugin
+
 declare interface CreateOptions {
   context: Context
   filename?: string
@@ -10,6 +23,7 @@ declare interface CreateOptions {
   print?: (str: string) => void
   printErr?: (str: string) => void
   postMessage?: (msg: any) => any
+  plugins?: (PluginFactory | EmnapiPlugin)[]
 }
 
 // factory parameter

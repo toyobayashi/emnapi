@@ -1,4 +1,5 @@
-import { napiModule, PThread } from 'emnapi:shared'
+import { napiModule, PThread, emnapiCtx } from 'emnapi:shared'
+import { wasmMemory, wasmTable } from 'emscripten:runtime'
 
 import * as asyncMod from './async'
 import * as memoryMod from './memory'
@@ -92,5 +93,31 @@ napiModule.imports.napi.napi_acquire_threadsafe_function = napi_acquire_threadsa
 napiModule.imports.napi.napi_release_threadsafe_function = napi_release_threadsafe_function
 napiModule.imports.napi.napi_unref_threadsafe_function = napi_unref_threadsafe_function
 napiModule.imports.napi.napi_ref_threadsafe_function = napi_ref_threadsafe_function
+
+const pluginCtx = {
+  wasmMemory: () => wasmMemory,
+  wasmTable: () => wasmTable,
+  emnapiCtx,
+  emnapiString
+}
+
+napiModule.plugins = (options.plugins ?? []).map((plugin) => {
+  if (typeof plugin === 'function') {
+    return plugin(pluginCtx)
+  }
+  if (typeof plugin === 'object' && plugin !== null) {
+    return plugin
+  }
+  throw new TypeError('Invalid plugin')
+})
+
+napiModule.plugins.forEach((plugin) => {
+  if (typeof plugin.importObject === 'function') {
+    const importObject = plugin.importObject(napiModule.imports)
+    if (importObject) {
+      napiModule.imports = importObject as typeof napiModule.imports
+    }
+  }
+})
 
 export default napiModule
