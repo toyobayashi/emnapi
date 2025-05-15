@@ -129,7 +129,7 @@ export var emnapiString = {
     }
     return len
   },
-  UTF8ToString (ptr: void_p, length: int): string {
+  UTF8ToString (ptr: number, length: int): string {
     if (!ptr || !length) return ''
     ptr >>>= 0
     const HEAPU8 = new Uint8Array(wasmMemory.buffer)
@@ -264,7 +264,7 @@ export var emnapiString = {
     const strValue = stringMaker(str, autoLength, sizelength)
     from64('result')
 
-    const value = emnapiCtx.addToCurrentScope(strValue).id
+    const value = emnapiCtx.napiValueFromJsValue(strValue)
     makeSetValue('result', 0, 'value', '*')
     return envObject.clearLastError()
   },

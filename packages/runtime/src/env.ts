@@ -1,23 +1,12 @@
-import type { Handle } from './Handle'
 import type { Context } from './Context'
-import type { IStoreValue } from './Store'
 import {
   TryCatch,
-  _setImmediate,
-  NODE_API_SUPPORTED_VERSION_MAX,
-  NAPI_VERSION_EXPERIMENTAL,
-  NODE_API_DEFAULT_MODULE_API_VERSION
+  NAPI_VERSION_EXPERIMENTAL
 } from './util'
 import { RefTracker } from './RefTracker'
 import { TrackedFinalizer } from './TrackedFinalizer'
-
-function throwNodeApiVersionError (moduleName: string, moduleApiVersion: number): never {
-  const errorMessage = `${
-    moduleName} requires Node-API version ${
-      moduleApiVersion}, but this version of Node.js only supports version ${
-        NODE_API_SUPPORTED_VERSION_MAX} add-ons.`
-  throw new Error(errorMessage)
-}
+import { Disposable } from './Disaposable'
+import type { ArrayStore } from './Store'
 
 function handleThrow (envObject: Env, value: any): void {
   if (envObject.terminatedOrTerminating()) {
@@ -31,8 +20,8 @@ export interface IReferenceBinding {
   tag: Uint32Array | null
 }
 
-export abstract class Env implements IStoreValue {
-  public id: number
+export abstract class Env extends Disposable {
+  public id: number | bigint
 
   public openHandleScopes: number = 0
 
@@ -57,12 +46,15 @@ export abstract class Env implements IStoreValue {
 
   public constructor (
     public readonly ctx: Context,
+    private store: ArrayStore<Env>,
     public moduleApiVersion: number,
     public makeDynCall_vppp: (cb: Ptr) => (a: Ptr, b: Ptr, c: Ptr) => void,
     public makeDynCall_vp: (cb: Ptr) => (a: Ptr) => void,
     public abort: (msg?: string) => never
   ) {
+    super()
     this.id = 0
+    this.store.insert(this)
   }
 
   /** @virtual */
@@ -83,14 +75,6 @@ export abstract class Env implements IStoreValue {
     if (this.refs === 0) {
       this.dispose()
     }
-  }
-
-  public ensureHandle<S> (value: S): Handle<S> {
-    return this.ctx.ensureHandle(value)
-  }
-
-  public ensureHandleId (value: any): napi_value {
-    return this.ensureHandle(value).id
   }
 
   public clearLastError (): napi_status {
@@ -180,7 +164,7 @@ export abstract class Env implements IStoreValue {
     RefTracker.finalizeAll(this.reflist)
 
     this.tryCatch.extractException()
-    this.ctx.envStore.remove(this.id)
+    this.store.dealloc(this.id)
   }
 
   public dispose (): void {
@@ -217,7 +201,7 @@ export abstract class Env implements IStoreValue {
     this.instanceData = TrackedFinalizer.create(this, finalize_cb, data, finalize_hint)
   }
 
-  public getInstanceData (): number {
+  public getInstanceData (): number | bigint {
     return this.instanceData ? this.instanceData.data() : 0
   }
 }
@@ -228,6 +212,7 @@ export class NodeEnv extends Env {
 
   public constructor (
     ctx: Context,
+    store: ArrayStore<Env>,
     public filename: string,
     moduleApiVersion: number,
     makeDynCall_vppp: (cb: Ptr) => (a: Ptr, b: Ptr, c: Ptr) => void,
@@ -235,7 +220,7 @@ export class NodeEnv extends Env {
     abort: (msg?: string) => never,
     private readonly nodeBinding?: any
   ) {
-    super(ctx, moduleApiVersion, makeDynCall_vppp, makeDynCall_vp, abort)
+    super(ctx, store, moduleApiVersion, makeDynCall_vppp, makeDynCall_vp, abort)
   }
 
   public override deleteMe (): void {
@@ -314,7 +299,7 @@ export class NodeEnv extends Env {
     if (!this.finalizationScheduled && !this.destructing) {
       this.finalizationScheduled = true
       this.ref()
-      _setImmediate(() => {
+      this.ctx.features.setImmediate(() => {
         this.finalizationScheduled = false
         this.unref()
         this.drainFinalizerQueue()
@@ -328,26 +313,4 @@ export class NodeEnv extends Env {
       refTracker.finalize()
     }
   }
-}
-
-export function newEnv (
-  ctx: Context,
-  filename: string,
-  moduleApiVersion: number,
-  makeDynCall_vppp: (cb: Ptr) => (a: Ptr, b: Ptr, c: Ptr) => void,
-  makeDynCall_vp: (cb: Ptr) => (a: Ptr) => void,
-  abort: (msg?: string) => never,
-  nodeBinding?: any
-): Env {
-  moduleApiVersion = typeof moduleApiVersion !== 'number' ? NODE_API_DEFAULT_MODULE_API_VERSION : moduleApiVersion
-  // Validate module_api_version.
-  if (moduleApiVersion < NODE_API_DEFAULT_MODULE_API_VERSION) {
-    moduleApiVersion = NODE_API_DEFAULT_MODULE_API_VERSION
-  } else if (moduleApiVersion > NODE_API_SUPPORTED_VERSION_MAX && moduleApiVersion !== NAPI_VERSION_EXPERIMENTAL) {
-    throwNodeApiVersionError(filename, moduleApiVersion)
-  }
-  const env = new NodeEnv(ctx, filename, moduleApiVersion, makeDynCall_vppp, makeDynCall_vp, abort, nodeBinding)
-  ctx.envStore.add(env)
-  ctx.addCleanupHook(env, () => { env.unref() }, 0)
-  return env
 }

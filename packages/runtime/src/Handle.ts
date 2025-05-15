@@ -1,157 +1,45 @@
-import { External, getExternalValue, isExternal } from './External'
-import { _global, _Buffer } from './util'
+import { BaseArrayStore, CountIdAllocator } from './Store'
+import { Features } from './util'
 
-export class Handle<S> {
-  public constructor (
-    public id: number,
-    public value: S
-  ) {}
-
-  public data (): void_p {
-    return getExternalValue(this.value as External) as void_p
-  }
-
-  public isNumber (): boolean {
-    return typeof this.value === 'number'
-  }
-
-  public isBigInt (): boolean {
-    return typeof this.value === 'bigint'
-  }
-
-  public isString (): boolean {
-    return typeof this.value === 'string'
-  }
-
-  public isFunction (): boolean {
-    return typeof this.value === 'function'
-  }
-
-  public isExternal (): boolean {
-    return isExternal(this.value)
-  }
-
-  public isObject (): boolean {
-    return typeof this.value === 'object' && this.value !== null
-  }
-
-  public isArray (): boolean {
-    return Array.isArray(this.value)
-  }
-
-  public isArrayBuffer (): boolean {
-    return (this.value instanceof ArrayBuffer)
-  }
-
-  public isTypedArray (): boolean {
-    return (ArrayBuffer.isView(this.value)) && !(this.value instanceof DataView)
-  }
-
-  public isBuffer (BufferConstructor?: BufferCtor): boolean {
-    if (ArrayBuffer.isView(this.value)) return true
-    BufferConstructor ??= _Buffer
-    return typeof BufferConstructor === 'function' && BufferConstructor.isBuffer(this.value)
-  }
-
-  public isDataView (): boolean {
-    return (this.value instanceof DataView)
-  }
-
-  public isDate (): boolean {
-    return (this.value instanceof Date)
-  }
-
-  public isPromise (): boolean {
-    return (this.value instanceof Promise)
-  }
-
-  public isBoolean (): boolean {
-    return typeof this.value === 'boolean'
-  }
-
-  public isUndefined (): boolean {
-    return this.value === undefined
-  }
-
-  public isSymbol (): boolean {
-    return typeof this.value === 'symbol'
-  }
-
-  public isNull (): boolean {
-    return this.value === null
-  }
-
-  public dispose (): void {
-    this.value = undefined!
-  }
-}
-
-export class ConstHandle<S extends undefined | null | boolean | typeof globalThis> extends Handle<S> {
-  public constructor (id: number, value: S) {
-    super(id, value)
-  }
-
-  public override dispose (): void {}
-}
-
-export class HandleStore {
-  public static UNDEFINED = new ConstHandle(GlobalHandle.UNDEFINED, undefined)
-  public static NULL = new ConstHandle(GlobalHandle.NULL, null)
-  public static FALSE = new ConstHandle(GlobalHandle.FALSE, false)
-  public static TRUE = new ConstHandle(GlobalHandle.TRUE, true)
-  public static GLOBAL = new ConstHandle(GlobalHandle.GLOBAL, _global)
-
+export class HandleStore extends BaseArrayStore<any> {
   public static MIN_ID = 6 as const
 
-  private readonly _values: Array<Handle<any>> = [
-    undefined!,
-    HandleStore.UNDEFINED,
-    HandleStore.NULL,
-    HandleStore.FALSE,
-    HandleStore.TRUE,
-    HandleStore.GLOBAL
-  ]
+  private _allocator: CountIdAllocator
 
-  private _next: number = HandleStore.MIN_ID
+  public constructor (features: Features) {
+    super(HandleStore.MIN_ID)
+    this._allocator = new CountIdAllocator(HandleStore.MIN_ID)
 
-  public push<S> (value: S): Handle<S> {
-    let h: Handle<S>
-    const next = this._next
-    const values = this._values
-    if (next < values.length) {
-      h = values[next]
-      h.value = value
-    } else {
-      h = new Handle(next, value)
-      values[next] = h
-    }
-    this._next++
-    return h
+    this._values[GlobalHandle.UNDEFINED] = undefined
+    this._values[GlobalHandle.NULL] = null
+    this._values[GlobalHandle.FALSE] = false
+    this._values[GlobalHandle.TRUE] = true
+    this._values[GlobalHandle.GLOBAL] = features.getGlobalThis()
+  }
+
+  public push<S> (value: S): number {
+    const next = this._allocator.aquire()
+    this._values[next] = value
+    return next
+  }
+
+  public override dealloc (i: number | bigint): void {
+    this._values[i as number] = undefined
   }
 
   public erase (start: number, end: number): void {
-    this._next = start
-    const values = this._values
+    this._allocator.next = start
     for (let i = start; i < end; ++i) {
-      values[i].dispose()
+      this.dealloc(i)
     }
-  }
-
-  public get (id: Ptr): Handle<any> | undefined {
-    return this._values[id as any]
   }
 
   public swap (a: number, b: number): void {
     const values = this._values
-    const h = values[a]
+    const h = values[a]!
     values[a] = values[b]
-    values[a]!.id = Number(a)
+    // values[a]!.id = Number(a)
     values[b] = h
-    h.id = Number(b)
-  }
-
-  public dispose (): void {
-    this._values.length = HandleStore.MIN_ID
-    this._next = HandleStore.MIN_ID
+    // h.id = Number(b)
   }
 }

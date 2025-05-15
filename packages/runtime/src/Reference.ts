@@ -1,20 +1,21 @@
-import type { IStoreValue } from './Store'
 import type { Env } from './env'
 import { Persistent } from './Persistent'
-import type { Handle } from './Handle'
 import { RefTracker } from './RefTracker'
 import { Finalizer } from './Finalizer'
+import type { ArrayStore } from './Store'
 
 export enum ReferenceOwnership {
   kRuntime,
   kUserland
 }
 
-function canBeHeldWeakly (value: Handle<any>): boolean {
-  return value.isObject() || value.isFunction() || value.isSymbol()
+function canBeHeldWeakly (value: any): boolean {
+  if (!value) return false
+  const type = typeof value
+  return type === 'object' || type === 'function' || type === 'symbol'
 }
 
-export class Reference extends RefTracker implements IStoreValue {
+export class Reference extends RefTracker {
   private static weakCallback (ref: Reference): void {
     ref.persistent.reset()
     ref.invokeFinalizerFromGC()
@@ -22,6 +23,7 @@ export class Reference extends RefTracker implements IStoreValue {
 
   public id: number
   public envObject!: Env
+  private store: ArrayStore<Reference>
 
   private readonly canBeWeak!: boolean
   private _refcount: number
@@ -29,6 +31,7 @@ export class Reference extends RefTracker implements IStoreValue {
   public persistent!: Persistent<object>
 
   public static create (
+    store: ArrayStore<Reference>,
     envObject: Env,
     handle_id: napi_value,
     initialRefcount: uint32_t,
@@ -37,13 +40,15 @@ export class Reference extends RefTracker implements IStoreValue {
     _unused2?: void_p,
     _unused3?: void_p
   ): Reference {
-    const ref = new Reference(envObject, handle_id, initialRefcount, ownership)
-    envObject.ctx.refStore.add(ref)
+    const ref = new Reference(
+      store, envObject, handle_id, initialRefcount, ownership
+    )
     ref.link(envObject.reflist)
     return ref
   }
 
-  protected constructor (
+  public constructor (
+    store: ArrayStore<Reference>,
     envObject: Env,
     handle_id: napi_value,
     initialRefcount: uint32_t,
@@ -53,10 +58,12 @@ export class Reference extends RefTracker implements IStoreValue {
     this.envObject = envObject
     this._refcount = initialRefcount
     this._ownership = ownership
-    const handle = envObject.ctx.handleStore.get(handle_id)!
-    this.canBeWeak = canBeHeldWeakly(handle)
-    this.persistent = new Persistent(handle.value)
+    const value = envObject.ctx.jsValueFromNapiValue(handle_id)!
+    this.canBeWeak = canBeHeldWeakly(value)
+    this.persistent = new Persistent(value)
     this.id = 0
+    this.store = store
+    store.insert(this)
     if (initialRefcount === 0) {
       this._setWeak()
     }
@@ -90,8 +97,7 @@ export class Reference extends RefTracker implements IStoreValue {
       return 0
     }
     const obj = this.persistent.deref()
-    const handle = envObject.ensureHandle(obj)
-    return handle.id
+    return envObject.ctx.napiValueFromJsValue(obj)
   }
 
   /** @virtual */
@@ -134,7 +140,7 @@ export class Reference extends RefTracker implements IStoreValue {
     if (this.id === 0) return
     this.unlink()
     this.persistent.reset()
-    this.envObject.ctx.refStore.remove(this.id)
+    this.store.dealloc(this.id)
     super.dispose()
     this.envObject = undefined!
     this.id = 0
@@ -143,26 +149,29 @@ export class Reference extends RefTracker implements IStoreValue {
 
 export class ReferenceWithData extends Reference {
   public static override create (
+    store: ArrayStore<Reference>,
     envObject: Env,
     value: napi_value,
     initialRefcount: uint32_t,
     ownership: ReferenceOwnership,
     data: void_p
   ): ReferenceWithData {
-    const reference = new ReferenceWithData(envObject, value, initialRefcount, ownership, data)
-    envObject.ctx.refStore.add(reference)
+    const reference = new ReferenceWithData(
+      store, envObject, value, initialRefcount, ownership, data
+    )
     reference.link(envObject.reflist)
     return reference
   }
 
-  private constructor (
+  public constructor (
+    store: ArrayStore<Reference>,
     envObject: Env,
     value: napi_value,
     initialRefcount: uint32_t,
     ownership: ReferenceOwnership,
     private readonly _data: void_p
   ) {
-    super(envObject, value, initialRefcount, ownership)
+    super(store, envObject, value, initialRefcount, ownership)
   }
 
   public data (): void_p {
@@ -174,6 +183,7 @@ export class ReferenceWithFinalizer extends Reference {
   private _finalizer: Finalizer
 
   public static override create (
+    store: ArrayStore<Reference>,
     envObject: Env,
     value: napi_value,
     initialRefcount: uint32_t,
@@ -182,13 +192,15 @@ export class ReferenceWithFinalizer extends Reference {
     finalize_data: void_p,
     finalize_hint: void_p
   ): ReferenceWithFinalizer {
-    const reference = new ReferenceWithFinalizer(envObject, value, initialRefcount, ownership, finalize_callback, finalize_data, finalize_hint)
-    envObject.ctx.refStore.add(reference)
+    const reference = new ReferenceWithFinalizer(
+      store, envObject, value, initialRefcount, ownership, finalize_callback, finalize_data, finalize_hint
+    )
     reference.link(envObject.finalizing_reflist)
     return reference
   }
 
-  private constructor (
+  public constructor (
+    store: ArrayStore<Reference>,
     envObject: Env,
     value: napi_value,
     initialRefcount: uint32_t,
@@ -197,7 +209,7 @@ export class ReferenceWithFinalizer extends Reference {
     finalize_data: void_p,
     finalize_hint: void_p
   ) {
-    super(envObject, value, initialRefcount, ownership)
+    super(store, envObject, value, initialRefcount, ownership)
     this._finalizer = new Finalizer(envObject, finalize_callback, finalize_data, finalize_hint)
   }
 
