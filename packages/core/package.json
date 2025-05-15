@@ -20,17 +20,9 @@
       "module-sync": "./dist/emnapi-core.js",
       "default": "./dist/emnapi-core.cjs"
     },
-    "./plugins": {
-      "types": {
-        "module": "./dist/emnapi-core-plugins.d.ts",
-        "module-sync": "./dist/emnapi-core-plugins.d.ts",
-        "import": "./dist/emnapi-core-plugins.d.cts",
-        "require": "./dist/emnapi-core-plugins.d.cts",
-        "default": "./dist/emnapi-core-plugins.d.cts"
-      },
-      "module": "./dist/emnapi-core-plugins.js",
-      "module-sync": "./dist/emnapi-core-plugins.js",
-      "default": "./dist/emnapi-core-plugins.cjs"
+    "./plugins/v8": {
+      "types": "./dist/plugins/v8.d.ts",
+      "default": "./dist/plugins/v8.js"
     },
     "./package.json": "./package.json"
   },

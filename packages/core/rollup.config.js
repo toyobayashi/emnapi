@@ -11,9 +11,17 @@ export default [
     }
   }),
   ...defineConfig({
-    outputName: 'emnapiCorePlugins',
-    outputFile: 'emnapi-core-plugins',
-    dtsEntry: 'dist/types/plugins.d.ts',
-    input: join(import.meta.dirname, 'src/plugins.ts'),
+    outputName: 'emnapiCorePluginsV8',
+    outputFile: 'plugins/v8',
+    dtsEntry: 'dist/types/emnapi/v8.d.ts',
+    input: join(import.meta.dirname, 'src/emnapi/v8.js'),
+    cjs: false,
+    browser: false,
+    umd: true,
+    compilerOptions: {
+      declaration: false,
+      declarationMap: false,
+      declarationDir: undefined
+    }
   })
 ]
