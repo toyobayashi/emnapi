@@ -119,6 +119,26 @@
           }],
         ]
       },
+    },
+    {
+      'target_name': 'v8',
+      'type': 'static_library',
+      'sources': [
+        'src/v8/v8.cc',
+      ],
+      'defines': [
+        'V8_ENABLE_DIRECT_LOCAL'
+      ],
+      'link_settings': {
+        'target_conditions': [
+          ['_type == "executable" and OS == "emscripten"', {
+            'libraries': [
+              '--js-library=<(emnapi_js_library)',
+              '--js-library=<(v8_js_library)',
+            ]
+          }],
+        ]
+      },
     }
   ]
 }

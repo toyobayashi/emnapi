@@ -11,6 +11,7 @@
     'max_memory%': 2147483648,
     # must be an absolute path
     'emnapi_js_library%': '<!(node -p "path.resolve(process.argv[1],\'dist/library_napi.js\').replace(process.argv[2],\'/\')" "<(node_root_dir)" "\\\\")',
+    'v8_js_library%': '<!(node -p "path.resolve(process.argv[1],\'dist/library_v8.js\').replace(process.argv[2],\'/\')" "<(node_root_dir)" "\\\\")',
     'emnapi_manual_linking%': 0,
   },
 
@@ -20,6 +21,7 @@
     'defines': [
       'BUILDING_NODE_EXTENSION',
       '__STDC_FORMAT_MACROS',
+      'V8_ENABLE_DIRECT_LOCAL',
     ],
 
     'cflags': [
