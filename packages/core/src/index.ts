@@ -18,7 +18,10 @@ export type {
   NodeBinding,
   CreateWorkerInfo,
   BaseCreateOptions,
-  CreateOptions
+  CreateOptions,
+  PluginContext,
+  EmnapiPlugin,
+  PluginFactory
 } from './emnapi/index'
 
 export type {

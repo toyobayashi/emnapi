@@ -33,6 +33,7 @@ export interface Defines {
 
 export interface TransformOptions extends BaseTransformOptions {
   defines?: Defines
+  plugin?: boolean
 }
 
 // function isEmscriptenMacro (text: string): boolean {
@@ -243,11 +244,13 @@ class Transform {
 
   readonly runtimeModuleSpecifier: string
   readonly parseToolsModuleSpecifier: string
+  readonly plugin: boolean
 
   constructor (public program: Program, context: TransformationContext, config?: TransformOptions) {
     const { runtimeModuleSpecifier, parseToolsModuleSpecifier } = getDefaultBaseOptions(config)
     this.runtimeModuleSpecifier = runtimeModuleSpecifier
     this.parseToolsModuleSpecifier = parseToolsModuleSpecifier
+    this.plugin = config?.plugin ?? false
 
     this.ctx = context
     this.defines = config?.defines ?? {}
@@ -262,6 +265,12 @@ class Transform {
     this.insertWasmTableImport = false
   }
 
+  createLazyEmscriptenRuntimeSymbol (name: string) {
+    return this.plugin
+      ? this.ctx.factory.createCallExpression(this.ctx.factory.createIdentifier(name), undefined, [])
+      : this.ctx.factory.createIdentifier(name)
+  }
+
   createHeapDataViewDeclaration (): VariableStatement {
     return this.ctx.factory.createVariableStatement(
       undefined,
@@ -274,7 +283,7 @@ class Transform {
             this.ctx.factory.createIdentifier('DataView'),
             undefined,
             [this.ctx.factory.createPropertyAccessExpression(
-              this.ctx.factory.createIdentifier('wasmMemory'),
+              this.createLazyEmscriptenRuntimeSymbol('wasmMemory'),
               this.ctx.factory.createIdentifier('buffer')
             )]
           )
@@ -663,7 +672,7 @@ class Transform {
 
     return this.ctx.factory.createParenthesizedExpression(this.ctx.factory.createCallExpression(
       this.ctx.factory.createPropertyAccessExpression(
-        this.ctx.factory.createIdentifier('wasmTable'),
+        this.createLazyEmscriptenRuntimeSymbol('wasmTable'),
         this.ctx.factory.createIdentifier('get')
       ),
       undefined,
@@ -832,7 +841,7 @@ function createTransformerFactory (program: Program, config: TransformOptions): 
 
       let resultSrc = injectedSrc
       let importNames: string[] | null = null
-      if (transform.insertWasmMemoryImport) {
+      if (transform.insertWasmMemoryImport && !config.plugin) {
         importNames = getImportsOfModule(resultSrc)
         if (!importNames.includes('wasmMemory')) {
           resultSrc = factory.updateSourceFile(resultSrc, [
@@ -849,7 +858,7 @@ function createTransformerFactory (program: Program, config: TransformOptions): 
           ])
         }
       }
-      if (transform.insertWasmTableImport) {
+      if (transform.insertWasmTableImport && !config.plugin) {
         importNames = getImportsOfModule(resultSrc)
         if (!importNames.includes('wasmTable')) {
           resultSrc = factory.updateSourceFile(resultSrc, [

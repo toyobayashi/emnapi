@@ -7,6 +7,7 @@ import {
   NODE_API_SUPPORTED_VERSION_MAX,
   NAPI_VERSION_EXPERIMENTAL,
   NODE_API_DEFAULT_MODULE_API_VERSION,
+  NODE_MODULE_VERSION,
   detectFeatures,
   Features
 } from './util'
@@ -16,6 +17,7 @@ import { type IDeferrdValue, Deferred } from './Deferred'
 import { ArrayStore } from './Store'
 import { TrackedFinalizer } from './TrackedFinalizer'
 import { External, isExternal, getExternalValue } from './External'
+import { FunctionTemplate } from './FunctionTemplate'
 
 export type CleanupHookCallbackFunction = number | ((arg: number) => void)
 
@@ -179,7 +181,8 @@ export class Context {
       version,
       NODE_API_SUPPORTED_VERSION_MAX,
       NAPI_VERSION_EXPERIMENTAL,
-      NODE_API_DEFAULT_MODULE_API_VERSION
+      NODE_API_DEFAULT_MODULE_API_VERSION,
+      NODE_MODULE_VERSION
     }
   }
 
@@ -281,6 +284,21 @@ export class Context {
     return env
   }
 
+  public createFunctionTemplate (
+    callback: (info: napi_callback_info, v8FunctionCallback: Ptr) => Ptr,
+    v8FunctionCallback: Ptr,
+    data: Ptr
+  ) {
+    const functionTemplate = new FunctionTemplate(
+      this,
+      callback,
+      v8FunctionCallback,
+      data
+    )
+
+    return functionTemplate
+  }
+
   public createFunction (
     envObject: Env,
     napiCallback: (env: napi_env, info: napi_callback_info) => void_p,
@@ -351,14 +369,22 @@ export class Context {
   }
 
   public openScope (envObject: Env): HandleScope {
-    const scope = this.scopeStore.openScope(this.handleStore)
+    const scope = this.openScopeRaw()
     envObject.openHandleScopes++
     return scope
   }
 
-  public closeScope (envObject: Env, _scope?: HandleScope): void {
-    this.scopeStore.closeScope()
+  public openScopeRaw (): HandleScope {
+    return this.scopeStore.openScope(this.handleStore)
+  }
+
+  public closeScope (envObject: Env, scope?: HandleScope): void {
+    this.closeScopeRaw(scope)
     envObject.openHandleScopes--
+  }
+
+  public closeScopeRaw (_scope?: HandleScope): void {
+    this.scopeStore.closeScope()
   }
 
   public getEnv (env: napi_env): Env | undefined {

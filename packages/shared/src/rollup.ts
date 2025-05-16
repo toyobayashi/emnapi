@@ -1,4 +1,4 @@
-import type { InputPluginOption, InputOptions, RollupOptions, NullValue, ExternalOption, Plugin } from 'rollup'
+import type { InputPluginOption, InputOptions, RollupOptions, NullValue, ExternalOption, Plugin, OutputOptions } from 'rollup'
 import ts from 'typescript'
 import path from 'path'
 import fs from 'fs'
@@ -66,6 +66,7 @@ export type Format = 'esm' | 'cjs' | 'umd' | 'esm-browser' | 'iife'
 export interface MakeConfigOptions extends Omit<InputOptions, 'external'> {
   outputName: string
   outputFile: string
+  outputExports?: OutputOptions['exports']
   format: Format
   sourcemap?: boolean | 'inline' | 'hidden'
   minify?: boolean
@@ -73,10 +74,13 @@ export interface MakeConfigOptions extends Omit<InputOptions, 'external'> {
   defines?: Record<string, any>
   external?: ExternalOption | ((source: string, importer: string | undefined, isResolved: boolean, format: Format) => boolean | NullValue)
   apiExtractorCallback?: (result: ExtractorResult, format: Format) => any
+  dtsEntry?: string
 }
 
 export interface Options extends Omit<MakeConfigOptions, 'format' | 'minify'> {
   browser?: boolean
+  cjs?: boolean
+  umd?: boolean
 }
 
 export function makeConfig (options: MakeConfigOptions): RollupOptions {
@@ -84,6 +88,7 @@ export function makeConfig (options: MakeConfigOptions): RollupOptions {
     input,
     outputName,
     outputFile,
+    outputExports = 'named',
     compilerOptions,
     plugins,
     minify = false,
@@ -92,6 +97,7 @@ export function makeConfig (options: MakeConfigOptions): RollupOptions {
     external,
     sourcemap,
     apiExtractorCallback,
+    dtsEntry = 'dist/types/index.d.ts',
     ...restInput
   } = options ?? {}
   const target = compilerOptions?.target ?? ts.ScriptTarget.ES2021
@@ -114,7 +120,7 @@ export function makeConfig (options: MakeConfigOptions): RollupOptions {
       : [
           rollupApiExtractor({
             configObject: {
-              mainEntryPointFilePath: 'dist/types/index.d.ts'
+              mainEntryPointFilePath: dtsEntry
             },
             callback (result) {
               if (result.succeeded) {
@@ -164,33 +170,33 @@ export function makeConfig (options: MakeConfigOptions): RollupOptions {
     esm: {
       file: `${outputDir}/${outputFile}${minify ? '.min' : ''}.js`,
       format: 'esm',
-      exports: 'named',
+      exports: outputExports,
       sourcemap
     } satisfies RollupOptions['output'],
     'esm-browser': {
       file: `${outputDir}/${outputFile}.browser${minify ? '.min' : ''}.js`,
       format: 'esm',
-      exports: 'named',
+      exports: outputExports,
       sourcemap
     } satisfies RollupOptions['output'],
     cjs: {
       file: `${outputDir}/${outputFile}${minify ? '.min' : ''}.cjs`,
       format: 'cjs',
-      exports: 'named',
+      exports: outputExports,
       sourcemap
     } satisfies RollupOptions['output'],
     umd: {
       file: `${outputDir}/${outputFile}.umd${minify ? '.min' : ''}.cjs`,
       format: 'umd',
       name: outputName,
-      exports: 'named',
+      exports: outputExports,
       sourcemap
     } satisfies RollupOptions['output'],
     iife: {
       file: `${outputDir}/${outputFile}.iife${minify ? '.min' : ''}.cjs`,
       format: 'iife',
       name: outputName,
-      exports: 'named',
+      exports: outputExports,
       sourcemap
     } satisfies RollupOptions['output']
   }
@@ -228,18 +234,12 @@ export function makeConfig (options: MakeConfigOptions): RollupOptions {
 }
 
 export function defineConfig (options: Options): RollupOptions[] {
-  const { browser = true, ...restOptions } = options
+  const { browser = true, cjs = true, umd = true, ...restOptions } = options
   return ([
     ['esm', false],
-    ['cjs', false],
-    ...(browser
-      ? [
-          ['umd', false],
-          ['umd', true],
-          ['esm-browser', false],
-          ['esm-browser', true]
-        ] as const
-      : [])
+    ...(cjs ? [['cjs', false]] as const : []),
+    ...(umd ? [['umd', false], ['umd', true]] as const : []),
+    ...(browser ? [['esm-browser', false], ['esm-browser', true]] as const : [])
   ] as const).map(([format, minify], index) => makeConfig({
     ...restOptions,
     ...(index === 0

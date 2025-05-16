@@ -69,6 +69,22 @@ export declare interface CreateWorkerInfo {
 }
 
 /** @public */
+export declare interface PluginContext {
+  wasmMemory: () => WebAssembly.Memory
+  wasmTable: () => WebAssembly.Table
+  emnapiCtx: Context
+  emnapiString: any // TODO
+}
+
+/** @public */
+export declare interface EmnapiPlugin {
+  importObject?: (originalImports: WebAssembly.Imports) => (WebAssembly.Imports | void)
+}
+
+/** @public */
+export declare type PluginFactory = (ctx: PluginContext) => EmnapiPlugin
+
+/** @public */
 export declare type BaseCreateOptions = {
   filename?: string
   nodeBinding?: NodeBinding
@@ -79,6 +95,7 @@ export declare type BaseCreateOptions = {
   print?: (str: string) => void
   printErr?: (str: string) => void
   postMessage?: (msg: any) => any
+  plugins?: (PluginFactory | EmnapiPlugin)[]
 }
 
 /** @public */

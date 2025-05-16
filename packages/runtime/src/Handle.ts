@@ -2,7 +2,7 @@ import { BaseArrayStore, CountIdAllocator } from './Store'
 import { Features } from './util'
 
 export class HandleStore extends BaseArrayStore<any> {
-  public static MIN_ID = 6 as const
+  public static MIN_ID = 7 as const
 
   private _allocator: CountIdAllocator
 
@@ -15,6 +15,7 @@ export class HandleStore extends BaseArrayStore<any> {
     this._values[GlobalHandle.FALSE] = false
     this._values[GlobalHandle.TRUE] = true
     this._values[GlobalHandle.GLOBAL] = features.getGlobalThis()
+    this._values[GlobalHandle.EMPTY_STRING] = ''
   }
 
   public push<S> (value: S): number {

@@ -7,6 +7,7 @@
 extern "C" {
 #endif
 
+#include "uv/version.h"
 #include <stddef.h>
 #include <stdint.h>
 
@@ -79,6 +80,11 @@ UV_EXTERN void uv_cond_wait(uv_cond_t* cond, uv_mutex_t* mutex);
 UV_EXTERN void uv_cond_destroy(uv_cond_t* cond);
 
 UV_EXTERN void uv_once(uv_once_t* guard, void (*callback)(void));
+
+UV_EXTERN int uv_key_create(uv_key_t* key);
+UV_EXTERN void uv_key_delete(uv_key_t* key);
+UV_EXTERN void* uv_key_get(uv_key_t* key);
+UV_EXTERN void uv_key_set(uv_key_t* key, void* value);
 
 struct uv_work_s {
   UV_REQ_FIELDS

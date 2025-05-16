@@ -2,3 +2,6 @@ node_modules
 /dist
 /build
 /lib
+/include/node/v8*
+/include/node/cppgc
+/include/node/libplatform

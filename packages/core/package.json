@@ -20,6 +20,10 @@
       "module-sync": "./dist/emnapi-core.js",
       "default": "./dist/emnapi-core.cjs"
     },
+    "./plugins/v8": {
+      "types": "./dist/plugins/v8.d.ts",
+      "default": "./dist/plugins/v8.js"
+    },
     "./package.json": "./package.json"
   },
   "dependencies": {

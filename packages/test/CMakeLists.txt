@@ -82,7 +82,6 @@ if(IS_EMSCRIPTEN)
   endif()
 
   set(COMMON_LINK_OPTIONS
-    "-sEXPORTED_FUNCTIONS=['_malloc','_free','_napi_register_wasm_v1','_node_api_module_get_api_version_v1']"
     "-sNODEJS_CATCH_EXIT=0"
     "-sWASM_BIGINT=1"
     "-sALLOW_MEMORY_GROWTH=1"
@@ -95,26 +94,50 @@ if(IS_EMSCRIPTEN)
     "-sMODULARIZE=1"
     "-sEXPORTED_RUNTIME_METHODS=['emnapiInit','ExitStatus']"
   )
+  set(COMMON_EXPORTS_NAPI
+    "-sEXPORTED_FUNCTIONS=['_malloc','_free','_napi_register_wasm_v1','_node_api_module_get_api_version_v1']"
+  )
+  set(COMMON_EXPORTS_V8
+    "-sEXPORTED_FUNCTIONS=['_malloc','_free']"
+  )
 elseif(IS_WASI_THREADS)
   add_compile_options("-fno-exceptions")
   set(COMMON_LINK_OPTIONS
     # "-v"
     "-mexec-model=reactor"
-    "-Wl,-zstack-size=1048576,--initial-memory=16777216,--max-memory=2147483648,--import-memory,--export-dynamic,--export=malloc,--export=free,--export=napi_register_wasm_v1,--export-if-defined=node_api_module_get_api_version_v1,--import-undefined,--export-table"
+    "-Wl,-zstack-size=1048576,--initial-memory=16777216,--max-memory=2147483648,--import-memory,--export-dynamic,--export=malloc,--export=free,--import-undefined,--export-table"
+  )
+  set(COMMON_EXPORTS_NAPI
+    "-Wl,--export=napi_register_wasm_v1,--export-if-defined=node_api_module_get_api_version_v1"
+  )
+  set(COMMON_EXPORTS_V8
+    ""
   )
 elseif(IS_WASI)
   add_compile_options("-fno-exceptions")
   set(COMMON_LINK_OPTIONS
     # "-v"
     "-mexec-model=reactor"
-    "-Wl,-zstack-size=1048576,--initial-memory=16777216,--max-memory=2147483648,--export-dynamic,--export=malloc,--export=free,--export=napi_register_wasm_v1,--export-if-defined=node_api_module_get_api_version_v1,--import-undefined,--export-table"
+    "-Wl,-zstack-size=1048576,--initial-memory=16777216,--max-memory=2147483648,--export-dynamic,--export=malloc,--export=free,--import-undefined,--export-table"
+  )
+  set(COMMON_EXPORTS_NAPI
+    "-Wl,--export=napi_register_wasm_v1,--export-if-defined=node_api_module_get_api_version_v1"
+  )
+  set(COMMON_EXPORTS_V8
+    ""
   )
 elseif(IS_WASM32)
   add_compile_options("-fno-exceptions")
   set(COMMON_LINK_OPTIONS
     # "-v"
     "-nostdlib"
-    "-Wl,-zstack-size=1048576,--initial-memory=16777216,--max-memory=2147483648,--no-entry,--export-dynamic,--export=malloc,--export=free,--export=napi_register_wasm_v1,--export-if-defined=node_api_module_get_api_version_v1,--import-undefined,--export-table"
+    "-Wl,-zstack-size=1048576,--initial-memory=16777216,--max-memory=2147483648,--no-entry,--export-dynamic,--export=malloc,--export=free,--import-undefined,--export-table"
+  )
+  set(COMMON_EXPORTS_NAPI
+    "-Wl,--export=napi_register_wasm_v1,--export-if-defined=node_api_module_get_api_version_v1"
+  )
+  set(COMMON_EXPORTS_V8
+    ""
   )
 else()
   set(COMMON_LINK_OPTIONS "")
@@ -178,7 +201,10 @@ function(add_test NAME SOURCE_LIST PTHREAD)
       target_link_libraries(${NAME} PRIVATE "emnapi-basic")
     endif()
   endif()
-  target_link_options(${NAME} PRIVATE ${COMMON_LINK_OPTIONS})
+  target_link_options(${NAME} PRIVATE
+    ${COMMON_LINK_OPTIONS}
+    ${COMMON_EXPORTS_NAPI}
+  )
   if(IS_EMSCRIPTEN)
     target_link_options(${NAME} PRIVATE "-sEXPORT_NAME=emnapitest_${NAME}")
   endif()
@@ -237,7 +263,10 @@ function(add_naa_test NAME SOURCE_LIST DEFINES ENABLE_EXCEPTION)
     target_compile_definitions(${NAME} PRIVATE "NAPI_DISABLE_CPP_EXCEPTIONS")
   endif()
 
-  target_link_options(${NAME} PRIVATE ${COMMON_LINK_OPTIONS})
+  target_link_options(${NAME} PRIVATE
+    ${COMMON_LINK_OPTIONS}
+    ${COMMON_EXPORTS_NAPI}
+  )
   if(IS_EMSCRIPTEN)
     target_link_options(${NAME} PRIVATE "-sEXPORT_NAME=emnapitest_${NAME}")
   endif()
@@ -339,4 +368,76 @@ if(IS_EMSCRIPTEN OR IS_WASI_THREADS)
   add_naa_test("naa_binding_noexcept" "${naa_binding_SRC}" "" OFF)
   add_naa_test("naa_binding_noexcept_maybe" "${naa_binding_SRC}" "NODE_ADDON_API_ENABLE_MAYBE" OFF)
   add_naa_test("naa_binding_custom_namespace" "${naa_binding_SRC}" "NAPI_CPP_CUSTOM_NAMESPACE=cstm" OFF)
+endif()
+
+function(add_test_v8 NAME SOURCE_LIST PTHREAD)
+  set(__SRC_LIST ${SOURCE_LIST})
+
+  if(IS_WASM)
+    add_executable(${NAME} ${__SRC_LIST})
+    if(IS_WASI OR IS_WASM32)
+      set_target_properties(${NAME} PROPERTIES SUFFIX ".wasm")
+      if(CMAKE_BUILD_TYPE STREQUAL "Release")
+        # https://github.com/WebAssembly/wasi-sdk/issues/254
+        target_link_options(${NAME} PRIVATE
+          "-Wl,--strip-debug"
+        )
+      endif()
+    endif()
+    if(IS_WASM32)
+      if(PTHREAD)
+        target_link_libraries(${NAME} PRIVATE "${WASM32_MALLOC}-mt")
+      else()
+        target_link_libraries(${NAME} PRIVATE ${WASM32_MALLOC})
+      endif()
+    endif()
+  else()
+    add_library(${NAME} SHARED ${__SRC_LIST} ${CMAKE_JS_SRC})
+    set_target_properties(${NAME} PROPERTIES PREFIX "" SUFFIX ".node")
+    target_link_libraries(${NAME} PRIVATE ${CMAKE_JS_LIB})
+    target_compile_definitions(${NAME} PRIVATE "EMNAPI_UNMODIFIED_NATIVE_TEST")
+  endif()
+
+  set_target_properties(${NAME} PROPERTIES
+    BUILD_RPATH "$ORIGIN")
+  set_target_properties(${NAME} PROPERTIES
+    CXX_STANDARD "17")
+  if(IS_WASM)
+    if(PTHREAD)
+      if((IS_WASI AND NOT IS_WASI_THREADS) OR IS_WASM32)
+        if(IS_WASM32)
+          target_link_libraries(${NAME} PRIVATE "v8-mt")
+          target_link_options(${NAME} PRIVATE "-Wl,--import-memory,--shared-memory,--export=emnapi_async_worker_create,--export=emnapi_async_worker_init")
+        else()
+          target_link_libraries(${NAME} PRIVATE "v8")
+        endif()
+      else()
+        target_link_libraries(${NAME} PRIVATE "v8-mt")
+        target_compile_options(${NAME} PRIVATE "-pthread")
+        target_link_options(${NAME} PRIVATE "-pthread")
+      endif()
+      if(IS_EMSCRIPTEN)
+        target_link_options(${NAME} PRIVATE "-sPTHREAD_POOL_SIZE=${PTHREAD_POOL_SIZE}" "-sPTHREAD_POOL_SIZE_STRICT=2")
+      endif()
+    else()
+      target_link_libraries(${NAME} PRIVATE "v8")
+    endif()
+  endif()
+  target_include_directories(${NAME} PRIVATE "../../node_modules/nan")
+  target_link_options(${NAME} PRIVATE
+    ${COMMON_LINK_OPTIONS}
+    ${COMMON_EXPORTS_V8}
+  )
+  if(IS_EMSCRIPTEN)
+    target_link_options(${NAME} PRIVATE "-sEXPORT_NAME=emnapitest_${NAME}")
+  endif()
+endfunction()
+
+if(NOT IS_WASM32)
+  add_test_v8("v8_hello_world" "./v8_hello_world/binding.cc" OFF)
+  if(IS_EMSCRIPTEN OR IS_WASI_THREADS OR NOT IS_WASM)
+    # TODO nan test
+    # add_test_v8("nan_isolatedata" "./nan/isolatedata.cpp" ON)
+    # add_test_v8("nan_maybe" "./nan/maybe.cpp" ON)
+  endif()
 endif()
