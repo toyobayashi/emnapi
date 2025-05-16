@@ -68,14 +68,17 @@ export function emnapiInit (options: InitOptions): any {
     }
   }
 
-  if (typeof Module._node_register_module_v1 === 'function') {
+  const NODE_MODULE_VERSION = Version.NODE_MODULE_VERSION
+  const nodeRegisterModuleSymbol = `node_register_module_v${NODE_MODULE_VERSION}`
+  const emscriptenExportedSymbol = `_${nodeRegisterModuleSymbol}`
+  if (typeof Module[emscriptenExportedSymbol] === 'function') {
     const scope = emnapiCtx.openScopeRaw()
     try {
       const exports = emnapiModule.exports
 
       const exportsHandle = scope.add(exports)
       const moduleHandle = scope.add(emnapiModule)
-      Module._node_register_module_v1(to64('exportsHandle'), to64('moduleHandle'), to64('5'))
+      Module[emscriptenExportedSymbol](to64('exportsHandle'), to64('moduleHandle'), to64('5'))
     } catch (err) {
       emnapiCtx.closeScopeRaw(scope)
       throw err
@@ -84,6 +87,15 @@ export function emnapiInit (options: InitOptions): any {
     emnapiModule.loaded = true
     delete emnapiModule.envObject
     return emnapiModule.exports
+  }
+
+  const find = Object.keys(Module).filter(k => k.startsWith('_node_register_module_v'))
+  if (find.length > 0) {
+    throw new Error(`The module${emnapiModule.filename ? ` '${emnapiModule.filename}'` : ''}
+was compiled against a different Node.js version using
+NODE_MODULE_VERSION ${find[0].slice(23)}. This version of Node.js requires
+NODE_MODULE_VERSION ${NODE_MODULE_VERSION}. Please try re-compiling or re-installing
+the module (for instance, using \`npm rebuild\` or \`npm install\``)
   }
 
   const moduleApiVersion = Module._node_api_module_get_api_version_v1()

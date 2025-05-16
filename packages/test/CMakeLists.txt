@@ -98,7 +98,7 @@ if(IS_EMSCRIPTEN)
     "-sEXPORTED_FUNCTIONS=['_malloc','_free','_napi_register_wasm_v1','_node_api_module_get_api_version_v1']"
   )
   set(COMMON_EXPORTS_V8
-    "-sEXPORTED_FUNCTIONS=['_malloc','_free','_node_register_module_v1']"
+    "-sEXPORTED_FUNCTIONS=['_malloc','_free']"
   )
 elseif(IS_WASI_THREADS)
   add_compile_options("-fno-exceptions")
@@ -111,7 +111,7 @@ elseif(IS_WASI_THREADS)
     "-Wl,--export=napi_register_wasm_v1,--export-if-defined=node_api_module_get_api_version_v1"
   )
   set(COMMON_EXPORTS_V8
-    "-Wl,--export=node_register_module_v1"
+    ""
   )
 elseif(IS_WASI)
   add_compile_options("-fno-exceptions")
@@ -124,7 +124,7 @@ elseif(IS_WASI)
     "-Wl,--export=napi_register_wasm_v1,--export-if-defined=node_api_module_get_api_version_v1"
   )
   set(COMMON_EXPORTS_V8
-    "-Wl,--export=node_register_module_v1"
+    ""
   )
 elseif(IS_WASM32)
   add_compile_options("-fno-exceptions")
@@ -137,7 +137,7 @@ elseif(IS_WASM32)
     "-Wl,--export=napi_register_wasm_v1,--export-if-defined=node_api_module_get_api_version_v1"
   )
   set(COMMON_EXPORTS_V8
-    "-Wl,--export=node_register_module_v1"
+    ""
   )
 else()
   set(COMMON_LINK_OPTIONS "")
@@ -421,6 +421,7 @@ function(add_test_v8 NAME SOURCE_LIST PTHREAD)
       target_link_libraries(${NAME} PRIVATE "v8")
     endif()
   endif()
+  target_include_directories(${NAME} PRIVATE "../../node_modules/nan")
   target_link_options(${NAME} PRIVATE
     ${COMMON_LINK_OPTIONS}
     ${COMMON_EXPORTS_V8}
@@ -431,3 +432,4 @@ function(add_test_v8 NAME SOURCE_LIST PTHREAD)
 endfunction()
 
 add_test_v8("v8_hello_world" "./v8_hello_world/binding.cc" OFF)
+# add_test_v8("nan_isolatedata" "./nan/isolatedata.cpp" ON)
