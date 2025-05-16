@@ -7,7 +7,6 @@
 namespace v8 {
 
 extern "C" {
-  V8_EXTERN Isolate* _v8_isolate_get_current();
   V8_EXTERN internal::Address _v8_isolate_get_current_context(const Isolate* isolate);
   V8_EXTERN Isolate* _v8_context_get_isolate(const Context* context);
   V8_EXTERN Object* _v8_context_get_global(const Context* context);
@@ -65,8 +64,28 @@ void FromJustIsNothing() {
 
 }  // namespace api_internal
 
+namespace {
+
+struct IsolateImpl {
+  char data_[2048];
+
+  IsolateImpl(): data_{} {
+    memset(data_, 0, sizeof(data_));
+
+    *reinterpret_cast<internal::Address*>(data_ + internal::Internals::kIsolateRootsOffset + v8::internal::Internals::kUndefinedValueRootIndex * v8::internal::kApiSystemPointerSize) = 1;
+    *reinterpret_cast<internal::Address*>(data_ + internal::Internals::kIsolateRootsOffset + v8::internal::Internals::kTheHoleValueRootIndex * v8::internal::kApiSystemPointerSize) = 0;
+    *reinterpret_cast<internal::Address*>(data_ + internal::Internals::kIsolateRootsOffset + v8::internal::Internals::kNullValueRootIndex * v8::internal::kApiSystemPointerSize) = 2;
+    *reinterpret_cast<internal::Address*>(data_ + internal::Internals::kIsolateRootsOffset + v8::internal::Internals::kTrueValueRootIndex * v8::internal::kApiSystemPointerSize) = 3;
+    *reinterpret_cast<internal::Address*>(data_ + internal::Internals::kIsolateRootsOffset + v8::internal::Internals::kFalseValueRootIndex * v8::internal::kApiSystemPointerSize) = 4;
+    *reinterpret_cast<internal::Address*>(data_ + internal::Internals::kIsolateRootsOffset + v8::internal::Internals::kEmptyStringRootIndex * v8::internal::kApiSystemPointerSize) = 6;
+  }
+};
+
+};
+
 Isolate* Isolate::GetCurrent() {
-  return reinterpret_cast<Isolate*>(_v8_isolate_get_current());
+  static IsolateImpl current_isolate;
+  return reinterpret_cast<Isolate*>(&current_isolate);
 }
 
 Local<Context> Isolate::GetCurrentContext() {
@@ -97,7 +116,7 @@ struct FunctionCallbackInfoImpl {
     length_ = argc;
     _v8_get_cb_info(info, &argc, values_, list, reinterpret_cast<void**>(list + 4));
     // *(list) = reinterpret_cast<internal::Address>(_v8_cbinfo_this(info));
-    *(list + 1) = reinterpret_cast<internal::Address>(_v8_isolate_get_current());
+    *(list + 1) = reinterpret_cast<internal::Address>(Isolate::GetCurrent());
     *(list + 2) = 0;
     // *(list + 3) = reinterpret_cast<internal::Address>(_v8_cbinfo_rv(info));
     *(list + 3) = internal::ValueHelper::kEmpty;

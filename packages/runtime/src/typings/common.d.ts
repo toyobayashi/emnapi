@@ -14,11 +14,13 @@ declare interface BufferCtor {
 }
 
 declare const enum GlobalHandle {
-  UNDEFINED = 1,
+  HOLE,
+  UNDEFINED,
   NULL,
   FALSE,
   TRUE,
-  GLOBAL
+  GLOBAL,
+  EMPTY_STRING,
 }
 
 declare const enum Version {
