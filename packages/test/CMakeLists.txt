@@ -400,6 +400,8 @@ function(add_test_v8 NAME SOURCE_LIST PTHREAD)
 
   set_target_properties(${NAME} PROPERTIES
     BUILD_RPATH "$ORIGIN")
+  set_target_properties(${NAME} PROPERTIES
+    CXX_STANDARD "17")
   if(IS_WASM)
     if(PTHREAD)
       if((IS_WASI AND NOT IS_WASI_THREADS) OR IS_WASM32)
@@ -431,5 +433,11 @@ function(add_test_v8 NAME SOURCE_LIST PTHREAD)
   endif()
 endfunction()
 
-add_test_v8("v8_hello_world" "./v8_hello_world/binding.cc" OFF)
-# add_test_v8("nan_isolatedata" "./nan/isolatedata.cpp" ON)
+if(NOT IS_WASM32)
+  add_test_v8("v8_hello_world" "./v8_hello_world/binding.cc" OFF)
+  if(IS_EMSCRIPTEN OR IS_WASI_THREADS OR NOT IS_WASM)
+    # TODO nan test
+    # add_test_v8("nan_isolatedata" "./nan/isolatedata.cpp" ON)
+    # add_test_v8("nan_maybe" "./nan/maybe.cpp" ON)
+  endif()
+endif()
