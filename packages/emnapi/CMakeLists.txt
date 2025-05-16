@@ -263,20 +263,9 @@ install(FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/emnapi.gyp
   DESTINATION ".")
 
-install(FILES
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/node/emnapi_common.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/node/emnapi.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/node/js_native_api_types.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/node/js_native_api.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/node/node_api_types.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/node/node_api.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/node/uv.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/node/config.gypi
-  DESTINATION "include/node")
-
 install(DIRECTORY
-  ${CMAKE_CURRENT_SOURCE_DIR}/include/node/uv
-  DESTINATION "include/node")
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/node
+  DESTINATION "include")
 
 install(FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/dist/library_napi.js
