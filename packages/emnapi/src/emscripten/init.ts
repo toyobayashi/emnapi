@@ -94,8 +94,7 @@ export function emnapiInit (options: InitOptions): any {
     throw new Error(`The module${emnapiModule.filename ? ` '${emnapiModule.filename}'` : ''}
 was compiled against a different Node.js version using
 NODE_MODULE_VERSION ${find[0].slice(23)}. This version of Node.js requires
-NODE_MODULE_VERSION ${NODE_MODULE_VERSION}. Please try re-compiling or re-installing
-the module (for instance, using \`npm rebuild\` or \`npm install\``)
+NODE_MODULE_VERSION ${NODE_MODULE_VERSION}.`)
   }
 
   const moduleApiVersion = Module._node_api_module_get_api_version_v1()

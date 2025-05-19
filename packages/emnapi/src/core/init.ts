@@ -123,8 +123,7 @@ export var napiModule: INapiModule = {
         throw new Error(`The module${napiModule.filename ? ` '${napiModule.filename}'` : ''}
     was compiled against a different Node.js version using
     NODE_MODULE_VERSION ${find[0].slice(22)}. This version of Node.js requires
-    NODE_MODULE_VERSION ${NODE_MODULE_VERSION}. Please try re-compiling or re-installing
-    the module (for instance, using \`npm rebuild\` or \`npm install\``)
+    NODE_MODULE_VERSION ${NODE_MODULE_VERSION}.`)
       }
 
       let moduleApiVersion = Version.NODE_API_DEFAULT_MODULE_API_VERSION
