@@ -14,16 +14,19 @@ declare interface BufferCtor {
 }
 
 declare const enum GlobalHandle {
-  UNDEFINED = 1,
+  HOLE,
+  UNDEFINED,
   NULL,
   FALSE,
   TRUE,
-  GLOBAL
+  GLOBAL,
+  EMPTY_STRING,
 }
 
 declare const enum Version {
   NODE_API_SUPPORTED_VERSION_MIN = 1,
   NODE_API_DEFAULT_MODULE_API_VERSION = 8,
   NODE_API_SUPPORTED_VERSION_MAX = 10,
+  NODE_MODULE_VERSION = 127,
   NAPI_VERSION_EXPERIMENTAL = 2147483647 // INT_MAX
 }

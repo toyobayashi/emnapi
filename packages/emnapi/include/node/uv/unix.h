@@ -15,6 +15,7 @@ typedef pthread_t uv_thread_t;
 typedef pthread_mutex_t uv_mutex_t;
 typedef sem_t uv_sem_t;
 typedef pthread_cond_t uv_cond_t;
+typedef pthread_key_t uv_key_t;
 
 #endif
 

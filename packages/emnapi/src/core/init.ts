@@ -27,6 +27,8 @@ export interface INapiModule {
 
   waitThreadStart: boolean | number
   PThread: ThreadManager
+
+  plugins?: EmnapiPlugin[]
 }
 
 declare const process: any
@@ -96,6 +98,34 @@ export var napiModule: INapiModule = {
 
     if (!napiModule.childThread) {
       // main thread only
+      const NODE_MODULE_VERSION = Version.NODE_MODULE_VERSION
+      const nodeRegisterModuleSymbol = `node_register_module_v${NODE_MODULE_VERSION}`
+      if (typeof instance.exports[nodeRegisterModuleSymbol] === 'function') {
+        const scope = emnapiCtx.openScopeRaw()
+        try {
+          const exports = napiModule.exports
+
+          const exportsHandle = scope.add(exports)
+          const moduleHandle = scope.add(napiModule)
+          instance.exports[nodeRegisterModuleSymbol](to64('exportsHandle'), to64('moduleHandle'), to64('5'))
+        } catch (err) {
+          emnapiCtx.closeScopeRaw(scope)
+          throw err
+        }
+        emnapiCtx.closeScopeRaw(scope)
+        napiModule.loaded = true
+        delete napiModule.envObject
+        return napiModule.exports
+      }
+
+      const find = Object.keys(instance.exports).filter(k => k.startsWith('node_register_module_v'))
+      if (find.length > 0) {
+        throw new Error(`The module${napiModule.filename ? ` '${napiModule.filename}'` : ''}
+    was compiled against a different Node.js version using
+    NODE_MODULE_VERSION ${find[0].slice(22)}. This version of Node.js requires
+    NODE_MODULE_VERSION ${NODE_MODULE_VERSION}.`)
+      }
+
       let moduleApiVersion = Version.NODE_API_DEFAULT_MODULE_API_VERSION
       const node_api_module_get_api_version_v1 = instance.exports.node_api_module_get_api_version_v1
       if (typeof node_api_module_get_api_version_v1 === 'function') {

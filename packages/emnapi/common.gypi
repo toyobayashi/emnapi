@@ -11,6 +11,7 @@
     'max_memory%': 2147483648,
     # must be an absolute path
     'emnapi_js_library%': '<!(node -p "path.resolve(process.argv[1],\'dist/library_napi.js\').replace(process.argv[2],\'/\')" "<(node_root_dir)" "\\\\")',
+    'v8_js_library%': '<!(node -p "path.resolve(process.argv[1],\'dist/library_v8.js\').replace(process.argv[2],\'/\')" "<(node_root_dir)" "\\\\")',
     'emnapi_manual_linking%': 0,
   },
 
@@ -20,6 +21,7 @@
     'defines': [
       'BUILDING_NODE_EXTENSION',
       '__STDC_FORMAT_MACROS',
+      'V8_ENABLE_DIRECT_LOCAL',
     ],
 
     'cflags': [
@@ -81,7 +83,7 @@
         ],
         'ldflags': [
           "-sALLOW_MEMORY_GROWTH=1",
-          "-sEXPORTED_FUNCTIONS=['_malloc','_free','_napi_register_wasm_v1','_node_api_module_get_api_version_v1']",
+          "-sEXPORTED_FUNCTIONS=['_malloc','_free']",
           '-sNODEJS_CATCH_EXIT=0',
           '-sNODEJS_CATCH_REJECTION=0',
           '-sWASM_BIGINT=1',
@@ -98,7 +100,7 @@
           ],
           'OTHER_LDFLAGS': [
             "-sALLOW_MEMORY_GROWTH=1",
-            "-sEXPORTED_FUNCTIONS=['_malloc','_free','_napi_register_wasm_v1','_node_api_module_get_api_version_v1']",
+            "-sEXPORTED_FUNCTIONS=['_malloc','_free']",
             '-sNODEJS_CATCH_EXIT=0',
             '-sNODEJS_CATCH_REJECTION=0',
             '-sWASM_BIGINT=1',
@@ -246,7 +248,7 @@
                   '-Wl,--export-dynamic',
                   '-Wl,--export=malloc',
                   '-Wl,--export=free',
-                  '-Wl,--export=napi_register_wasm_v1',
+                  '-Wl,--export-if-defined=napi_register_wasm_v1',
                   '-Wl,--export-if-defined=node_api_module_get_api_version_v1',
                   '-Wl,--import-undefined',
                   '-Wl,--export-table',
@@ -259,7 +261,7 @@
                     '-Wl,--export-dynamic',
                     '-Wl,--export=malloc',
                     '-Wl,--export=free',
-                    '-Wl,--export=napi_register_wasm_v1',
+                    '-Wl,--export-if-defined=napi_register_wasm_v1',
                     '-Wl,--export-if-defined=node_api_module_get_api_version_v1',
                     '-Wl,--import-undefined',
                     '-Wl,--export-table',
@@ -334,7 +336,7 @@
                   '-Wl,--export-dynamic',
                   '-Wl,--export=malloc',
                   '-Wl,--export=free',
-                  '-Wl,--export=napi_register_wasm_v1',
+                  '-Wl,--export-if-defined=napi_register_wasm_v1',
                   '-Wl,--export-if-defined=node_api_module_get_api_version_v1',
                   '-Wl,--import-undefined',
                   '-Wl,--export-table',
@@ -347,7 +349,7 @@
                     '-Wl,--export-dynamic',
                     '-Wl,--export=malloc',
                     '-Wl,--export=free',
-                    '-Wl,--export=napi_register_wasm_v1',
+                    '-Wl,--export-if-defined=napi_register_wasm_v1',
                     '-Wl,--export-if-defined=node_api_module_get_api_version_v1',
                     '-Wl,--import-undefined',
                     '-Wl,--export-table',

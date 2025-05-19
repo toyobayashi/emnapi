@@ -14,6 +14,8 @@ let ignore = [
 ]
 
 const pthread = [
+  'v8_hello_world/**/*',
+  'nan/**/*',
   'node-addon-api/**/*',
   'pool/**/*',
   'tsfn/**/*',

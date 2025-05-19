@@ -8,3 +8,4 @@ node_modules
 api-extractor.json
 tsconfig.json
 /dist/types
+/dist/**/types
