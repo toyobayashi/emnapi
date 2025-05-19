@@ -6,6 +6,7 @@ export { EmnapiError, NotSupportWeakRefError, NotSupportBufferError } from './er
 export { External, isExternal, getExternalValue } from './External'
 export { Finalizer } from './Finalizer'
 export { FunctionTemplate } from './FunctionTemplate'
+export { ObjectTemplate, getInternalField, setInternalField } from './ObjectTemplate'
 export { TrackedFinalizer } from './TrackedFinalizer'
 export { HandleStore } from './Handle'
 export { HandleScope, type ICallbackInfo } from './HandleScope'

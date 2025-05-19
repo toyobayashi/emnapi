@@ -6,6 +6,7 @@ export class FunctionTemplate {
   public v8FunctionCallback: Ptr
   public data: Ptr
   public ctx: Context
+  public className: string | undefined
 
   constructor (
     ctx: Context,
@@ -17,11 +18,16 @@ export class FunctionTemplate {
     this.callback = callback
     this.v8FunctionCallback = v8FunctionCallback
     this.data = data
+    this.className = undefined
+  }
+
+  setClassName (name: string) {
+    this.className = name
   }
 
   getFunction () {
     const { ctx, callback, v8FunctionCallback, data } = this
-    return function _ (this: any, ...args: any[]) {
+    function _ (this: any, ...args: any[]) {
       const scope = ctx.openScopeRaw()
       const callbackInfo = scope.callbackInfo
       try {
@@ -39,5 +45,9 @@ export class FunctionTemplate {
         ctx.closeScopeRaw(scope)
       }
     }
+    if (typeof this.className === 'string') {
+      this.ctx.features.setFunctionName?.(_, this.className)
+    }
+    return _
   }
 }

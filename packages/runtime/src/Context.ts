@@ -18,6 +18,7 @@ import { ArrayStore } from './Store'
 import { TrackedFinalizer } from './TrackedFinalizer'
 import { External, isExternal, getExternalValue } from './External'
 import { FunctionTemplate } from './FunctionTemplate'
+import { ObjectTemplate, setInternalField, getInternalField } from './ObjectTemplate'
 
 export type CleanupHookCallbackFunction = number | ((arg: number) => void)
 
@@ -282,6 +283,18 @@ export class Context {
     )
     this.addCleanupHook(env, () => { env.unref() }, 0)
     return env
+  }
+
+  public createObjectTemplate (constructor: any) {
+    return new ObjectTemplate(this, constructor)
+  }
+
+  public setInternalField (obj: any, index: number, value: any): void {
+    setInternalField(obj, index, value)
+  }
+
+  public getInternalField (obj: any, index: number): any {
+    return getInternalField(obj, index)
   }
 
   public createFunctionTemplate (

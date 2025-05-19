@@ -13,6 +13,7 @@ extern "C" {
   V8_EXTERN bool _v8_data_is_value(const Data* data);
   V8_EXTERN Object* _v8_create_object(Isolate* isolate);
   V8_EXTERN internal::Address _v8_open_handle_scope(Isolate* isolate);
+  V8_EXTERN internal::Address _v8_handle_scope_escape(internal::Address scope, internal::Address value);
   V8_EXTERN void _v8_close_handle_scope(internal::Address scope);
   V8_EXTERN Isolate* _v8_handle_scope_get_isolate(internal::Address scope);
   V8_EXTERN int _v8_number_of_handles(const Isolate* isolate);
@@ -30,9 +31,23 @@ extern "C" {
       uint16_t allowed_receiver_instance_type_range_start,
       uint16_t allowed_receiver_instance_type_range_end);
   V8_EXTERN internal::Address _v8_function_template_get_function(FunctionTemplate* tpl, Context* context);
+  V8_EXTERN void _v8_function_template_set_class_name(FunctionTemplate* tpl, internal::Address name);
   V8_EXTERN internal::Address _v8_string_new_from_utf8(Isolate* isolate, const char* data, v8::NewStringType type, int length);
   V8_EXTERN void _v8_function_set_name(Function* func, internal::Address name);
   V8_EXTERN int _v8_object_set(Object* obj, Context* context, internal::Address key, internal::Address value, int* success);
+  V8_EXTERN internal::Address _v8_object_template_new(Isolate* isolate, internal::Address constructor);
+  V8_EXTERN void _v8_object_template_set_internal_field_count(ObjectTemplate* obj_tpl, int value);
+  V8_EXTERN internal::Address _v8_external_new(Isolate* isolate, void* data);
+  V8_EXTERN void _v8_object_set_internal_field(Object* obj, int index, internal::Address data);
+  V8_EXTERN internal::Address _v8_object_template_new_instance(ObjectTemplate* obj_tpl, Context* context);
+  V8_EXTERN internal::Address _v8_object_get_internal_field(Object* obj, int index);
+  V8_EXTERN void* _v8_external_value(const External* obj);
+}
+
+namespace internal {
+  Isolate* IsolateFromNeverReadOnlySpaceObject(unsigned long obj) {
+    return reinterpret_cast<Isolate*>(v8::Isolate::GetCurrent());
+  }
 }
 
 namespace v8impl {
@@ -166,6 +181,10 @@ MaybeLocal<Function> FunctionTemplate::GetFunction(v8::Local<v8::Context> contex
   return v8impl::V8LocalValueFromAddress(func).As<Function>();
 }
 
+void FunctionTemplate::SetClassName(v8::Local<v8::String> name) {
+  _v8_function_template_set_class_name(this, v8impl::AddressFromV8LocalValue(name));
+}
+
 MaybeLocal<String> String::NewFromUtf8(v8::Isolate* isolate, char const* data, v8::NewStringType type, int length) {
   auto str = _v8_string_new_from_utf8(isolate, data, type, length);
   if (!str) return MaybeLocal<String>();
@@ -182,6 +201,63 @@ Maybe<bool> Object::Set(v8::Local<v8::Context> context, v8::Local<v8::Value> key
     v8impl::AddressFromV8LocalValue(key), v8impl::AddressFromV8LocalValue(value), &success);
   if (r != 0) return Nothing<bool>();
   return Just<bool>(success);
+}
+
+internal::Address* HandleScope::CreateHandle(v8::internal::Isolate*, internal::Address value) {
+  return new internal::Address(value);
+}
+
+EscapableHandleScopeBase::EscapableHandleScopeBase(Isolate* isolate): HandleScope(isolate), escape_slot_(nullptr) {}
+
+internal::Address* EscapableHandleScopeBase::EscapeSlot(internal::Address* escape_value) {
+  if (escape_slot_ != nullptr) {
+    abort();
+  }
+  internal::Address* prev_next_ = *reinterpret_cast<internal::Address**>(reinterpret_cast<internal::Address>(this) + 4);
+  escape_slot_ = reinterpret_cast<internal::Address*>(
+    _v8_handle_scope_escape(*prev_next_, reinterpret_cast<internal::Address>(escape_value)));
+  return escape_slot_;
+}
+
+Local<ObjectTemplate> ObjectTemplate::New(Isolate* isolate, Local<FunctionTemplate> constructor) {
+  internal::Address obj_tpl_value = _v8_object_template_new(isolate, reinterpret_cast<internal::Address>(*constructor));
+  if (!obj_tpl_value) return Local<ObjectTemplate>();
+  return v8impl::V8LocalValueFromAddress(obj_tpl_value).As<ObjectTemplate>();
+}
+
+MaybeLocal<Object> ObjectTemplate::NewInstance(v8::Local<v8::Context> context) {
+  internal::Address obj_value = _v8_object_template_new_instance(this, *context);
+  if (!obj_value) return MaybeLocal<Object>();
+  return v8impl::V8LocalValueFromAddress(obj_value).As<Object>();
+}
+
+void ObjectTemplate::SetInternalFieldCount(int value) {
+  _v8_object_template_set_internal_field_count(this, value);
+}
+
+Local<External> External::New(v8::Isolate* isolate, void* value) {
+  internal::Address obj_value = _v8_external_new(isolate, value);
+  if (!obj_value) return Local<External>();
+  auto obj = v8impl::V8LocalValueFromAddress(obj_value).As<External>();
+  return obj;
+}
+
+void* External::Value() const {
+  return _v8_external_value(this);
+}
+
+// Local<Data> Object::GetInternalField(int index) {
+//   return SlowGetInternalField(index);
+// }
+
+void Object::SetInternalField(int index, v8::Local<v8::Data> data) {
+  _v8_object_set_internal_field(this, index, reinterpret_cast<internal::Address>(*data));
+}
+
+Local<Data> Object::SlowGetInternalField(int index) {
+  internal::Address data_value = _v8_object_get_internal_field(this, index);
+  if (!data_value) return Local<Data>();
+  return v8impl::V8LocalValueFromAddress(data_value).As<Data>();
 }
 
 }  // namespace v8

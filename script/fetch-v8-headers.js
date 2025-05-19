@@ -35,3 +35,32 @@ fs.writeFileSync(v8config,
   ,
   'utf-8'
 )
+
+const v8localhandle = path.join(emnapiInclude, 'v8-local-handle.h')
+const v8localhandleContent = fs.readFileSync(v8localhandle, 'utf-8')
+fs.writeFileSync(v8localhandle,
+  v8localhandleContent
+    .replace(/(template <.*?>)(\r?\n)?\s*(.+)\s+Escape\((.+?)\)\s\{(.*\r?\n)*?\s\s\}/, `$1
+  $3 Escape($4) {
+#ifdef V8_ENABLE_DIRECT_LOCAL
+    if (value.IsEmpty()) return value;
+    return Local<T>::FromAddress(reinterpret_cast<internal::Address>(EscapeSlot(reinterpret_cast<internal::Address*>(*value))));
+#else
+    if (value.IsEmpty()) return value;
+    return Local<T>::FromSlot(EscapeSlot(value.slot()));
+#endif
+  }`)
+  ,
+  'utf-8'
+)
+
+const v8object = path.join(emnapiInclude, 'v8-object.h')
+const v8objectContent = fs.readFileSync(v8object, 'utf-8')
+fs.writeFileSync(v8object,
+  v8objectContent
+    .replace(/(.+)\s+Object::GetInternalField\((.+?)\)\s\{(.*\r?\n)*?\}/, `$1 Object::GetInternalField($2) {
+  return SlowGetInternalField(index);
+}`)
+  ,
+  'utf-8'
+)
