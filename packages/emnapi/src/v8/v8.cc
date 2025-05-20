@@ -213,7 +213,7 @@ internal::Address* EscapableHandleScopeBase::EscapeSlot(internal::Address* escap
   if (escape_slot_ != nullptr) {
     abort();
   }
-  internal::Address* prev_next_ = *reinterpret_cast<internal::Address**>(reinterpret_cast<internal::Address>(this) + 4);
+  internal::Address* prev_next_ = *reinterpret_cast<internal::Address**>(reinterpret_cast<internal::Address>(this) + internal::kApiSystemPointerSize * 1);
   escape_slot_ = reinterpret_cast<internal::Address*>(
     _v8_handle_scope_escape(*prev_next_, reinterpret_cast<internal::Address>(escape_value)));
   return escape_slot_;
