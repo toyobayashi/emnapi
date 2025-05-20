@@ -124,7 +124,14 @@
       'target_name': 'v8',
       'type': 'static_library',
       'sources': [
-        'src/v8/v8.cc',
+        'external.cc',
+        'function.cc',
+        'handle_scope.cc',
+        'internal.cc',
+        'isolate.cc',
+        'object.cc',
+        'string.cc',
+        'template.cc'
       ],
       'defines': [
         'V8_ENABLE_DIRECT_LOCAL'
