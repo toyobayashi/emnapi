@@ -90,8 +90,8 @@ struct IsolateImpl {
     *reinterpret_cast<internal::Address*>(data_ + internal::Internals::kIsolateRootsOffset + v8::internal::Internals::kUndefinedValueRootIndex * v8::internal::kApiSystemPointerSize) = 1;
     *reinterpret_cast<internal::Address*>(data_ + internal::Internals::kIsolateRootsOffset + v8::internal::Internals::kTheHoleValueRootIndex * v8::internal::kApiSystemPointerSize) = 0;
     *reinterpret_cast<internal::Address*>(data_ + internal::Internals::kIsolateRootsOffset + v8::internal::Internals::kNullValueRootIndex * v8::internal::kApiSystemPointerSize) = 2;
-    *reinterpret_cast<internal::Address*>(data_ + internal::Internals::kIsolateRootsOffset + v8::internal::Internals::kTrueValueRootIndex * v8::internal::kApiSystemPointerSize) = 3;
-    *reinterpret_cast<internal::Address*>(data_ + internal::Internals::kIsolateRootsOffset + v8::internal::Internals::kFalseValueRootIndex * v8::internal::kApiSystemPointerSize) = 4;
+    *reinterpret_cast<internal::Address*>(data_ + internal::Internals::kIsolateRootsOffset + v8::internal::Internals::kFalseValueRootIndex * v8::internal::kApiSystemPointerSize) = 3;
+    *reinterpret_cast<internal::Address*>(data_ + internal::Internals::kIsolateRootsOffset + v8::internal::Internals::kTrueValueRootIndex * v8::internal::kApiSystemPointerSize) = 4;
     *reinterpret_cast<internal::Address*>(data_ + internal::Internals::kIsolateRootsOffset + v8::internal::Internals::kEmptyStringRootIndex * v8::internal::kApiSystemPointerSize) = 6;
   }
 };

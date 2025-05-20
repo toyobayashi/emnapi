@@ -4,7 +4,7 @@ import type { Context } from './Context'
 export class FunctionTemplate {
   public callback: (info: napi_callback_info, v8FunctionCallback: Ptr) => Ptr
   public v8FunctionCallback: Ptr
-  public data: Ptr
+  public data: any
   public ctx: Context
   public className: string | undefined
 
@@ -12,7 +12,7 @@ export class FunctionTemplate {
     ctx: Context,
     callback: (info: napi_callback_info, v8FunctionCallback: Ptr) => Ptr,
     v8FunctionCallback: Ptr,
-    data: Ptr
+    data: any
   ) {
     this.ctx = ctx
     this.callback = callback

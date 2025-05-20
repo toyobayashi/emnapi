@@ -438,6 +438,6 @@ if(NOT IS_WASM32)
   if(IS_EMSCRIPTEN OR IS_WASI_THREADS OR NOT IS_WASM)
     # TODO nan test
     add_test_v8("nan_isolatedata" "./nan/isolatedata.cpp" ON)
-    # add_test_v8("nan_maybe" "./nan/maybe.cpp" ON)
+    add_test_v8("nan_maybe" "./nan/maybe.cpp" ON)
   endif()
 endif()

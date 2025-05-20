@@ -84,7 +84,8 @@ export function _v8_get_cb_info (cbinfo: napi_callback_info, argc: Pointer<size_
   }
   if (data) {
     from64('data')
-    makeSetValue('data', 0, 'cbinfoValue.data', '*')
+    const localData = emnapiCtx.napiValueFromJsValue(cbinfoValue.data)
+    makeSetValue('data', 0, 'localData', '*')
   }
   return 0
 }
@@ -108,7 +109,7 @@ export function _v8_function_template_new (
   allowed_receiver_instance_type_range_end: number
 ): Pointer<unknown> {
   const jsCb = makeDynCall('ppp', 'callback')
-  const tpl = emnapiCtx.createFunctionTemplate(jsCb, cb, data)
+  const tpl = emnapiCtx.createFunctionTemplate(jsCb, cb, emnapiCtx.jsValueFromNapiValue(data))
   return emnapiCtx.napiValueFromJsValue(tpl)
 }
 

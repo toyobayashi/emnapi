@@ -300,7 +300,7 @@ export class Context {
   public createFunctionTemplate (
     callback: (info: napi_callback_info, v8FunctionCallback: Ptr) => Ptr,
     v8FunctionCallback: Ptr,
-    data: Ptr
+    data: any
   ) {
     const functionTemplate = new FunctionTemplate(
       this,
