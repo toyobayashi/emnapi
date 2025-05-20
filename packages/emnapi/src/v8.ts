@@ -84,7 +84,8 @@ export function _v8_get_cb_info (cbinfo: napi_callback_info, argc: Pointer<size_
   }
   if (data) {
     from64('data')
-    makeSetValue('data', 0, 'cbinfoValue.data', '*')
+    const localData = emnapiCtx.napiValueFromJsValue(cbinfoValue.data)
+    makeSetValue('data', 0, 'localData', '*')
   }
   return 0
 }
@@ -108,7 +109,7 @@ export function _v8_function_template_new (
   allowed_receiver_instance_type_range_end: number
 ): Pointer<unknown> {
   const jsCb = makeDynCall('ppp', 'callback')
-  const tpl = emnapiCtx.createFunctionTemplate(jsCb, cb, data)
+  const tpl = emnapiCtx.createFunctionTemplate(jsCb, cb, emnapiCtx.jsValueFromNapiValue(data))
   return emnapiCtx.napiValueFromJsValue(tpl)
 }
 
@@ -179,6 +180,13 @@ export function _v8_function_template_get_function (template: Ptr, context: Ptr)
   return emnapiCtx.napiValueFromJsValue(tpl.getFunction())
 }
 
+export function _v8_function_template_set_class_name (template: Ptr, name: Ptr): void {
+  const tpl = emnapiCtx.jsValueFromNapiValue<FunctionTemplate>(template)
+  const nameValue = emnapiCtx.jsValueFromNapiValue(name)
+  if (!tpl || nameValue == null) return
+  tpl.setClassName(nameValue)
+}
+
 /**
  * @__deps $emnapiCtx
  * @__deps $emnapiString
@@ -221,4 +229,99 @@ export function _v8_object_set (obj: Ptr, context: Ptr, key: Ptr, value: Ptr, su
     makeSetValue('success', 0, 'v', 'i32')
   }
   return 0
+}
+
+/**
+ * @__deps $emnapiCtx
+ * @__sig ppp
+ */
+export function _v8_handle_scope_escape (scope: Pointer<unknown>, value: Pointer<unknown>): Pointer<unknown> {
+  const scopeValue = emnapiCtx.getHandleScope(scope)!
+  from64('value')
+  return scopeValue.escape(value as number)
+}
+
+/**
+ * @__deps $emnapiCtx
+ * @__sig ppp
+ */
+export function _v8_object_template_new (
+  isolate: Ptr,
+  constructor: Ptr
+): Ptr {
+  const tpl = emnapiCtx.createObjectTemplate(emnapiCtx.jsValueFromNapiValue(constructor))
+  return emnapiCtx.napiValueFromJsValue(tpl)
+}
+
+/**
+ * @__deps $emnapiCtx
+ * @__sig vpi
+ */
+export function _v8_object_template_set_internal_field_count (
+  tpl: Ptr,
+  value: number
+): void {
+  const templateObject = emnapiCtx.jsValueFromNapiValue(tpl)
+  templateObject.setInternalFieldCount(value)
+}
+
+/**
+ * @__deps $emnapiCtx
+ * @__sig ppp
+ */
+export function _v8_external_new (
+  isolate: Ptr,
+  data: number
+): Ptr {
+  const external = emnapiCtx.createExternal(data)
+  return emnapiCtx.napiValueFromJsValue(external)
+}
+
+/**
+ * @__deps $emnapiCtx
+ * @__sig pp
+ */
+export function _v8_external_value (
+  external: Ptr
+): Ptr {
+  const obj = emnapiCtx.jsValueFromNapiValue(external)
+  return emnapiCtx.getExternalValue(obj)
+}
+
+/**
+ * @__deps $emnapiCtx
+ * @__sig vpip
+ */
+export function _v8_object_set_internal_field (
+  obj: Ptr,
+  index: number,
+  data: Ptr
+): void {
+  const objValue = emnapiCtx.jsValueFromNapiValue(obj)
+  const dataValue = emnapiCtx.jsValueFromNapiValue(data)
+  emnapiCtx.setInternalField(objValue, index, dataValue)
+}
+
+/**
+ * @__deps $emnapiCtx
+ * @__sig pip
+ */
+export function _v8_object_get_internal_field (
+  obj: Ptr,
+  index: number
+): Ptr {
+  const objValue = emnapiCtx.jsValueFromNapiValue(obj)
+  return emnapiCtx.napiValueFromJsValue(emnapiCtx.getInternalField(objValue, index))
+}
+
+/**
+ * @__deps $emnapiCtx
+ * @__sig ppp
+ */
+export function _v8_object_template_new_instance (
+  obj_tpl: Ptr,
+  context: Ptr
+): Ptr {
+  const objTemplate = emnapiCtx.jsValueFromNapiValue(obj_tpl)
+  return emnapiCtx.napiValueFromJsValue(objTemplate.newInstance(context))
 }
