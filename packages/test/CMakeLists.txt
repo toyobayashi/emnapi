@@ -358,7 +358,7 @@ add_test("version" "./version/binding.c" OFF)
 add_test("make_callback" "./make_callback/binding.c" OFF)
 add_test("async_context" "./async_context/binding.c" OFF)
 
-if(IS_EMSCRIPTEN OR IS_WASI_THREADS)
+if(IS_EMSCRIPTEN OR IS_WASI_THREADS OR NOT IS_WASM)
   file(GLOB_RECURSE naa_binding_SRC
     "./node-addon-api/*.cc")
 
