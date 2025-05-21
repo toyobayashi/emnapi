@@ -27,7 +27,7 @@ export class HandleStore extends BaseArrayStore<any> {
             for (let i = start; i < end; ++i) {
               const value = this._values[i]
               const type = typeof value
-              if ((type === 'object' && value !== null) || type === 'symbol') {
+              if ((type === 'object' && value !== null) || (type === 'symbol' && Symbol.keyFor(value) === undefined)) {
                 this._values[i] = new WeakRef(value)
               }
             }
