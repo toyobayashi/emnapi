@@ -6,7 +6,7 @@ export class HandleStore extends BaseArrayStore<any> {
 
   private _allocator: CountIdAllocator
   private _features: Features
-  private _erase: (start: number, end: number) => void
+  private _erase: (start: number, end: number, weak: boolean) => void
   private _deref: (id: number | bigint) => any
 
   public constructor (features: Features) {
@@ -21,30 +21,41 @@ export class HandleStore extends BaseArrayStore<any> {
     this._values[GlobalHandle.GLOBAL] = features.getGlobalThis()
     this._values[GlobalHandle.EMPTY_STRING] = ''
 
+    const _erase = (start: number, end: number): void => {
+      for (let i = start; i < end; ++i) {
+        this.dealloc(i)
+      }
+    }
+
     this._erase = this._features.finalizer
       ? this._features.weakSymbol
-        ? (start: number, end: number): void => {
-            for (let i = start; i < end; ++i) {
-              const value = this._values[i]
-              const type = typeof value
-              if ((type === 'object' && value !== null) || (type === 'symbol' && Symbol.keyFor(value) === undefined)) {
-                this._values[i] = new WeakRef(value)
+        ? (start: number, end: number, weak: boolean): void => {
+            if (!weak) {
+              _erase(start, end)
+            } else {
+              for (let i = start; i < end; ++i) {
+                const value = this._values[i]
+                const type = typeof value
+                if ((type === 'object' && value !== null) || (type === 'function') || (type === 'symbol' && Symbol.keyFor(value) === undefined)) {
+                  this._values[i] = new WeakRef(value)
+                }
               }
             }
           }
-        : (start: number, end: number): void => {
-            for (let i = start; i < end; ++i) {
-              const value = this._values[i]
-              if (typeof value === 'object' && value !== null) {
-                this._values[i] = new WeakRef(value)
+        : (start: number, end: number, weak: boolean): void => {
+            if (!weak) {
+              _erase(start, end)
+            } else {
+              for (let i = start; i < end; ++i) {
+                const value = this._values[i]
+                const type = typeof value
+                if ((type === 'object' && value !== null) || (type === 'function')) {
+                  this._values[i] = new WeakRef(value)
+                }
               }
             }
           }
-      : (start: number, end: number): void => {
-          for (let i = start; i < end; ++i) {
-            this.dealloc(i)
-          }
-        }
+      : _erase
 
     this._deref = this._features.finalizer
       ? (id: number | bigint): any => {
@@ -73,9 +84,9 @@ export class HandleStore extends BaseArrayStore<any> {
     this._values[i as number] = undefined
   }
 
-  public erase (start: number, end: number): void {
+  public erase (start: number, end: number, weak: boolean): void {
     this._allocator.next = start
-    this._erase(start, end)
+    this._erase(start, end, weak)
   }
 
   public swap (a: number, b: number): void {
