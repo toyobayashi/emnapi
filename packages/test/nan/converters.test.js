@@ -23,8 +23,8 @@ module.exports = p.then(converters => {
   assert.strictEqual(converters.toNumber(15.3), 15.3);
   assert.strictEqual(converters.toString('sol'), 'sol');
   assert.strictEqual(converters.toDetailString('sol'), 'sol');
-  assert.strictEqual(converters.toFunction(test), test);
-  assert.strictDeepEqual(converters.toObject({prop : 'x'}), {prop : 'x'});
+  assert.strictEqual(converters.toFunction(load), load);
+  assert.deepStrictEqual(converters.toObject({prop : 'x'}), {prop : 'x'});
   assert.strictEqual(converters.toInteger(12), 12);
   assert.strictEqual(converters.toUint32(12), 12);
   assert.strictEqual(converters.toInt32(-12), -12);

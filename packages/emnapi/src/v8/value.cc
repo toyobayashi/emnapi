@@ -11,10 +11,6 @@ extern "C" {
   V8_EXTERN internal::Address _v8_value_to_uint32(const Value*, Context*);
   V8_EXTERN internal::Address _v8_value_to_int32(const Value*, Context*);
   V8_EXTERN internal::Address _v8_value_to_array_index(const Value*, Context*);
-  V8_EXTERN internal::Address _v8_value_number_value(const Value*, Context*);
-  V8_EXTERN internal::Address _v8_value_integer_value(const Value*, Context*);
-  V8_EXTERN internal::Address _v8_value_uint32_value(const Value*, Context*);
-  V8_EXTERN internal::Address _v8_value_int32_value(const Value*, Context*);
   V8_EXTERN bool _v8_value_is_function(const Value*);
 }
 
