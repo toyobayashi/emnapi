@@ -439,7 +439,7 @@ export function _v8_boolean_value (value: Ptr): number {
 
 /**
  * @__deps $emnapiCtx
- * @__sig dpp
+ * @__sig dp
  */
 export function _v8_number_value (value: Ptr): number {
   const jsValue = emnapiCtx.jsValueFromNapiValue(value)
@@ -459,6 +459,7 @@ export function _v8_integer_value (value: Ptr, out: Ptr): void {
   } else {
     v = Math.trunc(Number(jsValue))
   }
+  from64('out')
   makeSetValue('out', 0, 'v', 'i64')
 }
 
