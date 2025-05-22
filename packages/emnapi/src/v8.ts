@@ -419,7 +419,7 @@ export function _v8_value_to_array_index (value: Ptr, context: Ptr): Ptr {
 
 /**
  * @__deps $emnapiCtx
- * @__sig pi
+ * @__sig ip
  */
 export function _v8_value_is_function (value: Ptr): number {
   const jsValue = emnapiCtx.jsValueFromNapiValue(value)
@@ -430,7 +430,7 @@ export function _v8_value_is_function (value: Ptr): number {
 
 /**
  * @__deps $emnapiCtx
- * @__sig pi
+ * @__sig ip
  */
 export function _v8_boolean_value (value: Ptr): number {
   const jsValue = emnapiCtx.jsValueFromNapiValue(value)
