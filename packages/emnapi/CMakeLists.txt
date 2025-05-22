@@ -37,6 +37,9 @@ set(V8_SRC
   "${CMAKE_CURRENT_SOURCE_DIR}/src/v8/isolate.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/v8/object.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/v8/string.cc"
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/v8/value.cc"
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/v8/boolean.cc"
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/v8/number.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/v8/template.cc"
 )
 

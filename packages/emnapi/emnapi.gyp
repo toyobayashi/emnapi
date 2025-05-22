@@ -131,6 +131,9 @@
         'isolate.cc',
         'object.cc',
         'string.cc',
+        'value.cc',
+        'boolean.cc',
+        'number.cc',
         'template.cc'
       ],
       'defines': [

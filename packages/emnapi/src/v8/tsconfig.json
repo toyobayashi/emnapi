@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "paths": {
+    }
+  },
+  "include": [
+    "../../../runtime/src/typings/**/*.d.ts",
+    "../typings/**/*.d.ts",
+    "./**/*.ts"
+  ]
+}

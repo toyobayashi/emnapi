@@ -38,10 +38,6 @@ export class FunctionTemplate {
         const ret = callback(ctx.getCurrentScope()!.id, v8FunctionCallback)
         return ret ? ctx.jsValueFromNapiValue(ret) : undefined
       } finally {
-        callbackInfo.data = 0!
-        callbackInfo.args = undefined!
-        callbackInfo.thiz = undefined!
-        callbackInfo.fn = undefined!
         ctx.closeScopeRaw(scope)
       }
     }

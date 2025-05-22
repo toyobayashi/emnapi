@@ -56,8 +56,15 @@ export class HandleScope extends Disposable {
   }
 
   public dispose (): void {
+    const weak = this.callbackInfo.fn === undefined
+    if (!weak) {
+      this.callbackInfo.data = 0
+      this.callbackInfo.args = undefined!
+      this.callbackInfo.thiz = undefined
+      this.callbackInfo.fn = undefined!
+    }
     if (this.start === this.end) return
-    this.handleStore.erase(this.start, this.end)
+    this.handleStore.erase(this.start, this.end, weak)
   }
 
   public escape (handle: number): number {

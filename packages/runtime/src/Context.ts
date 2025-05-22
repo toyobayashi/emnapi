@@ -37,10 +37,6 @@ const withScope = (envObject: Env, thiz: any, args: any[], data: number | bigint
   try {
     return wrapper(envObject, callback)
   } finally {
-    callbackInfo.data = 0
-    callbackInfo.args = undefined!
-    callbackInfo.thiz = undefined
-    callbackInfo.fn = undefined!
     envObject.ctx.closeScope(envObject, scope)
   }
 }

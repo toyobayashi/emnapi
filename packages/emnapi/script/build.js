@@ -15,6 +15,9 @@ async function build () {
   // compile(libTsconfigPath)
   const libTsconfig = JSON.parse(fs.readFileSync(libTsconfigPath, 'utf8'))
 
+  const v8TsconfigPath = path.join(__dirname, '../src/v8/tsconfig.json')
+  const v8Tsconfig = JSON.parse(fs.readFileSync(v8TsconfigPath, 'utf8'))
+
   const libOut = path.join(path.dirname(libTsconfigPath), './dist/library_napi.js')
   const libOutV8 = path.join(path.dirname(libTsconfigPath), './dist/library_v8.js')
   const runtimeRequire = createRequire(path.join(__dirname, '../../runtime/index.js'))
@@ -67,11 +70,11 @@ async function build () {
   })
 
   const v8RollupBuild = await rollup({
-    input: path.join(__dirname, '../src/emscripten/index-v8.ts'),
+    input: path.join(__dirname, '../src/v8/index.ts'),
     treeshake: false,
     plugins: [
       rollupTypescript({
-        tsconfig: libTsconfigPath,
+        tsconfig: v8TsconfigPath,
         tslib: path.join(
           path.dirname(runtimeRequire.resolve('tslib')),
           JSON.parse(fs.readFileSync(path.join(path.dirname(runtimeRequire.resolve('tslib')), 'package.json'))).module
@@ -79,7 +82,7 @@ async function build () {
         compilerOptions: {
           module: ts.ModuleKind.ESNext
         },
-        include: libTsconfig.include.map(s => path.join(__dirname, '..', s)),
+        include: v8Tsconfig.include.map(s => path.join(__dirname, '../src/v8', s)),
         transformers: {
           before: [
             {
@@ -193,11 +196,11 @@ export function createNapiModule (options) {
   })
 
   const coreV8RollupBuild = await rollup({
-    input: path.join(__dirname, '../src/core/index-v8.ts'),
+    input: path.join(__dirname, '../src/v8/index.ts'),
     treeshake: false,
     plugins: [
       rollupTypescript({
-        tsconfig: coreTsconfigPath,
+        tsconfig: v8TsconfigPath,
         tslib: path.join(
           path.dirname(runtimeRequire.resolve('tslib')),
           JSON.parse(fs.readFileSync(path.join(path.dirname(runtimeRequire.resolve('tslib')), 'package.json'))).module
@@ -205,7 +208,7 @@ export function createNapiModule (options) {
         compilerOptions: {
           module: ts.ModuleKind.ESNext
         },
-        include: coreTsconfig.include.map(s => path.join(__dirname, '../src/core', s)),
+        include: v8Tsconfig.include.map(s => path.join(__dirname, '../src/v8', s)),
         transformers: {
           before: [
             {
