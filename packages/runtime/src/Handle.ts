@@ -60,7 +60,7 @@ export class HandleStore extends BaseArrayStore<any> {
     this._deref = this._features.finalizer
       ? (id: number | bigint): any => {
           const value = this._values[id as number]
-          if (value instanceof WeakRef && id >= this._allocator.next) {
+          if (value instanceof WeakRef && Number(id) >= this._allocator.next) {
             return value.deref()
           }
           return value
