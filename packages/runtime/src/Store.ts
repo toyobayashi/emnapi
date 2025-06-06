@@ -63,6 +63,7 @@ export class BaseArrayStore<T> extends Disposable implements ObjectAllocator<T> 
     this._values = Array(initialCapacity) as [undefined, ...(T | undefined)[]]
   }
 
+  /** @virtual */
   public deref<R extends T = T> (id: number | bigint): R | undefined {
     return this._values[id as number] as R
   }

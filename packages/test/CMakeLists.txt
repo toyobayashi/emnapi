@@ -358,7 +358,7 @@ add_test("version" "./version/binding.c" OFF)
 add_test("make_callback" "./make_callback/binding.c" OFF)
 add_test("async_context" "./async_context/binding.c" OFF)
 
-if(IS_EMSCRIPTEN OR IS_WASI_THREADS)
+if(IS_EMSCRIPTEN OR IS_WASI_THREADS OR NOT IS_WASM)
   file(GLOB_RECURSE naa_binding_SRC
     "./node-addon-api/*.cc")
 
@@ -437,6 +437,7 @@ if(NOT IS_WASM32)
   add_test_v8("v8_hello_world" "./v8_hello_world/binding.cc" OFF)
   if(IS_EMSCRIPTEN OR IS_WASI_THREADS OR NOT IS_WASM)
     # TODO nan test
+    add_test_v8("nan_converters" "./nan/converters.cpp" ON)
     add_test_v8("nan_isolatedata" "./nan/isolatedata.cpp" ON)
     add_test_v8("nan_maybe" "./nan/maybe.cpp" ON)
   endif()
