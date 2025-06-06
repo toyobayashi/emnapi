@@ -4,3 +4,12 @@
 export function _v8_isolate_get_current_context (): number {
   return 5
 }
+
+/**
+ * @__deps $emnapiCtx
+ * @__sig pp
+ */
+export function _v8_isolate_throw_exception (error: Ptr): Ptr {
+  emnapiCtx.throwException(emnapiCtx.jsValueFromNapiValue(error))
+  return error
+}
