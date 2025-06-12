@@ -1,4 +1,5 @@
 export * from './boolean'
+export * from './exception'
 export * from './external'
 export * from './function'
 export * from './handle_scope'

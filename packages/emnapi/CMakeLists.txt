@@ -31,6 +31,7 @@ endif()
 
 set(V8_SRC
   "${CMAKE_CURRENT_SOURCE_DIR}/src/v8/external.cc"
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/v8/exception.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/v8/function.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/v8/handle_scope.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/v8/internal.cc"

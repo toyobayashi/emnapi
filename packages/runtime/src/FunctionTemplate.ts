@@ -30,16 +30,27 @@ export class FunctionTemplate {
     function _ (this: any, ...args: any[]) {
       const scope = ctx.openScopeRaw()
       const callbackInfo = scope.callbackInfo
+      const tryCatch = ctx.pushTryCatch()
+      let returnValue: any
       try {
         callbackInfo.data = data
         callbackInfo.args = args
         callbackInfo.thiz = this
         callbackInfo.fn = _
         const ret = callback(ctx.getCurrentScope()!.id, v8FunctionCallback)
-        return ret ? ctx.jsValueFromNapiValue(ret) : undefined
-      } finally {
-        ctx.closeScopeRaw(scope)
+        returnValue = ret ? ctx.jsValueFromNapiValue(ret) : undefined
+      } catch (err) {
+        ctx.throwException(err)
       }
+      ctx.closeScopeRaw(scope)
+      if (tryCatch.hasCaught()) {
+        const exception = tryCatch.extractException()
+        ctx.popTryCatch()
+        throw exception
+      } else {
+        ctx.popTryCatch()
+      }
+      return returnValue
     }
     if (typeof this.className === 'string') {
       this.ctx.features.setFunctionName?.(_, this.className)

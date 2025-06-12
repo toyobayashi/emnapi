@@ -9,7 +9,8 @@ import {
   NODE_API_DEFAULT_MODULE_API_VERSION,
   NODE_MODULE_VERSION,
   detectFeatures,
-  Features
+  Features,
+  TryCatch
 } from './util'
 import { NotSupportWeakRefError, NotSupportBufferError } from './errors'
 import { Reference, ReferenceWithData, ReferenceWithFinalizer, type ReferenceOwnership } from './Reference'
@@ -139,6 +140,7 @@ export class Context {
   private scopeStore = new ScopeStore()
   private refStore = new ArrayStore<Reference>()
   private deferredStore = new ArrayStore<Deferred>()
+  private tryCatchStack = [] as TryCatch[]
   private readonly refCounter?: NodejsWaitingRequestCounter
   private readonly cleanupQueue: CleanupQueue
 
@@ -291,6 +293,24 @@ export class Context {
 
   public getInternalField (obj: any, index: number): any {
     return getInternalField(obj, index)
+  }
+
+  public throwException (err: any) {
+    const tryCatch = this.tryCatchStack[this.tryCatchStack.length - 1]
+    if (tryCatch) {
+      tryCatch.setError(err)
+    }
+    return err
+  }
+
+  public pushTryCatch (): TryCatch {
+    const tryCatch = new TryCatch()
+    this.tryCatchStack.push(tryCatch)
+    return tryCatch
+  }
+
+  public popTryCatch (): TryCatch | undefined {
+    return this.tryCatchStack.pop()
   }
 
   public createFunctionTemplate (

@@ -125,6 +125,7 @@
       'type': 'static_library',
       'sources': [
         'external.cc',
+        'exception.cc',
         'function.cc',
         'handle_scope.cc',
         'internal.cc',
