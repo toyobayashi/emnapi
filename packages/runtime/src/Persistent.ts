@@ -36,8 +36,8 @@ export class Persistent<T> {
     })
     : undefined!
 
-  constructor (value?: T) {
-    this._ref = value == null ? undefined : new StrongRef(value)
+  constructor (...args: [T] | []) {
+    this._ref = args.length === 0 ? undefined : new StrongRef(args[0])
   }
 
   setWeak<P> (param: P, callback: (param: P) => void): void {
@@ -87,7 +87,7 @@ export class Persistent<T> {
     }
   }
 
-  reset (value?: T): void {
+  reset (): void {
     if (supportFinalizer) {
       try {
         Persistent._registry.unregister(this)
@@ -98,11 +98,12 @@ export class Persistent<T> {
     if (this._ref instanceof StrongRef) {
       this._ref.dispose()
     }
-    if (value != null) {
-      this._ref = new StrongRef(value)
-    } else {
-      this._ref = undefined
-    }
+    this._ref = undefined
+  }
+
+  resetTo (value: T): void {
+    this.reset()
+    this._ref = new StrongRef(value)
   }
 
   isEmpty (): boolean {

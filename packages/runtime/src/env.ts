@@ -108,8 +108,8 @@ export abstract class Env extends Disposable {
     }
     if (!this.lastException.isEmpty()) {
       const err = this.lastException.deref()!
-      handleException(this, err)
       this.lastException.reset()
+      handleException(this, err)
     }
     return r
   }

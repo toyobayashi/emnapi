@@ -297,7 +297,7 @@ export class Context {
   }
 
   public throwException (err: any) {
-    this._lastException.reset(err)
+    this._lastException.resetTo(err)
     return err
   }
 
