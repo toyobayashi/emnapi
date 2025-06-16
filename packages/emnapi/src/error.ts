@@ -26,7 +26,7 @@ export function _emnapi_get_last_error_info (env: napi_env, error_code: Pointer<
 export function napi_throw (env: napi_env, error: napi_value): napi_status {
   return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, error)
-    envObject.lastException.reset(emnapiCtx.jsValueFromNapiValue(error)!)
+    envObject.lastException.resetTo(emnapiCtx.jsValueFromNapiValue(error)!)
     return envObject.clearLastError()
   })
 }
@@ -41,7 +41,7 @@ export function napi_throw_error (env: napi_env, code: const_char_p, msg: const_
     const error: Error & { code?: string } = new Error(emnapiString.UTF8ToString(msg as number, -1))
     if (code) error.code = emnapiString.UTF8ToString(code as number, -1)
 
-    envObject.lastException.reset(error)
+    envObject.lastException.resetTo(error)
     return envObject.clearLastError()
   })
 }
@@ -56,7 +56,7 @@ export function napi_throw_type_error (env: napi_env, code: const_char_p, msg: c
     const error: TypeError & { code?: string } = new TypeError(emnapiString.UTF8ToString(msg as number, -1))
     if (code) error.code = emnapiString.UTF8ToString(code as number, -1)
 
-    envObject.lastException.reset(error)
+    envObject.lastException.resetTo(error)
     return envObject.clearLastError()
   })
 }
@@ -71,7 +71,7 @@ export function napi_throw_range_error (env: napi_env, code: const_char_p, msg: 
     const error: RangeError & { code?: string } = new RangeError(emnapiString.UTF8ToString(msg as number, -1))
     if (code) error.code = emnapiString.UTF8ToString(code as number, -1)
 
-    envObject.lastException.reset(error)
+    envObject.lastException.resetTo(error)
     return envObject.clearLastError()
   })
 }
@@ -86,7 +86,7 @@ export function node_api_throw_syntax_error (env: napi_env, code: const_char_p, 
     const error: SyntaxError & { code?: string } = new SyntaxError(emnapiString.UTF8ToString(msg as number, -1))
     if (code) error.code = emnapiString.UTF8ToString(code as number, -1)
 
-    envObject.lastException.reset(error)
+    envObject.lastException.resetTo(error)
     return envObject.clearLastError()
   })
 }

@@ -1,6 +1,6 @@
 import { emnapiCtx } from 'emnapi:shared'
 import { emnapiDefineProperty } from './internal'
-import { $PREAMBLE, $CHECK_ARG } from './macro'
+import { $PREAMBLE, $CHECK_ARG, $GET_RETURN_STATUS } from './macro'
 import { emnapiString } from './string'
 import { POINTER_SIZE, POINTER_WASM_TYPE, from64, makeGetValue, makeSetValue } from 'emscripten:parse-tools'
 
@@ -135,7 +135,7 @@ export function napi_get_all_property_names (
 
     value = emnapiCtx.napiValueFromJsValue(ret)
     makeSetValue('result', 0, 'value', '*')
-    return envObject.getReturnStatus()
+    return $GET_RETURN_STATUS!(envObject)
   })
 }
 
@@ -163,7 +163,7 @@ export function napi_set_property (env: napi_env, object: napi_value, key: napi_
       return envObject.setLastError(napi_status.napi_object_expected)
     }
     jsValue[emnapiCtx.jsValueFromNapiValue(key)!] = emnapiCtx.jsValueFromNapiValue(value)!
-    return envObject.getReturnStatus()
+    return $GET_RETURN_STATUS!(envObject)
   })
 }
 
@@ -189,7 +189,7 @@ export function napi_has_property (env: napi_env, object: napi_value, key: napi_
     from64('result')
     r = (emnapiCtx.jsValueFromNapiValue(key)! in v) ? 1 : 0
     makeSetValue('result', 0, 'r', 'i8')
-    return envObject.getReturnStatus()
+    return $GET_RETURN_STATUS!(envObject)
   })
 }
 
@@ -216,7 +216,7 @@ export function napi_get_property (env: napi_env, object: napi_value, key: napi_
 
     value = emnapiCtx.napiValueFromJsValue(v[emnapiCtx.jsValueFromNapiValue(key)!])
     makeSetValue('result', 0, 'value', '*')
-    return envObject.getReturnStatus()
+    return $GET_RETURN_STATUS!(envObject)
   })
 }
 
@@ -246,7 +246,7 @@ export function napi_delete_property (env: napi_env, object: napi_value, key: na
       from64('result')
       makeSetValue('result', 0, 'r ? 1 : 0', 'i8')
     }
-    return envObject.getReturnStatus()
+    return $GET_RETURN_STATUS!(envObject)
   })
 }
 
@@ -276,7 +276,7 @@ export function napi_has_own_property (env: napi_env, object: napi_value, key: n
     r = Object.prototype.hasOwnProperty.call(v, emnapiCtx.jsValueFromNapiValue(key)!)
     from64('result')
     makeSetValue('result', 0, 'r ? 1 : 0', 'i8')
-    return envObject.getReturnStatus()
+    return $GET_RETURN_STATUS!(envObject)
   })
 }
 
@@ -295,7 +295,7 @@ export function napi_set_named_property (env: napi_env, object: napi_value, cnam
     }
     from64('cname')
     emnapiCtx.jsValueFromNapiValue(object)![emnapiString.UTF8ToString(cname as number, -1)] = emnapiCtx.jsValueFromNapiValue(value)!
-    return envObject.getReturnStatus()
+    return $GET_RETURN_STATUS!(envObject)
   })
 }
 
@@ -325,7 +325,7 @@ export function napi_has_named_property (env: napi_env, object: napi_value, utf8
 
     r = emnapiString.UTF8ToString(utf8name as number, -1) in v
     makeSetValue('result', 0, 'r ? 1 : 0', 'i8')
-    return envObject.getReturnStatus()
+    return $GET_RETURN_STATUS!(envObject)
   })
 }
 
@@ -355,7 +355,7 @@ export function napi_get_named_property (env: napi_env, object: napi_value, utf8
 
     value = emnapiCtx.napiValueFromJsValue(v[emnapiString.UTF8ToString(utf8name as number, -1)])
     makeSetValue('result', 0, 'value', '*')
-    return envObject.getReturnStatus()
+    return $GET_RETURN_STATUS!(envObject)
   })
 }
 
@@ -370,7 +370,7 @@ export function napi_set_element (env: napi_env, object: napi_value, index: uint
       return envObject.setLastError(napi_status.napi_object_expected)
     }
     jsValue[index >>> 0] = emnapiCtx.jsValueFromNapiValue(value)!
-    return envObject.getReturnStatus()
+    return $GET_RETURN_STATUS!(envObject)
   })
 }
 
@@ -395,7 +395,7 @@ export function napi_has_element (env: napi_env, object: napi_value, index: uint
     from64('result')
     r = ((index >>> 0) in v) ? 1 : 0
     makeSetValue('result', 0, 'r', 'i8')
-    return envObject.getReturnStatus()
+    return $GET_RETURN_STATUS!(envObject)
   })
 }
 
@@ -421,7 +421,7 @@ export function napi_get_element (env: napi_env, object: napi_value, index: uint
 
     value = emnapiCtx.napiValueFromJsValue(v[index >>> 0])
     makeSetValue('result', 0, 'value', '*')
-    return envObject.getReturnStatus()
+    return $GET_RETURN_STATUS!(envObject)
   })
 }
 
@@ -449,7 +449,7 @@ export function napi_delete_element (env: napi_env, object: napi_value, index: u
       from64('result')
       makeSetValue('result', 0, 'r ? 1 : 0', 'i8')
     }
-    return envObject.getReturnStatus()
+    return $GET_RETURN_STATUS!(envObject)
   })
 }
 
@@ -505,7 +505,7 @@ export function napi_define_properties (
       }
       emnapiDefineProperty(envObject, maybeObject, propertyName, method, getter, setter, value, attributes, data)
     }
-    return envObject.getReturnStatus()
+    return $GET_RETURN_STATUS!(envObject)
   })
 }
 
@@ -519,7 +519,7 @@ export function napi_object_freeze (env: napi_env, object: napi_value): napi_sta
       return envObject.setLastError(napi_status.napi_object_expected)
     }
     Object.freeze(maybeObject)
-    return envObject.getReturnStatus()
+    return $GET_RETURN_STATUS!(envObject)
   })
 }
 
@@ -533,6 +533,6 @@ export function napi_object_seal (env: napi_env, object: napi_value): napi_statu
       return envObject.setLastError(napi_status.napi_object_expected)
     }
     Object.seal(maybeObject)
-    return envObject.getReturnStatus()
+    return $GET_RETURN_STATUS!(envObject)
   })
 }

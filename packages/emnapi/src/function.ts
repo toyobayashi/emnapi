@@ -1,7 +1,7 @@
 import { emnapiCtx } from 'emnapi:shared'
 import { from64, makeSetValue, makeGetValue, SIZE_TYPE, POINTER_SIZE } from 'emscripten:parse-tools'
 import { emnapiCreateFunction } from './internal'
-import { $PREAMBLE, $CHECK_ARG, $CHECK_ENV, $CHECK_ENV_NOT_IN_GC } from './macro'
+import { $PREAMBLE, $CHECK_ARG, $CHECK_ENV, $CHECK_ENV_NOT_IN_GC, $GET_RETURN_STATUS } from './macro'
 
 /** @__sig ipppppp */
 export function napi_create_function (env: napi_env, utf8name: Pointer<const_char>, length: size_t, cb: napi_callback, data: void_p, result: Pointer<napi_value>): napi_status {
@@ -20,7 +20,7 @@ export function napi_create_function (env: napi_env, utf8name: Pointer<const_cha
     from64('result')
 
     makeSetValue('result', 0, 'value', '*')
-    return envObject.getReturnStatus()
+    return $GET_RETURN_STATUS!(envObject)
   })
 }
 
@@ -159,7 +159,7 @@ export function napi_new_instance (
       v = emnapiCtx.napiValueFromJsValue(ret)
       makeSetValue('result', 0, 'v', '*')
     }
-    return envObject.getReturnStatus()
+    return $GET_RETURN_STATUS!(envObject)
   })
 }
 

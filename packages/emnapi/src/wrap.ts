@@ -3,7 +3,7 @@ import { wasmMemory } from 'emscripten:runtime'
 import { from64, POINTER_SIZE, makeGetValue, POINTER_WASM_TYPE, makeSetValue } from 'emscripten:parse-tools'
 import { emnapiString } from './string'
 import { emnapiCreateFunction, emnapiDefineProperty, emnapiWrap, emnapiUnwrap, emnapiGetHandle } from './internal'
-import { $CHECK_ARG, $CHECK_ENV, $CHECK_ENV_NOT_IN_GC, $PREAMBLE } from './macro'
+import { $CHECK_ARG, $CHECK_ENV, $CHECK_ENV_NOT_IN_GC, $GET_RETURN_STATUS, $PREAMBLE } from './macro'
 
 /**
  * @__sig ipppppppp
@@ -75,7 +75,7 @@ export function napi_define_class (
     valueHandleId = emnapiCtx.napiValueFromJsValue(F)
     from64('result')
     makeSetValue('result', 0, 'valueHandleId', '*')
-    return envObject.getReturnStatus()
+    return $GET_RETURN_STATUS!(envObject)
   })
 }
 
@@ -125,7 +125,7 @@ export function napi_type_tag_object (env: napi_env, object: napi_value, type_ta
     tag.set(new Uint8Array(wasmMemory.buffer, type_tag as number, 16))
     binding.tag = new Uint32Array(tag.buffer)
 
-    return envObject.getReturnStatus()
+    return $GET_RETURN_STATUS!(envObject)
   })
 }
 
@@ -169,7 +169,7 @@ export function napi_check_object_type_tag (env: napi_env, object: napi_value, t
     from64('result')
     makeSetValue('result', 0, 'ret ? 1 : 0', 'i8')
 
-    return envObject.getReturnStatus()
+    return $GET_RETURN_STATUS!(envObject)
   })
 }
 

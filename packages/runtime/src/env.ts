@@ -94,10 +94,6 @@ export abstract class Env extends Disposable {
     return error_code
   }
 
-  public getReturnStatus (): napi_status {
-    return napi_status.napi_ok
-  }
-
   public callIntoModule<T> (fn: (env: Env) => T, handleException?: (envObject: Env, value: any) => void): T
   public callIntoModule<T> (fn: (env: Env) => T, handleException = handleThrow): T {
     const openHandleScopesBefore = this.openHandleScopes

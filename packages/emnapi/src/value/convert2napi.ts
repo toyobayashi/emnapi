@@ -3,7 +3,7 @@
 import { emnapiCtx } from 'emnapi:shared'
 import { from64, makeGetValue, makeSetValue } from 'emscripten:parse-tools'
 import { emnapiString } from '../string'
-import { $CHECK_ARG, $CHECK_ENV_NOT_IN_GC, $PREAMBLE } from '../macro'
+import { $CHECK_ARG, $CHECK_ENV_NOT_IN_GC, $GET_RETURN_STATUS, $PREAMBLE } from '../macro'
 
 /**
  * @__sig ipip
@@ -275,6 +275,6 @@ export function napi_create_bigint_words (env: napi_env, sign_bit: int, word_cou
     from64('result')
     v = emnapiCtx.napiValueFromJsValue(value)
     makeSetValue('result', 0, 'v', '*')
-    return envObject.getReturnStatus()
+    return $GET_RETURN_STATUS!(envObject)
   })
 }

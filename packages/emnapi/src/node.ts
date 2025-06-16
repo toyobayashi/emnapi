@@ -1,6 +1,6 @@
 import { emnapiNodeBinding, emnapiCtx } from 'emnapi:shared'
 import { from64, makeSetValue, makeGetValue, POINTER_SIZE } from 'emscripten:parse-tools'
-import { $PREAMBLE, $CHECK_ARG } from './macro'
+import { $PREAMBLE, $CHECK_ARG, $GET_RETURN_STATUS } from './macro'
 
 /** @__sig vppdp */
 export function _emnapi_node_emit_async_init (
@@ -193,7 +193,7 @@ export function napi_make_callback (env: napi_env, async_context: Pointer<int64_
       v = emnapiCtx.napiValueFromJsValue(ret.value)
       makeSetValue('result', 0, 'v', '*')
     }
-    return envObject.getReturnStatus()
+    return $GET_RETURN_STATUS!(envObject)
   })
 }
 
