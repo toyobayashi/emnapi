@@ -151,39 +151,6 @@ export function detectFeatures (features?: Partial<Features>): Features {
   return ret
 }
 
-export class TryCatch {
-  private _exception: any = undefined
-  private _caught: boolean = false
-
-  public isEmpty (): boolean {
-    return !this._caught
-  }
-
-  public hasCaught (): boolean {
-    return this._caught
-  }
-
-  public exception (): any {
-    return this._exception
-  }
-
-  public setError (err: any): void {
-    this._caught = true
-    this._exception = err
-  }
-
-  public reset (): void {
-    this._caught = false
-    this._exception = undefined
-  }
-
-  public extractException (): any {
-    const e = this._exception
-    this.reset()
-    return e
-  }
-}
-
 export function isReferenceType (v: any): v is object {
   return (typeof v === 'object' && v !== null) || typeof v === 'function'
 }

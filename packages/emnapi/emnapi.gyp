@@ -135,7 +135,9 @@
         'value.cc',
         'boolean.cc',
         'number.cc',
-        'template.cc'
+        'template.cc',
+        'try_catch.cc',
+        'script.cc'
       ],
       'defines': [
         'V8_ENABLE_DIRECT_LOCAL'

@@ -106,20 +106,20 @@ export function napi_remove_wrap (env: napi_env, js_object: napi_value, result: 
 export function napi_type_tag_object (env: napi_env, object: napi_value, type_tag: Const<Pointer<unknown>>): napi_status {
   return $PREAMBLE!(env, (envObject) => {
     if (!object) {
-      return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_invalid_arg)
+      return envObject.setLastError(!envObject.lastException.isEmpty() ? napi_status.napi_pending_exception : napi_status.napi_invalid_arg)
     }
     const value = emnapiCtx.jsValueFromNapiValue(object)!
     const type = typeof value
     if (!((type === 'object' && value !== null) || type === 'function')) {
-      return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_object_expected)
+      return envObject.setLastError(!envObject.lastException.isEmpty() ? napi_status.napi_pending_exception : napi_status.napi_object_expected)
     }
     from64('type_tag')
     if (!type_tag) {
-      return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_invalid_arg)
+      return envObject.setLastError(!envObject.lastException.isEmpty() ? napi_status.napi_pending_exception : napi_status.napi_invalid_arg)
     }
     const binding = envObject.getObjectBinding(value)
     if (binding.tag !== null) {
-      return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_invalid_arg)
+      return envObject.setLastError(!envObject.lastException.isEmpty() ? napi_status.napi_pending_exception : napi_status.napi_invalid_arg)
     }
     const tag = new Uint8Array(16)
     tag.set(new Uint8Array(wasmMemory.buffer, type_tag as number, 16))
@@ -138,18 +138,18 @@ export function napi_check_object_type_tag (env: napi_env, object: napi_value, t
 
   return $PREAMBLE!(env, (envObject) => {
     if (!object) {
-      return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_invalid_arg)
+      return envObject.setLastError(!envObject.lastException.isEmpty() ? napi_status.napi_pending_exception : napi_status.napi_invalid_arg)
     }
     const value = emnapiCtx.jsValueFromNapiValue(object)!
     const type = typeof value
     if (!((type === 'object' && value !== null) || type === 'function')) {
-      return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_object_expected)
+      return envObject.setLastError(!envObject.lastException.isEmpty() ? napi_status.napi_pending_exception : napi_status.napi_object_expected)
     }
     if (!type_tag) {
-      return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_invalid_arg)
+      return envObject.setLastError(!envObject.lastException.isEmpty() ? napi_status.napi_pending_exception : napi_status.napi_invalid_arg)
     }
     if (!result) {
-      return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_invalid_arg)
+      return envObject.setLastError(!envObject.lastException.isEmpty() ? napi_status.napi_pending_exception : napi_status.napi_invalid_arg)
     }
     const binding = envObject.getObjectBinding(value)
     if (binding.tag !== null) {

@@ -97,8 +97,9 @@ export function emnapi_create_memory_view (
     if (finalize_cb) {
       const status = napi_add_finalizer(env, value, external_data, finalize_cb, finalize_hint, /* NULL */ 0)
       if (status === napi_status.napi_pending_exception) {
-        const err = envObject.tryCatch.extractException()
+        const err = envObject.lastException.deref()
         envObject.clearLastError()
+        envObject.lastException.reset()
         throw err
       } else if (status !== napi_status.napi_ok) {
         return envObject.setLastError(status)

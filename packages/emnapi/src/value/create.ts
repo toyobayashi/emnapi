@@ -154,8 +154,9 @@ export function napi_create_external_arraybuffer (
     if (finalize_cb) {
       const status = napi_add_finalizer(env, value, external_data, finalize_cb, finalize_hint, /* NULL */ 0)
       if (status === napi_status.napi_pending_exception) {
-        const err = envObject.tryCatch.extractException()
+        const err = envObject.lastException.deref()
         envObject.clearLastError()
+        envObject.lastException.reset()
         throw err
       } else if (status !== napi_status.napi_ok) {
         return envObject.setLastError(status)
@@ -235,7 +236,7 @@ export function napi_create_typedarray (
         if ((byte_offset) % (size_of_element) !== 0) {
           const err: RangeError & { code?: string } = new RangeError(`start offset of ${Type.name ?? ''} should be a multiple of ${size_of_element}`)
           err.code = 'ERR_NAPI_INVALID_TYPEDARRAY_ALIGNMENT'
-          envObject.tryCatch.setError(err)
+          envObject.lastException.reset(err)
           return envObject.setLastError(napi_status.napi_generic_failure)
         }
       }
@@ -243,7 +244,7 @@ export function napi_create_typedarray (
       if (((length * size_of_element) + byte_offset) > buffer.byteLength) {
         const err: RangeError & { code?: string } = new RangeError('Invalid typed array length')
         err.code = 'ERR_NAPI_INVALID_TYPEDARRAY_LENGTH'
-        envObject.tryCatch.setError(err)
+        envObject.lastException.reset(err)
         return envObject.setLastError(napi_status.napi_generic_failure)
       }
       const out = new Type(buffer, byte_offset, length)

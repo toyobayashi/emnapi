@@ -1,12 +1,12 @@
 import type { Context } from './Context'
 import {
-  TryCatch,
   NAPI_VERSION_EXPERIMENTAL
 } from './util'
 import { RefTracker } from './RefTracker'
 import { TrackedFinalizer } from './TrackedFinalizer'
 import { Disposable } from './Disaposable'
 import type { ArrayStore } from './Store'
+import { Persistent } from './Persistent'
 
 function handleThrow (envObject: Env, value: any): void {
   if (envObject.terminatedOrTerminating()) {
@@ -27,7 +27,7 @@ export abstract class Env extends Disposable {
 
   public instanceData: TrackedFinalizer | null = null
 
-  public tryCatch = new TryCatch()
+  public lastException = new Persistent<any>()
 
   public refs = 1
 
@@ -95,7 +95,7 @@ export abstract class Env extends Disposable {
   }
 
   public getReturnStatus (): napi_status {
-    return !this.tryCatch.hasCaught() ? napi_status.napi_ok : this.setLastError(napi_status.napi_pending_exception)
+    return napi_status.napi_ok
   }
 
   public callIntoModule<T> (fn: (env: Env) => T, handleException?: (envObject: Env, value: any) => void): T
@@ -106,9 +106,10 @@ export abstract class Env extends Disposable {
     if (openHandleScopesBefore !== this.openHandleScopes) {
       this.abort('open_handle_scopes != open_handle_scopes_before')
     }
-    if (this.tryCatch.hasCaught()) {
-      const err = this.tryCatch.extractException()!
+    if (!this.lastException.isEmpty()) {
+      const err = this.lastException.deref()!
       handleException(this, err)
+      this.lastException.reset()
     }
     return r
   }
@@ -163,7 +164,7 @@ export abstract class Env extends Disposable {
     RefTracker.finalizeAll(this.finalizing_reflist)
     RefTracker.finalizeAll(this.reflist)
 
-    this.tryCatch.extractException()
+    this.lastException.reset()
     this.store.dealloc(this.id)
   }
 

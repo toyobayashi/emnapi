@@ -1,4 +1,5 @@
 import type { Context } from './Context'
+import { TryCatch } from './TryCatch'
 
 /** @public */
 export class FunctionTemplate {
@@ -30,7 +31,6 @@ export class FunctionTemplate {
     function _ (this: any, ...args: any[]) {
       const scope = ctx.openScopeRaw()
       const callbackInfo = scope.callbackInfo
-      const tryCatch = ctx.pushTryCatch()
       let returnValue: any
       try {
         callbackInfo.data = data
@@ -43,12 +43,12 @@ export class FunctionTemplate {
         ctx.throwException(err)
       }
       ctx.closeScopeRaw(scope)
-      if (tryCatch.hasCaught()) {
-        const exception = tryCatch.extractException()
-        ctx.popTryCatch()
-        throw exception
-      } else {
-        ctx.popTryCatch()
+      if (ctx.hasPendingException()) {
+        if (TryCatch.top) {
+          TryCatch.top.setError(ctx.getAndClearLastException())
+        } else {
+          throw ctx.getAndClearLastException()
+        }
       }
       return returnValue
     }
