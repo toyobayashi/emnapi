@@ -296,17 +296,17 @@ export class Context {
     return getInternalField(obj, index)
   }
 
-  public throwException (err: any) {
+  public setLastException (err: any) {
     this._lastException.resetTo(err)
-    return err
   }
 
-  public tryThrow (err: any) {
+  public throwException (err: any) {
     if (TryCatch.top) {
       TryCatch.top.setError(err)
     } else {
-      this.throwException(err)
+      this.setLastException(err)
     }
+    return err
   }
 
   public hasPendingException (): boolean {

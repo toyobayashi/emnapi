@@ -59,6 +59,9 @@ struct FunctionCallbackInfoImpl {
 
 }
 
+void FunctionTemplate::CheckCast(v8::Data*) {}
+void ObjectTemplate::CheckCast(v8::Data*) {}
+
 Local<FunctionTemplate> FunctionTemplate::New(
     Isolate* isolate, FunctionCallback callback,
     Local<Value> data,

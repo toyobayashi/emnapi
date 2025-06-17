@@ -12,6 +12,11 @@ extern "C" {
   V8_EXTERN int32_t _v8_int32_value(const Int32*);
 }
 
+void Number::CheckCast(v8::Data*) {}
+void Integer::CheckCast(v8::Data*) {}
+void Uint32::CheckCast(v8::Data*) {}
+void Int32::CheckCast(v8::Data*) {}
+
 double Number::Value() const {
   return _v8_number_value(this);
 }

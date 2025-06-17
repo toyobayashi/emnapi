@@ -37,7 +37,7 @@ export function _v8_script_run (script: Ptr, context: Ptr): Ptr {
   try {
     ret = g.eval(str)
   } catch (err) {
-    emnapiCtx.tryThrow(err)
+    emnapiCtx.throwException(err)
     return 1
   }
   return emnapiCtx.napiValueFromJsValue(ret)

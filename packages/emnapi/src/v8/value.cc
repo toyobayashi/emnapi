@@ -12,6 +12,7 @@ extern "C" {
   V8_EXTERN internal::Address _v8_value_to_int32(const Value*, Context*);
   V8_EXTERN internal::Address _v8_value_to_array_index(const Value*, Context*);
   V8_EXTERN bool _v8_value_is_function(const Value*);
+  V8_EXTERN bool _v8_value_is_string(const Value*);
 }
 
 Local<Boolean> Value::ToBoolean(Isolate* isolate) const {
@@ -32,6 +33,10 @@ MaybeLocal<String> Value::ToString(Local<Context> context) const {
 
 MaybeLocal<String> Value::ToDetailString(Local<Context> context) const {
   return ToString(context);
+}
+
+bool Value::IsString() const {
+  return _v8_value_is_string(this);
 }
 
 bool Value::IsFunction() const {

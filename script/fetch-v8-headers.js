@@ -36,11 +36,15 @@ fs.writeFileSync(v8config,
   'utf-8'
 )
 
-const v8localhandle = path.join(emnapiInclude, 'v8-local-handle.h')
-const v8localhandleContent = fs.readFileSync(v8localhandle, 'utf-8')
-fs.writeFileSync(v8localhandle,
-  v8localhandleContent
-    .replace(/(template <.*?>)(\r?\n)?\s*(.+)\s+Escape\((.+?)\)\s\{(.*\r?\n)*?\s\s\}/, `$1
+const replaceList = {
+  'v8config.h': (code) => {
+    return code
+      .replace(/(#elif defined\(_M_IX86\) \|\| defined\(__i386__\))/g, '$1 || defined(__wasm32__)')
+      .replace(/(#if defined\(_M_X64\) \|\| defined\(__x86_64__\))/g, '$1 || defined(__wasm64__)')
+  },
+  'v8-local-handle.h': (code) => {
+    return code
+      .replace(/(template <.*?>)(\r?\n)?\s*(.+)\s+Escape\((.+?)\)\s\{(.*\r?\n)*?\s\s\}/, `$1
   $3 Escape($4) {
 #ifdef V8_ENABLE_DIRECT_LOCAL
     if (value.IsEmpty()) return value;
@@ -50,17 +54,22 @@ fs.writeFileSync(v8localhandle,
     return Local<T>::FromSlot(EscapeSlot(value.slot()));
 #endif
   }`)
-  ,
-  'utf-8'
-)
-
-const v8object = path.join(emnapiInclude, 'v8-object.h')
-const v8objectContent = fs.readFileSync(v8object, 'utf-8')
-fs.writeFileSync(v8object,
-  v8objectContent
-    .replace(/(.+)\s+Object::GetInternalField\((.+?)\)\s\{(.*\r?\n)*?\}/, `$1 Object::GetInternalField($2) {
+  },
+  'v8-object.h': (code) => {
+    return code
+      .replace(/(.+)\s+Object::GetInternalField\((.+?)\)\s\{(.*\r?\n)*?\}/, `$1 Object::GetInternalField($2) {
   return SlowGetInternalField(index);
 }`)
-  ,
-  'utf-8'
-)
+  },
+  'v8-value.h': (code) => {
+    return code
+      .replace('V8_INLINE bool IsString() const;', 'bool IsString() const;')
+      .replace(/(.+)\s+Value::IsString\((.*?)\)(.*?)\{(.*\r?\n)*?\s*\}/, '')
+  }
+}
+
+Object.entries(replaceList).forEach(([fileName, replacer]) => {
+  const filePath = path.join(emnapiInclude, fileName)
+  const fileContent = fs.readFileSync(filePath, 'utf8')
+  fs.writeFileSync(filePath, replacer(fileContent), 'utf8')
+})

@@ -47,7 +47,7 @@ export class TryCatch {
   public rethrow (ctx: Context) {
     if (this._caught) {
       const e = this.extractException()
-      ctx.throwException(e)
+      ctx.setLastException(e)
       return e
     }
     return undefined

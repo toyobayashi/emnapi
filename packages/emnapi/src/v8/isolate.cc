@@ -24,7 +24,9 @@ struct IsolateImpl {
   }
 };
 
-};
+}
+
+void Context::CheckCast(v8::Data*) {}
 
 Isolate* Isolate::GetCurrent() {
   static IsolateImpl current_isolate;

@@ -44,7 +44,7 @@ export class ObjectTemplate {
     try {
       instance = new Ctor()
     } catch (err) {
-      ctx.tryThrow(err)
+      ctx.throwException(err)
     }
     internalField.set(instance, Array(internalFieldCount))
     return instance
