@@ -104,6 +104,48 @@ export function _v8_value_is_function (value: Ptr): number {
  * @__deps $emnapiCtx
  * @__sig ip
  */
+export function _v8_value_is_undefined (value: Ptr): number {
+  const jsValue = emnapiCtx.jsValueFromNapiValue(value)
+  const isUndefined = jsValue === undefined
+  return isUndefined ? 1 : 0
+}
+
+/**
+ * @__deps $emnapiCtx
+ * @__sig ip
+ */
+export function _v8_value_is_null (value: Ptr): number {
+  const jsValue = emnapiCtx.jsValueFromNapiValue(value)
+  const isUndefined = jsValue === null
+  return isUndefined ? 1 : 0
+}
+
+/**
+ * @__deps $emnapiCtx
+ * @__sig ip
+ */
+export function _v8_value_is_true (value: Ptr): number {
+  const jsValue = emnapiCtx.jsValueFromNapiValue(value)
+  if (jsValue == null) return 0
+  const isUndefined = jsValue === true
+  return isUndefined ? 1 : 0
+}
+
+/**
+ * @__deps $emnapiCtx
+ * @__sig ip
+ */
+export function _v8_value_is_false (value: Ptr): number {
+  const jsValue = emnapiCtx.jsValueFromNapiValue(value)
+  if (jsValue == null) return 0
+  const isUndefined = jsValue === false
+  return isUndefined ? 1 : 0
+}
+
+/**
+ * @__deps $emnapiCtx
+ * @__sig ip
+ */
 export function _v8_value_is_string (value: Ptr): number {
   const jsValue = emnapiCtx.jsValueFromNapiValue(value)
   if (jsValue == null) return 0

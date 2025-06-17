@@ -63,8 +63,24 @@ const replaceList = {
   },
   'v8-value.h': (code) => {
     return code
-      .replace('V8_INLINE bool IsString() const;', 'bool IsString() const;')
-      .replace(/(.+)\s+Value::IsString\((.*?)\)(.*?)\{(.*\r?\n)*?\s*\}/, '')
+      .replace(/(.+)\s+Value::IsUndefined\((.*?)\)(.*?)\{(.*\r?\n)*?\s*\}/, `$1 Value::IsUndefined($2)$3{
+  return FullIsUndefined();
+}`)
+      .replace(/(.+)\s+Value::IsNull\((.*?)\)(.*?)\{(.*\r?\n)*?\s*\}/, `$1 Value::IsNull($2)$3{
+  return FullIsNull();
+}`)
+      .replace(/(.+)\s+Value::IsNullOrUndefined\((.*?)\)(.*?)\{(.*\r?\n)*?\s*\}/, `$1 Value::IsNullOrUndefined($2)$3{
+  return FullIsNull() || FullIsUndefined();
+}`)
+      .replace(/(.+)\s+Value::IsTrue\((.*?)\)(.*?)\{(.*\r?\n)*?\s*\}/, `$1 Value::IsTrue($2)$3{
+  return FullIsTrue();
+}`)
+      .replace(/(.+)\s+Value::IsFalse\((.*?)\)(.*?)\{(.*\r?\n)*?\s*\}/, `$1 Value::IsFalse($2)$3{
+  return FullIsFalse();
+}`)
+      .replace(/(.+)\s+Value::IsString\((.*?)\)(.*?)\{(.*\r?\n)*?\s*\}/, `$1 Value::IsString($2)$3{
+  return FullIsString();
+}`)
   }
 }
 

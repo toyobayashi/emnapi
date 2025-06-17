@@ -12,6 +12,10 @@ extern "C" {
   V8_EXTERN internal::Address _v8_value_to_int32(const Value*, Context*);
   V8_EXTERN internal::Address _v8_value_to_array_index(const Value*, Context*);
   V8_EXTERN bool _v8_value_is_function(const Value*);
+  V8_EXTERN bool _v8_value_is_undefined(const Value*);
+  V8_EXTERN bool _v8_value_is_null(const Value*);
+  V8_EXTERN bool _v8_value_is_true(const Value*);
+  V8_EXTERN bool _v8_value_is_false(const Value*);
   V8_EXTERN bool _v8_value_is_string(const Value*);
 }
 
@@ -35,7 +39,23 @@ MaybeLocal<String> Value::ToDetailString(Local<Context> context) const {
   return ToString(context);
 }
 
-bool Value::IsString() const {
+bool Value::FullIsUndefined() const {
+  return _v8_value_is_undefined(this);
+}
+
+bool Value::FullIsNull() const {
+  return _v8_value_is_null(this);
+}
+
+bool Value::FullIsTrue() const {
+  return _v8_value_is_true(this);
+}
+
+bool Value::FullIsFalse() const {
+  return _v8_value_is_false(this);
+}
+
+bool Value::FullIsString() const {
   return _v8_value_is_string(this);
 }
 
