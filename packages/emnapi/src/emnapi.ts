@@ -3,7 +3,7 @@ import { wasmMemory } from 'emscripten:runtime'
 import { from64, makeSetValue, makeGetValue } from 'emscripten:parse-tools'
 import { type MemoryViewDescriptor, type ArrayBufferPointer, emnapiExternalMemory } from './memory'
 import { napi_add_finalizer } from './wrap'
-import { $CHECK_ARG, $PREAMBLE, $CHECK_ENV } from './macro'
+import { $CHECK_ARG, $PREAMBLE, $CHECK_ENV, $GET_RETURN_STATUS } from './macro'
 
 /**
  * @__sig ipippppp
@@ -97,15 +97,16 @@ export function emnapi_create_memory_view (
     if (finalize_cb) {
       const status = napi_add_finalizer(env, value, external_data, finalize_cb, finalize_hint, /* NULL */ 0)
       if (status === napi_status.napi_pending_exception) {
-        const err = envObject.tryCatch.extractException()
+        const err = envObject.lastException.deref()
         envObject.clearLastError()
+        envObject.lastException.reset()
         throw err
       } else if (status !== napi_status.napi_ok) {
         return envObject.setLastError(status)
       }
     }
     makeSetValue('result', 0, 'value', '*')
-    return envObject.getReturnStatus()
+    return $GET_RETURN_STATUS!(envObject)
   })
 }
 
@@ -213,7 +214,7 @@ export function emnapi_sync_memory (env: napi_env, js_to_wasm: bool, arraybuffer
       makeSetValue('arraybuffer_or_view', 0, 'v', '*')
     }
 
-    return envObject.getReturnStatus()
+    return $GET_RETURN_STATUS!(envObject)
   })
 }
 
@@ -270,7 +271,7 @@ export function emnapi_get_memory_address (env: napi_env, arraybuffer_or_view: n
       makeSetValue('runtime_allocated', 0, 'runtimeAllocated', 'i8')
     }
 
-    return envObject.getReturnStatus()
+    return $GET_RETURN_STATUS!(envObject)
   })
 }
 

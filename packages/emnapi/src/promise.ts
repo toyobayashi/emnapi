@@ -1,6 +1,6 @@
 import { emnapiCtx } from 'emnapi:shared'
 import { from64, makeSetValue } from 'emscripten:parse-tools'
-import { $PREAMBLE, $CHECK_ARG, $CHECK_ENV_NOT_IN_GC } from './macro'
+import { $PREAMBLE, $CHECK_ARG, $CHECK_ENV_NOT_IN_GC, $GET_RETURN_STATUS } from './macro'
 
 /** @__sig ippp */
 export function napi_create_promise (env: napi_env, deferred: Pointer<napi_deferred>, promise: Pointer<napi_value>): napi_status {
@@ -20,7 +20,7 @@ export function napi_create_promise (env: napi_env, deferred: Pointer<napi_defer
 
     value = emnapiCtx.napiValueFromJsValue(p)
     makeSetValue('promise', 0, 'value', '*')
-    return envObject.getReturnStatus()
+    return $GET_RETURN_STATUS!(envObject)
   })
 }
 
@@ -31,7 +31,7 @@ export function napi_resolve_deferred (env: napi_env, deferred: napi_deferred, r
     $CHECK_ARG!(envObject, resolution)
     const deferredObject = emnapiCtx.getDeferred(deferred)!
     deferredObject.resolve(emnapiCtx.jsValueFromNapiValue(resolution)!)
-    return envObject.getReturnStatus()
+    return $GET_RETURN_STATUS!(envObject)
   })
 }
 
@@ -42,7 +42,7 @@ export function napi_reject_deferred (env: napi_env, deferred: napi_deferred, re
     $CHECK_ARG!(envObject, resolution)
     const deferredObject = emnapiCtx.getDeferred(deferred)!
     deferredObject.reject(emnapiCtx.jsValueFromNapiValue(resolution)!)
-    return envObject.getReturnStatus()
+    return $GET_RETURN_STATUS!(envObject)
   })
 }
 

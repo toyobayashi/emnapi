@@ -4,7 +4,7 @@ import { spawnSync } from './spawn.js'
 import envPaths from 'env-paths'
 
 const cacheDir = envPaths('node-gyp', { suffix: '' }).cache
-const targetVersion = process.env.NODE_VERSION || '22.15.0'
+const targetVersion = process.env.NODE_VERSION || '22.16.0'
 const versionDir = path.join(cacheDir, targetVersion)
 
 if (!fs.existsSync(versionDir)) {
@@ -36,11 +36,15 @@ fs.writeFileSync(v8config,
   'utf-8'
 )
 
-const v8localhandle = path.join(emnapiInclude, 'v8-local-handle.h')
-const v8localhandleContent = fs.readFileSync(v8localhandle, 'utf-8')
-fs.writeFileSync(v8localhandle,
-  v8localhandleContent
-    .replace(/(template <.*?>)(\r?\n)?\s*(.+)\s+Escape\((.+?)\)\s\{(.*\r?\n)*?\s\s\}/, `$1
+const replaceList = {
+  'v8config.h': (code) => {
+    return code
+      .replace(/(#elif defined\(_M_IX86\) \|\| defined\(__i386__\))/g, '$1 || defined(__wasm32__)')
+      .replace(/(#if defined\(_M_X64\) \|\| defined\(__x86_64__\))/g, '$1 || defined(__wasm64__)')
+  },
+  'v8-local-handle.h': (code) => {
+    return code
+      .replace(/(template <.*?>)(\r?\n)?\s*(.+)\s+Escape\((.+?)\)\s\{(.*\r?\n)*?\s\s\}/, `$1
   $3 Escape($4) {
 #ifdef V8_ENABLE_DIRECT_LOCAL
     if (value.IsEmpty()) return value;
@@ -50,17 +54,38 @@ fs.writeFileSync(v8localhandle,
     return Local<T>::FromSlot(EscapeSlot(value.slot()));
 #endif
   }`)
-  ,
-  'utf-8'
-)
-
-const v8object = path.join(emnapiInclude, 'v8-object.h')
-const v8objectContent = fs.readFileSync(v8object, 'utf-8')
-fs.writeFileSync(v8object,
-  v8objectContent
-    .replace(/(.+)\s+Object::GetInternalField\((.+?)\)\s\{(.*\r?\n)*?\}/, `$1 Object::GetInternalField($2) {
+  },
+  'v8-object.h': (code) => {
+    return code
+      .replace(/(.+)\s+Object::GetInternalField\((.+?)\)\s\{(.*\r?\n)*?\}/, `$1 Object::GetInternalField($2) {
   return SlowGetInternalField(index);
 }`)
-  ,
-  'utf-8'
-)
+  },
+  'v8-value.h': (code) => {
+    return code
+      .replace(/(.+)\s+Value::IsUndefined\((.*?)\)(.*?)\{(.*\r?\n)*?\s*\}/, `$1 Value::IsUndefined($2)$3{
+  return FullIsUndefined();
+}`)
+      .replace(/(.+)\s+Value::IsNull\((.*?)\)(.*?)\{(.*\r?\n)*?\s*\}/, `$1 Value::IsNull($2)$3{
+  return FullIsNull();
+}`)
+      .replace(/(.+)\s+Value::IsNullOrUndefined\((.*?)\)(.*?)\{(.*\r?\n)*?\s*\}/, `$1 Value::IsNullOrUndefined($2)$3{
+  return FullIsNull() || FullIsUndefined();
+}`)
+      .replace(/(.+)\s+Value::IsTrue\((.*?)\)(.*?)\{(.*\r?\n)*?\s*\}/, `$1 Value::IsTrue($2)$3{
+  return FullIsTrue();
+}`)
+      .replace(/(.+)\s+Value::IsFalse\((.*?)\)(.*?)\{(.*\r?\n)*?\s*\}/, `$1 Value::IsFalse($2)$3{
+  return FullIsFalse();
+}`)
+      .replace(/(.+)\s+Value::IsString\((.*?)\)(.*?)\{(.*\r?\n)*?\s*\}/, `$1 Value::IsString($2)$3{
+  return FullIsString();
+}`)
+  }
+}
+
+Object.entries(replaceList).forEach(([fileName, replacer]) => {
+  const filePath = path.join(emnapiInclude, fileName)
+  const fileContent = fs.readFileSync(filePath, 'utf8')
+  fs.writeFileSync(filePath, replacer(fileContent), 'utf8')
+})

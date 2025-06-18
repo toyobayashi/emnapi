@@ -3,7 +3,7 @@ import { SIZE_TYPE, from64, makeGetValue, makeSetValue } from 'emscripten:parse-
 import { $emnapiSetValueI64 as emnapiSetValueI64 } from '../util'
 import { emnapiString } from '../string'
 import { emnapiExternalMemory } from '../memory'
-import { $CHECK_ARG, $CHECK_ENV_NOT_IN_GC, $PREAMBLE, $RETURN_STATUS_IF_FALSE } from '../macro'
+import { $CHECK_ARG, $CHECK_ENV_NOT_IN_GC, $GET_RETURN_STATUS, $PREAMBLE, $RETURN_STATUS_IF_FALSE } from '../macro'
 
 /**
  * @__sig ippp
@@ -20,7 +20,7 @@ export function napi_get_array_length (env: napi_env, value: napi_value, result:
 
     const v = jsValue.length >>> 0
     makeSetValue('result', 0, 'v', 'u32')
-    return envObject.getReturnStatus()
+    return $GET_RETURN_STATUS!(envObject)
   })
 }
 
@@ -69,7 +69,7 @@ export function napi_get_prototype (env: napi_env, value: napi_value, result: Po
 
     const p = emnapiCtx.napiValueFromJsValue(Object.getPrototypeOf(v))
     makeSetValue('result', 0, 'p', '*')
-    return envObject.getReturnStatus()
+    return $GET_RETURN_STATUS!(envObject)
   })
 }
 
@@ -231,7 +231,7 @@ export function napi_get_date_value (env: napi_env, value: napi_value, result: P
     from64('result')
     v = (jsValue as Date).valueOf()
     makeSetValue('result', 0, 'v', 'double')
-    return envObject.getReturnStatus()
+    return $GET_RETURN_STATUS!(envObject)
   })
 }
 

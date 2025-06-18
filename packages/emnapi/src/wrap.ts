@@ -3,7 +3,7 @@ import { wasmMemory } from 'emscripten:runtime'
 import { from64, POINTER_SIZE, makeGetValue, POINTER_WASM_TYPE, makeSetValue } from 'emscripten:parse-tools'
 import { emnapiString } from './string'
 import { emnapiCreateFunction, emnapiDefineProperty, emnapiWrap, emnapiUnwrap, emnapiGetHandle } from './internal'
-import { $CHECK_ARG, $CHECK_ENV, $CHECK_ENV_NOT_IN_GC, $PREAMBLE } from './macro'
+import { $CHECK_ARG, $CHECK_ENV, $CHECK_ENV_NOT_IN_GC, $GET_RETURN_STATUS, $PREAMBLE } from './macro'
 
 /**
  * @__sig ipppppppp
@@ -75,7 +75,7 @@ export function napi_define_class (
     valueHandleId = emnapiCtx.napiValueFromJsValue(F)
     from64('result')
     makeSetValue('result', 0, 'valueHandleId', '*')
-    return envObject.getReturnStatus()
+    return $GET_RETURN_STATUS!(envObject)
   })
 }
 
@@ -106,26 +106,26 @@ export function napi_remove_wrap (env: napi_env, js_object: napi_value, result: 
 export function napi_type_tag_object (env: napi_env, object: napi_value, type_tag: Const<Pointer<unknown>>): napi_status {
   return $PREAMBLE!(env, (envObject) => {
     if (!object) {
-      return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_invalid_arg)
+      return envObject.setLastError(!envObject.lastException.isEmpty() ? napi_status.napi_pending_exception : napi_status.napi_invalid_arg)
     }
     const value = emnapiCtx.jsValueFromNapiValue(object)!
     const type = typeof value
     if (!((type === 'object' && value !== null) || type === 'function')) {
-      return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_object_expected)
+      return envObject.setLastError(!envObject.lastException.isEmpty() ? napi_status.napi_pending_exception : napi_status.napi_object_expected)
     }
     from64('type_tag')
     if (!type_tag) {
-      return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_invalid_arg)
+      return envObject.setLastError(!envObject.lastException.isEmpty() ? napi_status.napi_pending_exception : napi_status.napi_invalid_arg)
     }
     const binding = envObject.getObjectBinding(value)
     if (binding.tag !== null) {
-      return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_invalid_arg)
+      return envObject.setLastError(!envObject.lastException.isEmpty() ? napi_status.napi_pending_exception : napi_status.napi_invalid_arg)
     }
     const tag = new Uint8Array(16)
     tag.set(new Uint8Array(wasmMemory.buffer, type_tag as number, 16))
     binding.tag = new Uint32Array(tag.buffer)
 
-    return envObject.getReturnStatus()
+    return $GET_RETURN_STATUS!(envObject)
   })
 }
 
@@ -138,18 +138,18 @@ export function napi_check_object_type_tag (env: napi_env, object: napi_value, t
 
   return $PREAMBLE!(env, (envObject) => {
     if (!object) {
-      return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_invalid_arg)
+      return envObject.setLastError(!envObject.lastException.isEmpty() ? napi_status.napi_pending_exception : napi_status.napi_invalid_arg)
     }
     const value = emnapiCtx.jsValueFromNapiValue(object)!
     const type = typeof value
     if (!((type === 'object' && value !== null) || type === 'function')) {
-      return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_object_expected)
+      return envObject.setLastError(!envObject.lastException.isEmpty() ? napi_status.napi_pending_exception : napi_status.napi_object_expected)
     }
     if (!type_tag) {
-      return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_invalid_arg)
+      return envObject.setLastError(!envObject.lastException.isEmpty() ? napi_status.napi_pending_exception : napi_status.napi_invalid_arg)
     }
     if (!result) {
-      return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_invalid_arg)
+      return envObject.setLastError(!envObject.lastException.isEmpty() ? napi_status.napi_pending_exception : napi_status.napi_invalid_arg)
     }
     const binding = envObject.getObjectBinding(value)
     if (binding.tag !== null) {
@@ -169,7 +169,7 @@ export function napi_check_object_type_tag (env: napi_env, object: napi_value, t
     from64('result')
     makeSetValue('result', 0, 'ret ? 1 : 0', 'i8')
 
-    return envObject.getReturnStatus()
+    return $GET_RETURN_STATUS!(envObject)
   })
 }
 

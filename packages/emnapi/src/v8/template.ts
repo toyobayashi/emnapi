@@ -136,6 +136,7 @@ export function _v8_object_template_new_instance (
   obj_tpl: Ptr,
   context: Ptr
 ): Ptr {
+  if (emnapiCtx.hasPendingException()) return 1
   const objTemplate = emnapiCtx.jsValueFromNapiValue(obj_tpl)
   return emnapiCtx.napiValueFromJsValue(objTemplate.newInstance(context))
 }

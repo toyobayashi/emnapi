@@ -5,7 +5,7 @@ import { emnapiString } from '../string'
 import { type MemoryViewDescriptor, emnapiExternalMemory } from '../memory'
 import { emnapi_create_memory_view } from '../emnapi'
 import { napi_add_finalizer } from '../wrap'
-import { $CHECK_ARG, $CHECK_ENV_NOT_IN_GC, $PREAMBLE } from '../macro'
+import { $CHECK_ARG, $CHECK_ENV_NOT_IN_GC, $GET_RETURN_STATUS, $PREAMBLE } from '../macro'
 
 /**
  * @__sig ipp
@@ -62,7 +62,7 @@ export function napi_create_arraybuffer (env: napi_env, byte_length: size_t, dat
     const arrayBuffer = emnapiCreateArrayBuffer(byte_length, data)
     value = emnapiCtx.napiValueFromJsValue(arrayBuffer)
     makeSetValue('result', 0, 'value', '*')
-    return envObject.getReturnStatus()
+    return $GET_RETURN_STATUS!(envObject)
   })
 }
 
@@ -78,7 +78,7 @@ export function napi_create_date (env: napi_env, time: double, result: Pointer<n
 
     value = emnapiCtx.napiValueFromJsValue(new Date(time))
     makeSetValue('result', 0, 'value', '*')
-    return envObject.getReturnStatus()
+    return $GET_RETURN_STATUS!(envObject)
   })
 }
 
@@ -154,15 +154,16 @@ export function napi_create_external_arraybuffer (
     if (finalize_cb) {
       const status = napi_add_finalizer(env, value, external_data, finalize_cb, finalize_hint, /* NULL */ 0)
       if (status === napi_status.napi_pending_exception) {
-        const err = envObject.tryCatch.extractException()
+        const err = envObject.lastException.deref()
         envObject.clearLastError()
+        envObject.lastException.reset()
         throw err
       } else if (status !== napi_status.napi_ok) {
         return envObject.setLastError(status)
       }
     }
     makeSetValue('result', 0, 'value', '*')
-    return envObject.getReturnStatus()
+    return $GET_RETURN_STATUS!(envObject)
   })
 }
 
@@ -235,7 +236,7 @@ export function napi_create_typedarray (
         if ((byte_offset) % (size_of_element) !== 0) {
           const err: RangeError & { code?: string } = new RangeError(`start offset of ${Type.name ?? ''} should be a multiple of ${size_of_element}`)
           err.code = 'ERR_NAPI_INVALID_TYPEDARRAY_ALIGNMENT'
-          envObject.tryCatch.setError(err)
+          envObject.lastException.resetTo(err)
           return envObject.setLastError(napi_status.napi_generic_failure)
         }
       }
@@ -243,7 +244,7 @@ export function napi_create_typedarray (
       if (((length * size_of_element) + byte_offset) > buffer.byteLength) {
         const err: RangeError & { code?: string } = new RangeError('Invalid typed array length')
         err.code = 'ERR_NAPI_INVALID_TYPEDARRAY_LENGTH'
-        envObject.tryCatch.setError(err)
+        envObject.lastException.resetTo(err)
         return envObject.setLastError(napi_status.napi_generic_failure)
       }
       const out = new Type(buffer, byte_offset, length)
@@ -263,7 +264,7 @@ export function napi_create_typedarray (
 
       value = emnapiCtx.napiValueFromJsValue(out)
       makeSetValue('result', 0, 'value', '*')
-      return envObject.getReturnStatus()
+      return $GET_RETURN_STATUS!(envObject)
     }
 
     switch (type) {
@@ -345,7 +346,7 @@ export function napi_create_buffer (
       makeSetValue('data', 0, 'pointer', '*')
     }
 
-    return envObject.getReturnStatus()
+    return $GET_RETURN_STATUS!(envObject)
   })
 }
 
@@ -375,7 +376,7 @@ export function napi_create_buffer_copy (
     value = emnapiCtx.napiValueFromJsValue(buffer)
     from64('result')
     makeSetValue('result', 0, 'value', '*')
-    return envObject.getReturnStatus()
+    return $GET_RETURN_STATUS!(envObject)
   })
 }
 
@@ -451,7 +452,7 @@ export function node_api_create_buffer_from_arraybuffer (
 
     value = emnapiCtx.napiValueFromJsValue(out)
     makeSetValue('result', 0, 'value', '*')
-    return envObject.getReturnStatus()
+    return $GET_RETURN_STATUS!(envObject)
   })
 }
 
@@ -501,7 +502,7 @@ export function napi_create_dataview (
 
     value = emnapiCtx.napiValueFromJsValue(dataview)
     makeSetValue('result', 0, 'value', '*')
-    return envObject.getReturnStatus()
+    return $GET_RETURN_STATUS!(envObject)
   })
 }
 

@@ -26,7 +26,7 @@ export function _emnapi_get_last_error_info (env: napi_env, error_code: Pointer<
 export function napi_throw (env: napi_env, error: napi_value): napi_status {
   return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, error)
-    envObject.tryCatch.setError(emnapiCtx.jsValueFromNapiValue(error)!)
+    envObject.lastException.resetTo(emnapiCtx.jsValueFromNapiValue(error)!)
     return envObject.clearLastError()
   })
 }
@@ -41,7 +41,7 @@ export function napi_throw_error (env: napi_env, code: const_char_p, msg: const_
     const error: Error & { code?: string } = new Error(emnapiString.UTF8ToString(msg as number, -1))
     if (code) error.code = emnapiString.UTF8ToString(code as number, -1)
 
-    envObject.tryCatch.setError(error)
+    envObject.lastException.resetTo(error)
     return envObject.clearLastError()
   })
 }
@@ -56,7 +56,7 @@ export function napi_throw_type_error (env: napi_env, code: const_char_p, msg: c
     const error: TypeError & { code?: string } = new TypeError(emnapiString.UTF8ToString(msg as number, -1))
     if (code) error.code = emnapiString.UTF8ToString(code as number, -1)
 
-    envObject.tryCatch.setError(error)
+    envObject.lastException.resetTo(error)
     return envObject.clearLastError()
   })
 }
@@ -71,7 +71,7 @@ export function napi_throw_range_error (env: napi_env, code: const_char_p, msg: 
     const error: RangeError & { code?: string } = new RangeError(emnapiString.UTF8ToString(msg as number, -1))
     if (code) error.code = emnapiString.UTF8ToString(code as number, -1)
 
-    envObject.tryCatch.setError(error)
+    envObject.lastException.resetTo(error)
     return envObject.clearLastError()
   })
 }
@@ -86,7 +86,7 @@ export function node_api_throw_syntax_error (env: napi_env, code: const_char_p, 
     const error: SyntaxError & { code?: string } = new SyntaxError(emnapiString.UTF8ToString(msg as number, -1))
     if (code) error.code = emnapiString.UTF8ToString(code as number, -1)
 
-    envObject.tryCatch.setError(error)
+    envObject.lastException.resetTo(error)
     return envObject.clearLastError()
   })
 }
@@ -95,7 +95,7 @@ export function node_api_throw_syntax_error (env: napi_env, code: const_char_p, 
 export function napi_is_exception_pending (env: napi_env, result: Pointer<bool>): napi_status {
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, result)
-  const r = envObject.tryCatch.hasCaught()
+  const r = !envObject.lastException.isEmpty()
   from64('result')
   makeSetValue('result', 0, 'r ? 1 : 0', 'i8')
   return envObject.clearLastError()
@@ -206,14 +206,14 @@ export function napi_get_and_clear_last_exception (env: napi_env, result: Pointe
   $CHECK_ARG!(envObject, result)
   from64('result')
 
-  if (!envObject.tryCatch.hasCaught()) {
+  if (envObject.lastException.isEmpty()) {
     makeSetValue('result', 0, '1', '*') // ID_UNDEFINED
     return envObject.clearLastError()
   } else {
-    const err = envObject.tryCatch.exception()!
+    const err = envObject.lastException.deref()!
     const value = emnapiCtx.napiValueFromJsValue(err)
     makeSetValue('result', 0, 'value', '*')
-    envObject.tryCatch.reset()
+    envObject.lastException.reset()
   }
   return envObject.clearLastError()
 }

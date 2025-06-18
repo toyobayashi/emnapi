@@ -1,9 +1,11 @@
+import { Disposable } from './Disaposable'
 import { supportFinalizer } from './util'
 
-class StrongRef<T> {
+class StrongRef<T> extends Disposable {
   private _value: T
 
   constructor (value: T) {
+    super()
     this._value = value
   }
 
@@ -34,8 +36,8 @@ export class Persistent<T> {
     })
     : undefined!
 
-  constructor (value: T) {
-    this._ref = new StrongRef(value)
+  constructor (...args: [T] | []) {
+    this._ref = args.length === 0 ? undefined : new StrongRef(args[0])
   }
 
   setWeak<P> (param: P, callback: (param: P) => void): void {
@@ -97,6 +99,11 @@ export class Persistent<T> {
       this._ref.dispose()
     }
     this._ref = undefined
+  }
+
+  resetTo (value: T): void {
+    this.reset()
+    this._ref = new StrongRef(value)
   }
 
   isEmpty (): boolean {

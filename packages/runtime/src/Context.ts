@@ -9,9 +9,9 @@ import {
   NODE_API_DEFAULT_MODULE_API_VERSION,
   NODE_MODULE_VERSION,
   detectFeatures,
-  Features,
-  TryCatch
+  Features
 } from './util'
+import { TryCatch } from './TryCatch'
 import { NotSupportWeakRefError, NotSupportBufferError } from './errors'
 import { Reference, ReferenceWithData, ReferenceWithFinalizer, type ReferenceOwnership } from './Reference'
 import { type IDeferrdValue, Deferred } from './Deferred'
@@ -20,6 +20,7 @@ import { TrackedFinalizer } from './TrackedFinalizer'
 import { External, isExternal, getExternalValue } from './External'
 import { FunctionTemplate } from './FunctionTemplate'
 import { ObjectTemplate, setInternalField, getInternalField } from './ObjectTemplate'
+import { Persistent } from './Persistent'
 
 export type CleanupHookCallbackFunction = number | ((arg: number) => void)
 
@@ -135,12 +136,12 @@ export class Context {
   private _isStopping = false
   private _canCallIntoJs = true
   private _suppressDestroy = false
+  private _lastException = new Persistent<any>()
 
   private envStore = new ArrayStore<Env>()
   private scopeStore = new ScopeStore()
   private refStore = new ArrayStore<Reference>()
   private deferredStore = new ArrayStore<Deferred>()
-  private tryCatchStack = [] as TryCatch[]
   private readonly refCounter?: NodejsWaitingRequestCounter
   private readonly cleanupQueue: CleanupQueue
 
@@ -295,22 +296,43 @@ export class Context {
     return getInternalField(obj, index)
   }
 
+  public setLastException (err: any) {
+    this._lastException.resetTo(err)
+  }
+
   public throwException (err: any) {
-    const tryCatch = this.tryCatchStack[this.tryCatchStack.length - 1]
-    if (tryCatch) {
-      tryCatch.setError(err)
+    if (TryCatch.top) {
+      TryCatch.top.setError(err)
+    } else {
+      this.setLastException(err)
     }
     return err
   }
 
-  public pushTryCatch (): TryCatch {
-    const tryCatch = new TryCatch()
-    this.tryCatchStack.push(tryCatch)
+  public hasPendingException (): boolean {
+    return !this._lastException.isEmpty()
+  }
+
+  public getAndClearLastException (): any {
+    const err = this._lastException.deref()
+    this._lastException.reset()
+    return err
+  }
+
+  public getTryCatch (address: number | bigint): TryCatch | undefined {
+    return TryCatch.deref(address)
+  }
+
+  public pushTryCatch (address: number | bigint): TryCatch {
+    const tryCatch = new TryCatch(address)
     return tryCatch
   }
 
-  public popTryCatch (): TryCatch | undefined {
-    return this.tryCatchStack.pop()
+  public popTryCatch (address: number | bigint): void {
+    if (address !== TryCatch.top?.id) {
+      throw new Error('TryCatch mismatch')
+    }
+    return TryCatch.pop()
   }
 
   public createFunctionTemplate (

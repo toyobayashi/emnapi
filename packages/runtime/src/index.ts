@@ -8,6 +8,7 @@ export { Finalizer } from './Finalizer'
 export { FunctionTemplate } from './FunctionTemplate'
 export { ObjectTemplate, getInternalField, setInternalField } from './ObjectTemplate'
 export { TrackedFinalizer } from './TrackedFinalizer'
+export { TryCatch } from './TryCatch'
 export { HandleStore } from './Handle'
 export { HandleScope, type ICallbackInfo } from './HandleScope'
 export { Persistent } from './Persistent'
@@ -19,7 +20,6 @@ export { type Features } from './util'
 
 export {
   isReferenceType,
-  TryCatch,
   version,
   NODE_API_SUPPORTED_VERSION_MIN,
   NODE_API_SUPPORTED_VERSION_MAX,

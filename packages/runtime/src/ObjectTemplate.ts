@@ -39,8 +39,13 @@ export class ObjectTemplate {
   }
 
   newInstance (_context: any) {
-    const { Ctor, internalFieldCount } = this
-    const instance = new Ctor()
+    const { ctx, Ctor, internalFieldCount } = this
+    let instance: any
+    try {
+      instance = new Ctor()
+    } catch (err) {
+      ctx.throwException(err)
+    }
     internalField.set(instance, Array(internalFieldCount))
     return instance
   }

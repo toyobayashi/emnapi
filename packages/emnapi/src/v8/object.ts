@@ -44,3 +44,31 @@ export function _v8_object_get_internal_field (
   const objValue = emnapiCtx.jsValueFromNapiValue(obj)
   return emnapiCtx.napiValueFromJsValue(emnapiCtx.getInternalField(objValue, index))
 }
+
+/**
+ * @__deps $emnapiCtx
+ * @__sig pppp
+ */
+export function _v8_object_get_key (
+  obj: Ptr,
+  context: Ptr,
+  key: Ptr
+): Ptr {
+  const objValue = emnapiCtx.jsValueFromNapiValue(obj)
+  if (!objValue) return 1
+  return emnapiCtx.napiValueFromJsValue(objValue[emnapiCtx.jsValueFromNapiValue(key)])
+}
+
+/**
+ * @__deps $emnapiCtx
+ * @__sig pppi
+ */
+export function _v8_object_get_index (
+  obj: Ptr,
+  context: Ptr,
+  index: number
+): Ptr {
+  const objValue = emnapiCtx.jsValueFromNapiValue(obj)
+  if (!objValue) return 1
+  return emnapiCtx.napiValueFromJsValue(objValue[index >>> 0])
+}

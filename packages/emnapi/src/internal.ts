@@ -4,7 +4,7 @@ import { emnapiCtx } from 'emnapi:shared'
 import { from64, makeDynCall, makeSetValue } from 'emscripten:parse-tools'
 import { emnapiString } from './string'
 import { emnapiExternalMemory } from './memory'
-import { $CHECK_ARG, $PREAMBLE } from './macro'
+import { $CHECK_ARG, $GET_RETURN_STATUS, $PREAMBLE } from './macro'
 
 export function emnapiCreateFunction<F extends (...args: any[]) => any> (envObject: Env, utf8name: Pointer<const_char>, length: size_t, cb: napi_callback, data: void_p): { status: napi_status; f: F } {
   from64('utf8name')
@@ -127,7 +127,7 @@ export function emnapiWrap (env: napi_env, js_object: napi_value, native_object:
     }
 
     envObject.getObjectBinding(v).wrapped = reference.id
-    return envObject.getReturnStatus()
+    return $GET_RETURN_STATUS!(envObject)
   })
 }
 
@@ -162,6 +162,6 @@ export function emnapiUnwrap (env: napi_env, js_object: napi_value, result: void
         ref.dispose()
       }
     }
-    return envObject.getReturnStatus()
+    return $GET_RETURN_STATUS!(envObject)
   })
 }

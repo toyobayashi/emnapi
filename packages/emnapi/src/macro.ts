@@ -17,7 +17,7 @@ export function $CHECK_ARG (env: Env, arg: void_p) {
 export function $PREAMBLE (env: napi_env, fn: (envObject: Env) => napi_status): napi_status {
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $RETURN_STATUS_IF_FALSE!(
-    envObject, envObject.tryCatch.isEmpty(), napi_status.napi_pending_exception)
+    envObject, envObject.lastException.isEmpty(), napi_status.napi_pending_exception)
   $RETURN_STATUS_IF_FALSE!(
     envObject,
     envObject.canCallIntoJs(),
@@ -29,7 +29,7 @@ export function $PREAMBLE (env: napi_env, fn: (envObject: Env) => napi_status): 
   try {
     return fn(envObject)
   } catch (err) {
-    envObject.tryCatch.setError(err)
+    envObject.lastException.resetTo(err)
     return envObject.setLastError(napi_status.napi_pending_exception)
   }
 }
@@ -57,3 +57,6 @@ export function $CHECK_NEW_STRING_ARGS (env: napi_env, str: const_char_p, length
     napi_status.napi_invalid_arg
   )
 }
+
+/** @macro */
+export const $GET_RETURN_STATUS = (envObject: Env): napi_status => (napi_status.napi_ok)

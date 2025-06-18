@@ -1,6 +1,6 @@
 import { emnapiCtx } from 'emnapi:shared'
 import { from64, makeSetValue } from 'emscripten:parse-tools'
-import { $CHECK_ENV_NOT_IN_GC, $CHECK_ARG, $PREAMBLE } from './macro'
+import { $CHECK_ENV_NOT_IN_GC, $CHECK_ARG, $PREAMBLE, $GET_RETURN_STATUS } from './macro'
 
 /** @__sig ippp */
 export function napi_typeof (env: napi_env, value: napi_value, result: Pointer<napi_valuetype>): napi_status {
@@ -57,7 +57,7 @@ export function napi_coerce_to_bool (env: napi_env, value: napi_value, result: P
 
     v = jsValue ? GlobalHandle.TRUE : GlobalHandle.FALSE
     makeSetValue('result', 0, 'v', '*')
-    return envObject.getReturnStatus()
+    return $GET_RETURN_STATUS!(envObject)
   })
 }
 
@@ -76,7 +76,7 @@ export function napi_coerce_to_number (env: napi_env, value: napi_value, result:
 
     v = emnapiCtx.napiValueFromJsValue(Number(jsValue))
     makeSetValue('result', 0, 'v', '*')
-    return envObject.getReturnStatus()
+    return $GET_RETURN_STATUS!(envObject)
   })
 }
 
@@ -95,7 +95,7 @@ export function napi_coerce_to_object (env: napi_env, value: napi_value, result:
 
     v = emnapiCtx.napiValueFromJsValue(Object(jsValue))
     makeSetValue('result', 0, 'v', '*')
-    return envObject.getReturnStatus()
+    return $GET_RETURN_STATUS!(envObject)
   })
 }
 
@@ -114,7 +114,7 @@ export function napi_coerce_to_string (env: napi_env, value: napi_value, result:
 
     v = emnapiCtx.napiValueFromJsValue(String(jsValue))
     makeSetValue('result', 0, 'v', '*')
-    return envObject.getReturnStatus()
+    return $GET_RETURN_STATUS!(envObject)
   })
 }
 
@@ -136,7 +136,7 @@ export function napi_instanceof (env: napi_env, object: napi_value, constructor:
     const ret = val instanceof ctor
     r = ret ? 1 : 0
     makeSetValue('result', 0, 'r', 'i8')
-    return envObject.getReturnStatus()
+    return $GET_RETURN_STATUS!(envObject)
   })
 }
 
@@ -245,7 +245,7 @@ export function napi_strict_equals (env: napi_env, lhs: napi_value, rhs: napi_va
     from64('result')
     r = (lv === rv) ? 1 : 0
     makeSetValue('result', 0, 'r', 'i8')
-    return envObject.getReturnStatus()
+    return $GET_RETURN_STATUS!(envObject)
   })
 }
 
@@ -284,10 +284,10 @@ export function napi_is_detached_arraybuffer (env: napi_env, arraybuffer: napi_v
         new Uint8Array(h as ArrayBuffer)
       } catch (_) {
         makeSetValue('result', 0, '1', 'i8')
-        return envObject.getReturnStatus()
+        return $GET_RETURN_STATUS!(envObject)
       }
     }
     makeSetValue('result', 0, '0', 'i8')
-    return envObject.getReturnStatus()
+    return $GET_RETURN_STATUS!(envObject)
   })
 }

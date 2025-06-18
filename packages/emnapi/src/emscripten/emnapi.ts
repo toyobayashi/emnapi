@@ -2,7 +2,7 @@ import { emnapiCtx } from 'emnapi:shared'
 import { Module } from 'emscripten:runtime'
 import { from64, makeSetValue } from 'emscripten:parse-tools'
 import { emnapiString } from '../string'
-import { $CHECK_ARG, $PREAMBLE } from '../macro'
+import { $CHECK_ARG, $GET_RETURN_STATUS, $PREAMBLE } from '../macro'
 
 /**
  * @__sig ipp
@@ -16,7 +16,7 @@ export function emnapi_get_module_object (env: napi_env, result: Pointer<napi_va
 
     value = emnapiCtx.napiValueFromJsValue(Module)
     makeSetValue('result', 0, 'value', '*')
-    return envObject.getReturnStatus()
+    return $GET_RETURN_STATUS!(envObject)
   })
 }
 
@@ -34,6 +34,6 @@ export function emnapi_get_module_property (env: napi_env, utf8name: const_char_
 
     value = emnapiCtx.napiValueFromJsValue(Module[emnapiString.UTF8ToString(utf8name as number, -1)])
     makeSetValue('result', 0, 'value', '*')
-    return envObject.getReturnStatus()
+    return $GET_RETURN_STATUS!(envObject)
   })
 }
