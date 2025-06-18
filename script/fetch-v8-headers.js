@@ -4,7 +4,7 @@ import { spawnSync } from './spawn.js'
 import envPaths from 'env-paths'
 
 const cacheDir = envPaths('node-gyp', { suffix: '' }).cache
-const targetVersion = process.env.NODE_VERSION || '22.15.0'
+const targetVersion = process.env.NODE_VERSION || '22.16.0'
 const versionDir = path.join(cacheDir, targetVersion)
 
 if (!fs.existsSync(versionDir)) {

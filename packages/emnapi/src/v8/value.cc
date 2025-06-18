@@ -19,6 +19,8 @@ extern "C" {
   V8_EXTERN bool _v8_value_is_string(const Value*);
 }
 
+void Value::CheckCast(Data*) {}
+
 Local<Boolean> Value::ToBoolean(Isolate* isolate) const {
   return v8impl::V8LocalValueFromAddress(_v8_value_to_boolean(this, isolate)).As<Boolean>();
 }

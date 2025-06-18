@@ -5,8 +5,8 @@ namespace v8 {
 extern "C" {
   V8_EXTERN Value* _v8_cbinfo_new_target(internal::Address info);
   V8_EXTERN internal::Address _v8_function_template_new(
-      Isolate* isolate, internal::Address (*callback)(internal::Address info, FunctionCallback cb),
-      FunctionCallback cb,
+      Isolate* isolate, internal::Address (*callback)(internal::Address info, v8::FunctionCallback cb),
+      v8::FunctionCallback cb,
       internal::Address data, internal::Address signature,
       int length, ConstructorBehavior behavior,
       SideEffectType side_effect_type,
@@ -57,13 +57,22 @@ struct FunctionCallbackInfoImpl {
   }
 };
 
+internal::Address CallbackWrap(internal::Address info, v8::FunctionCallback callback) {
+  const FunctionCallbackInfoImpl cbinfo{info};
+  const v8::FunctionCallbackInfo<Value>* args = reinterpret_cast<const v8::FunctionCallbackInfo<Value>*>(&cbinfo);
+  const v8::FunctionCallbackInfo<Value>& args_ref = *args;
+  callback(args_ref);
+  Local<Value> ret = args->GetReturnValue().Get();
+  return v8impl::AddressFromV8LocalValue(ret);
+}
+
 }
 
 void FunctionTemplate::CheckCast(v8::Data*) {}
 void ObjectTemplate::CheckCast(v8::Data*) {}
 
 Local<FunctionTemplate> FunctionTemplate::New(
-    Isolate* isolate, FunctionCallback callback,
+    Isolate* isolate, v8::FunctionCallback callback,
     Local<Value> data,
     Local<Signature> signature, int length,
     ConstructorBehavior behavior,
@@ -72,13 +81,7 @@ Local<FunctionTemplate> FunctionTemplate::New(
     uint16_t allowed_receiver_instance_type_range_start,
     uint16_t allowed_receiver_instance_type_range_end) {
   internal::Address tpl_value = _v8_function_template_new(isolate,
-    [](internal::Address info, FunctionCallback callback) {
-      FunctionCallbackInfoImpl cbinfo{info};
-      auto* args = reinterpret_cast<FunctionCallbackInfo<Value>*>(&cbinfo);
-      callback(*args);
-      Local<Value> ret = args->GetReturnValue().Get();
-      return v8impl::AddressFromV8LocalValue(ret);
-    }, callback, reinterpret_cast<internal::Address>(*data),
+    CallbackWrap, callback, reinterpret_cast<internal::Address>(*data),
     reinterpret_cast<internal::Address>(*signature), length,
     behavior, side_effect_type, c_function, instance_type,
     allowed_receiver_instance_type_range_start,
