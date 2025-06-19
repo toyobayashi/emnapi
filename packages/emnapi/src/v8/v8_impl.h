@@ -11,6 +11,17 @@ namespace v8 {
 
 namespace v8impl {
 
+enum class GlobalHandle : v8::internal::Address {
+  kHole,
+  kEmpty,
+  kUndefined,
+  kNull,
+  kFalse,
+  kTrue,
+  kGlobal,
+  kEmptyString,
+};
+
 static_assert(sizeof(v8::Local<v8::Value>) == sizeof(internal::Address),
               "Cannot convert between v8::Local<v8::Value> and internal::Address");
 

@@ -15,6 +15,7 @@ declare interface BufferCtor {
 
 declare const enum GlobalHandle {
   HOLE,
+  EMPTY,
   UNDEFINED,
   NULL,
   FALSE,

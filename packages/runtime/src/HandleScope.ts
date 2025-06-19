@@ -68,6 +68,7 @@ export class HandleScope extends Disposable {
   }
 
   public escape (handle: number): number {
+    if (handle < this.start || handle >= this.end) return handle
     if (this._escapeCalled) return 0
     this._escapeCalled = true
 

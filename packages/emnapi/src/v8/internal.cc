@@ -18,12 +18,12 @@ void VerifyHandleIsNonEmpty(bool is_empty) {
 }
 
 Isolate::Isolate(): data_{} {
-  *reinterpret_cast<internal::Address*>(data_ + internal::Internals::kIsolateRootsOffset + v8::internal::kApiSystemPointerSize * v8::internal::Internals::kUndefinedValueRootIndex) = 1;
-  *reinterpret_cast<internal::Address*>(data_ + internal::Internals::kIsolateRootsOffset + v8::internal::kApiSystemPointerSize * v8::internal::Internals::kTheHoleValueRootIndex) = 0;
-  *reinterpret_cast<internal::Address*>(data_ + internal::Internals::kIsolateRootsOffset + v8::internal::kApiSystemPointerSize * v8::internal::Internals::kNullValueRootIndex) = 2;
-  *reinterpret_cast<internal::Address*>(data_ + internal::Internals::kIsolateRootsOffset + v8::internal::kApiSystemPointerSize * v8::internal::Internals::kFalseValueRootIndex) = 3;
-  *reinterpret_cast<internal::Address*>(data_ + internal::Internals::kIsolateRootsOffset + v8::internal::kApiSystemPointerSize * v8::internal::Internals::kTrueValueRootIndex) = 4;
-  *reinterpret_cast<internal::Address*>(data_ + internal::Internals::kIsolateRootsOffset + v8::internal::kApiSystemPointerSize * v8::internal::Internals::kEmptyStringRootIndex) = 6;
+  *reinterpret_cast<internal::Address*>(data_ + internal::Internals::kIsolateRootsOffset + v8::internal::kApiSystemPointerSize * v8::internal::Internals::kUndefinedValueRootIndex) = static_cast<internal::Address>(v8impl::GlobalHandle::kUndefined);
+  *reinterpret_cast<internal::Address*>(data_ + internal::Internals::kIsolateRootsOffset + v8::internal::kApiSystemPointerSize * v8::internal::Internals::kTheHoleValueRootIndex) = static_cast<internal::Address>(v8impl::GlobalHandle::kHole);
+  *reinterpret_cast<internal::Address*>(data_ + internal::Internals::kIsolateRootsOffset + v8::internal::kApiSystemPointerSize * v8::internal::Internals::kNullValueRootIndex) = static_cast<internal::Address>(v8impl::GlobalHandle::kNull);
+  *reinterpret_cast<internal::Address*>(data_ + internal::Internals::kIsolateRootsOffset + v8::internal::kApiSystemPointerSize * v8::internal::Internals::kFalseValueRootIndex) = static_cast<internal::Address>(v8impl::GlobalHandle::kFalse);
+  *reinterpret_cast<internal::Address*>(data_ + internal::Internals::kIsolateRootsOffset + v8::internal::kApiSystemPointerSize * v8::internal::Internals::kTrueValueRootIndex) = static_cast<internal::Address>(v8impl::GlobalHandle::kTrue);
+  *reinterpret_cast<internal::Address*>(data_ + internal::Internals::kIsolateRootsOffset + v8::internal::kApiSystemPointerSize * v8::internal::Internals::kEmptyStringRootIndex) = static_cast<internal::Address>(v8impl::GlobalHandle::kEmptyString);
 }
 
 }
