@@ -126,8 +126,6 @@ class NodejsWaitingRequestCounter {
   }
 }
 
-let _globalThis: typeof globalThis
-
 export interface ContextOptions {
   features?: Partial<Features>
 }
@@ -137,6 +135,7 @@ export class Context {
   private _canCallIntoJs = true
   private _suppressDestroy = false
   private _lastException = new Persistent<any>()
+  private _globalThis: typeof globalThis
 
   private envStore = new ArrayStore<Env>()
   private scopeStore = new ScopeStore()
@@ -152,7 +151,7 @@ export class Context {
   public constructor (options?: ContextOptions) {
     this.features = detectFeatures(options?.features)
     this.handleStore = new HandleStore(this.features)
-    _globalThis ??= this.features.getGlobalThis()
+    this._globalThis ??= this.features.getGlobalThis()
     this.cleanupQueue = new CleanupQueue()
     if (typeof process === 'object' && process !== null && typeof process.once === 'function' && this.features.MessageChannel) {
       this.refCounter = new NodejsWaitingRequestCounter(this.features.MessageChannel)
@@ -459,7 +458,15 @@ export class Context {
   }
 
   public napiValueFromJsValue (value: unknown): number | bigint {
-    return this.scopeStore.currentScope.add(value)
+    switch (value) {
+      case undefined: return GlobalHandle.UNDEFINED
+      case null: return GlobalHandle.NULL
+      case false: return GlobalHandle.FALSE
+      case true: return GlobalHandle.TRUE
+      case '': return GlobalHandle.EMPTY_STRING
+      case this._globalThis: return GlobalHandle.GLOBAL
+      default: return this.scopeStore.currentScope.add(value)
+    }
   }
 
   public jsValueFromNapiValue<T = any> (napiValue: number | bigint): T | undefined {

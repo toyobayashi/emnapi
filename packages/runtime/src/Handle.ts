@@ -2,7 +2,7 @@ import { BaseArrayStore, CountIdAllocator } from './Store'
 import type { Features } from './util'
 
 export class HandleStore extends BaseArrayStore<any> {
-  public static MIN_ID = 7 as const
+  public static MIN_ID = 8 as const
 
   private _allocator: CountIdAllocator
   private _features: Features
