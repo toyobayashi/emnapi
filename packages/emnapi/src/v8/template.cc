@@ -19,6 +19,7 @@ extern "C" {
   V8_EXTERN internal::Address _v8_object_template_new(Isolate* isolate, internal::Address constructor);
   V8_EXTERN void _v8_object_template_set_internal_field_count(ObjectTemplate* obj_tpl, int value);
   V8_EXTERN internal::Address _v8_object_template_new_instance(ObjectTemplate* obj_tpl, Context* context);
+  V8_EXTERN internal::Address _v8_signature_new(Isolate* isolate, internal::Address receiver);
 }
 
 namespace {
@@ -97,6 +98,35 @@ MaybeLocal<Function> FunctionTemplate::GetFunction(v8::Local<v8::Context> contex
 
 void FunctionTemplate::SetClassName(v8::Local<v8::String> name) {
   _v8_function_template_set_class_name(this, v8impl::AddressFromV8LocalValue(name));
+}
+
+Local<ObjectTemplate> FunctionTemplate::InstanceTemplate() {
+  // TODO
+  return Local<ObjectTemplate>();
+}
+
+Local<ObjectTemplate> FunctionTemplate::PrototypeTemplate() {
+  // TODO
+  return Local<ObjectTemplate>();
+}
+
+void Template::Set(Local<Name> name, Local<Data> value,
+                   PropertyAttribute attributes) {
+  // TODO
+}
+
+void ObjectTemplate::SetAccessor(
+      Local<Name> name, AccessorNameGetterCallback getter,
+      AccessorNameSetterCallback setter,
+      Local<Value> data, PropertyAttribute attribute,
+      SideEffectType getter_side_effect_type,
+      SideEffectType setter_side_effect_type) {
+  // TODO
+}
+
+Local<Signature> Signature::New(Isolate* isolate, Local<FunctionTemplate> receiver) {
+  internal::Address signature = _v8_signature_new(isolate, reinterpret_cast<internal::Address>(*receiver));
+  return v8impl::V8LocalValueFromAddress(signature).As<Signature>();
 }
 
 Local<ObjectTemplate> ObjectTemplate::New(Isolate* isolate, Local<FunctionTemplate> constructor) {

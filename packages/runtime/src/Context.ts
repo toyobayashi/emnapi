@@ -19,7 +19,7 @@ import { ArrayStore } from './Store'
 import { TrackedFinalizer } from './TrackedFinalizer'
 import { External, isExternal, getExternalValue } from './External'
 import { FunctionTemplate } from './FunctionTemplate'
-import { ObjectTemplate, setInternalField, getInternalField } from './ObjectTemplate'
+import { ObjectTemplate, setInternalField, getInternalField, getInternalFieldCount } from './ObjectTemplate'
 import { Persistent } from './Persistent'
 
 export type CleanupHookCallbackFunction = number | ((arg: number) => void)
@@ -293,6 +293,10 @@ export class Context {
 
   public getInternalField (obj: any, index: number): any {
     return getInternalField(obj, index)
+  }
+
+  public getInternalFieldCount (obj: any): number {
+    return getInternalFieldCount(obj)
   }
 
   public setLastException (err: any) {

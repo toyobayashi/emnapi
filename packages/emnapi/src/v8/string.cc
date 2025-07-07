@@ -5,6 +5,7 @@ namespace v8 {
 extern "C" {
   V8_EXTERN internal::Address _v8_string_new_from_utf8(Isolate* isolate, const char* data, v8::NewStringType type, int length);
   V8_EXTERN int _v8_string_utf8_length(const String* self, Isolate* isolate);
+  V8_EXTERN int _v8_string_length(const String* self);
   V8_EXTERN int _v8_string_write_utf8(const String* self, Isolate* isolate, char* buffer, int length, int* nchars_ref, int options);
 }
 
@@ -18,6 +19,10 @@ MaybeLocal<String> String::NewFromUtf8(v8::Isolate* isolate, char const* data, v
 
 int String::Utf8Length(v8::Isolate* isolate) const {
   return _v8_string_utf8_length(this, isolate);
+}
+
+int String::Length() const {
+  return _v8_string_length(this);
 }
 
 int String::WriteUtf8(Isolate* isolate, char* buffer, int length,

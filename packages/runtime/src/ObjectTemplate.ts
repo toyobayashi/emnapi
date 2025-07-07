@@ -3,6 +3,11 @@ import type { Context } from './Context'
 export const internalField = new WeakMap<object, any[]>()
 
 /** @public */
+export function getInternalFieldCount (instance: object) {
+  return internalField.get(instance)?.length ?? 0
+}
+
+/** @public */
 export function getInternalField (instance: object, index: number) {
   return internalField.get(instance)?.[index]
 }

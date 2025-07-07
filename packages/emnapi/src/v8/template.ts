@@ -140,3 +140,15 @@ export function _v8_object_template_new_instance (
   const objTemplate = emnapiCtx.jsValueFromNapiValue(obj_tpl)
   return emnapiCtx.napiValueFromJsValue(objTemplate.newInstance(context))
 }
+
+/**
+ * @__deps $emnapiCtx
+ * @__sig ppp
+ */
+export function _v8_signature_new (
+  isolate: Ptr,
+  receiver: Ptr
+): Ptr {
+  // TODO
+  return 1
+}

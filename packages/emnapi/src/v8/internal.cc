@@ -38,6 +38,27 @@ void FromJustIsNothing() {
   abort();
 }
 
+internal::Address* GlobalizeReference(internal::Isolate* isolate,
+                                      internal::Address value) {
+  // TODO
+  return nullptr;
+}
+
+void DisposeGlobal(internal::Address* global_handle) {
+  // TODO
+}
+
+void MakeWeak(internal::Address* location, void* data,
+              WeakCallbackInfo<void>::Callback weak_callback,
+              WeakCallbackType type) {
+  // TODO
+}
+
+void* ClearWeak(internal::Address* location) {
+  // TODO
+  return nullptr;
+};
+
 }  // namespace api_internal
 
 }  // namespace v8
