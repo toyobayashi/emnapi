@@ -228,19 +228,23 @@ export class ThreadManager {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const _this = this
     worker.whenLoaded = new Promise<WorkerLike>((resolve, reject) => {
-      const handleError = function (e: { message: string }): void {
+      const handleError = function (e: Event | Error): void {
         let message = 'worker sent an error!'
         if (worker.__emnapi_tid !== undefined) {
           message = 'worker (tid = ' + worker.__emnapi_tid + ') sent an error!'
         }
-        err(message + ' ' + e.message)
-        if (e.message.indexOf('RuntimeError') !== -1 || e.message.indexOf('unreachable') !== -1) {
-          try {
-            _this.terminateAllThreads()
-          } catch (_) {}
+        if ('message' in e) {
+          err(message + ' ' + e.message)
+          if (e.message.indexOf('RuntimeError') !== -1 || e.message.indexOf('unreachable') !== -1) {
+            try {
+              _this.terminateAllThreads()
+            } catch (_) {}
+          }
+        } else {
+          err(message)
         }
         reject(e)
-        throw e as Error
+        throw e
       }
       const handleMessage = (data: MessageEventData<keyof CommandPayloadMap>): void => {
         if (data.__emnapi__) {
