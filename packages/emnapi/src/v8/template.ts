@@ -66,7 +66,10 @@ export function _v8_function_template_new (
   allowed_receiver_instance_type_range_end: number
 ): Pointer<unknown> {
   const jsCb = makeDynCall('ppp', 'callback')
-  const tpl = emnapiCtx.createFunctionTemplate(jsCb, cb, emnapiCtx.jsValueFromNapiValue(data))
+  const tpl = emnapiCtx.createFunctionTemplate(
+    jsCb, cb, emnapiCtx.jsValueFromNapiValue(data),
+    emnapiCtx.jsValueFromNapiValue(signature)
+  )
   return emnapiCtx.napiValueFromJsValue(tpl)
 }
 
@@ -149,6 +152,28 @@ export function _v8_signature_new (
   isolate: Ptr,
   receiver: Ptr
 ): Ptr {
-  // TODO
-  return 1
+  const rcv = emnapiCtx.jsValueFromNapiValue(receiver)
+  const sig = emnapiCtx.createSignature(rcv)
+  return emnapiCtx.napiValueFromJsValue(sig)
+}
+
+/**
+ * @__deps $emnapiCtx
+ * @__sig vpppi
+ */
+export function _v8_template_set (
+  tpl: Ptr,
+  name: Ptr,
+  value: Ptr,
+  attr: number
+): void {
+  const templateObject = emnapiCtx.jsValueFromNapiValue(tpl)
+  if (!templateObject) return
+
+  const nameValue = emnapiCtx.jsValueFromNapiValue(name)
+  const valueValue = emnapiCtx.jsValueFromNapiValue(value)
+
+  if (nameValue == null) return
+
+  templateObject.set(nameValue, valueValue, attr)
 }

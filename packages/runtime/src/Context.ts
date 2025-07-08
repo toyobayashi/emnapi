@@ -18,7 +18,7 @@ import { type IDeferrdValue, Deferred } from './Deferred'
 import { ArrayStore } from './Store'
 import { TrackedFinalizer } from './TrackedFinalizer'
 import { External, isExternal, getExternalValue } from './External'
-import { FunctionTemplate } from './FunctionTemplate'
+import { FunctionTemplate, Signature } from './FunctionTemplate'
 import { ObjectTemplate, setInternalField, getInternalField, getInternalFieldCount } from './ObjectTemplate'
 import { Persistent } from './Persistent'
 
@@ -283,6 +283,10 @@ export class Context {
     return env
   }
 
+  public createSignature (template: FunctionTemplate): Signature {
+    return new Signature(template)
+  }
+
   public createObjectTemplate (constructor: any) {
     return new ObjectTemplate(this, constructor)
   }
@@ -341,13 +345,15 @@ export class Context {
   public createFunctionTemplate (
     callback: (info: napi_callback_info, v8FunctionCallback: Ptr) => Ptr,
     v8FunctionCallback: Ptr,
-    data: any
+    data: any,
+    signature?: Signature
   ) {
     const functionTemplate = new FunctionTemplate(
       this,
       callback,
       v8FunctionCallback,
-      data
+      data,
+      signature
     )
 
     return functionTemplate

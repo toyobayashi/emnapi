@@ -1,4 +1,5 @@
 import type { Context } from './Context'
+import { Template } from './Template'
 
 export const internalField = new WeakMap<object, any[]>()
 
@@ -25,9 +26,8 @@ export function setInternalField (instance: object, index: number, value: any) {
 }
 
 /** @public */
-export class ObjectTemplate {
+export class ObjectTemplate extends Template {
   public Ctor: any
-  public ctx: Context
 
   public internalFieldCount: number = 0
 
@@ -35,7 +35,7 @@ export class ObjectTemplate {
     ctx: Context,
     Ctor: any
   ) {
-    this.ctx = ctx
+    super(ctx)
     this.Ctor = Ctor ?? Object
   }
 

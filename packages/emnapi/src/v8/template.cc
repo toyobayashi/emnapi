@@ -20,6 +20,8 @@ extern "C" {
   V8_EXTERN void _v8_object_template_set_internal_field_count(ObjectTemplate* obj_tpl, int value);
   V8_EXTERN internal::Address _v8_object_template_new_instance(ObjectTemplate* obj_tpl, Context* context);
   V8_EXTERN internal::Address _v8_signature_new(Isolate* isolate, internal::Address receiver);
+  V8_EXTERN void _v8_template_set(Template* tpl, internal::Address name, internal::Address value, 
+                                  PropertyAttribute attributes);
 }
 
 namespace {
@@ -112,7 +114,9 @@ Local<ObjectTemplate> FunctionTemplate::PrototypeTemplate() {
 
 void Template::Set(Local<Name> name, Local<Data> value,
                    PropertyAttribute attributes) {
-  // TODO
+  internal::Address name_value = v8impl::AddressFromV8LocalValue(name);
+  internal::Address value_value = reinterpret_cast<internal::Address>(*value);
+  _v8_template_set(this, name_value, value_value, attributes);
 }
 
 void ObjectTemplate::SetAccessor(
