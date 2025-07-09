@@ -3,6 +3,7 @@ import { Persistent } from './Persistent'
 import { RefTracker } from './RefTracker'
 import { Finalizer } from './Finalizer'
 import type { ArrayStore } from './Store'
+import type { Context } from './Context'
 
 export enum ReferenceOwnership {
   kRuntime,
@@ -22,7 +23,7 @@ export class Reference extends RefTracker {
   }
 
   public id: number
-  public envObject!: Env
+  public envObject: Env | undefined
   private store: ArrayStore<Reference>
 
   private readonly canBeWeak!: boolean
@@ -39,11 +40,34 @@ export class Reference extends RefTracker {
     _unused1?: void_p,
     _unused2?: void_p,
     _unused3?: void_p
+  ): Reference
+  public static create (
+    store: ArrayStore<Reference>,
+    envObject: undefined,
+    handle_id: any,
+    initialRefcount: uint32_t,
+    ownership: ReferenceOwnership,
+    _unused1?: void_p,
+    _unused2?: void_p,
+    _unused3?: void_p
+  ): Reference
+
+  public static create (
+    store: ArrayStore<Reference>,
+    envObject: any,
+    handle_id: any,
+    initialRefcount: uint32_t,
+    ownership: ReferenceOwnership,
+    _unused1?: void_p,
+    _unused2?: void_p,
+    _unused3?: void_p
   ): Reference {
     const ref = new Reference(
       store, envObject, handle_id, initialRefcount, ownership
     )
-    ref.link(envObject.reflist)
+    if (envObject) {
+      ref.link(envObject.reflist)
+    }
     return ref
   }
 
@@ -53,12 +77,27 @@ export class Reference extends RefTracker {
     handle_id: napi_value,
     initialRefcount: uint32_t,
     ownership: ReferenceOwnership
+  )
+  public constructor (
+    store: ArrayStore<Reference>,
+    envObject: undefined,
+    handle_id: any,
+    initialRefcount: uint32_t,
+    ownership: ReferenceOwnership
+  )
+
+  public constructor (
+    store: ArrayStore<Reference>,
+    envObject: Env | undefined,
+    handle_id: any,
+    initialRefcount: uint32_t,
+    ownership: ReferenceOwnership
   ) {
     super()
     this.envObject = envObject
     this._refcount = initialRefcount
     this._ownership = ownership
-    const value = envObject.ctx.jsValueFromNapiValue(handle_id)!
+    const value = envObject ? envObject.ctx.jsValueFromNapiValue(handle_id)! : handle_id
     this.canBeWeak = canBeHeldWeakly(value)
     this.persistent = new Persistent(value)
     this.id = 0
@@ -92,12 +131,12 @@ export class Reference extends RefTracker {
     return this._refcount
   }
 
-  public get (envObject = this.envObject): napi_value {
+  public get (ctx: Context): napi_value {
     if (this.persistent.isEmpty()) {
       return 0
     }
     const obj = this.persistent.deref()
-    return envObject.ctx.napiValueFromJsValue(obj)
+    return ctx.napiValueFromJsValue(obj)
   }
 
   /** @virtual */
@@ -119,11 +158,19 @@ export class Reference extends RefTracker {
   }
 
   private _setWeak (): void {
+    this.setWeakWithData(this, Reference.weakCallback)
+  }
+
+  public setWeakWithData<T> (data: T, callback: (data: T) => void): void {
     if (this.canBeWeak) {
-      this.persistent.setWeak(this, Reference.weakCallback)
+      this.persistent.setWeak(data, callback)
     } else {
       this.persistent.reset()
     }
+  }
+
+  public clearWeak (): void {
+    this.persistent.clearWeak()
   }
 
   public override finalize (): void {
@@ -148,6 +195,8 @@ export class Reference extends RefTracker {
 }
 
 export class ReferenceWithData extends Reference {
+  private readonly _data: void_p
+
   public static override create (
     store: ArrayStore<Reference>,
     envObject: Env,
@@ -155,11 +204,30 @@ export class ReferenceWithData extends Reference {
     initialRefcount: uint32_t,
     ownership: ReferenceOwnership,
     data: void_p
+  ): ReferenceWithData
+  public static override create (
+    store: ArrayStore<Reference>,
+    envObject: undefined,
+    value: any,
+    initialRefcount: uint32_t,
+    ownership: ReferenceOwnership,
+    data: void_p
+  ): ReferenceWithData
+
+  public static override create (
+    store: ArrayStore<Reference>,
+    envObject: any,
+    value: any,
+    initialRefcount: uint32_t,
+    ownership: ReferenceOwnership,
+    data: void_p
   ): ReferenceWithData {
     const reference = new ReferenceWithData(
       store, envObject, value, initialRefcount, ownership, data
     )
-    reference.link(envObject.reflist)
+    if (envObject) {
+      reference.link(envObject.reflist)
+    }
     return reference
   }
 
@@ -169,9 +237,27 @@ export class ReferenceWithData extends Reference {
     value: napi_value,
     initialRefcount: uint32_t,
     ownership: ReferenceOwnership,
-    private readonly _data: void_p
+    data: void_p
+  )
+  public constructor (
+    store: ArrayStore<Reference>,
+    envObject: undefined,
+    value: any,
+    initialRefcount: uint32_t,
+    ownership: ReferenceOwnership,
+    data: void_p
+  )
+
+  public constructor (
+    store: ArrayStore<Reference>,
+    envObject: any,
+    value: any,
+    initialRefcount: uint32_t,
+    ownership: ReferenceOwnership,
+    data: void_p
   ) {
     super(store, envObject, value, initialRefcount, ownership)
+    this._data = data
   }
 
   public data (): void_p {
@@ -191,7 +277,31 @@ export class ReferenceWithFinalizer extends Reference {
     finalize_callback: napi_finalize,
     finalize_data: void_p,
     finalize_hint: void_p
+  ): ReferenceWithFinalizer
+  public static override create (
+    store: ArrayStore<Reference>,
+    envObject: undefined,
+    value: any,
+    initialRefcount: uint32_t,
+    ownership: ReferenceOwnership,
+    finalize_callback: napi_finalize,
+    finalize_data: void_p,
+    finalize_hint: void_p
+  ): ReferenceWithFinalizer
+
+  public static override create (
+    store: ArrayStore<Reference>,
+    envObject: any,
+    value: any,
+    initialRefcount: uint32_t,
+    ownership: ReferenceOwnership,
+    finalize_callback: napi_finalize,
+    finalize_data: void_p,
+    finalize_hint: void_p
   ): ReferenceWithFinalizer {
+    if (!envObject) {
+      throw new TypeError('envObject is required for ReferenceWithFinalizer')
+    }
     const reference = new ReferenceWithFinalizer(
       store, envObject, value, initialRefcount, ownership, finalize_callback, finalize_data, finalize_hint
     )

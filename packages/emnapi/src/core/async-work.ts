@@ -215,7 +215,7 @@ var emnapiAWMT = {
     try {
       if (emnapiNodeBinding) {
         const resource = emnapiAWMT.getResource(work)
-        const resource_value = emnapiCtx.getRef(resource)!.get()
+        const resource_value = emnapiCtx.getRef(resource)!.get(emnapiCtx)
         const resourceObject = emnapiCtx.jsValueFromNapiValue(resource_value)!
         const view = new DataView(wasmMemory.buffer)
         const asyncId = view.getFloat64(work + emnapiAWMT.offset.async_id, true)

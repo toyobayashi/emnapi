@@ -13,7 +13,7 @@ import {
 } from './util'
 import { TryCatch } from './TryCatch'
 import { NotSupportWeakRefError, NotSupportBufferError } from './errors'
-import { Reference, ReferenceWithData, ReferenceWithFinalizer, type ReferenceOwnership } from './Reference'
+import { Reference, ReferenceOwnership, ReferenceWithData, ReferenceWithFinalizer } from './Reference'
 import { type IDeferrdValue, Deferred } from './Deferred'
 import { ArrayStore } from './Store'
 import { TrackedFinalizer } from './TrackedFinalizer'
@@ -196,6 +196,19 @@ export class Context {
   public createReference (
     envObject: Env,
     handle_id: napi_value,
+    initialRefcount: uint32_t,
+    ownership: ReferenceOwnership
+  ): Reference
+  public createReference (
+    envObject: undefined,
+    handle_id: any,
+    initialRefcount: uint32_t,
+    ownership: ReferenceOwnership
+  ): Reference
+
+  public createReference (
+    envObject: any,
+    handle_id: any,
     initialRefcount: uint32_t,
     ownership: ReferenceOwnership
   ): Reference {

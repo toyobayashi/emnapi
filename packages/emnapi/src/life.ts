@@ -152,7 +152,7 @@ export function napi_get_reference_value (
   $CHECK_ARG!(envObject, ref)
   $CHECK_ARG!(envObject, result)
   const reference = emnapiCtx.getRef(ref)!
-  const id = reference.get(envObject)
+  const id = reference.get(emnapiCtx)
   from64('result')
   makeSetValue('result', 0, 'id', '*')
   return envObject.clearLastError()
