@@ -201,3 +201,73 @@ export function _v8_function_template_prototype_template (
   if (!templateObject) return 1
   return emnapiCtx.napiValueFromJsValue(templateObject.prototypeTemplate())
 }
+
+/**
+ * @__deps $emnapiCtx
+ * @__sig vpp
+ */
+export function _v8_get_property_cb_info (
+  cbinfo: Ptr,
+  args: Ptr
+): void {
+  if (!cbinfo) return
+  const cbinfoValue = emnapiCtx.getCallbackInfo(cbinfo)
+
+  /**
+   * static constexpr int kShouldThrowOnErrorIndex = 0;
+   * static constexpr int kHolderIndex = 1;
+   * static constexpr int kIsolateIndex = 2;
+   * static constexpr int kUnusedIndex = 3;
+   * static constexpr int kReturnValueIndex = 4;
+   * static constexpr int kDataIndex = 5;
+   * static constexpr int kThisIndex = 6;
+   * static constexpr int kArgsLength = 7;
+   */
+  from64('args')
+
+  const thiz = emnapiCtx.napiValueFromJsValue(cbinfoValue.thiz)
+  makeSetValue('args', '1 * ' + POINTER_SIZE, 'thiz', '*')
+  makeSetValue('args', '6 * ' + POINTER_SIZE, 'thiz', '*')
+
+  const localData = emnapiCtx.napiValueFromJsValue(cbinfoValue.data)
+  makeSetValue('args', '5 * ' + POINTER_SIZE, 'localData', '*')
+}
+
+/**
+ * @__deps $emnapiCtx
+ * @__sig vpppppppiii
+ */
+export function _v8_object_template_set_accessor (
+  tpl: Ptr,
+  name: Ptr,
+  getter_wrap: Ptr,
+  setter_wrap: Ptr,
+  getter: Ptr,
+  setter: Ptr,
+  data: Ptr,
+  attribute: number,
+  getter_side_effect_type: number,
+  setter_side_effect_type: number
+): void {
+  const templateObject = emnapiCtx.jsValueFromNapiValue(tpl)
+  if (!templateObject) return
+
+  const nameValue = emnapiCtx.jsValueFromNapiValue(name)
+
+  from64('getter_wrap')
+  from64('setter_wrap')
+  const getterWrap = makeDynCall('pppp', 'getter_wrap')
+  const setterWrap = makeDynCall('ppppp', 'setter_wrap')
+
+  templateObject.setAccessor(
+    nameValue,
+    getterWrap,
+    setterWrap,
+    getter,
+    setter,
+    emnapiCtx.jsValueFromNapiValue(data),
+    attribute,
+    getter_side_effect_type,
+    setter_side_effect_type
+  )
+}

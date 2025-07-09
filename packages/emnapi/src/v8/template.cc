@@ -24,6 +24,16 @@ extern "C" {
                                   PropertyAttribute attributes);
   V8_EXTERN internal::Address _v8_function_template_instance_template(FunctionTemplate* tpl);
   V8_EXTERN internal::Address _v8_function_template_prototype_template(FunctionTemplate* tpl);
+  V8_EXTERN void _v8_get_property_cb_info(internal::Address info, internal::Address* args);
+  V8_EXTERN void _v8_object_template_set_accessor(
+    ObjectTemplate* obj_tpl, internal::Address name,
+    internal::Address (*getter_wrap)(internal::Address property, internal::Address info, AccessorNameGetterCallback getter),
+    internal::Address (*setter_wrap)(internal::Address property, internal::Address value, internal::Address info, AccessorNameSetterCallback setter),
+    AccessorNameGetterCallback getter, AccessorNameSetterCallback setter,
+    internal::Address data, PropertyAttribute attribute,
+    SideEffectType getter_side_effect_type,
+    SideEffectType setter_side_effect_type
+  );
 }
 
 namespace {
@@ -67,6 +77,45 @@ internal::Address CallbackWrap(internal::Address info, v8::FunctionCallback call
   const v8::FunctionCallbackInfo<Value>* args = reinterpret_cast<const v8::FunctionCallbackInfo<Value>*>(&cbinfo);
   const v8::FunctionCallbackInfo<Value>& args_ref = *args;
   callback(args_ref);
+  Local<Value> ret = args->GetReturnValue().Get();
+  return v8impl::AddressFromV8LocalValue(ret);
+}
+
+struct PropertyCallbackInfoImpl {
+  internal::Address* args_;
+
+  PropertyCallbackInfoImpl(internal::Address info) {
+    internal::Address* list = new internal::Address[8]{0};
+    *(list + 2) = reinterpret_cast<internal::Address>(Isolate::GetCurrent());
+    *(list + 4) = internal::ValueHelper::kEmpty;
+    _v8_get_property_cb_info(info, list);
+    args_ = list;
+  }
+
+  PropertyCallbackInfoImpl(const PropertyCallbackInfoImpl&) = delete;
+  PropertyCallbackInfoImpl& operator=(const PropertyCallbackInfoImpl&) = delete;
+  PropertyCallbackInfoImpl(PropertyCallbackInfoImpl&&) = delete;
+  PropertyCallbackInfoImpl& operator=(PropertyCallbackInfoImpl&&) = delete;
+
+  ~PropertyCallbackInfoImpl() {
+    delete[] args_;
+  }
+};
+
+internal::Address PropertyGetterWrap(internal::Address property, internal::Address info, AccessorNameGetterCallback getter) {
+  const PropertyCallbackInfoImpl cbinfo{info};
+  const v8::PropertyCallbackInfo<Value>* args = reinterpret_cast<const v8::PropertyCallbackInfo<Value>*>(&cbinfo);
+  const v8::PropertyCallbackInfo<Value>& args_ref = *args;
+  getter(v8impl::V8LocalValueFromAddress(property).As<Name>(), args_ref);
+  Local<Value> ret = args->GetReturnValue().Get();
+  return v8impl::AddressFromV8LocalValue(ret);
+}
+
+internal::Address PropertySetterWrap(internal::Address property, internal::Address value, internal::Address info, AccessorNameSetterCallback setter) {
+  const PropertyCallbackInfoImpl cbinfo{info};
+  const v8::PropertyCallbackInfo<void>* args = reinterpret_cast<const v8::PropertyCallbackInfo<void>*>(&cbinfo);
+  const v8::PropertyCallbackInfo<void>& args_ref = *args;
+  setter(v8impl::V8LocalValueFromAddress(property).As<Name>(), v8impl::V8LocalValueFromAddress(value), args_ref);
   Local<Value> ret = args->GetReturnValue().Get();
   return v8impl::AddressFromV8LocalValue(ret);
 }
@@ -131,7 +180,12 @@ void ObjectTemplate::SetAccessor(
       Local<Value> data, PropertyAttribute attribute,
       SideEffectType getter_side_effect_type,
       SideEffectType setter_side_effect_type) {
-  // TODO
+  _v8_object_template_set_accessor(
+    this, v8impl::AddressFromV8LocalValue(name),
+    PropertyGetterWrap, PropertySetterWrap,
+    getter, setter,
+    v8impl::AddressFromV8LocalValue(data), attribute,
+    getter_side_effect_type, setter_side_effect_type);
 }
 
 Local<Signature> Signature::New(Isolate* isolate, Local<FunctionTemplate> receiver) {
