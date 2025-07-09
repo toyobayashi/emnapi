@@ -22,6 +22,8 @@ extern "C" {
   V8_EXTERN internal::Address _v8_signature_new(Isolate* isolate, internal::Address receiver);
   V8_EXTERN void _v8_template_set(Template* tpl, internal::Address name, internal::Address value, 
                                   PropertyAttribute attributes);
+  V8_EXTERN internal::Address _v8_function_template_instance_template(FunctionTemplate* tpl);
+  V8_EXTERN internal::Address _v8_function_template_prototype_template(FunctionTemplate* tpl);
 }
 
 namespace {
@@ -103,13 +105,17 @@ void FunctionTemplate::SetClassName(v8::Local<v8::String> name) {
 }
 
 Local<ObjectTemplate> FunctionTemplate::InstanceTemplate() {
-  // TODO
-  return Local<ObjectTemplate>();
+  internal::Address v = _v8_function_template_instance_template(this);
+  v8::Local<v8::ObjectTemplate> local;
+  memcpy(static_cast<void*>(&local), &v, sizeof(v));
+  return local;
 }
 
 Local<ObjectTemplate> FunctionTemplate::PrototypeTemplate() {
-  // TODO
-  return Local<ObjectTemplate>();
+  internal::Address v = _v8_function_template_prototype_template(this);
+  v8::Local<v8::ObjectTemplate> local;
+  memcpy(static_cast<void*>(&local), &v, sizeof(v));
+  return local;
 }
 
 void Template::Set(Local<Name> name, Local<Data> value,

@@ -33,7 +33,7 @@ export class ObjectTemplate extends Template {
 
   constructor (
     ctx: Context,
-    Ctor: any
+    Ctor?: any
   ) {
     super(ctx)
     this.Ctor = Ctor ?? Object
@@ -43,15 +43,20 @@ export class ObjectTemplate extends Template {
     this.internalFieldCount = value
   }
 
+  applyToInstance (instance: any) {
+    internalField.set(instance, Array(this.internalFieldCount))
+    this._addPropertiesToInstance(instance)
+  }
+
   newInstance (_context: any) {
-    const { ctx, Ctor, internalFieldCount } = this
+    const { ctx, Ctor } = this
     let instance: any
     try {
       instance = new Ctor()
     } catch (err) {
       ctx.throwException(err)
     }
-    internalField.set(instance, Array(internalFieldCount))
+    this.applyToInstance(instance)
     return instance
   }
 }

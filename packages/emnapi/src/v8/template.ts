@@ -177,3 +177,27 @@ export function _v8_template_set (
 
   templateObject.set(nameValue, valueValue, attr)
 }
+
+/**
+ * @__deps $emnapiCtx
+ * @__sig pp
+ */
+export function _v8_function_template_instance_template (
+  tpl: Ptr
+): Ptr {
+  const templateObject = emnapiCtx.jsValueFromNapiValue(tpl)
+  if (!templateObject) return 1
+  return emnapiCtx.napiValueFromJsValue(templateObject.instanceTemplate())
+}
+
+/**
+ * @__deps $emnapiCtx
+ * @__sig pp
+ */
+export function _v8_function_template_prototype_template (
+  tpl: Ptr
+): Ptr {
+  const templateObject = emnapiCtx.jsValueFromNapiValue(tpl)
+  if (!templateObject) return 1
+  return emnapiCtx.napiValueFromJsValue(templateObject.prototypeTemplate())
+}
