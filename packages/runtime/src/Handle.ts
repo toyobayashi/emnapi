@@ -8,7 +8,7 @@ export class HandleStore extends BaseArrayStore<any> {
   private _allocator: CountIdAllocator
   private _features: Features
   private _erase: (start: number, end: number, weak: boolean) => void
-  private _deref: (id: number | bigint/* , refStore: ArrayStore<Reference> */) => any
+  private _deref: (id: number | bigint) => any
 
   public constructor (features: Features) {
     super(HandleStore.MIN_ID)
@@ -62,7 +62,7 @@ export class HandleStore extends BaseArrayStore<any> {
       : _erase
 
     this._deref = this._features.finalizer
-      ? (id: number | bigint/* , refStore: ArrayStore<Reference> */): any => {
+      ? (id: number | bigint): any => {
           const value = this._values[id as number]
           if (value instanceof Reference) return value.deref()
           if (value instanceof WeakRef && Number(id) >= this._allocator.next) {
@@ -70,14 +70,14 @@ export class HandleStore extends BaseArrayStore<any> {
           }
           return value
         }
-      : (id: number | bigint/* , refStore: ArrayStore<Reference> */): any => {
+      : (id: number | bigint): any => {
           const value = this._values[id as number]
           if (value instanceof Reference) return value.deref()
           return value
         }
   }
 
-  public deepDeref<R = any> (id: number | bigint/* , refStore: ArrayStore<Reference> */): R | undefined {
+  public deepDeref<R = any> (id: number | bigint): R | undefined {
     return this._deref(id) as R
   }
 
