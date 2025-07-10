@@ -21,6 +21,17 @@ export function _v8_object_set (obj: Ptr, context: Ptr, key: Ptr, value: Ptr, su
 
 /**
  * @__deps $emnapiCtx
+ * @__sig ip
+ */
+export function _v8_object_internal_field_count (
+  obj: Ptr
+): number {
+  const objValue = emnapiCtx.jsValueFromNapiValue(obj)
+  return emnapiCtx.getInternalFieldCount(objValue)
+}
+
+/**
+ * @__deps $emnapiCtx
  * @__sig vpip
  */
 export function _v8_object_set_internal_field (
@@ -35,6 +46,19 @@ export function _v8_object_set_internal_field (
 
 /**
  * @__deps $emnapiCtx
+ * @__sig vpip
+ */
+export function _v8_object_set_aligned_pointer_in_internal_field (
+  obj: Ptr,
+  index: number,
+  data: Ptr
+): void {
+  const objValue = emnapiCtx.jsValueFromNapiValue(obj)
+  emnapiCtx.setInternalField(objValue, index, data)
+}
+
+/**
+ * @__deps $emnapiCtx
  * @__sig pip
  */
 export function _v8_object_get_internal_field (
@@ -43,6 +67,18 @@ export function _v8_object_get_internal_field (
 ): Ptr {
   const objValue = emnapiCtx.jsValueFromNapiValue(obj)
   return emnapiCtx.napiValueFromJsValue(emnapiCtx.getInternalField(objValue, index))
+}
+
+/**
+ * @__deps $emnapiCtx
+ * @__sig pip
+ */
+export function _v8_object_get_aligned_pointer_in_internal_field (
+  obj: Ptr,
+  index: number
+): Ptr {
+  const objValue = emnapiCtx.jsValueFromNapiValue(obj)
+  return emnapiCtx.getInternalField(objValue, index)
 }
 
 /**

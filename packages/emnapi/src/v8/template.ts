@@ -66,8 +66,22 @@ export function _v8_function_template_new (
   allowed_receiver_instance_type_range_end: number
 ): Pointer<unknown> {
   const jsCb = makeDynCall('ppp', 'callback')
-  const tpl = emnapiCtx.createFunctionTemplate(jsCb, cb, emnapiCtx.jsValueFromNapiValue(data))
+  const tpl = emnapiCtx.createFunctionTemplate(
+    jsCb, cb, emnapiCtx.jsValueFromNapiValue(data),
+    emnapiCtx.jsValueFromNapiValue(signature)
+  )
   return emnapiCtx.napiValueFromJsValue(tpl)
+}
+
+/**
+ * @__deps $emnapiCtx
+ * @__sig pp
+ */
+export function _v8_cbinfo_holder (info: napi_callback_info): Pointer<unknown> {
+  const cbinfoValue = emnapiCtx.getCallbackInfo(info)
+  const { holder } = cbinfoValue
+
+  return emnapiCtx.napiValueFromJsValue(holder)
 }
 
 /**
@@ -139,4 +153,133 @@ export function _v8_object_template_new_instance (
   if (emnapiCtx.hasPendingException()) return 1
   const objTemplate = emnapiCtx.jsValueFromNapiValue(obj_tpl)
   return emnapiCtx.napiValueFromJsValue(objTemplate.newInstance(context))
+}
+
+/**
+ * @__deps $emnapiCtx
+ * @__sig ppp
+ */
+export function _v8_signature_new (
+  isolate: Ptr,
+  receiver: Ptr
+): Ptr {
+  const rcv = emnapiCtx.jsValueFromNapiValue(receiver)
+  const sig = emnapiCtx.createSignature(rcv)
+  return emnapiCtx.napiValueFromJsValue(sig)
+}
+
+/**
+ * @__deps $emnapiCtx
+ * @__sig vpppi
+ */
+export function _v8_template_set (
+  tpl: Ptr,
+  name: Ptr,
+  value: Ptr,
+  attr: number
+): void {
+  const templateObject = emnapiCtx.jsValueFromNapiValue(tpl)
+  if (!templateObject) return
+
+  const nameValue = emnapiCtx.jsValueFromNapiValue(name)
+  const valueValue = emnapiCtx.jsValueFromNapiValue(value)
+
+  if (nameValue == null) return
+
+  templateObject.set(nameValue, valueValue, attr)
+}
+
+/**
+ * @__deps $emnapiCtx
+ * @__sig pp
+ */
+export function _v8_function_template_instance_template (
+  tpl: Ptr
+): Ptr {
+  const templateObject = emnapiCtx.jsValueFromNapiValue(tpl)
+  if (!templateObject) return 1
+  return emnapiCtx.napiValueFromJsValue(templateObject.instanceTemplate())
+}
+
+/**
+ * @__deps $emnapiCtx
+ * @__sig pp
+ */
+export function _v8_function_template_prototype_template (
+  tpl: Ptr
+): Ptr {
+  const templateObject = emnapiCtx.jsValueFromNapiValue(tpl)
+  if (!templateObject) return 1
+  return emnapiCtx.napiValueFromJsValue(templateObject.prototypeTemplate())
+}
+
+/**
+ * @__deps $emnapiCtx
+ * @__sig vpp
+ */
+export function _v8_get_property_cb_info (
+  cbinfo: Ptr,
+  args: Ptr
+): void {
+  if (!cbinfo) return
+  const cbinfoValue = emnapiCtx.getCallbackInfo(cbinfo)
+
+  /**
+   * static constexpr int kShouldThrowOnErrorIndex = 0;
+   * static constexpr int kHolderIndex = 1;
+   * static constexpr int kIsolateIndex = 2;
+   * static constexpr int kUnusedIndex = 3;
+   * static constexpr int kReturnValueIndex = 4;
+   * static constexpr int kDataIndex = 5;
+   * static constexpr int kThisIndex = 6;
+   * static constexpr int kArgsLength = 7;
+   */
+  from64('args')
+
+  const thiz = emnapiCtx.napiValueFromJsValue(cbinfoValue.thiz)
+  const holder = emnapiCtx.napiValueFromJsValue(cbinfoValue.holder)
+  makeSetValue('args', '1 * ' + POINTER_SIZE, 'holder', '*')
+  makeSetValue('args', '6 * ' + POINTER_SIZE, 'thiz', '*')
+
+  const localData = emnapiCtx.napiValueFromJsValue(cbinfoValue.data)
+  makeSetValue('args', '5 * ' + POINTER_SIZE, 'localData', '*')
+}
+
+/**
+ * @__deps $emnapiCtx
+ * @__sig vpppppppiii
+ */
+export function _v8_object_template_set_accessor (
+  tpl: Ptr,
+  name: Ptr,
+  getter_wrap: Ptr,
+  setter_wrap: Ptr,
+  getter: Ptr,
+  setter: Ptr,
+  data: Ptr,
+  attribute: number,
+  getter_side_effect_type: number,
+  setter_side_effect_type: number
+): void {
+  const templateObject = emnapiCtx.jsValueFromNapiValue(tpl)
+  if (!templateObject) return
+
+  const nameValue = emnapiCtx.jsValueFromNapiValue(name)
+
+  from64('getter_wrap')
+  from64('setter_wrap')
+  const getterWrap = makeDynCall('pppp', 'getter_wrap')
+  const setterWrap = makeDynCall('ppppp', 'setter_wrap')
+
+  templateObject.setAccessor(
+    nameValue,
+    getterWrap,
+    setterWrap,
+    getter,
+    setter,
+    emnapiCtx.jsValueFromNapiValue(data),
+    attribute,
+    getter_side_effect_type,
+    setter_side_effect_type
+  )
 }

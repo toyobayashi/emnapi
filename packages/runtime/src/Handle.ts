@@ -1,3 +1,4 @@
+import { Reference } from './Reference'
 import { BaseArrayStore, CountIdAllocator } from './Store'
 import type { Features } from './util'
 
@@ -23,6 +24,7 @@ export class HandleStore extends BaseArrayStore<any> {
 
     const _erase = (start: number, end: number): void => {
       for (let i = start; i < end; ++i) {
+        if (this._values[i] instanceof Reference) continue
         this.dealloc(i)
       }
     }
@@ -35,6 +37,7 @@ export class HandleStore extends BaseArrayStore<any> {
             } else {
               for (let i = start; i < end; ++i) {
                 const value = this._values[i]
+                if (value instanceof Reference) continue
                 const type = typeof value
                 if ((type === 'object' && value !== null) || (type === 'function') || (type === 'symbol' && Symbol.keyFor(value) === undefined)) {
                   this._values[i] = new WeakRef(value)
@@ -48,6 +51,7 @@ export class HandleStore extends BaseArrayStore<any> {
             } else {
               for (let i = start; i < end; ++i) {
                 const value = this._values[i]
+                if (value instanceof Reference) continue
                 const type = typeof value
                 if ((type === 'object' && value !== null) || (type === 'function')) {
                   this._values[i] = new WeakRef(value)
@@ -60,28 +64,30 @@ export class HandleStore extends BaseArrayStore<any> {
     this._deref = this._features.finalizer
       ? (id: number | bigint): any => {
           const value = this._values[id as number]
+          if (value instanceof Reference) return value.deref()
           if (value instanceof WeakRef && Number(id) >= this._allocator.next) {
             return value.deref()
           }
           return value
         }
       : (id: number | bigint): any => {
-          return this._values[id as number]
+          const value = this._values[id as number]
+          if (value instanceof Reference) return value.deref()
+          return value
         }
   }
 
-  public override deref<R = any> (id: number | bigint): R | undefined {
+  public deepDeref<R = any> (id: number | bigint): R | undefined {
     return this._deref(id) as R
   }
 
   public push<S> (value: S): number {
-    const next = this._allocator.aquire()
+    let next: number
+    do {
+      next = this._allocator.aquire()
+    } while (this._values[next] instanceof Reference)
     this._values[next] = value
     return next
-  }
-
-  public override dealloc (i: number | bigint): void {
-    this._values[i as number] = undefined
   }
 
   public erase (start: number, end: number, weak: boolean): void {

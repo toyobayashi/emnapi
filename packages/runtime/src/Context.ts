@@ -13,13 +13,13 @@ import {
 } from './util'
 import { TryCatch } from './TryCatch'
 import { NotSupportWeakRefError, NotSupportBufferError } from './errors'
-import { Reference, ReferenceWithData, ReferenceWithFinalizer, type ReferenceOwnership } from './Reference'
+import { Reference, ReferenceOwnership, ReferenceWithData, ReferenceWithFinalizer } from './Reference'
 import { type IDeferrdValue, Deferred } from './Deferred'
 import { ArrayStore } from './Store'
 import { TrackedFinalizer } from './TrackedFinalizer'
 import { External, isExternal, getExternalValue } from './External'
-import { FunctionTemplate } from './FunctionTemplate'
-import { ObjectTemplate, setInternalField, getInternalField } from './ObjectTemplate'
+import { FunctionTemplate, Signature } from './FunctionTemplate'
+import { ObjectTemplate, setInternalField, getInternalField, getInternalFieldCount } from './ObjectTemplate'
 import { Persistent } from './Persistent'
 
 export type CleanupHookCallbackFunction = number | ((arg: number) => void)
@@ -139,7 +139,6 @@ export class Context {
 
   private envStore = new ArrayStore<Env>()
   private scopeStore = new ScopeStore()
-  private refStore = new ArrayStore<Reference>()
   private deferredStore = new ArrayStore<Deferred>()
   private readonly refCounter?: NodejsWaitingRequestCounter
   private readonly cleanupQueue: CleanupQueue
@@ -198,9 +197,22 @@ export class Context {
     handle_id: napi_value,
     initialRefcount: uint32_t,
     ownership: ReferenceOwnership
+  ): Reference
+  public createReference (
+    envObject: undefined,
+    handle_id: any,
+    initialRefcount: uint32_t,
+    ownership: ReferenceOwnership
+  ): Reference
+
+  public createReference (
+    envObject: any,
+    handle_id: any,
+    initialRefcount: uint32_t,
+    ownership: ReferenceOwnership
   ): Reference {
     return Reference.create(
-      this.refStore,
+      this.getCurrentScope(),
       envObject,
       handle_id,
       initialRefcount,
@@ -216,7 +228,7 @@ export class Context {
     data: void_p
   ): Reference {
     return ReferenceWithData.create(
-      this.refStore,
+      this.getCurrentScope(),
       envObject,
       handle_id,
       initialRefcount,
@@ -235,7 +247,7 @@ export class Context {
     finalize_hint: void_p = 0
   ): Reference {
     return ReferenceWithFinalizer.create(
-      this.refStore,
+      this.getCurrentScope(),
       envObject,
       handle_id,
       initialRefcount,
@@ -283,6 +295,10 @@ export class Context {
     return env
   }
 
+  public createSignature (template: FunctionTemplate): Signature {
+    return new Signature(template)
+  }
+
   public createObjectTemplate (constructor: any) {
     return new ObjectTemplate(this, constructor)
   }
@@ -293,6 +309,10 @@ export class Context {
 
   public getInternalField (obj: any, index: number): any {
     return getInternalField(obj, index)
+  }
+
+  public getInternalFieldCount (obj: any): number {
+    return getInternalFieldCount(obj)
   }
 
   public setLastException (err: any) {
@@ -337,13 +357,15 @@ export class Context {
   public createFunctionTemplate (
     callback: (info: napi_callback_info, v8FunctionCallback: Ptr) => Ptr,
     v8FunctionCallback: Ptr,
-    data: any
+    data: any,
+    signature?: Signature
   ) {
     const functionTemplate = new FunctionTemplate(
       this,
       callback,
       v8FunctionCallback,
-      data
+      data,
+      signature
     )
 
     return functionTemplate
@@ -414,7 +436,7 @@ export class Context {
     return getExternalValue(external)
   }
 
-  public getCurrentScope (): HandleScope | null {
+  public getCurrentScope (): HandleScope {
     return this.scopeStore.currentScope
   }
 
@@ -442,7 +464,7 @@ export class Context {
   }
 
   public getRef (ref: napi_ref): Reference | undefined {
-    return this.refStore.deref(ref)
+    return this.handleStore.deref(ref)
   }
 
   public getHandleScope (scope: napi_handle_scope): HandleScope | undefined {
@@ -470,7 +492,7 @@ export class Context {
   }
 
   public jsValueFromNapiValue<T = any> (napiValue: number | bigint): T | undefined {
-    return this.handleStore.deref(napiValue)
+    return this.handleStore.deepDeref(napiValue)
   }
 
   public isExternal (value: unknown): boolean {

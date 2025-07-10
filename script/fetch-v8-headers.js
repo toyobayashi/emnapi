@@ -60,6 +60,12 @@ const replaceList = {
       .replace(/(.+)\s+Object::GetInternalField\((.+?)\)\s\{(.*\r?\n)*?\}/, `$1 Object::GetInternalField($2) {
   return SlowGetInternalField(index);
 }`)
+      .replace(/(.+)\s+Object::GetAlignedPointerFromInternalField\((.+?)\)\s\{(.*\r?\n)*?\}/, `$1 Object::GetAlignedPointerFromInternalField($2) {
+  return SlowGetAlignedPointerFromInternalField(index);
+}`)
+      .replace(/(.+)\s+Object::GetAlignedPointerFromInternalField\((.+?,\r?\n.+?)\)\s\{(.*\r?\n)*?\}/, `$1 Object::GetAlignedPointerFromInternalField($2) {
+  return SlowGetAlignedPointerFromInternalField(isolate, index);
+}`)
   },
   'v8-value.h': (code) => {
     return code

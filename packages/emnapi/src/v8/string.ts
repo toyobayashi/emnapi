@@ -26,6 +26,17 @@ export function _v8_string_utf8_length (str: Ptr, isolate: Ptr): number {
 
 /**
  * @__deps $emnapiCtx
+ * @__sig ip
+ */
+export function _v8_string_length (str: Ptr): number {
+  const jsValue = emnapiCtx.jsValueFromNapiValue(str)
+  if (jsValue === undefined) return 0
+  if (typeof jsValue !== 'string') return 0
+  return jsValue.length
+}
+
+/**
+ * @__deps $emnapiCtx
  * @__deps $emnapiString
  * @__sig ipppipi
  */
