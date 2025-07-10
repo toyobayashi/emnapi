@@ -10,7 +10,7 @@ export interface ICallbackInfo {
 }
 
 export class HandleScope extends Disposable {
-  protected handleStore: HandleStore
+  public handleStore: HandleStore
   public id: number | bigint
   public parent: HandleScope | null
   public child: HandleScope | null
@@ -47,7 +47,7 @@ export class HandleScope extends Disposable {
 
   public add<V> (value: V): number {
     const h = this.handleStore.push(value)
-    this.end++
+    this.end = h + 1
     return h
   }
 

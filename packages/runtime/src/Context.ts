@@ -139,7 +139,6 @@ export class Context {
 
   private envStore = new ArrayStore<Env>()
   private scopeStore = new ScopeStore()
-  private refStore = new ArrayStore<Reference>()
   private deferredStore = new ArrayStore<Deferred>()
   private readonly refCounter?: NodejsWaitingRequestCounter
   private readonly cleanupQueue: CleanupQueue
@@ -213,7 +212,7 @@ export class Context {
     ownership: ReferenceOwnership
   ): Reference {
     return Reference.create(
-      this.refStore,
+      this.getCurrentScope(),
       envObject,
       handle_id,
       initialRefcount,
@@ -229,7 +228,7 @@ export class Context {
     data: void_p
   ): Reference {
     return ReferenceWithData.create(
-      this.refStore,
+      this.getCurrentScope(),
       envObject,
       handle_id,
       initialRefcount,
@@ -248,7 +247,7 @@ export class Context {
     finalize_hint: void_p = 0
   ): Reference {
     return ReferenceWithFinalizer.create(
-      this.refStore,
+      this.getCurrentScope(),
       envObject,
       handle_id,
       initialRefcount,
@@ -437,7 +436,7 @@ export class Context {
     return getExternalValue(external)
   }
 
-  public getCurrentScope (): HandleScope | null {
+  public getCurrentScope (): HandleScope {
     return this.scopeStore.currentScope
   }
 
@@ -465,7 +464,7 @@ export class Context {
   }
 
   public getRef (ref: napi_ref): Reference | undefined {
-    return this.refStore.deref(ref)
+    return this.handleStore.deref(ref)
   }
 
   public getHandleScope (scope: napi_handle_scope): HandleScope | undefined {
@@ -493,7 +492,7 @@ export class Context {
   }
 
   public jsValueFromNapiValue<T = any> (napiValue: number | bigint): T | undefined {
-    return this.handleStore.deref(napiValue)
+    return this.handleStore.deepDeref(napiValue)
   }
 
   public isExternal (value: unknown): boolean {
