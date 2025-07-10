@@ -77,6 +77,17 @@ export function _v8_function_template_new (
  * @__deps $emnapiCtx
  * @__sig pp
  */
+export function _v8_cbinfo_holder (info: napi_callback_info): Pointer<unknown> {
+  const cbinfoValue = emnapiCtx.getCallbackInfo(info)
+  const { holder } = cbinfoValue
+
+  return emnapiCtx.napiValueFromJsValue(holder)
+}
+
+/**
+ * @__deps $emnapiCtx
+ * @__sig pp
+ */
 export function _v8_cbinfo_new_target (info: napi_callback_info): Pointer<unknown> {
   const cbinfoValue = emnapiCtx.getCallbackInfo(info)
   const { thiz, fn } = cbinfoValue
@@ -226,7 +237,8 @@ export function _v8_get_property_cb_info (
   from64('args')
 
   const thiz = emnapiCtx.napiValueFromJsValue(cbinfoValue.thiz)
-  makeSetValue('args', '1 * ' + POINTER_SIZE, 'thiz', '*')
+  const holder = emnapiCtx.napiValueFromJsValue(cbinfoValue.holder)
+  makeSetValue('args', '1 * ' + POINTER_SIZE, 'holder', '*')
   makeSetValue('args', '6 * ' + POINTER_SIZE, 'thiz', '*')
 
   const localData = emnapiCtx.napiValueFromJsValue(cbinfoValue.data)

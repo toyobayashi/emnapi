@@ -1,5 +1,5 @@
 import type { Context } from './Context'
-import { ObjectTemplate } from './ObjectTemplate'
+import { ObjectTemplate, findHolder } from './ObjectTemplate'
 import { Template } from './Template'
 import { TryCatch } from './TryCatch'
 
@@ -78,12 +78,13 @@ export class FunctionTemplate extends Template {
         callbackInfo.data = data
         callbackInfo.args = args
         callbackInfo.thiz = this
+        callbackInfo.holder = findHolder(this, _) || this
         callbackInfo.fn = _
-        const ret = callback(ctx.getCurrentScope()!.id, v8FunctionCallback)
-        returnValue = ret ? ctx.jsValueFromNapiValue(ret) : undefined
         if (_instanceTemplate && this instanceof _) {
           _instanceTemplate.applyToInstance(this)
         }
+        const ret = callback(ctx.getCurrentScope()!.id, v8FunctionCallback)
+        returnValue = ret ? ctx.jsValueFromNapiValue(ret) : undefined
       } catch (err) {
         ctx.throwException(err)
       }

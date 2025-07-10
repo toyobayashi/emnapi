@@ -4,6 +4,7 @@ namespace v8 {
 
 extern "C" {
   V8_EXTERN Value* _v8_cbinfo_new_target(internal::Address info);
+  V8_EXTERN Value* _v8_cbinfo_holder(internal::Address info);
   V8_EXTERN internal::Address _v8_function_template_new(
       Isolate* isolate, internal::Address (*callback)(internal::Address info, v8::FunctionCallback cb),
       v8::FunctionCallback cb,
@@ -60,6 +61,7 @@ struct FunctionCallbackInfoImpl {
     *(list + 5) = reinterpret_cast<internal::Address>(_v8_cbinfo_new_target(info));
     // *(list + 6) = argc;
     *(list + 6) = *list;
+    *(list) = reinterpret_cast<internal::Address>(_v8_cbinfo_holder(info));
   }
 
   FunctionCallbackInfoImpl(const FunctionCallbackInfoImpl&) = delete;

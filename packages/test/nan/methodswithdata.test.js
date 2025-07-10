@@ -3,7 +3,6 @@ const assert = require('assert')
 
 module.exports = {
   target: 'nan_methodswithdata',
-  skip: true, // TODO
   test: function (bindings) {
     assert.ok(bindings.testWithData())
   

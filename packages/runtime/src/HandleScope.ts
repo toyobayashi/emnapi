@@ -4,6 +4,7 @@ import { External } from './External'
 
 export interface ICallbackInfo {
   thiz: any
+  holder: any
   data: void_p
   args: ArrayLike<any>
   fn: Function
@@ -34,6 +35,7 @@ export class HandleScope extends Disposable {
     this.end = end
     this.callbackInfo = {
       thiz: undefined,
+      holder: undefined,
       data: 0,
       args: undefined!,
       fn: undefined!
@@ -61,6 +63,7 @@ export class HandleScope extends Disposable {
       this.callbackInfo.data = 0
       this.callbackInfo.args = undefined!
       this.callbackInfo.thiz = undefined
+      this.callbackInfo.holder = undefined
       this.callbackInfo.fn = undefined!
     }
     if (this.start === this.end) return

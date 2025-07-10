@@ -2,6 +2,27 @@ import type { Context } from './Context'
 import { Template } from './Template'
 import { TryCatch } from './TryCatch'
 
+export function findHolder (obj: any, _target: any) {
+  // TODO
+  /* let ret: any
+  while (obj != null) {
+    const descs = Object.getOwnPropertyDescriptors(obj)
+    const keys = Object.keys(descs)
+
+    for (let i = 0; i < keys.length; i++) {
+      const key = keys[i]
+      const desc = descs[key]
+      if (desc.value === target || desc.get === target || desc.set === target) {
+        return obj
+      }
+    }
+
+    obj = Object.getPrototypeOf(obj)
+  }
+  return ret */
+  return obj
+}
+
 export const internalField = new WeakMap<object, any[]>()
 
 /** @public */
@@ -96,6 +117,7 @@ export class ObjectTemplate extends Template {
           callbackInfo.data = data
           callbackInfo.args = type === 'getter' ? [] : [value]
           callbackInfo.thiz = this
+          callbackInfo.holder = findHolder(this, _) || this
           callbackInfo.fn = _
           const ret = cb(value)
           returnValue = ret ? ctx.jsValueFromNapiValue(ret) : undefined
@@ -123,12 +145,12 @@ export class ObjectTemplate extends Template {
         get: getter
           ? createAccessorWrapper('getter', data, () => {
             return getterWrap(ctx.napiValueFromJsValue(name), ctx.getCurrentScope()!.id, getter)
-          })
+          }).bind(instance)
           : undefined,
         set: setter
           ? createAccessorWrapper('setter', data, (value) => {
             return setterWrap(ctx.napiValueFromJsValue(name), ctx.napiValueFromJsValue(value), ctx.getCurrentScope()!.id, setter)
-          })
+          }).bind(instance)
           : undefined,
         enumerable: !(attribute & 2), // DontEnum
         configurable: !(attribute & 4) // DontDelete
