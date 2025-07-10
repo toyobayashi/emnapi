@@ -8,28 +8,18 @@ export class HandleStore extends BaseArrayStore<any> {
   private _features: Features
   private _erase: (start: number, end: number, weak: boolean) => void
   private _deref: (id: number | bigint) => any
-  public minRefSlotId: number
 
   public constructor (features: Features) {
-    const minRefSlotId = HandleStore.MIN_ID + 1
-    super(minRefSlotId + 1)
-    this.minRefSlotId = minRefSlotId
-
+    super(HandleStore.MIN_ID)
     this._features = features
     this._allocator = new CountIdAllocator(HandleStore.MIN_ID)
 
-    this._values[GlobalHandle.HOLE] = undefined
-    this._values[GlobalHandle.EMPTY] = undefined
     this._values[GlobalHandle.UNDEFINED] = undefined
     this._values[GlobalHandle.NULL] = null
     this._values[GlobalHandle.FALSE] = false
     this._values[GlobalHandle.TRUE] = true
     this._values[GlobalHandle.GLOBAL] = features.getGlobalThis()
     this._values[GlobalHandle.EMPTY_STRING] = ''
-
-    for (let i = HandleStore.MIN_ID; i < this._values.length; ++i) {
-      this._values[i] = undefined
-    }
 
     const _erase = (start: number, end: number): void => {
       for (let i = start; i < end; ++i) {
@@ -70,7 +60,7 @@ export class HandleStore extends BaseArrayStore<any> {
     this._deref = this._features.finalizer
       ? (id: number | bigint): any => {
           const value = this._values[id as number]
-          if (Number(id) >= this._allocator.next && value && typeof value.deref === 'function') {
+          if (value instanceof WeakRef && Number(id) >= this._allocator.next) {
             return value.deref()
           }
           return value
@@ -86,9 +76,6 @@ export class HandleStore extends BaseArrayStore<any> {
 
   public push<S> (value: S): number {
     const next = this._allocator.aquire()
-    if (next >= this.minRefSlotId) {
-      this._expandLocalHandleArea()
-    }
     this._values[next] = value
     return next
   }
@@ -109,23 +96,5 @@ export class HandleStore extends BaseArrayStore<any> {
     // values[a]!.id = Number(a)
     values[b] = h
     // h.id = Number(b)
-  }
-
-  private _expandLocalHandleArea (): void {
-    const oldLength = this._values.length
-    const oldMinRefSlotId = this.minRefSlotId
-    const newMinRefSlotId = Math.ceil(oldMinRefSlotId * 1.5)
-    const delta = newMinRefSlotId - oldMinRefSlotId
-    this._values.length += delta
-    this.minRefSlotId = newMinRefSlotId
-
-    for (let i = oldLength - 1; i >= oldMinRefSlotId; --i) {
-      const value = this._values[i]
-      this._values[i + delta] = value
-      this._values[i] = undefined
-    }
-    for (let j = oldLength; j < newMinRefSlotId; ++j) {
-      this._values[j] = undefined
-    }
   }
 }
