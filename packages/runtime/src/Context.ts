@@ -212,7 +212,7 @@ export class Context {
     ownership: ReferenceOwnership
   ): Reference {
     return Reference.create(
-      this.getCurrentScope(),
+      this,
       envObject,
       handle_id,
       initialRefcount,
@@ -228,7 +228,7 @@ export class Context {
     data: void_p
   ): Reference {
     return ReferenceWithData.create(
-      this.getCurrentScope(),
+      this,
       envObject,
       handle_id,
       initialRefcount,
@@ -247,7 +247,7 @@ export class Context {
     finalize_hint: void_p = 0
   ): Reference {
     return ReferenceWithFinalizer.create(
-      this.getCurrentScope(),
+      this,
       envObject,
       handle_id,
       initialRefcount,
@@ -493,6 +493,10 @@ export class Context {
 
   public jsValueFromNapiValue<T = any> (napiValue: number | bigint): T | undefined {
     return this.handleStore.deepDeref(napiValue)
+  }
+
+  public deleteHandle (napiValue: number | bigint): void {
+    this.handleStore.dealloc(napiValue)
   }
 
   public isExternal (value: unknown): boolean {

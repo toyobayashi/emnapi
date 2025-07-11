@@ -3,8 +3,6 @@ import { Persistent } from './Persistent'
 import { RefTracker } from './RefTracker'
 import { Finalizer } from './Finalizer'
 import type { Context } from './Context'
-import type { HandleScope } from './HandleScope'
-import type { HandleStore } from './Handle'
 
 export enum ReferenceOwnership {
   kRuntime,
@@ -25,15 +23,15 @@ export class Reference extends RefTracker {
 
   public id: number
   public envObject: Env | undefined
-  private store: HandleStore
+  private ctx: Context
 
-  private readonly canBeWeak!: boolean
+  private canBeWeak!: boolean
   private _refcount: number
-  private readonly _ownership: ReferenceOwnership
+  private _ownership: ReferenceOwnership
   public persistent!: Persistent<object>
 
   public static create (
-    scope: HandleScope,
+    ctx: Context,
     envObject: Env,
     handle_id: napi_value,
     initialRefcount: uint32_t,
@@ -43,7 +41,7 @@ export class Reference extends RefTracker {
     _unused3?: void_p
   ): Reference
   public static create (
-    scope: HandleScope,
+    ctx: Context,
     envObject: undefined,
     handle_id: any,
     initialRefcount: uint32_t,
@@ -54,7 +52,7 @@ export class Reference extends RefTracker {
   ): Reference
 
   public static create (
-    scope: HandleScope,
+    ctx: Context,
     envObject: any,
     handle_id: any,
     initialRefcount: uint32_t,
@@ -64,7 +62,7 @@ export class Reference extends RefTracker {
     _unused3?: void_p
   ): Reference {
     const ref = new Reference(
-      scope, envObject, handle_id, initialRefcount, ownership
+      ctx, envObject, handle_id, initialRefcount, ownership
     )
     if (envObject) {
       ref.link(envObject.reflist)
@@ -73,14 +71,14 @@ export class Reference extends RefTracker {
   }
 
   public constructor (
-    scope: HandleScope,
+    ctx: Context,
     envObject: Env,
     handle_id: napi_value,
     initialRefcount: uint32_t,
     ownership: ReferenceOwnership
   )
   public constructor (
-    scope: HandleScope,
+    ctx: Context,
     envObject: undefined,
     handle_id: any,
     initialRefcount: uint32_t,
@@ -88,7 +86,7 @@ export class Reference extends RefTracker {
   )
 
   public constructor (
-    scope: HandleScope,
+    ctx: Context,
     envObject: Env | undefined,
     handle_id: any,
     initialRefcount: uint32_t,
@@ -101,11 +99,53 @@ export class Reference extends RefTracker {
     const value = envObject ? envObject.ctx.jsValueFromNapiValue(handle_id)! : handle_id
     this.canBeWeak = canBeHeldWeakly(value)
     this.persistent = new Persistent(value)
-    this.store = scope.handleStore
-    this.id = scope.add(this)
+    this.ctx = ctx
+    this.id = ctx.getCurrentScope().add(this)
     if (initialRefcount === 0) {
       this._setWeak()
     }
+  }
+
+  protected _assign (target: Reference): void {
+    target.envObject = this.envObject
+    target.ctx = this.ctx
+    target._refcount = this._refcount
+    target._ownership = this._ownership
+    target.canBeWeak = this.canBeWeak
+    if (this.persistent.isEmpty()) {
+      target.persistent = new Persistent()
+    } else {
+      target.persistent = new Persistent(this.persistent.deref()!)
+    }
+    if (target._refcount === 0) {
+      target._setWeak()
+    }
+  }
+
+  protected _move (target: Reference): void {
+    this._assign(target)
+    target.id = this.id
+    this._refcount = 0
+    this.persistent.reset()
+  }
+
+  protected _copy<C extends new (...args: any[]) => Reference> (Ctor: C): InstanceType<C> {
+    if (this.id === 0) {
+      throw new Error('Cannot copy a disposed Reference')
+    }
+    const newRef: InstanceType<C> = Object.create(Ctor.prototype)
+    this._assign(newRef)
+    newRef.id = this.ctx.getCurrentScope().add(newRef)
+    newRef.link(this.envObject!.reflist)
+    return newRef
+  }
+
+  public copy (): Reference {
+    return this._copy(Reference)
+  }
+
+  public move (target: Reference): void {
+    this._move(target)
   }
 
   public ref (): number {
@@ -191,19 +231,19 @@ export class Reference extends RefTracker {
     if (this.id === 0) return
     this.unlink()
     this.persistent.reset()
-    this.store.dealloc(this.id)
+    this.ctx.deleteHandle(this.id)
     super.dispose()
-    this.store = undefined!
+    this.ctx = undefined!
     this.envObject = undefined!
     this.id = 0
   }
 }
 
 export class ReferenceWithData extends Reference {
-  private readonly _data: void_p
+  private _data: void_p
 
   public static override create (
-    scope: HandleScope,
+    ctx: Context,
     envObject: Env,
     value: napi_value,
     initialRefcount: uint32_t,
@@ -211,7 +251,7 @@ export class ReferenceWithData extends Reference {
     data: void_p
   ): ReferenceWithData
   public static override create (
-    scope: HandleScope,
+    ctx: Context,
     envObject: undefined,
     value: any,
     initialRefcount: uint32_t,
@@ -220,7 +260,7 @@ export class ReferenceWithData extends Reference {
   ): ReferenceWithData
 
   public static override create (
-    scope: HandleScope,
+    ctx: Context,
     envObject: any,
     value: any,
     initialRefcount: uint32_t,
@@ -228,7 +268,7 @@ export class ReferenceWithData extends Reference {
     data: void_p
   ): ReferenceWithData {
     const reference = new ReferenceWithData(
-      scope, envObject, value, initialRefcount, ownership, data
+      ctx, envObject, value, initialRefcount, ownership, data
     )
     if (envObject) {
       reference.link(envObject.reflist)
@@ -237,7 +277,7 @@ export class ReferenceWithData extends Reference {
   }
 
   public constructor (
-    scope: HandleScope,
+    ctx: Context,
     envObject: Env,
     value: napi_value,
     initialRefcount: uint32_t,
@@ -245,7 +285,7 @@ export class ReferenceWithData extends Reference {
     data: void_p
   )
   public constructor (
-    scope: HandleScope,
+    ctx: Context,
     envObject: undefined,
     value: any,
     initialRefcount: uint32_t,
@@ -254,15 +294,27 @@ export class ReferenceWithData extends Reference {
   )
 
   public constructor (
-    scope: HandleScope,
+    ctx: Context,
     envObject: any,
     value: any,
     initialRefcount: uint32_t,
     ownership: ReferenceOwnership,
     data: void_p
   ) {
-    super(scope, envObject, value, initialRefcount, ownership)
+    super(ctx, envObject, value, initialRefcount, ownership)
     this._data = data
+  }
+
+  public override copy (): ReferenceWithData {
+    const newRef = this._copy(ReferenceWithData)
+    newRef._data = this._data
+    return newRef
+  }
+
+  public override move (target: ReferenceWithData): void {
+    this._move(target)
+    target._data = this._data
+    this._data = 0
   }
 
   public data (): void_p {
@@ -274,7 +326,7 @@ export class ReferenceWithFinalizer extends Reference {
   private _finalizer: Finalizer
 
   public static override create (
-    scope: HandleScope,
+    ctx: Context,
     envObject: Env,
     value: napi_value,
     initialRefcount: uint32_t,
@@ -284,7 +336,7 @@ export class ReferenceWithFinalizer extends Reference {
     finalize_hint: void_p
   ): ReferenceWithFinalizer
   public static override create (
-    scope: HandleScope,
+    ctx: Context,
     envObject: undefined,
     value: any,
     initialRefcount: uint32_t,
@@ -295,7 +347,7 @@ export class ReferenceWithFinalizer extends Reference {
   ): ReferenceWithFinalizer
 
   public static override create (
-    scope: HandleScope,
+    ctx: Context,
     envObject: any,
     value: any,
     initialRefcount: uint32_t,
@@ -308,14 +360,14 @@ export class ReferenceWithFinalizer extends Reference {
       throw new TypeError('envObject is required for ReferenceWithFinalizer')
     }
     const reference = new ReferenceWithFinalizer(
-      scope, envObject, value, initialRefcount, ownership, finalize_callback, finalize_data, finalize_hint
+      ctx, envObject, value, initialRefcount, ownership, finalize_callback, finalize_data, finalize_hint
     )
     reference.link(envObject.finalizing_reflist)
     return reference
   }
 
   public constructor (
-    scope: HandleScope,
+    ctx: Context,
     envObject: Env,
     value: napi_value,
     initialRefcount: uint32_t,
@@ -324,8 +376,19 @@ export class ReferenceWithFinalizer extends Reference {
     finalize_data: void_p,
     finalize_hint: void_p
   ) {
-    super(scope, envObject, value, initialRefcount, ownership)
+    super(ctx, envObject, value, initialRefcount, ownership)
     this._finalizer = new Finalizer(envObject, finalize_callback, finalize_data, finalize_hint)
+  }
+
+  public override copy (): ReferenceWithFinalizer {
+    const newRef = this._copy(ReferenceWithFinalizer)
+    newRef._finalizer = this._finalizer.copy()
+    return newRef
+  }
+
+  public override move (target: ReferenceWithFinalizer): void {
+    this._move(target)
+    this._finalizer.move(target._finalizer)
   }
 
   public override resetFinalizer (): void {

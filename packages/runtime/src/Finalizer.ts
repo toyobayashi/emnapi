@@ -12,6 +12,29 @@ export class Finalizer {
     this._makeDynCall_vppp = envObject.makeDynCall_vppp
   }
 
+  public copy (): Finalizer {
+    const newFina: Finalizer = Object.create(Finalizer.prototype)
+    newFina.envObject = this.envObject
+    newFina._makeDynCall_vppp = this._makeDynCall_vppp
+    newFina._finalizeCallback = this._finalizeCallback
+    newFina._finalizeData = this._finalizeData
+    newFina._finalizeHint = this._finalizeHint
+    return newFina
+  }
+
+  public move (target: Finalizer): void {
+    target._finalizeCallback = this._finalizeCallback
+    target._finalizeData = this._finalizeData
+    target._finalizeHint = this._finalizeHint
+    target.envObject = this.envObject
+    target._makeDynCall_vppp = this._makeDynCall_vppp
+
+    this._finalizeCallback = 0
+    this._finalizeData = 0
+    this._finalizeHint = 0
+    this.dispose()
+  }
+
   public callback (): napi_finalize { return this._finalizeCallback }
   public data (): void_p { return this._finalizeData }
   public hint (): void_p { return this._finalizeHint }

@@ -12,6 +12,27 @@ export function _v8_globalize_reference (isolate: Ptr, value: Ptr): Ptr {
 
 /**
  * @__deps $emnapiCtx
+ * @__sig pp
+ */
+export function _v8_copy_global_reference (from: Ptr): Ptr {
+  const ref = emnapiCtx.getRef(from)
+  if (ref === undefined) return 0
+  return ref.copy().id
+}
+
+/**
+ * @__deps $emnapiCtx
+ * @__sig vpp
+ */
+export function _v8_move_global_reference (from: Ptr, to: Ptr): void {
+  const refFrom = emnapiCtx.getRef(from)
+  const refTo = emnapiCtx.getRef(to)
+  if (refFrom === undefined || refTo === undefined) return
+  refFrom.move(refTo)
+}
+
+/**
+ * @__deps $emnapiCtx
  * @__sig vp
  */
 export function _v8_dispose_global (ref: Ptr): void {

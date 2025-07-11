@@ -6,6 +6,9 @@ namespace v8 {
 extern "C" {
   V8_EXTERN internal::Address _v8_globalize_reference(
     internal::Isolate* isolate, internal::Address value);
+  V8_EXTERN internal::Address _v8_copy_global_reference(internal::Address from);
+  V8_EXTERN void _v8_move_global_reference(internal::Address from,
+                                           internal::Address to);
   V8_EXTERN void _v8_dispose_global(internal::Address global_handle);
   V8_EXTERN void _v8_make_weak(internal::Address location,
                                void* data,
@@ -62,6 +65,15 @@ internal::Address* GlobalizeReference(internal::Isolate* isolate,
 void DisposeGlobal(internal::Address* global_handle) {
   _v8_dispose_global(*global_handle);
   delete global_handle;
+}
+
+internal::Address* CopyGlobalReference(internal::Address* from) {
+  internal::Address ref_id = _v8_copy_global_reference(*from);
+  return new internal::Address(ref_id);
+}
+
+void MoveGlobalReference(internal::Address** from, internal::Address** to) {
+  _v8_move_global_reference(**from, **to);
 }
 
 namespace {
