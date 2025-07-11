@@ -54,6 +54,15 @@ const replaceList = {
     return Local<T>::FromSlot(EscapeSlot(value.slot()));
 #endif
   }`)
+      .replace(/V8_INLINE static Local<T> New\(Isolate\* isolate,\r?\n\s*const PersistentBase<T>& that\) \{(.*\r?\n)*? {2}\}/, `
+  V8_INLINE static Local<T> New(Isolate* isolate,
+                                const PersistentBase<T>& that) {
+    T* value = that.template value<T, true>();
+    internal::Address address = api_internal::LocalFromGlobalReference(reinterpret_cast<internal::Address>(value));
+    return New(isolate, address);
+  }
+`)
+      .replace(/(V8_EXPORT void ToLocalEmpty\(\);)/, '$1\nV8_EXPORT internal::Address LocalFromGlobalReference(internal::Address* global_reference);')
   },
   'v8-object.h': (code) => {
     return code

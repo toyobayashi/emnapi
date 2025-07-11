@@ -2,6 +2,28 @@ import { from64, makeDynCall } from 'emscripten:parse-tools'
 
 /**
  * @__deps $emnapiCtx
+ * @__sig vp
+ */
+export function js_debugger (int: Ptr) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+  emnapiCtx
+  // eslint-disable-next-line no-debugger
+  debugger
+}
+
+/**
+ * @__deps $emnapiCtx
+ * @__sig pp
+ */
+export function _v8_local_from_global_reference (ref: Ptr): Ptr {
+  const reference = emnapiCtx.getRef(ref)
+  if (reference === undefined) return 1
+  const id = reference.get(emnapiCtx)
+  return id || 1
+}
+
+/**
+ * @__deps $emnapiCtx
  * @__sig ppp
  */
 export function _v8_globalize_reference (isolate: Ptr, value: Ptr): Ptr {

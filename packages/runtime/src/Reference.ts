@@ -134,9 +134,12 @@ export class Reference extends RefTracker {
       throw new Error('Cannot copy a disposed Reference')
     }
     const newRef: InstanceType<C> = Object.create(Ctor.prototype)
+    newRef._prev = newRef._next = null
     this._assign(newRef)
     newRef.id = this.ctx.getCurrentScope().add(newRef)
-    newRef.link(this.envObject!.reflist)
+    if (this.envObject) {
+      newRef.link(this.envObject!.reflist)
+    }
     return newRef
   }
 
