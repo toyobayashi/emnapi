@@ -4,6 +4,24 @@ import { from64, makeSetValue, makeGetValue } from 'emscripten:parse-tools'
 import { type MemoryViewDescriptor, type ArrayBufferPointer, emnapiExternalMemory } from './memory'
 import { napi_add_finalizer } from './wrap'
 import { $CHECK_ARG, $PREAMBLE, $CHECK_ENV, $GET_RETURN_STATUS } from './macro'
+import { emnapiString } from './string'
+
+/**
+ * @__sig vpippi
+ */
+export function emnapi_debug (file: number, lineno: number, str: number, ptr: Ptr, type: number) {
+  from64('str')
+  from64('file')
+  const string = str ? emnapiString.UTF8ToString(str, -1) : ''
+  const message = `[emnapi_debug] ${emnapiString.UTF8ToString(file, -1)}:${lineno} ${string} ${ptr}`
+  const logArgs: any[] = [message]
+  if (ptr) {
+    logArgs.push(type === 1 ? emnapiCtx.getRef(ptr)?.persistent : emnapiCtx.jsValueFromNapiValue(ptr))
+  }
+  console.log(...logArgs)
+  // eslint-disable-next-line no-debugger
+  debugger
+}
 
 /**
  * @__sig ipippppp

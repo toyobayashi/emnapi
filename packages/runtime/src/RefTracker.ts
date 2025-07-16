@@ -7,8 +7,8 @@ export class RefTracker extends Disposable {
   /** @virtual */
   public finalize (): void {}
 
-  private _next: RefTracker | null = null
-  private _prev: RefTracker | null = null
+  protected _next: RefTracker | null = null
+  protected _prev: RefTracker | null = null
 
   public link (list: RefTracker): void {
     this._prev = list

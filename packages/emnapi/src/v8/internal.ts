@@ -2,12 +2,44 @@ import { from64, makeDynCall } from 'emscripten:parse-tools'
 
 /**
  * @__deps $emnapiCtx
+ * @__sig pp
+ */
+export function _v8_local_from_global_reference (ref: Ptr): Ptr {
+  const reference = emnapiCtx.getRef(ref)
+  if (reference === undefined) return 1
+  const id = reference.get(emnapiCtx)
+  return id || 1
+}
+
+/**
+ * @__deps $emnapiCtx
  * @__sig ppp
  */
 export function _v8_globalize_reference (isolate: Ptr, value: Ptr): Ptr {
   const jsValue = emnapiCtx.jsValueFromNapiValue(value)
   if (jsValue === undefined) return 0
   return emnapiCtx.createReference(undefined, jsValue, 1, ReferenceOwnership.kUserland as any).id
+}
+
+/**
+ * @__deps $emnapiCtx
+ * @__sig pp
+ */
+export function _v8_copy_global_reference (from: Ptr): Ptr {
+  const ref = emnapiCtx.getRef(from)
+  if (ref === undefined) return 0
+  return ref.copy().id
+}
+
+/**
+ * @__deps $emnapiCtx
+ * @__sig vpp
+ */
+export function _v8_move_global_reference (from: Ptr, to: Ptr): void {
+  const refFrom = emnapiCtx.getRef(from)
+  const refTo = emnapiCtx.getRef(to)
+  if (refFrom === undefined || refTo === undefined) return
+  refFrom.move(refTo)
 }
 
 /**

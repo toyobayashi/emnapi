@@ -1,0 +1,233 @@
+diff -urN node-22.16.0/v8-function-callback.h node/v8-function-callback.h
+--- node-22.16.0/v8-function-callback.h	2025-07-16 14:33:02
++++ node/v8-function-callback.h	2025-07-16 14:48:45
+@@ -314,7 +314,7 @@
+   if (V8_UNLIKELY(handle.IsEmpty())) {
+     SetTheHole();
+   } else {
+-    SetInternal(handle.ptr());
++    SetInternal(api_internal::LocalFromGlobalReference(handle.ptr()));
+   }
+ }
+ 
+@@ -325,7 +325,7 @@
+ #ifdef V8_ENABLE_CHECKS
+   internal::VerifyHandleIsNonEmpty(handle.IsEmpty());
+ #endif  // V8_ENABLE_CHECKS
+-  SetInternal(handle.ptr());
++  SetInternal(api_internal::LocalFromGlobalReference(handle.ptr()));
+ }
+ 
+ template <typename T>
+diff -urN node-22.16.0/v8-local-handle.h node/v8-local-handle.h
+--- node-22.16.0/v8-local-handle.h	2025-07-16 14:33:02
++++ node/v8-local-handle.h	2025-07-16 14:43:55
+@@ -80,6 +80,7 @@
+ namespace api_internal {
+ // Called when ToLocalChecked is called on an empty Local.
+ V8_EXPORT void ToLocalEmpty();
++V8_EXPORT internal::Address LocalFromGlobalReference(internal::Address global_reference);
+ }  // namespace api_internal
+ 
+ /**
+@@ -341,7 +342,9 @@
+ 
+   V8_INLINE static Local<T> New(Isolate* isolate,
+                                 const PersistentBase<T>& that) {
+-    return New(isolate, that.template value<T, true>());
++    T* value = that.template value<T, true>();
++    internal::Address address = api_internal::LocalFromGlobalReference(reinterpret_cast<internal::Address>(value));
++    return New(isolate, address);
+   }
+ 
+   V8_INLINE static Local<T> New(Isolate* isolate,
+@@ -717,7 +720,8 @@
+   template <class T>
+   V8_INLINE Local<T> Escape(Local<T> value) {
+ #ifdef V8_ENABLE_DIRECT_LOCAL
+-    return value;
++    if (value.IsEmpty()) return value;
++    return Local<T>::FromAddress(reinterpret_cast<internal::Address>(EscapeSlot(reinterpret_cast<internal::Address*>(*value))));
+ #else
+     if (value.IsEmpty()) return value;
+     return Local<T>::FromSlot(EscapeSlot(value.slot()));
+diff -urN node-22.16.0/v8-object.h node/v8-object.h
+--- node-22.16.0/v8-object.h	2025-07-16 14:33:02
++++ node/v8-object.h	2025-07-16 14:44:57
+@@ -739,69 +739,15 @@
+ // --- Implementation ---
+ 
+ Local<Data> Object::GetInternalField(int index) {
+-#ifndef V8_ENABLE_CHECKS
+-  using A = internal::Address;
+-  using I = internal::Internals;
+-  A obj = internal::ValueHelper::ValueAsAddress(this);
+-  // Fast path: If the object is a plain JSObject, which is the common case, we
+-  // know where to find the internal fields and can return the value directly.
+-  int instance_type = I::GetInstanceType(obj);
+-  if (I::CanHaveInternalField(instance_type)) {
+-    int offset = I::kJSObjectHeaderSize + (I::kEmbedderDataSlotSize * index);
+-    A value = I::ReadRawField<A>(obj, offset);
+-#ifdef V8_COMPRESS_POINTERS
+-    // We read the full pointer value and then decompress it in order to avoid
+-    // dealing with potential endiannes issues.
+-    value = I::DecompressTaggedField(obj, static_cast<uint32_t>(value));
+-#endif
+-
+-    auto isolate = reinterpret_cast<v8::Isolate*>(
+-        internal::IsolateFromNeverReadOnlySpaceObject(obj));
+-    return Local<Data>::New(isolate, value);
+-  }
+-#endif
+   return SlowGetInternalField(index);
+ }
+ 
+ void* Object::GetAlignedPointerFromInternalField(v8::Isolate* isolate,
+                                                  int index) {
+-#if !defined(V8_ENABLE_CHECKS)
+-  using A = internal::Address;
+-  using I = internal::Internals;
+-  A obj = internal::ValueHelper::ValueAsAddress(this);
+-  // Fast path: If the object is a plain JSObject, which is the common case, we
+-  // know where to find the internal fields and can return the value directly.
+-  auto instance_type = I::GetInstanceType(obj);
+-  if (V8_LIKELY(I::CanHaveInternalField(instance_type))) {
+-    int offset = I::kJSObjectHeaderSize + (I::kEmbedderDataSlotSize * index) +
+-                 I::kEmbedderDataSlotExternalPointerOffset;
+-    A value =
+-        I::ReadExternalPointerField<internal::kEmbedderDataSlotPayloadTag>(
+-            isolate, obj, offset);
+-    return reinterpret_cast<void*>(value);
+-  }
+-#endif
+   return SlowGetAlignedPointerFromInternalField(isolate, index);
+ }
+ 
+ void* Object::GetAlignedPointerFromInternalField(int index) {
+-#if !defined(V8_ENABLE_CHECKS)
+-  using A = internal::Address;
+-  using I = internal::Internals;
+-  A obj = internal::ValueHelper::ValueAsAddress(this);
+-  // Fast path: If the object is a plain JSObject, which is the common case, we
+-  // know where to find the internal fields and can return the value directly.
+-  auto instance_type = I::GetInstanceType(obj);
+-  if (V8_LIKELY(I::CanHaveInternalField(instance_type))) {
+-    int offset = I::kJSObjectHeaderSize + (I::kEmbedderDataSlotSize * index) +
+-                 I::kEmbedderDataSlotExternalPointerOffset;
+-    Isolate* isolate = I::GetIsolateForSandbox(obj);
+-    A value =
+-        I::ReadExternalPointerField<internal::kEmbedderDataSlotPayloadTag>(
+-            isolate, obj, offset);
+-    return reinterpret_cast<void*>(value);
+-  }
+-#endif
+   return SlowGetAlignedPointerFromInternalField(index);
+ }
+ 
+diff -urN node-22.16.0/v8-value.h node/v8-value.h
+--- node-22.16.0/v8-value.h	2025-07-16 14:33:02
++++ node/v8-value.h	2025-07-16 14:47:53
+@@ -524,11 +524,7 @@
+ }
+ 
+ bool Value::IsUndefined() const {
+-#ifdef V8_ENABLE_CHECKS
+   return FullIsUndefined();
+-#else
+-  return QuickIsUndefined();
+-#endif
+ }
+ 
+ bool Value::QuickIsUndefined() const {
+@@ -545,11 +541,7 @@
+ }
+ 
+ bool Value::IsNull() const {
+-#ifdef V8_ENABLE_CHECKS
+   return FullIsNull();
+-#else
+-  return QuickIsNull();
+-#endif
+ }
+ 
+ bool Value::QuickIsNull() const {
+@@ -566,11 +558,7 @@
+ }
+ 
+ bool Value::IsNullOrUndefined() const {
+-#ifdef V8_ENABLE_CHECKS
+   return FullIsNull() || FullIsUndefined();
+-#else
+-  return QuickIsNullOrUndefined();
+-#endif
+ }
+ 
+ bool Value::QuickIsNullOrUndefined() const {
+@@ -588,11 +576,7 @@
+ }
+ 
+ bool Value::IsTrue() const {
+-#if V8_STATIC_ROOTS_BOOL && !defined(V8_ENABLE_CHECKS)
+-  return QuickIsTrue();
+-#else
+   return FullIsTrue();
+-#endif
+ }
+ 
+ #if V8_STATIC_ROOTS_BOOL
+@@ -605,11 +589,7 @@
+ #endif  // V8_STATIC_ROOTS_BOOL
+ 
+ bool Value::IsFalse() const {
+-#if V8_STATIC_ROOTS_BOOL && !defined(V8_ENABLE_CHECKS)
+-  return QuickIsFalse();
+-#else
+   return FullIsFalse();
+-#endif
+ }
+ 
+ #if V8_STATIC_ROOTS_BOOL
+@@ -622,11 +602,7 @@
+ #endif  // V8_STATIC_ROOTS_BOOL
+ 
+ bool Value::IsString() const {
+-#ifdef V8_ENABLE_CHECKS
+   return FullIsString();
+-#else
+-  return QuickIsString();
+-#endif
+ }
+ 
+ bool Value::QuickIsString() const {
+diff -urN node-22.16.0/v8config.h node/v8config.h
+--- node-22.16.0/v8config.h	2025-07-16 14:33:02
++++ node/v8config.h	2025-07-16 14:35:09
+@@ -768,14 +768,14 @@
+ // The V8_HOST_ARCH_* macros correspond to the architecture on which V8, as a
+ // virtual machine and compiler, runs. Don't confuse this with the architecture
+ // on which V8 is built.
+-#if defined(_M_X64) || defined(__x86_64__)
++#if defined(_M_X64) || defined(__x86_64__) || defined(__wasm64__)
+ #define V8_HOST_ARCH_X64 1
+ #if defined(__x86_64__) && __SIZEOF_POINTER__ == 4  // Check for x32.
+ #define V8_HOST_ARCH_32_BIT 1
+ #else
+ #define V8_HOST_ARCH_64_BIT 1
+ #endif
+-#elif defined(_M_IX86) || defined(__i386__)
++#elif defined(_M_IX86) || defined(__i386__) || defined(__wasm32__)
+ #define V8_HOST_ARCH_IA32 1
+ #define V8_HOST_ARCH_32_BIT 1
+ #elif defined(__AARCH64EL__) || defined(_M_ARM64)
+@@ -827,9 +827,9 @@
+     !V8_TARGET_ARCH_PPC64 && !V8_TARGET_ARCH_S390 &&                          \
+     !V8_TARGET_ARCH_RISCV64 && !V8_TARGET_ARCH_LOONG64 &&                     \
+     !V8_TARGET_ARCH_RISCV32
+-#if defined(_M_X64) || defined(__x86_64__)
++#if defined(_M_X64) || defined(__x86_64__) || defined(__wasm64__)
+ #define V8_TARGET_ARCH_X64 1
+-#elif defined(_M_IX86) || defined(__i386__)
++#elif defined(_M_IX86) || defined(__i386__) || defined(__wasm32__)
+ #define V8_TARGET_ARCH_IA32 1
+ #elif defined(__AARCH64EL__) || defined(_M_ARM64)
+ #define V8_TARGET_ARCH_ARM64 1
