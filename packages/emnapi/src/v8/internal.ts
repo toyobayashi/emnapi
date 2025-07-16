@@ -2,18 +2,6 @@ import { from64, makeDynCall } from 'emscripten:parse-tools'
 
 /**
  * @__deps $emnapiCtx
- * @__sig vp
- */
-export function js_debugger (ptr: Ptr) {
-  const handleStore = (emnapiCtx as any).handleStore
-  const slotValue = handleStore._values[ptr as number]
-  console.log(`[js_debugger] ${ptr}`, slotValue, emnapiCtx.jsValueFromNapiValue(ptr))
-  // eslint-disable-next-line no-debugger
-  debugger
-}
-
-/**
- * @__deps $emnapiCtx
  * @__sig pp
  */
 export function _v8_local_from_global_reference (ref: Ptr): Ptr {

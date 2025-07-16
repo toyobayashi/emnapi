@@ -81,6 +81,17 @@ napi_status emnapi_get_memory_address(napi_env env,
                                       emnapi_ownership* ownership,
                                       bool* runtime_allocated);
 
+EMNAPI_EXTERN void emnapi_debug(
+  const char* file,
+  int lineno,
+  const char* str,
+  void* value,
+  int type
+);
+
+#define DEBUGGER_LOG(str, value, type) \
+  emnapi_debug(__FILE__, __LINE__, str, value, type)
+
 EXTERN_C_END
 
 #endif
