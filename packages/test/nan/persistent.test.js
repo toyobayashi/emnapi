@@ -3,7 +3,6 @@ const assert = require('assert')
 
 module.exports = {
   target: 'nan_persistent',
-  skip: true, // TODO
   test: async function (bindings) {
     var persistent = bindings;
     assert.strictEqual(typeof persistent.save1, 'function');
