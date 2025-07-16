@@ -78,7 +78,12 @@ internal::Address LocalFromGlobalReference(internal::Address global_handle) {
 }
 
 void MoveGlobalReference(internal::Address** from, internal::Address** to) {
-  _v8_move_global_reference(**from, **to);
+  if (*from == *to) {
+    return;
+  }
+  *to = *from;
+  *from = nullptr;
+  // _v8_move_global_reference(**from, **to);
 }
 
 namespace {
