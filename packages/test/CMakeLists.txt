@@ -287,6 +287,7 @@ if((NOT IS_WASM) OR IS_EMSCRIPTEN OR IS_WASI_THREADS)
   add_test("tsfn" "./tsfn/binding.c" ON)
   add_test("async_cleanup_hook" "./async_cleanup_hook/binding.c" ON)
   add_test("uv_threadpool_size" "./uv_threadpool_size/binding.c" ON)
+  add_test("trap_in_thread" "./trap_in_thread/binding.c" ON)
 endif()
 
 add_test("arg" "./arg/binding.c" OFF)
