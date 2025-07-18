@@ -19,7 +19,8 @@ const pthread = [
   'tsfn/**/*',
   'async_cleanup_hook/**/*',
   'string/string-pthread.test.js',
-  'uv_threadpool_size/**/*'
+  'uv_threadpool_size/**/*',
+  'trap_in_thread/**/*',
 ]
 
 if (process.env.EMNAPI_TEST_NATIVE) {

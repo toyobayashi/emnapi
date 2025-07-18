@@ -27,7 +27,7 @@
     }
   },
   "dependencies": {
-    "@emnapi/wasi-threads": "1.0.3",
+    "@emnapi/wasi-threads": "1.0.4",
     "tslib": "^2.4.0"
   },
   "scripts": {

@@ -1,6 +1,6 @@
 import { type LoadPayload, createMessage } from './command'
 import type { WorkerMessageEvent } from './thread-manager'
-import { getPostMessage, isTrapError, serizeErrorToBuffer } from './util'
+import { getPostMessage, serizeErrorToBuffer } from './util'
 
 export interface OnStartData {
   tid: number
@@ -80,7 +80,8 @@ export class ThreadMessageHandler {
   }
 
   private _start (payload: OnStartData): void {
-    if (typeof this.instance!.exports.wasi_thread_start !== 'function') {
+    const wasi_thread_start = this.instance!.exports.wasi_thread_start as (tid: number, startArg: number) => void
+    if (typeof wasi_thread_start !== 'function') {
       const err = new TypeError('wasi_thread_start is not exported')
       notifyPthreadCreateResult(payload.sab, 2, err)
       throw err
@@ -89,14 +90,7 @@ export class ThreadMessageHandler {
     const tid = payload.tid
     const startArg = payload.arg
     notifyPthreadCreateResult(payload.sab, 1)
-    try {
-      (this.instance!.exports.wasi_thread_start as Function)(tid, startArg)
-    } catch (err) {
-      if (isTrapError(err)) {
-        postMessage(createMessage('terminate-all-threads', {}))
-      }
-      throw err
-    }
+    wasi_thread_start(tid, startArg)
     postMessage(createMessage('cleanup-thread', { tid }))
   }
 
