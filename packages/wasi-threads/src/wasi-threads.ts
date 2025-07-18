@@ -359,16 +359,18 @@ function patchWasiInstance (wasiThreads: WASIThreads, wasi: WASIInstance): void 
       return proc_exit.call(this, code)
     }
   }
-  const start = wasi.start
-  if (typeof start === 'function') {
-    wasi.start = function (instance: object): number {
-      try {
-        return start.call(this, instance)
-      } catch (err) {
-        if (isTrapError(err)) {
-          _this.terminateAllThreads()
+  if (!_this.childThread) {
+    const start = wasi.start
+    if (typeof start === 'function') {
+      wasi.start = function (instance: object): number {
+        try {
+          return start.call(this, instance)
+        } catch (err) {
+          if (isTrapError(err)) {
+            _this.terminateAllThreads()
+          }
+          throw err
         }
-        throw err
       }
     }
   }
