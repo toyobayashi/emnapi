@@ -11,7 +11,7 @@ export function napi_create_promise (env: napi_env, deferred: Pointer<napi_defer
     $CHECK_ARG!(envObject, promise)
 
     const resolver = emnapiCtx.createResolver()
-    deferredObjectId = emnapiCtx.createReference(undefined, resolver, 1, ReferenceOwnership.kUserland as any).id
+    deferredObjectId = emnapiCtx.isolate.createReference(resolver).id
 
     from64('deferred')
     makeSetValue('deferred', 0, 'deferredObjectId', '*')

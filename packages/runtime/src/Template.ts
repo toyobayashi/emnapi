@@ -1,4 +1,4 @@
-import type { Context } from './Context'
+import type { Isolate } from './Isolate'
 import type { FunctionTemplate } from './FunctionTemplate'
 import type { ObjectTemplate } from './ObjectTemplate'
 
@@ -16,10 +16,10 @@ export enum PropertyAttribute {
 
 /** @public */
 export class Template {
-  protected ctx: Context
+  protected ctx: Isolate
   protected _properties: Map<string | symbol, [any, number]> = new Map()
 
-  public constructor (ctx: Context) {
+  public constructor (ctx: Isolate) {
     this.ctx = ctx
   }
 

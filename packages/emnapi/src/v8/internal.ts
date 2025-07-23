@@ -7,7 +7,7 @@ import { from64, makeDynCall } from 'emscripten:parse-tools'
 export function _v8_local_from_global_reference (ref: Ptr): Ptr {
   const reference = emnapiCtx.getRef(ref)
   if (reference === undefined) return 1
-  const id = reference.get(emnapiCtx)
+  const id = reference.get(emnapiCtx.isolate)
   return id || 1
 }
 
@@ -18,7 +18,7 @@ export function _v8_local_from_global_reference (ref: Ptr): Ptr {
 export function _v8_globalize_reference (isolate: Ptr, value: Ptr): Ptr {
   const jsValue = emnapiCtx.jsValueFromNapiValue(value)
   if (jsValue === undefined) return 0
-  return emnapiCtx.createReference(undefined, jsValue, 1, ReferenceOwnership.kUserland as any).id
+  return emnapiCtx.isolate.createReference(jsValue).id
 }
 
 /**
@@ -64,11 +64,11 @@ export function _v8_make_weak (ref: Ptr, data: Ptr, callback: Ptr, weak_callback
     let field0 = 0
     let field1 = 0
     if (type === 1) {
-      const id = refValue.get(emnapiCtx)
+      const id = refValue.get(emnapiCtx.isolate)
       if (id) {
         const value = emnapiCtx.jsValueFromNapiValue(id)
-        field0 = emnapiCtx.getInternalField(value, 0)
-        field1 = emnapiCtx.getInternalField(value, 1)
+        field0 = emnapiCtx.isolate.getInternalField(value, 0)
+        field1 = emnapiCtx.isolate.getInternalField(value, 1)
         if ((typeof field0 !== 'number' && typeof field0 !== 'bigint') ||
             (typeof field1 !== 'number' && typeof field1 !== 'bigint')) {
           throw new Error('Internal field is not a number')

@@ -5,6 +5,7 @@ export { EmnapiError, NotSupportWeakRefError, NotSupportBufferError } from './er
 export { External, isExternal, getExternalValue } from './External'
 export { Finalizer } from './Finalizer'
 export { FunctionTemplate, Signature } from './FunctionTemplate'
+export { Isolate, type IsolateOptions } from './Isolate'
 export { ObjectTemplate, getInternalField, setInternalField } from './ObjectTemplate'
 export { Template } from './Template'
 export { TrackedFinalizer } from './TrackedFinalizer'

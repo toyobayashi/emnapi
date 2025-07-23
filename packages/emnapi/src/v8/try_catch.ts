@@ -3,7 +3,7 @@
  * @__sig vp
  */
 export function _v8_trycatch_construct (tc: Ptr): void {
-  emnapiCtx.pushTryCatch(tc)
+  emnapiCtx.isolate.pushTryCatch(tc)
 }
 
 /**
@@ -11,7 +11,7 @@ export function _v8_trycatch_construct (tc: Ptr): void {
  * @__sig vp
  */
 export function _v8_trycatch_destruct (tc: Ptr): void {
-  emnapiCtx.popTryCatch(tc)
+  emnapiCtx.isolate.popTryCatch(tc)
 }
 
 /**
@@ -19,7 +19,7 @@ export function _v8_trycatch_destruct (tc: Ptr): void {
  * @__sig ip
  */
 export function _v8_trycatch_has_caught (tc: Ptr) {
-  const tryCatch = emnapiCtx.getTryCatch(tc)
+  const tryCatch = emnapiCtx.isolate.getTryCatch(tc)
   if (!tryCatch) return 0
   return Number(tryCatch.hasCaught())
 }
@@ -29,9 +29,9 @@ export function _v8_trycatch_has_caught (tc: Ptr) {
  * @__sig pp
  */
 export function _v8_trycatch_rethrow (tc: Ptr) {
-  const tryCatch = emnapiCtx.getTryCatch(tc)
+  const tryCatch = emnapiCtx.isolate.getTryCatch(tc)
   if (!tryCatch) return 1
-  const e = tryCatch.rethrow(emnapiCtx)
+  const e = tryCatch.rethrow(emnapiCtx.isolate)
   if (e === undefined) return 1
   return emnapiCtx.napiValueFromJsValue(e)
 }
@@ -41,7 +41,7 @@ export function _v8_trycatch_rethrow (tc: Ptr) {
  * @__sig pp
  */
 export function _v8_trycatch_exception (tc: Ptr) {
-  const tryCatch = emnapiCtx.getTryCatch(tc)
+  const tryCatch = emnapiCtx.isolate.getTryCatch(tc)
   if (!tryCatch || !tryCatch.hasCaught()) return 1
   return emnapiCtx.napiValueFromJsValue(tryCatch.exception())
 }
@@ -51,7 +51,7 @@ export function _v8_trycatch_exception (tc: Ptr) {
  * @__sig vp
  */
 export function _v8_trycatch_reset (tc: Ptr) {
-  const tryCatch = emnapiCtx.getTryCatch(tc)
+  const tryCatch = emnapiCtx.isolate.getTryCatch(tc)
   if (!tryCatch) return
   tryCatch.reset()
 }

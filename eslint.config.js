@@ -80,7 +80,7 @@ export default tseslint.config(
       }],
       '@stylistic/spaced-comment': ['error', 'always', {
         line: {
-          markers: ['/'],
+          markers: ['/', '#region', '#endregion'],
         },
         block: {
           markers: ['#__PURE__'],

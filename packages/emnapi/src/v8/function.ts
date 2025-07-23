@@ -42,7 +42,7 @@ export function _v8_function_new_instance (fn: Ptr, ctx: Ptr, argc: number, argv
       ret = new BoundCtor()
     }
   } catch (err) {
-    emnapiCtx.throwException(err)
+    emnapiCtx.isolate.throwException(err)
     return 1
   }
 

@@ -72,7 +72,7 @@ export function emnapiInit (options: InitOptions): any {
   const nodeRegisterModuleSymbol = `node_register_module_v${NODE_MODULE_VERSION}`
   const emscriptenExportedSymbol = `_${nodeRegisterModuleSymbol}`
   if (typeof Module[emscriptenExportedSymbol] === 'function') {
-    const scope = emnapiCtx.openScopeRaw()
+    const scope = emnapiCtx.isolate.openScope()
     try {
       const exports = emnapiModule.exports
 
@@ -80,10 +80,10 @@ export function emnapiInit (options: InitOptions): any {
       const moduleHandle = scope.add(emnapiModule)
       Module[emscriptenExportedSymbol](to64('exportsHandle'), to64('moduleHandle'), to64('5'))
     } catch (err) {
-      emnapiCtx.closeScopeRaw(scope)
+      emnapiCtx.isolate.closeScope(scope)
       throw err
     }
-    emnapiCtx.closeScopeRaw(scope)
+    emnapiCtx.isolate.closeScope(scope)
     emnapiModule.loaded = true
     delete emnapiModule.envObject
     return emnapiModule.exports

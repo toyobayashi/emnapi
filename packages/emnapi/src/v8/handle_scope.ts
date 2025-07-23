@@ -5,7 +5,7 @@ import { from64 } from 'emscripten:parse-tools'
  * @__sig pp
  */
 export function _v8_open_handle_scope (_isolate: Pointer<unknown>): napi_handle_scope {
-  return emnapiCtx.openScopeRaw().id
+  return emnapiCtx.isolate.openScope().id
 }
 
 /**
@@ -13,7 +13,7 @@ export function _v8_open_handle_scope (_isolate: Pointer<unknown>): napi_handle_
  * @__sig v
  */
 export function _v8_close_handle_scope (): void {
-  return emnapiCtx.closeScopeRaw()
+  return emnapiCtx.isolate.closeScope()
 }
 
 /**
