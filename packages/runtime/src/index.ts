@@ -1,5 +1,4 @@
 export { createContext, getDefaultContext, Context, type CleanupHookCallbackFunction, type ContextOptions } from './Context'
-export { Deferred, type IDeferrdValue } from './Deferred'
 export { Disposable } from './Disaposable'
 export { Env, NodeEnv, type IReferenceBinding } from './env'
 export { EmnapiError, NotSupportWeakRefError, NotSupportBufferError } from './errors'
@@ -17,7 +16,7 @@ export { Reference, ReferenceWithData, ReferenceWithFinalizer, ReferenceOwnershi
 export { RefTracker } from './RefTracker'
 export { ScopeStore } from './ScopeStore'
 export * from './Store'
-export { type Features } from './util'
+export { type Features, type Resolver } from './util'
 
 export {
   isReferenceType,

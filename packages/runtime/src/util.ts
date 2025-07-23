@@ -8,6 +8,12 @@ export function detectFinalizer () {
 
 export const supportFinalizer = /*#__PURE__*/ detectFinalizer()
 
+export interface Resolver<T> {
+  promise: Promise<T>
+  resolve: (value: T | PromiseLike<T>) => void
+  reject: (reason?: any) => void
+}
+
 export interface Features {
   makeDynamicFunction: ((...args: any[]) => Function) | undefined
   getGlobalThis: () => typeof globalThis
@@ -19,6 +25,7 @@ export interface Features {
   MessageChannel: typeof MessageChannel | undefined
   Buffer: BufferCtor | undefined
   setImmediate: (callback: () => void) => any
+  withResolvers: <T>(this: PromiseConstructor) => Resolver<T>
 }
 
 export function detectFeatures (features?: Partial<Features>): Features {
@@ -90,9 +97,25 @@ export function detectFeatures (features?: Partial<Features>): Features {
     throw new Error('Unable to get globalThis')
   }
 
+  function defaultWithResolvers<T> (this: PromiseConstructor) {
+    let ok: (value: T | PromiseLike<T>) => void
+    let err: (reason?: any) => void
+    const promise = new this<T>((resolve, reject) => {
+      ok = resolve
+      err = reject
+    })
+    return { promise, resolve: ok!, reject: err! }
+  }
+
   const getGlobalThis = features && 'getGlobalThis' in features
     ? (features.getGlobalThis ?? defaultGetGlobalThis)
     : defaultGetGlobalThis
+
+  const withResolvers = (features && 'withResolvers' in features)
+    ? (features.withResolvers ?? defaultWithResolvers)
+    : typeof Promise.withResolvers === 'function'
+      ? Promise.withResolvers
+      : defaultWithResolvers
 
   const getBuiltinModule: (id: string) => any = getGlobalThis?.().process?.getBuiltinModule ?? _require
 
@@ -146,6 +169,7 @@ export function detectFeatures (features?: Partial<Features>): Features {
         })(),
     ...features,
     getGlobalThis,
+    withResolvers
   }
 
   return ret
