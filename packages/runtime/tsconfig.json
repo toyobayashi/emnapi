@@ -12,6 +12,7 @@
     "lib": [
       "ES2021",
       "ESNext.Disposable",
+      "ES2024.Promise",
       "DOM"
     ]
   },

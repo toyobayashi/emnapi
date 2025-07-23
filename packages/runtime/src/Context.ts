@@ -9,12 +9,12 @@ import {
   NODE_API_DEFAULT_MODULE_API_VERSION,
   NODE_MODULE_VERSION,
   detectFeatures,
-  Features
+  Features,
+  type Resolver
 } from './util'
 import { TryCatch } from './TryCatch'
 import { NotSupportWeakRefError, NotSupportBufferError } from './errors'
 import { Reference, ReferenceOwnership, ReferenceWithData, ReferenceWithFinalizer } from './Reference'
-import { type IDeferrdValue, Deferred } from './Deferred'
 import { ArrayStore } from './Store'
 import { TrackedFinalizer } from './TrackedFinalizer'
 import { External, isExternal, getExternalValue } from './External'
@@ -139,11 +139,10 @@ export class Context {
 
   private envStore = new ArrayStore<Env>()
   private scopeStore = new ScopeStore()
-  private deferredStore = new ArrayStore<Deferred>()
   private readonly refCounter?: NodejsWaitingRequestCounter
   private readonly cleanupQueue: CleanupQueue
 
-  public readonly features: Features = detectFeatures()
+  public readonly features: Features
 
   private handleStore: HandleStore
 
@@ -258,8 +257,8 @@ export class Context {
     )
   }
 
-  public createDeferred<T = any> (value: IDeferrdValue<T>): Deferred<T> {
-    return new Deferred(this.deferredStore, value)
+  public createResolver<T> (): Resolver<T> {
+    return this.features.withResolvers.call<PromiseConstructor, [], Resolver<T>>(Promise)
   }
 
   public createEnv (
@@ -473,10 +472,6 @@ export class Context {
 
   public getCallbackInfo (info: napi_callback_info): ICallbackInfo {
     return this.scopeStore.deref(info)!.callbackInfo
-  }
-
-  public getDeferred<T = any> (deferred: napi_deferred): Deferred<T> | undefined {
-    return this.deferredStore.deref(deferred)
   }
 
   public napiValueFromJsValue (value: unknown): number | bigint {

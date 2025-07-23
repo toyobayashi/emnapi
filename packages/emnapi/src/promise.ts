@@ -10,15 +10,14 @@ export function napi_create_promise (env: napi_env, deferred: Pointer<napi_defer
     $CHECK_ARG!(envObject, deferred)
     $CHECK_ARG!(envObject, promise)
 
-    const p = new Promise<any>((resolve, reject) => {
-      const deferredObject = emnapiCtx.createDeferred({ resolve, reject })
-      deferredObjectId = deferredObject.id
-      from64('deferred')
-      makeSetValue('deferred', 0, 'deferredObjectId', '*')
-    })
-    from64('promise')
+    const resolver = emnapiCtx.createResolver()
+    deferredObjectId = emnapiCtx.createReference(undefined, resolver, 1, ReferenceOwnership.kUserland as any).id
 
-    value = emnapiCtx.napiValueFromJsValue(p)
+    from64('deferred')
+    makeSetValue('deferred', 0, 'deferredObjectId', '*')
+
+    value = emnapiCtx.napiValueFromJsValue(resolver.promise)
+    from64('promise')
     makeSetValue('promise', 0, 'value', '*')
     return $GET_RETURN_STATUS!(envObject)
   })
@@ -29,8 +28,10 @@ export function napi_resolve_deferred (env: napi_env, deferred: napi_deferred, r
   return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, deferred)
     $CHECK_ARG!(envObject, resolution)
-    const deferredObject = emnapiCtx.getDeferred(deferred)!
-    deferredObject.resolve(emnapiCtx.jsValueFromNapiValue(resolution)!)
+    const deferredRef = emnapiCtx.getRef(deferred)!
+    const resolver = deferredRef.deref() as Resolver<any>
+    resolver.resolve(emnapiCtx.jsValueFromNapiValue(resolution)!)
+    deferredRef.dispose()
     return $GET_RETURN_STATUS!(envObject)
   })
 }
@@ -40,8 +41,10 @@ export function napi_reject_deferred (env: napi_env, deferred: napi_deferred, re
   return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, deferred)
     $CHECK_ARG!(envObject, resolution)
-    const deferredObject = emnapiCtx.getDeferred(deferred)!
-    deferredObject.reject(emnapiCtx.jsValueFromNapiValue(resolution)!)
+    const deferredRef = emnapiCtx.getRef(deferred)!
+    const resolver = deferredRef.deref() as Resolver<any>
+    resolver.reject(emnapiCtx.jsValueFromNapiValue(resolution)!)
+    deferredRef.dispose()
     return $GET_RETURN_STATUS!(envObject)
   })
 }
