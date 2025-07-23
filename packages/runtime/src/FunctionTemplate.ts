@@ -1,4 +1,4 @@
-import type { Context } from './Context'
+import type { Isolate } from './Isolate'
 import { ObjectTemplate, findHolder } from './ObjectTemplate'
 import { Template } from './Template'
 import { TryCatch } from './TryCatch'
@@ -25,7 +25,7 @@ export class FunctionTemplate extends Template {
   private _cached: [((...args: any[]) => any) | undefined]
 
   constructor (
-    ctx: Context,
+    ctx: Isolate,
     callback: (info: napi_callback_info, v8FunctionCallback: Ptr) => Ptr,
     v8FunctionCallback: Ptr,
     data: any,
@@ -71,7 +71,7 @@ export class FunctionTemplate extends Template {
           throw new TypeError('Illegal invocation')
         }
       }
-      const scope = ctx.openScopeRaw()
+      const scope = ctx.openScope()
       const callbackInfo = scope.callbackInfo
       let returnValue: any
       try {
@@ -88,7 +88,7 @@ export class FunctionTemplate extends Template {
       } catch (err) {
         ctx.throwException(err)
       }
-      ctx.closeScopeRaw(scope)
+      ctx.closeScope(scope)
       if (ctx.hasPendingException()) {
         if (TryCatch.top) {
           TryCatch.top.setError(ctx.getAndClearLastException())

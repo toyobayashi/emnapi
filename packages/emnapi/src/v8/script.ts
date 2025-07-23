@@ -30,14 +30,14 @@ export function _v8_unbound_script_bind_to_current_context (
  * @__sig ppp
  */
 export function _v8_script_run (script: Ptr, context: Ptr): Ptr {
-  if (emnapiCtx.hasPendingException()) return 1
+  if (emnapiCtx.isolate.hasPendingException()) return 1
   const str = emnapiCtx.jsValueFromNapiValue(script)
   const g = emnapiCtx.jsValueFromNapiValue<typeof globalThis>(context)!
   let ret: any
   try {
     ret = g.eval(str)
   } catch (err) {
-    emnapiCtx.throwException(err)
+    emnapiCtx.isolate.throwException(err)
     return 1
   }
   return emnapiCtx.napiValueFromJsValue(ret)

@@ -101,7 +101,7 @@ export var napiModule: INapiModule = {
       const NODE_MODULE_VERSION = Version.NODE_MODULE_VERSION
       const nodeRegisterModuleSymbol = `node_register_module_v${NODE_MODULE_VERSION}`
       if (typeof instance.exports[nodeRegisterModuleSymbol] === 'function') {
-        const scope = emnapiCtx.openScopeRaw()
+        const scope = emnapiCtx.isolate.openScope()
         try {
           const exports = napiModule.exports
 
@@ -109,10 +109,10 @@ export var napiModule: INapiModule = {
           const moduleHandle = scope.add(napiModule)
           instance.exports[nodeRegisterModuleSymbol](to64('exportsHandle'), to64('moduleHandle'), to64('5'))
         } catch (err) {
-          emnapiCtx.closeScopeRaw(scope)
+          emnapiCtx.isolate.closeScope(scope)
           throw err
         }
-        emnapiCtx.closeScopeRaw(scope)
+        emnapiCtx.isolate.closeScope(scope)
         napiModule.loaded = true
         delete napiModule.envObject
         return napiModule.exports

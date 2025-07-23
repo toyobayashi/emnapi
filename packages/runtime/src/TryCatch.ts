@@ -1,4 +1,4 @@
-import type { Context } from './Context'
+import type { Isolate } from './Isolate'
 
 export class TryCatch {
   public static top: TryCatch | null = null
@@ -44,7 +44,7 @@ export class TryCatch {
     return this._exception
   }
 
-  public rethrow (ctx: Context) {
+  public rethrow (ctx: Isolate) {
     if (this._caught) {
       const e = this.extractException()
       ctx.setLastException(e)

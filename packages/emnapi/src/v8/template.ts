@@ -66,7 +66,7 @@ export function _v8_function_template_new (
   allowed_receiver_instance_type_range_end: number
 ): Pointer<unknown> {
   const jsCb = makeDynCall('ppp', 'callback')
-  const tpl = emnapiCtx.createFunctionTemplate(
+  const tpl = emnapiCtx.isolate.createFunctionTemplate(
     jsCb, cb, emnapiCtx.jsValueFromNapiValue(data),
     emnapiCtx.jsValueFromNapiValue(signature)
   )
@@ -126,7 +126,7 @@ export function _v8_object_template_new (
   isolate: Ptr,
   constructor: Ptr
 ): Ptr {
-  const tpl = emnapiCtx.createObjectTemplate(emnapiCtx.jsValueFromNapiValue(constructor))
+  const tpl = emnapiCtx.isolate.createObjectTemplate(emnapiCtx.jsValueFromNapiValue(constructor))
   return emnapiCtx.napiValueFromJsValue(tpl)
 }
 
@@ -150,7 +150,7 @@ export function _v8_object_template_new_instance (
   obj_tpl: Ptr,
   context: Ptr
 ): Ptr {
-  if (emnapiCtx.hasPendingException()) return 1
+  if (emnapiCtx.isolate.hasPendingException()) return 1
   const objTemplate = emnapiCtx.jsValueFromNapiValue(obj_tpl)
   return emnapiCtx.napiValueFromJsValue(objTemplate.newInstance(context))
 }
@@ -164,7 +164,7 @@ export function _v8_signature_new (
   receiver: Ptr
 ): Ptr {
   const rcv = emnapiCtx.jsValueFromNapiValue(receiver)
-  const sig = emnapiCtx.createSignature(rcv)
+  const sig = emnapiCtx.isolate.createSignature(rcv)
   return emnapiCtx.napiValueFromJsValue(sig)
 }
 

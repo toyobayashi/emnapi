@@ -1,4 +1,4 @@
-import type { Context } from './Context'
+import type { Isolate } from './Isolate'
 import { Template } from './Template'
 import { TryCatch } from './TryCatch'
 
@@ -68,7 +68,7 @@ export class ObjectTemplate extends Template {
   private _accessors: Map<string | symbol, AccessorConfig> = new Map()
 
   constructor (
-    ctx: Context,
+    ctx: Isolate,
     Ctor?: any
   ) {
     super(ctx)
@@ -110,7 +110,7 @@ export class ObjectTemplate extends Template {
     const createAccessorWrapper = (type: 'getter' | 'setter', data: any, cb: (value?: any) => Ptr) => {
       const { ctx } = this
       function _ (this: any, value?: any) {
-        const scope = ctx.openScopeRaw()
+        const scope = ctx.openScope()
         const callbackInfo = scope.callbackInfo
         let returnValue: any
         try {
@@ -124,7 +124,7 @@ export class ObjectTemplate extends Template {
         } catch (err) {
           ctx.throwException(err)
         }
-        ctx.closeScopeRaw(scope)
+        ctx.closeScope(scope)
         if (ctx.hasPendingException()) {
           if (TryCatch.top) {
             TryCatch.top.setError(ctx.getAndClearLastException())

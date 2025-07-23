@@ -2,6 +2,7 @@ import type { Env } from './env'
 import { Persistent } from './Persistent'
 import { RefTracker } from './RefTracker'
 import { Finalizer } from './Finalizer'
+import type { Isolate } from './Isolate'
 import type { Context } from './Context'
 
 export enum ReferenceOwnership {
@@ -23,7 +24,7 @@ export class Reference extends RefTracker {
 
   public id: number
   public envObject: Env | undefined
-  private ctx: Context
+  private ctx: Isolate
 
   private canBeWeak!: boolean
   private _refcount: number
@@ -31,7 +32,7 @@ export class Reference extends RefTracker {
   public persistent!: Persistent<object>
 
   public static create (
-    ctx: Context,
+    ctx: Isolate,
     envObject: Env,
     handle_id: napi_value,
     initialRefcount: uint32_t,
@@ -41,7 +42,7 @@ export class Reference extends RefTracker {
     _unused3?: void_p
   ): Reference
   public static create (
-    ctx: Context,
+    ctx: Isolate,
     envObject: undefined,
     handle_id: any,
     initialRefcount: uint32_t,
@@ -52,7 +53,7 @@ export class Reference extends RefTracker {
   ): Reference
 
   public static create (
-    ctx: Context,
+    ctx: Isolate,
     envObject: any,
     handle_id: any,
     initialRefcount: uint32_t,
@@ -71,14 +72,14 @@ export class Reference extends RefTracker {
   }
 
   public constructor (
-    ctx: Context,
+    ctx: Isolate,
     envObject: Env,
     handle_id: napi_value,
     initialRefcount: uint32_t,
     ownership: ReferenceOwnership
   )
   public constructor (
-    ctx: Context,
+    ctx: Isolate,
     envObject: undefined,
     handle_id: any,
     initialRefcount: uint32_t,
@@ -86,7 +87,7 @@ export class Reference extends RefTracker {
   )
 
   public constructor (
-    ctx: Context,
+    ctx: Isolate,
     envObject: Env | undefined,
     handle_id: any,
     initialRefcount: uint32_t,
@@ -178,7 +179,7 @@ export class Reference extends RefTracker {
     return this.persistent.deref()
   }
 
-  public get (ctx: Context): napi_value {
+  public get (ctx: Isolate | Context): napi_value {
     if (this.persistent.isEmpty()) {
       return 0
     }
@@ -246,7 +247,7 @@ export class ReferenceWithData extends Reference {
   private _data: void_p
 
   public static override create (
-    ctx: Context,
+    ctx: Isolate,
     envObject: Env,
     value: napi_value,
     initialRefcount: uint32_t,
@@ -254,7 +255,7 @@ export class ReferenceWithData extends Reference {
     data: void_p
   ): ReferenceWithData
   public static override create (
-    ctx: Context,
+    ctx: Isolate,
     envObject: undefined,
     value: any,
     initialRefcount: uint32_t,
@@ -263,7 +264,7 @@ export class ReferenceWithData extends Reference {
   ): ReferenceWithData
 
   public static override create (
-    ctx: Context,
+    ctx: Isolate,
     envObject: any,
     value: any,
     initialRefcount: uint32_t,
@@ -280,7 +281,7 @@ export class ReferenceWithData extends Reference {
   }
 
   public constructor (
-    ctx: Context,
+    ctx: Isolate,
     envObject: Env,
     value: napi_value,
     initialRefcount: uint32_t,
@@ -288,7 +289,7 @@ export class ReferenceWithData extends Reference {
     data: void_p
   )
   public constructor (
-    ctx: Context,
+    ctx: Isolate,
     envObject: undefined,
     value: any,
     initialRefcount: uint32_t,
@@ -297,7 +298,7 @@ export class ReferenceWithData extends Reference {
   )
 
   public constructor (
-    ctx: Context,
+    ctx: Isolate,
     envObject: any,
     value: any,
     initialRefcount: uint32_t,
@@ -329,7 +330,7 @@ export class ReferenceWithFinalizer extends Reference {
   private _finalizer: Finalizer
 
   public static override create (
-    ctx: Context,
+    ctx: Isolate,
     envObject: Env,
     value: napi_value,
     initialRefcount: uint32_t,
@@ -339,7 +340,7 @@ export class ReferenceWithFinalizer extends Reference {
     finalize_hint: void_p
   ): ReferenceWithFinalizer
   public static override create (
-    ctx: Context,
+    ctx: Isolate,
     envObject: undefined,
     value: any,
     initialRefcount: uint32_t,
@@ -350,7 +351,7 @@ export class ReferenceWithFinalizer extends Reference {
   ): ReferenceWithFinalizer
 
   public static override create (
-    ctx: Context,
+    ctx: Isolate,
     envObject: any,
     value: any,
     initialRefcount: uint32_t,
@@ -370,7 +371,7 @@ export class ReferenceWithFinalizer extends Reference {
   }
 
   public constructor (
-    ctx: Context,
+    ctx: Isolate,
     envObject: Env,
     value: napi_value,
     initialRefcount: uint32_t,

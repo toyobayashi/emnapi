@@ -1,5 +1,3 @@
-import { ScopeStore } from './ScopeStore'
-import { HandleStore } from './Handle'
 import type { HandleScope, ICallbackInfo } from './HandleScope'
 import { Env, NodeEnv } from './env'
 import {
@@ -8,19 +6,16 @@ import {
   NAPI_VERSION_EXPERIMENTAL,
   NODE_API_DEFAULT_MODULE_API_VERSION,
   NODE_MODULE_VERSION,
-  detectFeatures,
   Features,
   type Resolver
 } from './util'
-import { TryCatch } from './TryCatch'
+
 import { NotSupportWeakRefError, NotSupportBufferError } from './errors'
 import { Reference, ReferenceOwnership, ReferenceWithData, ReferenceWithFinalizer } from './Reference'
 import { ArrayStore } from './Store'
 import { TrackedFinalizer } from './TrackedFinalizer'
-import { External, isExternal, getExternalValue } from './External'
-import { FunctionTemplate, Signature } from './FunctionTemplate'
-import { ObjectTemplate, setInternalField, getInternalField, getInternalFieldCount } from './ObjectTemplate'
-import { Persistent } from './Persistent'
+import { Isolate, type IsolateOptions } from './Isolate'
+import type { External } from './External'
 
 export type CleanupHookCallbackFunction = number | ((arg: number) => void)
 
@@ -126,30 +121,24 @@ class NodejsWaitingRequestCounter {
   }
 }
 
-export interface ContextOptions {
-  features?: Partial<Features>
+export interface ContextOptions extends IsolateOptions {
 }
 
 export class Context {
   private _isStopping = false
   private _canCallIntoJs = true
   private _suppressDestroy = false
-  private _lastException = new Persistent<any>()
-  private _globalThis: typeof globalThis
 
   private envStore = new ArrayStore<Env>()
-  private scopeStore = new ScopeStore()
   private readonly refCounter?: NodejsWaitingRequestCounter
   private readonly cleanupQueue: CleanupQueue
 
   public readonly features: Features
-
-  private handleStore: HandleStore
+  public readonly isolate: Isolate
 
   public constructor (options?: ContextOptions) {
-    this.features = detectFeatures(options?.features)
-    this.handleStore = new HandleStore(this.features)
-    this._globalThis ??= this.features.getGlobalThis()
+    this.isolate = new Isolate(options)
+    this.features = this.isolate.features
     this.cleanupQueue = new CleanupQueue()
     if (typeof process === 'object' && process !== null && typeof process.once === 'function' && this.features.MessageChannel) {
       this.refCounter = new NodejsWaitingRequestCounter(this.features.MessageChannel)
@@ -159,6 +148,10 @@ export class Context {
         }
       })
     }
+  }
+
+  public getIsolate (): Isolate {
+    return this.isolate
   }
 
   /**
@@ -211,7 +204,7 @@ export class Context {
     ownership: ReferenceOwnership
   ): Reference {
     return Reference.create(
-      this,
+      this.isolate,
       envObject,
       handle_id,
       initialRefcount,
@@ -227,7 +220,7 @@ export class Context {
     data: void_p
   ): Reference {
     return ReferenceWithData.create(
-      this,
+      this.isolate,
       envObject,
       handle_id,
       initialRefcount,
@@ -246,7 +239,7 @@ export class Context {
     finalize_hint: void_p = 0
   ): Reference {
     return ReferenceWithFinalizer.create(
-      this,
+      this.isolate,
       envObject,
       handle_id,
       initialRefcount,
@@ -258,7 +251,7 @@ export class Context {
   }
 
   public createResolver<T> (): Resolver<T> {
-    return this.features.withResolvers.call<PromiseConstructor, [], Resolver<T>>(Promise)
+    return this.isolate.createResolver<T>()
   }
 
   public createEnv (
@@ -292,82 +285,6 @@ export class Context {
     )
     this.addCleanupHook(env, () => { env.unref() }, 0)
     return env
-  }
-
-  public createSignature (template: FunctionTemplate): Signature {
-    return new Signature(template)
-  }
-
-  public createObjectTemplate (constructor: any) {
-    return new ObjectTemplate(this, constructor)
-  }
-
-  public setInternalField (obj: any, index: number, value: any): void {
-    setInternalField(obj, index, value)
-  }
-
-  public getInternalField (obj: any, index: number): any {
-    return getInternalField(obj, index)
-  }
-
-  public getInternalFieldCount (obj: any): number {
-    return getInternalFieldCount(obj)
-  }
-
-  public setLastException (err: any) {
-    this._lastException.resetTo(err)
-  }
-
-  public throwException (err: any) {
-    if (TryCatch.top) {
-      TryCatch.top.setError(err)
-    } else {
-      this.setLastException(err)
-    }
-    return err
-  }
-
-  public hasPendingException (): boolean {
-    return !this._lastException.isEmpty()
-  }
-
-  public getAndClearLastException (): any {
-    const err = this._lastException.deref()
-    this._lastException.reset()
-    return err
-  }
-
-  public getTryCatch (address: number | bigint): TryCatch | undefined {
-    return TryCatch.deref(address)
-  }
-
-  public pushTryCatch (address: number | bigint): TryCatch {
-    const tryCatch = new TryCatch(address)
-    return tryCatch
-  }
-
-  public popTryCatch (address: number | bigint): void {
-    if (address !== TryCatch.top?.id) {
-      throw new Error('TryCatch mismatch')
-    }
-    return TryCatch.pop()
-  }
-
-  public createFunctionTemplate (
-    callback: (info: napi_callback_info, v8FunctionCallback: Ptr) => Ptr,
-    v8FunctionCallback: Ptr,
-    data: any,
-    signature?: Signature
-  ) {
-    const functionTemplate = new FunctionTemplate(
-      this,
-      callback,
-      v8FunctionCallback,
-      data,
-      signature
-    )
-
-    return functionTemplate
   }
 
   public createFunction (
@@ -427,35 +344,19 @@ export class Context {
     return TrackedFinalizer.create(envObject, finalize_callback, finalize_data, finalize_hint)
   }
 
-  public createExternal (data: number | bigint): External {
-    return new External(data)
-  }
-
-  public getExternalValue (external: External): number | bigint {
-    return getExternalValue(external)
-  }
-
   public getCurrentScope (): HandleScope {
-    return this.scopeStore.currentScope
+    return this.isolate.getCurrentScope()
   }
 
   public openScope (envObject: Env): HandleScope {
-    const scope = this.openScopeRaw()
+    const scope = this.isolate.openScope()
     envObject.openHandleScopes++
     return scope
   }
 
-  public openScopeRaw (): HandleScope {
-    return this.scopeStore.openScope(this.handleStore)
-  }
-
   public closeScope (envObject: Env, scope?: HandleScope): void {
-    this.closeScopeRaw(scope)
+    this.isolate.closeScope(scope)
     envObject.openHandleScopes--
-  }
-
-  public closeScopeRaw (_scope?: HandleScope): void {
-    this.scopeStore.closeScope()
   }
 
   public getEnv (env: napi_env): Env | undefined {
@@ -463,39 +364,35 @@ export class Context {
   }
 
   public getRef (ref: napi_ref): Reference | undefined {
-    return this.handleStore.deref(ref)
+    return this.isolate.getRef(ref)
   }
 
   public getHandleScope (scope: napi_handle_scope): HandleScope | undefined {
-    return this.scopeStore.deref(scope)
+    return this.isolate.getHandleScope(scope)
   }
 
   public getCallbackInfo (info: napi_callback_info): ICallbackInfo {
-    return this.scopeStore.deref(info)!.callbackInfo
+    return this.isolate.getCallbackInfo(info)
   }
 
   public napiValueFromJsValue (value: unknown): number | bigint {
-    switch (value) {
-      case undefined: return GlobalHandle.UNDEFINED
-      case null: return GlobalHandle.NULL
-      case false: return GlobalHandle.FALSE
-      case true: return GlobalHandle.TRUE
-      case '': return GlobalHandle.EMPTY_STRING
-      case this._globalThis: return GlobalHandle.GLOBAL
-      default: return this.scopeStore.currentScope.add(value)
-    }
+    return this.isolate.napiValueFromJsValue(value)
   }
 
   public jsValueFromNapiValue<T = any> (napiValue: number | bigint): T | undefined {
-    return this.handleStore.deepDeref(napiValue)
+    return this.isolate.jsValueFromNapiValue(napiValue)
   }
 
-  public deleteHandle (napiValue: number | bigint): void {
-    this.handleStore.dealloc(napiValue)
+  public createExternal (data: number | bigint): External {
+    return this.isolate.createExternal(data)
+  }
+
+  public getExternalValue (external: External): number | bigint {
+    return this.isolate.getExternalValue(external)
   }
 
   public isExternal (value: unknown): boolean {
-    return isExternal(value)
+    return this.isolate.isExternal(value)
   }
 
   public addCleanupHook (envObject: Env, fn: CleanupHookCallbackFunction, arg: number): void {
@@ -545,8 +442,8 @@ export class Context {
 
 let defaultContext: Context
 
-export function createContext (): Context {
-  return new Context()
+export function createContext (options?: ContextOptions): Context {
+  return new Context(options)
 }
 
 export function getDefaultContext (): Context {
