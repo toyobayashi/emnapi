@@ -65,7 +65,7 @@ export class HandleStore extends BaseArrayStore<any> {
       ? (id: number | bigint): any => {
           const value = this._values[id as number]
           if (value instanceof Reference) return value.deref()
-          if (value instanceof WeakRef && Number(id) >= this._allocator.next) {
+          if (value instanceof WeakRef && this.isOutOfScope(id)) {
             return value.deref()
           }
           return value
@@ -75,6 +75,10 @@ export class HandleStore extends BaseArrayStore<any> {
           if (value instanceof Reference) return value.deref()
           return value
         }
+  }
+
+  public isOutOfScope (id: number | bigint): boolean {
+    return Number(id) >= this._allocator.next
   }
 
   public deepDeref<R = any> (id: number | bigint): R | undefined {

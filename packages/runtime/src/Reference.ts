@@ -234,8 +234,8 @@ export class Reference extends RefTracker {
   public override dispose (): void {
     if (this.id === 0) return
     this.unlink()
+    this.ctx.removeRef(this.id)
     this.persistent.reset()
-    this.ctx.deleteHandle(this.id)
     super.dispose()
     this.ctx = undefined!
     this.envObject = undefined!

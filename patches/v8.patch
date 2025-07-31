@@ -1,47 +1,7 @@
-diff -urN node-22.16.0/v8-function-callback.h node/v8-function-callback.h
---- node-22.16.0/v8-function-callback.h	2025-07-16 14:33:02
-+++ node/v8-function-callback.h	2025-07-16 14:48:45
-@@ -314,7 +314,7 @@
-   if (V8_UNLIKELY(handle.IsEmpty())) {
-     SetTheHole();
-   } else {
--    SetInternal(handle.ptr());
-+    SetInternal(api_internal::LocalFromGlobalReference(handle.ptr()));
-   }
- }
- 
-@@ -325,7 +325,7 @@
- #ifdef V8_ENABLE_CHECKS
-   internal::VerifyHandleIsNonEmpty(handle.IsEmpty());
- #endif  // V8_ENABLE_CHECKS
--  SetInternal(handle.ptr());
-+  SetInternal(api_internal::LocalFromGlobalReference(handle.ptr()));
- }
- 
- template <typename T>
 diff -urN node-22.16.0/v8-local-handle.h node/v8-local-handle.h
---- node-22.16.0/v8-local-handle.h	2025-07-16 14:33:02
-+++ node/v8-local-handle.h	2025-07-16 14:43:55
-@@ -80,6 +80,7 @@
- namespace api_internal {
- // Called when ToLocalChecked is called on an empty Local.
- V8_EXPORT void ToLocalEmpty();
-+V8_EXPORT internal::Address LocalFromGlobalReference(internal::Address global_reference);
- }  // namespace api_internal
- 
- /**
-@@ -341,7 +342,9 @@
- 
-   V8_INLINE static Local<T> New(Isolate* isolate,
-                                 const PersistentBase<T>& that) {
--    return New(isolate, that.template value<T, true>());
-+    T* value = that.template value<T, true>();
-+    internal::Address address = api_internal::LocalFromGlobalReference(reinterpret_cast<internal::Address>(value));
-+    return New(isolate, address);
-   }
- 
-   V8_INLINE static Local<T> New(Isolate* isolate,
-@@ -717,7 +720,8 @@
+--- node-22.16.0/v8-local-handle.h	2025-07-18 10:49:05
++++ node/v8-local-handle.h	2025-07-31 16:44:50
+@@ -717,7 +717,8 @@
    template <class T>
    V8_INLINE Local<T> Escape(Local<T> value) {
  #ifdef V8_ENABLE_DIRECT_LOCAL
@@ -52,8 +12,8 @@ diff -urN node-22.16.0/v8-local-handle.h node/v8-local-handle.h
      if (value.IsEmpty()) return value;
      return Local<T>::FromSlot(EscapeSlot(value.slot()));
 diff -urN node-22.16.0/v8-object.h node/v8-object.h
---- node-22.16.0/v8-object.h	2025-07-16 14:33:02
-+++ node/v8-object.h	2025-07-16 14:44:57
+--- node-22.16.0/v8-object.h	2025-07-18 10:49:05
++++ node/v8-object.h	2025-07-18 10:49:05
 @@ -739,69 +739,15 @@
  // --- Implementation ---
  
@@ -125,8 +85,8 @@ diff -urN node-22.16.0/v8-object.h node/v8-object.h
  }
  
 diff -urN node-22.16.0/v8-value.h node/v8-value.h
---- node-22.16.0/v8-value.h	2025-07-16 14:33:02
-+++ node/v8-value.h	2025-07-16 14:47:53
+--- node-22.16.0/v8-value.h	2025-07-18 10:49:05
++++ node/v8-value.h	2025-07-18 10:49:05
 @@ -524,11 +524,7 @@
  }
  
@@ -200,8 +160,8 @@ diff -urN node-22.16.0/v8-value.h node/v8-value.h
  
  bool Value::QuickIsString() const {
 diff -urN node-22.16.0/v8config.h node/v8config.h
---- node-22.16.0/v8config.h	2025-07-16 14:33:02
-+++ node/v8config.h	2025-07-16 14:35:09
+--- node-22.16.0/v8config.h	2025-07-18 10:49:05
++++ node/v8config.h	2025-07-18 10:49:05
 @@ -768,14 +768,14 @@
  // The V8_HOST_ARCH_* macros correspond to the architecture on which V8, as a
  // virtual machine and compiler, runs. Don't confuse this with the architecture

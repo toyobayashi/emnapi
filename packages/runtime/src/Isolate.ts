@@ -44,10 +44,6 @@ export class Isolate {
   public jsValueFromNapiValue<T = any> (napiValue: number | bigint): T | undefined {
     return this._handleStore.deepDeref(napiValue)
   }
-
-  public deleteHandle (napiValue: number | bigint): void {
-    this._handleStore.dealloc(napiValue)
-  }
   //#endregion
 
   //#region References
@@ -63,6 +59,15 @@ export class Isolate {
 
   public getRef (ref: napi_ref): Reference | undefined {
     return this._handleStore.deref(ref)
+  }
+
+  public removeRef (ref: napi_ref) {
+    if (this._handleStore.isOutOfScope(ref)) {
+      this._handleStore.dealloc(ref)
+    } else {
+      const value = this._handleStore.deepDeref(ref)
+      this._handleStore.assign(ref, value)
+    }
   }
   //#endregion
 

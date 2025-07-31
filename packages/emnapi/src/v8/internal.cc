@@ -45,6 +45,11 @@ Isolate::Isolate(): data_{} {
   *reinterpret_cast<internal::Address*>(data_ + internal::Internals::kIsolateRootsOffset + v8::internal::kApiSystemPointerSize * v8::internal::Internals::kEmptyStringRootIndex) = static_cast<internal::Address>(v8impl::Constant::kEmptyString);
 }
 
+struct GlobalHandle {
+  Address object;
+  Address ref;
+};
+
 }
 
 namespace api_internal {
@@ -60,17 +65,17 @@ void FromJustIsNothing() {
 internal::Address* GlobalizeReference(internal::Isolate* isolate,
                                       internal::Address value) {
   internal::Address ref_id = _v8_globalize_reference(isolate, value);
-  return new internal::Address(ref_id);
+  return reinterpret_cast<internal::Address*>(new internal::GlobalHandle{ref_id, ref_id});
 }
 
 void DisposeGlobal(internal::Address* global_handle) {
   _v8_dispose_global(*global_handle);
-  delete global_handle;
+  delete reinterpret_cast<internal::GlobalHandle*>(global_handle);
 }
 
 internal::Address* CopyGlobalReference(internal::Address* from) {
   internal::Address ref_id = _v8_copy_global_reference(*from);
-  return new internal::Address(ref_id);
+  return reinterpret_cast<internal::Address*>(new internal::GlobalHandle{ref_id, ref_id});
 }
 
 internal::Address LocalFromGlobalReference(internal::Address global_handle) {
