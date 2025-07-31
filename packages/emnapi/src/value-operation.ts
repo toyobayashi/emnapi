@@ -55,7 +55,7 @@ export function napi_coerce_to_bool (env: napi_env, value: napi_value, result: P
     const jsValue = emnapiCtx.jsValueFromNapiValue(value)!
     from64('result')
 
-    v = jsValue ? GlobalHandle.TRUE : GlobalHandle.FALSE
+    v = jsValue ? Constant.TRUE : Constant.FALSE
     makeSetValue('result', 0, 'v', '*')
     return $GET_RETURN_STATUS!(envObject)
   })

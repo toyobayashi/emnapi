@@ -8,7 +8,7 @@ export function napi_get_boolean (env: napi_env, value: bool, result: Pointer<na
   $CHECK_ARG!(envObject, result)
   from64('result')
 
-  const v = value === 0 ? GlobalHandle.FALSE : GlobalHandle.TRUE
+  const v = value === 0 ? Constant.FALSE : Constant.TRUE
   makeSetValue('result', 0, 'v', '*')
   return envObject.clearLastError()
 }
@@ -19,7 +19,7 @@ export function napi_get_global (env: napi_env, result: Pointer<napi_value>): na
   $CHECK_ARG!(envObject, result)
   from64('result')
 
-  const value = GlobalHandle.GLOBAL
+  const value = Constant.GLOBAL
   makeSetValue('result', 0, 'value', '*')
   return envObject.clearLastError()
 }
@@ -30,7 +30,7 @@ export function napi_get_null (env: napi_env, result: Pointer<napi_value>): napi
   $CHECK_ARG!(envObject, result)
   from64('result')
 
-  const value = GlobalHandle.NULL
+  const value = Constant.NULL
   makeSetValue('result', 0, 'value', '*')
   return envObject.clearLastError()
 }
@@ -41,7 +41,7 @@ export function napi_get_undefined (env: napi_env, result: Pointer<napi_value>):
   $CHECK_ARG!(envObject, result)
   from64('result')
 
-  const value = GlobalHandle.UNDEFINED
+  const value = Constant.UNDEFINED
   makeSetValue('result', 0, 'value', '*')
   return envObject.clearLastError()
 }

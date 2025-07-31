@@ -13,7 +13,7 @@ declare interface BufferCtor {
   isBuffer: (obj: unknown) => obj is IBuffer
 }
 
-declare const enum GlobalHandle {
+declare const enum Constant {
   HOLE,
   EMPTY,
   UNDEFINED,

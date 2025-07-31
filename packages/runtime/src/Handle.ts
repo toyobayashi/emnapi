@@ -15,12 +15,12 @@ export class HandleStore extends BaseArrayStore<any> {
     this._features = features
     this._allocator = new CountIdAllocator(HandleStore.MIN_ID)
 
-    this._values[GlobalHandle.UNDEFINED] = undefined
-    this._values[GlobalHandle.NULL] = null
-    this._values[GlobalHandle.FALSE] = false
-    this._values[GlobalHandle.TRUE] = true
-    this._values[GlobalHandle.GLOBAL] = features.getGlobalThis()
-    this._values[GlobalHandle.EMPTY_STRING] = ''
+    this._values[Constant.UNDEFINED] = undefined
+    this._values[Constant.NULL] = null
+    this._values[Constant.FALSE] = false
+    this._values[Constant.TRUE] = true
+    this._values[Constant.GLOBAL] = features.getGlobalThis()
+    this._values[Constant.EMPTY_STRING] = ''
 
     const _erase = (start: number, end: number): void => {
       for (let i = start; i < end; ++i) {

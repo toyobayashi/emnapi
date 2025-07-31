@@ -11,7 +11,7 @@ namespace v8 {
 
 namespace v8impl {
 
-enum class GlobalHandle : v8::internal::Address {
+enum class Constant : v8::internal::Address {
   kHole,
   kEmpty,
   kUndefined,

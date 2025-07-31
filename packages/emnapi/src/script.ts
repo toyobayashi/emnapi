@@ -18,7 +18,7 @@ export function napi_run_script (env: napi_env, script: napi_value, result: Poin
     if (typeof v8Script !== 'string') {
       return envObject.setLastError(napi_status.napi_string_expected)
     }
-    const g = emnapiCtx.jsValueFromNapiValue<typeof globalThis>(GlobalHandle.GLOBAL)!
+    const g = emnapiCtx.jsValueFromNapiValue<typeof globalThis>(Constant.GLOBAL)!
     const ret = g.eval(v8Script)
     from64('result')
 

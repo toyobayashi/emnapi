@@ -31,12 +31,12 @@ export class Isolate {
   //#region Local handles
   public napiValueFromJsValue (value: unknown): number | bigint {
     switch (value) {
-      case undefined: return GlobalHandle.UNDEFINED
-      case null: return GlobalHandle.NULL
-      case false: return GlobalHandle.FALSE
-      case true: return GlobalHandle.TRUE
-      case '': return GlobalHandle.EMPTY_STRING
-      case this._globalThis: return GlobalHandle.GLOBAL
+      case undefined: return Constant.UNDEFINED
+      case null: return Constant.NULL
+      case false: return Constant.FALSE
+      case true: return Constant.TRUE
+      case '': return Constant.EMPTY_STRING
+      case this._globalThis: return Constant.GLOBAL
       default: return this._scopeStore.currentScope.add(value)
     }
   }
