@@ -41,6 +41,7 @@ async function main () {
   await test('abort', 'SIGABRT')
   await test('releaseInThread', null)
   await test('abortInThread','SIGABRT')
+  await test('join','SIGABRT')
 }
 
 module.exports = main()
