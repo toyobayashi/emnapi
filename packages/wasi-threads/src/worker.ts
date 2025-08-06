@@ -89,7 +89,13 @@ export class ThreadMessageHandler {
     const tid = payload.tid
     const startArg = payload.arg
     notifyPthreadCreateResult(payload.sab, 1)
-    wasi_thread_start(tid, startArg)
+    try {
+      wasi_thread_start(tid, startArg)
+    } catch (err) {
+      // wake up the main thread if necessary
+      tryWakeUpPthreadJoin(this.instance!)
+      throw err
+    }
     postMessage(createMessage('cleanup-thread', { tid }))
   }
 
@@ -139,5 +145,20 @@ function notifyPthreadCreateResult (sab: Int32Array | undefined, result: number,
   if (sab) {
     serizeErrorToBuffer(sab.buffer as SharedArrayBuffer, result, error)
     Atomics.notify(sab, 0)
+  }
+}
+
+function tryWakeUpPthreadJoin (instance: WebAssembly.Instance): void {
+  // https://github.com/WebAssembly/wasi-libc/blob/574b88da481569b65a237cb80daf9a2d5aeaf82d/libc-top-half/musl/src/thread/pthread_join.c#L18-L21
+  const pthread_self = instance.exports.pthread_self as () => number
+  const memory = instance.exports.memory as WebAssembly.Memory
+  if (typeof pthread_self === 'function') {
+    const selfThread = pthread_self()
+    if (selfThread && memory) {
+      // https://github.com/WebAssembly/wasi-libc/blob/574b88da481569b65a237cb80daf9a2d5aeaf82d/libc-top-half/musl/src/internal/pthread_impl.h#L45
+      const detatchState = new Int32Array(memory.buffer, selfThread + 7 * 4 /** detach_state */, 1)
+      Atomics.store(detatchState, 0, 0)
+      Atomics.notify(detatchState, 0, Infinity)
+    }
   }
 }
