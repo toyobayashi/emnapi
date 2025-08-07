@@ -22,9 +22,14 @@ void _emnapi_yield() {
   }
 }
 
-int _emnapi_wait(int is_runtime_thread, volatile void *addr, int op, int val, int64_t max_wait_ns) {
+int _emnapi_wait(int is_runtime_thread, volatile void *addr, int op, int val, double max_wait_ms) {
   if (is_runtime_thread) {
     _emnapi_yield();
+  }
+
+  int64_t max_wait_ns = -1;
+  if (max_wait_ms != __builtin_inff()) {
+    max_wait_ns = (int64_t)(max_wait_ms*1000*1000);
   }
 
   // https://github.com/WebAssembly/wasi-libc/blob/3f7eb4c7d6ede4dde3c4bffa6ed14e8d656fe93f/libc-top-half/musl/src/thread/wasm32/__wasilibc_busywait.c#L42
