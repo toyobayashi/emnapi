@@ -105,6 +105,11 @@ EMNAPI_INTERNAL_EXTERN void _emnapi_env_unref(napi_env env);
 EMNAPI_INTERNAL_EXTERN void _emnapi_ctx_increase_waiting_request_counter();
 EMNAPI_INTERNAL_EXTERN void _emnapi_ctx_decrease_waiting_request_counter();
 
+EMNAPI_INTERNAL_EXTERN int _emnapi_is_main_browser_thread();
+EMNAPI_INTERNAL_EXTERN int _emnapi_is_main_runtime_thread();
+EMNAPI_INTERNAL_EXTERN double _emnapi_get_now();
+EMNAPI_INTERNAL_EXTERN void _emnapi_unwind();
+
 #if defined(__EMSCRIPTEN_PTHREADS__) || defined(_REENTRANT)
 #define EMNAPI_HAVE_THREADS 1
 #else
