@@ -67,8 +67,6 @@ int _emnapi_wait(int is_runtime_thread, volatile void *addr, int op, int val, do
 }
 
 int __wasilibc_futex_wait_maybe_busy(volatile void *addr, int op, int val, int64_t max_wait_ns) {
-  printf("Futex wait called with addr=%p, op=%d, val=%d, max_wait_ns=%lld\n", addr, op, val, max_wait_ns);
-
   int r = 0;
   double msecsToSleep = max_wait_ns >= 0 ? (max_wait_ns / 1000000.0) : __builtin_inff();
   int is_runtime_thread = _emnapi_is_main_runtime_thread();
