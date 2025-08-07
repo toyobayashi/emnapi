@@ -109,10 +109,12 @@ export var napiModule: INapiModule = {
           const moduleHandle = scope.add(napiModule)
           instance.exports[nodeRegisterModuleSymbol](to64('exportsHandle'), to64('moduleHandle'), to64('5'))
         } catch (err) {
+          if (err !== 'unwind') {
+            throw err
+          }
+        } finally {
           emnapiCtx.isolate.closeScope(scope)
-          throw err
         }
-        emnapiCtx.isolate.closeScope(scope)
         napiModule.loaded = true
         delete napiModule.envObject
         return napiModule.exports
@@ -150,6 +152,10 @@ export var napiModule: INapiModule = {
           const napiValue = napi_register_wasm_v1(to64('_envObject.id'), to64('exportsHandle'))
           napiModule.exports = (!napiValue) ? exports : emnapiCtx.jsValueFromNapiValue(napiValue)!
         })
+      } catch (e) {
+        if (e !== 'unwind') {
+          throw e
+        }
       } finally {
         emnapiCtx.closeScope(envObject, scope)
       }

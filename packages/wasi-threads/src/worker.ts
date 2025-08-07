@@ -92,9 +92,15 @@ export class ThreadMessageHandler {
     try {
       wasi_thread_start(tid, startArg)
     } catch (err) {
-      // wake up the main thread if necessary
-      tryWakeUpPthreadJoin(this.instance!)
-      throw err
+      if (err !== 'unwind') {
+        const emnapi_thread_crashed = this.instance!.exports.emnapi_thread_crashed as () => void
+        if (typeof emnapi_thread_crashed === 'function') {
+          emnapi_thread_crashed()
+        }/*  else {
+          tryWakeUpPthreadJoin(this.instance!)
+        } */
+        throw err
+      }
     }
     postMessage(createMessage('cleanup-thread', { tid }))
   }
@@ -148,17 +154,17 @@ function notifyPthreadCreateResult (sab: Int32Array | undefined, result: number,
   }
 }
 
-function tryWakeUpPthreadJoin (instance: WebAssembly.Instance): void {
-  // https://github.com/WebAssembly/wasi-libc/blob/574b88da481569b65a237cb80daf9a2d5aeaf82d/libc-top-half/musl/src/thread/pthread_join.c#L18-L21
-  const pthread_self = instance.exports.pthread_self as () => number
-  const memory = instance.exports.memory as WebAssembly.Memory
-  if (typeof pthread_self === 'function') {
-    const selfThread = pthread_self()
-    if (selfThread && memory) {
-      // https://github.com/WebAssembly/wasi-libc/blob/574b88da481569b65a237cb80daf9a2d5aeaf82d/libc-top-half/musl/src/internal/pthread_impl.h#L45
-      const detatchState = new Int32Array(memory.buffer, selfThread + 7 * 4 /** detach_state */, 1)
-      Atomics.store(detatchState, 0, 0)
-      Atomics.notify(detatchState, 0, Infinity)
-    }
-  }
-}
+// function tryWakeUpPthreadJoin (instance: WebAssembly.Instance): void {
+//   // https://github.com/WebAssembly/wasi-libc/blob/574b88da481569b65a237cb80daf9a2d5aeaf82d/libc-top-half/musl/src/thread/pthread_join.c#L18-L21
+//   const pthread_self = instance.exports.pthread_self as () => number
+//   const memory = instance.exports.memory as WebAssembly.Memory
+//   if (typeof pthread_self === 'function') {
+//     const selfThread = pthread_self()
+//     if (selfThread && memory) {
+//       // https://github.com/WebAssembly/wasi-libc/blob/574b88da481569b65a237cb80daf9a2d5aeaf82d/libc-top-half/musl/src/internal/pthread_impl.h#L45
+//       const detatchState = new Int32Array(memory.buffer, selfThread + 7 * 4 /** detach_state */, 1)
+//       Atomics.store(detatchState, 0, 0)
+//       Atomics.notify(detatchState, 0, Infinity)
+//     }
+//   }
+// }

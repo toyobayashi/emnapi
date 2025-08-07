@@ -86,9 +86,12 @@ export class FunctionTemplate extends Template {
         const ret = callback(ctx.getCurrentScope()!.id, v8FunctionCallback)
         returnValue = ret ? ctx.jsValueFromNapiValue(ret) : undefined
       } catch (err) {
-        ctx.throwException(err)
+        if (err !== 'unwind') {
+          ctx.throwException(err)
+        }
+      } finally {
+        ctx.closeScope(scope)
       }
-      ctx.closeScope(scope)
       if (ctx.hasPendingException()) {
         if (TryCatch.top) {
           TryCatch.top.setError(ctx.getAndClearLastException())
