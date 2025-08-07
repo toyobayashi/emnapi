@@ -18,12 +18,12 @@ on:
   workflow_dispatch:
 
 env:
-  WASI_VERSION: '25'
-  WASI_VERSION_FULL: '25.0'
-  WASI_SDK_PATH: './wasi-sdk-25.0'
-  EM_VERSION: '3.1.64'
+  WASI_VERSION: '27'
+  WASI_VERSION_FULL: '27.0'
+  WASI_SDK_PATH: './wasi-sdk-27.0'
+  EM_VERSION: '4.0.1'
   EM_CACHE_FOLDER: 'emsdk-cache'
-  NODE_VERSION: '22.15.0'
+  NODE_VERSION: '22.16.0'
 
 jobs:
   build:
