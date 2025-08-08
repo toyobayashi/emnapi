@@ -1,4 +1,4 @@
-import { type LoadPayload, createMessage } from './command'
+import { type LoadPayload, MessageEventData, StartPayload, createMessage } from './command'
 import type { WorkerMessageEvent } from './thread-manager'
 import { getPostMessage, serizeErrorToBuffer } from './util'
 
@@ -9,8 +9,12 @@ export interface OnStartData {
 }
 
 /** @public */
+export type WorkerMessageType = 'load' | 'start'
+
+/** @public */
 export interface ThreadMessageHandlerOptions {
   onLoad?: (data: LoadPayload) => WebAssembly.WebAssemblyInstantiatedSource | PromiseLike<WebAssembly.WebAssemblyInstantiatedSource>
+  onError?: (error: Error, type: WorkerMessageType) => void
   postMessage?: (message: any) => void
 }
 
@@ -20,6 +24,7 @@ export class ThreadMessageHandler {
   private messagesBeforeLoad: any[]
   protected postMessage: (message: any) => void
   protected onLoad?: (data: LoadPayload) => WebAssembly.WebAssemblyInstantiatedSource | PromiseLike<WebAssembly.WebAssemblyInstantiatedSource>
+  protected onError: (error: Error, type: WorkerMessageType) => void
 
   public constructor (options?: ThreadMessageHandlerOptions) {
     const postMsg = getPostMessage(options)
@@ -28,6 +33,7 @@ export class ThreadMessageHandler {
     }
     this.postMessage = postMsg
     this.onLoad = options?.onLoad
+    this.onError = typeof options?.onError === 'function' ? options.onError : (_type, err) => { throw err }
     this.instance = undefined
     // this.module = undefined
     this.messagesBeforeLoad = []
@@ -42,17 +48,21 @@ export class ThreadMessageHandler {
   }
 
   /** @virtual */
-  public handle (e: WorkerMessageEvent): void {
+  public handle (e: WorkerMessageEvent<MessageEventData<WorkerMessageType>>): void {
     if (e?.data?.__emnapi__) {
       const type = e.data.__emnapi__.type
       const payload = e.data.__emnapi__.payload
 
-      if (type === 'load') {
-        this._load(payload)
-      } else if (type === 'start') {
-        this.handleAfterLoad(e, () => {
-          this._start(payload)
-        })
+      try {
+        if (type === 'load') {
+          this._load(payload as LoadPayload)
+        } else if (type === 'start') {
+          this.handleAfterLoad(e, () => {
+            this._start(payload as StartPayload)
+          })
+        }
+      } catch (err) {
+        this.onError(err, type)
       }
     }
   }
@@ -93,13 +103,9 @@ export class ThreadMessageHandler {
       wasi_thread_start(tid, startArg)
     } catch (err) {
       if (err !== 'unwind') {
-        const emnapi_thread_crashed = this.instance!.exports.emnapi_thread_crashed as () => void
-        if (typeof emnapi_thread_crashed === 'function') {
-          emnapi_thread_crashed()
-        }/*  else {
-          tryWakeUpPthreadJoin(this.instance!)
-        } */
         throw err
+      } else {
+        return
       }
     }
     postMessage(createMessage('cleanup-thread', { tid }))
@@ -153,18 +159,3 @@ function notifyPthreadCreateResult (sab: Int32Array | undefined, result: number,
     Atomics.notify(sab, 0)
   }
 }
-
-// function tryWakeUpPthreadJoin (instance: WebAssembly.Instance): void {
-//   // https://github.com/WebAssembly/wasi-libc/blob/574b88da481569b65a237cb80daf9a2d5aeaf82d/libc-top-half/musl/src/thread/pthread_join.c#L18-L21
-//   const pthread_self = instance.exports.pthread_self as () => number
-//   const memory = instance.exports.memory as WebAssembly.Memory
-//   if (typeof pthread_self === 'function') {
-//     const selfThread = pthread_self()
-//     if (selfThread && memory) {
-//       // https://github.com/WebAssembly/wasi-libc/blob/574b88da481569b65a237cb80daf9a2d5aeaf82d/libc-top-half/musl/src/internal/pthread_impl.h#L45
-//       const detatchState = new Int32Array(memory.buffer, selfThread + 7 * 4 /** detach_state */, 1)
-//       Atomics.store(detatchState, 0, 0)
-//       Atomics.notify(detatchState, 0, Infinity)
-//     }
-//   }
-// }
