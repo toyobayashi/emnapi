@@ -33,6 +33,10 @@ const withScope = (envObject: Env, thiz: any, args: any[], data: number | bigint
   callbackInfo.fn = getFunction
   try {
     return wrapper(envObject, callback)
+  } catch (e) {
+    if (e !== 'unwind') {
+      throw e
+    }
   } finally {
     envObject.ctx.closeScope(envObject, scope)
   }

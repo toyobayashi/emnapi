@@ -80,10 +80,12 @@ export function emnapiInit (options: InitOptions): any {
       const moduleHandle = scope.add(emnapiModule)
       Module[emscriptenExportedSymbol](to64('exportsHandle'), to64('moduleHandle'), to64('5'))
     } catch (err) {
+      if (err !== 'unwind') {
+        throw err
+      }
+    } finally {
       emnapiCtx.isolate.closeScope(scope)
-      throw err
     }
-    emnapiCtx.isolate.closeScope(scope)
     emnapiModule.loaded = true
     delete emnapiModule.envObject
     return emnapiModule.exports
@@ -118,10 +120,12 @@ NODE_MODULE_VERSION ${NODE_MODULE_VERSION}.`)
       emnapiModule.exports = (!napiValue) ? exports : emnapiCtx.jsValueFromNapiValue(napiValue)!
     })
   } catch (err) {
+    if (err !== 'unwind') {
+      throw err
+    }
+  } finally {
     emnapiCtx.closeScope(envObject, scope)
-    throw err
   }
-  emnapiCtx.closeScope(envObject, scope)
   emnapiModule.loaded = true
   delete emnapiModule.envObject
   return emnapiModule.exports

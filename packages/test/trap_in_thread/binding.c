@@ -91,11 +91,19 @@ static napi_value AbortInThread(napi_env env, napi_callback_info info) {
   return NULL;
 }
 
+static napi_value Join(napi_env env, napi_callback_info info) {
+  pthread_t uv_threads;
+  pthread_create(&uv_threads, NULL, ThreadAbort, NULL);
+  pthread_join(uv_threads, NULL);
+  return NULL;
+}
+
 static napi_value Init(napi_env env, napi_value exports) {
   napi_property_descriptor descriptors[] = {
     DECLARE_NODE_API_PROPERTY("abort", Abort),
     DECLARE_NODE_API_PROPERTY("releaseInThread", ReleaseInThread),
     DECLARE_NODE_API_PROPERTY("abortInThread", AbortInThread),
+    DECLARE_NODE_API_PROPERTY("join", Join),
   };
 
   NODE_API_CALL(env, napi_define_properties(

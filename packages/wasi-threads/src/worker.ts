@@ -1,4 +1,4 @@
-import { type LoadPayload, createMessage } from './command'
+import { type LoadPayload, MessageEventData, StartPayload, createMessage } from './command'
 import type { WorkerMessageEvent } from './thread-manager'
 import { getPostMessage, serizeErrorToBuffer } from './util'
 
@@ -9,8 +9,12 @@ export interface OnStartData {
 }
 
 /** @public */
+export type WorkerMessageType = 'load' | 'start'
+
+/** @public */
 export interface ThreadMessageHandlerOptions {
   onLoad?: (data: LoadPayload) => WebAssembly.WebAssemblyInstantiatedSource | PromiseLike<WebAssembly.WebAssemblyInstantiatedSource>
+  onError?: (error: Error, type: WorkerMessageType) => void
   postMessage?: (message: any) => void
 }
 
@@ -20,6 +24,7 @@ export class ThreadMessageHandler {
   private messagesBeforeLoad: any[]
   protected postMessage: (message: any) => void
   protected onLoad?: (data: LoadPayload) => WebAssembly.WebAssemblyInstantiatedSource | PromiseLike<WebAssembly.WebAssemblyInstantiatedSource>
+  protected onError: (error: Error, type: WorkerMessageType) => void
 
   public constructor (options?: ThreadMessageHandlerOptions) {
     const postMsg = getPostMessage(options)
@@ -28,6 +33,7 @@ export class ThreadMessageHandler {
     }
     this.postMessage = postMsg
     this.onLoad = options?.onLoad
+    this.onError = typeof options?.onError === 'function' ? options.onError : (_type, err) => { throw err }
     this.instance = undefined
     // this.module = undefined
     this.messagesBeforeLoad = []
@@ -42,17 +48,21 @@ export class ThreadMessageHandler {
   }
 
   /** @virtual */
-  public handle (e: WorkerMessageEvent): void {
+  public handle (e: WorkerMessageEvent<MessageEventData<WorkerMessageType>>): void {
     if (e?.data?.__emnapi__) {
       const type = e.data.__emnapi__.type
       const payload = e.data.__emnapi__.payload
 
-      if (type === 'load') {
-        this._load(payload)
-      } else if (type === 'start') {
-        this.handleAfterLoad(e, () => {
-          this._start(payload)
-        })
+      try {
+        if (type === 'load') {
+          this._load(payload as LoadPayload)
+        } else if (type === 'start') {
+          this.handleAfterLoad(e, () => {
+            this._start(payload as StartPayload)
+          })
+        }
+      } catch (err) {
+        this.onError(err, type)
       }
     }
   }
@@ -89,7 +99,15 @@ export class ThreadMessageHandler {
     const tid = payload.tid
     const startArg = payload.arg
     notifyPthreadCreateResult(payload.sab, 1)
-    wasi_thread_start(tid, startArg)
+    try {
+      wasi_thread_start(tid, startArg)
+    } catch (err) {
+      if (err !== 'unwind') {
+        throw err
+      } else {
+        return
+      }
+    }
     postMessage(createMessage('cleanup-thread', { tid }))
   }
 
