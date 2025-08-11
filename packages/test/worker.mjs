@@ -1,6 +1,10 @@
 /* eslint-disable no-eval */
 /* eslint-disable no-undef */
 
+import * as emnapiCore from '../../node_modules/@emnapi/core/dist/emnapi-core.js'
+import * as emnapiCorePluginsV8 from '../../node_modules/@emnapi/core/dist/plugins/v8.js'
+// import * as emnapi from '../runtime/dist/emnapi.js'
+
 (function () {
   // const log = (...args) => {
   //   const str = require('util').format(...args)
@@ -10,7 +14,7 @@
   //   const str = require('util').format(...args)
   //   require('fs').writeSync(2, str + '\n')
   // }
-  let fs, WASI, emnapiCore, emnapiCorePluginsV8
+  let require, fs, WASI, ready
 
   const ENVIRONMENT_IS_NODE =
     typeof process === 'object' && process !== null &&
@@ -18,53 +22,59 @@
     typeof process.versions.node === 'string'
 
   if (ENVIRONMENT_IS_NODE) {
-    const nodeWorkerThreads = require('worker_threads')
+    ready = (async function () {
+      let parentPort
+      Object.assign(globalThis, {
+        self: globalThis,
+        importScripts: function (f) {
+          (0, eval)(fs.readFileSync(f, 'utf8') + '//# sourceURL=' + f)
+        },
+        postMessage: function (msg) {
+          parentPort?.postMessage(msg)
+        }
+      })
 
-    const parentPort = nodeWorkerThreads.parentPort
+      const { createRequire } = await import('node:module')
+      require = createRequire(import.meta.url)
+      const nodeWorkerThreads = require('worker_threads')
 
-    parentPort.on('message', (data) => {
-      globalThis.onmessage({ data })
-    })
+      parentPort = nodeWorkerThreads.parentPort
 
-    fs = require('fs')
+      parentPort.on('message', (data) => {
+        globalThis.onmessage({ data })
+      })
 
-    Object.assign(globalThis, {
-      self: globalThis,
-      require,
-      Worker: nodeWorkerThreads.Worker,
-      importScripts: function (f) {
-        (0, eval)(fs.readFileSync(f, 'utf8') + '//# sourceURL=' + f)
-      },
-      postMessage: function (msg) {
-        parentPort.postMessage(msg)
-      }
-    })
+      fs = require('fs')
 
-    WASI = require('./wasi').WASI
-    emnapiCore = require('@emnapi/core')
-    emnapiCorePluginsV8 = require('@emnapi/core/plugins/v8').default
+      Object.assign(globalThis, {
+        require,
+        Worker: nodeWorkerThreads.Worker
+      })
+
+      WASI = require('node:wasi').WASI
+    })()
   } else {
-    importScripts('../../node_modules/memfs-browser/dist/memfs.js')
-    importScripts('../../node_modules/@tybys/wasm-util/dist/wasm-util.min.js')
-    importScripts('../../node_modules/@emnapi/core/dist/emnapi-core.umd.cjs')
-    importScripts('../../node_modules/@emnapi/core/dist/plugins/v8.umd.cjs')
-    emnapiCore = globalThis.emnapiCore
-    emnapiCorePluginsV8 = globalThis.emnapiCorePluginsV8.default
-
-    const { Volume, createFsFromVolume } = memfs
-    fs = createFsFromVolume(Volume.fromJSON({
-      '/': null
-    }))
-
-    WASI = globalThis.wasmUtil.WASI
+    ready = (async function () {
+      const { Buffer } = await import('https://esm.sh/buffer@6.0.3')
+      globalThis.Buffer = Buffer
+      const memfs = await import('../../node_modules/memfs-browser/dist/memfs.esm.js')
+      const wasmUtil = await import('../../node_modules/@tybys/wasm-util/dist/wasm-util.esm.js')
+      const { Volume, createFsFromVolume } = memfs
+      fs = createFsFromVolume(Volume.fromJSON({
+        '/': null
+      }))
+      WASI = wasmUtil.WASI
+    })()
   }
 
-  const { instantiateNapiModuleSync, MessageHandler } = emnapiCore
+  const { instantiateNapiModule, MessageHandler } = emnapiCore
 
   const handler = new MessageHandler({
-    onLoad ({ wasmModule, wasmMemory }) {
+    async onLoad ({ wasmModule, wasmMemory }) {
+      await ready
       const wasi = new WASI({
         fs,
+        version: 'preview1',
         print: ENVIRONMENT_IS_NODE
           ? (...args) => {
               const str = require('util').format(...args)
@@ -83,7 +93,7 @@
         return new TextDecoder().decode(shared ? HEAPU8.slice(ptr, end) : HEAPU8.subarray(ptr, end))
       }
 
-      return instantiateNapiModuleSync(wasmModule, {
+      return instantiateNapiModule(wasmModule, {
         childThread: true,
         wasi,
         overwriteImports (importObject) {
@@ -100,7 +110,7 @@
             }
           }
         },
-        plugins: [emnapiCorePluginsV8]
+        plugins: [emnapiCorePluginsV8.default]
       })
     }
   })
