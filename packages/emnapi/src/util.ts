@@ -139,7 +139,7 @@ export function $emnapiSetValueI64 (result: Pointer<int64_t>, numberValue: numbe
  * @__sig p
  */
 export function _emnapi_open_handle_scope (): napi_handle_scope {
-  return emnapiCtx.isolate.openScope().id
+  return emnapiCtx.openScope().id
 }
 
 /**
@@ -147,5 +147,5 @@ export function _emnapi_open_handle_scope (): napi_handle_scope {
  * @__sig vp
  */
 export function _emnapi_close_handle_scope (_scope: napi_handle_scope): void {
-  return emnapiCtx.isolate.closeScope()
+  return emnapiCtx.closeScope()
 }
