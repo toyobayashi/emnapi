@@ -133,3 +133,19 @@ export function $emnapiSetValueI64 (result: Pointer<int64_t>, numberValue: numbe
   makeSetValue('result', 0, 'tempI64[0]', 'i32')
   makeSetValue('result', 4, 'tempI64[1]', 'i32')
 }
+
+/**
+ * @__deps $emnapiCtx
+ * @__sig p
+ */
+export function _emnapi_open_handle_scope (): napi_handle_scope {
+  return emnapiCtx.openScope().id
+}
+
+/**
+ * @__deps $emnapiCtx
+ * @__sig vp
+ */
+export function _emnapi_close_handle_scope (_scope: napi_handle_scope): void {
+  return emnapiCtx.closeScope()
+}

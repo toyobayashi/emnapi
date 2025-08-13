@@ -136,6 +136,8 @@ static void _emnapi_tsfn_destroy(napi_threadsafe_function func) {
     EMNAPI_ASSERT_CALL(napi_delete_reference(func->env, func->ref));
   }
 
+  EMNAPI_ASYNC_RESOURCE_DTOR(func->env, (emnapi_async_resource*) func);
+
   EMNAPI_ASSERT_CALL(napi_remove_env_cleanup_hook(func->env, _emnapi_tsfn_cleanup, func));
   _emnapi_env_unref(func->env);
   if (func->async_ref) {
@@ -144,7 +146,6 @@ static void _emnapi_tsfn_destroy(napi_threadsafe_function func) {
     func->async_ref = false;
   }
 
-  EMNAPI_ASYNC_RESOURCE_DTOR(func->env, (emnapi_async_resource*) func);
   free(func);
 }
 
@@ -210,7 +211,7 @@ static napi_value _emnapi_tsfn_finalize_in_callback_scope(napi_env env, napi_cal
 
 static void _emnapi_tsfn_finalize(napi_threadsafe_function func) {
   napi_handle_scope scope;
-  EMNAPI_ASSERT_CALL(napi_open_handle_scope(func->env, &scope));
+  _emnapi_open_handle_scope(&scope);
   if (func->finalize_cb) {
     if (emnapi_is_node_binding_available()) {
       napi_value resource, cb;
@@ -229,7 +230,7 @@ static void _emnapi_tsfn_finalize(napi_threadsafe_function func) {
     }
   }
   _emnapi_tsfn_empty_queue_and_delete(func);
-  EMNAPI_ASSERT_CALL(napi_close_handle_scope(func->env, scope));
+  _emnapi_close_handle_scope(scope);
 }
 
 static void _emnapi_tsfn_do_finalize(uv_handle_t* data) {

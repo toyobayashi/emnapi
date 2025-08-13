@@ -259,12 +259,16 @@ export class Context {
     return this.scopeStore.currentScope.add(value)
   }
 
-  openScope (envObject: Env): HandleScope {
-    return this.scopeStore.openScope(envObject)
+  openScope (envObject?: Env): HandleScope {
+    const scope = this.scopeStore.openScope(this.handleStore)
+    if (envObject) envObject.openHandleScopes++
+    return scope
   }
 
-  closeScope (envObject: Env, _scope?: HandleScope): void {
-    this.scopeStore.closeScope(envObject)
+  closeScope (envObject?: Env, _scope?: HandleScope): void {
+    if (envObject && envObject.openHandleScopes === 0) return
+    this.scopeStore.closeScope()
+    if (envObject) envObject.openHandleScopes--
   }
 
   ensureHandle<S> (value: S): Handle<S> {
