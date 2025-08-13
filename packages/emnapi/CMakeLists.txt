@@ -89,6 +89,10 @@ set(EMNAPI_BASIC_TARGET_NAME "emnapi-basic")
 set(EMNAPI_BASIC_MT_TARGET_NAME "emnapi-basic-mt")
 set(EMNAPI_TARGET_NAME "emnapi")
 set(EMNAPI_MT_TARGET_NAME "emnapi-mt")
+
+set(EMNAPI_BASIC_NAPI_RS_MT_TARGET_NAME "emnapi-basic-napi-rs-mt")
+set(EMNAPI_NAPI_RS_MT_TARGET_NAME "emnapi-napi-rs-mt")
+
 set(DLMALLOC_TARGET_NAME "dlmalloc")
 set(DLMALLOC_MT_TARGET_NAME "dlmalloc-mt")
 set(EMMALLOC_TARGET_NAME "emmalloc")
@@ -192,6 +196,31 @@ else()
   set(EMNAPI_BUILD_BASIC_MT OFF)
 endif()
 
+if(IS_WASM32_WASIP1_THREADS)
+  set(EMNAPI_BUILD_FOR_NAPI_RS ON)
+else()
+  set(EMNAPI_BUILD_FOR_NAPI_RS OFF)
+endif()
+
+if(EMNAPI_BUILD_FOR_NAPI_RS)
+  add_library(${EMNAPI_NAPI_RS_MT_TARGET_NAME} STATIC ${EMNAPI_SRC} ${UV_SRC})
+  target_include_directories(${EMNAPI_NAPI_RS_MT_TARGET_NAME} PUBLIC ${EMNAPI_INCLUDE})
+  target_compile_definitions(${EMNAPI_NAPI_RS_MT_TARGET_NAME}
+    PUBLIC ${EMNAPI_DEFINES} "NAPI_EXTERN=__attribute__((__import_module__(\"env\")))"
+  )
+
+  add_library(${EMNAPI_BASIC_NAPI_RS_MT_TARGET_NAME} STATIC
+    ${ENAPI_BASIC_SRC}
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/thread/async_worker_create.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/thread/async_worker_init.S"
+  )
+  target_include_directories(${EMNAPI_BASIC_NAPI_RS_MT_TARGET_NAME} PUBLIC ${EMNAPI_INCLUDE})
+  target_compile_definitions(${EMNAPI_BASIC_NAPI_RS_MT_TARGET_NAME}
+    PUBLIC ${EMNAPI_DEFINES} "NAPI_EXTERN=__attribute__((__import_module__(\"env\")))"
+    PRIVATE "EMNAPI_DISABLE_UV"
+  )
+endif()
+
 if(EMNAPI_BUILD_BASIC_MT)
   add_library(${EMNAPI_BASIC_MT_TARGET_NAME} STATIC
     ${ENAPI_BASIC_SRC}
@@ -278,6 +307,10 @@ if(LIB_ARCH)
   endif()
   if(EMNAPI_BUILD_BASIC_MT)
     install(TARGETS ${EMNAPI_BASIC_MT_TARGET_NAME} DESTINATION "lib/${LIB_ARCH}")
+  endif()
+  if(EMNAPI_BUILD_FOR_NAPI_RS)
+    install(TARGETS ${EMNAPI_NAPI_RS_MT_TARGET_NAME} DESTINATION "lib/${LIB_ARCH}")
+    install(TARGETS ${EMNAPI_BASIC_NAPI_RS_MT_TARGET_NAME} DESTINATION "lib/${LIB_ARCH}")
   endif()
   if(IS_WASM32)
     install(TARGETS ${DLMALLOC_TARGET_NAME} DESTINATION "lib/${LIB_ARCH}")
