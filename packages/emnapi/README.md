@@ -816,8 +816,9 @@ Now emnapi has 3 implementations of async work and 2 implementations of TSFN:
 There are some limitations on browser about wasi-libc's pthread implementation, for example
 `pthread_mutex_lock` may call `__builtin_wasm_memory_atomic_wait32`(`memory.atomic.wait32`)
 which is disallowed in browser JS main thread. While Emscripten's pthread implementation
-has considered usage in browser. If you need to run your addon with multithreaded features on browser,
-we recommend you use Emscripten A & D, or bare wasm32 C & E.
+has considered usage in browser. This issue can be solved by upgrading `wasi-sdk` to v26+
+and emnapi v1.5.0+ then pass `--export=emnapi_thread_crashed` to the linker. If you need to
+run your addon with multithreaded features, we recommend you use A & D or C & E.
 
 Note: For browsers, all the multithreaded features relying on Web Workers (Emscripten pthread also relying on Web Workers)
 require cross-origin isolation to enable `SharedArrayBuffer`. You can make a page cross-origin isolated
@@ -879,6 +880,7 @@ elseif(CMAKE_C_COMPILER_TARGET STREQUAL "wasm32-wasi-threads")
     "-Wl,--export-if-defined=node_api_module_get_api_version_v1"
     "-Wl,--export=malloc"
     "-Wl,--export=free"
+    "-Wl,--export=emnapi_thread_crashed"
     "-Wl,--import-undefined"
     "-Wl,--export-table"
   )
