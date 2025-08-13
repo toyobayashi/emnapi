@@ -216,7 +216,7 @@ if(EMNAPI_BUILD_FOR_NAPI_RS)
   )
   target_include_directories(${EMNAPI_BASIC_NAPI_RS_MT_TARGET_NAME} PUBLIC ${EMNAPI_INCLUDE})
   target_compile_definitions(${EMNAPI_BASIC_NAPI_RS_MT_TARGET_NAME}
-    PUBLIC ${EMNAPI_DEFINES}
+    PUBLIC ${EMNAPI_DEFINES} "NAPI_EXTERN=__attribute__((__import_module__(\"env\")))"
     PRIVATE "EMNAPI_DISABLE_UV"
   )
 endif()
