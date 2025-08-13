@@ -67,11 +67,6 @@ var uvThreadpoolReady: Promise<void> & { ready: boolean } = new Promise<void>((r
 }) as any
 uvThreadpoolReady.ready = false
 
-/** @__sig i */
-export function _emnapi_is_main_browser_thread (): number {
-  return (typeof window !== 'undefined' && typeof document !== 'undefined' && !ENVIRONMENT_IS_NODE) ? 1 : 0
-}
-
 /** @__sig vppi */
 export function _emnapi_after_uvthreadpool_ready (callback: number, q: number, type: number): void {
   if (uvThreadpoolReady.ready) {

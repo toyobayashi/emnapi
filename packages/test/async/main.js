@@ -28,7 +28,7 @@ module.exports = async function main (loadPromise, __filename) {
   const p = child_process.spawnSync(
     process.execPath, [
       ...(process.env.EMNAPI_TEST_WASI ? ['--experimental-wasi-unstable-preview1'] : []),
-      ...(process.env.MEMORY64 ? ['--experimental-wasm-memory64'] : []),
+      // ...(process.env.MEMORY64 ? ['--experimental-wasm-memory64'] : []),
       __filename,
       'child'
     ])

@@ -1,4 +1,4 @@
-import { runtimeKeepalivePop, runtimeKeepalivePush } from 'emscripten:runtime'
+import { ENVIRONMENT_IS_NODE, ENVIRONMENT_IS_PTHREAD, runtimeKeepalivePop, runtimeKeepalivePush } from 'emscripten:runtime'
 import { from64, makeSetValue, makeDynCall } from 'emscripten:parse-tools'
 import { emnapiCtx } from 'emnapi:shared'
 
@@ -117,6 +117,34 @@ export function _emnapi_ctx_increase_waiting_request_counter (): void {
  */
 export function _emnapi_ctx_decrease_waiting_request_counter (): void {
   emnapiCtx.decreaseWaitingRequestCounter()
+}
+
+/**
+ * @__sig i
+ */
+export function _emnapi_is_main_runtime_thread (): number {
+  return ENVIRONMENT_IS_PTHREAD ? 0 : 1
+}
+
+/**
+ * @__sig i
+ */
+export function _emnapi_is_main_browser_thread (): number {
+  return (typeof window !== 'undefined' && typeof document !== 'undefined' && !ENVIRONMENT_IS_NODE) ? 1 : 0
+}
+
+/**
+ * @__sig v
+ */
+export function _emnapi_unwind (): never {
+  throw 'unwind'
+}
+
+/**
+ * @__sig d
+ */
+export function _emnapi_get_now (): double {
+  return performance.timeOrigin + performance.now()
 }
 
 export function $emnapiSetValueI64 (result: Pointer<int64_t>, numberValue: number): void {

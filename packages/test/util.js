@@ -58,7 +58,8 @@ function loadPath (request, options) {
               },
               waitThreadStart: 1000,
               onCreateWorker () {
-                return new Worker(join(__dirname, './worker.js'), {
+                return new Worker(join(__dirname, './worker.mjs'), {
+                  type: 'module',
                   env: process.env,
                   execArgv: ['--experimental-wasi-unstable-preview1']
                 })
@@ -97,7 +98,8 @@ function loadPath (request, options) {
         context,
         asyncWorkPoolSize: RUNTIME_UV_THREADPOOL_SIZE,
         onCreateWorker () {
-          return new Worker(join(__dirname, './worker.js'), {
+          return new Worker(join(__dirname, './worker.mjs'), {
+            type: 'module',
             env: process.env
           })
         },

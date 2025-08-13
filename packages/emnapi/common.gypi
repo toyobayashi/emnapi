@@ -310,6 +310,7 @@
               'src/async_cleanup_hook.c',
               'src/async_context.c',
               'src/async_work.c',
+              'src/wasi_wait.c',
               'src/threadsafe_function.c',
               'src/uv/uv-common.c',
               'src/uv/threadpool.c',
@@ -370,6 +371,16 @@
                         '-Wl,--import-memory',
                         '-Wl,--shared-memory',
                       ]
+                    },
+                  }],
+                  ['OS == "wasi"', {
+                    'ldflags': [
+                      '-Wl,--export=emnapi_thread_crashed',
+                    ],
+                    'xcode_settings': {
+                      'OTHER_LDFLAGS': [
+                        '-Wl,--export=emnapi_thread_crashed',
+                      ],
                     },
                   }],
                   ['OS != "wasi"', {
