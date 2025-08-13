@@ -98,10 +98,12 @@ export function emnapiInit (options: InitOptions): any {
       emnapiModule.exports = (!napiValue) ? exports : emnapiCtx.handleStore.get(napiValue)!.value
     })
   } catch (err) {
+    if (err !== 'unwind') {
+      throw err
+    }
+  } finally {
     emnapiCtx.closeScope(envObject, scope)
-    throw err
   }
-  emnapiCtx.closeScope(envObject, scope)
   emnapiModule.loaded = true
   delete emnapiModule.envObject
   return emnapiModule.exports

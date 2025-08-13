@@ -55,6 +55,7 @@
         'src/node_api.c',
         'src/async_cleanup_hook.c',
         'src/async_context.c',
+        'src/wasi_wait.c',
       ],
       'link_settings': {
         'target_conditions': [
@@ -88,6 +89,22 @@
             ]
           },
         }],
+        ['OS == "wasi"', {
+          'link_settings': {
+            'target_conditions': [
+              ['_type == "executable"', {
+                'ldflags': [
+                  '-Wl,--export=emnapi_thread_crashed',
+                ],
+                'xcode_settings': {
+                  'OTHER_LDFLAGS': [
+                    '-Wl,--export=emnapi_thread_crashed',
+                  ],
+                },
+              }],
+            ]
+          },
+        }],
       ]
     },
     {
@@ -98,6 +115,7 @@
         'src/node_api.c',
         'src/async_cleanup_hook.c',
         'src/async_context.c',
+        'src/wasi_wait.c',
 
         'src/uv/uv-common.c',
         'src/uv/threadpool.c',

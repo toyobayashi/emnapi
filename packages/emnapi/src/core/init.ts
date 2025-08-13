@@ -123,6 +123,10 @@ export var napiModule: INapiModule = {
           const napiValue = napi_register_wasm_v1(to64('_envObject.id'), to64('exportsHandle.id'))
           napiModule.exports = (!napiValue) ? exports : emnapiCtx.handleStore.get(napiValue)!.value
         })
+      } catch (e) {
+        if (e !== 'unwind') {
+          throw e
+        }
       } finally {
         emnapiCtx.closeScope(envObject, scope)
       }

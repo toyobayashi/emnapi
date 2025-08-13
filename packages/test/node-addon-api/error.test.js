@@ -72,7 +72,7 @@ async function test (bindingPath) {
     process.execPath, [
       '--expose-gc',
       ...(process.env.EMNAPI_TEST_WASI ? ['--experimental-wasi-unstable-preview1'] : []),
-      ...(process.env.MEMORY64 ? ['--experimental-wasm-memory64'] : []),
+      // ...(process.env.MEMORY64 ? ['--experimental-wasm-memory64'] : []),
       __filename,
       'fatal',
       bindingPath

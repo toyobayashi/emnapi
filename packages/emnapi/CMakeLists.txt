@@ -44,6 +44,7 @@ set(ENAPI_BASIC_SRC
   "${CMAKE_CURRENT_SOURCE_DIR}/src/node_api.c"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/async_cleanup_hook.c"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/async_context.c"
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/wasi_wait.c"
 )
 set(EMNAPI_THREADS_SRC
   "${CMAKE_CURRENT_SOURCE_DIR}/src/async_work.c"
