@@ -210,8 +210,7 @@ static napi_value _emnapi_tsfn_finalize_in_callback_scope(napi_env env, napi_cal
 }
 
 static void _emnapi_tsfn_finalize(napi_threadsafe_function func) {
-  napi_handle_scope scope;
-  _emnapi_open_handle_scope(&scope);
+  napi_handle_scope scope = _emnapi_open_handle_scope();
   if (func->finalize_cb) {
     if (emnapi_is_node_binding_available()) {
       napi_value resource, cb;
