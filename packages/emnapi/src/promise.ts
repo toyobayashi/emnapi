@@ -28,7 +28,7 @@ export function napi_resolve_deferred (env: napi_env, deferred: napi_deferred, r
   return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, deferred)
     $CHECK_ARG!(envObject, resolution)
-    const deferredRef = emnapiCtx.getRef(deferred)!
+    const deferredRef = emnapiCtx.isolate.getRef(deferred)!
     const resolver = deferredRef.deref() as Resolver<any>
     resolver.resolve(emnapiCtx.jsValueFromNapiValue(resolution)!)
     deferredRef.dispose()
@@ -41,7 +41,7 @@ export function napi_reject_deferred (env: napi_env, deferred: napi_deferred, re
   return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, deferred)
     $CHECK_ARG!(envObject, resolution)
-    const deferredRef = emnapiCtx.getRef(deferred)!
+    const deferredRef = emnapiCtx.isolate.getRef(deferred)!
     const resolver = deferredRef.deref() as Resolver<any>
     resolver.reject(emnapiCtx.jsValueFromNapiValue(resolution)!)
     deferredRef.dispose()

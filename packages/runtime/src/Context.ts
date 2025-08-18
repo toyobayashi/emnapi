@@ -134,6 +134,8 @@ export class Context {
   private _suppressDestroy = false
 
   private envStore = new ArrayStore<Env>()
+  /** @internal */
+  public refStore = new Map<number, Reference>()
   private readonly refCounter?: NodejsWaitingRequestCounter
   private readonly cleanupQueue: CleanupQueue
 
@@ -193,22 +195,9 @@ export class Context {
     handle_id: napi_value,
     initialRefcount: uint32_t,
     ownership: ReferenceOwnership
-  ): Reference
-  public createReference (
-    envObject: undefined,
-    handle_id: any,
-    initialRefcount: uint32_t,
-    ownership: ReferenceOwnership
-  ): Reference
-
-  public createReference (
-    envObject: any,
-    handle_id: any,
-    initialRefcount: uint32_t,
-    ownership: ReferenceOwnership
   ): Reference {
     return Reference.create(
-      this.isolate,
+      this,
       envObject,
       handle_id,
       initialRefcount,
@@ -224,7 +213,7 @@ export class Context {
     data: void_p
   ): Reference {
     return ReferenceWithData.create(
-      this.isolate,
+      this,
       envObject,
       handle_id,
       initialRefcount,
@@ -243,7 +232,7 @@ export class Context {
     finalize_hint: void_p = 0
   ): Reference {
     return ReferenceWithFinalizer.create(
-      this.isolate,
+      this,
       envObject,
       handle_id,
       initialRefcount,
@@ -368,7 +357,7 @@ export class Context {
   }
 
   public getRef (ref: napi_ref): Reference | undefined {
-    return this.isolate.getRef(ref)
+    return this.refStore.get(Number(ref))
   }
 
   public getHandleScope (scope: napi_handle_scope): HandleScope | undefined {

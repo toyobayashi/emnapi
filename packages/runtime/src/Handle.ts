@@ -1,4 +1,4 @@
-import { Reference } from './Reference'
+import type { PersistentValueType } from './Persistent'
 import { BaseArrayStore, CountIdAllocator } from './Store'
 import type { Features } from './util'
 
@@ -7,6 +7,10 @@ export class HandleStore extends BaseArrayStore<any> {
 
   private _allocator: CountIdAllocator
   private _features: Features
+
+  /** @internal */
+  public readonly refValues: Map<number, PersistentValueType<any>>
+
   private _erase: (start: number, end: number, weak: boolean) => void
   private _deref: (id: number | bigint) => any
 
@@ -14,6 +18,7 @@ export class HandleStore extends BaseArrayStore<any> {
     super(HandleStore.MIN_ID)
     this._features = features
     this._allocator = new CountIdAllocator(HandleStore.MIN_ID)
+    this.refValues = new Map()
 
     this._values[Constant.UNDEFINED] = undefined
     this._values[Constant.NULL] = null
@@ -24,7 +29,6 @@ export class HandleStore extends BaseArrayStore<any> {
 
     const _erase = (start: number, end: number): void => {
       for (let i = start; i < end; ++i) {
-        if (this._values[i] instanceof Reference) continue
         this.dealloc(i)
       }
     }
@@ -37,7 +41,6 @@ export class HandleStore extends BaseArrayStore<any> {
             } else {
               for (let i = start; i < end; ++i) {
                 const value = this._values[i]
-                if (value instanceof Reference) continue
                 const type = typeof value
                 if ((type === 'object' && value !== null) || (type === 'function') || (type === 'symbol' && Symbol.keyFor(value) === undefined)) {
                   this._values[i] = new WeakRef(value)
@@ -51,7 +54,6 @@ export class HandleStore extends BaseArrayStore<any> {
             } else {
               for (let i = start; i < end; ++i) {
                 const value = this._values[i]
-                if (value instanceof Reference) continue
                 const type = typeof value
                 if ((type === 'object' && value !== null) || (type === 'function')) {
                   this._values[i] = new WeakRef(value)
@@ -63,22 +65,32 @@ export class HandleStore extends BaseArrayStore<any> {
 
     this._deref = this._features.finalizer
       ? (id: number | bigint): any => {
-          const value = this._values[id as number]
-          if (value instanceof Reference) return value.deref()
+          id = Number(id)
+          if (id < 0) {
+            const ref = this.refValues.get(id)
+            if (ref === undefined) return undefined
+            return ref.deref()
+          }
+          const value = this._values[id]
           if (value instanceof WeakRef && this.isOutOfScope(id)) {
             return value.deref()
           }
           return value
         }
       : (id: number | bigint): any => {
+          id = Number(id)
+          if (id < 0) {
+            const ref = this.refValues.get(id)
+            if (ref === undefined) return undefined
+            return ref.deref()
+          }
           const value = this._values[id as number]
-          if (value instanceof Reference) return value.deref()
           return value
         }
   }
 
-  public isOutOfScope (id: number | bigint): boolean {
-    return Number(id) >= this._allocator.next
+  public isOutOfScope (id: number): boolean {
+    return id >= this._allocator.next
   }
 
   public deepDeref<R = any> (id: number | bigint): R | undefined {
@@ -86,10 +98,7 @@ export class HandleStore extends BaseArrayStore<any> {
   }
 
   public push<S> (value: S): number {
-    let next: number
-    do {
-      next = this._allocator.aquire()
-    } while (this._values[next] instanceof Reference)
+    const next = this._allocator.aquire()
     this._values[next] = value
     return next
   }
