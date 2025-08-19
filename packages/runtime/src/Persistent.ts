@@ -111,7 +111,7 @@ export class Persistent<T> extends Disposable {
   }
 
   slot (): number {
-    return -this.id
+    return 0x80000000 + this.id
   }
 
   getSlot (): PersistentValueType<T> {

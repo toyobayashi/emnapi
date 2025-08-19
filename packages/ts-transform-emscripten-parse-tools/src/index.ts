@@ -84,7 +84,7 @@ function getDataViewGetMethod (defines: Record<string, any>, type: Type): string
     case 'u64': return 'getBigUint64'
     case 'float': return 'getFloat32'
     case 'double': return 'getFloat64'
-    case '*': return defines.MEMORY64 ? 'getBigInt64' : 'getInt32'
+    case '*': return defines.MEMORY64 ? 'getBigUint64' : 'getUint32'
     default: throw new Error(`unknown data type: ${type as string}`)
   }
 }
@@ -101,7 +101,7 @@ function getDataViewSetMethod (defines: Record<string, any>, type: Type): string
     case 'u64': return 'setBigUint64'
     case 'float': return 'setFloat32'
     case 'double': return 'setFloat64'
-    case '*': return defines.MEMORY64 ? 'setBigInt64' : 'setInt32'
+    case '*': return defines.MEMORY64 ? 'setBigUint64' : 'setUint32'
     default: throw new Error(`unknown data type: ${type as string}`)
   }
 }

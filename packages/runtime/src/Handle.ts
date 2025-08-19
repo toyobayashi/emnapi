@@ -66,8 +66,8 @@ export class HandleStore extends BaseArrayStore<any> {
     this._deref = this._features.finalizer
       ? (id: number | bigint): any => {
           id = Number(id)
-          if (id < 0) {
-            const ref = this.refValues.get(id)
+          if (id < 0 || id > 0x7fffffff) {
+            const ref = this.refValues.get(id >>> 0)
             if (ref === undefined) return undefined
             return ref.deref()
           }
@@ -79,8 +79,8 @@ export class HandleStore extends BaseArrayStore<any> {
         }
       : (id: number | bigint): any => {
           id = Number(id)
-          if (id < 0) {
-            const ref = this.refValues.get(id)
+          if (id < 0 || id > 0x7fffffff) {
+            const ref = this.refValues.get(id >>> 0)
             if (ref === undefined) return undefined
             return ref.deref()
           }
