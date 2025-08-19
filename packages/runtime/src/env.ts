@@ -27,7 +27,7 @@ export abstract class Env extends Disposable {
 
   public instanceData: TrackedFinalizer | null = null
 
-  public lastException = new Persistent<any>()
+  public lastException: Persistent<any>
 
   public refs = 1
 
@@ -55,6 +55,7 @@ export abstract class Env extends Disposable {
     super()
     this.id = 0
     this.store.insert(this)
+    this.lastException = new Persistent<any>(ctx.isolate)
   }
 
   /** @virtual */

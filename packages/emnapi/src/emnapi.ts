@@ -16,7 +16,7 @@ export function emnapi_debug (file: number, lineno: number, str: number, ptr: Pt
   const message = `[emnapi_debug] ${emnapiString.UTF8ToString(file, -1)}:${lineno} ${string} ${ptr}`
   const logArgs: any[] = [message]
   if (ptr) {
-    logArgs.push(type === 1 ? emnapiCtx.getRef(ptr)?.persistent : emnapiCtx.jsValueFromNapiValue(ptr))
+    logArgs.push(type === 1 ? emnapiCtx.isolate.getRef(ptr) : emnapiCtx.jsValueFromNapiValue(ptr))
   }
   console.log(...logArgs)
   // eslint-disable-next-line no-debugger

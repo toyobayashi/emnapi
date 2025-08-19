@@ -32,4 +32,8 @@ export class ScopeStore extends BaseArrayStore<HandleScope> {
     this.currentScope = scope.parent!
     scope.dispose()
   }
+
+  public isEmpty (): boolean {
+    return this.currentScope === this._rootScope
+  }
 }

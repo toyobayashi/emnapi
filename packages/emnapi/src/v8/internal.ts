@@ -5,9 +5,9 @@ import { from64, makeDynCall } from 'emscripten:parse-tools'
  * @__sig pp
  */
 export function _v8_local_from_global_reference (ref: Ptr): Ptr {
-  const reference = emnapiCtx.getRef(ref)
+  const reference = emnapiCtx.isolate.getRef(ref)
   if (reference === undefined) return 1
-  const id = reference.get(emnapiCtx.isolate)
+  const id = reference.slot()
   return id || 1
 }
 
@@ -26,7 +26,7 @@ export function _v8_globalize_reference (isolate: Ptr, value: Ptr): Ptr {
  * @__sig pp
  */
 export function _v8_copy_global_reference (from: Ptr): Ptr {
-  const ref = emnapiCtx.getRef(from)
+  const ref = emnapiCtx.isolate.getRef(from)
   if (ref === undefined) return 0
   return ref.copy().id
 }
@@ -36,8 +36,8 @@ export function _v8_copy_global_reference (from: Ptr): Ptr {
  * @__sig vpp
  */
 export function _v8_move_global_reference (from: Ptr, to: Ptr): void {
-  const refFrom = emnapiCtx.getRef(from)
-  const refTo = emnapiCtx.getRef(to)
+  const refFrom = emnapiCtx.isolate.getRef(from)
+  const refTo = emnapiCtx.isolate.getRef(to)
   if (refFrom === undefined || refTo === undefined) return
   refFrom.move(refTo)
 }
@@ -47,9 +47,7 @@ export function _v8_move_global_reference (from: Ptr, to: Ptr): void {
  * @__sig vp
  */
 export function _v8_dispose_global (ref: Ptr): void {
-  const refValue = emnapiCtx.getRef(ref)
-  if (!refValue) return
-  refValue.dispose()
+  emnapiCtx.isolate.removeRef(ref)
 }
 
 /**
@@ -57,14 +55,14 @@ export function _v8_dispose_global (ref: Ptr): void {
  * @__sig vppppi
  */
 export function _v8_make_weak (ref: Ptr, data: Ptr, callback: Ptr, weak_callback: Ptr, type: number): void {
-  const refValue = emnapiCtx.getRef(ref)
+  const refValue = emnapiCtx.isolate.getRef(ref)
   if (!refValue) return
   from64('callback')
-  refValue.setWeakWithData(data, (data) => {
+  refValue.setWeak(data, (data) => {
     let field0 = 0
     let field1 = 0
     if (type === 1) {
-      const id = refValue.get(emnapiCtx.isolate)
+      const id = refValue.slot()
       if (id) {
         const value = emnapiCtx.jsValueFromNapiValue(id)
         field0 = emnapiCtx.isolate.getInternalField(value, 0)
@@ -84,7 +82,7 @@ export function _v8_make_weak (ref: Ptr, data: Ptr, callback: Ptr, weak_callback
  * @__sig pp
  */
 export function _v8_clear_weak (ref: Ptr): Ptr {
-  const refValue = emnapiCtx.getRef(ref)
+  const refValue = emnapiCtx.isolate.getRef(ref)
   if (!refValue) return 0
   refValue.clearWeak()
   return 0

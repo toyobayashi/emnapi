@@ -65,17 +65,17 @@ void FromJustIsNothing() {
 internal::Address* GlobalizeReference(internal::Isolate* isolate,
                                       internal::Address value) {
   internal::Address ref_id = _v8_globalize_reference(isolate, value);
-  return reinterpret_cast<internal::Address*>(new internal::GlobalHandle{ref_id, ref_id});
+  return reinterpret_cast<internal::Address*>(new internal::GlobalHandle{0x80000000u + ref_id, ref_id});
 }
 
 void DisposeGlobal(internal::Address* global_handle) {
-  _v8_dispose_global(*global_handle);
+  _v8_dispose_global(reinterpret_cast<internal::GlobalHandle*>(global_handle)->ref);
   delete reinterpret_cast<internal::GlobalHandle*>(global_handle);
 }
 
 internal::Address* CopyGlobalReference(internal::Address* from) {
-  internal::Address ref_id = _v8_copy_global_reference(*from);
-  return reinterpret_cast<internal::Address*>(new internal::GlobalHandle{ref_id, ref_id});
+  internal::Address ref_id = _v8_copy_global_reference(reinterpret_cast<internal::GlobalHandle*>(from)->ref);
+  return reinterpret_cast<internal::Address*>(new internal::GlobalHandle{0x80000000u + ref_id, ref_id});
 }
 
 internal::Address LocalFromGlobalReference(internal::Address global_handle) {

@@ -2,7 +2,6 @@ import type { Env } from './env'
 import { Persistent } from './Persistent'
 import { RefTracker } from './RefTracker'
 import { Finalizer } from './Finalizer'
-import type { Isolate } from './Isolate'
 import type { Context } from './Context'
 
 export enum ReferenceOwnership {
@@ -18,44 +17,23 @@ function canBeHeldWeakly (value: any): boolean {
 
 export class Reference extends RefTracker {
   private static weakCallback (ref: Reference): void {
-    ref.persistent.reset()
+    const persistent = ref.getPersistent()
+    persistent.reset()
     ref.invokeFinalizerFromGC()
   }
 
   public id: number
   public envObject: Env | undefined
-  private ctx: Isolate
+  private ctx: Context
 
   private canBeWeak!: boolean
   private _refcount: number
   private _ownership: ReferenceOwnership
-  public persistent!: Persistent<object>
 
   public static create (
-    ctx: Isolate,
+    ctx: Context,
     envObject: Env,
     handle_id: napi_value,
-    initialRefcount: uint32_t,
-    ownership: ReferenceOwnership,
-    _unused1?: void_p,
-    _unused2?: void_p,
-    _unused3?: void_p
-  ): Reference
-  public static create (
-    ctx: Isolate,
-    envObject: undefined,
-    handle_id: any,
-    initialRefcount: uint32_t,
-    ownership: ReferenceOwnership,
-    _unused1?: void_p,
-    _unused2?: void_p,
-    _unused3?: void_p
-  ): Reference
-
-  public static create (
-    ctx: Isolate,
-    envObject: any,
-    handle_id: any,
     initialRefcount: uint32_t,
     ownership: ReferenceOwnership,
     _unused1?: void_p,
@@ -72,24 +50,9 @@ export class Reference extends RefTracker {
   }
 
   public constructor (
-    ctx: Isolate,
+    ctx: Context,
     envObject: Env,
     handle_id: napi_value,
-    initialRefcount: uint32_t,
-    ownership: ReferenceOwnership
-  )
-  public constructor (
-    ctx: Isolate,
-    envObject: undefined,
-    handle_id: any,
-    initialRefcount: uint32_t,
-    ownership: ReferenceOwnership
-  )
-
-  public constructor (
-    ctx: Isolate,
-    envObject: Env | undefined,
-    handle_id: any,
     initialRefcount: uint32_t,
     ownership: ReferenceOwnership
   ) {
@@ -99,73 +62,35 @@ export class Reference extends RefTracker {
     this._ownership = ownership
     const value = envObject ? envObject.ctx.jsValueFromNapiValue(handle_id)! : handle_id
     this.canBeWeak = canBeHeldWeakly(value)
-    this.persistent = new Persistent(value)
+    // this.persistent = new Persistent(ctx.isolate, value)
     this.ctx = ctx
-    this.id = ctx.getCurrentScope().add(this)
+    this.id = new Persistent(ctx.isolate, value).id
+    ctx.refStore.set(this.id, this)
     if (initialRefcount === 0) {
       this._setWeak()
     }
   }
 
-  protected _assign (target: Reference): void {
-    target.envObject = this.envObject
-    target.ctx = this.ctx
-    target._refcount = this._refcount
-    target._ownership = this._ownership
-    target.canBeWeak = this.canBeWeak
-    if (this.persistent.isEmpty()) {
-      target.persistent = new Persistent()
-    } else {
-      target.persistent = new Persistent(this.persistent.deref()!)
-    }
-    if (target._refcount === 0) {
-      target._setWeak()
-    }
-  }
-
-  protected _move (target: Reference): void {
-    this._assign(target)
-    target.id = this.id
-    this._refcount = 0
-    this.persistent.reset()
-  }
-
-  protected _copy<C extends new (...args: any[]) => Reference> (Ctor: C): InstanceType<C> {
-    if (this.id === 0) {
-      throw new Error('Cannot copy a disposed Reference')
-    }
-    const newRef: InstanceType<C> = Object.create(Ctor.prototype)
-    newRef._prev = newRef._next = null
-    this._assign(newRef)
-    newRef.id = this.ctx.getCurrentScope().add(newRef)
-    if (this.envObject) {
-      newRef.link(this.envObject!.reflist)
-    }
-    return newRef
-  }
-
-  public copy (): Reference {
-    return this._copy(Reference)
-  }
-
-  public move (target: Reference): void {
-    this._move(target)
+  public getPersistent (): Persistent<any> {
+    return this.ctx.isolate.getRef(this.id)!
   }
 
   public ref (): number {
-    if (this.persistent.isEmpty()) {
+    const persistent = this.getPersistent()
+    if (persistent.isEmpty()) {
       return 0
     }
 
     if (++this._refcount === 1 && this.canBeWeak) {
-      this.persistent.clearWeak()
+      persistent.clearWeak()
     }
 
     return this._refcount
   }
 
   public unref (): number {
-    if (this.persistent.isEmpty() || this._refcount === 0) {
+    const persistent = this.getPersistent()
+    if (persistent.isEmpty() || this._refcount === 0) {
       return 0
     }
 
@@ -176,15 +101,16 @@ export class Reference extends RefTracker {
   }
 
   public deref (): any {
-    return this.persistent.deref()
+    const persistent = this.getPersistent()
+    return persistent.deref()
   }
 
-  public get (ctx: Isolate | Context): napi_value {
-    if (this.persistent.isEmpty()) {
+  public get (): napi_value {
+    const persistent = this.getPersistent()
+    if (persistent.isEmpty()) {
       return 0
     }
-    const obj = this.persistent.deref()
-    return ctx.napiValueFromJsValue(obj)
+    return persistent.slot()
   }
 
   /** @virtual */
@@ -210,19 +136,22 @@ export class Reference extends RefTracker {
   }
 
   public setWeakWithData<T> (data: T, callback: (data: T) => void): void {
+    const persistent = this.getPersistent()
     if (this.canBeWeak) {
-      this.persistent.setWeak(data, callback)
+      persistent.setWeak(data, callback)
     } else {
-      this.persistent.reset()
+      persistent.reset()
     }
   }
 
   public clearWeak (): void {
-    this.persistent.clearWeak()
+    const persistent = this.getPersistent()
+    persistent.clearWeak()
   }
 
   public override finalize (): void {
-    this.persistent.reset()
+    const persistent = this.getPersistent()
+    persistent.reset()
     const deleteMe = this._ownership === ReferenceOwnership.kRuntime
     this.unlink()
     this.callUserFinalizer()
@@ -234,8 +163,8 @@ export class Reference extends RefTracker {
   public override dispose (): void {
     if (this.id === 0) return
     this.unlink()
-    this.ctx.removeRef(this.id)
-    this.persistent.reset()
+    this.ctx.isolate.removeRef(this.id)
+    this.ctx.refStore.delete(this.id)
     super.dispose()
     this.ctx = undefined!
     this.envObject = undefined!
@@ -247,26 +176,9 @@ export class ReferenceWithData extends Reference {
   private _data: void_p
 
   public static override create (
-    ctx: Isolate,
+    ctx: Context,
     envObject: Env,
     value: napi_value,
-    initialRefcount: uint32_t,
-    ownership: ReferenceOwnership,
-    data: void_p
-  ): ReferenceWithData
-  public static override create (
-    ctx: Isolate,
-    envObject: undefined,
-    value: any,
-    initialRefcount: uint32_t,
-    ownership: ReferenceOwnership,
-    data: void_p
-  ): ReferenceWithData
-
-  public static override create (
-    ctx: Isolate,
-    envObject: any,
-    value: any,
     initialRefcount: uint32_t,
     ownership: ReferenceOwnership,
     data: void_p
@@ -281,44 +193,15 @@ export class ReferenceWithData extends Reference {
   }
 
   public constructor (
-    ctx: Isolate,
+    ctx: Context,
     envObject: Env,
     value: napi_value,
-    initialRefcount: uint32_t,
-    ownership: ReferenceOwnership,
-    data: void_p
-  )
-  public constructor (
-    ctx: Isolate,
-    envObject: undefined,
-    value: any,
-    initialRefcount: uint32_t,
-    ownership: ReferenceOwnership,
-    data: void_p
-  )
-
-  public constructor (
-    ctx: Isolate,
-    envObject: any,
-    value: any,
     initialRefcount: uint32_t,
     ownership: ReferenceOwnership,
     data: void_p
   ) {
     super(ctx, envObject, value, initialRefcount, ownership)
     this._data = data
-  }
-
-  public override copy (): ReferenceWithData {
-    const newRef = this._copy(ReferenceWithData)
-    newRef._data = this._data
-    return newRef
-  }
-
-  public override move (target: ReferenceWithData): void {
-    this._move(target)
-    target._data = this._data
-    this._data = 0
   }
 
   public data (): void_p {
@@ -330,30 +213,9 @@ export class ReferenceWithFinalizer extends Reference {
   private _finalizer: Finalizer
 
   public static override create (
-    ctx: Isolate,
+    ctx: Context,
     envObject: Env,
     value: napi_value,
-    initialRefcount: uint32_t,
-    ownership: ReferenceOwnership,
-    finalize_callback: napi_finalize,
-    finalize_data: void_p,
-    finalize_hint: void_p
-  ): ReferenceWithFinalizer
-  public static override create (
-    ctx: Isolate,
-    envObject: undefined,
-    value: any,
-    initialRefcount: uint32_t,
-    ownership: ReferenceOwnership,
-    finalize_callback: napi_finalize,
-    finalize_data: void_p,
-    finalize_hint: void_p
-  ): ReferenceWithFinalizer
-
-  public static override create (
-    ctx: Isolate,
-    envObject: any,
-    value: any,
     initialRefcount: uint32_t,
     ownership: ReferenceOwnership,
     finalize_callback: napi_finalize,
@@ -371,7 +233,7 @@ export class ReferenceWithFinalizer extends Reference {
   }
 
   public constructor (
-    ctx: Isolate,
+    ctx: Context,
     envObject: Env,
     value: napi_value,
     initialRefcount: uint32_t,
@@ -382,17 +244,6 @@ export class ReferenceWithFinalizer extends Reference {
   ) {
     super(ctx, envObject, value, initialRefcount, ownership)
     this._finalizer = new Finalizer(envObject, finalize_callback, finalize_data, finalize_hint)
-  }
-
-  public override copy (): ReferenceWithFinalizer {
-    const newRef = this._copy(ReferenceWithFinalizer)
-    newRef._finalizer = this._finalizer.copy()
-    return newRef
-  }
-
-  public override move (target: ReferenceWithFinalizer): void {
-    this._move(target)
-    this._finalizer.move(target._finalizer)
   }
 
   public override resetFinalizer (): void {

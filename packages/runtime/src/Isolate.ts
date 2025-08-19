@@ -3,10 +3,9 @@ import { HandleStore } from './Handle'
 import { TryCatch } from './TryCatch'
 import { FunctionTemplate, Signature } from './FunctionTemplate'
 import { ObjectTemplate, setInternalField, getInternalField, getInternalFieldCount } from './ObjectTemplate'
-import { Persistent } from './Persistent'
+import { Persistent, PersistentStore, type PersistentValueType } from './Persistent'
 import { detectFeatures, type Resolver, type Features } from './util'
 import type { HandleScope, ICallbackInfo } from './HandleScope'
-import { Reference, ReferenceOwnership } from './Reference'
 import { External, getExternalValue, isExternal } from './External'
 
 export interface IsolateOptions {
@@ -18,14 +17,17 @@ export class Isolate {
   private _globalThis: typeof globalThis
   private _scopeStore: ScopeStore
   private _handleStore: HandleStore
+  /** @internal */
+  public globalHandleStore: PersistentStore
   public readonly features: Features
 
   constructor (options?: IsolateOptions) {
     this.features = detectFeatures(options?.features)
     this._globalThis = this.features.getGlobalThis()
-    this._lastException = new Persistent<any>()
     this._scopeStore = new ScopeStore()
     this._handleStore = new HandleStore(this.features)
+    this.globalHandleStore = new PersistentStore()
+    this._lastException = new Persistent<any>(this)
   }
 
   //#region Local handles
@@ -44,29 +46,39 @@ export class Isolate {
   public jsValueFromNapiValue<T = any> (napiValue: number | bigint): T | undefined {
     return this._handleStore.deepDeref(napiValue)
   }
+
+  public deleteRefSlotValue (id: number | bigint): void {
+    this._handleStore.refValues.delete(Number(id))
+  }
+
+  public getRefSlotValue (id: number | bigint): PersistentValueType<any> {
+    return this._handleStore.refValues.get(Number(id))
+  }
+
+  public setRefSlotValue (id: number | bigint, ref: PersistentValueType<any>): void {
+    this._handleStore.refValues.set(Number(id), ref)
+  }
   //#endregion
 
   //#region References
-  public createReference (value: any): Reference {
-    return Reference.create(
-      this,
-      undefined,
-      value,
-      1,
-      ReferenceOwnership.kUserland
-    )
+  public createReference<T> (...args: [T] | []): Persistent<T> {
+    return new Persistent(this, ...args)
   }
 
-  public getRef (ref: napi_ref): Reference | undefined {
-    return this._handleStore.deref(ref)
+  public insertRef<T> (persistent: Persistent<T>): void {
+    this.globalHandleStore.insert(persistent)
   }
 
-  public removeRef (ref: napi_ref) {
-    if (this._handleStore.isOutOfScope(ref)) {
-      this._handleStore.dealloc(ref)
+  public getRef<T = any> (ref: napi_ref): Persistent<T> | undefined {
+    return this.globalHandleStore.deref(ref)
+  }
+
+  public removeRef (ref: napi_ref, force = false) {
+    if (force || this._scopeStore.isEmpty()) {
+      const persistent = this.globalHandleStore.deref(ref)
+      persistent?.dispose()
     } else {
-      const value = this._handleStore.deepDeref(ref)
-      this._handleStore.assign(ref, value)
+      this.globalHandleStore.markUnused(ref)
     }
   }
   //#endregion
@@ -152,6 +164,10 @@ export class Isolate {
   //#endregion
 
   //#region Scope management
+  public isScopeEmpty (): boolean {
+    return this._scopeStore.isEmpty()
+  }
+
   public getCurrentScope (): HandleScope {
     return this._scopeStore.currentScope
   }
@@ -162,6 +178,9 @@ export class Isolate {
 
   public closeScope (_scope?: HandleScope): void {
     this._scopeStore.closeScope()
+    if (this.isScopeEmpty()) {
+      this.globalHandleStore.recycle()
+    }
   }
 
   public getHandleScope (scope: napi_handle_scope): HandleScope | undefined {

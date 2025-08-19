@@ -1,7 +1,29 @@
 import { Disposable } from './Disaposable'
+import type { Isolate } from './Isolate'
+import { ArrayStore } from './Store'
 import { supportFinalizer } from './util'
 
-class StrongRef<T> extends Disposable {
+export class PersistentStore extends ArrayStore<Persistent<any>> {
+  private _recyleList: (number | bigint)[] = []
+
+  constructor (initialCapacity: number = 4) {
+    super(initialCapacity)
+  }
+
+  public markUnused (id: number | bigint): void {
+    this._recyleList.push(id)
+  }
+
+  public recycle () {
+    while (this._recyleList.length > 0) {
+      const id = this._recyleList.shift()!
+      const persistent = this.deref(id)!
+      persistent.dispose()
+    }
+  }
+}
+
+export class StrongRef<T> extends Disposable {
   private _value: T
 
   constructor (value: T) {
@@ -18,14 +40,17 @@ class StrongRef<T> extends Disposable {
   }
 }
 
-export class Persistent<T> {
-  private _ref: StrongRef<T> | WeakRef<T extends object ? T : never> | undefined
+export type PersistentValueType<T> = StrongRef<T> | WeakRef<T extends object ? T : never> | undefined
+
+export class Persistent<T> extends Disposable {
   private _param: any
   private _callback: ((param: any) => void) | undefined
+  private _isolate: Isolate
+  public id: number
 
   private static readonly _registry = supportFinalizer
     ? new FinalizationRegistry((value: Persistent<any>) => {
-      value._ref = undefined
+      value.setSlot(undefined)
       const callback = value._callback
       const param = value._param
       value._callback = undefined
@@ -36,18 +61,80 @@ export class Persistent<T> {
     })
     : undefined!
 
-  constructor (...args: [T] | []) {
-    this._ref = args.length === 0 ? undefined : new StrongRef(args[0])
+  constructor (isolate: Isolate, ...args: [T] | []) {
+    super()
+    this.id = 0
+    this._isolate = isolate
+    isolate.insertRef(this)
+    this.setSlot(args.length === 0 ? undefined : new StrongRef(args[0]))
+  }
+
+  override dispose (): void {
+    this.reset()
+    this.deleteSlot()
+    this._isolate.globalHandleStore.dealloc(this.id)
+    this._isolate = undefined!
+    this.id = 0
+  }
+
+  copy (): Persistent<T> {
+    const target = new Persistent<T>(this._isolate)
+    target._param = this._param
+    target._callback = this._callback
+    const ref = this.getSlot()
+    if (ref instanceof StrongRef) {
+      target.setSlot(new StrongRef(ref.deref()))
+    } else if (ref instanceof WeakRef) {
+      const value = ref.deref()
+      if (value === undefined) {
+        target.setSlot(undefined)
+      } else {
+        target.setSlot(new StrongRef(value))
+        target.setWeak(this._param, this._callback!)
+      }
+    } else {
+      target.setSlot(undefined)
+    }
+
+    return target
+  }
+
+  move (to: Persistent<T>): void {
+    if (this === to) return
+    to.reset()
+    to._param = this._param
+    to._callback = this._callback
+    to._isolate = this._isolate
+    to.setSlot(this.getSlot())
+    this.reset()
+    this.setSlot(undefined)
+  }
+
+  slot (): number {
+    return 0x80000000 + this.id
+  }
+
+  getSlot (): PersistentValueType<T> {
+    return this._isolate.getRefSlotValue(this.slot())
+  }
+
+  setSlot (ref: PersistentValueType<T>): void {
+    this._isolate.setRefSlotValue(this.slot(), ref)
+  }
+
+  deleteSlot (): void {
+    this._isolate.deleteRefSlotValue(this.slot())
   }
 
   setWeak<P> (param: P, callback: (param: P) => void): void {
-    if (!supportFinalizer || this._ref === undefined || this._ref instanceof WeakRef) return
-    const value = this._ref.deref()
+    const ref = this.getSlot()
+    if (!supportFinalizer || ref === undefined || ref instanceof WeakRef) return
+    const value = ref.deref()
     try {
       Persistent._registry.register(value as any, this, this)
       const weakRef = new WeakRef<any>(value)
-      this._ref.dispose()
-      this._ref = weakRef
+      ref.dispose()
+      this.setSlot(weakRef)
       this._param = param
       this._callback = callback
     } catch (err) {
@@ -71,18 +158,19 @@ export class Persistent<T> {
   }
 
   clearWeak (): void {
-    if (!supportFinalizer || this._ref === undefined) return
-    if (this._ref instanceof WeakRef) {
+    const ref = this.getSlot()
+    if (!supportFinalizer || ref === undefined) return
+    if (ref instanceof WeakRef) {
       try {
         Persistent._registry.unregister(this)
       } catch (_) {}
       this._param = undefined
       this._callback = undefined
-      const value = this._ref.deref()
+      const value = ref.deref()
       if (value === undefined) {
-        this._ref = value
+        this.setSlot(value)
       } else {
-        this._ref = new StrongRef(value as T)
+        this.setSlot(new StrongRef(value as T))
       }
     }
   }
@@ -95,23 +183,25 @@ export class Persistent<T> {
     }
     this._param = undefined
     this._callback = undefined
-    if (this._ref instanceof StrongRef) {
-      this._ref.dispose()
+    const ref = this.getSlot()
+    if (ref instanceof StrongRef) {
+      ref.dispose()
     }
-    this._ref = undefined
+    this.setSlot(undefined)
   }
 
   resetTo (value: T): void {
     this.reset()
-    this._ref = new StrongRef(value)
+    this.setSlot(new StrongRef(value))
   }
 
   isEmpty (): boolean {
-    return this._ref === undefined
+    return this.getSlot() === undefined
   }
 
   deref (): T | undefined {
-    if (this._ref === undefined) return undefined
-    return this._ref.deref()
+    const ref = this.getSlot()
+    if (ref === undefined) return undefined
+    return ref.deref()
   }
 }
