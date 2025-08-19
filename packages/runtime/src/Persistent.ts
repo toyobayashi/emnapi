@@ -69,10 +69,12 @@ export class Persistent<T> extends Disposable {
     this.setSlot(args.length === 0 ? undefined : new StrongRef(args[0]))
   }
 
-  dispose (): void {
+  override dispose (): void {
     this.reset()
     this.deleteSlot()
     this._isolate.globalHandleStore.dealloc(this.id)
+    this._isolate = undefined!
+    this.id = 0
   }
 
   copy (): Persistent<T> {
@@ -108,16 +110,20 @@ export class Persistent<T> extends Disposable {
     this.setSlot(undefined)
   }
 
+  slot (): number {
+    return -this.id
+  }
+
   getSlot (): PersistentValueType<T> {
-    return this._isolate.getRefSlotValue(-this.id)
+    return this._isolate.getRefSlotValue(this.slot())
   }
 
   setSlot (ref: PersistentValueType<T>): void {
-    this._isolate.setRefSlotValue(-this.id, ref)
+    this._isolate.setRefSlotValue(this.slot(), ref)
   }
 
   deleteSlot (): void {
-    this._isolate.deleteRefSlotValue(-this.id)
+    this._isolate.deleteRefSlotValue(this.slot())
   }
 
   setWeak<P> (param: P, callback: (param: P) => void): void {

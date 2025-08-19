@@ -164,6 +164,10 @@ export class Isolate {
   //#endregion
 
   //#region Scope management
+  public isScopeEmpty (): boolean {
+    return this._scopeStore.isEmpty()
+  }
+
   public getCurrentScope (): HandleScope {
     return this._scopeStore.currentScope
   }
@@ -174,7 +178,7 @@ export class Isolate {
 
   public closeScope (_scope?: HandleScope): void {
     this._scopeStore.closeScope()
-    if (this._scopeStore.isEmpty()) {
+    if (this.isScopeEmpty()) {
       this.globalHandleStore.recycle()
     }
   }

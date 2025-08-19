@@ -2,7 +2,6 @@ import type { Env } from './env'
 import { Persistent } from './Persistent'
 import { RefTracker } from './RefTracker'
 import { Finalizer } from './Finalizer'
-import type { Isolate } from './Isolate'
 import type { Context } from './Context'
 
 export enum ReferenceOwnership {
@@ -106,13 +105,12 @@ export class Reference extends RefTracker {
     return persistent.deref()
   }
 
-  public get (ctx: Isolate | Context): napi_value {
+  public get (): napi_value {
     const persistent = this.getPersistent()
     if (persistent.isEmpty()) {
       return 0
     }
-    const obj = persistent.deref()
-    return ctx.napiValueFromJsValue(obj)
+    return persistent.slot()
   }
 
   /** @virtual */
@@ -165,7 +163,7 @@ export class Reference extends RefTracker {
   public override dispose (): void {
     if (this.id === 0) return
     this.unlink()
-    this.ctx.isolate.removeRef(this.id, true)
+    this.ctx.isolate.removeRef(this.id)
     this.ctx.refStore.delete(this.id)
     super.dispose()
     this.ctx = undefined!

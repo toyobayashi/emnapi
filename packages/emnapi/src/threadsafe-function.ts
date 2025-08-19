@@ -478,7 +478,7 @@ export const emnapiTSFN = {
       if (finalize) {
         if (emnapiNodeBinding) {
           const resource = emnapiTSFN.getResource(func)
-          const resource_value = emnapiCtx.getRef(resource)!.get(emnapiCtx)
+          const resource_value = emnapiCtx.getRef(resource)!.get()
           const resourceObject = emnapiCtx.jsValueFromNapiValue(resource_value)!
           const view = new DataView(wasmMemory.buffer)
           const asyncId = view.getFloat64(func + emnapiTSFN.offset.async_id, true)
@@ -567,7 +567,7 @@ export const emnapiTSFN = {
         (envObject as NodeEnv).callbackIntoModule(false, () => {
           const callJsCb = emnapiTSFN.getCallJSCb(func)
           const ref = emnapiTSFN.getRef(func)
-          const js_callback = ref ? emnapiCtx.getRef(ref)!.get(emnapiCtx) : 0
+          const js_callback = ref ? emnapiCtx.getRef(ref)!.get() : 0
           if (callJsCb) {
             const context = emnapiTSFN.getContext(func)
             makeDynCall('vpppp', 'callJsCb')(to64('env'), to64('js_callback'), to64('context'), to64('data'))
@@ -583,7 +583,7 @@ export const emnapiTSFN = {
       try {
         if (emnapiNodeBinding) {
           const resource = emnapiTSFN.getResource(func)
-          const resource_value = emnapiCtx.getRef(resource)!.get(emnapiCtx)
+          const resource_value = emnapiCtx.getRef(resource)!.get()
           const resourceObject = emnapiCtx.jsValueFromNapiValue(resource_value)!
           const view = new DataView(wasmMemory.buffer)
           emnapiNodeBinding.node.makeCallback(resourceObject, f, [], {
