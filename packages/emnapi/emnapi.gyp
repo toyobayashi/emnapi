@@ -148,6 +148,7 @@
         'handle_scope.cc',
         'internal.cc',
         'isolate.cc',
+        'json.cc',
         'object.cc',
         'string.cc',
         'value.cc',

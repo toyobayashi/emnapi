@@ -36,6 +36,7 @@ set(V8_SRC
   "${CMAKE_CURRENT_SOURCE_DIR}/src/v8/handle_scope.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/v8/internal.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/v8/isolate.cc"
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/v8/json.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/v8/object.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/v8/string.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/v8/value.cc"

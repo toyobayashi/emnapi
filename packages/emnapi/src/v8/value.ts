@@ -104,6 +104,17 @@ export function _v8_value_is_function (value: Ptr): number {
  * @__deps $emnapiCtx
  * @__sig ip
  */
+export function _v8_value_is_number (value: Ptr): number {
+  const jsValue = emnapiCtx.jsValueFromNapiValue(value)
+  if (jsValue == null) return 0
+  const isFunction = typeof jsValue === 'number'
+  return isFunction ? 1 : 0
+}
+
+/**
+ * @__deps $emnapiCtx
+ * @__sig ip
+ */
 export function _v8_value_is_undefined (value: Ptr): number {
   const jsValue = emnapiCtx.jsValueFromNapiValue(value)
   const isUndefined = jsValue === undefined

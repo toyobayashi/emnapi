@@ -17,6 +17,7 @@ extern "C" {
   V8_EXTERN bool _v8_value_is_true(const Value*);
   V8_EXTERN bool _v8_value_is_false(const Value*);
   V8_EXTERN bool _v8_value_is_string(const Value*);
+  V8_EXTERN bool _v8_value_is_number(const Value*);
 }
 
 void Value::CheckCast(Data*) {}
@@ -63,6 +64,10 @@ bool Value::FullIsString() const {
 
 bool Value::IsFunction() const {
   return _v8_value_is_function(this);
+}
+
+bool Value::IsNumber() const {
+  return _v8_value_is_number(this);
 }
 
 MaybeLocal<Object> Value::ToObject(Local<Context> context) const {
