@@ -17,13 +17,16 @@ import type {
   VariableStatement,
   NodeArray,
   VisitResult,
-  Statement
+  Statement,
+  Identifier
 } from 'typescript'
 import { cloneNode, type CloneNodeOptions } from 'ts-clone-node'
 
-import * as ts from 'typescript'
+import * as TS from 'typescript'
 import { join, resolve } from 'path'
 import { getDefaultBaseOptions, type BaseTransformOptions } from '@emnapi/ts-transform-emscripten-esm-library'
+
+const ts = ('default' in TS ? TS.default : TS) as typeof TS
 
 export type CStyleBoolean = 0 | 1
 
@@ -265,7 +268,7 @@ class Transform {
     this.insertWasmTableImport = false
   }
 
-  createLazyEmscriptenRuntimeSymbol (name: string) {
+  createLazyEmscriptenRuntimeSymbol (name: string): CallExpression | Identifier {
     return this.plugin
       ? this.ctx.factory.createCallExpression(this.ctx.factory.createIdentifier(name), undefined, [])
       : this.ctx.factory.createIdentifier(name)
