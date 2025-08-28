@@ -1,6 +1,6 @@
 {
   "name": "@emnapi/core",
-  "version": "1.4.5",
+  "version": "1.5.0",
   "description": "emnapi core",
   "main": "index.js",
   "module": "./dist/emnapi-core.esm-bundler.js",
@@ -27,7 +27,7 @@
     }
   },
   "dependencies": {
-    "@emnapi/wasi-threads": "1.0.4",
+    "@emnapi/wasi-threads": "1.1.0",
     "tslib": "^2.4.0"
   },
   "scripts": {
