@@ -17,13 +17,16 @@ import type {
   VariableStatement,
   NodeArray,
   VisitResult,
-  Statement
+  Statement,
+  Identifier
 } from 'typescript'
 import { cloneNode, type CloneNodeOptions } from 'ts-clone-node'
 
-import ts = require('typescript')
+import * as TS from 'typescript'
 import { join, resolve } from 'path'
 import { getDefaultBaseOptions, type BaseTransformOptions } from '@emnapi/ts-transform-emscripten-esm-library'
+
+const ts = ('default' in TS ? TS.default : TS) as typeof TS
 
 export type CStyleBoolean = 0 | 1
 
@@ -33,6 +36,7 @@ export interface Defines {
 
 export interface TransformOptions extends BaseTransformOptions {
   defines?: Defines
+  plugin?: boolean
 }
 
 // function isEmscriptenMacro (text: string): boolean {
@@ -83,7 +87,7 @@ function getDataViewGetMethod (defines: Record<string, any>, type: Type): string
     case 'u64': return 'getBigUint64'
     case 'float': return 'getFloat32'
     case 'double': return 'getFloat64'
-    case '*': return defines.MEMORY64 ? 'getBigInt64' : 'getInt32'
+    case '*': return defines.MEMORY64 ? 'getBigUint64' : 'getUint32'
     default: throw new Error(`unknown data type: ${type as string}`)
   }
 }
@@ -100,7 +104,7 @@ function getDataViewSetMethod (defines: Record<string, any>, type: Type): string
     case 'u64': return 'setBigUint64'
     case 'float': return 'setFloat32'
     case 'double': return 'setFloat64'
-    case '*': return defines.MEMORY64 ? 'setBigInt64' : 'setInt32'
+    case '*': return defines.MEMORY64 ? 'setBigUint64' : 'setUint32'
     default: throw new Error(`unknown data type: ${type as string}`)
   }
 }
@@ -243,11 +247,13 @@ class Transform {
 
   readonly runtimeModuleSpecifier: string
   readonly parseToolsModuleSpecifier: string
+  readonly plugin: boolean
 
   constructor (public program: Program, context: TransformationContext, config?: TransformOptions) {
     const { runtimeModuleSpecifier, parseToolsModuleSpecifier } = getDefaultBaseOptions(config)
     this.runtimeModuleSpecifier = runtimeModuleSpecifier
     this.parseToolsModuleSpecifier = parseToolsModuleSpecifier
+    this.plugin = config?.plugin ?? false
 
     this.ctx = context
     this.defines = config?.defines ?? {}
@@ -262,6 +268,12 @@ class Transform {
     this.insertWasmTableImport = false
   }
 
+  createLazyEmscriptenRuntimeSymbol (name: string): CallExpression | Identifier {
+    return this.plugin
+      ? this.ctx.factory.createCallExpression(this.ctx.factory.createIdentifier(name), undefined, [])
+      : this.ctx.factory.createIdentifier(name)
+  }
+
   createHeapDataViewDeclaration (): VariableStatement {
     return this.ctx.factory.createVariableStatement(
       undefined,
@@ -274,7 +286,7 @@ class Transform {
             this.ctx.factory.createIdentifier('DataView'),
             undefined,
             [this.ctx.factory.createPropertyAccessExpression(
-              this.ctx.factory.createIdentifier('wasmMemory'),
+              this.createLazyEmscriptenRuntimeSymbol('wasmMemory'),
               this.ctx.factory.createIdentifier('buffer')
             )]
           )
@@ -663,7 +675,7 @@ class Transform {
 
     return this.ctx.factory.createParenthesizedExpression(this.ctx.factory.createCallExpression(
       this.ctx.factory.createPropertyAccessExpression(
-        this.ctx.factory.createIdentifier('wasmTable'),
+        this.createLazyEmscriptenRuntimeSymbol('wasmTable'),
         this.ctx.factory.createIdentifier('get')
       ),
       undefined,
@@ -817,7 +829,7 @@ function createTransformerFactory (program: Program, config: TransformOptions): 
 
       injectedSrc = factory.updateSourceFile(injectedSrc, newStatements)
 
-      const doNotInsertImport = join(__dirname, '../../emnapi/src/core/init.ts')
+      const doNotInsertImport = join(import.meta.dirname, '../../emnapi/src/core/init.ts')
 
       if (process.platform === 'win32') {
         const resolvedFileName = resolve(src.fileName)
@@ -832,7 +844,7 @@ function createTransformerFactory (program: Program, config: TransformOptions): 
 
       let resultSrc = injectedSrc
       let importNames: string[] | null = null
-      if (transform.insertWasmMemoryImport) {
+      if (transform.insertWasmMemoryImport && !config.plugin) {
         importNames = getImportsOfModule(resultSrc)
         if (!importNames.includes('wasmMemory')) {
           resultSrc = factory.updateSourceFile(resultSrc, [
@@ -849,7 +861,7 @@ function createTransformerFactory (program: Program, config: TransformOptions): 
           ])
         }
       }
-      if (transform.insertWasmTableImport) {
+      if (transform.insertWasmTableImport && !config.plugin) {
         importNames = getImportsOfModule(resultSrc)
         if (!importNames.includes('wasmTable')) {
           resultSrc = factory.updateSourceFile(resultSrc, [
