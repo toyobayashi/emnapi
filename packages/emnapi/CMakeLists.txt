@@ -44,6 +44,7 @@ set(V8_SRC
   "${CMAKE_CURRENT_SOURCE_DIR}/src/v8/number.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/v8/template.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/v8/try_catch.cc"
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/v8/node.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/v8/script.cc"
 )
 

@@ -1,6 +1,9 @@
 declare type Ptr = number | bigint
 
-declare interface IBuffer extends Uint8Array {}
+declare interface IBuffer extends Uint8Array {
+  toString (encoding?: string, start?: number, end?: number): string
+}
+
 declare interface BufferCtor {
   readonly prototype: IBuffer
   /** @deprecated */
