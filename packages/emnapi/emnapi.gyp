@@ -156,6 +156,7 @@
         'number.cc',
         'template.cc',
         'try_catch.cc',
+        'node.cc',
         'script.cc'
       ],
       'defines': [

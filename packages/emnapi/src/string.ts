@@ -1,7 +1,7 @@
 /* eslint-disable @stylistic/indent */
 
 import { wasmMemory } from 'emscripten:runtime'
-import { getUnsharedTextDecoderView, makeSetValue, from64 } from 'emscripten:parse-tools'
+import { getUnsharedTextDecoderView, makeSetValue, from64, makeGetValue } from 'emscripten:parse-tools'
 import { emnapiCtx } from 'emnapi:shared'
 import { $CHECK_NEW_STRING_ARGS } from './macro'
 
@@ -298,5 +298,26 @@ export var emnapiString = {
       }
     }
     return status
+  },
+  encode (str: number, autoLength: boolean, sizeLength: number, convert: (c: number) => string) {
+    let latin1String = ''
+    let len = 0
+    if (autoLength) {
+      while (true) {
+        const ch = makeGetValue('str', 0, 'u8') as number
+        if (!ch) break
+        latin1String += convert(ch)
+        str++
+      }
+    } else {
+      while (len < sizeLength) {
+        const ch = makeGetValue('str', 0, 'u8') as number
+        if (!ch) break
+        latin1String += convert(ch)
+        len++
+        str++
+      }
+    }
+    return latin1String
   }
 }

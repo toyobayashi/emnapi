@@ -75,25 +75,7 @@ export function napi_create_double (env: napi_env, value: double, result: Pointe
  */
 export function napi_create_string_latin1 (env: napi_env, str: const_char_p, length: size_t, result: Pointer<napi_value>): napi_status {
   return emnapiString.newString(env, str as number, length, result, (str, autoLength, sizeLength) => {
-    let latin1String = ''
-    let len = 0
-    if (autoLength) {
-      while (true) {
-        const ch = makeGetValue('str', 0, 'u8') as number
-        if (!ch) break
-        latin1String += String.fromCharCode(ch)
-        str++
-      }
-    } else {
-      while (len < sizeLength) {
-        const ch = makeGetValue('str', 0, 'u8') as number
-        if (!ch) break
-        latin1String += String.fromCharCode(ch)
-        len++
-        str++
-      }
-    }
-    return latin1String
+    return emnapiString.encode(str, autoLength, sizeLength, (c) => String.fromCharCode(c))
   })
 }
 
