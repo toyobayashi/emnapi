@@ -195,9 +195,12 @@ export function createNapiModule (options) {
     strict: false
   })
 
+  const ctxVarName = 'emnapiPluginCtx'
+
   const coreV8RollupBuild = await rollup({
     input: path.join(__dirname, '../src/v8/index.ts'),
     treeshake: false,
+    external: ['emscripten:runtime'],
     plugins: [
       rollupTypescript({
         tsconfig: v8TsconfigPath,
@@ -222,7 +225,9 @@ export function createNapiModule (options) {
                   defines: {
                     MEMORY64: 0
                   },
-                  plugin: true,
+                  plugin: {
+                    contextVar: ctxVarName
+                  },
                   runtimeModuleSpecifier,
                   parseToolsModuleSpecifier
                 })
@@ -245,8 +250,8 @@ export function createNapiModule (options) {
             }
           })
           const parsedCode = compiler.parseCode(code)
-          return `export default function (ctx) {
-  const { wasmMemory, wasmTable, emnapiCtx, emnapiString } = ctx
+          return `export default function (${ctxVarName}) {
+  const { emnapiCtx, emnapiString } = ${ctxVarName}
   ${parsedCode}
   return {
     importObject: (original) => {
@@ -263,7 +268,10 @@ export function createNapiModule (options) {
     file: path.join(outputDir, 'v8.js'),
     format: 'iife',
     name: 'exports',
-    strict: false
+    strict: false,
+    globals: {
+      'emscripten:runtime': ctxVarName
+    }
   })
 }
 

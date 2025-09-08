@@ -31,9 +31,13 @@ export interface Defines {
   MEMORY64?: CStyleBoolean
 }
 
+export type PluginOption = boolean | {
+  contextVar?: string
+}
+
 export interface TransformOptions extends BaseTransformOptions {
   defines?: Defines
-  plugin?: boolean
+  plugin?: PluginOption
 }
 
 // function isEmscriptenMacro (text: string): boolean {
@@ -244,7 +248,7 @@ class Transform {
 
   readonly runtimeModuleSpecifier: string
   readonly parseToolsModuleSpecifier: string
-  readonly plugin: boolean
+  readonly plugin: PluginOption
 
   constructor (public program: Program, context: TransformationContext, config?: TransformOptions) {
     const { runtimeModuleSpecifier, parseToolsModuleSpecifier } = getDefaultBaseOptions(config)
@@ -267,7 +271,10 @@ class Transform {
 
   createLazyEmscriptenRuntimeSymbol (name: string) {
     return this.plugin
-      ? this.ctx.factory.createCallExpression(this.ctx.factory.createIdentifier(name), undefined, [])
+      ? this.ctx.factory.createPropertyAccessExpression(
+        this.ctx.factory.createIdentifier((this.plugin as any).contextVar || 'emnapiPluginCtx'),
+        this.ctx.factory.createIdentifier(name)
+      )
       : this.ctx.factory.createIdentifier(name)
   }
 
