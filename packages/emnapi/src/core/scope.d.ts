@@ -1,6 +1,6 @@
 declare interface PluginContext {
-  wasmMemory: () => WebAssembly.Memory
-  wasmTable: () => WebAssembly.Table
+  readonly wasmMemory: WebAssembly.Memory
+  readonly wasmTable: WebAssembly.Table
   emnapiCtx: Context
   emnapiString: typeof import('../string').emnapiString
 }

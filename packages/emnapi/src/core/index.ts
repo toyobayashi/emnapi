@@ -95,8 +95,8 @@ napiModule.imports.napi.napi_unref_threadsafe_function = napi_unref_threadsafe_f
 napiModule.imports.napi.napi_ref_threadsafe_function = napi_ref_threadsafe_function
 
 const pluginCtx = {
-  wasmMemory: () => wasmMemory,
-  wasmTable: () => wasmTable,
+  get wasmMemory () { return wasmMemory },
+  get wasmTable () { return wasmTable },
   emnapiCtx,
   emnapiString
 }

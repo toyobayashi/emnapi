@@ -1,4 +1,5 @@
-import { from64, makeGetValue } from 'emscripten:parse-tools'
+import { from64 } from 'emscripten:parse-tools'
+import { wasmMemory } from 'emscripten:runtime'
 
 /**
  * @__deps $emnapiCtx
@@ -24,7 +25,7 @@ export function _node_encode (isolate: Ptr, buf: Ptr, len: size_t, encoding: num
       emnapiCtx.isolate.throwException(new Error('Buffer is not supported'))
       return 1
     }
-    const buffer = Buffer.from(wasmMemory().buffer, buf as number, len >>> 0)
+    const buffer = Buffer.from(wasmMemory.buffer, buf as number, len >>> 0)
     return emnapiCtx.napiValueFromJsValue(buffer.toString('base64'))
   }
 
@@ -46,7 +47,7 @@ export function _node_encode (isolate: Ptr, buf: Ptr, len: size_t, encoding: num
       emnapiCtx.isolate.throwException(new Error('Buffer is not supported'))
       return 1
     }
-    const buffer = Buffer.from(wasmMemory().buffer, buf as number, len >>> 0)
+    const buffer = Buffer.from(wasmMemory.buffer, buf as number, len >>> 0)
     return emnapiCtx.napiValueFromJsValue(buffer)
   }
 
