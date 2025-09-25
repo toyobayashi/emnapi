@@ -8,14 +8,28 @@ on:
     branches:
     - main
     - test-*
-    tags:
-    - v*
-    - wasi-threads-v*
   pull_request:
     paths-ignore:
     - '**/*.md'
     - '**/docs/**'
   workflow_dispatch:
+    inputs:
+      release_independent_package:
+        description: 'Release independent package'
+        required: true
+        default: 'none'
+        type: choice
+        options:
+        - 'none'
+        - 'main'
+        - 'wasi-threads'
+        - 'ts-transform-macro'
+        - 'rollup-plugin-emscripten-esm-library'
+        - 'ts-transform-emscripten-esm-library'
+
+permissions:
+  id-token: write
+  contents: write
 
 env:
   WASI_VERSION: '27'
@@ -79,8 +93,6 @@ jobs:
       with:
         node-version: ${{ matrix.target == 'wasm64-unknown-emscripten' && '24.5.0' || env.NODE_VERSION }}
         registry-url: 'https://registry.npmjs.org'
-      env:
-        NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
     - name: NPM Install
       shell: bash
@@ -143,8 +155,8 @@ jobs:
         npm run test:wasm32 -w packages/test
 
   release:
-    name: Release
-    if: ${{ startsWith(github.event.ref, 'refs/tags/v') }}
+    name: Release main packages
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.release_independent_package == 'main' }}
     needs: build
     runs-on: ubuntu-latest
 
@@ -169,9 +181,9 @@ jobs:
       with:
         node-version: ${{ env.NODE_VERSION }}
         registry-url: 'https://registry.npmjs.org'
-      env:
-        NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
+    
+    - name: Update npm
+      run: npm install -g npm@latest
     - name: NPM Install
       shell: bash
       run: |
@@ -186,22 +198,31 @@ jobs:
       run: |
         node ./script/release.js
         npm publish --ignore-scripts -w packages/runtime -w packages/node -w packages/emnapi -w packages/core
+    
+    - name: Get version
+      id: pkg
+      run: echo "version=$(node -p \"require('./packages/emnapi/package.json').version\")" >> $GITHUB_OUTPUT
+
+    - name: Create tag
+      run: |
+        git tag v${{ steps.pkg.outputs.version }}
+        git push origin v${{ steps.pkg.outputs.version }}
 
     - name: Create release
       uses: softprops/action-gh-release@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: ${{ github.ref_name }}
-        name: ${{ github.ref_name }}
+        tag_name: v${{ steps.pkg.outputs.version }}
+        name: v${{ steps.pkg.outputs.version }}
         draft: true
         prerelease: false
         generate_release_notes: true
         files: ./script/emnapi.zip
 
-  release-wasi-threads:
-    name: Release
-    if: ${{ startsWith(github.event.ref, 'refs/tags/wasi-threads-v') }}
+  release-independent-package:
+    name: Release independent package
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.release_independent_package && inputs.release_independent_package != 'none' && inputs.release_independent_package != 'main' }}
     needs: build
     runs-on: ubuntu-latest
 
@@ -211,9 +232,8 @@ jobs:
       with:
         node-version: ${{ env.NODE_VERSION }}
         registry-url: 'https://registry.npmjs.org'
-      env:
-        NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
+    - name: Update npm
+      run: npm install -g npm@latest
     - name: NPM Install
       shell: bash
       run: |
@@ -222,7 +242,16 @@ jobs:
 
     - name: NPM Build
       shell: bash
-      run: npm run build -w packages/wasi-threads
+      run: npm run build -w packages/${{ inputs.release_independent_package }}
 
     - name: Publish
-      run: npm publish --ignore-scripts -w packages/wasi-threads
+      run: npm publish --ignore-scripts -w packages/${{ inputs.release_independent_package }}
+    
+    - name: Get version
+      id: pkg
+      run: echo "version=$(node -p \"require('./packages/${{ inputs.release_independent_package }}/package.json').version\")" >> $GITHUB_OUTPUT
+
+    - name: Create tag
+      run: |
+        git tag ${{ inputs.release_independent_package }}-v${{ steps.pkg.outputs.version }}
+        git push origin ${{ inputs.release_independent_package }}-v${{ steps.pkg.outputs.version }}
