@@ -183,8 +183,8 @@ export function node_api_is_sharedarraybuffer (env: napi_env, value: napi_value,
   from64('result')
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const r = (
-    (typeof SharedArrayBuffer === 'function' && h instanceof SharedArrayBuffer) ||
-    (Object.prototype.toString.call(h) === '[object SharedArrayBuffer]')
+    (typeof SharedArrayBuffer === 'function' && h.value instanceof SharedArrayBuffer) ||
+    (Object.prototype.toString.call(h.value) === '[object SharedArrayBuffer]')
   )
     ? 1
     : 0
