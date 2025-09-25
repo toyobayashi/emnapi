@@ -179,9 +179,9 @@ export function node_api_is_sharedarraybuffer (env: napi_env, value: napi_value,
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, value)
   $CHECK_ARG!(envObject, result)
-  const h = emnapiCtx.jsValueFromNapiValue(value)!
+  const h = emnapiCtx.handleStore.get(value)!
   from64('result')
-
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const r = (
     (typeof SharedArrayBuffer === 'function' && h instanceof SharedArrayBuffer) ||
     (Object.prototype.toString.call(h) === '[object SharedArrayBuffer]')
