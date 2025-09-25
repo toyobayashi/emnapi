@@ -35,10 +35,10 @@ export function napi_create_array_with_length (env: napi_env, length: size_t, re
   return envObject.clearLastError()
 }
 
-function emnapiCreateArrayBuffer (byte_length: size_t, data: void_pp): ArrayBuffer {
+function emnapiCreateArrayBuffer (byte_length: size_t, data: void_pp, shared: boolean): ArrayBufferLike {
   from64('byte_length')
   byte_length = byte_length >>> 0
-  const arrayBuffer = new ArrayBuffer(byte_length)
+  const arrayBuffer = shared ? new SharedArrayBuffer(byte_length) : new ArrayBuffer(byte_length)
 
   if (data) {
     from64('data')
@@ -60,7 +60,24 @@ export function napi_create_arraybuffer (env: napi_env, byte_length: size_t, dat
   return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, result)
     from64('result')
-    const arrayBuffer = emnapiCreateArrayBuffer(byte_length, data)
+    const arrayBuffer = emnapiCreateArrayBuffer(byte_length, data, false)
+    value = emnapiCtx.addToCurrentScope(arrayBuffer).id
+    makeSetValue('result', 0, 'value', '*')
+    return envObject.getReturnStatus()
+  })
+}
+
+/**
+ * @__sig ipppp
+ */
+export function node_api_create_sharedarraybuffer (env: napi_env, byte_length: size_t, data: void_pp, result: Pointer<napi_value>): napi_status {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  let value: napi_value
+
+  return $PREAMBLE!(env, (envObject) => {
+    $CHECK_ARG!(envObject, result)
+    from64('result')
+    const arrayBuffer = emnapiCreateArrayBuffer(byte_length, data, true)
     value = emnapiCtx.addToCurrentScope(arrayBuffer).id
     makeSetValue('result', 0, 'value', '*')
     return envObject.getReturnStatus()
@@ -378,7 +395,7 @@ export function napi_create_buffer_copy (
     if (!Buffer) {
       throw emnapiCtx.createNotSupportBufferError('napi_create_buffer_copy', '')
     }
-    const arrayBuffer = emnapiCreateArrayBuffer(length, result_data)
+    const arrayBuffer = emnapiCreateArrayBuffer(length, result_data, false)
     const buffer = Buffer.from(arrayBuffer)
     from64('data')
     from64('length')

@@ -31,7 +31,7 @@ export function napi_get_arraybuffer_info (env: napi_env, arraybuffer: napi_valu
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, arraybuffer)
   const handle = emnapiCtx.handleStore.get(arraybuffer)!
-  if (!handle.isArrayBuffer()) {
+  if (!handle.isArrayBuffer() && !emnapiExternalMemory.isSharedArrayBuffer(handle.value)) {
     return envObject.setLastError(napi_status.napi_invalid_arg)
   }
   if (data) {
@@ -128,7 +128,7 @@ export function napi_get_typedarray_info (
     from64('length')
     makeSetValue('length', 0, 'v.length', SIZE_TYPE)
   }
-  let buffer: ArrayBuffer
+  let buffer: ArrayBufferLike
   if (data || arraybuffer) {
     buffer = v.buffer
     if (data) {
@@ -194,7 +194,7 @@ export function napi_get_dataview_info (
     from64('byte_length')
     makeSetValue('byte_length', 0, 'v.byteLength', SIZE_TYPE)
   }
-  let buffer: ArrayBuffer
+  let buffer: ArrayBufferLike
   if (data || arraybuffer) {
     buffer = v.buffer
     if (data) {

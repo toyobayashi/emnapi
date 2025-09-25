@@ -42,12 +42,13 @@ export interface ViewPointer<T extends ArrayBufferView> extends ArrayBufferPoint
  */
 export const emnapiExternalMemory: {
   registry: FinalizationRegistry<number> | undefined
-  table: WeakMap<ArrayBuffer, ArrayBufferPointer>
+  table: WeakMap<ArrayBufferLike, ArrayBufferPointer>
   wasmMemoryViewTable: WeakMap<ArrayBufferView, MemoryViewDescriptor>
   init: () => void
+  isSharedArrayBuffer: (value: any) => value is SharedArrayBuffer
   isDetachedArrayBuffer: (arrayBuffer: ArrayBufferLike) => boolean
   getOrUpdateMemoryView: <T extends ArrayBufferView>(view: T) => T
-  getArrayBufferPointer: (arrayBuffer: ArrayBuffer, shouldCopy: boolean) => ArrayBufferPointer
+  getArrayBufferPointer: (arrayBuffer: ArrayBufferLike, shouldCopy: boolean) => ArrayBufferPointer
   getViewPointer: <T extends ArrayBufferView>(view: T, shouldCopy: boolean) => ViewPointer<T>
 } = {
   registry: typeof FinalizationRegistry === 'function' ? new FinalizationRegistry(function (_pointer) { _free(to64('_pointer') as number) }) : undefined,
@@ -58,6 +59,13 @@ export const emnapiExternalMemory: {
     emnapiExternalMemory.registry = typeof FinalizationRegistry === 'function' ? new FinalizationRegistry(function (_pointer) { _free(to64('_pointer') as number) }) : undefined
     emnapiExternalMemory.table = new WeakMap()
     emnapiExternalMemory.wasmMemoryViewTable = new WeakMap()
+  },
+
+  isSharedArrayBuffer (value: any): value is SharedArrayBuffer {
+    return (
+      (typeof SharedArrayBuffer === 'function' && value instanceof SharedArrayBuffer) ||
+      (Object.prototype.toString.call(value) === '[object SharedArrayBuffer]')
+    )
   },
 
   isDetachedArrayBuffer: function (arrayBuffer: ArrayBufferLike): boolean {
@@ -72,7 +80,7 @@ export const emnapiExternalMemory: {
     return false
   },
 
-  getArrayBufferPointer: function (arrayBuffer: ArrayBuffer, shouldCopy: boolean): ArrayBufferPointer {
+  getArrayBufferPointer: function (arrayBuffer: ArrayBufferLike, shouldCopy: boolean): ArrayBufferPointer {
     const info: ArrayBufferPointer = {
       address: 0,
       ownership: ReferenceOwnership.kRuntime,
