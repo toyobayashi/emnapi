@@ -26,11 +26,6 @@ on:
         - 'ts-transform-macro'
         - 'rollup-plugin-emscripten-esm-library'
         - 'ts-transform-emscripten-esm-library'
-      tag_version:
-        description: 'Tag version'
-        required: false
-        default: ''
-        type: string
 
 permissions:
   id-token: write
@@ -209,19 +204,23 @@ jobs:
       run: |
         node ./script/release.js
         npm publish --ignore-scripts -w packages/runtime -w packages/node -w packages/emnapi -w packages/core
+    
+    - name: Get version
+      id: pkg
+      run: echo "version=$(node -p \"require('./packages/emnapi/package.json').version\")" >> $GITHUB_OUTPUT
 
     - name: Create tag
       run: |
-        git tag v${{ inputs.tag_version }}
-        git push origin v${{ inputs.tag_version }}
+        git tag v${{ steps.pkg.outputs.version }}
+        git push origin v${{ steps.pkg.outputs.version }}
 
     - name: Create release
       uses: softprops/action-gh-release@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: v${{ inputs.tag_version }}
-        name: v${{ inputs.tag_version }}
+        tag_name: v${{ steps.pkg.outputs.version }}
+        name: v${{ steps.pkg.outputs.version }}
         draft: true
         prerelease: false
         generate_release_notes: true
@@ -254,7 +253,11 @@ jobs:
     - name: Publish
       run: npm publish --ignore-scripts -w packages/${{ inputs.release_independent_package }}
     
+    - name: Get version
+      id: pkg
+      run: echo "version=$(node -p \"require('./packages/${{ inputs.release_independent_package }}/package.json').version\")" >> $GITHUB_OUTPUT
+
     - name: Create tag
       run: |
-        git tag ${{ inputs.release_independent_package }}-v${{ inputs.tag_version }}
-        git push origin ${{ inputs.release_independent_package }}-v${{ inputs.tag_version }}
+        git tag ${{ inputs.release_independent_package }}-v${{ steps.pkg.outputs.version }}
+        git push origin ${{ inputs.release_independent_package }}-v${{ steps.pkg.outputs.version }}
