@@ -167,6 +167,24 @@ export function napi_is_arraybuffer (env: napi_env, value: napi_value, result: P
 }
 
 /** @__sig ippp */
+export function node_api_is_sharedarraybuffer (env: napi_env, value: napi_value, result: Pointer<bool>): napi_status {
+  const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
+  $CHECK_ARG!(envObject, value)
+  $CHECK_ARG!(envObject, result)
+  const h = emnapiCtx.jsValueFromNapiValue(value)!
+  from64('result')
+
+  const r = (
+    (typeof SharedArrayBuffer === 'function' && h instanceof SharedArrayBuffer) ||
+    (Object.prototype.toString.call(h) === '[object SharedArrayBuffer]')
+  )
+    ? 1
+    : 0
+  makeSetValue('result', 0, 'r', 'i8')
+  return envObject.clearLastError()
+}
+
+/** @__sig ippp */
 export function napi_is_date (env: napi_env, value: napi_value, result: Pointer<bool>): napi_status {
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, value)

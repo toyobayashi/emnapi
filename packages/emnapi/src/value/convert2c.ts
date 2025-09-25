@@ -31,7 +31,7 @@ export function napi_get_arraybuffer_info (env: napi_env, arraybuffer: napi_valu
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, arraybuffer)
   const jsValue = emnapiCtx.jsValueFromNapiValue(arraybuffer)!
-  if (!(jsValue instanceof ArrayBuffer)) {
+  if (!(jsValue instanceof ArrayBuffer) && !emnapiExternalMemory.isSharedArrayBuffer(jsValue)) {
     return envObject.setLastError(napi_status.napi_invalid_arg)
   }
   if (data) {

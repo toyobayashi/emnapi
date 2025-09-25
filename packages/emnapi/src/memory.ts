@@ -32,9 +32,10 @@ export const emnapiExternalMemory: {
   table: WeakMap<ArrayBuffer, ArrayBufferPointer>
   wasmMemoryViewTable: WeakMap<ArrayBufferView, MemoryViewDescriptor>
   init: () => void
+  isSharedArrayBuffer: (value: any) => value is SharedArrayBuffer
   isDetachedArrayBuffer: (arrayBuffer: ArrayBufferLike) => boolean
   getOrUpdateMemoryView: <T extends ArrayBufferView>(view: T) => T
-  getArrayBufferPointer: (arrayBuffer: ArrayBuffer, shouldCopy: boolean) => ArrayBufferPointer
+  getArrayBufferPointer: (arrayBuffer: ArrayBufferLike, shouldCopy: boolean) => ArrayBufferPointer
   getViewPointer: <T extends ArrayBufferView>(view: T, shouldCopy: boolean) => ViewPointer<T>
 } = {
   registry: typeof FinalizationRegistry === 'function' ? new FinalizationRegistry(function (_pointer) { _free(to64('_pointer') as number) }) : undefined,
@@ -45,6 +46,13 @@ export const emnapiExternalMemory: {
     emnapiExternalMemory.registry = typeof FinalizationRegistry === 'function' ? new FinalizationRegistry(function (_pointer) { _free(to64('_pointer') as number) }) : undefined
     emnapiExternalMemory.table = new WeakMap()
     emnapiExternalMemory.wasmMemoryViewTable = new WeakMap()
+  },
+
+  isSharedArrayBuffer (value: any): value is SharedArrayBuffer {
+    return (
+      (typeof SharedArrayBuffer === 'function' && value instanceof SharedArrayBuffer) ||
+      (Object.prototype.toString.call(value) === '[object SharedArrayBuffer]')
+    )
   },
 
   isDetachedArrayBuffer: function (arrayBuffer: ArrayBufferLike): boolean {
