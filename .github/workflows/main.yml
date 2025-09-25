@@ -164,7 +164,7 @@ jobs:
 
   release:
     name: Release main packages
-    if: ${{ inputs.release_independent_package == 'main' }}
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.release_independent_package == 'main' }}
     needs: build
     runs-on: ubuntu-latest
 
@@ -229,7 +229,7 @@ jobs:
 
   release-independent-package:
     name: Release independent package
-    if: ${{ inputs.release_independent_package != 'none' && inputs.release_independent_package != 'main' }}
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.release_independent_package && inputs.release_independent_package != 'none' && inputs.release_independent_package != 'main' }}
     needs: build
     runs-on: ubuntu-latest
 
