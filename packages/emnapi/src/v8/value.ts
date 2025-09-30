@@ -1,5 +1,15 @@
 /**
  * @__deps $emnapiCtx
+ * @__sig ipp
+ */
+export function _v8_value_strict_equals (value: Ptr, that: Ptr): int {
+  const jsValue = emnapiCtx.jsValueFromNapiValue(value)
+  const jsThat = emnapiCtx.jsValueFromNapiValue(that)
+  return Object.is(jsValue, jsThat) ? 1 : 0
+}
+
+/**
+ * @__deps $emnapiCtx
  * @__sig ppp
  */
 export function _v8_value_to_boolean (value: Ptr, isolate: Ptr): Ptr {
