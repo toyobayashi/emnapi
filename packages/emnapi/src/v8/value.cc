@@ -3,6 +3,7 @@
 namespace v8 {
 
 extern "C" {
+  V8_EXTERN bool _v8_value_strict_equals(const Value*, Value*);
   V8_EXTERN internal::Address _v8_value_to_boolean(const Value*, Isolate*);
   V8_EXTERN internal::Address _v8_value_to_number(const Value*, Context*);
   V8_EXTERN internal::Address _v8_value_to_string(const Value*, Context*);
@@ -21,6 +22,10 @@ extern "C" {
 }
 
 void Value::CheckCast(Data*) {}
+
+bool Value::StrictEquals(Local<Value> that) const {
+  return _v8_value_strict_equals(this, *that);
+}
 
 Local<Boolean> Value::ToBoolean(Isolate* isolate) const {
   return v8impl::V8LocalValueFromAddress(_v8_value_to_boolean(this, isolate)).As<Boolean>();

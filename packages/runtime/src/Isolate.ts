@@ -7,6 +7,7 @@ import { Persistent, PersistentStore, type PersistentValueType } from './Persist
 import { detectFeatures, type Resolver, type Features } from './util'
 import type { HandleScope, ICallbackInfo } from './HandleScope'
 import { External, getExternalValue, isExternal } from './External'
+import { deletePrivate, getPrivate, hasPrivate, Private, setPrivate } from './Private'
 
 export interface IsolateOptions {
   features?: Partial<Features>
@@ -209,6 +210,32 @@ export class Isolate {
   //#region Promises
   public createResolver<T> (): Resolver<T> {
     return this.features.withResolvers.call<PromiseConstructor, [], Resolver<T>>(Promise)
+  }
+  //#endregion
+
+  //#region Private
+  public createPrivate (name: string): Private {
+    return new Private(name)
+  }
+
+  public getOrCreateGlobalPrivate (name: string): Private {
+    return Private.forApi(name)
+  }
+
+  public setPrivate (obj: any, key: Private, value: any): void {
+    return setPrivate(obj, key, value)
+  }
+
+  public getPrivate (obj: any, key: Private): any {
+    return getPrivate(obj, key)
+  }
+
+  public hasPrivate (obj: any, key: Private): boolean {
+    return hasPrivate(obj, key)
+  }
+
+  public deletePrivate (obj: any, key: Private): boolean {
+    return deletePrivate(obj, key)
   }
   //#endregion
 }
