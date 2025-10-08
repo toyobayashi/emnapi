@@ -10,6 +10,10 @@ extern "C" {
 
 void Context::CheckCast(v8::Data*) {}
 
+Isolate* Context::GetIsolate() {
+  return v8::Isolate::GetCurrent();
+}
+
 Isolate* Isolate::GetCurrent() {
   static internal::Isolate current_isolate;
   return reinterpret_cast<Isolate*>(&current_isolate);

@@ -67,3 +67,12 @@ export function _v8_integer_new (isolate: Ptr, value: number): Ptr {
 export function _v8_integer_new_from_unsigned (isolate: Ptr, value: number): Ptr {
   return emnapiCtx.napiValueFromJsValue(value >>> 0)
 }
+
+/**
+ * @__deps $emnapiCtx
+ * @__sig ppd
+ */
+export function _v8_number_object_new (isolate: Ptr, value: double): Ptr {
+  // eslint-disable-next-line no-new-wrappers
+  return emnapiCtx.napiValueFromJsValue(new Number(value))
+}

@@ -4,9 +4,13 @@ namespace v8 {
 
 extern "C" {
   V8_EXTERN internal::Address _v8_string_new_from_utf8(Isolate* isolate, const char* data, v8::NewStringType type, int length);
+  V8_EXTERN internal::Address _v8_string_new_from_one_byte(Isolate* isolate, const uint8_t* data, v8::NewStringType type, int length);
+  V8_EXTERN internal::Address _v8_string_new_from_two_byte(Isolate* isolate, const uint16_t* data, v8::NewStringType type, int length);
   V8_EXTERN int _v8_string_utf8_length(const String* self, Isolate* isolate);
   V8_EXTERN int _v8_string_length(const String* self);
   V8_EXTERN int _v8_string_write_utf8(const String* self, Isolate* isolate, char* buffer, int length, int* nchars_ref, int options);
+  V8_EXTERN internal::Address _v8_regex_new(Context* context, internal::Address pattern, int flags);
+  V8_EXTERN internal::Address _v8_string_object_new(Isolate* isolate, internal::Address value);
 }
 
 void String::CheckCast(v8::Data*) {}
@@ -15,6 +19,31 @@ MaybeLocal<String> String::NewFromUtf8(v8::Isolate* isolate, char const* data, v
   auto str = _v8_string_new_from_utf8(isolate, data, type, length);
   if (!str) return MaybeLocal<String>();
   return v8impl::V8LocalValueFromAddress(str).As<String>();
+}
+
+MaybeLocal<String> String::NewFromOneByte(Isolate* isolate, const uint8_t* data, NewStringType type, int length) {
+  auto str = _v8_string_new_from_one_byte(isolate, reinterpret_cast<const uint8_t*>(data), type, length);
+  if (!str) return MaybeLocal<String>();
+  return v8impl::V8LocalValueFromAddress(str).As<String>();
+}
+
+MaybeLocal<String> String::NewFromTwoByte(Isolate* isolate, const uint16_t* data, NewStringType type, int length) {
+  auto str = _v8_string_new_from_two_byte(isolate, data, type, length);
+  if (!str) return MaybeLocal<String>();
+  return v8impl::V8LocalValueFromAddress(str).As<String>();
+}
+
+MaybeLocal<RegExp> RegExp::New(Local<Context> context,
+                               Local<String> pattern,
+                               Flags flags) {
+  auto regex = _v8_regex_new(*context, v8impl::AddressFromV8LocalValue(pattern), flags);
+  if (!regex) return MaybeLocal<RegExp>();
+  return v8impl::V8LocalValueFromAddress(regex).As<RegExp>();
+}
+
+Local<Value> StringObject::New(Isolate* isolate, Local<String> value) {
+  auto str = _v8_string_object_new(isolate, v8impl::AddressFromV8LocalValue(value));
+  return v8impl::V8LocalValueFromAddress(str);
 }
 
 int String::Utf8Length(v8::Isolate* isolate) const {

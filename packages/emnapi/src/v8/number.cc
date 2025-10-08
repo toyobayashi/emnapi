@@ -1,4 +1,5 @@
 #include "v8_impl.h"
+#include "emnapi.h"
 
 namespace v8 {
 
@@ -10,6 +11,7 @@ extern "C" {
   V8_EXTERN void _v8_integer_value(const Integer*, int64_t*);
   V8_EXTERN uint32_t _v8_uint32_value(const Uint32*);
   V8_EXTERN int32_t _v8_int32_value(const Int32*);
+  V8_EXTERN internal::Address _v8_number_object_new(Isolate* isolate, double value);
 }
 
 void Number::CheckCast(v8::Data*) {}
@@ -51,6 +53,11 @@ Local<Integer> Integer::New(Isolate* isolate, int32_t value) {
   internal::Address number_value = _v8_integer_new(isolate, value);
   if (!number_value) return Local<Integer>();
   return v8impl::V8LocalValueFromAddress(number_value).As<Integer>();
+}
+
+Local<Value> NumberObject::New(Isolate* isolate, double value) {
+  auto n = _v8_number_object_new(isolate, value);
+  return v8impl::V8LocalValueFromAddress(n);
 }
 
 }
