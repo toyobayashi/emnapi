@@ -51,7 +51,6 @@ export function _v8_string_new_from_two_byte (isolate: Ptr, data: Ptr, type: num
  */
 export function _v8_regex_new (context: Ptr, pattern: Ptr, flags: number): Ptr {
   from64('pattern')
-  from64('length')
   const str = emnapiCtx.jsValueFromNapiValue(pattern)
   let f = ''
   if (flags & 1) f += 'g'
