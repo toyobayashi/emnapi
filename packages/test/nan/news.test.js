@@ -34,7 +34,7 @@ module.exports = {
     assert.strictEqual(bindings.newNumber(), 0.5)
     assert.strictEqual(bindings.newPositiveInteger(), 1)
     assert.strictEqual(bindings.newNegativeInteger(), -1)
-    // assert.strictEqual(bindings.newUnsignedInteger(), 0xFFFFFFFF)
+    assert.strictEqual(bindings.newUnsignedInteger(), 0xFFFFFFFF)
     assert.strictEqual(bindings.newInt32FromPositive(), -1)
     assert.strictEqual(bindings.newInt32FromNegative(), -1)
     assert.strictEqual(bindings.newUint32FromPositive(), 0xFFFFFFFF)

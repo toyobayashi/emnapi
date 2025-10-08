@@ -55,7 +55,7 @@ export function _v8_value_to_object (value: Ptr, context: Ptr): Ptr {
  */
 export function _v8_value_to_integer (value: Ptr, context: Ptr): Ptr {
   const jsValue = emnapiCtx.jsValueFromNapiValue(value)
-  const intValue = Number(jsValue) | 0
+  const intValue = Math.trunc(Number(jsValue))
   return emnapiCtx.napiValueFromJsValue(intValue)
 }
 

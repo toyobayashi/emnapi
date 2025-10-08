@@ -1,5 +1,4 @@
 #include "v8_impl.h"
-#include "emnapi.h"
 
 namespace v8 {
 
