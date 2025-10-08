@@ -18,6 +18,10 @@ class BackgroundDeserializeTask {};
 
 }
 
+void ScriptOrigin::VerifyHostDefinedOptions() const {
+
+}
+
 Local<Script> UnboundScript::BindToCurrentContext() {
   Local<Script> ret;
   internal::Address v = _v8_unbound_script_bind_to_current_context(this);
@@ -27,6 +31,14 @@ Local<Script> UnboundScript::BindToCurrentContext() {
 
 MaybeLocal<Value> Script::Run(Local<Context> context) {
   return v8impl::V8LocalValueFromAddress(_v8_script_run(this, *context));
+}
+
+MaybeLocal<Script> ScriptCompiler::Compile(Local<Context> context, Source* source, ScriptCompiler::CompileOptions options, v8::ScriptCompiler::NoCacheReason no_cache_reason) {
+  if (!source || source->source_string.IsEmpty()) return Local<Script>();
+  MaybeLocal<UnboundScript> unbound = CompileUnboundScript(
+    context->GetIsolate(), source, options, no_cache_reason);
+  if (unbound.IsEmpty()) return Local<Script>();
+  return unbound.ToLocalChecked()->BindToCurrentContext();
 }
 
 MaybeLocal<UnboundScript>

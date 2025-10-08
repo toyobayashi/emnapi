@@ -142,8 +142,10 @@
       'target_name': 'v8',
       'type': 'static_library',
       'sources': [
+        'array.cc',
         'external.cc',
         'exception.cc',
+        'date.cc',
         'function.cc',
         'handle_scope.cc',
         'internal.cc',

@@ -14,6 +14,56 @@ export function _v8_string_new_from_utf8 (isolate: Ptr, data: Ptr, type: number,
 
 /**
  * @__deps $emnapiCtx
+ * @__sig ppp
+ */
+export function _v8_string_object_new (isolate: Ptr, value: Ptr): Ptr {
+  // eslint-disable-next-line no-new-wrappers
+  return emnapiCtx.napiValueFromJsValue(new String(emnapiCtx.jsValueFromNapiValue(value)))
+}
+
+/**
+ * @__deps $emnapiCtx
+ * @__deps $emnapiString
+ * @__sig pppii
+ */
+export function _v8_string_new_from_one_byte (isolate: Ptr, data: Ptr, type: number, length: number): Ptr {
+  from64('data')
+  from64('length')
+  const str = emnapiString.encode(data as number, length === -1, length >>> 0, (c) => String.fromCharCode(c))
+  return emnapiCtx.napiValueFromJsValue(str)
+}
+
+/**
+ * @__deps $emnapiCtx
+ * @__deps $emnapiString
+ * @__sig pppii
+ */
+export function _v8_string_new_from_two_byte (isolate: Ptr, data: Ptr, type: number, length: number): Ptr {
+  from64('data')
+  from64('length')
+  const str = emnapiString.UTF16ToString(data as number, length)
+  return emnapiCtx.napiValueFromJsValue(str)
+}
+
+/**
+ * @__deps $emnapiCtx
+ * @__sig pppi
+ */
+export function _v8_regex_new (context: Ptr, pattern: Ptr, flags: number): Ptr {
+  from64('pattern')
+  const str = emnapiCtx.jsValueFromNapiValue(pattern)
+  let f = ''
+  if (flags & 1) f += 'g'
+  if (flags & 2) f += 'i'
+  if (flags & 4) f += 'm'
+  if (flags & 8) f += 'y'
+  if (flags & 16) f += 'u'
+  if (flags & 32) f += 's'
+  return emnapiCtx.napiValueFromJsValue(f ? new RegExp(str, f) : new RegExp(str))
+}
+
+/**
+ * @__deps $emnapiCtx
  * @__deps $emnapiString
  * @__sig ipp
  */
