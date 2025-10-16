@@ -15,9 +15,6 @@ export default [
     outputFile: 'plugins/v8',
     dtsEntry: 'dist/types/emnapi/v8.d.ts',
     input: join(import.meta.dirname, 'src/emnapi/v8.js'),
-    cjs: false,
-    browser: false,
-    umd: true,
     compilerOptions: {
       declaration: false,
       declarationMap: false,

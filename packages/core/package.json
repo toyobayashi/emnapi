@@ -3,27 +3,13 @@
   "version": "1.4.0",
   "description": "emnapi core",
   "type": "module",
-  "main": "./dist/emnapi-core.cjs",
+  "main": "./dist/emnapi-core.js",
   "module": "./dist/emnapi-core.js",
-  "types": "./dist/emnapi-core.d.cts",
+  "types": "./dist/emnapi-core.d.ts",
   "sideEffects": false,
   "exports": {
-    ".": {
-      "types": {
-        "module": "./dist/emnapi-core.d.ts",
-        "module-sync": "./dist/emnapi-core.d.ts",
-        "import": "./dist/emnapi-core.d.cts",
-        "require": "./dist/emnapi-core.d.cts",
-        "default": "./dist/emnapi-core.d.cts"
-      },
-      "module": "./dist/emnapi-core.js",
-      "module-sync": "./dist/emnapi-core.js",
-      "default": "./dist/emnapi-core.cjs"
-    },
-    "./plugins/v8": {
-      "types": "./dist/plugins/v8.d.ts",
-      "default": "./dist/plugins/v8.js"
-    },
+    ".": "./dist/emnapi-core.js",
+    "./plugins/v8": "./dist/plugins/v8.js",
     "./package.json": "./package.json"
   },
   "dependencies": {
