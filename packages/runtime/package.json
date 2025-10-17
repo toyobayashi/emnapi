@@ -3,23 +3,12 @@
   "version": "1.4.0",
   "description": "emnapi runtime",
   "type": "module",
-  "main": "./dist/emnapi.cjs",
+  "main": "./dist/emnapi.js",
   "module": "./dist/emnapi.js",
-  "types": "./dist/emnapi.d.cts",
+  "types": "./dist/emnapi.d.ts",
   "sideEffects": false,
   "exports": {
-    ".": {
-      "types": {
-        "module": "./dist/emnapi.d.ts",
-        "module-sync": "./dist/emnapi.d.ts",
-        "import": "./dist/emnapi.d.cts",
-        "require": "./dist/emnapi.d.cts",
-        "default": "./dist/emnapi.d.cts"
-      },
-      "module": "./dist/emnapi.js",
-      "module-sync": "./dist/emnapi.js",
-      "default": "./dist/emnapi.cjs"
-    },
+    ".": "./dist/emnapi.js",
     "./package.json": "./package.json"
   },
   "dependencies": {

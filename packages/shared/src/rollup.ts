@@ -190,14 +190,14 @@ export function makeConfig (options: MakeConfigOptions): RollupOptions {
       format: 'umd',
       name: outputName,
       exports: outputExports,
-      sourcemap
+      // sourcemap
     } satisfies RollupOptions['output'],
     iife: {
       file: `${outputDir}/${outputFile}.iife${minify ? '.min' : ''}.cjs`,
       format: 'iife',
       name: outputName,
       exports: outputExports,
-      sourcemap
+      // sourcemap
     } satisfies RollupOptions['output']
   }
 
@@ -234,7 +234,7 @@ export function makeConfig (options: MakeConfigOptions): RollupOptions {
 }
 
 export function defineConfig (options: Options): RollupOptions[] {
-  const { browser = true, cjs = true, umd = true, ...restOptions } = options
+  const { browser = false, cjs = false, umd = false, ...restOptions } = options
   return ([
     ['esm', false],
     ...(cjs ? [['cjs', false]] as const : []),
