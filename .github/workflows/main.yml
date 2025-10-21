@@ -207,7 +207,9 @@ jobs:
     
     - name: Get version
       id: pkg
-      run: echo "version=$(node -p \"require('./packages/emnapi/package.json').version\")" >> $GITHUB_OUTPUT
+      run: |
+        version=$(node -p "require('./packages/emnapi/package.json').version")
+        echo "version=$version" >> $GITHUB_OUTPUT
 
     - name: Create tag
       run: |
@@ -255,7 +257,9 @@ jobs:
     
     - name: Get version
       id: pkg
-      run: echo "version=$(node -p \"require('./packages/${{ inputs.release_independent_package }}/package.json').version\")" >> $GITHUB_OUTPUT
+      run: |
+        version=$(node -p "require('./packages/${{ inputs.release_independent_package }}/package.json').version")
+        echo "version=$version" >> $GITHUB_OUTPUT
 
     - name: Create tag
       run: |
