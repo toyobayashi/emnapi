@@ -303,7 +303,7 @@ declare namespace Module {
 ```
 
 ```html
-<script src="node_modules/@emnapi/runtime/dist/emnapi.umd.min.js"></script>
+<script src="./node_modules/@emnapi/runtime/dist/emnapi.js"></script>
 <script src="hello.js"></script>
 <script>
 Module.onRuntimeInitialized = function () {
@@ -359,8 +359,8 @@ Module({ /* Emscripten module init options */ }).then((Module) => {
 For non-emscripten, you need to use `@emnapi/core`. The initialization is similar to emscripten.
 
 ```html
-<script src="node_modules/@emnapi/runtime/dist/emnapi.umd.min.js"></script>
-<script src="node_modules/@emnapi/core/dist/emnapi-core.umd.min.js"></script>
+<script src="./node_modules/@emnapi/runtime/dist/emnapi.js"></script>
+<script src="./node_modules/@emnapi/core/dist/emnapi-core.js"></script>
 <script>
 emnapiCore.instantiateNapiModule(fetch('./hello.wasm'), {
   context: emnapi.getDefaultContext(),
