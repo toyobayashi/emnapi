@@ -18,6 +18,7 @@ export function _v8_function_set_name (fn: Ptr, name: Ptr): void {
  * @__sig ppppp
  */
 export function _v8_function_new_instance (fn: Ptr, ctx: Ptr, argc: number, argv: Ptr): Ptr {
+  if (emnapiCtx.isolate.hasPendingException()) return 1
   const Ctor = emnapiCtx.jsValueFromNapiValue(fn)
   from64('argv')
 
@@ -41,6 +42,33 @@ export function _v8_function_new_instance (fn: Ptr, ctx: Ptr, argc: number, argv
       const BoundCtor = Ctor.bind.apply(Ctor, args) as new () => any
       ret = new BoundCtor()
     }
+  } catch (err) {
+    emnapiCtx.isolate.throwException(err)
+    return 1
+  }
+
+  return emnapiCtx.napiValueFromJsValue(ret)
+}
+
+/**
+ * @__deps $emnapiCtx
+ * @__sig ppppip
+ */
+export function _v8_function_call (fn: Ptr, ctx: Ptr, recv: Ptr, argc: number, argv: Ptr): Ptr {
+  if (emnapiCtx.isolate.hasPendingException()) return 1
+  const func = emnapiCtx.jsValueFromNapiValue(fn)
+  const thisArg = emnapiCtx.jsValueFromNapiValue(recv)
+  from64('argv')
+
+  let i: number
+  let ret: any
+  try {
+    const argList = Array(argc)
+    for (i = 0; i < argc; i++) {
+      const argVal = makeGetValue('argv', 'i * ' + POINTER_SIZE, '*')
+      argList[i] = emnapiCtx.jsValueFromNapiValue(argVal)!
+    }
+    ret = func.apply(thisArg, argList)
   } catch (err) {
     emnapiCtx.isolate.throwException(err)
     return 1

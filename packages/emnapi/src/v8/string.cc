@@ -11,6 +11,7 @@ extern "C" {
   V8_EXTERN int _v8_string_write_utf8(const String* self, Isolate* isolate, char* buffer, int length, int* nchars_ref, int options);
   V8_EXTERN internal::Address _v8_regex_new(Context* context, internal::Address pattern, int flags);
   V8_EXTERN internal::Address _v8_string_object_new(Isolate* isolate, internal::Address value);
+  V8_EXTERN internal::Address _v8_string_object_value_of(const StringObject* self);
 }
 
 void String::CheckCast(v8::Data*) {}
@@ -44,6 +45,11 @@ MaybeLocal<RegExp> RegExp::New(Local<Context> context,
 Local<Value> StringObject::New(Isolate* isolate, Local<String> value) {
   auto str = _v8_string_object_new(isolate, v8impl::AddressFromV8LocalValue(value));
   return v8impl::V8LocalValueFromAddress(str);
+}
+
+Local<String> StringObject::ValueOf() const {
+  auto str = _v8_string_object_value_of(this);
+  return v8impl::V8LocalValueFromAddress(str).As<String>();
 }
 
 int String::Utf8Length(v8::Isolate* isolate) const {

@@ -12,6 +12,7 @@
     "memfs-browser": "^3.5.10302",
     "nan": "^2.22.2",
     "node-addon-api": "8.1.0",
+    "tap": "~0.7.1",
     "why-is-node-running": "^2.3.0"
   },
   "type": "commonjs",

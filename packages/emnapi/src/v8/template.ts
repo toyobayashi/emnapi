@@ -75,6 +75,26 @@ export function _v8_function_template_new (
 
 /**
  * @__deps $emnapiCtx
+ * @__sig pppppiii
+ */
+export function _v8_function_new (
+  context: Ptr,
+  callback: Ptr,
+  cb: Ptr,
+  data: Ptr,
+  length: number,
+  behavior: number,
+  side_effect_type: number
+): Ptr {
+  const jsCb = makeDynCall('ppp', 'callback')
+  const tpl = emnapiCtx.isolate.createFunctionTemplate(
+    jsCb, cb, emnapiCtx.jsValueFromNapiValue(data), undefined)
+  const func = tpl.getFunction()
+  return emnapiCtx.napiValueFromJsValue(func)
+}
+
+/**
+ * @__deps $emnapiCtx
  * @__sig pp
  */
 export function _v8_cbinfo_holder (info: napi_callback_info): Pointer<unknown> {
