@@ -23,6 +23,15 @@ export function _v8_string_object_new (isolate: Ptr, value: Ptr): Ptr {
 
 /**
  * @__deps $emnapiCtx
+ * @__sig pp
+ */
+export function _v8_string_object_value_of (self: Ptr): Ptr {
+  const strObj = emnapiCtx.jsValueFromNapiValue(self)
+  return emnapiCtx.napiValueFromJsValue(strObj.valueOf())
+}
+
+/**
+ * @__deps $emnapiCtx
  * @__deps $emnapiString
  * @__sig pppii
  */

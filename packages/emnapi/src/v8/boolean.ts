@@ -15,3 +15,12 @@ export function _v8_boolean_object_new (isolate: Ptr, value: number): Ptr {
   // eslint-disable-next-line no-new-wrappers
   return emnapiCtx.napiValueFromJsValue(new Boolean(value))
 }
+
+/**
+ * @__deps $emnapiCtx
+ * @__sig ip
+ */
+export function _v8_boolean_object_value_of (self: Ptr): number {
+  const boolObj = emnapiCtx.jsValueFromNapiValue(self)
+  return boolObj.valueOf() ? 1 : 0
+}

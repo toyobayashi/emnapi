@@ -35,6 +35,14 @@ extern "C" {
     SideEffectType getter_side_effect_type,
     SideEffectType setter_side_effect_type
   );
+  V8_EXTERN internal::Address _v8_function_new(
+    Context* context,
+    internal::Address (*callback)(internal::Address info, v8::FunctionCallback cb),
+    v8::FunctionCallback cb,
+    internal::Address data,
+    int length,
+    int behavior,
+    int side_effect_type);
 }
 
 namespace {
@@ -209,6 +217,18 @@ MaybeLocal<Object> ObjectTemplate::NewInstance(v8::Local<v8::Context> context) {
 
 void ObjectTemplate::SetInternalFieldCount(int value) {
   _v8_object_template_set_internal_field_count(this, value);
+}
+
+MaybeLocal<Function> Function::New(
+      Local<Context> context, FunctionCallback callback,
+      Local<Value> data, int length,
+      ConstructorBehavior behavior,
+      SideEffectType side_effect_type) {
+  internal::Address func_value = _v8_function_new(
+    *context, CallbackWrap, callback, reinterpret_cast<internal::Address>(*data),
+    length, static_cast<int>(behavior), static_cast<int>(side_effect_type));
+  if (!func_value) return MaybeLocal<Function>();
+  return v8impl::V8LocalValueFromAddress(func_value).As<Function>();
 }
 
 }

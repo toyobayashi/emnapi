@@ -14,6 +14,10 @@ Isolate* Context::GetIsolate() {
   return v8::Isolate::GetCurrent();
 }
 
+Local<Context> Context::New(v8::Isolate*, v8::ExtensionConfiguration*, v8::MaybeLocal<v8::ObjectTemplate>, v8::MaybeLocal<v8::Value>, v8::DeserializeInternalFieldsCallback, v8::MicrotaskQueue*, v8::DeserializeContextDataCallback) {
+  return v8impl::V8LocalValueFromAddress(_v8_isolate_get_current_context(nullptr)).As<Context>();
+}
+
 Isolate* Isolate::GetCurrent() {
   static internal::Isolate current_isolate;
   return reinterpret_cast<Isolate*>(&current_isolate);
