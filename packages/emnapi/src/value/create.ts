@@ -197,7 +197,7 @@ export function napi_create_object (env: napi_env, result: Pointer<napi_value>):
 }
 
 /**
- * @sig ipppppp
+ * @__sig ipppppp
  */
 export function napi_create_object_with_properties (
   env: napi_env,
