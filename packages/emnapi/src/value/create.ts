@@ -1,11 +1,11 @@
 import { emnapiCtx } from 'emnapi:shared'
 import { wasmMemory, _malloc } from 'emscripten:runtime'
-import { from64, makeSetValue, to64 } from 'emscripten:parse-tools'
+import { from64, makeGetValue, makeSetValue, POINTER_SIZE, to64 } from 'emscripten:parse-tools'
 import { emnapiString } from '../string'
 import { type MemoryViewDescriptor, emnapiExternalMemory } from '../memory'
 import { emnapi_create_memory_view } from '../emnapi'
 import { napi_add_finalizer } from '../wrap'
-import { $CHECK_ARG, $CHECK_ENV_NOT_IN_GC, $GET_RETURN_STATUS, $PREAMBLE } from '../macro'
+import { $CHECK_ARG, $CHECK_ENV_NOT_IN_GC, $GET_RETURN_STATUS, $PREAMBLE, $RETURN_STATUS_IF_FALSE } from '../macro'
 
 /**
  * @__sig ipp
@@ -192,6 +192,59 @@ export function napi_create_object (env: napi_env, result: Pointer<napi_value>):
   from64('result')
 
   const value = emnapiCtx.napiValueFromJsValue({})
+  makeSetValue('result', 0, 'value', '*')
+  return envObject.clearLastError()
+}
+
+/**
+ * @__sig ipppppp
+ */
+export function napi_create_object_with_properties (
+  env: napi_env,
+  prototype_or_null: napi_value,
+  property_names: Pointer<napi_value>,
+  property_values: Pointer<napi_value>,
+  property_count: size_t,
+  result: Pointer<napi_value>
+): napi_status {
+  const envObject = $CHECK_ENV_NOT_IN_GC!(env)
+  $CHECK_ARG!(envObject, result)
+
+  from64('property_count')
+  property_count = property_count >>> 0
+
+  if (property_count > 0) {
+    $CHECK_ARG!(envObject, property_names)
+    $CHECK_ARG!(envObject, property_values)
+  }
+
+  const v8_prototype_or_null = prototype_or_null
+    ? emnapiCtx.jsValueFromNapiValue(prototype_or_null)
+    : null
+
+  const properties: PropertyDescriptorMap = {}
+
+  from64('property_names')
+  from64('property_values')
+  for (let i = 0; i < property_count; i++) {
+    const name_value = emnapiCtx.jsValueFromNapiValue(makeGetValue('property_names', 'i * ' + POINTER_SIZE, '*'))
+    $RETURN_STATUS_IF_FALSE(envObject, typeof name_value === 'string' || typeof name_value === 'symbol', napi_status.napi_name_expected)
+    properties[name_value] = {
+      value: emnapiCtx.jsValueFromNapiValue(makeGetValue('property_values', 'i * ' + POINTER_SIZE, '*')),
+      writable: true,
+      enumerable: true,
+      configurable: true
+    }
+  }
+
+  let obj: any
+  try {
+    obj = Object.defineProperties(Object.create(v8_prototype_or_null), properties)
+  } catch (_) {
+    return envObject.setLastError(napi_status.napi_generic_failure)
+  }
+  const value = emnapiCtx.napiValueFromJsValue(obj)
+  from64('result')
   makeSetValue('result', 0, 'value', '*')
   return envObject.clearLastError()
 }
