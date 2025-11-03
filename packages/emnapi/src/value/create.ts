@@ -250,7 +250,7 @@ export function napi_create_object_with_properties (
     return envObject.setLastError(napi_status.napi_generic_failure)
   }
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const value = emnapiCtx.addToCurrentScope(obj).value
+  const value = emnapiCtx.addToCurrentScope(obj).id
   from64('result')
   makeSetValue('result', 0, 'value', '*')
   return envObject.clearLastError()
