@@ -392,4 +392,22 @@ module.exports = load('object').then(test_object => {
       delete obj.x
     }, /Cannot delete property 'x' of #<Object>/)
   }
+
+  {
+    const objectWithProperties = test_object.TestCreateObjectWithProperties();
+    assert.strictEqual(typeof objectWithProperties, 'object');
+    assert.strictEqual(objectWithProperties.name, 'Foo');
+    assert.strictEqual(objectWithProperties.age, 42);
+    assert.strictEqual(objectWithProperties.active, true);
+
+    const emptyObject = test_object.TestCreateObjectWithPropertiesEmpty();
+    assert.strictEqual(typeof emptyObject, 'object');
+    assert.strictEqual(Object.keys(emptyObject).length, 0);
+
+    const objectWithCustomPrototype = test_object.TestCreateObjectWithCustomPrototype();
+    assert.strictEqual(typeof objectWithCustomPrototype, 'object');
+    assert.deepStrictEqual(Object.getOwnPropertyNames(objectWithCustomPrototype), ['value']);
+    assert.strictEqual(objectWithCustomPrototype.value, 42);
+    assert.strictEqual(typeof objectWithCustomPrototype.test, 'function');
+  }
 })
