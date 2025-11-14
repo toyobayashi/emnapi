@@ -6,6 +6,13 @@
 #endif
 
 #include "v8.h"
+#include "v8-platform.h"
+#include "node_version.h"
+#include "node_api_types.h"
+
+// Forward-declare libuv loop
+struct uv_loop_s;
+struct napi_module;
 
 namespace node {
 

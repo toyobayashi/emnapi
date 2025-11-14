@@ -255,7 +255,7 @@ export function createNapiModule (options) {
   ${parsedCode}
   return {
     importObject: (original) => {
-      Object.assign(original.env, exports)
+      Object.assign(original.env, mod)
     }
   };
 }
@@ -267,7 +267,7 @@ export function createNapiModule (options) {
   await coreV8RollupBuild.write({
     file: path.join(outputDir, 'v8.js'),
     format: 'iife',
-    name: 'exports',
+    name: 'mod',
     strict: false,
     globals: {
       'emscripten:runtime': ctxVarName
