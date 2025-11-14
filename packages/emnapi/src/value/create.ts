@@ -550,9 +550,6 @@ export function napi_create_dataview (
   byte_offset: size_t,
   result: Pointer<napi_value>
 ): napi_status {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  let value: number
-
   return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, arraybuffer)
     $CHECK_ARG!(envObject, result)
@@ -560,36 +557,39 @@ export function napi_create_dataview (
     from64('byte_offset')
     byte_length = byte_length >>> 0
     byte_offset = byte_offset >>> 0
-    const handle = emnapiCtx.handleStore.get(arraybuffer)!
-    if (!handle.isArrayBuffer()) {
+    const value = emnapiCtx.handleStore.get(arraybuffer)!.value
+
+    const createDataview = (buffer: ArrayBuffer | SharedArrayBuffer): napi_status => {
+      if ((byte_length + byte_offset) > buffer.byteLength) {
+        const err: RangeError & { code?: string } = new RangeError('byte_offset + byte_length should be less than or equal to the size in bytes of the array passed in')
+        err.code = 'ERR_NAPI_INVALID_DATAVIEW_ARGS'
+        throw err
+      }
+      const dataview = new DataView(buffer, byte_offset, byte_length)
+      if (buffer === wasmMemory.buffer) {
+        if (!emnapiExternalMemory.wasmMemoryViewTable.has(dataview)) {
+          emnapiExternalMemory.wasmMemoryViewTable.set(dataview, {
+            Ctor: DataView,
+            address: byte_offset,
+            length: byte_length,
+            ownership: ReferenceOwnership.kUserland,
+            runtimeAllocated: 0
+          })
+        }
+      }
+
+      from64('result')
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const v = emnapiCtx.addToCurrentScope(dataview).id
+      makeSetValue('result', 0, 'v', '*')
+      return envObject.getReturnStatus()
+    }
+
+    if (value instanceof ArrayBuffer || emnapiExternalMemory.isSharedArrayBuffer(value)) {
+      return createDataview(value)
+    } else {
       return envObject.setLastError(napi_status.napi_invalid_arg)
     }
-    const buffer = handle.value
-
-    if ((byte_length + byte_offset) > buffer.byteLength) {
-      const err: RangeError & { code?: string } = new RangeError('byte_offset + byte_length should be less than or equal to the size in bytes of the array passed in')
-      err.code = 'ERR_NAPI_INVALID_DATAVIEW_ARGS'
-      throw err
-    }
-
-    const dataview = new DataView(buffer, byte_offset, byte_length)
-    if (buffer === wasmMemory.buffer) {
-      if (!emnapiExternalMemory.wasmMemoryViewTable.has(dataview)) {
-        emnapiExternalMemory.wasmMemoryViewTable.set(dataview, {
-          Ctor: DataView,
-          address: byte_offset,
-          length: byte_length,
-          ownership: ReferenceOwnership.kUserland,
-          runtimeAllocated: 0
-        })
-      }
-    }
-    from64('result')
-
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    value = emnapiCtx.addToCurrentScope(dataview).id
-    makeSetValue('result', 0, 'value', '*')
-    return envObject.getReturnStatus()
   })
 }
 
