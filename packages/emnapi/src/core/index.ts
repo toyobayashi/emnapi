@@ -3,7 +3,7 @@ import { wasmMemory, wasmTable } from 'emscripten:runtime'
 
 import * as asyncMod from './async'
 import * as memoryMod from './memory'
-import * as asyncWorkMod from './async-work'
+// import * as asyncWorkMod from './async-work'
 
 import { emnapiAWST } from '../async-work'
 import { emnapiExternalMemory } from '../memory'
@@ -25,23 +25,23 @@ import * as nodeMod from '../node'
 import * as promiseMod from '../promise'
 import * as propertyMod from '../property'
 import * as scriptMod from '../script'
-import {
-  emnapiTSFN,
-  napi_create_threadsafe_function,
-  napi_get_threadsafe_function_context,
-  napi_call_threadsafe_function,
-  napi_acquire_threadsafe_function,
-  napi_release_threadsafe_function,
-  napi_unref_threadsafe_function,
-  napi_ref_threadsafe_function
-} from '../threadsafe-function'
+// import {
+//   emnapiTSFN,
+//   napi_create_threadsafe_function,
+//   napi_get_threadsafe_function_context,
+//   napi_call_threadsafe_function,
+//   napi_acquire_threadsafe_function,
+//   napi_release_threadsafe_function,
+//   napi_unref_threadsafe_function,
+//   napi_ref_threadsafe_function
+// } from '../threadsafe-function'
 import * as valueOperationMod from '../value-operation'
 import * as versionMod from '../version'
 
 emnapiAWST.init()
 emnapiExternalMemory.init()
 emnapiString.init()
-emnapiTSFN.init()
+// emnapiTSFN.init()
 PThread.init()
 
 napiModule.emnapi.syncMemory = emnapiMod.$emnapiSyncMemory
@@ -65,7 +65,7 @@ function addImports (mod: any): void {
 
 addImports(asyncMod)
 addImports(memoryMod)
-addImports(asyncWorkMod)
+// addImports(asyncWorkMod)
 
 addImports(utilMod)
 addImports(convert2cMod)
@@ -86,13 +86,13 @@ addImports(scriptMod)
 addImports(valueOperationMod)
 addImports(versionMod)
 
-napiModule.imports.napi.napi_create_threadsafe_function = napi_create_threadsafe_function
-napiModule.imports.napi.napi_get_threadsafe_function_context = napi_get_threadsafe_function_context
-napiModule.imports.napi.napi_call_threadsafe_function = napi_call_threadsafe_function
-napiModule.imports.napi.napi_acquire_threadsafe_function = napi_acquire_threadsafe_function
-napiModule.imports.napi.napi_release_threadsafe_function = napi_release_threadsafe_function
-napiModule.imports.napi.napi_unref_threadsafe_function = napi_unref_threadsafe_function
-napiModule.imports.napi.napi_ref_threadsafe_function = napi_ref_threadsafe_function
+// napiModule.imports.napi.napi_create_threadsafe_function = napi_create_threadsafe_function
+// napiModule.imports.napi.napi_get_threadsafe_function_context = napi_get_threadsafe_function_context
+// napiModule.imports.napi.napi_call_threadsafe_function = napi_call_threadsafe_function
+// napiModule.imports.napi.napi_acquire_threadsafe_function = napi_acquire_threadsafe_function
+// napiModule.imports.napi.napi_release_threadsafe_function = napi_release_threadsafe_function
+// napiModule.imports.napi.napi_unref_threadsafe_function = napi_unref_threadsafe_function
+// napiModule.imports.napi.napi_ref_threadsafe_function = napi_ref_threadsafe_function
 
 const pluginCtx = {
   get wasmMemory () { return wasmMemory },

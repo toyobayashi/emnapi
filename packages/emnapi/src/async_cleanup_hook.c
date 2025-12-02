@@ -8,7 +8,7 @@ EXTERN_C_START
 typedef void (*async_cleanup_hook)(void* arg, void(*)(void*), void*);
 
 struct async_cleanup_hook_info {
-  napi_env env;
+  node_api_basic_env env;
   async_cleanup_hook fun;
   void* arg;
   bool started;
@@ -16,7 +16,7 @@ struct async_cleanup_hook_info {
 
 struct napi_async_cleanup_hook_handle__ {
   struct async_cleanup_hook_info* handle_;
-  napi_env env_;
+  node_api_basic_env env_;
   napi_async_cleanup_hook user_hook_;
   void* user_data_;
   void (*done_cb_)(void*);
@@ -46,7 +46,7 @@ static void _emnapi_run_async_cleanup_hook(void* arg) {
 }
 
 static struct async_cleanup_hook_info*
-_emnapi_add_async_environment_cleanup_hook(napi_env env,
+_emnapi_add_async_environment_cleanup_hook(node_api_basic_env env,
                                            async_cleanup_hook fun,
                                            void* arg) {
   struct async_cleanup_hook_info* info =
@@ -68,7 +68,7 @@ static void _emnapi_remove_async_environment_cleanup_hook(
 }
 
 static napi_async_cleanup_hook_handle
-_emnapi_ach_handle_create(napi_env env,
+_emnapi_ach_handle_create(node_api_basic_env env,
                           napi_async_cleanup_hook user_hook,
                           void* user_data) {
   napi_async_cleanup_hook_handle handle =
@@ -85,7 +85,7 @@ _emnapi_ach_handle_create(napi_env env,
 EMNAPI_INTERNAL_EXTERN void _emnapi_set_immediate(void (*callback)(void*), void* data);
 
 static void _emnapi_ach_handle_env_unref(void* arg) {
-  napi_env env = (napi_env) arg;
+  node_api_basic_env env = (node_api_basic_env) arg;
   _emnapi_env_unref(env);
 }
 
@@ -94,7 +94,7 @@ _emnapi_ach_handle_delete(napi_async_cleanup_hook_handle handle) {
   _emnapi_remove_async_environment_cleanup_hook(handle->handle_);
   if (handle->done_cb_ != NULL) handle->done_cb_(handle->done_data_);
 
-  _emnapi_set_immediate(_emnapi_ach_handle_env_unref, handle->env_);
+  _emnapi_set_immediate(_emnapi_ach_handle_env_unref, (void*) handle->env_);
 
   free(handle->handle_);
   free(handle);

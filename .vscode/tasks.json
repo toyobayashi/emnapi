@@ -37,42 +37,42 @@
         "CMake: configure wasm64-unknown-emscripten"
       ]
     },
-    {
-      "type": "cmake",
-      "label": "CMake: configure wasm32-unknown-unknown",
-      "command": "configure",
-      "preset": "configure: wasm32-unknown-unknown",
-      "detail": "configure: wasm32-unknown-unknown"
-    },
-    {
-      "type": "cmake",
-      "label": "CMake: build wasm32-unknown-unknown",
-      "command": "build",
-      "preset": "build: wasm32-unknown-unknown",
-      "detail": "build: wasm32-unknown-unknown",
-      "group": "build",
-      "dependsOn": [
-        "CMake: configure wasm32-unknown-unknown"
-      ]
-    },
-    {
-      "type": "cmake",
-      "label": "CMake: configure wasm32-wasi",
-      "command": "configure",
-      "preset": "configure: wasm32-wasi",
-      "detail": "configure: wasm32-wasi"
-    },
-    {
-      "type": "cmake",
-      "label": "CMake: build wasm32-wasi",
-      "command": "build",
-      "preset": "build: wasm32-wasi",
-      "detail": "build: wasm32-wasi",
-      "group": "build",
-      "dependsOn": [
-        "CMake: configure wasm32-wasi"
-      ]
-    },
+    // {
+    //   "type": "cmake",
+    //   "label": "CMake: configure wasm32-unknown-unknown",
+    //   "command": "configure",
+    //   "preset": "configure: wasm32-unknown-unknown",
+    //   "detail": "configure: wasm32-unknown-unknown"
+    // },
+    // {
+    //   "type": "cmake",
+    //   "label": "CMake: build wasm32-unknown-unknown",
+    //   "command": "build",
+    //   "preset": "build: wasm32-unknown-unknown",
+    //   "detail": "build: wasm32-unknown-unknown",
+    //   "group": "build",
+    //   "dependsOn": [
+    //     "CMake: configure wasm32-unknown-unknown"
+    //   ]
+    // },
+    // {
+    //   "type": "cmake",
+    //   "label": "CMake: configure wasm32-wasi",
+    //   "command": "configure",
+    //   "preset": "configure: wasm32-wasi",
+    //   "detail": "configure: wasm32-wasi"
+    // },
+    // {
+    //   "type": "cmake",
+    //   "label": "CMake: build wasm32-wasi",
+    //   "command": "build",
+    //   "preset": "build: wasm32-wasi",
+    //   "detail": "build: wasm32-wasi",
+    //   "group": "build",
+    //   "dependsOn": [
+    //     "CMake: configure wasm32-wasi"
+    //   ]
+    // },
     {
       "type": "cmake",
       "label": "CMake: configure wasm32-wasi-threads",

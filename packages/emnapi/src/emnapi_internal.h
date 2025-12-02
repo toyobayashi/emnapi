@@ -100,8 +100,8 @@ EMNAPI_INTERNAL_EXTERN void _emnapi_runtime_keepalive_pop();
 
 EMNAPI_INTERNAL_EXTERN napi_handle_scope _emnapi_open_handle_scope();
 EMNAPI_INTERNAL_EXTERN void _emnapi_close_handle_scope(napi_handle_scope scope);
-EMNAPI_INTERNAL_EXTERN void _emnapi_env_ref(napi_env env);
-EMNAPI_INTERNAL_EXTERN void _emnapi_env_unref(napi_env env);
+EMNAPI_INTERNAL_EXTERN void _emnapi_env_ref(node_api_basic_env env);
+EMNAPI_INTERNAL_EXTERN void _emnapi_env_unref(node_api_basic_env env);
 EMNAPI_INTERNAL_EXTERN void _emnapi_ctx_increase_waiting_request_counter();
 EMNAPI_INTERNAL_EXTERN void _emnapi_ctx_decrease_waiting_request_counter();
 
