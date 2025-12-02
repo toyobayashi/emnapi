@@ -8,7 +8,7 @@ export {
 
 export * from './memory'
 export * from './async'
-export * from './async-work'
+// export * from './async-work'
 export * from './emnapi'
 
 export * from '../util'
@@ -27,14 +27,14 @@ export * from '../node'
 export * from '../promise'
 export * from '../property'
 export * from '../script'
-export {
-  napi_create_threadsafe_function,
-  napi_get_threadsafe_function_context,
-  napi_call_threadsafe_function,
-  napi_acquire_threadsafe_function,
-  napi_release_threadsafe_function,
-  napi_unref_threadsafe_function,
-  napi_ref_threadsafe_function
-} from '../threadsafe-function'
+// export {
+//   napi_create_threadsafe_function,
+//   napi_get_threadsafe_function_context,
+//   napi_call_threadsafe_function,
+//   napi_acquire_threadsafe_function,
+//   napi_release_threadsafe_function,
+//   napi_unref_threadsafe_function,
+//   napi_ref_threadsafe_function
+// } from '../threadsafe-function'
 export * from '../value-operation'
 export * from '../version'

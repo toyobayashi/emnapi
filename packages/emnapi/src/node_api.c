@@ -42,7 +42,7 @@ napi_status napi_get_uv_event_loop(node_api_basic_env env,
 #endif
 }
 
-EMNAPI_INTERNAL_EXTERN int _emnapi_get_filename(napi_env env, char* buf, int len);
+EMNAPI_INTERNAL_EXTERN int _emnapi_get_filename(node_api_basic_env env, char* buf, int len);
 
 napi_status node_api_get_module_file_name(node_api_basic_env env,
                                           const char** result) {

@@ -41,86 +41,86 @@ async function main () {
     ? ['-G', 'Ninja']
     : (process.platform === 'win32' ? ['-G', 'MinGW Makefiles', '-DCMAKE_MAKE_PROGRAM=make'] : [])
 
-  await spawn('cmake', [
-    ...generatorOptions,
-    '-DCMAKE_TOOLCHAIN_FILE=./cmake/wasm32.cmake',
-    `-DLLVM_PREFIX=${LLVM_PATH}`,
-    '-DCMAKE_BUILD_TYPE=Release',
-    '-DCMAKE_VERBOSE_MAKEFILE=1',
-    '-DNAPI_EXPERIMENTAL=1',
-    '-DNODE_API_EXPERIMENTAL_NO_WARNING=1',
-    '-H.',
-    '-Bbuild/wasm32'
-  ], cwd)
+  // await spawn('cmake', [
+  //   ...generatorOptions,
+  //   '-DCMAKE_TOOLCHAIN_FILE=./cmake/wasm32.cmake',
+  //   `-DLLVM_PREFIX=${LLVM_PATH}`,
+  //   '-DCMAKE_BUILD_TYPE=Release',
+  //   '-DCMAKE_VERBOSE_MAKEFILE=1',
+  //   '-DNAPI_EXPERIMENTAL=1',
+  //   '-DNODE_API_EXPERIMENTAL_NO_WARNING=1',
+  //   '-H.',
+  //   '-Bbuild/wasm32'
+  // ], cwd)
 
-  await spawn('cmake', [
-    '--build',
-    'build/wasm32'
-  ], cwd)
+  // await spawn('cmake', [
+  //   '--build',
+  //   'build/wasm32'
+  // ], cwd)
 
-  await spawn('cmake', [
-    '--install',
-    'build/wasm32',
-    '--prefix',
-    sysroot
-  ], cwd)
+  // await spawn('cmake', [
+  //   '--install',
+  //   'build/wasm32',
+  //   '--prefix',
+  //   sysroot
+  // ], cwd)
 
-  const wasiToolchainFile = `${WASI_SDK_PATH}/share/cmake/wasi-sdk.cmake`
+  // const wasiToolchainFile = `${WASI_SDK_PATH}/share/cmake/wasi-sdk.cmake`
 
-  await spawn('cmake', [
-    ...generatorOptions,
-    `-DCMAKE_TOOLCHAIN_FILE=${wasiToolchainFile}`,
-    `-DWASI_SDK_PREFIX=${WASI_SDK_PATH}`,
-    '-DCMAKE_BUILD_TYPE=Release',
-    '-DCMAKE_VERBOSE_MAKEFILE=1',
-    '-DNAPI_EXPERIMENTAL=1',
-    '-DNODE_API_EXPERIMENTAL_NO_WARNING=1',
-    '-H.',
-    '-Bbuild/wasm32-wasi'
-  ], cwd)
+  // await spawn('cmake', [
+  //   ...generatorOptions,
+  //   `-DCMAKE_TOOLCHAIN_FILE=${wasiToolchainFile}`,
+  //   `-DWASI_SDK_PREFIX=${WASI_SDK_PATH}`,
+  //   '-DCMAKE_BUILD_TYPE=Release',
+  //   '-DCMAKE_VERBOSE_MAKEFILE=1',
+  //   '-DNAPI_EXPERIMENTAL=1',
+  //   '-DNODE_API_EXPERIMENTAL_NO_WARNING=1',
+  //   '-H.',
+  //   '-Bbuild/wasm32-wasi'
+  // ], cwd)
 
-  await spawn('cmake', [
-    '--build',
-    'build/wasm32-wasi'
-  ], cwd)
+  // await spawn('cmake', [
+  //   '--build',
+  //   'build/wasm32-wasi'
+  // ], cwd)
 
-  await spawn('cmake', [
-    '--install',
-    'build/wasm32-wasi',
-    '--prefix',
-    sysroot
-  ], cwd)
+  // await spawn('cmake', [
+  //   '--install',
+  //   'build/wasm32-wasi',
+  //   '--prefix',
+  //   sysroot
+  // ], cwd)
 
-  const wasip1ToolchainFile = path.join(__dirname, 'wasip1.cmake')
-  fs.writeFileSync(
-    wasip1ToolchainFile,
-    fs.readFileSync(wasiToolchainFile, 'utf8').replace(/wasm32-wasi/g, 'wasm32-wasip1'),
-    'utf8'
-  )
+  // const wasip1ToolchainFile = path.join(__dirname, 'wasip1.cmake')
+  // fs.writeFileSync(
+  //   wasip1ToolchainFile,
+  //   fs.readFileSync(wasiToolchainFile, 'utf8').replace(/wasm32-wasi/g, 'wasm32-wasip1'),
+  //   'utf8'
+  // )
 
-  await spawn('cmake', [
-    ...generatorOptions,
-    `-DCMAKE_TOOLCHAIN_FILE=${wasip1ToolchainFile.replace(/\\/g, '/')}`,
-    `-DWASI_SDK_PREFIX=${WASI_SDK_PATH}`,
-    '-DCMAKE_BUILD_TYPE=Release',
-    '-DCMAKE_VERBOSE_MAKEFILE=1',
-    '-DNAPI_EXPERIMENTAL=1',
-    '-DNODE_API_EXPERIMENTAL_NO_WARNING=1',
-    '-H.',
-    '-Bbuild/wasm32-wasip1'
-  ], cwd)
+  // await spawn('cmake', [
+  //   ...generatorOptions,
+  //   `-DCMAKE_TOOLCHAIN_FILE=${wasip1ToolchainFile.replace(/\\/g, '/')}`,
+  //   `-DWASI_SDK_PREFIX=${WASI_SDK_PATH}`,
+  //   '-DCMAKE_BUILD_TYPE=Release',
+  //   '-DCMAKE_VERBOSE_MAKEFILE=1',
+  //   '-DNAPI_EXPERIMENTAL=1',
+  //   '-DNODE_API_EXPERIMENTAL_NO_WARNING=1',
+  //   '-H.',
+  //   '-Bbuild/wasm32-wasip1'
+  // ], cwd)
 
-  await spawn('cmake', [
-    '--build',
-    'build/wasm32-wasip1'
-  ], cwd)
+  // await spawn('cmake', [
+  //   '--build',
+  //   'build/wasm32-wasip1'
+  // ], cwd)
 
-  await spawn('cmake', [
-    '--install',
-    'build/wasm32-wasip1',
-    '--prefix',
-    sysroot
-  ], cwd)
+  // await spawn('cmake', [
+  //   '--install',
+  //   'build/wasm32-wasip1',
+  //   '--prefix',
+  //   sysroot
+  // ], cwd)
 
   let WASI_THREADS_CMAKE_TOOLCHAIN_FILE = ''
   if (fs.existsSync(path.join(wasiSdkPath, 'share/cmake/wasi-sdk-pthread.cmake'))) {
@@ -184,6 +184,8 @@ async function main () {
       '--prefix',
       sysroot
     ], cwd)
+  } else {
+    throw new Error('WASI_THREADS_CMAKE_TOOLCHAIN_FILE not found, please use latest wasi-sdk')
   }
 
   await spawn(emcmake, [
@@ -238,7 +240,7 @@ async function main () {
     sysroot
   ], cwd)
 
-  const { stderr: llvmClangVersion } = spawnSync(path.join(LLVM_PATH, 'bin/clang' + (process.platform === 'win32' ? '.exe' : '')), ['-v', '--target=wasm32'])
+  const { stderr: llvmClangVersion } = spawnSync(path.join(LLVM_PATH, 'bin/clang' + (process.platform === 'win32' ? '.exe' : '')), ['-v', '--target=wasm32-wasip1-threads'])
   const { stderr: wasiSdkClangVersion } = spawnSync(path.join(WASI_SDK_PATH, 'bin/clang' + (process.platform === 'win32' ? '.exe' : '')), ['-v'])
 
   const emcc = (process.env.EMSDK ? path.join(process.env.EMSDK, 'upstream/emscripten/emcc') : 'emcc') + (process.platform === 'win32' ? '.bat' : '')
@@ -266,17 +268,17 @@ async function main () {
   // }
 
   fs.copyFileSync(path.join(__dirname, '../packages/runtime/dist/emnapi.js'), path.join(sysroot, 'dist', 'emnapi.js'))
-  fs.copyFileSync(path.join(__dirname, '../packages/runtime/dist/emnapi.min.js'), path.join(sysroot, 'dist', 'emnapi.min.js'))
+  // fs.copyFileSync(path.join(__dirname, '../packages/runtime/dist/emnapi.min.js'), path.join(sysroot, 'dist', 'emnapi.min.js'))
   fs.copyFileSync(path.join(__dirname, '../packages/runtime/dist/emnapi.d.ts'), path.join(sysroot, 'dist', 'emnapi.d.ts'))
   fs.copyFileSync(path.join(__dirname, '../packages/core/dist/emnapi-core.js'), path.join(sysroot, 'dist', 'emnapi-core.js'))
-  fs.copyFileSync(path.join(__dirname, '../packages/core/dist/emnapi-core.min.js'), path.join(sysroot, 'dist', 'emnapi-core.min.js'))
+  // fs.copyFileSync(path.join(__dirname, '../packages/core/dist/emnapi-core.min.js'), path.join(sysroot, 'dist', 'emnapi-core.min.js'))
   fs.copyFileSync(path.join(__dirname, '../packages/core/dist/emnapi-core.d.ts'), path.join(sysroot, 'dist', 'emnapi-core.d.ts'))
 
   fs.copySync(path.join(sysroot, 'lib/wasm32-emscripten'), path.join(__dirname, '../packages/emnapi/lib/wasm32-emscripten'))
   fs.copySync(path.join(sysroot, 'lib/wasm64-emscripten'), path.join(__dirname, '../packages/emnapi/lib/wasm64-emscripten'))
-  fs.copySync(path.join(sysroot, 'lib/wasm32-wasi'), path.join(__dirname, '../packages/emnapi/lib/wasm32-wasi'))
-  fs.copySync(path.join(sysroot, 'lib/wasm32-wasip1'), path.join(__dirname, '../packages/emnapi/lib/wasm32-wasip1'))
-  fs.copySync(path.join(sysroot, 'lib/wasm32'), path.join(__dirname, '../packages/emnapi/lib/wasm32'))
+  // fs.copySync(path.join(sysroot, 'lib/wasm32-wasi'), path.join(__dirname, '../packages/emnapi/lib/wasm32-wasi'))
+  // fs.copySync(path.join(sysroot, 'lib/wasm32-wasip1'), path.join(__dirname, '../packages/emnapi/lib/wasm32-wasip1'))
+  // fs.copySync(path.join(sysroot, 'lib/wasm32'), path.join(__dirname, '../packages/emnapi/lib/wasm32'))
   if (WASI_THREADS_CMAKE_TOOLCHAIN_FILE) {
     fs.copySync(path.join(sysroot, 'lib/wasm32-wasi-threads'), path.join(__dirname, '../packages/emnapi/lib/wasm32-wasi-threads'))
     fs.copySync(path.join(sysroot, 'lib/wasm32-wasip1-threads'), path.join(__dirname, '../packages/emnapi/lib/wasm32-wasip1-threads'))

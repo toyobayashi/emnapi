@@ -40,8 +40,8 @@
       "options": [
         "wasm32-unknown-emscripten",
         "wasm64-unknown-emscripten",
-        "wasm32-unknown-unknown",
-        "wasm32-wasi",
+        // "wasm32-unknown-unknown",
+        // "wasm32-wasi",
         "wasm32-wasi-threads"
       ]
     },

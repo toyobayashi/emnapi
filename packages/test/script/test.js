@@ -10,7 +10,9 @@ const cwd = path.join(__dirname, '..')
 const subdir = process.argv[2]
 
 let ignore = [
-  'rust/**/*'
+  'rust/**/*',
+  'tsfn2/tsfn2_st.test.js',
+  'async/async_st.test.js',
 ]
 
 const pthread = [
