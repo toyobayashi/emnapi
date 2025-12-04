@@ -98,6 +98,7 @@ class Compilation {
     if (matchResult = this.lines[lineNumber].match(/^\s*\/\/\s*#else\s*$/)) return this._elseDirective(lineNumber)
     if (matchResult = this.lines[lineNumber].match(/^\s*\/\/\s*#endif\s*$/)) return this._endifDirective(lineNumber)
     if (matchResult = this.lines[lineNumber].match(/^\s*\/\/\s*#error\s+(.+?)\s*$/)) return this._errorDirective(lineNumber, matchResult[1])
+    if (matchResult = this.lines[lineNumber].match(/^\s*\/\/\s*#(region|endregion)/)) return -1
 
     throw new Error(`Syntax error: ${this.lines[lineNumber]}`)
   }
