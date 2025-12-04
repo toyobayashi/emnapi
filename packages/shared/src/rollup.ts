@@ -9,8 +9,10 @@ import {
   type ExtractorResult
 } from '@microsoft/api-extractor'
 import { PackageJsonLookup } from '@rushstack/node-core-library'
+import MagicString from 'magic-string'
 
 import { createRequire } from 'module'
+import { EOL } from 'os'
 const require = createRequire(import.meta.url)
 
 const rollupTypescript = require('@rollup/plugin-typescript').default as typeof import('@rollup/plugin-typescript').default
@@ -83,6 +85,24 @@ export interface Options extends Omit<MakeConfigOptions, 'format' | 'minify'> {
   umd?: boolean
 }
 
+export function rollupRegion (): Plugin {
+  const pkgLookup = new PackageJsonLookup()
+  return {
+    name: 'rollup-plugin-region',
+    transform (code, id) {
+      const pkgRoot = path.dirname(pkgLookup.tryGetPackageJsonFilePathFor(id) ?? process.cwd())
+      const relativePath = path.relative(pkgRoot, id)
+
+      const regionBanner = `//#region ${relativePath}${EOL}`
+      const regionFooter = `${EOL}//#endregion ${relativePath}`
+      const ms = new MagicString(code)
+      ms.prepend(regionBanner)
+      ms.append(regionFooter)
+      return { code: ms.toString(), map: ms.generateMap({ hires: true }) }
+    }
+  }
+}
+
 export function makeConfig (options: MakeConfigOptions): RollupOptions {
   const {
     input,
@@ -103,6 +123,7 @@ export function makeConfig (options: MakeConfigOptions): RollupOptions {
   const target = compilerOptions?.target ?? ts.ScriptTarget.ES2021
 
   const defaultPlugins: InputPluginOption[] = [
+    rollupRegion(),
     rollupTypescript({
       tslib: require.resolve('tslib'),
       compilerOptions: {

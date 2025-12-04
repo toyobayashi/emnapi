@@ -5,6 +5,7 @@ const ts = require('typescript')
 const rollupTypescript = require('@rollup/plugin-typescript').default
 const rollupAlias = require('@rollup/plugin-alias').default
 const { rollup } = require('rollup')
+const { rollupRegion } = require('@emnapi/shared')
 
 // const {
 //   runtimeOut
@@ -30,6 +31,7 @@ async function build () {
     input: path.join(__dirname, '../src/emscripten/index.ts'),
     treeshake: false,
     plugins: [
+      rollupRegion(),
       rollupTypescript({
         tsconfig: libTsconfigPath,
         tslib: path.join(
@@ -73,6 +75,7 @@ async function build () {
     input: path.join(__dirname, '../src/v8/index.ts'),
     treeshake: false,
     plugins: [
+      rollupRegion(),
       rollupTypescript({
         tsconfig: v8TsconfigPath,
         tslib: path.join(
@@ -124,6 +127,7 @@ async function build () {
     input: path.join(__dirname, '../src/core/index.ts'),
     treeshake: false,
     plugins: [
+      rollupRegion(),
       rollupTypescript({
         tsconfig: coreTsconfigPath,
         tslib: path.join(
@@ -202,6 +206,7 @@ export function createNapiModule (options) {
     treeshake: false,
     external: ['emscripten:runtime'],
     plugins: [
+      rollupRegion(),
       rollupTypescript({
         tsconfig: v8TsconfigPath,
         tslib: path.join(
