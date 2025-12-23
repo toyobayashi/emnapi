@@ -7,33 +7,24 @@ const rollupAlias = require('@rollup/plugin-alias').default
 const { rollup } = require('rollup')
 const { rollupRegion } = require('@emnapi/shared')
 
-// const {
-//   runtimeOut
-// } = require('../../runtime/script/build.js')
+const runtimeModuleSpecifier = 'emscripten:runtime'
+const parseToolsModuleSpecifier = 'emscripten:parse-tools'
+const sharedModuleSpecifier = 'emnapi:shared'
+const runtimeRequire = createRequire(path.join(__dirname, '../../runtime/index.js'))
+const ctxVarName = 'emnapiPluginCtx'
 
-async function build () {
-  const libTsconfigPath = path.join(__dirname, '../tsconfig.json')
-  // compile(libTsconfigPath)
-  const libTsconfig = JSON.parse(fs.readFileSync(libTsconfigPath, 'utf8'))
-
-  const v8TsconfigPath = path.join(__dirname, '../src/v8/tsconfig.json')
-  const v8Tsconfig = JSON.parse(fs.readFileSync(v8TsconfigPath, 'utf8'))
-
-  const libOut = path.join(path.dirname(libTsconfigPath), './dist/library_napi.js')
-  const libOutV8 = path.join(path.dirname(libTsconfigPath), './dist/library_v8.js')
-  const runtimeRequire = createRequire(path.join(__dirname, '../../runtime/index.js'))
-
-  const runtimeModuleSpecifier = 'emscripten:runtime'
-  const parseToolsModuleSpecifier = 'emscripten:parse-tools'
-  const sharedModuleSpecifier = 'emnapi:shared'
+async function buildEmscriptenMain (tsconfigPath, libOut) {
+  const tsconfig = JSON.parse(fs.readFileSync(tsconfigPath, 'utf8'))
+  const include = tsconfig.include.map(s => path.join(path.dirname(tsconfigPath), s))
+  const input = path.join(__dirname, '../src/emscripten/index.ts')
 
   const emnapiRollupBuild = await rollup({
-    input: path.join(__dirname, '../src/emscripten/index.ts'),
+    input,
     treeshake: false,
     plugins: [
       rollupRegion(),
       rollupTypescript({
-        tsconfig: libTsconfigPath,
+        tsconfig: tsconfigPath,
         tslib: path.join(
           path.dirname(runtimeRequire.resolve('tslib')),
           JSON.parse(fs.readFileSync(path.join(path.dirname(runtimeRequire.resolve('tslib')), 'package.json'))).module
@@ -41,7 +32,7 @@ async function build () {
         compilerOptions: {
           module: ts.ModuleKind.ESNext
         },
-        include: libTsconfig.include.map(s => path.join(__dirname, '..', s)),
+        include,
         transformers: {
           before: [
             {
@@ -70,66 +61,19 @@ async function build () {
     exports: 'named',
     strict: false
   })
+  console.log(`${input} -> ${libOut}`)
+}
 
-  const v8RollupBuild = await rollup({
-    input: path.join(__dirname, '../src/v8/index.ts'),
-    treeshake: false,
-    plugins: [
-      rollupRegion(),
-      rollupTypescript({
-        tsconfig: v8TsconfigPath,
-        tslib: path.join(
-          path.dirname(runtimeRequire.resolve('tslib')),
-          JSON.parse(fs.readFileSync(path.join(path.dirname(runtimeRequire.resolve('tslib')), 'package.json'))).module
-        ),
-        compilerOptions: {
-          module: ts.ModuleKind.ESNext
-        },
-        include: v8Tsconfig.include.map(s => path.join(__dirname, '../src/v8', s)),
-        transformers: {
-          before: [
-            {
-              type: 'program',
-              factory: require('@emnapi/ts-transform-macro').createTransformerFactory
-            }
-          ]
-        }
-      }),
-      rollupAlias({
-        entries: [
-          { find: sharedModuleSpecifier, replacement: path.join(__dirname, '../src/emscripten/init.ts') }
-        ]
-      }),
-      require('@emnapi/rollup-plugin-emscripten-esm-library').plugin({
-        defaultLibraryFuncsToInclude: ['$emnapiInit'],
-        exportedRuntimeMethods: ['emnapiInit'],
-        runtimeModuleSpecifier,
-        parseToolsModuleSpecifier
-      })
-    ]
-  })
-  await v8RollupBuild.write({
-    file: libOutV8,
-    format: 'esm',
-    exports: 'named',
-    strict: false
-  })
-
-  // const runtimeCode = fs.readFileSync(runtimeOut, 'utf8')
-
-  const coreTsconfigPath = path.join(__dirname, '../src/core/tsconfig.json')
-  //   compile(coreTsconfigPath)
-  const coreTsconfig = JSON.parse(fs.readFileSync(coreTsconfigPath, 'utf8'))
-  // const coreOut = path.join(path.dirname(coreTsconfigPath), '../../dist/emnapi-core.js')
-  const outputDir = path.join(path.dirname(coreTsconfigPath), '../../../core/src/emnapi')
-
+async function buildNonEmscriptenMain (tsconfigPath, outputDir) {
+  const input = path.join(__dirname, '../src/core/index.ts')
+  const tsconfig = JSON.parse(fs.readFileSync(tsconfigPath, 'utf8'))
   const coreRollupBuild = await rollup({
-    input: path.join(__dirname, '../src/core/index.ts'),
+    input,
     treeshake: false,
     plugins: [
       rollupRegion(),
       rollupTypescript({
-        tsconfig: coreTsconfigPath,
+        tsconfig: tsconfigPath,
         tslib: path.join(
           path.dirname(runtimeRequire.resolve('tslib')),
           JSON.parse(fs.readFileSync(path.join(path.dirname(runtimeRequire.resolve('tslib')), 'package.json'))).module
@@ -137,7 +81,7 @@ async function build () {
         compilerOptions: {
           module: ts.ModuleKind.ESNext
         },
-        include: coreTsconfig.include.map(s => path.join(__dirname, '../src/core', s)),
+        include: tsconfig.include.map(s => path.join(path.dirname(tsconfigPath), s)),
         transformers: {
           before: [
             {
@@ -198,17 +142,18 @@ export function createNapiModule (options) {
     name: 'napiModule',
     strict: false
   })
+  console.log(`${input} -> ${path.join(outputDir, 'index.js')}`)
+}
 
-  const ctxVarName = 'emnapiPluginCtx'
-
-  const coreV8RollupBuild = await rollup({
-    input: path.join(__dirname, '../src/v8/index.ts'),
+async function buildEmscriptenPlugin (tsconfigPath, input, output) {
+  const tsconfig = JSON.parse(fs.readFileSync(tsconfigPath, 'utf8'))
+  const emscriptenAsyncWorkRollupBuild = await rollup({
+    input,
     treeshake: false,
-    external: ['emscripten:runtime'],
     plugins: [
       rollupRegion(),
       rollupTypescript({
-        tsconfig: v8TsconfigPath,
+        tsconfig: tsconfigPath,
         tslib: path.join(
           path.dirname(runtimeRequire.resolve('tslib')),
           JSON.parse(fs.readFileSync(path.join(path.dirname(runtimeRequire.resolve('tslib')), 'package.json'))).module
@@ -216,7 +161,55 @@ export function createNapiModule (options) {
         compilerOptions: {
           module: ts.ModuleKind.ESNext
         },
-        include: v8Tsconfig.include.map(s => path.join(__dirname, '../src/v8', s)),
+        include: tsconfig.include.map(s => path.join(path.dirname(tsconfigPath), s)),
+        transformers: {
+          before: [
+            {
+              type: 'program',
+              factory: require('@emnapi/ts-transform-macro').createTransformerFactory
+            }
+          ]
+        }
+      }),
+      rollupAlias({
+        entries: [
+          { find: sharedModuleSpecifier, replacement: path.join(__dirname, '../src/emscripten/init.ts') }
+        ]
+      }),
+      require('@emnapi/rollup-plugin-emscripten-esm-library').plugin({
+        runtimeModuleSpecifier,
+        parseToolsModuleSpecifier
+      })
+    ]
+  })
+  await emscriptenAsyncWorkRollupBuild.write({
+    file: output,
+    format: 'esm',
+    exports: 'named',
+    strict: false,
+  })
+  console.log(`${input} -> ${output}`)
+}
+
+async function buildNonEmscriptenPlugin (tsconfigPath, input, output, destructPluginContext, exportModules = ['env']) {
+  const tsconfig = JSON.parse(fs.readFileSync(tsconfigPath, 'utf8'))
+  const modVar = 'mod'
+  const coreV8RollupBuild = await rollup({
+    input,
+    treeshake: false,
+    external: ['emscripten:runtime', 'emnapi:shared'],
+    plugins: [
+      rollupRegion(),
+      rollupTypescript({
+        tsconfig: tsconfigPath,
+        tslib: path.join(
+          path.dirname(runtimeRequire.resolve('tslib')),
+          JSON.parse(fs.readFileSync(path.join(path.dirname(runtimeRequire.resolve('tslib')), 'package.json'))).module
+        ),
+        compilerOptions: {
+          module: ts.ModuleKind.ESNext
+        },
+        include: tsconfig.include.map(s => path.join(path.dirname(tsconfigPath), s)),
         transformers: {
           before: [
             {
@@ -256,11 +249,13 @@ export function createNapiModule (options) {
           })
           const parsedCode = compiler.parseCode(code)
           return `export default function (${ctxVarName}) {
-  const { emnapiCtx, emnapiString } = ${ctxVarName}
+  ${destructPluginContext ? `const { ${destructPluginContext.join(', ')} } = ${ctxVarName}` : ''}
   ${parsedCode}
   return {
     importObject: (original) => {
-      Object.assign(original.env, mod)
+${exportModules.map(modName => {
+  return `      Object.assign(original.${modName}, ${modVar})`
+})}
     }
   };
 }
@@ -270,14 +265,57 @@ export function createNapiModule (options) {
     ]
   })
   await coreV8RollupBuild.write({
-    file: path.join(outputDir, 'v8.js'),
+    file: output,
     format: 'iife',
-    name: 'mod',
+    name: modVar,
     strict: false,
     globals: {
-      'emscripten:runtime': ctxVarName
+      'emscripten:runtime': ctxVarName,
+      'emnapi:shared': ctxVarName
     }
   })
+  console.log(`${input} -> ${output}`)
+}
+
+async function build () {
+  const libTsconfigPath = path.join(__dirname, '../tsconfig.json')
+  const v8TsconfigPath = path.join(__dirname, '../src/v8/tsconfig.json')
+
+  const emscriptenTargets = [
+    buildEmscriptenMain(libTsconfigPath, path.join(__dirname, '../dist/library_napi.js')),
+    buildEmscriptenPlugin(
+      v8TsconfigPath,
+      path.join(__dirname, '../src/v8/index.ts'),
+      path.join(__dirname, '../dist/library_v8.js')
+    ),
+    buildEmscriptenPlugin(
+      libTsconfigPath,
+      path.join(__dirname, '../src/emscripten/async-work.ts'),
+      path.join(__dirname, '../dist/library_async_work.js')
+    )
+  ]
+
+  const coreTsconfigPath = path.join(__dirname, '../src/core/tsconfig.json')
+  const outputDir = path.join(__dirname, '../../core/src/emnapi')
+
+  const nonEmscriptenTargets = [
+    buildNonEmscriptenMain(coreTsconfigPath, outputDir),
+    buildNonEmscriptenPlugin(
+      v8TsconfigPath,
+      path.join(__dirname, '../src/v8/index.ts'),
+      path.join(outputDir, 'v8.js'),
+      ['emnapiCtx', 'emnapiString']
+    ),
+    buildNonEmscriptenPlugin(
+      coreTsconfigPath,
+      path.join(__dirname, '../src/core/async-work.ts'),
+      path.join(outputDir, 'async-work.js'),
+      ['emnapiCtx', 'emnapiNodeBinding', 'emnapiAsyncWorkPoolSize'],
+      ['napi']
+    )
+  ]
+
+  await Promise.all([...emscriptenTargets, ...nonEmscriptenTargets])
 }
 
 exports.build = build

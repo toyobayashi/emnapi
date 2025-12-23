@@ -10,6 +10,7 @@
   "exports": {
     ".": "./dist/emnapi-core.js",
     "./plugins/v8": "./dist/plugins/v8.js",
+    "./plugins/async-work": "./dist/plugins/async-work.js",
     "./package.json": "./package.json"
   },
   "dependencies": {

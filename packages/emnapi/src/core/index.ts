@@ -1,11 +1,8 @@
-import { napiModule, PThread, emnapiCtx } from 'emnapi:shared'
-import { wasmMemory, wasmTable } from 'emscripten:runtime'
+import * as initMod from './init'
 
 import * as asyncMod from './async'
 import * as memoryMod from './memory'
-// import * as asyncWorkMod from './async-work'
 
-import { emnapiAWST } from '../async-work'
 import { emnapiExternalMemory } from '../memory'
 import { emnapiString } from '../string'
 
@@ -38,14 +35,13 @@ import * as scriptMod from '../script'
 import * as valueOperationMod from '../value-operation'
 import * as versionMod from '../version'
 
-emnapiAWST.init()
 emnapiExternalMemory.init()
 emnapiString.init()
 // emnapiTSFN.init()
-PThread.init()
+initMod.PThread.init()
 
-napiModule.emnapi.syncMemory = emnapiMod.$emnapiSyncMemory
-napiModule.emnapi.getMemoryAddress = emnapiMod.$emnapiGetMemoryAddress
+initMod.napiModule.emnapi.syncMemory = emnapiMod.$emnapiSyncMemory
+initMod.napiModule.emnapi.getMemoryAddress = emnapiMod.$emnapiGetMemoryAddress
 
 function addImports (mod: any): void {
   const keys = Object.keys(mod)
@@ -54,18 +50,17 @@ function addImports (mod: any): void {
     if (k.indexOf('$') === 0) continue
 
     if (k.indexOf('emnapi_') === 0) {
-      napiModule.imports.emnapi[k] = mod[k]
+      initMod.napiModule.imports.emnapi[k] = mod[k]
     } else if (k.indexOf('_emnapi_') === 0 || k.indexOf('_v8_') === 0 || k === 'napi_set_last_error' || k === 'napi_clear_last_error') {
-      napiModule.imports.env[k] = mod[k]
+      initMod.napiModule.imports.env[k] = mod[k]
     } else {
-      napiModule.imports.napi[k] = mod[k]
+      initMod.napiModule.imports.napi[k] = mod[k]
     }
   }
 }
 
 addImports(asyncMod)
 addImports(memoryMod)
-// addImports(asyncWorkMod)
 
 addImports(utilMod)
 addImports(convert2cMod)
@@ -94,14 +89,32 @@ addImports(versionMod)
 // napiModule.imports.napi.napi_unref_threadsafe_function = napi_unref_threadsafe_function
 // napiModule.imports.napi.napi_ref_threadsafe_function = napi_ref_threadsafe_function
 
-const pluginCtx = {
-  get wasmMemory () { return wasmMemory },
-  get wasmTable () { return wasmTable },
-  emnapiCtx,
+const pluginCtx: any = {
   emnapiString
 }
+Object.keys(initMod).forEach(k => {
+  Object.defineProperty(pluginCtx, k, {
+    get: () => (initMod as any)[k],
+    enumerable: true,
+    configurable: true
+  })
+})
+Object.keys(nodeMod).forEach(k => {
+  Object.defineProperty(pluginCtx, k, {
+    get: () => (nodeMod as any)[k],
+    enumerable: true,
+    configurable: true
+  })
+})
+Object.keys(utilMod).forEach(k => {
+  Object.defineProperty(pluginCtx, k, {
+    get: () => (utilMod as any)[k],
+    enumerable: true,
+    configurable: true
+  })
+})
 
-napiModule.plugins = (options.plugins ?? []).map((plugin) => {
+initMod.napiModule.plugins = (options.plugins ?? []).map((plugin) => {
   if (typeof plugin === 'function') {
     return plugin(pluginCtx)
   }
@@ -111,13 +124,13 @@ napiModule.plugins = (options.plugins ?? []).map((plugin) => {
   throw new TypeError('Invalid plugin')
 })
 
-napiModule.plugins.forEach((plugin) => {
+initMod.napiModule.plugins.forEach((plugin) => {
   if (typeof plugin.importObject === 'function') {
-    const importObject = plugin.importObject(napiModule.imports)
+    const importObject = plugin.importObject(initMod.napiModule.imports)
     if (importObject) {
-      napiModule.imports = importObject as typeof napiModule.imports
+      initMod.napiModule.imports = importObject as typeof initMod.napiModule.imports
     }
   }
 })
 
-export default napiModule
+export default initMod.napiModule

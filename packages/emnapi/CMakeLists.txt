@@ -4,6 +4,7 @@ project(emnapi LANGUAGES C CXX ASM)
 
 option(EMNAPI_INSTALL_SRC "EMNAPI_INSTALL_SRC" OFF)
 option(EMNAPI_FIND_NODE_ADDON_API "EMNAPI_FIND_NODE_ADDON_API" OFF)
+option(EMNAPI_BUILD_BASIC_LIBS "EMNAPI_BUILD_BASIC_LIBS" OFF)
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
   set(IS_EMSCRIPTEN ON)
@@ -90,12 +91,12 @@ else()
   set(EMNAPI_MT_CFLAGS "-pthread")
 endif()
 
-# set(EMNAPI_BASIC_TARGET_NAME "emnapi-basic")
-# set(EMNAPI_BASIC_MT_TARGET_NAME "emnapi-basic-mt")
+set(EMNAPI_BASIC_TARGET_NAME "emnapi-basic")
+set(EMNAPI_BASIC_MT_TARGET_NAME "emnapi-basic-mt")
 set(EMNAPI_TARGET_NAME "emnapi")
 set(EMNAPI_MT_TARGET_NAME "emnapi-mt")
 
-# set(EMNAPI_BASIC_NAPI_RS_MT_TARGET_NAME "emnapi-basic-napi-rs-mt")
+set(EMNAPI_BASIC_NAPI_RS_MT_TARGET_NAME "emnapi-basic-napi-rs-mt")
 set(EMNAPI_NAPI_RS_MT_TARGET_NAME "emnapi-napi-rs-mt")
 
 set(DLMALLOC_TARGET_NAME "dlmalloc")
@@ -193,22 +194,24 @@ if(IS_EMSCRIPTEN)
   target_link_options(${EMNAPI_TARGET_NAME} INTERFACE "--js-library=${EMNAPI_JS_LIB}")
 endif()
 
-# add_library(${EMNAPI_BASIC_TARGET_NAME} STATIC ${ENAPI_BASIC_SRC})
-# target_include_directories(${EMNAPI_BASIC_TARGET_NAME} PUBLIC ${EMNAPI_INCLUDE})
-# target_compile_definitions(${EMNAPI_BASIC_TARGET_NAME}
-#   PUBLIC ${EMNAPI_DEFINES}
-#   PRIVATE "EMNAPI_DISABLE_UV"
-# )
-# if(IS_EMSCRIPTEN)
-#   set_target_properties(${EMNAPI_BASIC_TARGET_NAME} PROPERTIES INTERFACE_LINK_DEPENDS ${EMNAPI_JS_LIB})
-#   target_link_options(${EMNAPI_BASIC_TARGET_NAME} INTERFACE "--js-library=${EMNAPI_JS_LIB}")
-# endif()
+if(EMNAPI_BUILD_BASIC_LIBS)
+  add_library(${EMNAPI_BASIC_TARGET_NAME} STATIC ${ENAPI_BASIC_SRC})
+  target_include_directories(${EMNAPI_BASIC_TARGET_NAME} PUBLIC ${EMNAPI_INCLUDE})
+  target_compile_definitions(${EMNAPI_BASIC_TARGET_NAME}
+    PUBLIC ${EMNAPI_DEFINES}
+    PRIVATE "EMNAPI_DISABLE_UV"
+  )
+  if(IS_EMSCRIPTEN)
+    set_target_properties(${EMNAPI_BASIC_TARGET_NAME} PROPERTIES INTERFACE_LINK_DEPENDS ${EMNAPI_JS_LIB})
+    target_link_options(${EMNAPI_BASIC_TARGET_NAME} INTERFACE "--js-library=${EMNAPI_JS_LIB}")
+  endif()
 
-# if(IS_WASM32 OR IS_WASM32_WASIP1 OR IS_WASM32_WASIP1_THREADS)
-#   set(EMNAPI_BUILD_BASIC_MT ON)
-# else()
-#   set(EMNAPI_BUILD_BASIC_MT OFF)
-# endif()
+  if(IS_WASM32 OR IS_WASM32_WASIP1 OR IS_WASM32_WASIP1_THREADS)
+    set(EMNAPI_BUILD_BASIC_MT ON)
+  else()
+    set(EMNAPI_BUILD_BASIC_MT OFF)
+  endif()
+endif()
 
 if(IS_WASM32_WASIP1_THREADS)
   set(EMNAPI_BUILD_FOR_NAPI_RS ON)
@@ -223,36 +226,40 @@ if(EMNAPI_BUILD_FOR_NAPI_RS)
     PUBLIC ${EMNAPI_DEFINES} "NAPI_EXTERN=__attribute__((__import_module__(\"env\")))"
   )
 
-  # add_library(${EMNAPI_BASIC_NAPI_RS_MT_TARGET_NAME} STATIC
-  #   ${ENAPI_BASIC_SRC}
-  #   "${CMAKE_CURRENT_SOURCE_DIR}/src/thread/async_worker_create.c"
-  #   "${CMAKE_CURRENT_SOURCE_DIR}/src/thread/async_worker_init.S"
-  # )
-  # target_include_directories(${EMNAPI_BASIC_NAPI_RS_MT_TARGET_NAME} PUBLIC ${EMNAPI_INCLUDE})
-  # target_compile_definitions(${EMNAPI_BASIC_NAPI_RS_MT_TARGET_NAME}
-  #   PUBLIC ${EMNAPI_DEFINES} "NAPI_EXTERN=__attribute__((__import_module__(\"env\")))"
-  #   PRIVATE "EMNAPI_DISABLE_UV"
-  # )
+  if(EMNAPI_BUILD_BASIC_LIBS)
+    add_library(${EMNAPI_BASIC_NAPI_RS_MT_TARGET_NAME} STATIC
+      ${ENAPI_BASIC_SRC}
+      "${CMAKE_CURRENT_SOURCE_DIR}/src/thread/async_worker_create.c"
+      "${CMAKE_CURRENT_SOURCE_DIR}/src/thread/async_worker_init.S"
+    )
+    target_include_directories(${EMNAPI_BASIC_NAPI_RS_MT_TARGET_NAME} PUBLIC ${EMNAPI_INCLUDE})
+    target_compile_definitions(${EMNAPI_BASIC_NAPI_RS_MT_TARGET_NAME}
+      PUBLIC ${EMNAPI_DEFINES} "NAPI_EXTERN=__attribute__((__import_module__(\"env\")))"
+      PRIVATE "EMNAPI_DISABLE_UV"
+    )
+  endif()
 endif()
 
-# if(EMNAPI_BUILD_BASIC_MT)
-#   add_library(${EMNAPI_BASIC_MT_TARGET_NAME} STATIC
-#     ${ENAPI_BASIC_SRC}
-#     "${CMAKE_CURRENT_SOURCE_DIR}/src/thread/async_worker_create.c"
-#     "${CMAKE_CURRENT_SOURCE_DIR}/src/thread/async_worker_init.S"
-#   )
-#   target_compile_options(${EMNAPI_BASIC_MT_TARGET_NAME} PUBLIC "-matomics" "-mbulk-memory")
-#   target_include_directories(${EMNAPI_BASIC_MT_TARGET_NAME} PUBLIC ${EMNAPI_INCLUDE})
-#   target_compile_definitions(${EMNAPI_BASIC_MT_TARGET_NAME}
-#     PUBLIC ${EMNAPI_DEFINES}
-#     PRIVATE "EMNAPI_DISABLE_UV"
-#   )
+if(EMNAPI_BUILD_BASIC_LIBS)
+  if(EMNAPI_BUILD_BASIC_MT)
+    add_library(${EMNAPI_BASIC_MT_TARGET_NAME} STATIC
+      ${ENAPI_BASIC_SRC}
+      "${CMAKE_CURRENT_SOURCE_DIR}/src/thread/async_worker_create.c"
+      "${CMAKE_CURRENT_SOURCE_DIR}/src/thread/async_worker_init.S"
+    )
+    target_compile_options(${EMNAPI_BASIC_MT_TARGET_NAME} PUBLIC "-matomics" "-mbulk-memory")
+    target_include_directories(${EMNAPI_BASIC_MT_TARGET_NAME} PUBLIC ${EMNAPI_INCLUDE})
+    target_compile_definitions(${EMNAPI_BASIC_MT_TARGET_NAME}
+      PUBLIC ${EMNAPI_DEFINES}
+      PRIVATE "EMNAPI_DISABLE_UV"
+    )
 
-#   if(IS_EMSCRIPTEN)
-#     set_target_properties(${EMNAPI_BASIC_MT_TARGET_NAME} PROPERTIES INTERFACE_LINK_DEPENDS ${EMNAPI_JS_LIB})
-#     target_link_options(${EMNAPI_BASIC_MT_TARGET_NAME} INTERFACE "--js-library=${EMNAPI_JS_LIB}")
-#   endif()
-# endif()
+    if(IS_EMSCRIPTEN)
+      set_target_properties(${EMNAPI_BASIC_MT_TARGET_NAME} PROPERTIES INTERFACE_LINK_DEPENDS ${EMNAPI_JS_LIB})
+      target_link_options(${EMNAPI_BASIC_MT_TARGET_NAME} INTERFACE "--js-library=${EMNAPI_JS_LIB}")
+    endif()
+  endif()
+endif()
 
 if(IS_EMSCRIPTEN OR IS_WASM32_WASIP1_THREADS)
   set(EMNAPI_BUILD_MT ON)
@@ -319,12 +326,19 @@ if(LIB_ARCH)
       install(TARGETS ${V8_MT_TARGET_NAME} DESTINATION "lib/${LIB_ARCH}")
     endif()
   endif()
-  # if(EMNAPI_BUILD_BASIC_MT)
-  #   install(TARGETS ${EMNAPI_BASIC_MT_TARGET_NAME} DESTINATION "lib/${LIB_ARCH}")
-  # endif()
+
+  if(EMNAPI_BUILD_BASIC_LIBS)
+    install(TARGETS ${EMNAPI_BASIC_TARGET_NAME} DESTINATION "lib/${LIB_ARCH}")
+    if(EMNAPI_BUILD_BASIC_MT)
+      install(TARGETS ${EMNAPI_BASIC_MT_TARGET_NAME} DESTINATION "lib/${LIB_ARCH}")
+    endif()
+  endif()
+
   if(EMNAPI_BUILD_FOR_NAPI_RS)
     install(TARGETS ${EMNAPI_NAPI_RS_MT_TARGET_NAME} DESTINATION "lib/${LIB_ARCH}")
-    # install(TARGETS ${EMNAPI_BASIC_NAPI_RS_MT_TARGET_NAME} DESTINATION "lib/${LIB_ARCH}")
+    if(EMNAPI_BUILD_BASIC_LIBS)
+      install(TARGETS ${EMNAPI_BASIC_NAPI_RS_MT_TARGET_NAME} DESTINATION "lib/${LIB_ARCH}")
+    endif()
   endif()
   if(IS_WASM32)
     install(TARGETS ${DLMALLOC_TARGET_NAME} DESTINATION "lib/${LIB_ARCH}")
@@ -346,6 +360,7 @@ install(DIRECTORY
 install(FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/dist/library_napi.js
     ${CMAKE_CURRENT_SOURCE_DIR}/dist/library_v8.js
+    ${CMAKE_CURRENT_SOURCE_DIR}/dist/library_async_work.js
   DESTINATION "dist")
 
 if(EMNAPI_INSTALL_SRC)

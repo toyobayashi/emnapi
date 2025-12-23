@@ -1,9 +1,6 @@
-declare interface PluginContext {
-  readonly wasmMemory: WebAssembly.Memory
-  readonly wasmTable: WebAssembly.Table
-  emnapiCtx: Context
+declare type PluginContext = {
   emnapiString: typeof import('../string').emnapiString
-}
+} & typeof import('./init') & typeof import('../node') & typeof import('../util')
 
 declare interface EmnapiPlugin {
   importObject?: (originalImports: WebAssembly.Imports) => (WebAssembly.Imports | void)
