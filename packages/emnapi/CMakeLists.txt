@@ -96,7 +96,7 @@ set(EMNAPI_BASIC_MT_TARGET_NAME "emnapi-basic-mt")
 set(EMNAPI_TARGET_NAME "emnapi")
 set(EMNAPI_MT_TARGET_NAME "emnapi-mt")
 
-# set(EMNAPI_BASIC_NAPI_RS_MT_TARGET_NAME "emnapi-basic-napi-rs-mt")
+set(EMNAPI_BASIC_NAPI_RS_MT_TARGET_NAME "emnapi-basic-napi-rs-mt")
 set(EMNAPI_NAPI_RS_MT_TARGET_NAME "emnapi-napi-rs-mt")
 
 set(DLMALLOC_TARGET_NAME "dlmalloc")
