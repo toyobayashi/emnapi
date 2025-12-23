@@ -69,12 +69,7 @@ export declare interface CreateWorkerInfo {
 }
 
 /** @public */
-export declare interface PluginContext {
-  wasmMemory: () => WebAssembly.Memory
-  wasmTable: () => WebAssembly.Table
-  emnapiCtx: Context
-  emnapiString: any // TODO
-}
+export declare type PluginContext = any // TODO
 
 /** @public */
 export declare interface EmnapiPlugin {

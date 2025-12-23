@@ -77,6 +77,7 @@ export interface MakeConfigOptions extends Omit<InputOptions, 'external'> {
   external?: ExternalOption | ((source: string, importer: string | undefined, isResolved: boolean, format: Format) => boolean | NullValue)
   apiExtractorCallback?: (result: ExtractorResult, format: Format) => any
   dtsEntry?: string
+  staticDtsContent?: string | ((dtsCode: string) => string)
 }
 
 export interface Options extends Omit<MakeConfigOptions, 'format' | 'minify'> {
@@ -118,6 +119,7 @@ export function makeConfig (options: MakeConfigOptions): RollupOptions {
     sourcemap,
     apiExtractorCallback,
     dtsEntry = 'dist/types/index.d.ts',
+    staticDtsContent,
     ...restInput
   } = options ?? {}
   const target = compilerOptions?.target ?? ts.ScriptTarget.ES2021
@@ -138,28 +140,47 @@ export function makeConfig (options: MakeConfigOptions): RollupOptions {
     }),
     ...(minify || format === 'esm-browser' || format === 'iife'
       ? []
-      : [
-          rollupApiExtractor({
-            configObject: {
-              mainEntryPointFilePath: dtsEntry
-            },
-            callback (result) {
-              if (result.succeeded) {
+      : staticDtsContent == null
+        ? [
+            rollupApiExtractor({
+              configObject: {
+                mainEntryPointFilePath: dtsEntry
+              },
+              callback (result) {
+                if (result.succeeded) {
+                  if (format === 'umd') {
+                    fs.appendFileSync(result.extractorConfig.publicTrimmedFilePath, '\nexport as namespace ' + outputName)
+                  }
+                  apiExtractorCallback?.(result, format)
+                } else {
+                  if (typeof apiExtractorCallback === 'function') {
+                    apiExtractorCallback(result, format)
+                    return
+                  }
+                  const errmsg = `API Extractor completed with ${result.errorCount} errors and ${result.warningCount} warnings`
+                  throw new Error(errmsg)
+                }
+              }
+            })
+          ]
+        : [
+            {
+              name: 'rollup-plugin-static-dts',
+              async writeBundle (outputOptions) {
+                let dtsContent: string
+                if (typeof staticDtsContent === 'function') {
+                  const dtsCode = fs.readFileSync(path.resolve(dtsEntry), 'utf-8')
+                  dtsContent = staticDtsContent(dtsCode)
+                } else {
+                  dtsContent = staticDtsContent
+                }
                 if (format === 'umd') {
-                  fs.appendFileSync(result.extractorConfig.publicTrimmedFilePath, '\nexport as namespace ' + outputName)
+                  dtsContent += `\nexport as namespace ${outputName}\n`
                 }
-                apiExtractorCallback?.(result, format)
-              } else {
-                if (typeof apiExtractorCallback === 'function') {
-                  apiExtractorCallback(result, format)
-                  return
-                }
-                const errmsg = `API Extractor completed with ${result.errorCount} errors and ${result.warningCount} warnings`
-                throw new Error(errmsg)
+                fs.writeFileSync(outputOptions.file!.replace(/\.cjs$/, '.d.cts').replace(/\.js$/, '.d.ts'), dtsContent, 'utf-8')
               }
             }
-          })
-        ]
+          ] as Plugin[]
     ),
     rollupNodeResolve({
       mainFields: ['module', 'module-sync', 'import', 'main']

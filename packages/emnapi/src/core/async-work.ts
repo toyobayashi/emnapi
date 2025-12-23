@@ -1,11 +1,22 @@
-import { emnapiCtx, onCreateWorker, napiModule, emnapiNodeBinding, singleThreadAsyncWork, _emnapi_async_work_pool_size } from 'emnapi:shared'
+/* eslint-disable @stylistic/indent */
+import { onCreateWorker, napiModule, singleThreadAsyncWork, _emnapi_async_work_pool_size } from 'emnapi:shared'
 import { PThread, ENVIRONMENT_IS_NODE, ENVIRONMENT_IS_PTHREAD, wasmInstance, _free, wasmMemory, _malloc } from 'emscripten:runtime'
 import { POINTER_SIZE, to64, makeDynCall, makeSetValue, from64 } from 'emscripten:parse-tools'
 import { emnapiAWST } from '../async-work'
 import { $CHECK_ENV_NOT_IN_GC, $CHECK_ARG, $CHECK_ENV } from '../macro'
-import { _emnapi_node_emit_async_init, _emnapi_node_emit_async_destroy } from '../node'
-import { emnapiTSFN } from '../threadsafe-function'
-import { _emnapi_runtime_keepalive_pop, _emnapi_runtime_keepalive_push } from '../util'
+// import { _emnapi_node_emit_async_init, _emnapi_node_emit_async_destroy } from '../node'
+// import { _emnapi_runtime_keepalive_pop, _emnapi_runtime_keepalive_push } from '../util'
+
+declare var emnapiPluginCtx: any
+declare var emnapiCtx: Context
+declare var emnapiNodeBinding: NodeBinding | undefined
+
+const {
+  // onCreateWorker, napiModule, singleThreadAsyncWork, _emnapi_async_work_pool_size,
+  // PThread, ENVIRONMENT_IS_NODE, ENVIRONMENT_IS_PTHREAD, wasmInstance, _free, wasmMemory, _malloc,
+  _emnapi_node_emit_async_init, _emnapi_node_emit_async_destroy,
+  _emnapi_runtime_keepalive_pop, _emnapi_runtime_keepalive_push
+} = emnapiPluginCtx
 
 var emnapiAWMT = {
   unusedWorkers: [] as any[],
@@ -126,20 +137,43 @@ var emnapiAWMT = {
       })
     }
   },
+  loadSizeTypeValue (offset: number, unsigned: boolean): number {
+    let ret: any
+    let arr: any
+    if (unsigned) {
+// #if MEMORY64
+      arr = new BigUint64Array(wasmMemory.buffer)
+      ret = Number(Atomics.load(arr, offset >> 3))
+// #else
+      arr = new Uint32Array(wasmMemory.buffer)
+      ret = Atomics.load(arr, offset >> 2)
+// #endif
+      return ret
+    } else {
+// #if MEMORY64
+      arr = new BigInt64Array(wasmMemory.buffer)
+      ret = Number(Atomics.load(arr, offset >> 3))
+// #else
+      arr = new Int32Array(wasmMemory.buffer)
+      ret = Atomics.load(arr, offset >> 2)
+// #endif
+      return ret
+    }
+  },
   getResource (work: number): number {
-    return emnapiTSFN.loadSizeTypeValue(work + emnapiAWMT.offset.resource, false)
+    return emnapiAWMT.loadSizeTypeValue(work + emnapiAWMT.offset.resource, false)
   },
   getExecute (work: number): number {
-    return emnapiTSFN.loadSizeTypeValue(work + emnapiAWMT.offset.execute, false)
+    return emnapiAWMT.loadSizeTypeValue(work + emnapiAWMT.offset.execute, false)
   },
   getComplete (work: number): number {
-    return emnapiTSFN.loadSizeTypeValue(work + emnapiAWMT.offset.complete, false)
+    return emnapiAWMT.loadSizeTypeValue(work + emnapiAWMT.offset.complete, false)
   },
   getEnv (work: number): number {
-    return emnapiTSFN.loadSizeTypeValue(work + emnapiAWMT.offset.env, false)
+    return emnapiAWMT.loadSizeTypeValue(work + emnapiAWMT.offset.env, false)
   },
   getData (work: number): number {
-    return emnapiTSFN.loadSizeTypeValue(work + emnapiAWMT.offset.data, false)
+    return emnapiAWMT.loadSizeTypeValue(work + emnapiAWMT.offset.data, false)
   },
   scheduleWork: function (work: number) {
     if (ENVIRONMENT_IS_PTHREAD) {
@@ -232,6 +266,9 @@ var emnapiAWMT = {
     }
   }
 }
+
+emnapiAWST.init()
+emnapiAWMT.init()
 
 /** @__sig ippppppp */
 export var napi_create_async_work = singleThreadAsyncWork

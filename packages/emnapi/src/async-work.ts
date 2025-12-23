@@ -1,5 +1,8 @@
-import { emnapiAsyncWorkPoolSize, emnapiNodeBinding, emnapiCtx } from 'emnapi:shared'
 import { makeDynCall } from 'emscripten:parse-tools'
+
+declare var emnapiCtx: Context
+declare var emnapiNodeBinding: NodeBinding | undefined
+declare var emnapiAsyncWorkPoolSize: number
 
 export interface AsyncWork {
   id: number
@@ -21,6 +24,9 @@ export interface AsyncWork {
 }
 
 /**
+ * @__deps $emnapiCtx
+ * @__deps $emnapiNodeBinding
+ * @__deps $emnapiAsyncWorkPoolSize
  * @__postset
  * ```
  * emnapiAWST.init();

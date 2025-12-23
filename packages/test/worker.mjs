@@ -3,6 +3,7 @@
 
 import * as emnapiCore from '../../node_modules/@emnapi/core/dist/emnapi-core.js'
 import * as emnapiCorePluginsV8 from '../../node_modules/@emnapi/core/dist/plugins/v8.js'
+import * as emnapiCorePluginsAsyncWork from '../../node_modules/@emnapi/core/dist/plugins/async-work.js'
 // import * as emnapi from '../runtime/dist/emnapi.js'
 
 (function () {
@@ -110,7 +111,7 @@ import * as emnapiCorePluginsV8 from '../../node_modules/@emnapi/core/dist/plugi
             }
           }
         },
-        plugins: [emnapiCorePluginsV8.default]
+        plugins: [emnapiCorePluginsV8.default, emnapiCorePluginsAsyncWork.default]
       })
     }
   })

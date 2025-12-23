@@ -1,9 +1,11 @@
-import { emnapiCtx } from 'emnapi:shared'
 import { makeSetValue } from 'emscripten:parse-tools'
 import { emnapiAWST } from '../async-work'
 import { $CHECK_ARG, $CHECK_ENV, $CHECK_ENV_NOT_IN_GC } from '../macro'
 
+declare var emnapiCtx: Context
+
 /**
+ * @__deps $emnapiCtx
  * @__sig ippppppp
  */
 export function napi_create_async_work (env: napi_env, resource: napi_value, resource_name: napi_value, execute: number, complete: number, data: number, result: number): napi_status {
@@ -28,6 +30,7 @@ export function napi_create_async_work (env: napi_env, resource: napi_value, res
 }
 
 /**
+ * @__deps $emnapiCtx
  * @__sig ipp
  */
 export function napi_delete_async_work (env: napi_env, work: number): napi_status {
@@ -39,6 +42,7 @@ export function napi_delete_async_work (env: napi_env, work: number): napi_statu
 }
 
 /**
+ * @__deps $emnapiCtx
  * @__sig ipp
  */
 export function napi_queue_async_work (env: napi_env, work: number): napi_status {
@@ -51,6 +55,7 @@ export function napi_queue_async_work (env: napi_env, work: number): napi_status
 }
 
 /**
+ * @__deps $emnapiCtx
  * @__sig ipp
  */
 export function napi_cancel_async_work (env: napi_env, work: number): napi_status {
