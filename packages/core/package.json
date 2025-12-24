@@ -9,8 +9,11 @@
   "sideEffects": false,
   "exports": {
     ".": "./dist/emnapi-core.js",
+    "./plugins": "./dist/plugins/index.js",
+    "./plugins/index": "./dist/plugins/index.js",
     "./plugins/v8": "./dist/plugins/v8.js",
     "./plugins/async-work": "./dist/plugins/async-work.js",
+    "./plugins/threadsafe-function": "./dist/plugins/threadsafe-function.js",
     "./package.json": "./package.json"
   },
   "dependencies": {
