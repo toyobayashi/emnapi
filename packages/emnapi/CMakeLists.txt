@@ -361,6 +361,7 @@ install(FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/dist/library_napi.js
     ${CMAKE_CURRENT_SOURCE_DIR}/dist/library_v8.js
     ${CMAKE_CURRENT_SOURCE_DIR}/dist/library_async_work.js
+    ${CMAKE_CURRENT_SOURCE_DIR}/dist/library_threadsafe_function.js
   DESTINATION "dist")
 
 if(EMNAPI_INSTALL_SRC)
