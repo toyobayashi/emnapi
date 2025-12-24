@@ -1,21 +1,34 @@
 /* eslint-disable @stylistic/indent */
 
 import { ENVIRONMENT_IS_NODE, _malloc, wasmMemory, _free, ENVIRONMENT_IS_PTHREAD, abort, PThread } from 'emscripten:runtime'
-import { emnapiCtx, emnapiNodeBinding } from 'emnapi:shared'
 import { POINTER_SIZE, to64, makeDynCall, from64, makeSetValue, SIZE_TYPE } from 'emscripten:parse-tools'
 import { $CHECK_ENV_NOT_IN_GC, $CHECK_ARG } from './macro'
-import { _emnapi_node_emit_async_destroy, _emnapi_node_emit_async_init } from './node'
-import { _emnapi_runtime_keepalive_pop, _emnapi_runtime_keepalive_push } from './util'
+
+declare var emnapiCtx: Context
+declare var emnapiNodeBinding: NodeBinding | undefined
+declare function __emnapi_node_emit_async_destroy (async_id: double, trigger_async_id: double): void
+declare function __emnapi_node_emit_async_init (
+  async_resource: napi_value,
+  async_resource_name: napi_value,
+  trigger_async_id: double,
+  result: Pointer<[double, double]>
+): void
+declare function __emnapi_runtime_keepalive_pop (): void
+declare function __emnapi_runtime_keepalive_push (): void
 
 /**
  * @__deps malloc
  * @__deps free
+ * @__deps $emnapiCtx
+ * @__deps $emnapiNodeBinding
+ * @__deps _emnapi_node_emit_async_destroy
+ * @__deps _emnapi_runtime_keepalive_pop
  * @__postset
  * ```
  * emnapiTSFN.init();
  * ```
  */
-export const emnapiTSFN = {
+const emnapiTSFN = {
   offset: {
     /* napi_ref */ resource: 0,
     /* double */ async_id: 8,
@@ -425,7 +438,7 @@ export const emnapiTSFN = {
     const arr = new Int32Array(wasmMemory.buffer)
     if (Atomics.load(arr, asyncRefOffset)) {
       Atomics.store(arr, asyncRefOffset, 0)
-      _emnapi_runtime_keepalive_pop()
+      __emnapi_runtime_keepalive_pop()
       emnapiCtx.decreaseWaitingRequestCounter()
     }
 
@@ -436,7 +449,7 @@ export const emnapiTSFN = {
       const view = new DataView(wasmMemory.buffer)
       const asyncId = view.getFloat64(func + emnapiTSFN.offset.async_id, true)
       const triggerAsyncId = view.getFloat64(func + emnapiTSFN.offset.trigger_async_id, true)
-      _emnapi_node_emit_async_destroy(asyncId, triggerAsyncId)
+      __emnapi_node_emit_async_destroy(asyncId, triggerAsyncId)
     }
 
     _free(to64('func') as number)
@@ -641,7 +654,13 @@ export const emnapiTSFN = {
   }
 }
 
-/** @__sig ippppppppppp */
+emnapiTSFN.init()
+
+/**
+ * @__deps _emnapi_node_emit_async_init
+ * @__deps _emnapi_runtime_keepalive_push
+ * @__sig ippppppppppp
+ */
 export function napi_create_threadsafe_function (
   env: napi_env,
   func: napi_value,
@@ -718,7 +737,7 @@ export function napi_create_threadsafe_function (
     resourceRef.dispose()
     return envObject.setLastError(napi_status.napi_generic_failure)
   }
-  _emnapi_node_emit_async_init(resource, resource_name, -1, tsfn as number + emnapiTSFN.offset.async_id)
+  __emnapi_node_emit_async_init(resource, resource_name, -1, tsfn as number + emnapiTSFN.offset.async_id)
   makeSetValue('tsfn', 'emnapiTSFN.offset.thread_count', 'initial_thread_count', SIZE_TYPE)
   makeSetValue('tsfn', 'emnapiTSFN.offset.context', 'context', '*')
   makeSetValue('tsfn', 'emnapiTSFN.offset.max_queue_size', 'max_queue_size', SIZE_TYPE)
@@ -730,7 +749,7 @@ export function napi_create_threadsafe_function (
   emnapiCtx.addCleanupHook(envObject, emnapiTSFN.cleanup, tsfn as number)
   envObject.ref()
 
-  _emnapi_runtime_keepalive_push()
+  __emnapi_runtime_keepalive_push()
   emnapiCtx.increaseWaitingRequestCounter()
   makeSetValue('tsfn', 'emnapiTSFN.offset.async_ref', '1', 'i32')
 
@@ -818,7 +837,10 @@ export function napi_release_threadsafe_function (func: number, mode: napi_threa
   })
 }
 
-/** @__sig ipp */
+/**
+ * @__deps _emnapi_runtime_keepalive_pop
+ * @__sig ipp
+ */
 export function napi_unref_threadsafe_function (env: napi_env, func: number): napi_status {
   if (!func) {
     abort()
@@ -829,13 +851,16 @@ export function napi_unref_threadsafe_function (env: napi_env, func: number): na
   const arr = new Int32Array(wasmMemory.buffer)
   if (Atomics.load(arr, asyncRefOffset)) {
     Atomics.store(arr, asyncRefOffset, 0)
-    _emnapi_runtime_keepalive_pop()
+    __emnapi_runtime_keepalive_pop()
     emnapiCtx.decreaseWaitingRequestCounter()
   }
   return napi_status.napi_ok
 }
 
-/** @__sig ipp */
+/**
+ * @__deps _emnapi_runtime_keepalive_push
+ * @__sig ipp
+ */
 export function napi_ref_threadsafe_function (env: napi_env, func: number): napi_status {
   if (!func) {
     abort()
@@ -846,7 +871,7 @@ export function napi_ref_threadsafe_function (env: napi_env, func: number): napi
   const arr = new Int32Array(wasmMemory.buffer)
   if (!Atomics.load(arr, asyncRefOffset)) {
     Atomics.store(arr, asyncRefOffset, 1)
-    _emnapi_runtime_keepalive_push()
+    __emnapi_runtime_keepalive_push()
     emnapiCtx.increaseWaitingRequestCounter()
   }
   return napi_status.napi_ok

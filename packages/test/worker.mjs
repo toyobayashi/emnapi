@@ -2,8 +2,7 @@
 /* eslint-disable no-undef */
 
 import * as emnapiCore from '../../node_modules/@emnapi/core/dist/emnapi-core.js'
-import * as emnapiCorePluginsV8 from '../../node_modules/@emnapi/core/dist/plugins/v8.js'
-import * as emnapiCorePluginsAsyncWork from '../../node_modules/@emnapi/core/dist/plugins/async-work.js'
+import { v8, asyncWork, tsfn } from '../../node_modules/@emnapi/core/dist/plugins/index.js'
 // import * as emnapi from '../runtime/dist/emnapi.js'
 
 (function () {
@@ -111,7 +110,7 @@ import * as emnapiCorePluginsAsyncWork from '../../node_modules/@emnapi/core/dis
             }
           }
         },
-        plugins: [emnapiCorePluginsV8.default, emnapiCorePluginsAsyncWork.default]
+        plugins: [v8, asyncWork, tsfn]
       })
     }
   })

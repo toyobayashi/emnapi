@@ -292,6 +292,11 @@ async function build () {
       libTsconfigPath,
       path.join(__dirname, '../src/emscripten/async-work.ts'),
       path.join(__dirname, '../dist/library_async_work.js')
+    ),
+    buildEmscriptenPlugin(
+      libTsconfigPath,
+      path.join(__dirname, '../src/threadsafe-function.ts'),
+      path.join(__dirname, '../dist/library_threadsafe_function.js')
     )
   ]
 
@@ -311,6 +316,20 @@ async function build () {
       path.join(__dirname, '../src/core/async-work.ts'),
       path.join(outputDir, 'async-work.js'),
       ['emnapiCtx', 'emnapiNodeBinding', 'emnapiAsyncWorkPoolSize'],
+      ['napi']
+    ),
+    buildNonEmscriptenPlugin(
+      coreTsconfigPath,
+      path.join(__dirname, '../src/threadsafe-function.ts'),
+      path.join(outputDir, 'threadsafe-function.js'),
+      [
+        'emnapiCtx',
+        'emnapiNodeBinding',
+        '_emnapi_node_emit_async_destroy: __emnapi_node_emit_async_destroy',
+        '_emnapi_node_emit_async_init: __emnapi_node_emit_async_init',
+        '_emnapi_runtime_keepalive_pop: __emnapi_runtime_keepalive_pop',
+        '_emnapi_runtime_keepalive_push: __emnapi_runtime_keepalive_push'
+      ],
       ['napi']
     )
   ]
