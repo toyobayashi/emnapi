@@ -54,7 +54,7 @@ export function napi_get_arraybuffer_info (env: napi_env, arraybuffer: napi_valu
 export function node_api_set_prototype (env: napi_env, object: napi_value, value: napi_value): napi_status {
   return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, value)
-    const obj = emnapiCtx.handleStore.get(object)!
+    const obj = emnapiCtx.handleStore.get(object)!.value
     if (obj == null) {
       throw new TypeError('Cannot convert undefined or null to object')
     }
@@ -65,7 +65,7 @@ export function node_api_set_prototype (env: napi_env, object: napi_value, value
     } catch (_) {
       return envObject.setLastError(napi_status.napi_object_expected)
     }
-    const val = emnapiCtx.handleStore.get(value)!
+    const val = emnapiCtx.handleStore.get(value)!.value
     Object.setPrototypeOf(v, val)
 
     return envObject.getReturnStatus()
