@@ -51,6 +51,30 @@ export function napi_get_arraybuffer_info (env: napi_env, arraybuffer: napi_valu
 /**
  * @__sig ippp
  */
+export function node_api_set_prototype (env: napi_env, object: napi_value, value: napi_value): napi_status {
+  return $PREAMBLE!(env, (envObject) => {
+    $CHECK_ARG!(envObject, value)
+    const obj = emnapiCtx.jsValueFromNapiValue(object)!
+    if (obj == null) {
+      throw new TypeError('Cannot convert undefined or null to object')
+    }
+    const type = typeof obj
+    let v: any
+    try {
+      v = (type === 'object' && obj !== null) || type === 'function' ? obj : Object(obj)
+    } catch (_) {
+      return envObject.setLastError(napi_status.napi_object_expected)
+    }
+    const val = emnapiCtx.jsValueFromNapiValue(value)!
+    Object.setPrototypeOf(v, val)
+
+    return $GET_RETURN_STATUS!(envObject)
+  })
+}
+
+/**
+ * @__sig ippp
+ */
 export function napi_get_prototype (env: napi_env, value: napi_value, result: Pointer<napi_value>): napi_status {
   return $PREAMBLE!(env, (envObject) => {
     $CHECK_ARG!(envObject, value)
