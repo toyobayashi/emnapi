@@ -29,7 +29,7 @@ export interface ViewPointer<T extends ArrayBufferView> extends ArrayBufferPoint
  */
 export const emnapiExternalMemory: {
   registry: FinalizationRegistry<number> | undefined
-  table: WeakMap<ArrayBuffer, ArrayBufferPointer>
+  table: WeakMap<ArrayBufferLike, ArrayBufferPointer>
   wasmMemoryViewTable: WeakMap<ArrayBufferView, MemoryViewDescriptor>
   init: () => void
   isSharedArrayBuffer: (value: any) => value is SharedArrayBuffer
@@ -67,7 +67,7 @@ export const emnapiExternalMemory: {
     return false
   },
 
-  getArrayBufferPointer: function (arrayBuffer: ArrayBuffer, shouldCopy: boolean): ArrayBufferPointer {
+  getArrayBufferPointer: function (arrayBuffer: ArrayBufferLike, shouldCopy: boolean): ArrayBufferPointer {
     const info: ArrayBufferPointer = {
       address: 0,
       ownership: ReferenceOwnership.kRuntime,

@@ -35,7 +35,7 @@ export function load (wasmInput: MaybePromise<InputType>, imports?: WebAssembly.
 
   // BufferSource
   if (wasmInput instanceof ArrayBuffer || ArrayBuffer.isView(wasmInput)) {
-    return _WebAssembly.instantiate(wasmInput, imports)
+    return _WebAssembly.instantiate(wasmInput as BufferSource, imports)
   }
 
   // WebAssembly.Module
@@ -85,7 +85,7 @@ export function loadSync (wasmInput: InputType, imports?: WebAssembly.Imports): 
   let module
 
   if ((wasmInput instanceof ArrayBuffer) || ArrayBuffer.isView(wasmInput)) {
-    module = new _WebAssembly.Module(wasmInput)
+    module = new _WebAssembly.Module(wasmInput as BufferSource)
   } else if (wasmInput instanceof WebAssembly.Module) {
     module = wasmInput
   } else {

@@ -35,7 +35,7 @@ export function napi_create_array_with_length (env: napi_env, length: size_t, re
   return envObject.clearLastError()
 }
 
-function emnapiCreateArrayBuffer (byte_length: size_t, data: void_pp, shared: boolean): ArrayBuffer {
+function emnapiCreateArrayBuffer (byte_length: size_t, data: void_pp, shared: boolean): ArrayBufferLike {
   from64('byte_length')
   byte_length = byte_length >>> 0
   const arrayBuffer = shared ? new SharedArrayBuffer(byte_length) : new ArrayBuffer(byte_length)
@@ -359,6 +359,11 @@ export function napi_create_typedarray (
         return createTypedArray(envObject, BigInt64Array, 8, buffer, byte_offset, length)
       case napi_typedarray_type.napi_biguint64_array:
         return createTypedArray(envObject, BigUint64Array, 8, buffer, byte_offset, length)
+      case napi_typedarray_type.napi_float16_array:
+        if (typeof Float16Array !== 'function') {
+          return envObject.setLastError(napi_status.napi_invalid_arg)
+        }
+        return createTypedArray(envObject, Float16Array, 2, buffer, byte_offset, length)
       default:
         return envObject.setLastError(napi_status.napi_invalid_arg)
     }
