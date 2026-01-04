@@ -215,7 +215,7 @@ export function napi_get_dataview_info (
   if (!handle.isDataView()) {
     return envObject.setLastError(napi_status.napi_invalid_arg)
   }
-  const v = handle.value as DataView
+  const v = handle.value as DataView<ArrayBufferLike>
   if (byte_length) {
     from64('byte_length')
     makeSetValue('byte_length', 0, 'v.byteLength', SIZE_TYPE)
