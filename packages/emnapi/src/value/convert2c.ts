@@ -133,6 +133,8 @@ export function napi_get_typedarray_info (
       t = napi_typedarray_type.napi_int32_array
     } else if (v instanceof Uint32Array) {
       t = napi_typedarray_type.napi_uint32_array
+    } else if (typeof Float16Array === 'function' && v instanceof Float16Array) {
+      t = napi_typedarray_type.napi_float16_array
     } else if (v instanceof Float32Array) {
       t = napi_typedarray_type.napi_float32_array
     } else if (v instanceof Float64Array) {
@@ -150,7 +152,7 @@ export function napi_get_typedarray_info (
     from64('length')
     makeSetValue('length', 0, 'v.length', SIZE_TYPE)
   }
-  let buffer: ArrayBuffer
+  let buffer: ArrayBufferLike
   if (data || arraybuffer) {
     buffer = v.buffer
     if (data) {
@@ -216,7 +218,7 @@ export function napi_get_dataview_info (
     from64('byte_length')
     makeSetValue('byte_length', 0, 'v.byteLength', SIZE_TYPE)
   }
-  let buffer: ArrayBuffer
+  let buffer: ArrayBufferLike
   if (data || arraybuffer) {
     buffer = v.buffer
     if (data) {

@@ -97,6 +97,12 @@ export function emnapi_create_memory_view (
       case emnapi_memory_view_type.emnapi_data_view:
         viewDescriptor = { Ctor: DataView, address: external_data as number, length: byte_length, ownership: ReferenceOwnership.kUserland, runtimeAllocated: 0 }
         break
+      case emnapi_memory_view_type.emnapi_float16_array:
+        if (typeof Float16Array !== 'function') {
+          return envObject.setLastError(napi_status.napi_invalid_arg)
+        }
+        viewDescriptor = { Ctor: Float16Array, address: external_data as number, length: byte_length >> 1, ownership: ReferenceOwnership.kUserland, runtimeAllocated: 0 }
+        break
       case emnapi_memory_view_type.emnapi_buffer: {
         if (!emnapiCtx.features.Buffer) {
           throw emnapiCtx.createNotSupportBufferError('emnapi_create_memory_view', '')
@@ -149,7 +155,7 @@ export function emnapi_is_node_binding_available (): int {
   return emnapiNodeBinding ? 1 : 0
 }
 
-export function $emnapiSyncMemory<T extends ArrayBuffer | ArrayBufferView> (
+export function $emnapiSyncMemory<T extends ArrayBufferLike | ArrayBufferView> (
   js_to_wasm: boolean,
   arrayBufferOrView: T,
   offset?: number,

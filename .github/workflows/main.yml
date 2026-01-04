@@ -37,7 +37,7 @@ env:
   WASI_SDK_PATH: './wasi-sdk-27.0'
   EM_VERSION: '4.0.1'
   EM_CACHE_FOLDER: 'emsdk-cache'
-  NODE_VERSION: '22.16.0'
+  NODE_VERSION: '24.11.1'
 
 jobs:
   build:
@@ -91,7 +91,7 @@ jobs:
 
     - uses: actions/setup-node@v3
       with:
-        node-version: ${{ matrix.target == 'wasm64-unknown-emscripten' && '24.5.0' || env.NODE_VERSION }}
+        node-version: ${{ env.NODE_VERSION }}
         registry-url: 'https://registry.npmjs.org'
 
     - name: NPM Install
@@ -240,8 +240,7 @@ jobs:
       with:
         node-version: ${{ env.NODE_VERSION }}
         registry-url: 'https://registry.npmjs.org'
-    - name: Update npm
-      run: npm install -g npm@latest
+
     - name: NPM Install
       shell: bash
       run: |
