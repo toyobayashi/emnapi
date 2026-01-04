@@ -14,3 +14,4 @@ node_modules
 /packages/**/test/**/expected
 /packages/**/test/**/rollup/src
 /out
+packages/emnapi/src/typings/lib.esnext.float16.d.ts

@@ -370,6 +370,11 @@ export function napi_create_typedarray (
         return createTypedArray(envObject, BigInt64Array, 8, buffer, byte_offset, length)
       case napi_typedarray_type.napi_biguint64_array:
         return createTypedArray(envObject, BigUint64Array, 8, buffer, byte_offset, length)
+      case napi_typedarray_type.napi_float16_array:
+        if (typeof Float16Array !== 'function') {
+          return envObject.setLastError(napi_status.napi_invalid_arg)
+        }
+        return createTypedArray(envObject, Float16Array, 2, buffer, byte_offset, length)
       default:
         return envObject.setLastError(napi_status.napi_invalid_arg)
     }

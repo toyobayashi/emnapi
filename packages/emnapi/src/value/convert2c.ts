@@ -134,6 +134,8 @@ export function napi_get_typedarray_info (
       t = napi_typedarray_type.napi_int32_array
     } else if (v instanceof Uint32Array) {
       t = napi_typedarray_type.napi_uint32_array
+    } else if (typeof Float16Array === 'function' && v instanceof Float16Array) {
+      t = napi_typedarray_type.napi_float16_array
     } else if (v instanceof Float32Array) {
       t = napi_typedarray_type.napi_float32_array
     } else if (v instanceof Float64Array) {

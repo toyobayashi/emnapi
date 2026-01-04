@@ -131,7 +131,8 @@ declare const enum napi_typedarray_type {
   napi_float32_array,
   napi_float64_array,
   napi_bigint64_array,
-  napi_biguint64_array
+  napi_biguint64_array,
+  napi_float16_array,
 }
 
 declare const enum napi_key_collection_mode {
@@ -165,6 +166,7 @@ declare const enum emnapi_memory_view_type {
   emnapi_float64_array,
   emnapi_bigint64_array,
   emnapi_biguint64_array,
+  emnapi_float16_array,
   emnapi_data_view = -1,
   emnapi_buffer = -2
 }
