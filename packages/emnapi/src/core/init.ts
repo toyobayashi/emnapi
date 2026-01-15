@@ -57,6 +57,14 @@ export function runtimeKeepalivePush (): void {}
 
 export function runtimeKeepalivePop (): void {}
 
+export function getWasmTableEntry (index: number): Function | null {
+  return wasmTable.get(index) as Function | null
+}
+
+export function setWasmTableEntry (index: number, func: Function | null): void {
+  wasmTable.set(index, func)
+}
+
 export var napiModule: INapiModule = {
   imports: {
     env: {},
@@ -292,3 +300,5 @@ export var PThread = new ThreadManager(
 )
 
 napiModule.PThread = PThread
+
+export * from './addfunction'
