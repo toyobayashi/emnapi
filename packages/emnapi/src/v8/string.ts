@@ -56,6 +56,30 @@ export function _v8_string_new_from_two_byte (isolate: Ptr, data: Ptr, type: num
 
 /**
  * @__deps $emnapiCtx
+ * @__deps $emnapiString
+ * @__sig pppi
+ */
+export function _v8_string_new_external_one_byte (isolate: Ptr, data: Ptr, length: number): Ptr {
+  from64('data')
+  from64('length')
+  const str = emnapiString.encode(data as number, length === -1, length >>> 0, (c) => String.fromCharCode(c))
+  return emnapiCtx.napiValueFromJsValue(str)
+}
+
+/**
+ * @__deps $emnapiCtx
+ * @__deps $emnapiString
+ * @__sig pppi
+ */
+export function _v8_string_new_external_two_byte (isolate: Ptr, data: Ptr, length: number): Ptr {
+  from64('data')
+  from64('length')
+  const str = emnapiString.UTF16ToString(data as number, length)
+  return emnapiCtx.napiValueFromJsValue(str)
+}
+
+/**
+ * @__deps $emnapiCtx
  * @__sig pppi
  */
 export function _v8_regex_new (context: Ptr, pattern: Ptr, flags: number): Ptr {

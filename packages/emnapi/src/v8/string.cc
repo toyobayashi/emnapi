@@ -6,6 +6,8 @@ extern "C" {
   V8_EXTERN internal::Address _v8_string_new_from_utf8(Isolate* isolate, const char* data, v8::NewStringType type, int length);
   V8_EXTERN internal::Address _v8_string_new_from_one_byte(Isolate* isolate, const uint8_t* data, v8::NewStringType type, int length);
   V8_EXTERN internal::Address _v8_string_new_from_two_byte(Isolate* isolate, const uint16_t* data, v8::NewStringType type, int length);
+  V8_EXTERN internal::Address _v8_string_new_external_one_byte(Isolate* isolate, const char* data, int length);
+  V8_EXTERN internal::Address _v8_string_new_external_two_byte(Isolate* isolate, const uint16_t* data, int length);
   V8_EXTERN int _v8_string_utf8_length(const String* self, Isolate* isolate);
   V8_EXTERN int _v8_string_length(const String* self);
   V8_EXTERN int _v8_string_write_utf8(const String* self, Isolate* isolate, char* buffer, int length, int* nchars_ref, int options);
@@ -30,6 +32,18 @@ MaybeLocal<String> String::NewFromOneByte(Isolate* isolate, const uint8_t* data,
 
 MaybeLocal<String> String::NewFromTwoByte(Isolate* isolate, const uint16_t* data, NewStringType type, int length) {
   auto str = _v8_string_new_from_two_byte(isolate, data, type, length);
+  if (!str) return MaybeLocal<String>();
+  return v8impl::V8LocalValueFromAddress(str).As<String>();
+}
+
+MaybeLocal<String> String::NewExternalOneByte(Isolate* isolate, ExternalOneByteStringResource* resource) {
+  auto str = _v8_string_new_external_one_byte(isolate, resource->data(), static_cast<int>(resource->length()));
+  if (!str) return MaybeLocal<String>();
+  return v8impl::V8LocalValueFromAddress(str).As<String>();
+}
+
+MaybeLocal<String> String::NewExternalTwoByte(Isolate* isolate, ExternalStringResource* resource) {
+  auto str = _v8_string_new_external_two_byte(isolate, resource->data(), static_cast<int>(resource->length()));
   if (!str) return MaybeLocal<String>();
   return v8impl::V8LocalValueFromAddress(str).As<String>();
 }
