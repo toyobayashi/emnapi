@@ -5,7 +5,7 @@ const assert = require('assert')
 const { load } = require('../util')
 
 module.exports = load('object').then(test_object => {
-// Test passing NULL to object-related N-APIs.
+// Test passing NULL to object-related Node-APIs.
   const { testNull } = test_object
 
   const expectedForProperty = {
