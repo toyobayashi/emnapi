@@ -25,7 +25,7 @@ static napi_value Abort(napi_env env, napi_callback_info info) {
   napi_threadsafe_function ts_fn;
   NODE_API_CALL(env, napi_get_cb_info(env, info, &argc, &argv, NULL, NULL));
   NODE_API_CALL(env, napi_create_string_utf8(env,
-      "N-API Thread-safe Function Test", NAPI_AUTO_LENGTH, &async_name));
+      "Node-API Thread-safe Function Test", NAPI_AUTO_LENGTH, &async_name));
   NODE_API_CALL(env, napi_create_threadsafe_function(env,
                                                      argv,
                                                      NULL,
@@ -49,7 +49,7 @@ static napi_value ReleaseInThread(napi_env env, napi_callback_info info) {
   pthread_t uv_threads;
   NODE_API_CALL(env, napi_get_cb_info(env, info, &argc, &argv, NULL, NULL));
   NODE_API_CALL(env, napi_create_string_utf8(env,
-      "N-API Thread-safe Function Test", NAPI_AUTO_LENGTH, &async_name));
+      "Node-API Thread-safe Function Test", NAPI_AUTO_LENGTH, &async_name));
   NODE_API_CALL(env, napi_create_threadsafe_function(env,
                                                      argv,
                                                      NULL,
@@ -74,7 +74,7 @@ static napi_value AbortInThread(napi_env env, napi_callback_info info) {
   pthread_t uv_threads;
   NODE_API_CALL(env, napi_get_cb_info(env, info, &argc, &argv, NULL, NULL));
   NODE_API_CALL(env, napi_create_string_utf8(env,
-      "N-API Thread-safe Function Test", NAPI_AUTO_LENGTH, &async_name));
+      "Node-API Thread-safe Function Test", NAPI_AUTO_LENGTH, &async_name));
   NODE_API_CALL(env, napi_create_threadsafe_function(env,
                                                      argv,
                                                      NULL,

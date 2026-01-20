@@ -284,7 +284,7 @@ export class NodeEnv extends Env {
             }
           }
         warn(
-          'Uncaught N-API callback exception detected, please run node with option --force-node-api-uncaught-exceptions-policy=true to handle those exceptions properly.',
+          'Uncaught Node-API callback exception detected, please run node with option --force-node-api-uncaught-exceptions-policy=true to handle those exceptions properly.',
           'DeprecationWarning',
           'DEP0168'
         )

@@ -3,7 +3,7 @@
 const assert = require('assert')
 const { load } = require('../util')
 
-// Test passing NULL to object-related N-APIs.
+// Test passing NULL to object-related Node-APIs.
 module.exports = load('constructor').then(({ testNull }) => {
   const expectedResult = {
     envIsNull: 'Invalid argument',
