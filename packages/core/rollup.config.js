@@ -16,6 +16,7 @@ export default [
     defines: {
       __VERSION__: JSON.stringify(pkg.version)
     },
+    external: ['@emnapi/wasi-threads'],
     plugins: [
       {
         name: 'rollup-plugin-create-plugin-entry',
