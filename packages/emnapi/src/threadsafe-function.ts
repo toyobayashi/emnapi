@@ -5,6 +5,7 @@ import { POINTER_SIZE, to64, makeDynCall, from64, makeSetValue, SIZE_TYPE } from
 import { $CHECK_ENV_NOT_IN_GC, $CHECK_ARG } from './macro'
 
 declare var emnapiCtx: Context
+declare var emnapiEnv: Env
 declare var emnapiNodeBinding: NodeBinding | undefined
 declare function __emnapi_node_emit_async_destroy (async_id: double, trigger_async_id: double): void
 declare function __emnapi_node_emit_async_init (
@@ -20,6 +21,7 @@ declare function __emnapi_runtime_keepalive_push (): void
  * @__deps malloc
  * @__deps free
  * @__deps $emnapiCtx
+ * @__deps $emnapiEnv
  * @__deps $emnapiNodeBinding
  * @__deps _emnapi_node_emit_async_destroy
  * @__deps _emnapi_runtime_keepalive_pop
@@ -426,7 +428,7 @@ const emnapiTSFN = {
   destroy (func: number) {
     emnapiTSFN.destroyQueue(func)
     const env = emnapiTSFN.getEnv(func)
-    const envObject = emnapiCtx.getEnv(env)!
+    const envObject = emnapiEnv
     const ref = emnapiTSFN.getRef(func)
     if (ref) {
       emnapiCtx.getRef(ref)!.dispose()
@@ -469,7 +471,7 @@ const emnapiTSFN = {
   },
   finalize (func: number) {
     const env = emnapiTSFN.getEnv(func)
-    const envObject = emnapiCtx.getEnv(env)!
+    const envObject = emnapiEnv
     emnapiCtx.openScope(envObject)
 
     const finalize = emnapiTSFN.getFinalizeCb(func)
@@ -514,7 +516,7 @@ const emnapiTSFN = {
   },
   closeHandlesAndMaybeDelete (func: number, set_closing: number) {
     const env = emnapiTSFN.getEnv(func)
-    const envObject = emnapiCtx.getEnv(env)!
+    const envObject = emnapiEnv
     emnapiCtx.openScope(envObject)
     try {
       if (set_closing) {
@@ -573,7 +575,7 @@ const emnapiTSFN = {
 
     if (popped_value) {
       const env = emnapiTSFN.getEnv(func)
-      const envObject = emnapiCtx.getEnv(env)!
+      const envObject = emnapiEnv
       emnapiCtx.openScope(envObject)
 
       const f = (): void => {

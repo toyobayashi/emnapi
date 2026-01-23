@@ -1,6 +1,6 @@
 /* eslint-disable @stylistic/indent */
 
-import { emnapiCtx } from 'emnapi:shared'
+import { emnapiCtx, emnapiEnv } from 'emnapi:shared'
 import { from64, makeDynCall, makeSetValue } from 'emscripten:parse-tools'
 import { emnapiString } from './string'
 import { emnapiExternalMemory } from './memory'

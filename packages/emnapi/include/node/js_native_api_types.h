@@ -237,4 +237,14 @@ typedef struct {
 } napi_type_tag;
 #endif  // NAPI_VERSION >= 8
 
+#ifndef EMNAPI_UNMODIFIED_UPSTREAM
+struct napi_env__ {
+  void* reserved;
+  uint64_t sentinel;  // Should be NODE_API_VT_SENTINEL
+  const struct node_api_js_vtable* js_vtable;
+  const struct node_api_module_vtable* module_vtable;
+  napi_extended_error_info last_error;
+};
+#endif
+
 #endif  // SRC_JS_NATIVE_API_TYPES_H_

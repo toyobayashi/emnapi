@@ -1,11 +1,11 @@
-import { emnapiCtx } from 'emnapi:shared'
+import { emnapiEnv } from 'emnapi:shared'
 import { from64, makeSetValue } from 'emscripten:parse-tools'
 import { $CHECK_ENV, $CHECK_ARG } from './macro'
 
 /** @__sig ipppp */
 export function napi_set_instance_data (env: napi_env, data: void_p, finalize_cb: napi_finalize, finalize_hint: void_p): napi_status {
   $CHECK_ENV!(env)
-  const envObject = emnapiCtx.getEnv(env)!
+  const envObject = emnapiEnv!
   from64('data')
   from64('finalize_cb')
   from64('finalize_hint')
@@ -16,7 +16,7 @@ export function napi_set_instance_data (env: napi_env, data: void_p, finalize_cb
 /** @__sig ipp */
 export function napi_get_instance_data (env: napi_env, data: void_pp): napi_status {
   $CHECK_ENV!(env)
-  const envObject = emnapiCtx.getEnv(env)!
+  const envObject = emnapiEnv!
   $CHECK_ARG!(envObject, data)
   from64('data')
 

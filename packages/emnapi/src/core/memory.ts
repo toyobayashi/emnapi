@@ -1,4 +1,4 @@
-import { emnapiCtx } from 'emnapi:shared'
+import { emnapiCtx, emnapiEnv } from 'emnapi:shared'
 import { wasmMemory } from 'emscripten:runtime'
 import { from64, makeSetValue } from 'emscripten:parse-tools'
 import { $CHECK_ENV, $CHECK_ARG } from '../macro'
@@ -11,7 +11,7 @@ export function napi_adjust_external_memory (
   adjusted_value: number
 ): napi_status {
   $CHECK_ENV!(env)
-  const envObject = emnapiCtx.getEnv(env)!
+  const envObject = emnapiEnv
   $CHECK_ARG!(envObject, adjusted_value)
 
   const change_in_bytes_number = Number(change_in_bytes)

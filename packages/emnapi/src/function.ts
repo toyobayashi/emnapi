@@ -1,4 +1,4 @@
-import { emnapiCtx } from 'emnapi:shared'
+import { emnapiCtx, emnapiEnv } from 'emnapi:shared'
 import { from64, makeSetValue, makeGetValue, SIZE_TYPE, POINTER_SIZE } from 'emscripten:parse-tools'
 import { emnapiCreateFunction } from './internal'
 import { $PREAMBLE, $CHECK_ARG, $CHECK_ENV, $CHECK_ENV_NOT_IN_GC, $GET_RETURN_STATUS } from './macro'
@@ -27,7 +27,7 @@ export function napi_create_function (env: napi_env, utf8name: Pointer<const_cha
 /** @__sig ipppppp */
 export function napi_get_cb_info (env: napi_env, cbinfo: napi_callback_info, argc: Pointer<size_t>, argv: Pointer<napi_value>, this_arg: Pointer<napi_value>, data: void_pp): napi_status {
   $CHECK_ENV!(env)
-  const envObject = emnapiCtx.getEnv(env)!
+  const envObject = emnapiEnv
   if (!cbinfo) return envObject.setLastError(napi_status.napi_invalid_arg)
   const cbinfoValue = emnapiCtx.getCallbackInfo(cbinfo)
 

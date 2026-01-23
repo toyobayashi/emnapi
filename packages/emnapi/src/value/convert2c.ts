@@ -1,4 +1,4 @@
-import { emnapiCtx } from 'emnapi:shared'
+import { emnapiCtx, emnapiEnv } from 'emnapi:shared'
 import { SIZE_TYPE, from64, makeGetValue, makeSetValue } from 'emscripten:parse-tools'
 import { $emnapiSetValueI64 as emnapiSetValueI64 } from '../util'
 import { emnapiString } from '../string'

@@ -1,4 +1,4 @@
-import { emnapiCtx } from 'emnapi:shared'
+import { emnapiCtx, emnapiEnv } from 'emnapi:shared'
 import { Module } from 'emscripten:runtime'
 import { from64, makeSetValue } from 'emscripten:parse-tools'
 import { emnapiString } from '../string'

@@ -1,4 +1,4 @@
-import { emnapiCtx } from 'emnapi:shared'
+import { emnapiCtx, emnapiEnv } from 'emnapi:shared'
 import { from64, makeSetValue } from 'emscripten:parse-tools'
 import { $CHECK_ENV_NOT_IN_GC, $CHECK_ARG, $PREAMBLE, $GET_RETURN_STATUS } from './macro'
 

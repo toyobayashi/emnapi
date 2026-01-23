@@ -1,6 +1,6 @@
 /* eslint-disable @stylistic/indent */
 
-import { emnapiCtx } from 'emnapi:shared'
+import { emnapiCtx, emnapiEnv } from 'emnapi:shared'
 import { from64, makeSetValue } from 'emscripten:parse-tools'
 import { $CHECK_ARG, $GET_RETURN_STATUS, $PREAMBLE } from './macro'
 import { napi_set_last_error } from './util'

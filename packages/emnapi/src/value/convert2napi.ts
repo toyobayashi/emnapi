@@ -1,6 +1,6 @@
 /* eslint-disable @stylistic/indent */
 
-import { emnapiCtx } from 'emnapi:shared'
+import { emnapiCtx, emnapiEnv } from 'emnapi:shared'
 import { from64, makeGetValue, makeSetValue } from 'emscripten:parse-tools'
 import { emnapiString } from '../string'
 import { $CHECK_ARG, $CHECK_ENV_NOT_IN_GC, $GET_RETURN_STATUS, $PREAMBLE } from '../macro'

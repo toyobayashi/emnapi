@@ -3,9 +3,11 @@ import { emnapiAWST } from '../async-work'
 import { $CHECK_ARG, $CHECK_ENV, $CHECK_ENV_NOT_IN_GC } from '../macro'
 
 declare var emnapiCtx: Context
+declare var emnapiEnv: Env
 
 /**
  * @__deps $emnapiCtx
+ * @__deps $emnapiEnv
  * @__sig ippppppp
  */
 export function napi_create_async_work (env: napi_env, resource: napi_value, resource_name: napi_value, execute: number, complete: number, data: number, result: number): napi_status {
@@ -47,7 +49,7 @@ export function napi_delete_async_work (env: napi_env, work: number): napi_statu
  */
 export function napi_queue_async_work (env: napi_env, work: number): napi_status {
   $CHECK_ENV!(env)
-  const envObject = emnapiCtx.getEnv(env)!
+  const envObject = emnapiEnv
   $CHECK_ARG!(envObject, work)
 
   emnapiAWST.queue(work)
@@ -60,7 +62,7 @@ export function napi_queue_async_work (env: napi_env, work: number): napi_status
  */
 export function napi_cancel_async_work (env: napi_env, work: number): napi_status {
   $CHECK_ENV!(env)
-  const envObject = emnapiCtx.getEnv(env)!
+  const envObject = emnapiEnv
   $CHECK_ARG!(envObject, work)
 
   const status = emnapiAWST.cancel(work)

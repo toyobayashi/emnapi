@@ -1,4 +1,4 @@
-import { emnapiCtx, emnapiNodeBinding } from 'emnapi:shared'
+import { emnapiCtx, emnapiEnv, emnapiNodeBinding } from 'emnapi:shared'
 import { wasmMemory } from 'emscripten:runtime'
 import { from64, makeSetValue, makeGetValue } from 'emscripten:parse-tools'
 import { type MemoryViewDescriptor, type ArrayBufferPointer, emnapiExternalMemory } from './memory'
@@ -304,7 +304,7 @@ export function emnapi_get_memory_address (env: napi_env, arraybuffer_or_view: n
  */
 export function emnapi_get_runtime_version (env: napi_env, version: number): napi_status {
   $CHECK_ENV!(env)
-  const envObject = emnapiCtx.getEnv(env)!
+  const envObject = emnapiEnv
   $CHECK_ARG!(envObject, version)
 
   let runtimeVersion: string

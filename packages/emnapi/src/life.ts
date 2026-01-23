@@ -1,4 +1,4 @@
-import { emnapiCtx } from 'emnapi:shared'
+import { emnapiCtx, emnapiEnv } from 'emnapi:shared'
 import { from64, makeSetValue } from 'emscripten:parse-tools'
 import { $CHECK_ENV_NOT_IN_GC, $CHECK_ARG, $CHECK_ENV } from './macro'
 
@@ -96,7 +96,7 @@ export function napi_delete_reference (
   ref: napi_ref
 ): napi_status {
   $CHECK_ENV!(env)
-  const envObject = emnapiCtx.getEnv(env)!
+  const envObject = emnapiEnv
   $CHECK_ARG!(envObject, ref)
   emnapiCtx.getRef(ref)!.dispose()
   return envObject.clearLastError()
@@ -161,7 +161,7 @@ export function napi_get_reference_value (
 /** @__sig ippp */
 export function napi_add_env_cleanup_hook (env: napi_env, fun: number, arg: number): napi_status {
   $CHECK_ENV!(env)
-  const envObject = emnapiCtx.getEnv(env)!
+  const envObject = emnapiEnv
   $CHECK_ARG!(envObject, fun)
 
   from64('fun')
@@ -175,7 +175,7 @@ export function napi_add_env_cleanup_hook (env: napi_env, fun: number, arg: numb
 /** @__sig ippp */
 export function napi_remove_env_cleanup_hook (env: napi_env, fun: number, arg: number): napi_status {
   $CHECK_ENV!(env)
-  const envObject = emnapiCtx.getEnv(env)!
+  const envObject = emnapiEnv
   $CHECK_ARG!(envObject, fun)
 
   from64('fun')
@@ -188,12 +188,12 @@ export function napi_remove_env_cleanup_hook (env: napi_env, fun: number, arg: n
 
 /** @__sig vp */
 export function _emnapi_env_ref (env: napi_env): void {
-  const envObject = emnapiCtx.getEnv(env)!
+  const envObject = emnapiEnv
   envObject.ref()
 }
 
 /** @__sig vp */
 export function _emnapi_env_unref (env: napi_env): void {
-  const envObject = emnapiCtx.getEnv(env)!
+  const envObject = emnapiEnv
   envObject.unref()
 }

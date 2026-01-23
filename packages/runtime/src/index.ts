@@ -1,6 +1,6 @@
 export { createContext, getDefaultContext, Context, type CleanupHookCallbackFunction, type ContextOptions } from './Context'
 export { Disposable } from './Disaposable'
-export { Env, NodeEnv, type IReferenceBinding } from './env'
+export { Env, NodeEnv, type IReferenceBinding, type EnvNativeBridge } from './env'
 export { EmnapiError, NotSupportWeakRefError, NotSupportBufferError } from './errors'
 export { External, isExternal, getExternalValue } from './External'
 export { Finalizer } from './Finalizer'

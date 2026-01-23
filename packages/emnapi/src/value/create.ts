@@ -1,4 +1,4 @@
-import { emnapiCtx } from 'emnapi:shared'
+import { emnapiCtx, emnapiEnv } from 'emnapi:shared'
 import { wasmMemory, _malloc } from 'emscripten:runtime'
 import { from64, makeGetValue, makeSetValue, POINTER_SIZE, to64 } from 'emscripten:parse-tools'
 import { emnapiString } from '../string'

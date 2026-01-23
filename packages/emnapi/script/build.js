@@ -315,7 +315,7 @@ async function build () {
       coreTsconfigPath,
       path.join(__dirname, '../src/core/async-work.ts'),
       path.join(outputDir, 'async-work.js'),
-      ['emnapiCtx', 'emnapiNodeBinding', 'emnapiAsyncWorkPoolSize'],
+      ['emnapiCtx', 'emnapiEnv', 'emnapiNodeBinding', 'emnapiAsyncWorkPoolSize'],
       ['napi']
     ),
     buildNonEmscriptenPlugin(
@@ -324,6 +324,7 @@ async function build () {
       path.join(outputDir, 'threadsafe-function.js'),
       [
         'emnapiCtx',
+        'emnapiEnv',
         'emnapiNodeBinding',
         '_emnapi_node_emit_async_destroy: __emnapi_node_emit_async_destroy',
         '_emnapi_node_emit_async_init: __emnapi_node_emit_async_init',
