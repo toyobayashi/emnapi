@@ -20,6 +20,16 @@ export interface IReferenceBinding {
   tag: Uint32Array | null
 }
 
+export interface EnvNativeBridge {
+  address: number
+  free: (ptr: number) => void
+  setLastError: (env: napi_env, error_code: napi_status, engine_error_code: uint32_t, engine_reserved: number) => void
+  makeDynCall_vppp: (cb: Ptr) => (a: Ptr, b: Ptr, c: Ptr) => void
+  makeDynCall_vp: (cb: Ptr) => (a: Ptr) => void
+  abort: (msg?: string) => never
+  wasm64?: boolean
+}
+
 export abstract class Env extends Disposable {
   public id: number | bigint
 
@@ -36,26 +46,29 @@ export abstract class Env extends Disposable {
 
   public pendingFinalizers: RefTracker[] = []
 
-  public lastError = {
-    errorCode: napi_status.napi_ok,
-    engineErrorCode: 0 as uint32_t,
-    engineReserved: 0 as Ptr
-  }
+  moduleApiVersion!: number
+  filename!: string
+  nodeBinding?: any
 
   public inGcFinalizer = false
 
+  public bridge: EnvNativeBridge
+
+  public readonly ctx: Context
+  private store: ArrayStore<Env>
+
   public constructor (
-    public readonly ctx: Context,
-    private store: ArrayStore<Env>,
-    public moduleApiVersion: number,
-    public makeDynCall_vppp: (cb: Ptr) => (a: Ptr, b: Ptr, c: Ptr) => void,
-    public makeDynCall_vp: (cb: Ptr) => (a: Ptr) => void,
-    public abort: (msg?: string) => never
+    ctx: Context,
+    store: ArrayStore<Env>,
+    bridge: EnvNativeBridge
   ) {
     super()
+    this.ctx = ctx
+    this.store = store
     this.id = 0
     this.store.insert(this)
     this.lastException = new Persistent<any>(ctx.isolate)
+    this.bridge = bridge
   }
 
   /** @virtual */
@@ -79,19 +92,12 @@ export abstract class Env extends Disposable {
   }
 
   public clearLastError (): napi_status {
-    const lastError = this.lastError
-    if (lastError.errorCode !== napi_status.napi_ok) lastError.errorCode = napi_status.napi_ok
-    if (lastError.engineErrorCode !== 0) lastError.engineErrorCode = 0
-    if (lastError.engineReserved !== 0) lastError.engineReserved = 0
-
+    this.bridge.setLastError(this.bridge.address, napi_status.napi_ok, 0, 0)
     return napi_status.napi_ok
   }
 
-  public setLastError (error_code: napi_status, engine_error_code: uint32_t = 0, engine_reserved: void_p = 0): napi_status {
-    const lastError = this.lastError
-    if (lastError.errorCode !== error_code) lastError.errorCode = error_code
-    if (lastError.engineErrorCode !== engine_error_code) lastError.engineErrorCode = engine_error_code
-    if (lastError.engineReserved !== engine_reserved) lastError.engineReserved = engine_reserved
+  public setLastError (error_code: napi_status, engine_error_code: uint32_t = 0, engine_reserved: number = 0): napi_status {
+    this.bridge.setLastError(this.bridge.address, error_code, engine_error_code, engine_reserved)
     return error_code
   }
 
@@ -101,7 +107,7 @@ export abstract class Env extends Disposable {
     this.clearLastError()
     const r = fn(this)
     if (openHandleScopesBefore !== this.openHandleScopes) {
-      this.abort('open_handle_scopes != open_handle_scopes_before')
+      this.bridge.abort('open_handle_scopes != open_handle_scopes_before')
     }
     if (!this.lastException.isEmpty()) {
       const err = this.lastException.deref()!
@@ -130,7 +136,7 @@ export abstract class Env extends Disposable {
 
   public checkGCAccess (): void {
     if (this.moduleApiVersion === NAPI_VERSION_EXPERIMENTAL && this.inGcFinalizer) {
-      this.abort(
+      this.bridge.abort(
         'Finalizer is calling a function that may affect GC state.\n' +
         'The finalizers are run directly from GC and must not affect GC ' +
         'state.\n' +
@@ -163,6 +169,8 @@ export abstract class Env extends Disposable {
 
     this.lastException.reset()
     this.store.dealloc(this.id)
+
+    this.bridge.free(this.bridge.address)
   }
 
   public dispose (): void {
@@ -211,14 +219,10 @@ export class NodeEnv extends Env {
   public constructor (
     ctx: Context,
     store: ArrayStore<Env>,
-    public filename: string,
-    moduleApiVersion: number,
-    makeDynCall_vppp: (cb: Ptr) => (a: Ptr, b: Ptr, c: Ptr) => void,
-    makeDynCall_vp: (cb: Ptr) => (a: Ptr) => void,
-    abort: (msg?: string) => never,
-    private readonly nodeBinding?: any
+    bridge: EnvNativeBridge
   ) {
-    super(ctx, store, moduleApiVersion, makeDynCall_vppp, makeDynCall_vp, abort)
+    super(ctx, store, bridge)
+    this.bridge = bridge
   }
 
   public override deleteMe (): void {
@@ -282,8 +286,8 @@ export class NodeEnv extends Env {
   }
 
   public callFinalizerInternal (forceUncaught: int, cb: napi_finalize, data: void_p, hint: void_p): void {
-    const f = this.makeDynCall_vppp(cb)
-    const env: napi_env = this.id
+    const f = this.bridge.makeDynCall_vppp(cb)
+    const env: napi_env = this.bridge.address
     const scope = this.ctx.openScope(this)
     try {
       this.callbackIntoModule(Boolean(forceUncaught), () => { f(env, data, hint) })

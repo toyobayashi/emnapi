@@ -2,7 +2,7 @@
 
 import { wasmMemory } from 'emscripten:runtime'
 import { getUnsharedTextDecoderView, makeSetValue, from64, makeGetValue } from 'emscripten:parse-tools'
-import { emnapiCtx } from 'emnapi:shared'
+import { emnapiCtx, emnapiEnv } from 'emnapi:shared'
 import { $CHECK_NEW_STRING_ARGS } from './macro'
 
 export interface Decoder {

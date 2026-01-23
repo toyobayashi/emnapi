@@ -1,6 +1,7 @@
 import { makeDynCall } from 'emscripten:parse-tools'
 
 declare var emnapiCtx: Context
+declare var emnapiEnv: Env
 declare var emnapiNodeBinding: NodeBinding | undefined
 declare var emnapiAsyncWorkPoolSize: number
 
@@ -25,6 +26,7 @@ export interface AsyncWork {
 
 /**
  * @__deps $emnapiCtx
+ * @__deps $emnapiEnv
  * @__deps $emnapiNodeBinding
  * @__deps $emnapiAsyncWorkPoolSize
  * @__postset
@@ -97,7 +99,7 @@ export var emnapiAWST = {
     const data = work.data
     const callback = (): void => {
       if (!complete) return
-      const envObject = emnapiCtx.getEnv(env)!
+      const envObject = emnapiEnv
       const scope = emnapiCtx.openScope(envObject)
       try {
         (envObject as NodeEnv).callbackIntoModule(true, () => {

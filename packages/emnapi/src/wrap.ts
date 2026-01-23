@@ -1,4 +1,4 @@
-import { emnapiCtx } from 'emnapi:shared'
+import { emnapiCtx, emnapiEnv } from 'emnapi:shared'
 import { wasmMemory } from 'emscripten:runtime'
 import { from64, POINTER_SIZE, makeGetValue, POINTER_WASM_TYPE, makeSetValue } from 'emscripten:parse-tools'
 import { emnapiString } from './string'
@@ -212,7 +212,7 @@ export function napi_add_finalizer (env: napi_env, js_object: napi_value, finali
  */
 export function node_api_post_finalizer (env: napi_env, finalize_cb: napi_finalize, finalize_data: void_p, finalize_hint: void_p): napi_status {
   $CHECK_ENV!(env)
-  const envObject = emnapiCtx.getEnv(env)!
+  const envObject = emnapiEnv
   envObject.enqueueFinalizer(
     emnapiCtx.createTrackedFinalizer(
       envObject,

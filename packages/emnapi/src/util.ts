@@ -1,20 +1,21 @@
 import { ENVIRONMENT_IS_NODE, ENVIRONMENT_IS_PTHREAD, runtimeKeepalivePop, runtimeKeepalivePush } from 'emscripten:runtime'
 import { from64, makeSetValue, makeDynCall } from 'emscripten:parse-tools'
-import { emnapiCtx } from 'emnapi:shared'
+import { emnapiCtx, emnapiEnv } from 'emnapi:shared'
 
 /**
  * @__sig ipiip
  */
 export function napi_set_last_error (env: napi_env, error_code: napi_status, engine_error_code: uint32_t, engine_reserved: void_p): napi_status {
-  const envObject = emnapiCtx.getEnv(env)!
-  return envObject.setLastError(error_code, engine_error_code, engine_reserved)
+  const envObject = emnapiEnv
+  from64('engine_reserved')
+  return envObject.setLastError(error_code, engine_error_code, engine_reserved as number)
 }
 
 /**
  * @__sig ip
  */
 export function napi_clear_last_error (env: napi_env): napi_status {
-  const envObject = emnapiCtx.getEnv(env)!
+  const envObject = emnapiEnv
   return envObject.clearLastError()
 }
 
@@ -80,7 +81,7 @@ export function _emnapi_next_tick (callback: number, data: number): void {
  * @__sig vipppi
  */
 export function _emnapi_callback_into_module (forceUncaught: int, env: napi_env, callback: number, data: number, close_scope_if_throw: int): void {
-  const envObject = emnapiCtx.getEnv(env)!
+  const envObject = emnapiEnv
   const scope = emnapiCtx.openScope(envObject)
   try {
     (envObject as NodeEnv).callbackIntoModule(Boolean(forceUncaught), () => {
@@ -100,7 +101,7 @@ export function _emnapi_callback_into_module (forceUncaught: int, env: napi_env,
  * @__sig vipppp
  */
 export function _emnapi_call_finalizer (forceUncaught: int, env: napi_env, callback: number, data: number, hint: number): void {
-  const envObject = emnapiCtx.getEnv(env)!
+  const envObject = emnapiEnv
   from64('callback')
   ;(envObject as NodeEnv).callFinalizerInternal(forceUncaught, callback, data, hint)
 }

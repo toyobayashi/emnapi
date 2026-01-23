@@ -1,5 +1,5 @@
 import type { HandleScope, ICallbackInfo } from './HandleScope'
-import { Env, NodeEnv } from './env'
+import { Env, EnvNativeBridge, NodeEnv } from './env'
 import {
   version,
   NODE_API_SUPPORTED_VERSION_MAX,
@@ -82,7 +82,7 @@ class CleanupQueue {
     for (let i = 0; i < hooks.length; ++i) {
       const cb = hooks[i]
       if (typeof cb.fn === 'number') {
-        cb.envObject.makeDynCall_vp(cb.fn)(cb.arg)
+        cb.envObject.bridge.makeDynCall_vp(cb.fn)(cb.arg)
       } else {
         cb.fn(cb.arg)
       }
@@ -250,9 +250,7 @@ export class Context {
   public createEnv (
     filename: string,
     moduleApiVersion: number,
-    makeDynCall_vppp: (cb: Ptr) => (a: Ptr, b: Ptr, c: Ptr) => void,
-    makeDynCall_vp: (cb: Ptr) => (a: Ptr) => void,
-    abort: (msg?: string) => never,
+    bridge: EnvNativeBridge,
     nodeBinding?: any
   ): Env {
     moduleApiVersion = typeof moduleApiVersion !== 'number' ? NODE_API_DEFAULT_MODULE_API_VERSION : moduleApiVersion
@@ -266,16 +264,10 @@ export class Context {
             NODE_API_SUPPORTED_VERSION_MAX} add-ons.`
       throw new Error(errorMessage)
     }
-    const env = new NodeEnv(
-      this,
-      this.envStore,
-      filename,
-      moduleApiVersion,
-      makeDynCall_vppp,
-      makeDynCall_vp,
-      abort,
-      nodeBinding
-    )
+    const env = new NodeEnv(this, this.envStore, { ...bridge })
+    env.filename = filename
+    env.moduleApiVersion = moduleApiVersion
+    env.nodeBinding = nodeBinding
     this.addCleanupHook(env, () => { env.unref() }, 0)
     return env
   }
@@ -288,11 +280,11 @@ export class Context {
     dynamicExecution: boolean
   ) {
     if (envObject.ctx !== this) {
-      throw new Error(`The napi_env (${envObject.id}) is not created by this context`)
+      throw new Error(`The napi_env (${envObject.bridge.address}) is not created by this context`)
     }
 
     const callback = (envObject: Env) => {
-      return napiCallback(envObject.id, envObject.ctx.getCurrentScope()!.id)
+      return napiCallback(envObject.bridge.address, envObject.ctx.getCurrentScope()!.id)
     }
 
     let _: Function

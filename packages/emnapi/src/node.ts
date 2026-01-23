@@ -1,4 +1,4 @@
-import { emnapiNodeBinding, emnapiCtx } from 'emnapi:shared'
+import { emnapiNodeBinding, emnapiCtx, emnapiEnv } from 'emnapi:shared'
 import { from64, makeSetValue, makeGetValue, POINTER_SIZE } from 'emscripten:parse-tools'
 import { $PREAMBLE, $CHECK_ARG, $GET_RETURN_STATUS } from './macro'
 
@@ -76,7 +76,6 @@ export function _emnapi_node_make_callback (env: napi_env, async_resource: napi_
   })
   if (result) {
     from64('result')
-    const envObject = emnapiCtx.getEnv(env)!
 
     v = emnapiCtx.napiValueFromJsValue(ret)
     makeSetValue('result', 0, 'v', '*')
@@ -199,6 +198,6 @@ export function napi_make_callback (env: napi_env, async_context: Pointer<int64_
 
 /** @__sig vp */
 export function _emnapi_env_check_gc_access (env: napi_env): void {
-  const envObject = emnapiCtx.getEnv(env)!
+  const envObject = emnapiEnv
   envObject.checkGCAccess()
 }

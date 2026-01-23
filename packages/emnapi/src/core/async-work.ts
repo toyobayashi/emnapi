@@ -9,6 +9,7 @@ import { $CHECK_ENV_NOT_IN_GC, $CHECK_ARG, $CHECK_ENV } from '../macro'
 
 declare var emnapiPluginCtx: any
 declare var emnapiCtx: Context
+declare var emnapiEnv: Env
 declare var emnapiNodeBinding: NodeBinding | undefined
 
 const {
@@ -237,7 +238,7 @@ var emnapiAWMT = {
     const complete = emnapiAWMT.getComplete(work)
     const env = emnapiAWMT.getEnv(work)
     const data = emnapiAWMT.getData(work)
-    const envObject = emnapiCtx.getEnv(env)!
+    const envObject = emnapiEnv
     const scope = emnapiCtx.openScope(envObject)
     const callback = (): void => {
       if (!complete) return
@@ -357,7 +358,7 @@ export var napi_delete_async_work = singleThreadAsyncWork
 export var napi_queue_async_work = singleThreadAsyncWork
   ? function (env: napi_env, work: number): napi_status {
     $CHECK_ENV!(env)
-    const envObject = emnapiCtx.getEnv(env)!
+    const envObject = emnapiEnv
     $CHECK_ARG!(envObject, work)
 
     emnapiAWST.queue(work)
@@ -365,7 +366,7 @@ export var napi_queue_async_work = singleThreadAsyncWork
   }
   : function (env: napi_env, work: number): napi_status {
     $CHECK_ENV!(env)
-    const envObject = emnapiCtx.getEnv(env)!
+    const envObject = emnapiEnv
     $CHECK_ARG!(envObject, work)
 
     emnapiAWMT.scheduleWork(work)
@@ -376,7 +377,7 @@ export var napi_queue_async_work = singleThreadAsyncWork
 export var napi_cancel_async_work = singleThreadAsyncWork
   ? function (env: napi_env, work: number): napi_status {
     $CHECK_ENV!(env)
-    const envObject = emnapiCtx.getEnv(env)!
+    const envObject = emnapiEnv
     $CHECK_ARG!(envObject, work)
 
     const status = emnapiAWST.cancel(work)
@@ -385,7 +386,7 @@ export var napi_cancel_async_work = singleThreadAsyncWork
   }
   : function (env: napi_env, work: number): napi_status {
     $CHECK_ENV!(env)
-    const envObject = emnapiCtx.getEnv(env)!
+    const envObject = emnapiEnv
     $CHECK_ARG!(envObject, work)
 
     const status = emnapiAWMT.cancelWork(work)

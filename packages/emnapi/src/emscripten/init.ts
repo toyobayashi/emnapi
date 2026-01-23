@@ -1,5 +1,6 @@
-import { makeDynCall, to64 } from 'emscripten:parse-tools'
-import { abort, Module } from 'emscripten:runtime'
+/* eslint-disable @stylistic/indent */
+import { from64, makeDynCall, makeSetValue, to64 } from 'emscripten:parse-tools'
+import { abort, Module, _malloc, _free } from 'emscripten:runtime'
 
 // declare const global: typeof globalThis
 // declare const require: any
@@ -17,6 +18,7 @@ export interface InitOptions {
 }
 
 export var emnapiCtx: Context = undefined!
+export var emnapiEnv: Env = undefined!
 export var emnapiNodeBinding: NodeBinding = undefined!
 export var emnapiAsyncWorkPoolSize: number = 0
 
@@ -31,6 +33,10 @@ const emnapiModule: {
   filename: ''
 }
 
+/**
+ * @__deps malloc
+ * @__deps free
+ */
 export function emnapiInit (options: InitOptions): any {
   if (emnapiModule.loaded) return emnapiModule.exports
 
@@ -101,22 +107,75 @@ NODE_MODULE_VERSION ${NODE_MODULE_VERSION}.`)
 
   const moduleApiVersion = Module._node_api_module_get_api_version_v1()
 
-  const envObject = emnapiModule.envObject || (emnapiModule.envObject = emnapiCtx.createEnv(
-    filename,
-    moduleApiVersion,
-    (cb: Ptr) => makeDynCall('vppp', 'cb'),
-    (cb: Ptr) => makeDynCall('vp', 'cb'),
-    abort,
-    emnapiNodeBinding
-  ))
+  const envObject = emnapiModule.envObject || (() => {
+    let struct_napi_env__: SNapiEnv
+// #if MEMORY64
+    struct_napi_env__ = {
+      __size__: 56,
+      reserved: 0,
+      sentinel: 8,
+      js_vtable: 16,
+      module_vtable: 24,
+      last_error: {
+        __size__: 24,
+        error_message: 32,
+        engine_reserved: 40,
+        engine_error_code: 48,
+        error_code: 52
+      }
+    }
+// #else
+    struct_napi_env__ = {
+      __size__: 40,
+      reserved: 0,
+      sentinel: 8,
+      js_vtable: 16,
+      module_vtable: 20,
+      last_error: {
+        __size__: 16,
+        error_message: 24,
+        engine_reserved: 28,
+        engine_error_code: 32,
+        error_code: 36
+      }
+    }
+// #endif
+
+    let address = _malloc(to64('struct_napi_env__.__size__')) as number
+    const errorCodeOffset = struct_napi_env__.last_error.error_code
+    const engineErrorCodeOffset = struct_napi_env__.last_error.engine_error_code
+    const engineReservedOffset = struct_napi_env__.last_error.engine_reserved
+    from64('address')
+    const envObject = emnapiModule.envObject = emnapiEnv = emnapiCtx.createEnv(
+      filename,
+      moduleApiVersion,
+      {
+        address,
+        free: (ptr) => {
+          _free(to64('ptr'))
+        },
+        setLastError (env, error_code, engine_error_code, engine_reserved) {
+          from64('engine_reserved')
+          makeSetValue('env', 'errorCodeOffset', 'error_code', 'i32')
+          makeSetValue('env', 'engineErrorCodeOffset', 'engine_error_code', 'u32')
+          makeSetValue('env', 'engineReservedOffset', 'engine_reserved', '*')
+        },
+        makeDynCall_vppp: (cb: Ptr) => makeDynCall('vppp', 'cb'),
+        makeDynCall_vp: (cb: Ptr) => makeDynCall('vp', 'cb'),
+        abort
+      },
+      emnapiNodeBinding
+    )
+    return envObject
+  })()
 
   const scope = emnapiCtx.openScope(envObject)
   try {
-    envObject.callIntoModule((_envObject) => {
+    envObject.callIntoModule((envObject) => {
       const exports = emnapiModule.exports
-
+      const env = envObject.bridge.address
       const exportsHandle = scope.add(exports)
-      const napiValue = Module._napi_register_wasm_v1(to64('_envObject.id'), to64('exportsHandle'))
+      const napiValue = Module._napi_register_wasm_v1(to64('env'), to64('exportsHandle'))
       emnapiModule.exports = (!napiValue) ? exports : emnapiCtx.jsValueFromNapiValue(napiValue)!
     })
   } catch (err) {

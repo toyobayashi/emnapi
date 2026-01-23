@@ -29,14 +29,8 @@ static const char* emnapi_error_messages[] = {
   "Cannot run JavaScript",
 };
 
-EMNAPI_INTERNAL_EXTERN void _emnapi_get_last_error_info(napi_env env,
-                                        napi_status* error_code,
-                                        uint32_t* engine_error_code,
-                                        void** engine_reserved);
-
 napi_status napi_get_last_error_info(
     node_api_basic_env basic_env, const napi_extended_error_info** result) {
-  static napi_extended_error_info last_error;
   napi_env env = (napi_env) basic_env;
   CHECK_ENV(env);
   CHECK_ARG(env, result);
@@ -48,21 +42,14 @@ napi_status napi_get_last_error_info(
                 "Count of error messages must match count of error values");
 #endif
 
-  _emnapi_get_last_error_info(env,
-                              &last_error.error_code,
-                              &last_error.engine_error_code,
-                              &last_error.engine_reserved);
+  CHECK_LE(env->last_error.error_code, last_status);
 
-  CHECK_LE(last_error.error_code, last_status);
+  env->last_error.error_message = emnapi_error_messages[env->last_error.error_code];
 
-  last_error.error_message = emnapi_error_messages[last_error.error_code];
-
-  if (last_error.error_code == napi_ok) {
+  if (env->last_error.error_code == napi_ok) {
     napi_clear_last_error(env);
-    last_error.engine_error_code = 0;
-    last_error.engine_reserved = NULL;
   }
-  *result = &last_error;
+  *result = &(env->last_error);
   return napi_ok;
 }
 

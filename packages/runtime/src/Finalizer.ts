@@ -9,7 +9,7 @@ export class Finalizer {
     private _finalizeData: void_p = 0,
     private _finalizeHint: void_p = 0
   ) {
-    this._makeDynCall_vppp = envObject.makeDynCall_vppp
+    this._makeDynCall_vppp = envObject.bridge.makeDynCall_vppp
   }
 
   public copy (): Finalizer {

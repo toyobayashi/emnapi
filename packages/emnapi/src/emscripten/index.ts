@@ -1,6 +1,7 @@
 export {
   emnapiInit as $emnapiInit,
   emnapiCtx as $emnapiCtx,
+  emnapiEnv as $emnapiEnv,
   emnapiAsyncWorkPoolSize as $emnapiAsyncWorkPoolSize,
   emnapiNodeBinding as $emnapiNodeBinding,
   _emnapi_async_work_pool_size

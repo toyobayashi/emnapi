@@ -1,4 +1,4 @@
-import { emnapiCtx } from 'emnapi:shared'
+import { emnapiCtx, emnapiEnv } from 'emnapi:shared'
 import { emnapiDefineProperty } from './internal'
 import { $PREAMBLE, $CHECK_ARG, $GET_RETURN_STATUS } from './macro'
 import { emnapiString } from './string'

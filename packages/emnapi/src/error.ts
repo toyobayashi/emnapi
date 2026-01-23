@@ -1,26 +1,8 @@
 import { abort } from 'emscripten:runtime'
-import { emnapiCtx, emnapiNodeBinding } from 'emnapi:shared'
+import { emnapiCtx, emnapiNodeBinding, emnapiEnv } from 'emnapi:shared'
 import { from64, makeSetValue } from 'emscripten:parse-tools'
 import { $PREAMBLE, $CHECK_ARG, $CHECK_ENV_NOT_IN_GC } from './macro'
 import { emnapiString } from './string'
-
-/** @__sig vpppp */
-export function _emnapi_get_last_error_info (env: napi_env, error_code: Pointer<napi_status>, engine_error_code: Pointer<uint32_t>, engine_reserved: void_pp): void {
-  from64('error_code')
-  from64('engine_error_code')
-  from64('engine_reserved')
-  const envObject = emnapiCtx.getEnv(env)!
-
-  const lastError = envObject.lastError
-  const errorCode = lastError.errorCode
-  const engineErrorCode = lastError.engineErrorCode >>> 0
-  let engineReserved = lastError.engineReserved
-  from64('engineReserved')
-
-  makeSetValue('error_code', 0, 'errorCode', 'i32')
-  makeSetValue('engine_error_code', 0, 'engineErrorCode', 'u32')
-  makeSetValue('engine_reserved', 0, 'engineReserved', '*')
-}
 
 /** @__sig ipp */
 export function napi_throw (env: napi_env, error: napi_value): napi_status {

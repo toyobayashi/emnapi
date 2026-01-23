@@ -38,7 +38,7 @@ export function $PREAMBLE (env: napi_env, fn: (envObject: Env) => napi_status): 
 export function $CHECK_ENV_NOT_IN_GC (env: napi_env): any {
   $CHECK_ENV!(env)
   // @ts-expect-error
-  const envObject = emnapiCtx.getEnv(env)!
+  const envObject = emnapiEnv
   envObject.checkGCAccess()
 }
 
