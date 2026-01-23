@@ -205,7 +205,7 @@ export function napi_create_object (env: napi_env, result: Pointer<napi_value>):
 /**
  * @__sig ipppppp
  */
-export function napi_create_object_with_properties (
+export function node_api_create_object_with_properties (
   env: napi_env,
   prototype_or_null: napi_value,
   property_names: Pointer<napi_value>,
