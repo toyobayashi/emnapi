@@ -179,6 +179,136 @@ export function isReferenceType (v: any): v is object {
   return (typeof v === 'object' && v !== null) || typeof v === 'function'
 }
 
+export interface DylinkMetadata {
+  neededDynlibs: string[]
+  tlsExports: Set<string>
+  weakImports: Set<string>
+  runtimePaths: string[]
+  memorySize: number
+  memoryAlign: number
+  tableSize: number
+  tableAlign: number
+}
+
+export function getDylinkMetadata (binary: WebAssembly.Module | Uint8Array): DylinkMetadata {
+  let offset = 0
+  let end = 0
+  const decoder = new TextDecoder()
+
+  function getU8 () {
+    return (binary as Uint8Array)[offset++]
+  }
+
+  function getLEB () {
+    let ret = 0
+    let mul = 1
+    while (1) {
+      let byte = (binary as Uint8Array)[offset++]
+      ret += ((byte & 0x7f) * mul)
+      mul *= 0x80
+      if (!(byte & 0x80)) break
+    }
+    return ret
+  }
+
+  function getString () {
+    let len = getLEB()
+    offset += len
+    return decoder.decode((binary as Uint8Array).subarray(offset - len, offset))
+  }
+
+  function getStringList () {
+    let count = getLEB()
+    let rtn = []
+    while (count--) rtn.push(getString())
+    return rtn
+  }
+
+  function failIf (condition: boolean, message?: string) {
+    if (condition) throw new Error(message)
+  }
+
+  if (binary instanceof WebAssembly.Module) {
+    const dylinkSection = WebAssembly.Module.customSections(binary, 'dylink.0')
+    failIf(dylinkSection.length === 0, 'need dylink section')
+    binary = new Uint8Array(dylinkSection[0])
+    end = (binary as Uint8Array).length
+  } else {
+    var int32View = new Uint32Array(new Uint8Array(binary.subarray(0, 24)).buffer)
+    var magicNumberFound = int32View[0] === 0x6d736100 || int32View[0] === 0x0061736d
+    failIf(!magicNumberFound, 'need to see wasm magic number') // \0asm
+    // we should see the dylink custom section right after the magic number and wasm version
+    failIf(binary[8] !== 0, 'need the dylink section to be first')
+    offset = 9
+    var section_size = getLEB() // section size
+    end = offset + section_size
+    var name = getString()
+    failIf(name !== 'dylink.0')
+  }
+
+  var customSection: DylinkMetadata = {
+    neededDynlibs: [],
+    tlsExports: new Set(),
+    weakImports: new Set(),
+    runtimePaths: [],
+    memorySize: 0,
+    memoryAlign: 0,
+    tableSize: 0,
+    tableAlign: 0
+  }
+  var WASM_DYLINK_MEM_INFO = 0x1
+  var WASM_DYLINK_NEEDED = 0x2
+  var WASM_DYLINK_EXPORT_INFO = 0x3
+  var WASM_DYLINK_IMPORT_INFO = 0x4
+  var WASM_DYLINK_RUNTIME_PATH = 0x5
+  var WASM_SYMBOL_TLS = 0x100
+  var WASM_SYMBOL_BINDING_MASK = 0x3
+  var WASM_SYMBOL_BINDING_WEAK = 0x1
+  while (offset < end) {
+    var subsectionType = getU8()
+    var subsectionSize = getLEB()
+    if (subsectionType === WASM_DYLINK_MEM_INFO) {
+      customSection.memorySize = getLEB()
+      customSection.memoryAlign = getLEB()
+      customSection.tableSize = getLEB()
+      customSection.tableAlign = getLEB()
+    } else if (subsectionType === WASM_DYLINK_NEEDED) {
+      customSection.neededDynlibs = getStringList()
+    } else if (subsectionType === WASM_DYLINK_EXPORT_INFO) {
+      let count = getLEB()
+      while (count--) {
+        let symname = getString()
+        let flags = getLEB()
+        if (flags & WASM_SYMBOL_TLS) {
+          customSection.tlsExports.add(symname)
+        }
+      }
+    } else if (subsectionType === WASM_DYLINK_IMPORT_INFO) {
+      let count = getLEB()
+      while (count--) {
+        /* var modname = */ getString()
+        let symname = getString()
+        let flags = getLEB()
+        if ((flags & WASM_SYMBOL_BINDING_MASK) === WASM_SYMBOL_BINDING_WEAK) {
+          customSection.weakImports.add(symname)
+        }
+      }
+    } else if (subsectionType === WASM_DYLINK_RUNTIME_PATH) {
+      customSection.runtimePaths = getStringList()
+    } else {
+      console.error('unknown dylink.0 subsection:', subsectionType)
+      // unknown subsection
+      offset += subsectionSize
+    }
+  }
+
+  var tableAlign = Math.pow(2, customSection.tableAlign)
+  failIf(tableAlign !== 1, `invalid tableAlign ${tableAlign}`)
+  failIf(offset !== end)
+
+  return customSection
+}
+
 // Versions defined in runtime
 declare const __VERSION__: string
 export const version = __VERSION__

@@ -85,6 +85,7 @@ if(IS_EMSCRIPTEN)
     "-sNODEJS_CATCH_EXIT=0"
     "-sWASM_BIGINT=1"
     "-sALLOW_MEMORY_GROWTH=1"
+    "-sALLOW_TABLE_GROWTH=1"
     "-sMIN_CHROME_VERSION=85"
     "-sSTACK_SIZE=1048576"
     "-sDEFAULT_PTHREAD_STACK_SIZE=1048576"
@@ -95,7 +96,7 @@ if(IS_EMSCRIPTEN)
     "-sEXPORTED_RUNTIME_METHODS=['emnapiInit','ExitStatus']"
   )
   set(COMMON_EXPORTS_NAPI
-    "-sEXPORTED_FUNCTIONS=['_malloc','_free','_napi_register_wasm_v1','_node_api_module_get_api_version_v1']"
+    "-sEXPORTED_FUNCTIONS=['_malloc','_free','_napi_register_wasm_v1','_node_api_module_get_api_version_v1','_napi_set_last_error','_napi_clear_last_error','_emnapi_create_env','_emnapi_delete_env']"
   )
   set(COMMON_EXPORTS_V8
     "-sEXPORTED_FUNCTIONS=['_malloc','_free']"

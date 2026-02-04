@@ -7,7 +7,9 @@ import {
   NODE_API_DEFAULT_MODULE_API_VERSION,
   NODE_MODULE_VERSION,
   Features,
-  type Resolver
+  getDylinkMetadata,
+  type Resolver,
+  type DylinkMetadata
 } from './util'
 
 import { NotSupportWeakRefError, NotSupportBufferError } from './errors'
@@ -412,6 +414,10 @@ export class Context {
 
   public canCallIntoJs (): boolean {
     return this._canCallIntoJs && !this._isStopping
+  }
+
+  public getDylinkMetadata (binary: WebAssembly.Module | Uint8Array): DylinkMetadata {
+    return getDylinkMetadata(binary)
   }
 
   /**

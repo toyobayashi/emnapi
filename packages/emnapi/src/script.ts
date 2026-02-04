@@ -3,9 +3,13 @@
 import { emnapiCtx, emnapiEnv } from 'emnapi:shared'
 import { from64, makeSetValue } from 'emscripten:parse-tools'
 import { $CHECK_ARG, $GET_RETURN_STATUS, $PREAMBLE } from './macro'
-import { napi_set_last_error } from './util'
+import { _napi_set_last_error } from 'emscripten:runtime'
+// import { napi_set_last_error } from './util'
 
-/** @__sig ippp */
+/**
+ * @__deps napi_set_last_error
+ * @__sig ippp
+ */
 export function napi_run_script (env: napi_env, script: napi_value, result: Pointer<napi_value>): napi_status {
   let status: napi_status
 // #if DYNAMIC_EXECUTION
@@ -27,7 +31,7 @@ export function napi_run_script (env: napi_env, script: napi_value, result: Poin
     status = $GET_RETURN_STATUS!(envObject)
   })
 // #else
-  status = napi_set_last_error(env, napi_status.napi_generic_failure, 0, 0)
+  status = _napi_set_last_error(env, napi_status.napi_generic_failure, 0, 0)
 // #endif
   return status
 }

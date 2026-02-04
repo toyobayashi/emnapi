@@ -28,3 +28,5 @@ declare interface SNapiEnv extends BaseStruct {
   module_vtable: number
   last_error: SNapiExtendedErrorInfo
 }
+
+declare const __EMNAPI_RUNTIME_BINARY__: Uint8Array

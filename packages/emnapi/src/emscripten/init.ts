@@ -1,6 +1,5 @@
-/* eslint-disable @stylistic/indent */
-import { from64, makeDynCall, makeSetValue, to64 } from 'emscripten:parse-tools'
-import { abort, Module, _malloc, _free } from 'emscripten:runtime'
+import { from64, makeDynCall, to64 } from 'emscripten:parse-tools'
+import { abort, Module, _malloc, _free, _napi_set_last_error, _emnapi_create_env, _emnapi_delete_env } from 'emscripten:runtime'
 
 // declare const global: typeof globalThis
 // declare const require: any
@@ -9,6 +8,8 @@ import { abort, Module, _malloc, _free } from 'emscripten:runtime'
 
 // declare function _napi_register_wasm_v1 (env: Ptr, exports: Ptr): napi_value
 // declare function _node_api_module_get_api_version_v1 (): number
+
+declare const updateTableMap: any
 
 export interface InitOptions {
   context: Context
@@ -19,6 +20,7 @@ export interface InitOptions {
 
 export var emnapiCtx: Context = undefined!
 export var emnapiEnv: Env = undefined!
+export var emnapiRuntimeModuleExports: any = undefined!
 export var emnapiNodeBinding: NodeBinding = undefined!
 export var emnapiAsyncWorkPoolSize: number = 0
 
@@ -108,44 +110,41 @@ NODE_MODULE_VERSION ${NODE_MODULE_VERSION}.`)
   const moduleApiVersion = Module._node_api_module_get_api_version_v1()
 
   const envObject = emnapiModule.envObject || (() => {
-    let struct_napi_env__: SNapiEnv
-// #if MEMORY64
-    struct_napi_env__ = {
-      __size__: 56,
-      reserved: 0,
-      sentinel: 8,
-      js_vtable: 16,
-      module_vtable: 24,
-      last_error: {
-        __size__: 24,
-        error_message: 32,
-        engine_reserved: 40,
-        engine_error_code: 48,
-        error_code: 52
-      }
-    }
-// #else
-    struct_napi_env__ = {
-      __size__: 40,
-      reserved: 0,
-      sentinel: 8,
-      js_vtable: 16,
-      module_vtable: 20,
-      last_error: {
-        __size__: 16,
-        error_message: 24,
-        engine_reserved: 28,
-        engine_error_code: 32,
-        error_code: 36
-      }
-    }
-// #endif
+    // const runtimeModule = new WebAssembly.Module(__EMNAPI_RUNTIME_BINARY__)
+    // const meta = emnapiCtx.getDylinkMetadata(runtimeModule)
+    // const align = Math.pow(2, meta.memoryAlign)
+    // let size = meta.memorySize + align
+    // const alignMemory = (size: number, alignment: number) => (Math.ceil(size / alignment) * alignment)
+    // let memoryBase = _malloc(to64('size')) as number
+    // from64('memoryBase')
+    // memoryBase = alignMemory(memoryBase, align)
+    // const tableBase = meta.tableSize ? wasmTable.length : 0
+    // var tableGrowthNeeded = tableBase + meta.tableSize - wasmTable.length
+    // if (tableGrowthNeeded > 0) {
+    //   wasmTable.grow(tableGrowthNeeded)
+    // }
+    // const instance = new WebAssembly.Instance(runtimeModule, {
+    //   env: {
+    //     memory: wasmMemory,
+    //     malloc: _malloc,
+    //     _emnapi_get_node_api_js_vtable: () => 0,
+    //     _emnapi_get_node_api_module_vtable: () => 0,
+    //     free: _free,
+    //     __memory_base: memoryBase,
+    //     __table_base: tableBase,
+    //     __indirect_function_table: wasmTable
+    //   }
+    // })
+    // emnapiRuntimeModuleExports = instance.exports
+    // emnapiRuntimeModuleExports.__wasm_apply_data_relocs?.()
+    // emnapiRuntimeModuleExports.__wasm_call_ctors?.()
+    // if (typeof updateTableMap === 'function') {
+    //   updateTableMap(tableBase, meta.tableSize)
+    // }
 
-    let address = _malloc(to64('struct_napi_env__.__size__')) as number
-    const errorCodeOffset = struct_napi_env__.last_error.error_code
-    const engineErrorCodeOffset = struct_napi_env__.last_error.engine_error_code
-    const engineReservedOffset = struct_napi_env__.last_error.engine_reserved
+    let address = _emnapi_create_env(0) as number
     from64('address')
+    address += 8
     const envObject = emnapiModule.envObject = emnapiEnv = emnapiCtx.createEnv(
       filename,
       moduleApiVersion,
@@ -154,12 +153,10 @@ NODE_MODULE_VERSION ${NODE_MODULE_VERSION}.`)
         free: (ptr) => {
           _free(to64('ptr'))
         },
-        setLastError (env, error_code, engine_error_code, engine_reserved) {
-          from64('engine_reserved')
-          makeSetValue('env', 'errorCodeOffset', 'error_code', 'i32')
-          makeSetValue('env', 'engineErrorCodeOffset', 'engine_error_code', 'u32')
-          makeSetValue('env', 'engineReservedOffset', 'engine_reserved', '*')
+        deleteEnv: (ptr) => {
+          _emnapi_delete_env((to64('ptr') as number) - (to64('8') as number))
         },
+        setLastError: _napi_set_last_error,
         makeDynCall_vppp: (cb: Ptr) => makeDynCall('vppp', 'cb'),
         makeDynCall_vp: (cb: Ptr) => makeDynCall('vp', 'cb'),
         abort
