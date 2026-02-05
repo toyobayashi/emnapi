@@ -1,76 +1,33 @@
 #include "emnapi_internal.h"
-#include "js_native_api_internal.h"
 
 EXTERN_C_START
 
-EMNAPI_INTERNAL_EXTERN
-const struct node_api_js_vtable* _emnapi_get_node_api_js_vtable();
-
-EMNAPI_INTERNAL_EXTERN
-const struct node_api_module_vtable* _emnapi_get_node_api_module_vtable();
-
-static struct node_api_base_env__vtable node_api_base_env__vtable_instance = {
+struct node_api_base_env__vtable node_api_base_env__vtable_instance = {
   .offset_to_top = offsetof(node_api_base_env__, vptr),
   .type_info = NULL,
-  .destructor = node_api_base_env__destructor,
-  .deleter = node_api_base_env__deleter,
+  .cdtor = node_api_base_env__cdtor,
+  .ddtor = node_api_base_env__ddtor,
 };
 
 __attribute__((visibility("default")))
-node_api_base_env__* emnapi_create_env(uint32_t id) {
+node_api_base_env__* emnapi_create_env() {
   node_api_base_env__* env = (node_api_base_env__*) malloc(sizeof(node_api_base_env__));
-  node_api_base_env__constructor(env, id);
+  node_api_base_env__ctor(env);
   return env;
 }
 
 __attribute__((visibility("default")))
 void emnapi_delete_env(node_api_base_env__* env) {
-  node_api_base_env__deleter(env);
+  node_api_base_env__ddtor(env);
 }
 
-node_api_base_env__* node_api_base_env__constructor(node_api_base_env__* self, uint32_t id) {
-  self->vptr = &node_api_base_env__vtable_instance.destructor;
-  self->sentinel = NODE_API_VT_SENTINEL;
-  self->js_vtable = _emnapi_get_node_api_js_vtable();
-  self->module_vtable = _emnapi_get_node_api_module_vtable();
-  self->id = id;
-  self->last_error.error_code = napi_ok;
-  self->last_error.engine_error_code = 0;
-  self->last_error.engine_reserved = NULL;
-  self->last_error.error_message = NULL;
+node_api_base_env__* node_api_base_env__cdtor(node_api_base_env__* self) {
   return self;
 }
 
-node_api_base_env__* node_api_base_env__destructor(node_api_base_env__* self) {
-  return self;
-}
-
-void node_api_base_env__deleter(node_api_base_env__* self) {
-  node_api_base_env__destructor(self);
+void node_api_base_env__ddtor(node_api_base_env__* self) {
+  node_api_base_env__cdtor(self);
   free(self);
-}
-
-__attribute__((visibility("default")))
-napi_status napi_clear_last_error(node_api_basic_env basic_env) {
-  node_api_base_env__* env = EMNAPI_AS_NODE_API_BASE_ENV(basic_env);
-  env->last_error.error_code = napi_ok;
-  env->last_error.engine_error_code = 0;
-  env->last_error.engine_reserved = NULL;
-  env->last_error.error_message = NULL;
-  return napi_ok;
-}
-
-__attribute__((visibility("default")))
-napi_status
-napi_set_last_error(node_api_basic_env basic_env,
-                    napi_status error_code,
-                    uint32_t engine_error_code,
-                    void* engine_reserved) {
-  node_api_base_env__* env = EMNAPI_AS_NODE_API_BASE_ENV(basic_env);
-  env->last_error.error_code = error_code;
-  env->last_error.engine_error_code = engine_error_code;
-  env->last_error.engine_reserved = engine_reserved;
-  return error_code;
 }
 
 static const char* emnapi_error_messages[] = {

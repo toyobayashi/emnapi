@@ -46,6 +46,8 @@ export var wasmTable: WebAssembly.Table
 
 export var _malloc: (size: number | bigint) => void_p
 export var _free: (ptr: void_p) => void
+export var _emnapi_create_env: () => void_p
+export var _emnapi_delete_env: (ptr: void_p) => void
 
 export function abort (msg?: string): never {
   if (typeof WebAssembly.RuntimeError === 'function') {
@@ -104,6 +106,8 @@ export var napiModule: INapiModule = {
     if (typeof exports.free !== 'function') throw new TypeError('free is not exported')
     _malloc = exports.malloc as (size: number | bigint) => void_p
     _free = exports.free as (ptr: void_p) => void
+    _emnapi_create_env = exports.emnapi_create_env as () => void_p
+    _emnapi_delete_env = exports.emnapi_delete_env as (ptr: void_p) => void
 
     if (!napiModule.childThread) {
       // main thread only
@@ -143,54 +147,59 @@ export var napiModule: INapiModule = {
         moduleApiVersion = node_api_module_get_api_version_v1()
       }
 
-      const envObject = napiModule.envObject || (() => {
-        let struct_napi_env__: SNapiEnv
+      let struct_napi_env__: SNapiEnv
 // #if MEMORY64
-        struct_napi_env__ = {
-          __size__: 56,
-          reserved: 0,
-          sentinel: 8,
-          js_vtable: 16,
-          module_vtable: 24,
-          last_error: {
-            __size__: 24,
-            error_message: 32,
-            engine_reserved: 40,
-            engine_error_code: 48,
-            error_code: 52
-          }
+      struct_napi_env__ = {
+        __size__: 64,
+        vptr: 0,
+        sentinel: 8,
+        js_vtable: 16,
+        module_vtable: 24,
+        id: 32,
+        last_error: {
+          __size__: 24,
+          error_message: 40,
+          engine_reserved: 48,
+          engine_error_code: 56,
+          error_code: 60
         }
+      }
 // #else
-        struct_napi_env__ = {
-          __size__: 40,
-          reserved: 0,
-          sentinel: 8,
-          js_vtable: 16,
-          module_vtable: 20,
-          last_error: {
-            __size__: 16,
-            error_message: 24,
-            engine_reserved: 28,
-            engine_error_code: 32,
-            error_code: 36
-          }
+      struct_napi_env__ = {
+        __size__: 44,
+        vptr: 0,
+        sentinel: 8,
+        js_vtable: 16,
+        module_vtable: 20,
+        id: 24,
+        last_error: {
+          __size__: 16,
+          error_message: 28,
+          engine_reserved: 32,
+          engine_error_code: 36,
+          error_code: 40
         }
+      }
 // #endif
 
-        let address = _malloc(to64('struct_napi_env__.__size__')) as number
+      const envObject = napiModule.envObject || (() => {
+        let address = _emnapi_create_env() as number
         const errorCodeOffset = struct_napi_env__.last_error.error_code
         const engineErrorCodeOffset = struct_napi_env__.last_error.engine_error_code
         const engineReservedOffset = struct_napi_env__.last_error.engine_reserved
+        const envIdOffset = struct_napi_env__.id
         from64('address')
         const envObject = napiModule.envObject = emnapiEnv = emnapiCtx.createEnv(
           napiModule.filename,
           moduleApiVersion,
           {
             address,
-            free: (ptr) => {
-              _free(to64('ptr'))
+            deleteEnv: (ptr) => {
+              _emnapi_delete_env((to64('ptr') as number) - (to64('8') as number))
             },
             setLastError (env, error_code, engine_error_code, engine_reserved) {
+              from64('env')
+              ;(env as number) -= 8
               from64('engine_reserved')
               makeSetValue('env', 'errorCodeOffset', 'error_code', 'i32')
               makeSetValue('env', 'engineErrorCodeOffset', 'engine_error_code', 'u32')
@@ -202,6 +211,7 @@ export var napiModule: INapiModule = {
           },
           emnapiNodeBinding
         )
+        makeSetValue('address - 8', 'envIdOffset', 'envObject.id', 'u32')
         return envObject
       })()
 

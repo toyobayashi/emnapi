@@ -22,7 +22,6 @@ export interface IReferenceBinding {
 
 export interface EnvNativeBridge {
   address: number
-  free: (ptr: number) => void
   deleteEnv: (ptr: number) => void
   setLastError: (env: napi_env, error_code: napi_status, engine_error_code: uint32_t, engine_reserved: number) => void
   makeDynCall_vppp: (cb: Ptr) => (a: Ptr, b: Ptr, c: Ptr) => void

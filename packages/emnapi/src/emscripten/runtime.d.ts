@@ -13,10 +13,8 @@ declare module 'emscripten:runtime' {
 
   export function _free (ptr: void_p): void
   export function _malloc (size: number | bigint): void_p
-  export function _emnapi_create_env (id: number): void_p
+  export function _emnapi_create_env (): void_p
   export function _emnapi_delete_env (...args: any[]): void
-  export function _napi_set_last_error (...args: any[]): number
-  export function _napi_clear_last_error (...args: any[]): number
 
   export function abort (msg?: string): never
 

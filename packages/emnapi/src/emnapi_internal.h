@@ -72,12 +72,6 @@ EXTERN_C_END
 
 EXTERN_C_START
 
-EMNAPI_INTERNAL_EXTERN napi_status napi_set_last_error(node_api_basic_env env,
-                                       napi_status error_code,
-                                       uint32_t engine_error_code,
-                                       void* engine_reserved);
-EMNAPI_INTERNAL_EXTERN napi_status napi_clear_last_error(node_api_basic_env env);
-
 #ifdef __EMSCRIPTEN__
 #if __EMSCRIPTEN_major__ * 10000 + __EMSCRIPTEN_minor__ * 100 + __EMSCRIPTEN_tiny__ >= 30114  // NOLINT
 #define EMNAPI_KEEPALIVE_PUSH emscripten_runtime_keepalive_push
@@ -186,3 +180,5 @@ void _emnapi_env_check_gc_access(napi_env env);
   } while (0)
 
 EXTERN_C_END
+
+#include "js_native_api_internal.h"

@@ -1,5 +1,5 @@
-#ifndef SRC_JS_NATIVE_API_H_
-#define SRC_JS_NATIVE_API_H_
+#ifndef SRC_JS_NATIVE_API_INTERNAL_H_
+#define SRC_JS_NATIVE_API_INTERNAL_H_
 
 #include "js_native_api_types.h"
 
@@ -15,13 +15,59 @@ typedef struct node_api_base_env__ {
 
 struct node_api_base_env__vtable {
   size_t offset_to_top;
-  const char* type_info;
-  node_api_base_env__* (*destructor)(node_api_base_env__* self);
-  void (*deleter)(node_api_base_env__* self);
+  void* type_info;
+  node_api_base_env__* (*cdtor)(node_api_base_env__* self);
+  void (*ddtor)(node_api_base_env__* self);
 };
 
-node_api_base_env__* node_api_base_env__constructor(node_api_base_env__* self, uint32_t id);
-node_api_base_env__* node_api_base_env__destructor(node_api_base_env__* self);
-void node_api_base_env__deleter(node_api_base_env__* self);
+EXTERN_C_START
+
+extern struct node_api_base_env__vtable node_api_base_env__vtable_instance;
+
+EMNAPI_INTERNAL_EXTERN
+const struct node_api_js_vtable* _emnapi_get_node_api_js_vtable();
+
+EMNAPI_INTERNAL_EXTERN
+const struct node_api_module_vtable* _emnapi_get_node_api_module_vtable();
+
+node_api_base_env__* node_api_base_env__cdtor(node_api_base_env__* self);
+void node_api_base_env__ddtor(node_api_base_env__* self);
+
+static inline
+node_api_base_env__* node_api_base_env__ctor(node_api_base_env__* self) {
+  self->vptr = &node_api_base_env__vtable_instance.cdtor;
+  self->sentinel = NODE_API_VT_SENTINEL;
+  self->js_vtable = _emnapi_get_node_api_js_vtable();
+  self->module_vtable = _emnapi_get_node_api_module_vtable();
+  self->id = 0;
+  self->last_error.error_code = napi_ok;
+  self->last_error.engine_error_code = 0;
+  self->last_error.engine_reserved = NULL;
+  self->last_error.error_message = NULL;
+  return self;
+}
+
+static inline napi_status napi_clear_last_error(node_api_basic_env basic_env) {
+  node_api_base_env__* env = EMNAPI_AS_NODE_API_BASE_ENV(basic_env);
+  env->last_error.error_code = napi_ok;
+  env->last_error.engine_error_code = 0;
+  env->last_error.engine_reserved = NULL;
+  env->last_error.error_message = NULL;
+  return napi_ok;
+}
+
+static inline napi_status
+napi_set_last_error(node_api_basic_env basic_env,
+                    napi_status error_code,
+                    uint32_t engine_error_code,
+                    void* engine_reserved) {
+  node_api_base_env__* env = EMNAPI_AS_NODE_API_BASE_ENV(basic_env);
+  env->last_error.error_code = error_code;
+  env->last_error.engine_error_code = engine_error_code;
+  env->last_error.engine_reserved = engine_reserved;
+  return error_code;
+}
+
+EXTERN_C_END
 
 #endif
