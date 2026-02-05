@@ -315,7 +315,7 @@ ${exportModules.map(modName => {
 }
 
 async function build () {
-  await buildRuntimeBinary()
+  // await buildRuntimeBinary()
   const libTsconfigPath = path.join(__dirname, '../tsconfig.json')
   const v8TsconfigPath = path.join(__dirname, '../src/v8/tsconfig.json')
 
