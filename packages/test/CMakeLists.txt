@@ -106,7 +106,7 @@ elseif(IS_WASI_THREADS)
   set(COMMON_LINK_OPTIONS
     # "-v"
     "-mexec-model=reactor"
-    "-Wl,-zstack-size=1048576,--initial-memory=16777216,--max-memory=2147483648,--import-memory,--export-dynamic,--export=malloc,--export=free,--export=emnapi_create_env,--export=emnapi_delete_env,--export=emnapi_thread_crashed,--import-undefined,--export-table"
+    "-Wl,-zstack-size=1048576,--initial-memory=16777216,--max-memory=2147483648,--import-memory,--export-dynamic,--export=malloc,--export=free,--export=emnapi_create_env,--export=emnapi_delete_env,--export=emnapi_thread_crashed,--import-undefined,--export-table,--growable-table"
   )
   set(COMMON_EXPORTS_NAPI
     "-Wl,--export=napi_register_wasm_v1,--export-if-defined=node_api_module_get_api_version_v1"
@@ -119,7 +119,7 @@ elseif(IS_WASI)
   set(COMMON_LINK_OPTIONS
     # "-v"
     "-mexec-model=reactor"
-    "-Wl,-zstack-size=1048576,--initial-memory=16777216,--max-memory=2147483648,--export-dynamic,--export=malloc,--export=free,--export=emnapi_create_env,--export=emnapi_delete_env,--import-undefined,--export-table"
+    "-Wl,-zstack-size=1048576,--initial-memory=16777216,--max-memory=2147483648,--export-dynamic,--export=malloc,--export=free,--export=emnapi_create_env,--export=emnapi_delete_env,--import-undefined,--export-table,--growable-table"
   )
   set(COMMON_EXPORTS_NAPI
     "-Wl,--export=napi_register_wasm_v1,--export-if-defined=node_api_module_get_api_version_v1"
@@ -132,7 +132,7 @@ elseif(IS_WASM32)
   set(COMMON_LINK_OPTIONS
     # "-v"
     "-nostdlib"
-    "-Wl,-zstack-size=1048576,--initial-memory=16777216,--max-memory=2147483648,--no-entry,--export-dynamic,--export=malloc,--export=free,--export=emnapi_create_env,--export=emnapi_delete_env,--import-undefined,--export-table"
+    "-Wl,-zstack-size=1048576,--initial-memory=16777216,--max-memory=2147483648,--no-entry,--export-dynamic,--export=malloc,--export=free,--export=emnapi_create_env,--export=emnapi_delete_env,--import-undefined,--export-table,--growable-table"
   )
   set(COMMON_EXPORTS_NAPI
     "-Wl,--export=napi_register_wasm_v1,--export-if-defined=node_api_module_get_api_version_v1"
