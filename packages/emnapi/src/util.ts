@@ -9,25 +9,6 @@ import { emnapiCtx, emnapiEnv } from 'emnapi:shared'
 //   return emnapiRuntimeModuleExports.napi_get_last_error_info(env, result)
 // }
 
-// /**
-//  * @__sig ipiip
-//  */
-// export function napi_set_last_error (env: napi_env, error_code: napi_status, engine_error_code: uint32_t, engine_reserved: void_p): napi_status {
-//   // const envObject = emnapiEnv
-//   // from64('engine_reserved')
-//   // return envObject.setLastError(error_code, engine_error_code, engine_reserved as number)
-//   return emnapiRuntimeModuleExports.napi_set_last_error(env, error_code, engine_error_code, engine_reserved)
-// }
-
-// /**
-//  * @__sig ip
-//  */
-// export function napi_clear_last_error (env: napi_env): napi_status {
-//   // const envObject = emnapiEnv
-//   // return envObject.clearLastError()
-//   return emnapiRuntimeModuleExports.napi_clear_last_error(env)
-// }
-
 /** @__sig p */
 export function _emnapi_get_node_api_js_vtable (): void_p {
   return 0
