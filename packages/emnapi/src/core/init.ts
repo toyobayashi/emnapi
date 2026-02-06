@@ -68,6 +68,22 @@ export function setWasmTableEntry (index: number, func: Function | null): void {
   wasmTable.set(index, func)
 }
 
+function setLastError (env: napi_env, error_code: napi_status, engine_error_code: uint32_t, engine_reserved: number) {
+  from64('env')
+  ;(env as number) -= 8
+  from64('engine_reserved')
+// #if MEMORY64
+  makeSetValue('env', NapiEnvOffset64.last_error_error_code, 'error_code', 'i32')
+  makeSetValue('env', NapiEnvOffset64.last_error_engine_error_code, 'engine_error_code', 'u32')
+  makeSetValue('env', NapiEnvOffset64.last_error_engine_reserved, 'engine_reserved', '*')
+// #else
+  makeSetValue('env', NapiEnvOffset32.last_error_error_code, 'error_code', 'i32')
+  makeSetValue('env', NapiEnvOffset32.last_error_engine_error_code, 'engine_error_code', 'u32')
+  makeSetValue('env', NapiEnvOffset32.last_error_engine_reserved, 'engine_reserved', '*')
+// #endif
+  return error_code
+}
+
 export var napiModule: INapiModule = {
   imports: {
     env: {},
@@ -147,47 +163,8 @@ export var napiModule: INapiModule = {
         moduleApiVersion = node_api_module_get_api_version_v1()
       }
 
-      let struct_napi_env__: SNapiEnv
-// #if MEMORY64
-      struct_napi_env__ = {
-        __size__: 64,
-        vptr: 0,
-        sentinel: 8,
-        js_vtable: 16,
-        module_vtable: 24,
-        id: 32,
-        last_error: {
-          __size__: 24,
-          error_message: 40,
-          engine_reserved: 48,
-          engine_error_code: 56,
-          error_code: 60
-        }
-      }
-// #else
-      struct_napi_env__ = {
-        __size__: 44,
-        vptr: 0,
-        sentinel: 8,
-        js_vtable: 16,
-        module_vtable: 20,
-        id: 24,
-        last_error: {
-          __size__: 16,
-          error_message: 28,
-          engine_reserved: 32,
-          engine_error_code: 36,
-          error_code: 40
-        }
-      }
-// #endif
-
       const envObject = napiModule.envObject || (() => {
         let address = _emnapi_create_env() as number
-        const errorCodeOffset = struct_napi_env__.last_error.error_code
-        const engineErrorCodeOffset = struct_napi_env__.last_error.engine_error_code
-        const engineReservedOffset = struct_napi_env__.last_error.engine_reserved
-        const envIdOffset = struct_napi_env__.id
         from64('address')
         const envObject = napiModule.envObject = emnapiEnv = emnapiCtx.createEnv(
           napiModule.filename,
@@ -197,21 +174,18 @@ export var napiModule: INapiModule = {
             deleteEnv: (ptr) => {
               _emnapi_delete_env((to64('ptr') as number) - (to64('8') as number))
             },
-            setLastError (env, error_code, engine_error_code, engine_reserved) {
-              from64('env')
-              ;(env as number) -= 8
-              from64('engine_reserved')
-              makeSetValue('env', 'errorCodeOffset', 'error_code', 'i32')
-              makeSetValue('env', 'engineErrorCodeOffset', 'engine_error_code', 'u32')
-              makeSetValue('env', 'engineReservedOffset', 'engine_reserved', '*')
-            },
+            setLastError,
             makeDynCall_vppp: (cb: Ptr) => makeDynCall('vppp', 'cb'),
             makeDynCall_vp: (cb: Ptr) => makeDynCall('vp', 'cb'),
             abort,
           },
           emnapiNodeBinding
         )
-        makeSetValue('address - 8', 'envIdOffset', 'envObject.id', 'u32')
+// #if MEMORY64
+        makeSetValue('address - 8', NapiEnvOffset64.id, 'envObject.id', 'u32')
+// #else
+        makeSetValue('address - 8', NapiEnvOffset32.id, 'envObject.id', 'u32')
+// #endif
         return envObject
       })()
 

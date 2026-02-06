@@ -123,7 +123,7 @@ function parseExpression (input: string, factory?: NodeFactory): Expression {
   return cloneNode(expression, cloneOptions)
 }
 
-function byteOffsetParameter (factory: NodeFactory, defines: Record<string, any>, param: Expression): NumericLiteral | Expression {
+function byteOffsetParameter (factory: NodeFactory, defines: Record<string, any>, param: Expression, checker: ts.TypeChecker): NumericLiteral | Expression {
   if (ts.isNumericLiteral(param)) {
     return factory.createNumericLiteral(param.text)
   }
@@ -153,6 +153,26 @@ function byteOffsetParameter (factory: NodeFactory, defines: Record<string, any>
       return factory.createNumericLiteral((defines.MEMORY64 ? 8 : 4) * Number(right.text))
     }
     throw new Error('byteOffsetParameter unsupport binary expression')
+  }
+  if (ts.isPropertyAccessExpression(param) && ts.isIdentifier(param.expression)) {
+    const enumValue = checker.getConstantValue(param)
+    if (typeof enumValue === 'number') {
+      return ts.addSyntheticTrailingComment(
+        enumValue < 0
+          ? factory.createPrefixUnaryExpression(ts.SyntaxKind.MinusToken, factory.createNumericLiteral(-enumValue))
+          : factory.createNumericLiteral(enumValue),
+        ts.SyntaxKind.MultiLineCommentTrivia,
+        ` ${param.expression.text as string}.${param.name.text as string} `,
+        false
+      )
+    } else if (typeof enumValue === 'string') {
+      return ts.addSyntheticTrailingComment(
+        factory.createStringLiteral(enumValue),
+        ts.SyntaxKind.MultiLineCommentTrivia,
+        ` ${param.expression.text as string}.${param.name.text as string} `,
+        false
+      )
+    }
   }
   throw new Error('makeGetValue unsupported pos')
 }
@@ -581,7 +601,7 @@ class Transform {
           : (this.ctx.factory.createBinaryExpression(
               parseExpression(argv0.text, this.ctx.factory),
               this.ctx.factory.createToken(ts.SyntaxKind.PlusToken),
-              byteOffsetParameter(this.ctx.factory, this.defines, argv1)
+              byteOffsetParameter(this.ctx.factory, this.defines, argv1, this.program.getTypeChecker())
             )),
         this.ctx.factory.createTrue()
       ]
@@ -628,7 +648,7 @@ class Transform {
           : (this.ctx.factory.createBinaryExpression(
               parseExpression(argv0.text, this.ctx.factory),
               this.ctx.factory.createToken(ts.SyntaxKind.PlusToken),
-              byteOffsetParameter(this.ctx.factory, this.defines, argv1)
+              byteOffsetParameter(this.ctx.factory, this.defines, argv1, this.program.getTypeChecker())
             )),
         methodName === 'setBigInt64' || methodName === 'setBigUint64'
           ? (this.ctx.factory.createCallExpression(
