@@ -24,11 +24,11 @@ EXTERN_C_START
 
 extern struct node_api_base_env__vtable node_api_base_env__vtable_instance;
 
-EMNAPI_INTERNAL_EXTERN
-const struct node_api_js_vtable* _emnapi_get_node_api_js_vtable();
+// EMNAPI_INTERNAL_EXTERN
+// const struct node_api_js_vtable* _emnapi_get_node_api_js_vtable();
 
-EMNAPI_INTERNAL_EXTERN
-const struct node_api_module_vtable* _emnapi_get_node_api_module_vtable();
+// EMNAPI_INTERNAL_EXTERN
+// const struct node_api_module_vtable* _emnapi_get_node_api_module_vtable();
 
 node_api_base_env__* node_api_base_env__cdtor(node_api_base_env__* self);
 void node_api_base_env__ddtor(node_api_base_env__* self);
@@ -37,13 +37,6 @@ static inline
 node_api_base_env__* node_api_base_env__ctor(node_api_base_env__* self) {
   self->vptr = &node_api_base_env__vtable_instance.cdtor;
   self->sentinel = NODE_API_VT_SENTINEL;
-  self->js_vtable = _emnapi_get_node_api_js_vtable();
-  self->module_vtable = _emnapi_get_node_api_module_vtable();
-  self->id = 0;
-  self->last_error.error_code = napi_ok;
-  self->last_error.engine_error_code = 0;
-  self->last_error.engine_reserved = NULL;
-  self->last_error.error_message = NULL;
   return self;
 }
 
