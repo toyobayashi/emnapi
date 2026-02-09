@@ -23,7 +23,10 @@ struct data_queue_node {
   struct uv__queue q;
 };
 
-struct napi_threadsafe_function__ {
+typedef struct node_api_threadsafe_function__ {
+  uint64_t sentinel;
+  const struct node_api_module_vtable* module_vtable;
+
   ASYNC_RESOURCE_FIELD
   // These are variables protected by the mutex.
   pthread_mutex_t mutex;
@@ -48,7 +51,7 @@ struct napi_threadsafe_function__ {
   napi_threadsafe_function_call_js call_js_cb;
   bool handles_closing;
   bool async_ref;
-};
+} node_api_threadsafe_function__;
 
 static void _emnapi_tsfn_default_call_js(napi_env env, napi_value cb, void* context, void* data) {
   if (!(env == NULL || cb == NULL)) {
@@ -73,7 +76,7 @@ static void _emnapi_tsfn_default_call_js(napi_env env, napi_value cb, void* cont
 
 static void _emnapi_tsfn_cleanup(void* data);
 
-static napi_threadsafe_function
+static node_api_threadsafe_function__*
 _emnapi_tsfn_create(napi_env env,
                     napi_ref ref,
                     napi_value async_resource,
@@ -84,10 +87,12 @@ _emnapi_tsfn_create(napi_env env,
                     napi_finalize thread_finalize_cb,
                     void* context,
                     napi_threadsafe_function_call_js call_js_cb) {
-  napi_threadsafe_function ts_fn =
-    (napi_threadsafe_function) calloc(1, sizeof(struct napi_threadsafe_function__));
+  node_api_threadsafe_function__* ts_fn =
+    (node_api_threadsafe_function__*) calloc(1, sizeof(node_api_threadsafe_function__));
   if (ts_fn == NULL) return NULL;
-  EMNAPI_ASYNC_RESOURCE_CTOR(env, async_resource, async_resource_name, (emnapi_async_resource*) ts_fn);
+  ts_fn->sentinel = NODE_API_VT_SENTINEL;
+  ts_fn->module_vtable = NULL; // TODO
+  EMNAPI_ASYNC_RESOURCE_CTOR(env, async_resource, async_resource_name, (emnapi_async_resource*) &ts_fn->resource_);
   pthread_mutex_init(&ts_fn->mutex, NULL);
   ts_fn->cond = NULL;
   ts_fn->queue_size = 0;
@@ -115,7 +120,7 @@ _emnapi_tsfn_create(napi_env env,
   return ts_fn;
 }
 
-static void _emnapi_tsfn_destroy(napi_threadsafe_function func) {
+static void _emnapi_tsfn_destroy(node_api_threadsafe_function__* func) {
   if (func == NULL) return;
   pthread_mutex_destroy(&func->mutex);
   if (func->cond) {
@@ -136,7 +141,7 @@ static void _emnapi_tsfn_destroy(napi_threadsafe_function func) {
     EMNAPI_ASSERT_CALL(napi_delete_reference(func->env, func->ref));
   }
 
-  EMNAPI_ASYNC_RESOURCE_DTOR(func->env, (emnapi_async_resource*) func);
+  EMNAPI_ASYNC_RESOURCE_DTOR(func->env, (emnapi_async_resource*) &func->resource_);
 
   EMNAPI_ASSERT_CALL(napi_remove_env_cleanup_hook(func->env, _emnapi_tsfn_cleanup, func));
   _emnapi_env_unref(func->env);
@@ -150,20 +155,20 @@ static void _emnapi_tsfn_destroy(napi_threadsafe_function func) {
 }
 
 static void _emnapi_tsfn_do_destroy(uv_handle_t* data) {
-  napi_threadsafe_function func = container_of(data, struct napi_threadsafe_function__, async);
+  node_api_threadsafe_function__* func = container_of(data, node_api_threadsafe_function__, async);
   _emnapi_tsfn_destroy(func);
 }
 
-static void _emnapi_tsfn_dispatch(napi_threadsafe_function func);
+static void _emnapi_tsfn_dispatch(node_api_threadsafe_function__* func);
 
 // only main thread
 static void _emnapi_tsfn_async_cb(uv_async_t* data) {
-  napi_threadsafe_function tsfn = container_of(data, struct napi_threadsafe_function__, async);
+  node_api_threadsafe_function__* tsfn = container_of(data, node_api_threadsafe_function__, async);
   _emnapi_tsfn_dispatch(tsfn);
 }
 
 // only main thread
-static napi_status _emnapi_tsfn_init(napi_threadsafe_function func) {
+static napi_status _emnapi_tsfn_init(node_api_threadsafe_function__* func) {
   uv_loop_t* loop = uv_default_loop();
   if (uv_async_init(loop, &func->async, _emnapi_tsfn_async_cb) == 0) {
     int r;
@@ -186,7 +191,7 @@ static napi_status _emnapi_tsfn_init(napi_threadsafe_function func) {
   return napi_generic_failure;
 }
 
-static void _emnapi_tsfn_empty_queue_and_delete(napi_threadsafe_function func) {
+static void _emnapi_tsfn_empty_queue_and_delete(node_api_threadsafe_function__* func) {
   while (!uv__queue_empty(&func->queue)) {
     struct uv__queue* q = uv__queue_head(&func->queue);
     struct data_queue_node* node = uv__queue_data(q, struct data_queue_node, q);
@@ -204,12 +209,12 @@ static void _emnapi_tsfn_empty_queue_and_delete(napi_threadsafe_function func) {
 static napi_value _emnapi_tsfn_finalize_in_callback_scope(napi_env env, napi_callback_info info) {
   void* data = NULL;
   EMNAPI_ASSERT_CALL(napi_get_cb_info(env, info, NULL, NULL, NULL, &data));
-  napi_threadsafe_function func = (napi_threadsafe_function) data;
+  node_api_threadsafe_function__* func = (node_api_threadsafe_function__*) data;
   _emnapi_call_finalizer(0, func->env, func->finalize_cb, func->finalize_data, func->context);
   return NULL;
 }
 
-static void _emnapi_tsfn_finalize(napi_threadsafe_function func) {
+static void _emnapi_tsfn_finalize(node_api_threadsafe_function__* func) {
   napi_handle_scope scope = _emnapi_open_handle_scope();
   if (func->finalize_cb) {
     if (emnapi_is_node_binding_available()) {
@@ -233,12 +238,12 @@ static void _emnapi_tsfn_finalize(napi_threadsafe_function func) {
 }
 
 static void _emnapi_tsfn_do_finalize(uv_handle_t* data) {
-  napi_threadsafe_function func = container_of(data, struct napi_threadsafe_function__, async);
+  node_api_threadsafe_function__* func = container_of(data, node_api_threadsafe_function__, async);
   _emnapi_tsfn_finalize(func);
 }
 
 static void _emnapi_tsfn_close_handles_and_maybe_delete(
-  napi_threadsafe_function func, bool set_closing) {
+  node_api_threadsafe_function__* func, bool set_closing) {
   napi_handle_scope scope;
   EMNAPI_ASSERT_CALL(napi_open_handle_scope(func->env, &scope));
 
@@ -260,12 +265,12 @@ static void _emnapi_tsfn_close_handles_and_maybe_delete(
 }
 
 static void _emnapi_tsfn_cleanup(void* data) {
-  _emnapi_tsfn_close_handles_and_maybe_delete((napi_threadsafe_function) data, true);
+  _emnapi_tsfn_close_handles_and_maybe_delete((node_api_threadsafe_function__*) data, true);
 }
 
 static void _emnapi_tsfn_call_js_cb(napi_env env, void* arg) {
   void** args = (void**) arg;
-  napi_threadsafe_function func = (napi_threadsafe_function) *args;
+  node_api_threadsafe_function__* func = (node_api_threadsafe_function__*) *args;
   napi_value js_callback = (napi_value) *(args + 1);
   void* data = *(args + 2);
   func->call_js_cb(func->env, js_callback, func->context, data);
@@ -281,7 +286,7 @@ static napi_value _emnapi_tsfn_call_js_cb_in_callback_scope(napi_env env, napi_c
 // static void _emnapi_tsfn_
 
 // only main thread
-static bool _emnapi_tsfn_dispatch_one(napi_threadsafe_function func) {
+static bool _emnapi_tsfn_dispatch_one(node_api_threadsafe_function__* func) {
   void* data = NULL;
   bool popped_value = false;
   bool has_more = false;
@@ -355,7 +360,7 @@ static bool _emnapi_tsfn_dispatch_one(napi_threadsafe_function func) {
 }
 
 // all threads
-static void _emnapi_tsfn_send(napi_threadsafe_function func) {
+static void _emnapi_tsfn_send(node_api_threadsafe_function__* func) {
   unsigned char current_state =
     atomic_fetch_or(&func->dispatch_state, kDispatchPending);
   if ((current_state & kDispatchRunning) == kDispatchRunning) {
@@ -365,7 +370,7 @@ static void _emnapi_tsfn_send(napi_threadsafe_function func) {
 }
 
 // only main thread
-static void _emnapi_tsfn_dispatch(napi_threadsafe_function func) {
+static void _emnapi_tsfn_dispatch(node_api_threadsafe_function__* func) {
   bool has_more = true;
 
   // Limit maximum synchronous iteration count to prevent event loop
@@ -441,7 +446,7 @@ napi_create_threadsafe_function(napi_env env,
   status = napi_coerce_to_string(env, async_resource_name, &resource_name);
   if (status != napi_ok) return status;
 
-  napi_threadsafe_function ts_fn = _emnapi_tsfn_create(
+  node_api_threadsafe_function__* ts_fn = _emnapi_tsfn_create(
     env,
     ref,
     resource,
@@ -459,7 +464,7 @@ napi_create_threadsafe_function(napi_env env,
     // Init deletes ts_fn upon failure.
     status = _emnapi_tsfn_init(ts_fn);
     if (status == napi_ok) {
-      *result = ts_fn;
+      *result = (napi_threadsafe_function)ts_fn;
     }
   }
 
@@ -476,7 +481,7 @@ napi_get_threadsafe_function_context(napi_threadsafe_function func,
   CHECK_NOT_NULL(func);
   CHECK_NOT_NULL(result);
 
-  *result = func->context;
+  *result = ((node_api_threadsafe_function__*)func)->context;
 
   return napi_ok;
 #else
@@ -485,11 +490,12 @@ napi_get_threadsafe_function_context(napi_threadsafe_function func,
 }
 
 napi_status
-napi_call_threadsafe_function(napi_threadsafe_function func,
+napi_call_threadsafe_function(napi_threadsafe_function f,
                               void* data,
                               napi_threadsafe_function_call_mode mode) {
 #if EMNAPI_HAVE_THREADS
-  CHECK_NOT_NULL(func);
+  CHECK_NOT_NULL(f);
+  node_api_threadsafe_function__* func = (node_api_threadsafe_function__*) f;
   pthread_mutex_lock(&func->mutex);
 
   while (func->queue_size >= func->max_queue_size &&
@@ -530,9 +536,10 @@ napi_call_threadsafe_function(napi_threadsafe_function func,
 }
 
 napi_status
-napi_acquire_threadsafe_function(napi_threadsafe_function func) {
+napi_acquire_threadsafe_function(napi_threadsafe_function f) {
 #if EMNAPI_HAVE_THREADS
-  CHECK_NOT_NULL(func);
+  CHECK_NOT_NULL(f);
+  node_api_threadsafe_function__* func = (node_api_threadsafe_function__*) f;
   pthread_mutex_lock(&func->mutex);
 
   if (func->is_closing) {
@@ -550,10 +557,11 @@ napi_acquire_threadsafe_function(napi_threadsafe_function func) {
 }
 
 napi_status
-napi_release_threadsafe_function(napi_threadsafe_function func,
+napi_release_threadsafe_function(napi_threadsafe_function f,
                                  napi_threadsafe_function_release_mode mode) {
 #if EMNAPI_HAVE_THREADS
-  CHECK_NOT_NULL(func);
+  CHECK_NOT_NULL(f);
+  node_api_threadsafe_function__* func = (node_api_threadsafe_function__*) f;
   pthread_mutex_lock(&func->mutex);
 
   if (func->thread_count == 0) {
@@ -583,8 +591,9 @@ napi_release_threadsafe_function(napi_threadsafe_function func,
 }
 
 napi_status
-napi_unref_threadsafe_function(node_api_basic_env env, napi_threadsafe_function func) {
+napi_unref_threadsafe_function(node_api_basic_env env, napi_threadsafe_function f) {
 #if EMNAPI_HAVE_THREADS
+  node_api_threadsafe_function__* func = (node_api_threadsafe_function__*) f;
   if (func->async_ref) {
     EMNAPI_KEEPALIVE_POP();
     _emnapi_ctx_decrease_waiting_request_counter();
@@ -597,8 +606,9 @@ napi_unref_threadsafe_function(node_api_basic_env env, napi_threadsafe_function 
 }
 
 napi_status
-napi_ref_threadsafe_function(node_api_basic_env env, napi_threadsafe_function func) {
+napi_ref_threadsafe_function(node_api_basic_env env, napi_threadsafe_function f) {
 #if EMNAPI_HAVE_THREADS
+  node_api_threadsafe_function__* func = (node_api_threadsafe_function__*) f;
   if (!func->async_ref) {
     EMNAPI_KEEPALIVE_PUSH();
     _emnapi_ctx_increase_waiting_request_counter();

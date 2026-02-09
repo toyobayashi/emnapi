@@ -20,6 +20,7 @@
 
     'defines': [
       'BUILDING_NODE_EXTENSION',
+      'NODE_API_RUNTIME_USE_VTABLE',
       '__STDC_FORMAT_MACROS',
       'V8_ENABLE_DIRECT_LOCAL',
     ],

@@ -5,7 +5,10 @@
 
 typedef struct node_api_base_env__ {
   void* vptr;
-  EMNAPI_NAPI_ENV_FIELDS;
+  uint64_t sentinel;  // Should be NODE_API_VT_SENTINEL
+  const struct node_api_js_vtable* js_vtable;
+  const struct node_api_module_vtable* module_vtable;
+
   uint32_t id;
   napi_extended_error_info last_error;
 } node_api_base_env__;
