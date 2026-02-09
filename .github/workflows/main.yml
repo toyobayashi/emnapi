@@ -32,10 +32,10 @@ permissions:
   contents: write
 
 env:
-  WASI_VERSION: '27'
-  WASI_VERSION_FULL: '27.0'
-  WASI_SDK_PATH: './wasi-sdk-27.0'
-  EM_VERSION: '4.0.1'
+  WASI_VERSION: '29'
+  WASI_VERSION_FULL: '29.0'
+  WASI_SDK_PATH: './wasi-sdk-29.0'
+  EM_VERSION: '4.0.11'
   EM_CACHE_FOLDER: 'emsdk-cache'
   NODE_VERSION: '24.11.1'
 

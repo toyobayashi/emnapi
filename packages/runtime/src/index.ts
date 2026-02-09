@@ -18,11 +18,12 @@ export { Reference, ReferenceWithData, ReferenceWithFinalizer, ReferenceOwnershi
 export { RefTracker } from './RefTracker'
 export { ScopeStore } from './ScopeStore'
 export * from './Store'
-export { type Features, type Resolver } from './util'
+export { type Features, type Resolver, type DylinkMetadata } from './util'
 
 export {
   isReferenceType,
   version,
+  getDylinkMetadata,
   NODE_API_SUPPORTED_VERSION_MIN,
   NODE_API_SUPPORTED_VERSION_MAX,
   NAPI_VERSION_EXPERIMENTAL,

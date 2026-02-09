@@ -46,6 +46,8 @@ export var wasmTable: WebAssembly.Table
 
 export var _malloc: (size: number | bigint) => void_p
 export var _free: (ptr: void_p) => void
+export var _emnapi_create_env: () => void_p
+export var _emnapi_delete_env: (ptr: void_p) => void
 
 export function abort (msg?: string): never {
   if (typeof WebAssembly.RuntimeError === 'function') {
@@ -64,6 +66,22 @@ export function getWasmTableEntry (index: number): Function | null {
 
 export function setWasmTableEntry (index: number, func: Function | null): void {
   wasmTable.set(index, func)
+}
+
+function setLastError (env: napi_env, error_code: napi_status, engine_error_code: uint32_t, engine_reserved: number) {
+  from64('env')
+  ;(env as number) -= 8
+  from64('engine_reserved')
+// #if MEMORY64
+  makeSetValue('env', NapiEnvOffset64.last_error_error_code, 'error_code', 'i32')
+  makeSetValue('env', NapiEnvOffset64.last_error_engine_error_code, 'engine_error_code', 'u32')
+  makeSetValue('env', NapiEnvOffset64.last_error_engine_reserved, 'engine_reserved', '*')
+// #else
+  makeSetValue('env', NapiEnvOffset32.last_error_error_code, 'error_code', 'i32')
+  makeSetValue('env', NapiEnvOffset32.last_error_engine_error_code, 'engine_error_code', 'u32')
+  makeSetValue('env', NapiEnvOffset32.last_error_engine_reserved, 'engine_reserved', '*')
+// #endif
+  return error_code
 }
 
 export var napiModule: INapiModule = {
@@ -104,6 +122,8 @@ export var napiModule: INapiModule = {
     if (typeof exports.free !== 'function') throw new TypeError('free is not exported')
     _malloc = exports.malloc as (size: number | bigint) => void_p
     _free = exports.free as (ptr: void_p) => void
+    _emnapi_create_env = exports.emnapi_create_env as () => void_p
+    _emnapi_delete_env = exports.emnapi_delete_env as (ptr: void_p) => void
 
     if (!napiModule.childThread) {
       // main thread only
@@ -144,64 +164,28 @@ export var napiModule: INapiModule = {
       }
 
       const envObject = napiModule.envObject || (() => {
-        let struct_napi_env__: SNapiEnv
-// #if MEMORY64
-        struct_napi_env__ = {
-          __size__: 56,
-          reserved: 0,
-          sentinel: 8,
-          js_vtable: 16,
-          module_vtable: 24,
-          last_error: {
-            __size__: 24,
-            error_message: 32,
-            engine_reserved: 40,
-            engine_error_code: 48,
-            error_code: 52
-          }
-        }
-// #else
-        struct_napi_env__ = {
-          __size__: 40,
-          reserved: 0,
-          sentinel: 8,
-          js_vtable: 16,
-          module_vtable: 20,
-          last_error: {
-            __size__: 16,
-            error_message: 24,
-            engine_reserved: 28,
-            engine_error_code: 32,
-            error_code: 36
-          }
-        }
-// #endif
-
-        let address = _malloc(to64('struct_napi_env__.__size__')) as number
-        const errorCodeOffset = struct_napi_env__.last_error.error_code
-        const engineErrorCodeOffset = struct_napi_env__.last_error.engine_error_code
-        const engineReservedOffset = struct_napi_env__.last_error.engine_reserved
+        let address = _emnapi_create_env() as number
         from64('address')
         const envObject = napiModule.envObject = emnapiEnv = emnapiCtx.createEnv(
           napiModule.filename,
           moduleApiVersion,
           {
             address,
-            free: (ptr) => {
-              _free(to64('ptr'))
+            deleteEnv: (ptr) => {
+              _emnapi_delete_env((to64('ptr') as number) - (to64('8') as number))
             },
-            setLastError (env, error_code, engine_error_code, engine_reserved) {
-              from64('engine_reserved')
-              makeSetValue('env', 'errorCodeOffset', 'error_code', 'i32')
-              makeSetValue('env', 'engineErrorCodeOffset', 'engine_error_code', 'u32')
-              makeSetValue('env', 'engineReservedOffset', 'engine_reserved', '*')
-            },
+            setLastError,
             makeDynCall_vppp: (cb: Ptr) => makeDynCall('vppp', 'cb'),
             makeDynCall_vp: (cb: Ptr) => makeDynCall('vp', 'cb'),
             abort,
           },
           emnapiNodeBinding
         )
+// #if MEMORY64
+        makeSetValue('address - 8', NapiEnvOffset64.id, 'envObject.id', 'u32')
+// #else
+        makeSetValue('address - 8', NapiEnvOffset32.id, 'envObject.id', 'u32')
+// #endif
         return envObject
       })()
 

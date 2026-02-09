@@ -238,12 +238,24 @@ typedef struct {
 #endif  // NAPI_VERSION >= 8
 
 #ifndef EMNAPI_UNMODIFIED_UPSTREAM
-struct napi_env__ {
-  void* reserved;
-  uint64_t sentinel;  // Should be NODE_API_VT_SENTINEL
-  const struct node_api_js_vtable* js_vtable;
+// Sentinel format: "NODE_VT" (7 bytes) + marker byte.
+// Marker byte = (version << 1) | 1
+//   - Bit 0 is always 1: ensures the sentinel can never match a C++ vtable
+//     pointer (which is always pointer-aligned, thus bit 0 = 0).
+//   - Bits 1-7: struct version number (0-127).
+#define NODE_API_VT_SENTINEL_VERSION 0
+#define NODE_API_VT_SENTINEL_MAKE(version)                                     \
+  (0x4E4F44455F565400ULL | (((version) << 1) | 1))
+#define NODE_API_VT_SENTINEL                                                   \
+  NODE_API_VT_SENTINEL_MAKE(NODE_API_VT_SENTINEL_VERSION)
+
+#define EMNAPI_NAPI_ENV_FIELDS                        \
+  uint64_t sentinel;                                  \
+  const struct node_api_js_vtable* js_vtable;         \
   const struct node_api_module_vtable* module_vtable;
-  napi_extended_error_info last_error;
+
+struct napi_env__ {
+  EMNAPI_NAPI_ENV_FIELDS
 };
 #endif
 

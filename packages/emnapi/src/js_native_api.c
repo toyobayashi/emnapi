@@ -2,6 +2,34 @@
 
 EXTERN_C_START
 
+struct node_api_base_env__vtable node_api_base_env__vtable_instance = {
+  .offset_to_top = offsetof(node_api_base_env__, vptr),
+  .type_info = NULL,
+  .cdtor = node_api_base_env__cdtor,
+  .ddtor = node_api_base_env__ddtor,
+};
+
+__attribute__((visibility("default")))
+node_api_base_env__* emnapi_create_env() {
+  node_api_base_env__* env = (node_api_base_env__*) calloc(1, sizeof(node_api_base_env__));
+  node_api_base_env__ctor(env);
+  return env;
+}
+
+__attribute__((visibility("default")))
+void emnapi_delete_env(node_api_base_env__* env) {
+  node_api_base_env__ddtor(env);
+}
+
+node_api_base_env__* node_api_base_env__cdtor(node_api_base_env__* self) {
+  return self;
+}
+
+void node_api_base_env__ddtor(node_api_base_env__* self) {
+  node_api_base_env__cdtor(self);
+  free(self);
+}
+
 static const char* emnapi_error_messages[] = {
   NULL,
   "Invalid argument",
@@ -29,11 +57,12 @@ static const char* emnapi_error_messages[] = {
   "Cannot run JavaScript",
 };
 
+__attribute__((visibility("default")))
 napi_status napi_get_last_error_info(
     node_api_basic_env basic_env, const napi_extended_error_info** result) {
-  napi_env env = (napi_env) basic_env;
-  CHECK_ENV(env);
-  CHECK_ARG(env, result);
+  CHECK_ENV(basic_env);
+  CHECK_ARG(basic_env, result);
+  node_api_base_env__* env = EMNAPI_AS_NODE_API_BASE_ENV(basic_env);
 
   const int last_status = napi_cannot_run_js;
 
@@ -47,7 +76,7 @@ napi_status napi_get_last_error_info(
   env->last_error.error_message = emnapi_error_messages[env->last_error.error_code];
 
   if (env->last_error.error_code == napi_ok) {
-    napi_clear_last_error(env);
+    napi_clear_last_error(basic_env);
   }
   *result = &(env->last_error);
   return napi_ok;

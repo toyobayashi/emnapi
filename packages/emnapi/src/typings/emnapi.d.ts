@@ -22,9 +22,12 @@ declare interface SNapiExtendedErrorInfo extends BaseStruct {
 }
 
 declare interface SNapiEnv extends BaseStruct {
-  reserved: number
+  vptr: number
   sentinel: number
   js_vtable: number
   module_vtable: number
+  id: number
   last_error: SNapiExtendedErrorInfo
 }
+
+declare const __EMNAPI_RUNTIME_BINARY__: Uint8Array

@@ -55,6 +55,7 @@ export default tseslint.config(
       '@typescript-eslint/naming-convention': 'off',
       '@typescript-eslint/no-dynamic-delete': 'off',
       '@typescript-eslint/method-signature-style': 'off',
+      '@typescript-eslint/no-duplicate-enum-values': 'off',
       '@typescript-eslint/prefer-includes': 'off',
       '@typescript-eslint/ban-ts-comment': 'off',
       '@typescript-eslint/ban-types': 'off',

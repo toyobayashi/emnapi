@@ -1,9 +1,11 @@
 const fs = require('fs')
 const path = require('path')
 const { createRequire } = require('module')
+const { spawnSync } = require('child_process')
 const ts = require('typescript')
 const rollupTypescript = require('@rollup/plugin-typescript').default
 const rollupAlias = require('@rollup/plugin-alias').default
+const rollupReplace = require('@rollup/plugin-replace').default
 const { rollup } = require('rollup')
 const { rollupRegion } = require('@emnapi/shared')
 
@@ -12,6 +14,33 @@ const parseToolsModuleSpecifier = 'emscripten:parse-tools'
 const sharedModuleSpecifier = 'emnapi:shared'
 const runtimeRequire = createRequire(path.join(__dirname, '../../runtime/index.js'))
 const ctxVarName = 'emnapiPluginCtx'
+
+const temp = path.join(__dirname, '../../../temp')
+const out = path.join(temp, 'runtime.wasm')
+let __EMNAPI_RUNTIME_BINARY__ = ''
+
+async function buildRuntimeBinary () {
+  fs.mkdirSync(temp, { recursive: true })
+  spawnSync(path.join(process.env.WASI_SDK_PATH, 'bin', 'clang'), [
+    '--target=wasm32-unknown-unknown',
+    '-matomics',
+    '-mbulk-memory',
+    '-nostdlib',
+    '-shared',
+    '-fPIC',
+    '-I', path.join(__dirname, '../include/node'),
+    '-O3',
+    '-Wl,--no-entry,--import-undefined,--export-dynamic,--import-memory,--shared-memory,--experimental-pic',
+    path.join(__dirname, '../src/js_native_api.c'),
+    '-o', out
+  ], { stdio: 'inherit' })
+  const size = fs.statSync(out).size
+  console.log(out, size)
+  if (size > 4096) {
+    console.log(`Built runtime binary: ${fs.statSync(out).size} bytes`)
+  }
+  __EMNAPI_RUNTIME_BINARY__ = `(new Uint8Array([${Array.from(fs.readFileSync(out)).join(',')}]))`
+}
 
 async function buildEmscriptenMain (tsconfigPath, libOut) {
   const tsconfig = JSON.parse(fs.readFileSync(tsconfigPath, 'utf8'))
@@ -23,6 +52,10 @@ async function buildEmscriptenMain (tsconfigPath, libOut) {
     treeshake: false,
     plugins: [
       rollupRegion(),
+      rollupReplace({
+        preventAssignment: true,
+        __EMNAPI_RUNTIME_BINARY__
+      }),
       rollupTypescript({
         tsconfig: tsconfigPath,
         tslib: path.join(
@@ -72,6 +105,10 @@ async function buildNonEmscriptenMain (tsconfigPath, outputDir) {
     treeshake: false,
     plugins: [
       rollupRegion(),
+      rollupReplace({
+        preventAssignment: true,
+        __EMNAPI_RUNTIME_BINARY__
+      }),
       rollupTypescript({
         tsconfig: tsconfigPath,
         tslib: path.join(
@@ -278,6 +315,7 @@ ${exportModules.map(modName => {
 }
 
 async function build () {
+  // await buildRuntimeBinary()
   const libTsconfigPath = path.join(__dirname, '../tsconfig.json')
   const v8TsconfigPath = path.join(__dirname, '../src/v8/tsconfig.json')
 
