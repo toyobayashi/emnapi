@@ -15,8 +15,8 @@
   "scripts": {
     "build": "node ./script/build.js",
     "version": "node ./script/version.js",
-    "generate-struct-info-wasm32": "node -e \"fs.mkdirSync('script/out',{recursive:true})\" && emcc -Iinclude/node script/generate_struct_info.c -sNODERAWFS -o script/out/generate_struct_info_wasm32.js && node ./script/out/generate_struct_info_wasm32.js",
-    "generate-struct-info-wasm64": "node -e \"fs.mkdirSync('script/out',{recursive:true})\" && emcc -Iinclude/node script/generate_struct_info.c -sNODERAWFS -sMEMORY64 -o script/out/generate_struct_info_wasm64.js && node ./script/out/generate_struct_info_wasm64.js",
+    "generate-struct-info-wasm32": "node -e \"fs.mkdirSync('script/out',{recursive:true})\" && emcc -Iinclude/node -pthread script/generate_struct_info.c -sNODERAWFS -o script/out/generate_struct_info_wasm32.js && node ./script/out/generate_struct_info_wasm32.js",
+    "generate-struct-info-wasm64": "node -e \"fs.mkdirSync('script/out',{recursive:true})\" && emcc -Iinclude/node -pthread script/generate_struct_info.c -sNODERAWFS -sMEMORY64 -o script/out/generate_struct_info_wasm64.js && node ./script/out/generate_struct_info_wasm64.js",
     "generate-struct-info": "npm run generate-struct-info-wasm32 && npm run generate-struct-info-wasm64"
   },
   "repository": {

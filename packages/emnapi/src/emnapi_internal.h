@@ -1,3 +1,6 @@
+#ifndef EMNAPI_INTERNAL_H
+#define EMNAPI_INTERNAL_H
+
 #include "emnapi.h"
 
 #if defined(__EMSCRIPTEN__) || defined(__wasi__)
@@ -182,3 +185,5 @@ void _emnapi_env_check_gc_access(napi_env env);
 EXTERN_C_END
 
 #include "js_native_api_internal.h"
+
+#endif
