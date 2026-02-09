@@ -32,26 +32,28 @@ declare function __emnapi_runtime_keepalive_push (): void
  */
 const emnapiTSFN = {
   offset: {
-    /* napi_ref */ resource: 0,
-    /* double */ async_id: 8,
-    /* double */ trigger_async_id: 16,
-    /* size_t */ queue_size: 24,
-    /* void* */ queue: 1 * POINTER_SIZE + 24,
-    /* size_t */ thread_count: 2 * POINTER_SIZE + 24,
-    /* bool */ is_closing: 3 * POINTER_SIZE + 24,
-    /* atomic_uchar */ dispatch_state: 3 * POINTER_SIZE + 28,
-    /* void* */ context: 3 * POINTER_SIZE + 32,
-    /* size_t */ max_queue_size: 4 * POINTER_SIZE + 32,
-    /* napi_ref */ ref: 5 * POINTER_SIZE + 32,
-    /* napi_env */ env: 6 * POINTER_SIZE + 32,
-    /* void* */ finalize_data: 7 * POINTER_SIZE + 32,
-    /* napi_finalize */ finalize_cb: 8 * POINTER_SIZE + 32,
-    /* napi_threadsafe_function_call_js */ call_js_cb: 9 * POINTER_SIZE + 32,
-    /* bool */ handles_closing: 10 * POINTER_SIZE + 32,
-    /* bool */ async_ref: 10 * POINTER_SIZE + 36,
-    /* int32_t */ mutex: 10 * POINTER_SIZE + 40,
-    /* int32_t */ cond: 10 * POINTER_SIZE + 44,
-    end: 10 * POINTER_SIZE + 48
+    sentinel: 0,
+    module_vtable: 8,
+    /* napi_ref */ resource: 0 + 16,
+    /* double */ async_id: 8 + 16,
+    /* double */ trigger_async_id: 16 + 16,
+    /* size_t */ queue_size: 24 + 16,
+    /* void* */ queue: 1 * POINTER_SIZE + 24 + 16,
+    /* size_t */ thread_count: 2 * POINTER_SIZE + 24 + 16,
+    /* bool */ is_closing: 3 * POINTER_SIZE + 24 + 16,
+    /* atomic_uchar */ dispatch_state: 3 * POINTER_SIZE + 28 + 16,
+    /* void* */ context: 3 * POINTER_SIZE + 32 + 16,
+    /* size_t */ max_queue_size: 4 * POINTER_SIZE + 32 + 16,
+    /* napi_ref */ ref: 5 * POINTER_SIZE + 32 + 16,
+    /* napi_env */ env: 6 * POINTER_SIZE + 32 + 16,
+    /* void* */ finalize_data: 7 * POINTER_SIZE + 32 + 16,
+    /* napi_finalize */ finalize_cb: 8 * POINTER_SIZE + 32 + 16,
+    /* napi_threadsafe_function_call_js */ call_js_cb: 9 * POINTER_SIZE + 32 + 16,
+    /* bool */ handles_closing: 10 * POINTER_SIZE + 32 + 16,
+    /* bool */ async_ref: 10 * POINTER_SIZE + 36 + 16,
+    /* int32_t */ mutex: 10 * POINTER_SIZE + 40 + 16,
+    /* int32_t */ cond: 10 * POINTER_SIZE + 44 + 16,
+    end: 10 * POINTER_SIZE + 48 + 16
   },
   init () {
     if (typeof PThread !== 'undefined') {
@@ -733,7 +735,7 @@ export function napi_create_threadsafe_function (
   const resourceRef = emnapiCtx.createReference(envObject, resource, 1, ReferenceOwnership.kUserland as any)
 
   const resource_ = resourceRef.id
-  makeSetValue('tsfn', 0, 'resource_', '*')
+  makeSetValue('tsfn', 'emnapiTSFN.offset.resource', 'resource_', '*')
   if (!emnapiTSFN.initQueue(tsfn as number)) {
     _free(to64('tsfn') as number)
     resourceRef.dispose()

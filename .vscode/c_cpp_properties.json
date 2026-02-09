@@ -7,7 +7,7 @@
       "${workspaceFolder}/node_modules/node-addon-api",
       "${workspaceFolder}/node_modules/nan"
     ],
-    "defines": ["NAPI_DISABLE_CPP_EXCEPTIONS", "NODE_ADDON_API_ENABLE_MAYBE", "V8_ENABLE_DIRECT_LOCAL"],
+    "defines": ["NAPI_DISABLE_CPP_EXCEPTIONS", "NODE_ADDON_API_ENABLE_MAYBE", "V8_ENABLE_DIRECT_LOCAL", "NODE_API_RUNTIME_USE_VTABLE", "NAPI_EXPERIMENTAL"],
     "clPath": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Community\\VC\\Tools\\MSVC\\14.28.29910\\bin\\Hostx64\\x64\\cl.exe",
     "gccPath": "/usr/bin/gcc",
     "clangPath": "/usr/bin/clang"
