@@ -99,6 +99,9 @@ var emnapiAWMT = {
         const worker = onCreateWorker({ type: 'async-work', name: 'emnapi-async-worker' })
         const p = PThread.loadWasmModuleToWorker(worker)
         emnapiAWMT.addListener(worker)
+        if (typeof emnapiPluginCtx.emnapiTSFN !== 'undefined') {
+          emnapiPluginCtx.emnapiTSFN.addListener(worker)
+        }
         promises.push(p.then(() => {
           if (typeof worker.unref === 'function') {
             worker.unref()

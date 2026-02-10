@@ -38,5 +38,5 @@ declare const enum NapiTSFNOffset64 {
   finalize_cb = 296,
   call_js_cb = 304,
   handles_closing = 312,
-  async_ref = 313,
+  async_ref = 316,
 }

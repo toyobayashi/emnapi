@@ -82,8 +82,6 @@ _emnapi_ach_handle_create(node_api_basic_env env,
   return handle;
 }
 
-EMNAPI_INTERNAL_EXTERN void _emnapi_set_immediate(void (*callback)(void*), void* data);
-
 static void _emnapi_ach_handle_env_unref(void* arg) {
   node_api_basic_env env = (node_api_basic_env) arg;
   _emnapi_env_unref(env);

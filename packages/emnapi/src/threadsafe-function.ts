@@ -5,6 +5,7 @@ import { ENVIRONMENT_IS_NODE, _malloc, wasmMemory, _free, ENVIRONMENT_IS_PTHREAD
 import { POINTER_SIZE, to64, makeDynCall, from64, makeSetValue, SIZE_TYPE } from 'emscripten:parse-tools'
 import { $CHECK_ENV_NOT_IN_GC, $CHECK_ARG } from './macro'
 
+declare var emnapiPluginCtx: any
 declare var emnapiCtx: Context
 declare var emnapiNodeBinding: NodeBinding | undefined
 declare function __emnapi_node_emit_async_destroy (async_id: double, trigger_async_id: double): void
@@ -408,10 +409,10 @@ const emnapiTSFN = {
     Atomics.store(new Int32Array(wasmMemory.buffer), (func + emnapiTSFN.offset.state) >> 2, value)
   },
   getHandlesClosing (func: number): number {
-    return Atomics.load(new Int32Array(wasmMemory.buffer), (func + emnapiTSFN.offset.handles_closing) >> 2)
+    return Atomics.load(new Int8Array(wasmMemory.buffer), (func + emnapiTSFN.offset.handles_closing))
   },
   setHandlesClosing (func: number, value: 0 | 1): void {
-    Atomics.store(new Int32Array(wasmMemory.buffer), (func + emnapiTSFN.offset.handles_closing) >> 2, value)
+    Atomics.store(new Int8Array(wasmMemory.buffer), (func + emnapiTSFN.offset.handles_closing), value)
   },
   getDispatchState (func: number): number {
     return Atomics.load(new Uint32Array(wasmMemory.buffer), (func + emnapiTSFN.offset.dispatch_state) >> 2)
@@ -495,20 +496,20 @@ const emnapiTSFN = {
       if (ref) {
         emnapiCtx.getRef(ref)!.dispose()
       }
+      const resource = emnapiTSFN.getResource(func)
+      emnapiCtx.getRef(resource)!.dispose()
+      makeSetValue('func', 'emnapiTSFN.offset.is_some', '0', 'i8')
+
       emnapiCtx.removeCleanupHook(envObject, emnapiTSFN.cleanup, func)
       envObject.unref()
 
       const asyncRefOffset = (func + emnapiTSFN.offset.async_ref) >> 2
-      const arr = new Int32Array(wasmMemory.buffer)
-      if (Atomics.load(arr, asyncRefOffset)) {
+      const arr = new Uint32Array(wasmMemory.buffer)
+      if (Atomics.load(arr, asyncRefOffset) > 0) {
         Atomics.store(arr, asyncRefOffset, 0)
         __emnapi_runtime_keepalive_pop()
         emnapiCtx.decreaseWaitingRequestCounter()
       }
-
-      const resource = emnapiTSFN.getResource(func)
-      emnapiCtx.getRef(resource)!.dispose()
-      makeSetValue('func', 'emnapiTSFN.offset.is_some', '0', 'i32')
 
       if (emnapiNodeBinding) {
         const view = new DataView(wasmMemory.buffer)
@@ -740,6 +741,7 @@ const emnapiTSFN = {
 }
 
 emnapiTSFN.init()
+emnapiPluginCtx.emnapiTSFN = emnapiTSFN
 
 /**
  * @__deps _emnapi_node_emit_async_init
@@ -823,7 +825,7 @@ export function napi_create_threadsafe_function (
     return envObject.setLastError(napi_status.napi_generic_failure)
   }
   __emnapi_node_emit_async_init(resource, resource_name, -1, tsfn as number + emnapiTSFN.offset.async_id)
-  makeSetValue('tsfn', 'emnapiTSFN.offset.is_some', '1', 'i32')
+  makeSetValue('tsfn', 'emnapiTSFN.offset.is_some', '1', 'i8')
   makeSetValue('tsfn', 'emnapiTSFN.offset.thread_count', 'initial_thread_count', SIZE_TYPE)
   makeSetValue('tsfn', 'emnapiTSFN.offset.context', 'context', '*')
   makeSetValue('tsfn', 'emnapiTSFN.offset.max_queue_size', 'max_queue_size', SIZE_TYPE)
@@ -837,7 +839,7 @@ export function napi_create_threadsafe_function (
 
   __emnapi_runtime_keepalive_push()
   emnapiCtx.increaseWaitingRequestCounter()
-  makeSetValue('tsfn', 'emnapiTSFN.offset.async_ref', '1', 'i32')
+  makeSetValue('tsfn', 'emnapiTSFN.offset.async_ref', '1', 'u32')
 
   from64('result')
   makeSetValue('result', 0, 'tsfn', '*')
@@ -943,11 +945,14 @@ export function napi_unref_threadsafe_function (env: napi_env, func: number): na
   }
   from64('func')
   const asyncRefOffset = (func + emnapiTSFN.offset.async_ref) >> 2
-  const arr = new Int32Array(wasmMemory.buffer)
-  if (Atomics.load(arr, asyncRefOffset)) {
-    Atomics.store(arr, asyncRefOffset, 0)
-    __emnapi_runtime_keepalive_pop()
-    emnapiCtx.decreaseWaitingRequestCounter()
+  const arr = new Uint32Array(wasmMemory.buffer)
+  const currentValue = Atomics.load(arr, asyncRefOffset)
+  if (currentValue > 0) {
+    Atomics.store(arr, asyncRefOffset, currentValue - 1)
+    if (currentValue === 1) {
+      __emnapi_runtime_keepalive_pop()
+      emnapiCtx.decreaseWaitingRequestCounter()
+    }
   }
   return napi_status.napi_ok
 }
@@ -963,11 +968,12 @@ export function napi_ref_threadsafe_function (env: napi_env, func: number): napi
   }
   from64('func')
   const asyncRefOffset = (func + emnapiTSFN.offset.async_ref) >> 2
-  const arr = new Int32Array(wasmMemory.buffer)
-  if (!Atomics.load(arr, asyncRefOffset)) {
-    Atomics.store(arr, asyncRefOffset, 1)
+  const arr = new Uint32Array(wasmMemory.buffer)
+  const currentValue = Atomics.load(arr, asyncRefOffset)
+  if (!currentValue) {
     __emnapi_runtime_keepalive_push()
     emnapiCtx.increaseWaitingRequestCounter()
   }
+  Atomics.store(arr, asyncRefOffset, currentValue + 1)
   return napi_status.napi_ok
 }

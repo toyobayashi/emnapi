@@ -106,6 +106,7 @@ EMNAPI_INTERNAL_EXTERN int _emnapi_is_main_browser_thread();
 EMNAPI_INTERNAL_EXTERN int _emnapi_is_main_runtime_thread();
 EMNAPI_INTERNAL_EXTERN double _emnapi_get_now();
 EMNAPI_INTERNAL_EXTERN void _emnapi_unwind();
+EMNAPI_INTERNAL_EXTERN void _emnapi_set_immediate(void (*callback)(void*), void* data);
 
 #if defined(__EMSCRIPTEN_PTHREADS__) || defined(_REENTRANT)
 #define EMNAPI_HAVE_THREADS 1

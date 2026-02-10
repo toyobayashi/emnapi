@@ -182,6 +182,8 @@ function(add_test NAME SOURCE_LIST PTHREAD)
 
   set_target_properties(${NAME} PROPERTIES
     BUILD_RPATH "$ORIGIN")
+  set_target_properties(${NAME} PROPERTIES
+    CXX_STANDARD "20")
   if(IS_WASM)
     if(PTHREAD)
       if((IS_WASI AND NOT IS_WASI_THREADS) OR IS_WASM32)
@@ -237,6 +239,8 @@ function(add_naa_test NAME SOURCE_LIST DEFINES ENABLE_EXCEPTION)
 
   set_target_properties(${NAME} PROPERTIES
     BUILD_RPATH "$ORIGIN")
+  set_target_properties(${NAME} PROPERTIES
+    CXX_STANDARD "20")
   if(IS_WASM)
     if((IS_WASI AND NOT IS_WASI_THREADS) OR IS_WASM32)
       if(IS_WASM32)
@@ -287,6 +291,7 @@ if((NOT IS_WASM) OR IS_EMSCRIPTEN OR IS_WASI_THREADS)
   target_compile_definitions("string_mt" PRIVATE "NAPI_VERSION=10")
   add_test("pool" "./pool/binding.c" ON)
   add_test("tsfn" "./tsfn/binding.c" ON)
+  add_test("tsfn_shutdown" "./tsfn_shutdown/binding.cc" ON)
   add_test("async_cleanup_hook" "./async_cleanup_hook/binding.c" ON)
   add_test("uv_threadpool_size" "./uv_threadpool_size/binding.c" ON)
   add_test("trap_in_thread" "./trap_in_thread/binding.c" ON)
@@ -408,7 +413,7 @@ function(add_test_v8 NAME SOURCE_LIST PTHREAD)
   set_target_properties(${NAME} PROPERTIES
     BUILD_RPATH "$ORIGIN")
   set_target_properties(${NAME} PROPERTIES
-    CXX_STANDARD "17")
+    CXX_STANDARD "20")
   if(IS_WASM)
     if(PTHREAD)
       if((IS_WASI AND NOT IS_WASI_THREADS) OR IS_WASM32)
@@ -442,7 +447,7 @@ function(add_test_v8 NAME SOURCE_LIST PTHREAD)
   endif()
 endfunction()
 
-if(NOT IS_WASM32)
+if(IS_WASM AND NOT IS_WASM32)
   add_test_v8("v8_hello_world" "./v8_hello_world/binding.cc" OFF)
   if(IS_EMSCRIPTEN OR IS_WASI_THREADS OR NOT IS_WASM)
     # TODO nan test

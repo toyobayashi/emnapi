@@ -45,7 +45,7 @@ struct napi_threadsafe_function__ {
   napi_finalize finalize_cb;
   napi_threadsafe_function_call_js call_js_cb;
   bool handles_closing;
-  bool async_ref;
+  unsigned int async_ref;
 };
 
 #endif

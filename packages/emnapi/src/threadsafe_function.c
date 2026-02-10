@@ -79,9 +79,7 @@ _emnapi_tsfn_create(napi_env env,
   EMNAPI_ASSERT_CALL(napi_add_env_cleanup_hook(env, _emnapi_tsfn_cleanup, ts_fn));
   _emnapi_env_ref(env);
 
-  EMNAPI_KEEPALIVE_PUSH();
-  _emnapi_ctx_increase_waiting_request_counter();
-  ts_fn->async_ref = true;
+  ts_fn->async_ref = 0;
   return ts_fn;
 }
 
@@ -96,10 +94,10 @@ static void _emnapi_tsfn_release_resources(napi_threadsafe_function func) {
     func->async_resource.is_some = false;
     EMNAPI_ASSERT_CALL(napi_remove_env_cleanup_hook(func->env, _emnapi_tsfn_cleanup, func));
     _emnapi_env_unref(func->env);
-    if (func->async_ref) {
+    if (func->async_ref > 0) {
+      func->async_ref = 0;
       EMNAPI_KEEPALIVE_POP();
       _emnapi_ctx_decrease_waiting_request_counter();
-      func->async_ref = false;
     }
   }
 }
@@ -143,6 +141,9 @@ static napi_status _emnapi_tsfn_init(napi_threadsafe_function func) {
   uv_loop_t* loop = uv_default_loop();
   if (uv_async_init(loop, &func->async, _emnapi_tsfn_async_cb) == 0) {
     int r;
+    func->async_ref = 1;
+    EMNAPI_KEEPALIVE_PUSH();
+    _emnapi_ctx_increase_waiting_request_counter();
     if (func->max_queue_size > 0) {
       func->cond = (pthread_cond_t*) malloc(sizeof(pthread_cond_t));
       if (func->cond != NULL) {
@@ -587,10 +588,12 @@ napi_release_threadsafe_function(napi_threadsafe_function func,
 napi_status
 napi_unref_threadsafe_function(node_api_basic_env env, napi_threadsafe_function func) {
 #if EMNAPI_HAVE_THREADS
-  if (func->async_ref) {
-    EMNAPI_KEEPALIVE_POP();
-    _emnapi_ctx_decrease_waiting_request_counter();
-    func->async_ref = false;
+  if (func->async_ref > 0) {
+    func->async_ref--;
+    if (func->async_ref == 0) {
+      EMNAPI_KEEPALIVE_POP();
+      _emnapi_ctx_decrease_waiting_request_counter();
+    }
   }
   return napi_ok;
 #else
@@ -604,8 +607,8 @@ napi_ref_threadsafe_function(node_api_basic_env env, napi_threadsafe_function fu
   if (!func->async_ref) {
     EMNAPI_KEEPALIVE_PUSH();
     _emnapi_ctx_increase_waiting_request_counter();
-    func->async_ref = true;
   }
+  func->async_ref++;
   return napi_ok;
 #else
   return napi_generic_failure;
