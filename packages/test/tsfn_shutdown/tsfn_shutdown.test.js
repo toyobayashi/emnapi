@@ -5,7 +5,7 @@ const assert = require('assert')
 const { fork } = require('child_process')
 
 module.exports = new Promise((resolve, reject) => {
-  load('tsfn_shutdown', {/*  nodeBinding: require('@emnapi/node-binding')  */}).then((binding) => {
+  load('tsfn_shutdown', { nodeBinding: require('@emnapi/node-binding') }).then((binding) => {
     if (process.argv[2] === 'child') {
       binding();
       setTimeout(() => {}, 100);

@@ -207,7 +207,7 @@ static void _emnapi_tsfn_finalize(napi_threadsafe_function func) {
     if (emnapi_is_node_binding_available()) {
       napi_value resource, cb;
       EMNAPI_ASSERT_CALL(napi_get_reference_value(func->env, func->async_resource.resource_, &resource));
-      EMNAPI_ASSERT_CALL(napi_create_function(func->env, NULL, 0, _emnapi_tsfn_finalize_in_callback_scope, func, &cb));
+      EMNAPI_ASSERT_CALL(_emnapi_create_function(NULL, 0, _emnapi_tsfn_finalize_in_callback_scope, func, &cb));
       _emnapi_node_make_callback(func->env,
                                 resource,
                                 cb,
@@ -328,7 +328,7 @@ static bool _emnapi_tsfn_dispatch_one(napi_threadsafe_function func) {
     if (emnapi_is_node_binding_available()) {
       napi_value resource, cb;
       EMNAPI_ASSERT_CALL(napi_get_reference_value(func->env, func->async_resource.resource_, &resource));
-      EMNAPI_ASSERT_CALL(napi_create_function(func->env, NULL, 0, _emnapi_tsfn_call_js_cb_in_callback_scope, jscb_data, &cb));
+      EMNAPI_ASSERT_CALL(_emnapi_create_function(NULL, 0, _emnapi_tsfn_call_js_cb_in_callback_scope, jscb_data, &cb));
       _emnapi_node_make_callback(func->env,
                                 resource,
                                 cb,

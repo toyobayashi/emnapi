@@ -185,6 +185,15 @@ endif()
 if(NODE_WANT_INTERNALS)
   add_compile_definitions("NODE_WANT_INTERNALS=${NODE_WANT_INTERNALS}")
 endif()
+if(EMNAPI_WORKER_POOL_SIZE)
+  add_compile_definitions("EMNAPI_WORKER_POOL_SIZE=${EMNAPI_WORKER_POOL_SIZE}")
+endif()
+if(EMNAPI_NEXTTICK_TYPE)
+  add_compile_definitions("EMNAPI_NEXTTICK_TYPE=${EMNAPI_NEXTTICK_TYPE}")
+endif()
+if(EMNAPI_USE_PROXYING)
+  add_compile_definitions("EMNAPI_USE_PROXYING=${EMNAPI_USE_PROXYING}")
+endif()
 
 add_library(${EMNAPI_TARGET_NAME} STATIC ${EMNAPI_SRC} ${UV_SRC})
 target_include_directories(${EMNAPI_TARGET_NAME} PUBLIC ${EMNAPI_INCLUDE})
@@ -195,11 +204,10 @@ if(IS_EMSCRIPTEN)
 endif()
 
 if(EMNAPI_BUILD_BASIC_LIBS)
-  add_library(${EMNAPI_BASIC_TARGET_NAME} STATIC ${ENAPI_BASIC_SRC})
+  add_library(${EMNAPI_BASIC_TARGET_NAME} STATIC ${ENAPI_BASIC_SRC} ${UV_SRC})
   target_include_directories(${EMNAPI_BASIC_TARGET_NAME} PUBLIC ${EMNAPI_INCLUDE})
   target_compile_definitions(${EMNAPI_BASIC_TARGET_NAME}
     PUBLIC ${EMNAPI_DEFINES}
-    PRIVATE "EMNAPI_DISABLE_UV"
   )
   if(IS_EMSCRIPTEN)
     set_target_properties(${EMNAPI_BASIC_TARGET_NAME} PROPERTIES INTERFACE_LINK_DEPENDS ${EMNAPI_JS_LIB})
@@ -229,13 +237,13 @@ if(EMNAPI_BUILD_FOR_NAPI_RS)
   if(EMNAPI_BUILD_BASIC_LIBS)
     add_library(${EMNAPI_BASIC_NAPI_RS_MT_TARGET_NAME} STATIC
       ${ENAPI_BASIC_SRC}
+      ${UV_SRC}
       "${CMAKE_CURRENT_SOURCE_DIR}/src/thread/async_worker_create.c"
       "${CMAKE_CURRENT_SOURCE_DIR}/src/thread/async_worker_init.S"
     )
     target_include_directories(${EMNAPI_BASIC_NAPI_RS_MT_TARGET_NAME} PUBLIC ${EMNAPI_INCLUDE})
     target_compile_definitions(${EMNAPI_BASIC_NAPI_RS_MT_TARGET_NAME}
       PUBLIC ${EMNAPI_DEFINES} "NAPI_EXTERN=__attribute__((__import_module__(\"env\")))"
-      PRIVATE "EMNAPI_DISABLE_UV"
     )
   endif()
 endif()
@@ -244,6 +252,7 @@ if(EMNAPI_BUILD_BASIC_LIBS)
   if(EMNAPI_BUILD_BASIC_MT)
     add_library(${EMNAPI_BASIC_MT_TARGET_NAME} STATIC
       ${ENAPI_BASIC_SRC}
+      ${UV_SRC}
       "${CMAKE_CURRENT_SOURCE_DIR}/src/thread/async_worker_create.c"
       "${CMAKE_CURRENT_SOURCE_DIR}/src/thread/async_worker_init.S"
     )
@@ -251,7 +260,6 @@ if(EMNAPI_BUILD_BASIC_LIBS)
     target_include_directories(${EMNAPI_BASIC_MT_TARGET_NAME} PUBLIC ${EMNAPI_INCLUDE})
     target_compile_definitions(${EMNAPI_BASIC_MT_TARGET_NAME}
       PUBLIC ${EMNAPI_DEFINES}
-      PRIVATE "EMNAPI_DISABLE_UV"
     )
 
     if(IS_EMSCRIPTEN)
@@ -278,15 +286,6 @@ if(EMNAPI_BUILD_MT)
   if(IS_EMSCRIPTEN)
     set_target_properties(${EMNAPI_MT_TARGET_NAME} PROPERTIES INTERFACE_LINK_DEPENDS ${EMNAPI_JS_LIB})
     target_link_options(${EMNAPI_MT_TARGET_NAME} INTERFACE "--js-library=${EMNAPI_JS_LIB}")
-  endif()
-  if(EMNAPI_WORKER_POOL_SIZE)
-    target_compile_definitions(${EMNAPI_MT_TARGET_NAME} PRIVATE "EMNAPI_WORKER_POOL_SIZE=${EMNAPI_WORKER_POOL_SIZE}")
-  endif()
-  if(EMNAPI_NEXTTICK_TYPE)
-    target_compile_definitions(${EMNAPI_MT_TARGET_NAME} PRIVATE "EMNAPI_NEXTTICK_TYPE=${EMNAPI_NEXTTICK_TYPE}")
-  endif()
-  if(EMNAPI_USE_PROXYING)
-    target_compile_definitions(${EMNAPI_MT_TARGET_NAME} PRIVATE "EMNAPI_USE_PROXYING=${EMNAPI_USE_PROXYING}")
   endif()
 
   if(EMNAPI_BUILD_V8)
