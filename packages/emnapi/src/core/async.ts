@@ -24,6 +24,15 @@ function emnapiGetWorkerByPthreadPtr (pthreadPtr: number): any {
 }
 
 /** @__sig vp */
+export function _emnapi_worker_ref (pthreadPtr: number): void {
+  if (ENVIRONMENT_IS_PTHREAD) return
+  const worker = emnapiGetWorkerByPthreadPtr(pthreadPtr)
+  if (worker && typeof worker.ref === 'function') {
+    worker.ref()
+  }
+}
+
+/** @__sig vp */
 export function _emnapi_worker_unref (pthreadPtr: number): void {
   if (ENVIRONMENT_IS_PTHREAD) return
   const worker = emnapiGetWorkerByPthreadPtr(pthreadPtr)

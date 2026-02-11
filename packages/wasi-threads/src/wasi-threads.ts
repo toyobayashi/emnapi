@@ -199,7 +199,7 @@ export class WASIThreads {
 
         tid = PThread!.markId(worker)
         if (ENVIRONMENT_IS_NODE) {
-          (worker as Worker).ref()
+          (worker as Worker).unref()
         }
         worker.postMessage(createMessage('start', {
           tid,
