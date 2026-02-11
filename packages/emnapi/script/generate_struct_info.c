@@ -26,32 +26,6 @@ void print_napi_env_info(FILE* f) {
 }
 
 void print_napi_threadsafe_function_info(FILE* f) {
-  // __size__
-  // async_resource
-  // async_resource___size__
-  // async_resource_resource
-  // async_resource_async_context
-  // async_resource_async_context___size__
-  // async_resource_async_context_async_id
-  // async_resource_async_context_trigger_async_id
-  // async_resource_is_some
-  // mutex
-  // cond
-  // queue_size
-  // queue
-  // async
-  // thread_count
-  // state
-  // dispatch_state
-  // context
-  // max_queue_size
-  // ref
-  // env
-  // finalize_data
-  // finalize_cb
-  // call_js_cb
-  // handles_closing
-  // async_ref
   fprintf(f, "declare const enum NapiTSFNOffset" WASM_BIT " {\n");
   fprintf(f, "  __size__ = %zu,\n", sizeof(struct napi_threadsafe_function__));
   fprintf(f, "  async_resource = %zu,\n", offsetof(struct napi_threadsafe_function__, async_resource));
