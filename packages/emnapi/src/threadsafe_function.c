@@ -139,6 +139,7 @@ static void _emnapi_tsfn_async_cb(uv_async_t* data) {
 // only main thread
 static napi_status _emnapi_tsfn_init(napi_threadsafe_function func) {
   uv_loop_t* loop = uv_default_loop();
+  bool should_delete = true;
   if (uv_async_init(loop, &func->async, _emnapi_tsfn_async_cb) == 0) {
     int r;
     func->async_ref = 1;
@@ -158,8 +159,11 @@ static napi_status _emnapi_tsfn_init(napi_threadsafe_function func) {
       return napi_ok;
     }
     uv_close((uv_handle_t*) &func->async, _emnapi_tsfn_do_destroy);
+    should_delete = false;
   }
-  _emnapi_tsfn_destroy(func);
+  if (should_delete) {
+    _emnapi_tsfn_destroy(func);
+  }
   return napi_generic_failure;
 }
 
@@ -243,6 +247,7 @@ static void _emnapi_tsfn_close_handles_and_maybe_delete(
     pthread_mutex_unlock(&func->mutex);
   }
   if (func->handles_closing) {
+    EMNAPI_ASSERT_CALL(napi_close_handle_scope(func->env, scope));
     return;
   }
   func->handles_closing = true;
@@ -588,6 +593,7 @@ napi_release_threadsafe_function(napi_threadsafe_function func,
 napi_status
 napi_unref_threadsafe_function(node_api_basic_env env, napi_threadsafe_function func) {
 #if EMNAPI_HAVE_THREADS
+  CHECK_NOT_NULL(func);
   if (func->async_ref > 0) {
     func->async_ref--;
     if (func->async_ref == 0) {
@@ -604,6 +610,7 @@ napi_unref_threadsafe_function(node_api_basic_env env, napi_threadsafe_function 
 napi_status
 napi_ref_threadsafe_function(node_api_basic_env env, napi_threadsafe_function func) {
 #if EMNAPI_HAVE_THREADS
+  CHECK_NOT_NULL(func);
   if (!func->async_ref) {
     EMNAPI_KEEPALIVE_PUSH();
     _emnapi_ctx_increase_waiting_request_counter();
