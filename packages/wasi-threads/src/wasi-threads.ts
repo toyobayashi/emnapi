@@ -1,8 +1,8 @@
 import type { Worker } from 'worker_threads'
 import { ENVIRONMENT_IS_NODE, deserizeErrorFromBuffer, getPostMessage, isTrapError } from './util'
 import { checkSharedWasmMemory, ThreadManager } from './thread-manager'
-import type { WorkerMessageEvent, ThreadManagerOptions, ThreadManagerOptionsMain, WorkerLike } from './thread-manager'
-import { type CommandPayloadMap, type MessageEventData, createMessage, type SpawnThreadPayload } from './command'
+import type { ThreadManagerOptions, ThreadManagerOptionsMain, WorkerLike } from './thread-manager'
+import { createMessage } from './command'
 import { createInstanceProxy } from './proxy'
 
 /** @public */
@@ -117,21 +117,6 @@ export class WASIThreads {
 
     const wasm64 = Boolean(options.wasm64)
 
-    const onMessage = (e: WorkerMessageEvent<MessageEventData<keyof CommandPayloadMap>>): void => {
-      if (e.data.__emnapi__) {
-        const type = e.data.__emnapi__.type
-        const payload = e.data.__emnapi__.payload
-        if (type === 'spawn-thread') {
-          threadSpawn(
-            (payload as SpawnThreadPayload).startArg,
-            (payload as SpawnThreadPayload).errorOrTid
-          )
-        } else if (type === 'terminate-all-threads') {
-          this.terminateAllThreads()
-        }
-      }
-    }
-
     const threadSpawn = (startArg: number, errorOrTid?: number): number => {
       const EAGAIN = 6
       const isNewABI = errorOrTid !== undefined
@@ -195,11 +180,10 @@ export class WASIThreads {
         if (!worker) {
           throw new Error('failed to get new worker')
         }
-        PThread!.addMessageEventListener(worker, onMessage)
 
         tid = PThread!.markId(worker)
         if (ENVIRONMENT_IS_NODE) {
-          (worker as Worker).ref()
+          (worker as Worker).unref()
         }
         worker.postMessage(createMessage('start', {
           tid,
@@ -260,6 +244,9 @@ export class WASIThreads {
     }
 
     this.threadSpawn = threadSpawn
+    if (this.PThread) {
+      this.PThread.threadSpawn = threadSpawn
+    }
   }
 
   public getImportObject (): { wasi: WASIThreadsImports } {

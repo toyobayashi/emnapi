@@ -3,6 +3,20 @@ import { from64, makeSetValue, makeGetValue, SIZE_TYPE, POINTER_SIZE } from 'ems
 import { emnapiCreateFunction } from './internal'
 import { $PREAMBLE, $CHECK_ARG, $CHECK_ENV, $CHECK_ENV_NOT_IN_GC, $GET_RETURN_STATUS } from './macro'
 
+/** @__sig ippppp */
+export function _emnapi_create_function (utf8name: Pointer<const_char>, length: size_t, cb: napi_callback, data: void_p, result: Pointer<napi_value>): napi_status {
+  from64('length')
+
+  const fresult = emnapiCreateFunction(emnapiEnv, utf8name, length, cb, data)
+  if (fresult.status !== napi_status.napi_ok) return emnapiEnv.setLastError(fresult.status)
+  const f = fresult.f
+  const value = emnapiCtx.napiValueFromJsValue(f)
+  from64('result')
+
+  makeSetValue('result', 0, 'value', '*')
+  return $GET_RETURN_STATUS!(emnapiEnv)
+}
+
 /** @__sig ipppppp */
 export function napi_create_function (env: napi_env, utf8name: Pointer<const_char>, length: size_t, cb: napi_callback, data: void_p, result: Pointer<napi_value>): napi_status {
   let value: napi_value
@@ -11,16 +25,7 @@ export function napi_create_function (env: napi_env, utf8name: Pointer<const_cha
     $CHECK_ARG!(envObject, result)
     $CHECK_ARG!(envObject, cb)
 
-    from64('length')
-
-    const fresult = emnapiCreateFunction(envObject, utf8name, length, cb, data)
-    if (fresult.status !== napi_status.napi_ok) return envObject.setLastError(fresult.status)
-    const f = fresult.f
-    value = emnapiCtx.napiValueFromJsValue(f)
-    from64('result')
-
-    makeSetValue('result', 0, 'value', '*')
-    return $GET_RETURN_STATUS!(envObject)
+    return _emnapi_create_function(utf8name, length, cb, data, result)
   })
 }
 

@@ -6,6 +6,18 @@ import { _emnapi_set_immediate, _emnapi_next_tick } from '../util'
  * @__deps $PThread
  * @__sig vp
  */
+export function _emnapi_worker_ref (pid: number): void {
+  let worker = PThread.pthreads[pid]
+  worker = worker.worker || worker
+  if (typeof worker.ref === 'function') {
+    worker.ref()
+  }
+}
+
+/**
+ * @__deps $PThread
+ * @__sig vp
+ */
 export function _emnapi_worker_unref (pid: number): void {
   let worker = PThread.pthreads[pid]
   worker = worker.worker || worker

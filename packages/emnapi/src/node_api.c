@@ -1,9 +1,7 @@
 #include "node_api.h"
 #include "emnapi_internal.h"
 
-#if EMNAPI_HAVE_THREADS && !defined(EMNAPI_DISABLE_UV)
-#include "uv.h"
-#endif
+struct uv_loop_s* uv_default_loop(void);
 
 EXTERN_C_START
 
@@ -31,15 +29,11 @@ napi_get_node_version(node_api_basic_env env,
 
 napi_status napi_get_uv_event_loop(node_api_basic_env env,
                                    struct uv_loop_s** loop) {
-#if EMNAPI_HAVE_THREADS && !defined(EMNAPI_DISABLE_UV)
   CHECK_ENV(env);
   CHECK_ARG(env, loop);
   // Though this is fake libuv loop
   *loop = uv_default_loop();
   return napi_clear_last_error(env);
-#else
-  return napi_set_last_error(env, napi_generic_failure, 0, NULL);
-#endif
 }
 
 EMNAPI_INTERNAL_EXTERN int _emnapi_get_filename(node_api_basic_env env, char* buf, int len);

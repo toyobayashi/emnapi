@@ -1,7 +1,8 @@
+#include <stddef.h>
+
 #if defined(__EMSCRIPTEN_PTHREADS__) || defined(_REENTRANT)
 
 #include <errno.h>
-#include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
 #include "uv-common.h"
@@ -181,6 +182,13 @@ uint64_t uv_metrics_idle_time(uv_loop_t* loop) {
   if (entry_time > 0)
     idle_time += uv_hrtime() - entry_time;
   return idle_time;
+}
+
+#else
+
+typedef struct uv_loop_s uv_loop_t;
+uv_loop_t* uv_default_loop(void) {
+  return NULL;
 }
 
 #endif

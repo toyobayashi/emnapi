@@ -1,11 +1,12 @@
 /* eslint-disable @stylistic/indent */
 
+import { emnapiEnv } from 'emnapi:shared'
 import { ENVIRONMENT_IS_NODE, _malloc, wasmMemory, _free, ENVIRONMENT_IS_PTHREAD, abort, PThread } from 'emscripten:runtime'
 import { POINTER_SIZE, to64, makeDynCall, from64, makeSetValue, SIZE_TYPE } from 'emscripten:parse-tools'
 import { $CHECK_ENV_NOT_IN_GC, $CHECK_ARG } from './macro'
 
+declare var emnapiPluginCtx: any
 declare var emnapiCtx: Context
-declare var emnapiEnv: Env
 declare var emnapiNodeBinding: NodeBinding | undefined
 declare function __emnapi_node_emit_async_destroy (async_id: double, trigger_async_id: double): void
 declare function __emnapi_node_emit_async_init (
@@ -16,6 +17,12 @@ declare function __emnapi_node_emit_async_init (
 ): void
 declare function __emnapi_runtime_keepalive_pop (): void
 declare function __emnapi_runtime_keepalive_push (): void
+
+const enum State {
+  kOpen,
+  kClosing,
+  kClosed,
+}
 
 /**
  * @__deps malloc
@@ -32,28 +39,75 @@ declare function __emnapi_runtime_keepalive_push (): void
  */
 const emnapiTSFN = {
   offset: {
+    __size__: 0,
     /* napi_ref */ resource: 0,
-    /* double */ async_id: 8,
-    /* double */ trigger_async_id: 16,
-    /* size_t */ queue_size: 24,
-    /* void* */ queue: 1 * POINTER_SIZE + 24,
-    /* size_t */ thread_count: 2 * POINTER_SIZE + 24,
-    /* bool */ is_closing: 3 * POINTER_SIZE + 24,
-    /* atomic_uchar */ dispatch_state: 3 * POINTER_SIZE + 28,
-    /* void* */ context: 3 * POINTER_SIZE + 32,
-    /* size_t */ max_queue_size: 4 * POINTER_SIZE + 32,
-    /* napi_ref */ ref: 5 * POINTER_SIZE + 32,
-    /* napi_env */ env: 6 * POINTER_SIZE + 32,
-    /* void* */ finalize_data: 7 * POINTER_SIZE + 32,
-    /* napi_finalize */ finalize_cb: 8 * POINTER_SIZE + 32,
-    /* napi_threadsafe_function_call_js */ call_js_cb: 9 * POINTER_SIZE + 32,
-    /* bool */ handles_closing: 10 * POINTER_SIZE + 32,
-    /* bool */ async_ref: 10 * POINTER_SIZE + 36,
-    /* int32_t */ mutex: 10 * POINTER_SIZE + 40,
-    /* int32_t */ cond: 10 * POINTER_SIZE + 44,
-    end: 10 * POINTER_SIZE + 48
+    /* double */ async_id: 0,
+    /* double */ trigger_async_id: 0,
+    /* size_t */ queue_size: 0,
+    /* bool */ is_some: 0,
+    /* void* */ queue: 0,
+    /* size_t */ thread_count: 0,
+    /* int32_t */ state: 0,
+    /* atomic_uchar */ dispatch_state: 0,
+    /* void* */ context: 0,
+    /* size_t */ max_queue_size: 0,
+    /* napi_ref */ ref: 0,
+    /* napi_env */ env: 0,
+    /* void* */ finalize_data: 0,
+    /* napi_finalize */ finalize_cb: 0,
+    /* napi_threadsafe_function_call_js */ call_js_cb: 0,
+    /* bool */ handles_closing: 0,
+    /* bool */ async_ref: 0,
+    /* int32_t */ mutex: 0,
+    /* int32_t */ cond: 0,
   },
   init () {
+// #if MEMORY64
+    emnapiTSFN.offset.__size__ = NapiTSFNOffset64.__size__
+    emnapiTSFN.offset.resource = NapiTSFNOffset64.async_resource_resource
+    emnapiTSFN.offset.async_id = NapiTSFNOffset64.async_resource_async_context_async_id
+    emnapiTSFN.offset.trigger_async_id = NapiTSFNOffset64.async_resource_async_context_trigger_async_id
+    emnapiTSFN.offset.queue_size = NapiTSFNOffset64.queue_size
+    emnapiTSFN.offset.is_some = NapiTSFNOffset64.async_resource_is_some
+    emnapiTSFN.offset.queue = NapiTSFNOffset64.queue
+    emnapiTSFN.offset.thread_count = NapiTSFNOffset64.thread_count
+    emnapiTSFN.offset.state = NapiTSFNOffset64.state
+    emnapiTSFN.offset.dispatch_state = NapiTSFNOffset64.dispatch_state
+    emnapiTSFN.offset.context = NapiTSFNOffset64.context
+    emnapiTSFN.offset.max_queue_size = NapiTSFNOffset64.max_queue_size
+    emnapiTSFN.offset.ref = NapiTSFNOffset64.ref
+    emnapiTSFN.offset.env = NapiTSFNOffset64.env
+    emnapiTSFN.offset.finalize_data = NapiTSFNOffset64.finalize_data
+    emnapiTSFN.offset.finalize_cb = NapiTSFNOffset64.finalize_cb
+    emnapiTSFN.offset.call_js_cb = NapiTSFNOffset64.call_js_cb
+    emnapiTSFN.offset.handles_closing = NapiTSFNOffset64.handles_closing
+    emnapiTSFN.offset.async_ref = NapiTSFNOffset64.async_ref
+    emnapiTSFN.offset.mutex = NapiTSFNOffset64.mutex
+    emnapiTSFN.offset.cond = NapiTSFNOffset64.cond
+// #else
+    emnapiTSFN.offset.__size__ = NapiTSFNOffset32.__size__
+    emnapiTSFN.offset.resource = NapiTSFNOffset32.async_resource_resource
+    emnapiTSFN.offset.async_id = NapiTSFNOffset32.async_resource_async_context_async_id
+    emnapiTSFN.offset.trigger_async_id = NapiTSFNOffset32.async_resource_async_context_trigger_async_id
+    emnapiTSFN.offset.queue_size = NapiTSFNOffset32.queue_size
+    emnapiTSFN.offset.is_some = NapiTSFNOffset32.async_resource_is_some
+    emnapiTSFN.offset.queue = NapiTSFNOffset32.queue
+    emnapiTSFN.offset.thread_count = NapiTSFNOffset32.thread_count
+    emnapiTSFN.offset.state = NapiTSFNOffset32.state
+    emnapiTSFN.offset.dispatch_state = NapiTSFNOffset32.dispatch_state
+    emnapiTSFN.offset.context = NapiTSFNOffset32.context
+    emnapiTSFN.offset.max_queue_size = NapiTSFNOffset32.max_queue_size
+    emnapiTSFN.offset.ref = NapiTSFNOffset32.ref
+    emnapiTSFN.offset.env = NapiTSFNOffset32.env
+    emnapiTSFN.offset.finalize_data = NapiTSFNOffset32.finalize_data
+    emnapiTSFN.offset.finalize_cb = NapiTSFNOffset32.finalize_cb
+    emnapiTSFN.offset.call_js_cb = NapiTSFNOffset32.call_js_cb
+    emnapiTSFN.offset.handles_closing = NapiTSFNOffset32.handles_closing
+    emnapiTSFN.offset.async_ref = NapiTSFNOffset32.async_ref
+    emnapiTSFN.offset.mutex = NapiTSFNOffset32.mutex
+    emnapiTSFN.offset.cond = NapiTSFNOffset32.cond
+// #endif
+    emnapiTSFN.offset.mutex = emnapiTSFN.offset.mutex + 4
     if (typeof PThread !== 'undefined') {
       PThread.unusedWorkers.forEach(emnapiTSFN.addListener)
       PThread.runningWorkers.forEach(emnapiTSFN.addListener)
@@ -152,11 +206,11 @@ const emnapiTSFN = {
     const waitCondition = (): boolean => {
       const queueSize = emnapiTSFN.getQueueSize(func)
       const maxSize = emnapiTSFN.getMaxQueueSize(func)
-      const isClosing = emnapiTSFN.getIsClosing(func)
-      return queueSize >= maxSize && maxSize > 0 && !isClosing
+      return queueSize >= maxSize && maxSize > 0 && emnapiTSFN.getState(func) === State.kOpen
     }
     const isBrowserMain = typeof window !== 'undefined' && typeof document !== 'undefined' && !ENVIRONMENT_IS_NODE
-    return mutex.execute(() => {
+    let shouldDelete = false
+    const ret = mutex.execute(() => {
       while (waitCondition()) {
         if (mode === napi_threadsafe_function_call_mode.napi_tsfn_nonblocking) {
           return napi_status.napi_queue_full
@@ -175,19 +229,26 @@ const emnapiTSFN = {
         cond.wait()
       }
 
-      if (emnapiTSFN.getIsClosing(func)) {
-        if (emnapiTSFN.getThreadCount(func) === 0) {
-          return napi_status.napi_invalid_arg
-        } else {
-          emnapiTSFN.subThreadCount(func)
-          return napi_status.napi_closing
-        }
-      } else {
+      if (emnapiTSFN.getState(func) === State.kOpen) {
         emnapiTSFN.pushQueue(func, data)
         emnapiTSFN.send(func)
         return napi_status.napi_ok
       }
+
+      if (emnapiTSFN.getThreadCount(func) === 0) {
+        return napi_status.napi_invalid_arg
+      }
+      emnapiTSFN.subThreadCount(func)
+      if (!(emnapiTSFN.getState(func) === State.kClosed && emnapiTSFN.getThreadCount(func) === 0)) {
+        return napi_status.napi_closing
+      }
+      shouldDelete = true
+      return napi_status.napi_closing
     })
+    if (shouldDelete) {
+      emnapiTSFN.destroy(func)
+    }
+    return ret
   },
   getMutex (func: number) {
     const index = func + emnapiTSFN.offset.mutex
@@ -341,17 +402,17 @@ const emnapiTSFN = {
 // #endif
     Atomics.sub(arr, index, to64('1') as any)
   },
-  getIsClosing (func: number): number {
-    return Atomics.load(new Int32Array(wasmMemory.buffer), (func + emnapiTSFN.offset.is_closing) >> 2)
+  getState (func: number): number {
+    return Atomics.load(new Int32Array(wasmMemory.buffer), (func + emnapiTSFN.offset.state) >> 2)
   },
-  setIsClosing (func: number, value: 0 | 1): void {
-    Atomics.store(new Int32Array(wasmMemory.buffer), (func + emnapiTSFN.offset.is_closing) >> 2, value)
+  setState (func: number, value: 0 | 1 | 2): void {
+    Atomics.store(new Int32Array(wasmMemory.buffer), (func + emnapiTSFN.offset.state) >> 2, value)
   },
   getHandlesClosing (func: number): number {
-    return Atomics.load(new Int32Array(wasmMemory.buffer), (func + emnapiTSFN.offset.handles_closing) >> 2)
+    return Atomics.load(new Int8Array(wasmMemory.buffer), (func + emnapiTSFN.offset.handles_closing))
   },
   setHandlesClosing (func: number, value: 0 | 1): void {
-    Atomics.store(new Int32Array(wasmMemory.buffer), (func + emnapiTSFN.offset.handles_closing) >> 2, value)
+    Atomics.store(new Int8Array(wasmMemory.buffer), (func + emnapiTSFN.offset.handles_closing), value)
   },
   getDispatchState (func: number): number {
     return Atomics.load(new Uint32Array(wasmMemory.buffer), (func + emnapiTSFN.offset.dispatch_state) >> 2)
@@ -425,49 +486,72 @@ const emnapiTSFN = {
       return undefined
     }
   },
+  releaseResources (func: number) {
+    if (emnapiTSFN.getState(func) !== State.kClosed) {
+      emnapiTSFN.setState(func, State.kClosed)
+
+      const env = emnapiTSFN.getEnv(func)
+      const envObject = emnapiEnv
+      const ref = emnapiTSFN.getRef(func)
+      if (ref) {
+        emnapiCtx.getRef(ref)!.dispose()
+      }
+      const resource = emnapiTSFN.getResource(func)
+      emnapiCtx.getRef(resource)!.dispose()
+      makeSetValue('func', 'emnapiTSFN.offset.is_some', '0', 'i8')
+
+      emnapiCtx.removeCleanupHook(envObject, emnapiTSFN.cleanup, func)
+      envObject.unref()
+
+      const asyncRefOffset = (func + emnapiTSFN.offset.async_ref) >> 2
+      const arr = new Uint32Array(wasmMemory.buffer)
+      if (Atomics.load(arr, asyncRefOffset) > 0) {
+        Atomics.store(arr, asyncRefOffset, 0)
+        __emnapi_runtime_keepalive_pop()
+        emnapiCtx.decreaseWaitingRequestCounter()
+      }
+
+      if (emnapiNodeBinding) {
+        const view = new DataView(wasmMemory.buffer)
+        const asyncId = view.getFloat64(func + emnapiTSFN.offset.async_id, true)
+        const triggerAsyncId = view.getFloat64(func + emnapiTSFN.offset.trigger_async_id, true)
+        __emnapi_node_emit_async_destroy(asyncId, triggerAsyncId)
+      }
+    }
+  },
   destroy (func: number) {
     emnapiTSFN.destroyQueue(func)
-    const env = emnapiTSFN.getEnv(func)
-    const envObject = emnapiEnv
-    const ref = emnapiTSFN.getRef(func)
-    if (ref) {
-      emnapiCtx.getRef(ref)!.dispose()
-    }
-    emnapiCtx.removeCleanupHook(envObject, emnapiTSFN.cleanup, func)
-    envObject.unref()
-
-    const asyncRefOffset = (func + emnapiTSFN.offset.async_ref) >> 2
-    const arr = new Int32Array(wasmMemory.buffer)
-    if (Atomics.load(arr, asyncRefOffset)) {
-      Atomics.store(arr, asyncRefOffset, 0)
-      __emnapi_runtime_keepalive_pop()
-      emnapiCtx.decreaseWaitingRequestCounter()
-    }
-
-    const resource = emnapiTSFN.getResource(func)
-    emnapiCtx.getRef(resource)!.dispose()
-
-    if (emnapiNodeBinding) {
-      const view = new DataView(wasmMemory.buffer)
-      const asyncId = view.getFloat64(func + emnapiTSFN.offset.async_id, true)
-      const triggerAsyncId = view.getFloat64(func + emnapiTSFN.offset.trigger_async_id, true)
-      __emnapi_node_emit_async_destroy(asyncId, triggerAsyncId)
-    }
-
+    emnapiTSFN.releaseResources(func)
     _free(to64('func') as number)
   },
-  emptyQueueAndDelete (func: number) {
+  emptyQueueAndMaybeDelete (func: number) {
+    const drainQueue: number[] = []
+    emnapiTSFN.getMutex(func).execute(() => {
+      while (emnapiTSFN.getQueueSize(func) > 0) {
+        drainQueue.push(emnapiTSFN.shiftQueue(func))
+      }
+    })
     const callJsCb = emnapiTSFN.getCallJSCb(func)
 
     const context = emnapiTSFN.getContext(func)
     let data: number
-    while (emnapiTSFN.getQueueSize(func) > 0) {
-      data = emnapiTSFN.shiftQueue(func)
+    for (let i = 0; i < drainQueue.length; i++) {
+      data = drainQueue[i]
       if (callJsCb) {
         makeDynCall('vpppp', 'callJsCb')(to64('0'), to64('0'), to64('context'), to64('data'))
       }
     }
-    emnapiTSFN.destroy(func)
+    let shouldDelete = false
+    emnapiTSFN.getMutex(func).execute(() => {
+      if (emnapiTSFN.getThreadCount(func) > 0) {
+        emnapiTSFN.releaseResources(func)
+      } else {
+        shouldDelete = true
+      }
+    })
+    if (shouldDelete) {
+      emnapiTSFN.destroy(func)
+    }
   },
   finalize (func: number) {
     const env = emnapiTSFN.getEnv(func)
@@ -506,7 +590,7 @@ const emnapiTSFN = {
           f()
         }
       }
-      emnapiTSFN.emptyQueueAndDelete(func)
+      emnapiTSFN.emptyQueueAndMaybeDelete(func)
     } finally {
       emnapiCtx.closeScope(envObject)
     }
@@ -521,7 +605,7 @@ const emnapiTSFN = {
     try {
       if (set_closing) {
         emnapiTSFN.getMutex(func).execute(() => {
-          emnapiTSFN.setIsClosing(func, 1)
+          emnapiTSFN.setState(func, State.kClosing)
           if (emnapiTSFN.getMaxQueueSize(func) > 0) {
             emnapiTSFN.getCond(func).signal()
           }
@@ -546,9 +630,7 @@ const emnapiTSFN = {
     const mutex = emnapiTSFN.getMutex(func)
     const cond = emnapiTSFN.getCond(func)
     mutex.execute(() => {
-      if (emnapiTSFN.getIsClosing(func)) {
-        emnapiTSFN.closeHandlesAndMaybeDelete(func, 0)
-      } else {
+      if (emnapiTSFN.getState(func) === State.kOpen) {
         let size = emnapiTSFN.getQueueSize(func)
         if (size > 0) {
           data = emnapiTSFN.shiftQueue(func)
@@ -561,7 +643,7 @@ const emnapiTSFN = {
         }
         if (size === 0) {
           if (emnapiTSFN.getThreadCount(func) === 0) {
-            emnapiTSFN.setIsClosing(func, 1)
+            emnapiTSFN.setState(func, State.kClosing)
             if (emnapiTSFN.getMaxQueueSize(func) > 0) {
               cond.signal()
             }
@@ -570,6 +652,8 @@ const emnapiTSFN = {
         } else {
           has_more = true
         }
+      } else {
+        emnapiTSFN.closeHandlesAndMaybeDelete(func, 0)
       }
     })
 
@@ -657,6 +741,7 @@ const emnapiTSFN = {
 }
 
 emnapiTSFN.init()
+emnapiPluginCtx.emnapiTSFN = emnapiTSFN
 
 /**
  * @__deps _emnapi_node_emit_async_init
@@ -725,7 +810,7 @@ export function napi_create_threadsafe_function (
   const resource_name = emnapiCtx.napiValueFromJsValue(asyncResourceName)
 
   // tsfn create
-  const sizeofTSFN = emnapiTSFN.offset.end
+  const sizeofTSFN = emnapiTSFN.offset.__size__
   let tsfn = _malloc(to64('sizeofTSFN'))
   if (!tsfn) return envObject.setLastError(napi_status.napi_generic_failure)
   from64('tsfn')
@@ -733,13 +818,14 @@ export function napi_create_threadsafe_function (
   const resourceRef = emnapiCtx.createReference(envObject, resource, 1, ReferenceOwnership.kUserland as any)
 
   const resource_ = resourceRef.id
-  makeSetValue('tsfn', 0, 'resource_', '*')
+  makeSetValue('tsfn', 'emnapiTSFN.offset.resource', 'resource_', '*')
   if (!emnapiTSFN.initQueue(tsfn as number)) {
     _free(to64('tsfn') as number)
     resourceRef.dispose()
     return envObject.setLastError(napi_status.napi_generic_failure)
   }
   __emnapi_node_emit_async_init(resource, resource_name, -1, tsfn as number + emnapiTSFN.offset.async_id)
+  makeSetValue('tsfn', 'emnapiTSFN.offset.is_some', '1', 'i8')
   makeSetValue('tsfn', 'emnapiTSFN.offset.thread_count', 'initial_thread_count', SIZE_TYPE)
   makeSetValue('tsfn', 'emnapiTSFN.offset.context', 'context', '*')
   makeSetValue('tsfn', 'emnapiTSFN.offset.max_queue_size', 'max_queue_size', SIZE_TYPE)
@@ -753,7 +839,7 @@ export function napi_create_threadsafe_function (
 
   __emnapi_runtime_keepalive_push()
   emnapiCtx.increaseWaitingRequestCounter()
-  makeSetValue('tsfn', 'emnapiTSFN.offset.async_ref', '1', 'i32')
+  makeSetValue('tsfn', 'emnapiTSFN.offset.async_ref', '1', 'u32')
 
   from64('result')
   makeSetValue('result', 0, 'tsfn', '*')
@@ -797,11 +883,11 @@ export function napi_acquire_threadsafe_function (func: number): napi_status {
 
   const mutex = emnapiTSFN.getMutex(func)
   return mutex.execute(() => {
-    if (emnapiTSFN.getIsClosing(func)) {
-      return napi_status.napi_closing
+    if (emnapiTSFN.getState(func) === State.kOpen) {
+      emnapiTSFN.addThreadCount(func)
+      return napi_status.napi_ok
     }
-    emnapiTSFN.addThreadCount(func)
-    return napi_status.napi_ok
+    return napi_status.napi_closing
   })
 }
 
@@ -815,7 +901,8 @@ export function napi_release_threadsafe_function (func: number, mode: napi_threa
 
   const mutex = emnapiTSFN.getMutex(func)
   const cond = emnapiTSFN.getCond(func)
-  return mutex.execute(() => {
+  let shouldDelete = false
+  const ret = mutex.execute(() => {
     if (emnapiTSFN.getThreadCount(func) === 0) {
       return napi_status.napi_invalid_arg
     }
@@ -823,11 +910,11 @@ export function napi_release_threadsafe_function (func: number, mode: napi_threa
     emnapiTSFN.subThreadCount(func)
 
     if (emnapiTSFN.getThreadCount(func) === 0 || mode === napi_threadsafe_function_release_mode.napi_tsfn_abort) {
-      const isClosing = emnapiTSFN.getIsClosing(func)
-      if (!isClosing) {
-        const isClosingValue = (mode === napi_threadsafe_function_release_mode.napi_tsfn_abort) ? 1 : 0
-        emnapiTSFN.setIsClosing(func, isClosingValue)
-        if (isClosingValue && emnapiTSFN.getMaxQueueSize(func) > 0) {
+      if (emnapiTSFN.getState(func) === State.kOpen) {
+        if (mode === napi_threadsafe_function_release_mode.napi_tsfn_abort) {
+          emnapiTSFN.setState(func, State.kClosing)
+        }
+        if (emnapiTSFN.getState(func) === State.kClosing && emnapiTSFN.getMaxQueueSize(func) > 0) {
           cond.signal()
         }
 
@@ -835,8 +922,16 @@ export function napi_release_threadsafe_function (func: number, mode: napi_threa
       }
     }
 
+    if (!(emnapiTSFN.getState(func) === State.kClosed && emnapiTSFN.getThreadCount(func) === 0)) {
+      return napi_status.napi_ok
+    }
+    shouldDelete = true
     return napi_status.napi_ok
   })
+  if (shouldDelete) {
+    emnapiTSFN.destroy(func)
+  }
+  return ret
 }
 
 /**
@@ -850,11 +945,14 @@ export function napi_unref_threadsafe_function (env: napi_env, func: number): na
   }
   from64('func')
   const asyncRefOffset = (func + emnapiTSFN.offset.async_ref) >> 2
-  const arr = new Int32Array(wasmMemory.buffer)
-  if (Atomics.load(arr, asyncRefOffset)) {
-    Atomics.store(arr, asyncRefOffset, 0)
-    __emnapi_runtime_keepalive_pop()
-    emnapiCtx.decreaseWaitingRequestCounter()
+  const arr = new Uint32Array(wasmMemory.buffer)
+  const currentValue = Atomics.load(arr, asyncRefOffset)
+  if (currentValue > 0) {
+    Atomics.store(arr, asyncRefOffset, currentValue - 1)
+    if (currentValue === 1) {
+      __emnapi_runtime_keepalive_pop()
+      emnapiCtx.decreaseWaitingRequestCounter()
+    }
   }
   return napi_status.napi_ok
 }
@@ -870,11 +968,12 @@ export function napi_ref_threadsafe_function (env: napi_env, func: number): napi
   }
   from64('func')
   const asyncRefOffset = (func + emnapiTSFN.offset.async_ref) >> 2
-  const arr = new Int32Array(wasmMemory.buffer)
-  if (!Atomics.load(arr, asyncRefOffset)) {
-    Atomics.store(arr, asyncRefOffset, 1)
+  const arr = new Uint32Array(wasmMemory.buffer)
+  const currentValue = Atomics.load(arr, asyncRefOffset)
+  if (!currentValue) {
     __emnapi_runtime_keepalive_push()
     emnapiCtx.increaseWaitingRequestCounter()
   }
+  Atomics.store(arr, asyncRefOffset, currentValue + 1)
   return napi_status.napi_ok
 }

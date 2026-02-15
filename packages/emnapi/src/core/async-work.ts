@@ -1,5 +1,5 @@
 /* eslint-disable @stylistic/indent */
-import { onCreateWorker, napiModule, singleThreadAsyncWork, _emnapi_async_work_pool_size } from 'emnapi:shared'
+import { emnapiEnv, onCreateWorker, napiModule, singleThreadAsyncWork, _emnapi_async_work_pool_size } from 'emnapi:shared'
 import { PThread, ENVIRONMENT_IS_NODE, ENVIRONMENT_IS_PTHREAD, wasmInstance, _free, wasmMemory, _malloc } from 'emscripten:runtime'
 import { POINTER_SIZE, to64, makeDynCall, makeSetValue, from64 } from 'emscripten:parse-tools'
 import { emnapiAWST } from '../async-work'
@@ -9,7 +9,6 @@ import { $CHECK_ENV_NOT_IN_GC, $CHECK_ARG, $CHECK_ENV } from '../macro'
 
 declare var emnapiPluginCtx: any
 declare var emnapiCtx: Context
-declare var emnapiEnv: Env
 declare var emnapiNodeBinding: NodeBinding | undefined
 
 const {
@@ -100,6 +99,9 @@ var emnapiAWMT = {
         const worker = onCreateWorker({ type: 'async-work', name: 'emnapi-async-worker' })
         const p = PThread.loadWasmModuleToWorker(worker)
         emnapiAWMT.addListener(worker)
+        if (typeof emnapiPluginCtx.emnapiTSFN !== 'undefined') {
+          emnapiPluginCtx.emnapiTSFN.addListener(worker)
+        }
         promises.push(p.then(() => {
           if (typeof worker.unref === 'function') {
             worker.unref()

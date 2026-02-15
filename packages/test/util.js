@@ -69,13 +69,9 @@ function loadPath (request, options) {
         ),
         plugins: [
           v8,
-          ...(!process.env.EMNAPI_TEST_WASI_THREADS
-            ? [
-                require('@emnapi/core/plugins/async-work').default,
-                require('@emnapi/core/plugins/threadsafe-function').default
-              ]
-            : []
-        )],
+          require('@emnapi/core/plugins/async-work').default,
+          require('@emnapi/core/plugins/threadsafe-function').default
+        ],
         ...(options || {})
       })
 

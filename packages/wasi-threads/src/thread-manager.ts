@@ -1,6 +1,6 @@
 import type { Worker as NodeWorker } from 'worker_threads'
 import { ENVIRONMENT_IS_NODE, isSharedArrayBuffer } from './util'
-import { type MessageEventData, createMessage, type CommandPayloadMap, type CleanupThreadPayload } from './command'
+import { type MessageEventData, createMessage, type CommandPayloadMap, type CleanupThreadPayload, SpawnThreadPayload } from './command'
 
 /** @public */
 export type WorkerLike = (Worker | NodeWorker) & {
@@ -36,6 +36,7 @@ export type ThreadManagerOptions = ThreadManagerOptionsMain | ThreadManagerOptio
 /** @public */
 export interface ThreadManagerOptionsBase {
   printErr?: (message: string) => void
+  threadSpawn?: (startArg: number, errorOrTid?: number) => number
 }
 
 /** @public */
@@ -111,6 +112,8 @@ export class ThreadManager {
   /** @internal */
   public readonly printErr: (message: string) => void
 
+  public threadSpawn?: ((startArg: number, errorOrTid?: number) => number)
+
   public constructor (options: ThreadManagerOptions) {
     if (!options) {
       throw new TypeError('ThreadManager(): options is not provided')
@@ -133,6 +136,7 @@ export class ThreadManager {
     }
 
     this.printErr = options.printErr ?? console.error.bind(console)
+    this.threadSpawn = options.threadSpawn
   }
 
   public init (): void {
@@ -263,6 +267,13 @@ export class ThreadManager {
             if ((payload as CleanupThreadPayload).tid in this.pthreads) {
               this.cleanThread(worker, (payload as CleanupThreadPayload).tid)
             }
+          } else if (type === 'spawn-thread') {
+            this.threadSpawn!(
+              (payload as SpawnThreadPayload).startArg,
+              (payload as SpawnThreadPayload).errorOrTid
+            )
+          } else if (type === 'terminate-all-threads') {
+            this.terminateAllThreads()
           }
         }
       };
