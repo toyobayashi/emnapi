@@ -48,7 +48,6 @@
       'target_name': 'emnapi_basic',
       'type': 'static_library',
       'defines': [
-        'EMNAPI_DISABLE_UV'
       ],
       'sources': [
         'src/js_native_api.c',
@@ -56,6 +55,14 @@
         'src/async_cleanup_hook.c',
         'src/async_context.c',
         'src/wasi_wait.c',
+
+        'src/uv/uv-common.c',
+        'src/uv/threadpool.c',
+        'src/uv/unix/loop.c',
+        'src/uv/unix/posix-hrtime.c',
+        'src/uv/unix/thread.c',
+        'src/uv/unix/async.c',
+        'src/uv/unix/core.c',
       ],
       'link_settings': {
         'target_conditions': [
