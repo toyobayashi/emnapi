@@ -21,6 +21,7 @@ const pthread = [
   'node-addon-api/**/*',
   'pool/**/*',
   'tsfn/**/*',
+  'tsfn_shutdown/**/*',
   'async_cleanup_hook/**/*',
   'string/string-pthread.test.js',
   'uv_threadpool_size/**/*',
