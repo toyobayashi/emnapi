@@ -240,18 +240,18 @@ export const emnapiTSFN = {
         const i32a = new Int32Array(wasmMemory.buffer, index, 1)
         if (isBrowserMain) {
           while (true) {
-            const oldValue = Atomics.compareExchange(i32a, 0, 0, 1)
+            const oldValue = Atomics.compareExchange(i32a, 0, 0, 10)
             if (oldValue === 0) {
               return
             }
           }
         } else {
           while (true) {
-            const oldValue = Atomics.compareExchange(i32a, 0, 0, 1)
+            const oldValue = Atomics.compareExchange(i32a, 0, 0, 10)
             if (oldValue === 0) {
               return
             }
-            Atomics.wait(i32a, 0, 1)
+            Atomics.wait(i32a, 0, 10)
           }
         }
       },
@@ -260,20 +260,20 @@ export const emnapiTSFN = {
           const again = (): void => { fn() }
           const fn = (): void => {
             const i32a = new Int32Array(wasmMemory.buffer, index, 1)
-            const oldValue = Atomics.compareExchange(i32a, 0, 0, 1)
+            const oldValue = Atomics.compareExchange(i32a, 0, 0, 10)
             if (oldValue === 0) {
               resolve()
               return
             }
-            (Atomics as any).waitAsync(i32a, 0, 1).value.then(again)
+            (Atomics as any).waitAsync(i32a, 0, 10).value.then(again)
           }
           fn()
         })
       }, */
       unlock () {
         const i32a = new Int32Array(wasmMemory.buffer, index, 1)
-        const oldValue = Atomics.compareExchange(i32a, 0, 1, 0)
-        if (oldValue !== 1) {
+        const oldValue = Atomics.compareExchange(i32a, 0, 10, 0)
+        if (oldValue !== 10) {
           throw new Error('Tried to unlock while not holding the mutex')
         }
         Atomics.notify(i32a, 0, 1)
