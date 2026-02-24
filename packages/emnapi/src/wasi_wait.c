@@ -6,6 +6,8 @@
 #include <stdio.h>
 #include "emnapi_internal.h"
 
+EMNAPI_INTERNAL_EXTERN void _emnapi_worker_ref(pthread_t pid);
+
 struct __pthread {
   unsigned char _[32];
   volatile int cancel;
@@ -28,6 +30,7 @@ void emnapi_thread_crashed() {
 
 void _emnapi_yield() {
   if (crashed_thread_id) {
+    _emnapi_worker_ref(crashed_thread_id);
     _emnapi_runtime_keepalive_push();
     _emnapi_unwind();
   }

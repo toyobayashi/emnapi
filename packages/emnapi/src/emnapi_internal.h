@@ -1,3 +1,6 @@
+#ifndef EMNAPI_INTERNAL_H
+#define EMNAPI_INTERNAL_H
+
 #include "emnapi.h"
 
 #if defined(__EMSCRIPTEN__) || defined(__wasi__)
@@ -109,6 +112,13 @@ EMNAPI_INTERNAL_EXTERN int _emnapi_is_main_browser_thread();
 EMNAPI_INTERNAL_EXTERN int _emnapi_is_main_runtime_thread();
 EMNAPI_INTERNAL_EXTERN double _emnapi_get_now();
 EMNAPI_INTERNAL_EXTERN void _emnapi_unwind();
+EMNAPI_INTERNAL_EXTERN void _emnapi_set_immediate(void (*callback)(void*), void* data);
+EMNAPI_INTERNAL_EXTERN napi_status _emnapi_create_function(napi_env env,
+                                                           const char* utf8name,
+                                                           size_t length,
+                                                           napi_callback cb,
+                                                           void* data,
+                                                           napi_value* result);
 
 #if defined(__EMSCRIPTEN_PTHREADS__) || defined(_REENTRANT)
 #define EMNAPI_HAVE_THREADS 1
@@ -186,3 +196,5 @@ void _emnapi_env_check_gc_access(napi_env env);
   } while (0)
 
 EXTERN_C_END
+
+#endif

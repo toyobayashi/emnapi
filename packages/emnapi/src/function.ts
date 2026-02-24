@@ -4,6 +4,22 @@ import { emnapiCreateFunction } from './internal'
 import { $PREAMBLE, $CHECK_ARG, $CHECK_ENV, $CHECK_ENV_NOT_IN_GC } from './macro'
 
 /** @__sig ipppppp */
+export function _emnapi_create_function (env: napi_env, utf8name: Pointer<const_char>, length: size_t, cb: napi_callback, data: void_p, result: Pointer<napi_value>): napi_status {
+  from64('length')
+  const envObject = emnapiCtx.envStore.get(env)!
+  const fresult = emnapiCreateFunction(envObject, utf8name, length, cb, data)
+  if (fresult.status !== napi_status.napi_ok) return envObject.setLastError(fresult.status)
+  const f = fresult.f
+  const valueHandle = emnapiCtx.addToCurrentScope(f)
+  from64('result')
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const value = valueHandle.id
+  makeSetValue('result', 0, 'value', '*')
+  return envObject.getReturnStatus()
+}
+
+/** @__sig ipppppp */
 export function napi_create_function (env: napi_env, utf8name: Pointer<const_char>, length: size_t, cb: napi_callback, data: void_p, result: Pointer<napi_value>): napi_status {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let value: number
@@ -12,17 +28,7 @@ export function napi_create_function (env: napi_env, utf8name: Pointer<const_cha
     $CHECK_ARG!(envObject, result)
     $CHECK_ARG!(envObject, cb)
 
-    from64('length')
-
-    const fresult = emnapiCreateFunction(envObject, utf8name, length, cb, data)
-    if (fresult.status !== napi_status.napi_ok) return envObject.setLastError(fresult.status)
-    const f = fresult.f
-    const valueHandle = emnapiCtx.addToCurrentScope(f)
-    from64('result')
-
-    value = valueHandle.id
-    makeSetValue('result', 0, 'value', '*')
-    return envObject.getReturnStatus()
+    return _emnapi_create_function(env, utf8name, length, cb, data, result)
   })
 }
 
@@ -182,6 +188,7 @@ export function napi_get_new_target (
   const cbinfoValue = emnapiCtx.scopeStore.get(cbinfo)!.callbackInfo
   const { thiz, fn } = cbinfoValue
 
+  // eslint-disable-next-line @typescript-eslint/prefer-optional-chain, @typescript-eslint/no-unused-vars
   const value = thiz == null || thiz.constructor == null
     ? 0
     : thiz instanceof fn
