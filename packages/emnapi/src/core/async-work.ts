@@ -7,6 +7,12 @@ import { _emnapi_node_emit_async_init, _emnapi_node_emit_async_destroy } from '.
 import { emnapiTSFN } from '../threadsafe-function'
 import { _emnapi_runtime_keepalive_pop, _emnapi_runtime_keepalive_push } from '../util'
 
+declare const enum AsyncWorkStatus {
+  Pending = 0,
+  Cancelled = 1,
+  Completed = 2
+}
+
 var emnapiAWMT = {
   pool: [] as any[],
   workerReady: null as (Promise<any> & { ready: boolean }) | null,
@@ -25,13 +31,14 @@ var emnapiAWMT = {
     /* double */ async_id: 8,
     /* double */ trigger_async_id: 16,
     /* napi_env */ env: 24,
-    queue: 1 * POINTER_SIZE + 24,
-    queue_next: 1 * POINTER_SIZE + 24,
-    queue_prev: 2 * POINTER_SIZE + 24,
-    /* void* */ data: 3 * POINTER_SIZE + 24,
-    /* napi_async_execute_callback */ execute: 4 * POINTER_SIZE + 24,
-    /* napi_async_complete_callback */ complete: 5 * POINTER_SIZE + 24,
-    end: 6 * POINTER_SIZE + 24
+    /* int32_t */ status: 1 * POINTER_SIZE + 24, // 0 for pending, 1 for cancelled, 2 for completed
+    queue: 2 * POINTER_SIZE + 24,
+    queue_next: 2 * POINTER_SIZE + 24,
+    queue_prev: 3 * POINTER_SIZE + 24,
+    /* void* */ data: 4 * POINTER_SIZE + 24,
+    /* napi_async_execute_callback */ execute: 5 * POINTER_SIZE + 24,
+    /* napi_async_complete_callback */ complete: 6 * POINTER_SIZE + 24,
+    end: 7 * POINTER_SIZE + 24
   },
   init () {
     emnapiAWMT.pool = []
@@ -47,8 +54,6 @@ var emnapiAWMT = {
         const type = __emnapi__.type
         const payload = __emnapi__.payload
         if (type === 'async-work-complete') {
-          _emnapi_runtime_keepalive_pop()
-          emnapiCtx.decreaseWaitingRequestCounter()
           emnapiAWMT.callComplete(payload.work, napi_status.napi_ok)
         }
       }
@@ -233,6 +238,8 @@ var emnapiAWMT = {
     emnapiAWMT.initGlobal()
     _emnapi_runtime_keepalive_push()
     emnapiCtx.increaseWaitingRequestCounter()
+    const statusBuffer = new Int32Array(wasmMemory.buffer, work + emnapiAWMT.offset.status, 1)
+    Atomics.store(statusBuffer, 0, AsyncWorkStatus.Pending)
 
     const mutex = emnapiAWMT.getMutex()
     const cond = emnapiAWMT.getCond()
@@ -263,21 +270,27 @@ var emnapiAWMT = {
     mutex.unlock()
   },
   cancelWork (work: number) {
-    if (!emnapiAWMT.queueEmpty(work + emnapiAWMT.offset.queue)) {
-      emnapiAWMT.getMutex().execute(() => {
+    let cancelled = false
+    emnapiAWMT.getMutex().execute(() => {
+      cancelled = !emnapiAWMT.queueEmpty(work + emnapiAWMT.offset.queue) && makeGetValue('work', 'emnapiAWMT.offset.status', 'i32') !== AsyncWorkStatus.Completed
+      if (cancelled) {
         emnapiAWMT.queueRemove(work + emnapiAWMT.offset.queue)
-      })
-      emnapiCtx.feature.setImmediate(() => {
-        _emnapi_runtime_keepalive_pop()
-        emnapiCtx.decreaseWaitingRequestCounter()
-        emnapiAWMT.callComplete(work, napi_status.napi_cancelled)
-      })
-
-      return napi_status.napi_ok
+      }
+    })
+    if (!cancelled) {
+      return napi_status.napi_generic_failure
     }
-    return napi_status.napi_generic_failure
+    if (Atomics.compareExchange(new Int32Array(wasmMemory.buffer, work + emnapiAWMT.offset.status, 1), 0, AsyncWorkStatus.Pending, AsyncWorkStatus.Cancelled) !== AsyncWorkStatus.Pending) {
+      return napi_status.napi_generic_failure
+    }
+    emnapiCtx.feature.setImmediate(() => {
+      emnapiAWMT.callComplete(work, napi_status.napi_cancelled)
+    })
+    return napi_status.napi_ok
   },
   callComplete: function (work: number, status: napi_status): void {
+    _emnapi_runtime_keepalive_pop()
+    emnapiCtx.decreaseWaitingRequestCounter()
     const complete = emnapiAWMT.getComplete(work)
     const env = emnapiAWMT.getEnv(work)
     const data = emnapiAWMT.getData(work)
@@ -460,11 +473,17 @@ function initWorker (startArg: number, globalAddress: number): void {
 
       mutex.unlock()
 
+      const statusBuffer = new Int32Array(wasmMemory.buffer, work + emnapiAWMT.offset.status, 1)
+      if (Atomics.load(statusBuffer, 0) === AsyncWorkStatus.Cancelled) {
+        throw new Error('Work is cancelled before it is executed')
+      }
+
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const execute = emnapiAWMT.getExecute(work)
       const env = emnapiAWMT.getEnv(work)
       const data = emnapiAWMT.getData(work)
       makeDynCall('vpp', 'execute')(env, data)
+      Atomics.store(statusBuffer, 0, AsyncWorkStatus.Completed)
       const postMessage = napiModule.postMessage!
       postMessage({
         __emnapi__: {
