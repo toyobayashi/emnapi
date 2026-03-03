@@ -1,5 +1,5 @@
 import { emnapiCtx, onCreateWorker, napiModule, emnapiNodeBinding, singleThreadAsyncWork, _emnapi_async_work_pool_size } from 'emnapi:shared'
-import { PThread, ENVIRONMENT_IS_NODE, ENVIRONMENT_IS_PTHREAD, wasmInstance, _free, wasmMemory, _malloc } from 'emscripten:runtime'
+import { PThread, ENVIRONMENT_IS_NODE, ENVIRONMENT_IS_PTHREAD, wasmInstance, _free, wasmMemory, _malloc, abort } from 'emscripten:runtime'
 import { POINTER_SIZE, to64, makeDynCall, makeSetValue, from64, makeGetValue } from 'emscripten:parse-tools'
 import { emnapiAWST } from '../async-work'
 import { $CHECK_ENV_NOT_IN_GC, $CHECK_ARG, $CHECK_ENV } from '../macro'
@@ -86,6 +86,14 @@ var emnapiAWMT = {
       emnapiAWMT.queueInit(emnapiAWMT.globalAddress + emnapiAWMT.globalOffset.q)
     }
   },
+  terminateWorkers (): void {
+    emnapiAWMT.pool.forEach(w => {
+      w._emnapiAWMTListener?.dispose()
+      w._emnapiTSFNListener?.dispose()
+      w.terminate()
+    })
+    emnapiAWMT.pool.length = 0
+  },
   initWorkers (n: number): Promise<any> {
     if (ENVIRONMENT_IS_PTHREAD) {
       // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
@@ -104,10 +112,20 @@ var emnapiAWMT = {
     for (let i = 0; i < n; ++i) {
       args.push((wasmInstance.exports.emnapi_async_worker_create as () => number)())
     }
+    const handleError = (e: Event | Error): void => {
+      if ('message' in e && (e.message.indexOf('RuntimeError') !== -1 || e.message.indexOf('unreachable') !== -1)) {
+        emnapiAWMT.terminateWorkers()
+      }
+    }
     try {
       for (let i = 0; i < n; ++i) {
         const worker = onCreateWorker({ type: 'async-work', name: 'emnapi-async-worker' })
         const p = PThread.loadWasmModuleToWorker(worker)
+        if (ENVIRONMENT_IS_NODE) {
+          worker.on('error', handleError)
+        } else {
+          worker.addEventListener('error', handleError, false)
+        }
         emnapiAWMT.addListener(worker)
         emnapiTSFN.addListener(worker)
         promises.push(p.then(() => {
@@ -480,7 +498,7 @@ function initWorker (startArg: number, globalAddress: number): void {
 
       const statusBuffer = new Int32Array(wasmMemory.buffer, work + emnapiAWMT.offset.status, 1)
       if (Atomics.load(statusBuffer, 0) === AsyncWorkStatus.Cancelled) {
-        throw new Error('Work is cancelled before it is executed')
+        abort('unreachable')
       }
 
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
