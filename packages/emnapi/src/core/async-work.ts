@@ -7,7 +7,7 @@ import { _emnapi_node_emit_async_init, _emnapi_node_emit_async_destroy } from '.
 import { emnapiTSFN } from '../threadsafe-function'
 import { _emnapi_runtime_keepalive_pop, _emnapi_runtime_keepalive_push } from '../util'
 
-declare const enum AsyncWorkStatus {
+const enum AsyncWorkStatus {
   Pending = 0,
   Cancelled = 1,
   Completed = 2
