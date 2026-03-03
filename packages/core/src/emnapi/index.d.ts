@@ -39,8 +39,7 @@ export declare interface NapiModule {
   }
 
   init (options: InitOptions): any
-  initWorker (arg: number): void
-  executeAsyncWork (work: number): void
+  initWorker (arg: number, address: number): void
   postMessage?: (msg: any) => any
 
   waitThreadStart: boolean | number
