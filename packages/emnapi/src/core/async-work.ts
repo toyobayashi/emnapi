@@ -77,6 +77,11 @@ var emnapiAWMT = {
   initGlobal (): void {
     if (!emnapiAWMT.globalAddress) {
       emnapiAWMT.globalAddress = _malloc(to64('emnapiAWMT.globalOffset.end') as number)
+      // Ensure the shared state is zero-initialized before use so that
+      // idle_threads/mutex/cond and related fields start from a known state.
+      const size = emnapiAWMT.globalOffset.end
+      const addr = emnapiAWMT.globalAddress
+      new Uint8Array(wasmMemory.buffer, addr, size).fill(0)
       from64('emnapiAWMT.globalAddress')
       emnapiAWMT.queueInit(emnapiAWMT.globalAddress + emnapiAWMT.globalOffset.q)
     }
