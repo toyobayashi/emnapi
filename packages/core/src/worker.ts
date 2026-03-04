@@ -64,7 +64,7 @@ export class MessageHandler extends ThreadMessageHandler {
       try {
         if (type === 'async-worker-init') {
           this.handleAfterLoad(e, () => {
-            this.napiModule!.initWorker(payload.arg, payload.globalAddress)
+            this.napiModule!.initWorker(payload.arg, payload.func)
           })
         }
       } catch (err) {

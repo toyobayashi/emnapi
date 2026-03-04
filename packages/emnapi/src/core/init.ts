@@ -24,7 +24,7 @@ export interface INapiModule {
   envObject?: Env
 
   init (options: InitOptions): any
-  initWorker (arg: number, address: number): void
+  initWorker (arg: number, func: [number, number]): void
   postMessage?: (msg: any) => any
 
   waitThreadStart: boolean | number
