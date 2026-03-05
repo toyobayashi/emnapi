@@ -290,7 +290,9 @@ async function buildNonEmscriptenPlugin (tsconfigPath, input, output, destructPl
   ${parsedCode}
   return {
     importObject: (original) => {
-${exportModules.map(modName => {
+${typeof exportModules === 'function'
+  ? exportModules(modVar)
+  : exportModules.map(modName => {
   return `      Object.assign(original.${modName}, ${modVar})`
 })}
     }
@@ -354,7 +356,16 @@ async function build () {
       path.join(__dirname, '../src/core/async-work.ts'),
       path.join(outputDir, 'async-work.js'),
       ['emnapiCtx', 'emnapiNodeBinding', 'emnapiAsyncWorkPoolSize'],
-      ['napi']
+      function (modVar) {
+        return `
+      Object.keys(${modVar}).forEach(key => {
+        if (key.startsWith('napi_') || key.startsWith('node_api_')) {
+          original.napi[key] = ${modVar}[key]
+        } else {
+          original.env[key] = ${modVar}[key]
+        }
+      })`
+      }
     ),
     buildNonEmscriptenPlugin(
       coreTsconfigPath,

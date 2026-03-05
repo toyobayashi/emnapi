@@ -1,6 +1,10 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#if defined(__EMSCRIPTEN_PTHREADS__) || (defined(_REENTRANT) && defined(__wasi__))
+#include <pthread.h>
+#else
+int _emnapi_spawn_worker(void* (*worker)(void*), void* arg);
 void* calloc(size_t n, size_t size);
 
 extern unsigned char __heap_base;
@@ -32,9 +36,27 @@ void* __copy_tls(unsigned char *mem) {
 			:: "r"(tls_base));
 	return mem;
 }
+#endif
+
+void* _emnapi_async_worker(void* arg);
 
 __attribute__((visibility("default")))
-void* emnapi_async_worker_create() {
+void* emnapi_async_worker_create(int directly_spawn, void* global_address) {
+#if defined(__EMSCRIPTEN_PTHREADS__) || (defined(_REENTRANT) && defined(__wasi__))
+  if (directly_spawn) {
+    pthread_t thread;
+    int r = pthread_create(&thread, NULL, _emnapi_async_worker, global_address);
+    if (r != 0) {
+      return NULL;
+    }
+    return (void*)(uintptr_t)thread;
+  }
+  return NULL;
+#else
+  if (directly_spawn) {
+    int index = _emnapi_spawn_worker(_emnapi_async_worker, global_address);
+    return (void*)(intptr_t)(-(index + 1));
+  }
   size_t args_size = sizeof(struct worker_args);
   size_t size = args_size;
 
@@ -74,4 +96,5 @@ void* emnapi_async_worker_create() {
   args->stack_base = block + args_size + tls_block_size + stack_size;
   args->tls_base = tls_base;
   return block;
+#endif
 }

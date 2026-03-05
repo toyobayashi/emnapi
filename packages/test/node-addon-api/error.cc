@@ -1,4 +1,6 @@
+#include <string.h>
 // #include <future>
+#include "assert.h"
 #include "napi.h"
 
 using namespace Napi;
@@ -69,6 +71,34 @@ void LastExceptionErrorCode(const CallbackInfo& info) {
   NAPI_THROW_VOID(Error::New(env));
 }
 
+void TestErrorCopySemantics(const Napi::CallbackInfo& info) {
+  Napi::Error newError = Napi::Error::New(info.Env(), "errorCopyCtor");
+  Napi::Error existingErr;
+
+#ifdef NAPI_CPP_EXCEPTIONS
+  std::string msg = "errorCopyCtor";
+  assert(strcmp(newError.what(), msg.c_str()) == 0);
+#endif
+
+  Napi::Error errCopyCtor = newError;
+  assert(errCopyCtor.Message() == "errorCopyCtor");
+
+  existingErr = newError;
+  assert(existingErr.Message() == "errorCopyCtor");
+}
+
+void TestErrorMoveSemantics(const Napi::CallbackInfo& info) {
+  std::string errorMsg = "errorMoveCtor";
+  Napi::Error newError = Napi::Error::New(info.Env(), errorMsg.c_str());
+  Napi::Error errFromMove = std::move(newError);
+  assert(errFromMove.Message() == "errorMoveCtor");
+
+  newError = Napi::Error::New(info.Env(), "errorMoveAssign");
+  Napi::Error existingErr = std::move(newError);
+
+  assert(existingErr.Message() == "errorMoveAssign");
+}
+
 #ifdef NAPI_CPP_EXCEPTIONS
 
 void ThrowJSError(const CallbackInfo& info) {
@@ -78,11 +108,42 @@ void ThrowJSError(const CallbackInfo& info) {
   throw Error::New(info.Env(), message);
 }
 
+void ThrowTypeErrorCtor(const CallbackInfo& info) {
+  Napi::Value js_type_error = info[0];
+  ReleaseAndWaitForChildProcess(info, 1);
+
+  throw Napi::TypeError(info.Env(), js_type_error);
+}
+
 void ThrowTypeError(const CallbackInfo& info) {
   std::string message = info[0].As<String>().Utf8Value();
 
   ReleaseAndWaitForChildProcess(info, 1);
   throw TypeError::New(info.Env(), message);
+}
+
+void ThrowTypeErrorCStr(const CallbackInfo& info) {
+  std::string message = info[0].As<String>().Utf8Value();
+
+  ReleaseAndWaitForChildProcess(info, 1);
+  throw TypeError::New(info.Env(), message.c_str());
+}
+
+void ThrowRangeErrorCStr(const CallbackInfo& info) {
+  std::string message = info[0].As<String>().Utf8Value();
+  ReleaseAndWaitForChildProcess(info, 1);
+  throw RangeError::New(info.Env(), message.c_str());
+}
+
+void ThrowRangeErrorCtor(const CallbackInfo& info) {
+  Napi::Value js_range_err = info[0];
+  ReleaseAndWaitForChildProcess(info, 1);
+  throw Napi::RangeError(info.Env(), js_range_err);
+}
+
+void ThrowEmptyRangeError(const CallbackInfo& info) {
+  ReleaseAndWaitForChildProcess(info, 1);
+  throw RangeError();
 }
 
 void ThrowRangeError(const CallbackInfo& info) {
@@ -91,6 +152,27 @@ void ThrowRangeError(const CallbackInfo& info) {
   ReleaseAndWaitForChildProcess(info, 1);
   throw RangeError::New(info.Env(), message);
 }
+
+#if NAPI_VERSION > 8
+void ThrowSyntaxErrorCStr(const CallbackInfo& info) {
+  std::string message = info[0].As<String>().Utf8Value();
+  ReleaseAndWaitForChildProcess(info, 1);
+  throw SyntaxError::New(info.Env(), message.c_str());
+}
+
+void ThrowSyntaxErrorCtor(const CallbackInfo& info) {
+  Napi::Value js_range_err = info[0];
+  ReleaseAndWaitForChildProcess(info, 1);
+  throw Napi::SyntaxError(info.Env(), js_range_err);
+}
+
+void ThrowSyntaxError(const CallbackInfo& info) {
+  std::string message = info[0].As<String>().Utf8Value();
+
+  ReleaseAndWaitForChildProcess(info, 1);
+  throw SyntaxError::New(info.Env(), message);
+}
+#endif  // NAPI_VERSION > 8
 
 Value CatchError(const CallbackInfo& info) {
   Function thrower = info[0].As<Function>();
@@ -156,12 +238,64 @@ void ThrowTypeError(const CallbackInfo& info) {
   TypeError::New(info.Env(), message).ThrowAsJavaScriptException();
 }
 
+void ThrowTypeErrorCtor(const CallbackInfo& info) {
+  Napi::Value js_type_error = info[0];
+  ReleaseAndWaitForChildProcess(info, 1);
+  TypeError(info.Env(), js_type_error).ThrowAsJavaScriptException();
+}
+
+void ThrowTypeErrorCStr(const CallbackInfo& info) {
+  std::string message = info[0].As<String>().Utf8Value();
+
+  ReleaseAndWaitForChildProcess(info, 1);
+  TypeError::New(info.Env(), message.c_str()).ThrowAsJavaScriptException();
+}
+
 void ThrowRangeError(const CallbackInfo& info) {
   std::string message = info[0].As<String>().Utf8Value();
 
   ReleaseAndWaitForChildProcess(info, 1);
   RangeError::New(info.Env(), message).ThrowAsJavaScriptException();
 }
+
+void ThrowRangeErrorCtor(const CallbackInfo& info) {
+  Napi::Value js_range_err = info[0];
+  ReleaseAndWaitForChildProcess(info, 1);
+  RangeError(info.Env(), js_range_err).ThrowAsJavaScriptException();
+}
+
+void ThrowRangeErrorCStr(const CallbackInfo& info) {
+  std::string message = info[0].As<String>().Utf8Value();
+  ReleaseAndWaitForChildProcess(info, 1);
+  RangeError::New(info.Env(), message.c_str()).ThrowAsJavaScriptException();
+}
+
+// TODO: Figure out the correct api for this
+void ThrowEmptyRangeError(const CallbackInfo& info) {
+  ReleaseAndWaitForChildProcess(info, 1);
+  RangeError().ThrowAsJavaScriptException();
+}
+
+#if NAPI_VERSION > 8
+void ThrowSyntaxError(const CallbackInfo& info) {
+  std::string message = info[0].As<String>().Utf8Value();
+
+  ReleaseAndWaitForChildProcess(info, 1);
+  SyntaxError::New(info.Env(), message).ThrowAsJavaScriptException();
+}
+
+void ThrowSyntaxErrorCtor(const CallbackInfo& info) {
+  Napi::Value js_range_err = info[0];
+  ReleaseAndWaitForChildProcess(info, 1);
+  SyntaxError(info.Env(), js_range_err).ThrowAsJavaScriptException();
+}
+
+void ThrowSyntaxErrorCStr(const CallbackInfo& info) {
+  std::string message = info[0].As<String>().Utf8Value();
+  ReleaseAndWaitForChildProcess(info, 1);
+  SyntaxError::New(info.Env(), message.c_str()).ThrowAsJavaScriptException();
+}
+#endif  // NAPI_VERSION > 8
 
 Value CatchError(const CallbackInfo& info) {
   Function thrower = info[0].As<Function>();
@@ -266,11 +400,25 @@ void ThrowDefaultError(const CallbackInfo& info) {
 Object InitError(Env env) {
   Object exports = Object::New(env);
   exports["throwApiError"] = Function::New(env, ThrowApiError);
+  exports["testErrorCopySemantics"] =
+      Function::New(env, TestErrorCopySemantics);
+  exports["testErrorMoveSemantics"] =
+      Function::New(env, TestErrorMoveSemantics);
   exports["lastExceptionErrorCode"] =
       Function::New(env, LastExceptionErrorCode);
   exports["throwJSError"] = Function::New(env, ThrowJSError);
   exports["throwTypeError"] = Function::New(env, ThrowTypeError);
+  exports["throwTypeErrorCtor"] = Function::New(env, ThrowTypeErrorCtor);
+  exports["throwTypeErrorCStr"] = Function::New(env, ThrowTypeErrorCStr);
   exports["throwRangeError"] = Function::New(env, ThrowRangeError);
+  exports["throwRangeErrorCtor"] = Function::New(env, ThrowRangeErrorCtor);
+  exports["throwRangeErrorCStr"] = Function::New(env, ThrowRangeErrorCStr);
+  exports["throwEmptyRangeError"] = Function::New(env, ThrowEmptyRangeError);
+#if NAPI_VERSION > 8
+  exports["throwSyntaxError"] = Function::New(env, ThrowSyntaxError);
+  exports["throwSyntaxErrorCtor"] = Function::New(env, ThrowSyntaxErrorCtor);
+  exports["throwSyntaxErrorCStr"] = Function::New(env, ThrowSyntaxErrorCStr);
+#endif  // NAPI_VERSION > 8
   exports["catchError"] = Function::New(env, CatchError);
   exports["catchErrorMessage"] = Function::New(env, CatchErrorMessage);
   exports["doNotCatch"] = Function::New(env, DoNotCatch);
