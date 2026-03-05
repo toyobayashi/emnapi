@@ -24,8 +24,7 @@ export interface INapiModule {
   envObject?: Env
 
   init (options: InitOptions): any
-  initWorker (arg: number): void
-  executeAsyncWork (work: number): void
+  initWorker (arg: number, func: [number, number]): void
   postMessage?: (msg: any) => any
 
   waitThreadStart: boolean | number
@@ -71,7 +70,6 @@ export var napiModule: INapiModule = {
   childThread: ENVIRONMENT_IS_PTHREAD,
 
   initWorker: undefined!,
-  executeAsyncWork: undefined!,
 
   waitThreadStart,
   PThread: undefined!,
