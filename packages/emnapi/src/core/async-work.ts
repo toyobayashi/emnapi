@@ -123,6 +123,9 @@ var emnapiAWMT = {
       args.push(emnapi_async_worker_create(1, emnapiAWMT.globalAddress))
     }
     const promises = args.map(index => {
+      if (index === 0) {
+        return Promise.reject(new Error('Failed to create async worker'))
+      }
       if (index > 0) {
         const view = new DataView(wasmMemory.buffer)
         const tidOffset = 20
@@ -130,7 +133,7 @@ var emnapiAWMT = {
         const worker = PThread.pthreads[tid]
         return worker.whenLoaded!
       } else {
-        const worker = emnapiAWMT.pool[-index]
+        const worker = emnapiAWMT.pool[-index - 1]
         return worker.whenLoaded!
       }
     })
@@ -261,12 +264,22 @@ var emnapiAWMT = {
     mutex.unlock()
 
     if (!emnapiAWMT.workerReady?.ready) {
-      emnapiAWMT.initWorkers(_emnapi_async_work_pool_size()).then(() => {
-        emnapiAWMT.workerReady!.ready = true
-      }).catch((err) => {
+      try {
+        emnapiAWMT.initWorkers(_emnapi_async_work_pool_size()).then(() => {
+          emnapiAWMT.workerReady!.ready = true
+        }).catch((err) => {
+          emnapiAWMT.workerReady = null
+          throw err
+        })
+      } catch (err) {
         emnapiAWMT.workerReady = null
+        emnapiAWMT.queueRemove(work + emnapiAWMT.offset.queue)
+        emnapiAWMT.queueInit(work + emnapiAWMT.offset.queue)
+        _emnapi_runtime_keepalive_pop()
+        emnapiCtx.decreaseWaitingRequestCounter()
+        mutex.unlock()
         throw err
-      })
+      }
     }
 
     mutex.lock()

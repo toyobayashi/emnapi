@@ -55,7 +55,7 @@ void* emnapi_async_worker_create(int directly_spawn, void* global_address) {
 #else
   if (directly_spawn) {
     int index = _emnapi_spawn_worker(_emnapi_async_worker, global_address);
-    return (void*)(intptr_t)-index;
+    return (void*)(intptr_t)(-(index + 1));
   }
   size_t args_size = sizeof(struct worker_args);
   size_t size = args_size;
