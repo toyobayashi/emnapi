@@ -244,7 +244,15 @@ var emnapiAWMT = {
     return q == makeGetValue('q', 0, '*')
   },
   scheduleWork: function (work: number) {
-    emnapiAWMT.initGlobal()
+    if (!emnapiAWMT.workerReady?.ready) {
+      emnapiAWMT.initWorkers(_emnapi_async_work_pool_size()).then(() => {
+        emnapiAWMT.workerReady!.ready = true
+      }).catch((err) => {
+        emnapiAWMT.workerReady = null
+        throw err
+      })
+    }
+
     _emnapi_runtime_keepalive_push()
     emnapiCtx.increaseWaitingRequestCounter()
     const statusBuffer = new Int32Array(wasmMemory.buffer, work + emnapiAWMT.offset.status, 1)
@@ -261,28 +269,7 @@ var emnapiAWMT = {
       mutex.unlock()
       throw err
     }
-    mutex.unlock()
 
-    if (!emnapiAWMT.workerReady?.ready) {
-      try {
-        emnapiAWMT.initWorkers(_emnapi_async_work_pool_size()).then(() => {
-          emnapiAWMT.workerReady!.ready = true
-        }).catch((err) => {
-          emnapiAWMT.workerReady = null
-          throw err
-        })
-      } catch (err) {
-        emnapiAWMT.workerReady = null
-        emnapiAWMT.queueRemove(work + emnapiAWMT.offset.queue)
-        emnapiAWMT.queueInit(work + emnapiAWMT.offset.queue)
-        _emnapi_runtime_keepalive_pop()
-        emnapiCtx.decreaseWaitingRequestCounter()
-        mutex.unlock()
-        throw err
-      }
-    }
-
-    mutex.lock()
     if (makeGetValue('emnapiAWMT.globalAddress', 'emnapiAWMT.globalOffset.idle_threads', 'u32') > 0) {
       cond.signal()
     }
