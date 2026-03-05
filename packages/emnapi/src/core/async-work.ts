@@ -25,7 +25,7 @@ var emnapiAWMT = {
     mutex: 3 * POINTER_SIZE,
     cond: 4 * POINTER_SIZE,
     exit_message: 5 * POINTER_SIZE,
-    end: 6 * POINTER_SIZE
+    end: 7 * POINTER_SIZE
   },
   offset: {
     /* napi_ref */ resource: 0,
