@@ -506,7 +506,7 @@ export const emnapiTSFN = {
     emnapiTSFN.releaseResources(func)
     _free(to64('func') as number)
   },
-  emptyQueueAndMaybeDelete (func: number) {
+  emptyQueue (func: number) {
     const drainQueue: number[] = []
     emnapiTSFN.getMutex(func).execute(() => {
       while (emnapiTSFN.getQueueSize(func) > 0) {
@@ -524,6 +524,8 @@ export const emnapiTSFN = {
         makeDynCall('vpppp', 'callJsCb')(to64('0'), to64('0'), to64('context'), to64('data'))
       }
     }
+  },
+  maybeDelete (func: number) {
     let shouldDelete = false
     emnapiTSFN.getMutex(func).execute(() => {
       if (emnapiTSFN.getThreadCount(func) > 0) {
@@ -557,6 +559,7 @@ export const emnapiTSFN = {
     }
 
     try {
+      emnapiTSFN.emptyQueue(func)
       if (finalize) {
         if (emnapiNodeBinding) {
           const resource = emnapiTSFN.getResource(func)
@@ -573,7 +576,7 @@ export const emnapiTSFN = {
           f()
         }
       }
-      emnapiTSFN.emptyQueueAndMaybeDelete(func)
+      emnapiTSFN.maybeDelete(func)
     } finally {
       emnapiCtx.closeScope(envObject)
     }
