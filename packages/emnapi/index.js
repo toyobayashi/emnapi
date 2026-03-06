@@ -28,3 +28,45 @@ exports.include_dir = includeDir
 exports.js_library = jsLibrary
 exports.sources = sources
 exports.targets = targets
+
+exports.requiredConfig = {
+  emscripten: {
+    settings: {
+      WASM_BIGINT: '1',
+      ALLOW_MEMORY_GROWTH: '1',
+      ALLOW_TABLE_GROWTH: '1',
+      MIN_CHROME_VERSION: '85',
+      EXPORTED_RUNTIME_METHODS: [
+        'emnapiInit',
+      ],
+      EXPORTED_FUNCTIONS: [
+        '_malloc',
+        '_free',
+        '_napi_register_wasm_v1',
+        '_node_api_module_get_api_version_v1',
+        '_emnapi_create_env',
+        '_emnapi_delete_env',
+      ],
+    },
+  },
+  clang: {
+    target: 'wasm32-wasip1-threads',
+    cflags: ['-matomics', '-mbulk-memory'],
+    ldflags: ['-mexec-model=reactor'],
+    wasmld: [
+      '--import-memory',
+      '--shared-memory',
+      '--export-table',
+      '--growable-table',
+      '--export=malloc',
+      '--export=free',
+      '--export=napi_register_wasm_v1',
+      '--export-if-defined=node_api_module_get_api_version_v1',
+      '--export=emnapi_thread_crashed',
+      '--export-if-defined=emnapi_async_worker_create',
+      '--export-if-defined=emnapi_async_worker_init',
+      '--export=emnapi_create_env',
+      '--export=emnapi_delete_env',
+    ],
+  },
+}
