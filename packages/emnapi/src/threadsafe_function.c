@@ -167,7 +167,7 @@ static napi_status _emnapi_tsfn_init(napi_threadsafe_function func) {
   return napi_generic_failure;
 }
 
-static void _emnapi_tsfn_empty_queue_and_maybe_delete(napi_threadsafe_function func) {
+static void _emnapi_tsfn_empty_queue(napi_threadsafe_function func) {
   struct uv__queue drain_queue;
   uv__queue_init(&drain_queue);
   pthread_mutex_lock(&func->mutex);
@@ -186,6 +186,9 @@ static void _emnapi_tsfn_empty_queue_and_maybe_delete(napi_threadsafe_function f
     uv__queue_init(q);
     free(node);
   }
+}
+
+static void _emnapi_tsfn_maybe_delete(napi_threadsafe_function func) {
   pthread_mutex_lock(&func->mutex);
   if (func->thread_count > 0) {
     _emnapi_tsfn_release_resources(func);
@@ -207,6 +210,7 @@ static napi_value _emnapi_tsfn_finalize_in_callback_scope(napi_env env, napi_cal
 
 static void _emnapi_tsfn_finalize(napi_threadsafe_function func) {
   napi_handle_scope scope = _emnapi_open_handle_scope();
+  _emnapi_tsfn_empty_queue(func);
   if (func->finalize_cb) {
     if (emnapi_is_node_binding_available()) {
       napi_value resource, cb;
@@ -224,7 +228,7 @@ static void _emnapi_tsfn_finalize(napi_threadsafe_function func) {
       _emnapi_call_finalizer(0, func->env, func->finalize_cb, func->finalize_data, func->context);
     }
   }
-  _emnapi_tsfn_empty_queue_and_maybe_delete(func);
+  _emnapi_tsfn_maybe_delete(func);
   _emnapi_close_handle_scope(scope);
 }
 
