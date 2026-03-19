@@ -1,6 +1,6 @@
 {
   "name": "@emnapi/ts-transform-emscripten-esm-library",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Using ESM to write Emscripten JavaScript library",
   "type": "commonjs",
   "main": "./lib/index.js",

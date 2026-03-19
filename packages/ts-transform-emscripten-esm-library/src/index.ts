@@ -489,9 +489,9 @@ function transformWithOptions (fileName: string, sourceText: string, options?: T
 
   const prefix = [
     ...defaultLibraryFuncsToInclude
-      .map(sym => `{{{ ((DEFAULT_LIBRARY_FUNCS_TO_INCLUDE.indexOf("${sym}") === -1 ? DEFAULT_LIBRARY_FUNCS_TO_INCLUDE.push("${sym}") : undefined), "") }}}`),
+      .map(sym => `{{{ ((typeof DEFAULT_LIBRARY_FUNCS_TO_INCLUDE.add === "function" ? DEFAULT_LIBRARY_FUNCS_TO_INCLUDE.add("${sym}") : (DEFAULT_LIBRARY_FUNCS_TO_INCLUDE.indexOf("${sym}") === -1 ? DEFAULT_LIBRARY_FUNCS_TO_INCLUDE.push("${sym}") : undefined)), "") }}}`),
     ...exportedRuntimeMethods
-      .map(sym => `{{{ ((EXPORTED_RUNTIME_METHODS.indexOf("${sym}") === -1 ? EXPORTED_RUNTIME_METHODS.push("${sym}") : undefined), "") }}}`)
+      .map(sym => `{{{ ((typeof EXPORTED_RUNTIME_METHODS.add === "function" ? EXPORTED_RUNTIME_METHODS.add("${sym}") : (EXPORTED_RUNTIME_METHODS.indexOf("${sym}") === -1 ? EXPORTED_RUNTIME_METHODS.push("${sym}") : undefined)), "") }}}`)
   ].join(EOL)
 
   if (processDirective) {
