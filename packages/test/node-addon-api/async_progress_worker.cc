@@ -4,6 +4,7 @@
 #include <condition_variable>
 #include <mutex>
 #include <thread>
+#include <cstdio>
 
 #if (NAPI_VERSION > 3)
 
@@ -30,19 +31,26 @@ class TestWorker : public AsyncProgressWorker<ProgressData> {
 
  protected:
   void Execute(const ExecutionProgress& progress) override {
+    printf("TestWorker::Execute(): _times: %d\n", _times);
     if (_times < 0) {
       SetError("test error");
     }
     ProgressData data{0};
+    printf("  lock(_cvm);\n");
     std::unique_lock<std::mutex> lock(_cvm);
     for (int32_t idx = 0; idx < _times; idx++) {
+      printf("    data.progress = %d\n", idx);
       data.progress = idx;
+      printf("    progress.Send(data.progress = %zu, 1);\n", data.progress);
       progress.Send(&data, 1);
+      printf("    _cv.wait(lock);\n");
       _cv.wait(lock);
+      printf("    TestWorker::Execute() loop continue;\n");
     }
   }
 
-  void OnProgress(const ProgressData* data, size_t /* count */) override {
+  void OnProgress(const ProgressData* data, size_t count) override {
+    printf("TestWorker::OnProgress(): data->progress: %zu, count: %zu\n", data->progress, count);
     Napi::Env env = Env();
     if (!_progress.IsEmpty()) {
       Number progress = Number::New(env, data->progress);
@@ -52,6 +60,7 @@ class TestWorker : public AsyncProgressWorker<ProgressData> {
       _progress.MakeCallback(Receiver().Value(), {progress});
 #endif
     }
+    printf("  _cv.notify_one()\n");
     _cv.notify_one();
   }
 
