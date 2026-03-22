@@ -6,10 +6,15 @@ const assert = require('assert')
 module.exports = common.runTest(test)
 
 async function test ({ asyncprogressworker }) {
+  console.log('await success(asyncprogressworker)')
   await success(asyncprogressworker)
+  console.log('await fail(asyncprogressworker)')
   await fail(asyncprogressworker)
+  console.log('await signalTest(asyncprogressworker.doMalignTest)')
   await signalTest(asyncprogressworker.doMalignTest)
+  console.log('await signalTest(asyncprogressworker.doSignalAfterProgressTest)')
   await signalTest(asyncprogressworker.doSignalAfterProgressTest)
+  console.log('done')
 }
 
 function success (binding) {
