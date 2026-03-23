@@ -23,11 +23,13 @@ function success (binding) {
     const actual = []
     binding.doWork(expected.length,
       common.mustCall((err) => {
+        console.log('success callback called', err)
         if (err) {
           reject(err)
         }
       }),
       common.mustCall((_progress) => {
+        console.log('success progress called', _progress)
         actual.push(_progress)
         if (actual.length === expected.length) {
           assert.deepEqual(actual, expected)
