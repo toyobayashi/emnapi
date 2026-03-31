@@ -1,7 +1,7 @@
 import { makeDynCall } from 'emscripten:parse-tools'
+import { emnapiEnv } from 'emnapi:shared'
 
 declare var emnapiCtx: Context
-declare var emnapiEnv: Env
 declare var emnapiNodeBinding: NodeBinding | undefined
 declare var emnapiAsyncWorkPoolSize: number
 
