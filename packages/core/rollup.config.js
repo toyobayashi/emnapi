@@ -39,6 +39,12 @@ export default [
       }
     ]
   }),
+  ...defineConfig({
+    outputFile: 'emnapi-core.full',
+    defines: {
+      __VERSION__: JSON.stringify(pkg.version)
+    },
+  }),
   ...plugins.flatMap(([_, name, outputName]) => defineConfig({
     outputName,
     outputFile: `plugins/${name}`,

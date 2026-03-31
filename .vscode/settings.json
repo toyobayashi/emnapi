@@ -21,5 +21,9 @@
   "livePreview.httpHeaders": {
     "Cross-Origin-Embedder-Policy": "require-corp",
     "Cross-Origin-Opener-Policy": "same-origin"
+  },
+  "liveServer.settings.headers": {
+    "Cross-Origin-Embedder-Policy": "require-corp",
+    "Cross-Origin-Opener-Policy": "same-origin"
   }
 }

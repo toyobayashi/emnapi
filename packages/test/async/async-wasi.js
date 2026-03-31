@@ -1,22 +1,21 @@
 /* eslint-disable no-undef */
 /* eslint-disable camelcase */
-if (typeof self !== 'undefined') {
-  importScripts('../../../node_modules/@tybys/wasm-util/dist/wasm-util.min.js')
-  importScripts('../../core/dist/emnapi-core.js')
-  importScripts('../../runtime/dist/emnapi.js')
-}
 
 ;(async function main () {
-  const init = function () {
-    const { WASI } = wasmUtil
-    const { createNapiModule, loadNapiModule } = emnapiCore
-    const { getDefaultContext } = emnapi
+  const init = async function () {
+    const { WASI } = await import('../../../node_modules/@tybys/wasm-util/dist/wasm-util.esm.js')
+    const { createNapiModule, loadNapiModule } = await import('../../core/dist/emnapi-core.full.js')
+    const { getDefaultContext } = await import('../../runtime/dist/emnapi.js')
     const wasi = new WASI()
     const napiModule = createNapiModule({
       context: getDefaultContext(),
+      reuseWorker: {
+        size: 4
+      },
+      waitThreadStart: typeof window === 'undefined' ? 1000 : false,
       onCreateWorker () {
-        return new Worker('../worker.js')
-      }
+        return new Worker('../worker.js', { type: 'module' })
+      },
     })
     const wasmMemory = new WebAssembly.Memory({
       initial: 16777216 / 65536,
@@ -80,4 +79,8 @@ if (typeof self !== 'undefined') {
   await new Promise((resolve) => {
     setTimeout(resolve, 3000)
   })
+
+  if (typeof postMessage === 'function') {
+     postMessage('done')
+  }
 })()
