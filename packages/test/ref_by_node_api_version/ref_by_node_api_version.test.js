@@ -3,7 +3,7 @@
 /* eslint-disable camelcase */
 'use strict'
 const assert = require('assert')
-const { load, supportWeakSymbol } = require('../util')
+const { load, supportWeakSymbol } = require('../util.mjs')
 const { gcUntil } = require('../common')
 
 async function runTests (addon, isVersion8, isLocalSymbol) {

@@ -3,7 +3,7 @@
 const common = require('../common')
 const tick = require('util').promisify(require('../tick'))
 const assert = require('assert')
-const { load } = require('../util')
+const { load } = require('../util.mjs')
 
 process.on('uncaughtException', common.mustCall((err) => {
   assert.throws(() => { throw err }, /finalizer error/)

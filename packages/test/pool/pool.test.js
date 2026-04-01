@@ -1,5 +1,5 @@
 'use strict'
-const { load } = require('../util')
+const { load } = require('../util.mjs')
 
 async function main () {
   const loadPromise = load('pool')

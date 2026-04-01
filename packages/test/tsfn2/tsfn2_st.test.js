@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 'use strict'
-const { load } = require('../util')
+const { load } = require('../util.mjs')
 const main = require('./main')
 
 const RUNTIME_UV_THREADPOOL_SIZE = ('UV_THREADPOOL_SIZE' in process.env) ? Number(process.env.UV_THREADPOOL_SIZE) : 4

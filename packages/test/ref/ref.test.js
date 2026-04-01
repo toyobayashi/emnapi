@@ -3,7 +3,7 @@
 /* eslint-disable camelcase */
 'use strict'
 const assert = require('assert')
-const { load } = require('../util')
+const { load } = require('../util.mjs')
 const { gcUntil } = require('../common')
 
 const p = load('ref')
