@@ -1,6 +1,6 @@
 'use strict'
 const common = require('../common')
-const { load } = require('../util')
+const { load } = require('../util.mjs')
 const assert = require('assert')
 const { fork } = require('child_process')
 

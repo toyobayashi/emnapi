@@ -1,7 +1,7 @@
 /* eslint-disable camelcase */
 'use strict'
 // Flags: --expose-gc
-const { load } = require('../util')
+const { load } = require('../util.mjs')
 const common = require('../common')
 
 module.exports = load('finalizer').then(async test_finalizer => {

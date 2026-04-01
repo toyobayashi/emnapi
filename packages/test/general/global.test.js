@@ -3,7 +3,7 @@
 /* eslint-disable camelcase */
 'use strict'
 const assert = require('assert')
-const { load } = require('../util')
+const { load } = require('../util.mjs')
 
 module.exports = load('general').then(test_globals => {
   assert.strictEqual(test_globals.getUndefined(), undefined)

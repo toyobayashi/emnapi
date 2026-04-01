@@ -6,7 +6,7 @@ const assert = require('assert')
 const async_hooks = require('async_hooks')
 const common = require('../common')
 
-const { load } = require('../util')
+const { load } = require('../util.mjs')
 
 module.exports = load('async_context', { nodeBinding: require('@emnapi/node-binding') }).then(binding => {
   const { createAsyncResource } = binding

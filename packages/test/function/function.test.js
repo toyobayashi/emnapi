@@ -2,7 +2,7 @@
 'use strict'
 const assert = require('assert')
 const common = require('../common')
-const { load } = require('../util')
+const { load } = require('../util.mjs')
 
 module.exports = load('function').then(async test_function => {
   function func1 () {

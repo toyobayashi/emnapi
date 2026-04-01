@@ -1,5 +1,5 @@
 'use strict'
-const { load } = require('../util')
+const { load } = require('../util.mjs')
 
 module.exports = load('uv_threadpool_size').then(({ test }) => {
   const uvThreadpoolSize = parseInt(process.env.EXPECTED_UV_THREADPOOL_SIZE ||

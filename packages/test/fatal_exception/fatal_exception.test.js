@@ -1,7 +1,7 @@
 /* eslint-disable camelcase */
 'use strict'
 const assert = require('assert')
-const { load } = require('../util')
+const { load } = require('../util.mjs')
 const common = require('../common')
 
 module.exports = new Promise((resolve, reject) => {

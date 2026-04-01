@@ -1,7 +1,7 @@
 'use strict'
 const assert = require('assert')
 const common = require('../common')
-const { load } = require('../util')
+const { load } = require('../util.mjs')
 // const tick = require('util').promisify(require('../tick'))
 
 // eslint-disable-next-line camelcase

@@ -1,7 +1,7 @@
 /* eslint-disable symbol-description */
 /* eslint-disable camelcase */
 'use strict'
-const { load } = require('../util')
+const { load } = require('../util.mjs')
 const common = require('../common')
 
 const p = load('objwrap')

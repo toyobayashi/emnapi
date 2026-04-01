@@ -3,7 +3,7 @@
 const assert = require('assert')
 
 if (process.argv[2] === 'fatal') {
-  require('../util.js').loadPath(process.argv[3]).then(binding => {
+  require('../util.mjs').loadPath(process.argv[3]).then(binding => {
     binding.error.throwFatalError()
   })
 } else {
@@ -11,7 +11,7 @@ if (process.argv[2] === 'fatal') {
 }
 
 async function test (bindingPath) {
-  const binding = await require('../util.js').loadPath(bindingPath)
+  const binding = await require('../util.mjs').loadPath(bindingPath)
 
   binding.error.testErrorCopySemantics()
   binding.error.testErrorMoveSemantics()

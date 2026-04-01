@@ -4,7 +4,7 @@
 // Flags: --expose-gc --force-node-api-uncaught-exceptions-policy
 
 const common = require('../common')
-const { load } = require('../util')
+const { load } = require('../util.mjs')
 const assert = require('assert')
 
 module.exports = new Promise((resolve) => {

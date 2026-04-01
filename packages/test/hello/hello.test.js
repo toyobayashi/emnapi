@@ -1,6 +1,6 @@
 'use strict'
 const common = require('../common')
-const { getEntry, load } = require('../util')
+const { getEntry, load } = require('../util.mjs')
 const assert = require('assert')
 const { Worker } = require('worker_threads')
 
@@ -16,7 +16,7 @@ module.exports = new Promise((resolve, reject) => {
 
       new Worker(`
   const { parentPort } = require('worker_threads');
-  const { load } = require(${JSON.stringify(require.resolve('../util.js'))})
+  const { load } = require(${JSON.stringify(require.resolve('../util.mjs'))})
   load('hello').then((binding) => { const msg = binding.hello(); parentPort.postMessage(msg) });`, {
         eval: true,
         env: process.env,

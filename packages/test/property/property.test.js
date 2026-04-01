@@ -1,7 +1,7 @@
 /* eslint-disable camelcase */
 'use strict'
 const assert = require('assert')
-const { load } = require('../util')
+const { load } = require('../util.mjs')
 
 const readonlyErrorRE =
 /^TypeError: Cannot assign to read only property '.*' of object '#<Object>'$/

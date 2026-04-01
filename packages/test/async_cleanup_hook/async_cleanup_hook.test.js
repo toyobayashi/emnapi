@@ -1,11 +1,11 @@
 'use strict'
 const common = require('../common')
 const { Worker } = require('worker_threads')
-const { load } = require('../util')
+const { load } = require('../util.mjs')
 
 module.exports = new Promise((resolve, reject) => {
   const w = new Worker(`
-    const { load } = require(${JSON.stringify(require.resolve('../util.js'))})
+    const { load } = require(${JSON.stringify(require.resolve('../util.mjs'))})
     load('async_cleanup_hook')
   `, {
     eval: true,

@@ -4,7 +4,7 @@
 
 const common = require('../common')
 const assert = require('assert')
-const { load } = require('../util')
+const { load } = require('../util.mjs')
 const theError = new Error('Some error')
 
 const promise = load('exception')

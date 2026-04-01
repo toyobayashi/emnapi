@@ -1,11 +1,14 @@
 /* eslint-disable camelcase */
-const { join } = require('path')
-const fs = require('fs')
-const { Worker } = require('worker_threads')
-const common = require('./common.js')
+import fs from 'fs'
+import { Worker } from 'worker_threads'
+import { getDefaultContext } from '@emnapi/runtime'
+import { WASI } from './wasi.js'
+import { createNapiModule, loadNapiModule } from '@emnapi/core'
+import v8 from '@emnapi/core/plugins/v8'
+import asyncWork from '@emnapi/core/plugins/async-work'
+import tsfn from '@emnapi/core/plugins/threadsafe-function'
 
-const emnapi = require('../runtime')
-const context = emnapi.getDefaultContext()
+const context = getDefaultContext()
 
 function getDir () {
   let buildDir
@@ -20,14 +23,12 @@ function getDir () {
   } else {
     buildDir = process.env.MEMORY64 ? '.build/wasm64-unknown-emscripten' : '.build/wasm32-unknown-emscripten'
   }
-  return join(__dirname, buildDir, common.buildType)
+  return new URL(buildDir + '/' + (process.env.NODE_ENV === 'production' ? 'Release/' : 'Debug/'), import.meta.url)
 }
 
-function getEntry (targetName) {
-  return join(getDir(), `${targetName}.${process.env.EMNAPI_TEST_NATIVE ? 'node' : (process.env.EMNAPI_TEST_WASI || process.env.EMNAPI_TEST_WASM32) ? 'wasm' : 'js'}`)
+export function getEntry (targetName) {
+  return new URL(`${targetName}.${process.env.EMNAPI_TEST_NATIVE ? 'node' : (process.env.EMNAPI_TEST_WASI || process.env.EMNAPI_TEST_WASM32) ? 'wasm' : 'js'}`, getDir())
 }
-
-exports.getEntry = getEntry
 
 const RUNTIME_UV_THREADPOOL_SIZE = ('UV_THREADPOOL_SIZE' in process.env) ? Number(process.env.UV_THREADPOOL_SIZE) : 4
 
@@ -35,16 +36,13 @@ function emscripten_get_now () {
   return performance.timeOrigin + performance.now()
 }
 
-function loadPath (request, options) {
+export function loadPath (request, options) {
   try {
     if (process.env.EMNAPI_TEST_NATIVE) {
-      return Promise.resolve(require(request))
+      return import(request)
     }
 
     if (process.env.EMNAPI_TEST_WASI) {
-      const { WASI } = require('./wasi')
-      const { createNapiModule, loadNapiModule } = require('@emnapi/core')
-      const v8 = require('@emnapi/core/plugins/v8').default
       const wasi = new WASI({
         fs
       })
@@ -62,7 +60,7 @@ function loadPath (request, options) {
               },
               waitThreadStart: 1000,
               onCreateWorker () {
-                return new Worker(join(__dirname, './worker.mjs'), {
+                return new Worker(new URL('./worker.mjs', import.meta.url), {
                   type: 'module',
                   env: process.env,
                   execArgv: ['--experimental-wasi-unstable-preview1']
@@ -73,8 +71,8 @@ function loadPath (request, options) {
         ),
         plugins: [
           v8,
-          require('@emnapi/core/plugins/async-work').default,
-          require('@emnapi/core/plugins/threadsafe-function').default
+          asyncWork,
+          tsfn
         ],
         ...(options || {})
       })
@@ -104,13 +102,11 @@ function loadPath (request, options) {
     }
 
     if (process.env.EMNAPI_TEST_WASM32) {
-      const { createNapiModule, loadNapiModule } = require('@emnapi/core')
-      const { v8, asyncWork, tsfn } = require('@emnapi/core/plugins')
       const napiModule = createNapiModule({
         context,
         asyncWorkPoolSize: RUNTIME_UV_THREADPOOL_SIZE,
         onCreateWorker () {
-          return new Worker(join(__dirname, './worker.mjs'), {
+          return new Worker(new URL('./worker.mjs', import.meta.url), {
             type: 'module',
             env: process.env
           })
@@ -164,7 +160,6 @@ function loadPath (request, options) {
       return p
     }
 
-    const mod = require(request)
     const resolveEmnapiExports = (Module, resolve, reject) => {
       try {
         resolve(Module.emnapiInit({
@@ -176,36 +171,38 @@ function loadPath (request, options) {
         reject(err)
       }
     }
-
-    if (mod.Module) {
-      const p = new Promise((resolve, reject) => {
-        resolveEmnapiExports(mod.Module, resolve, reject)
-      })
-      p.Module = mod.Module
-      return p
-    }
+    
     const p = new Promise((resolve, reject) => {
-      mod({
-        locateFile (path, scriptDirectory) {
-          const defaultResult = scriptDirectory + path
-
-          /**
-           * emscripten 3.1.58 bug introduced by
-           * https://github.com/emscripten-core/emscripten/pull/21701
-           */
-          if (!fs.existsSync(defaultResult)) {
-            return join(getDir(), path)
+      import(request).then(mod => {
+        if (mod.Module) {
+          const p = new Promise((resolve, reject) => {
+            resolveEmnapiExports(mod.Module, resolve, reject)
+          })
+          p.Module = mod.Module
+          return p
+        }
+        mod.default({
+          locateFile (path, scriptDirectory) {
+            const defaultResult = scriptDirectory + path
+  
+            /**
+             * emscripten 3.1.58 bug introduced by
+             * https://github.com/emscripten-core/emscripten/pull/21701
+             */
+            if (!fs.existsSync(defaultResult)) {
+              return new URL(path, getDir()).href
+            }
+  
+            return defaultResult
           }
-
-          return defaultResult
-        }
-      }).then((Module) => {
-        p.Module = Module
-        if (process.env.EMNAPI_TEST_4GB) {
-          Module._malloc(2147483648)
-        }
-        resolveEmnapiExports(Module, resolve, reject)
-      }).catch(reject)
+        }).then((Module) => {
+          p.Module = Module
+          if (process.env.EMNAPI_TEST_4GB) {
+            Module._malloc(2147483648)
+          }
+          resolveEmnapiExports(Module, resolve, reject)
+        }).catch(reject)
+      })
     })
     return p
   } catch (err) {
@@ -213,14 +210,12 @@ function loadPath (request, options) {
   }
 }
 
-exports.loadPath = loadPath
-
-exports.load = function (targetName, options) {
+export function load (targetName, options) {
   const request = getEntry(targetName)
   return loadPath(request, options)
 }
 
-exports.supportWeakSymbol = /*#__PURE__*/ (function () {
+export const supportWeakSymbol = /*#__PURE__*/ (function () {
   try {
     // eslint-disable-next-line symbol-description
     const sym = Symbol()

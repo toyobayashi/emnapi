@@ -2,7 +2,7 @@
 'use strict'
 const assert = require('assert')
 // const path = require('path')
-const { getEntry, load } = require('../../util.js')
+const { getEntry, load } = require('../../util.mjs')
 
 const noop = () => {}
 
@@ -115,7 +115,7 @@ async function runTestWithBindingPath (test, buildType, buildPathRoot = process.
     getEntry('naa_binding_noexcept'),
     getEntry('naa_binding_noexcept_maybe'),
     getEntry('naa_binding_custom_namespace')
-  ].map(it => require.resolve(it))
+  ].map(it => require.resolve(it instanceof URL ? it.pathname : it))
 
   for (const item of bindings) {
     await test(item)

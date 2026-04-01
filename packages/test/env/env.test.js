@@ -1,6 +1,6 @@
 'use strict'
 const assert = require('assert')
-const { load } = require('../util')
+const { load } = require('../util.mjs')
 
 module.exports = load('env').then(mod => {
   assert.strictEqual(mod.i32(), 233)

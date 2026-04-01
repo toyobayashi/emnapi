@@ -1,6 +1,6 @@
 'use strict'
 const assert = require('assert')
-const { load } = require('../util')
+const { load } = require('../util.mjs')
 
 const p = load('nan_returnnull')
 module.exports = p.then(bindings => {

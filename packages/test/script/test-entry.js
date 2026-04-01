@@ -21,7 +21,7 @@ let promise
 if (typeof entry.then === 'function') {
   promise = entry
 } else {
-  promise = entry.skip ? Promise.resolve() : require('../util.js').load(entry.target).then(entry.test)
+  promise = entry.skip ? Promise.resolve() : require('../util.mjs').load(entry.target).then(entry.test)
 }
 
 promise.then(

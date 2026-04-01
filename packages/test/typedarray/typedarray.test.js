@@ -1,7 +1,7 @@
 /* eslint-disable camelcase */
 'use strict'
 const assert = require('assert')
-const { load } = require('../util')
+const { load } = require('../util.mjs')
 
 // eslint-disable-next-line camelcase
 module.exports = load('typedarray').then(test_typedarray => {
