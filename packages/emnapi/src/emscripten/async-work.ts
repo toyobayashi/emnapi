@@ -1,4 +1,4 @@
-import { makeSetValue } from 'emscripten:parse-tools'
+import { from64, makeSetValue } from 'emscripten:parse-tools'
 import { emnapiAWST } from '../async-work'
 import { $CHECK_ARG, $CHECK_ENV, $CHECK_ENV_NOT_IN_GC } from '../macro'
 
@@ -27,6 +27,7 @@ export function napi_create_async_work (env: napi_env, resource: napi_value, res
   const resourceName = String(emnapiCtx.jsValueFromNapiValue(resource_name)!)
 
   const id = emnapiAWST.create(env, resourceObject, resourceName, execute, complete, data)
+  from64('result')
   makeSetValue('result', 0, 'id', '*')
   return envObject.clearLastError()
 }

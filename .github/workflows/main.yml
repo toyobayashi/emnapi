@@ -40,7 +40,7 @@ env:
 
 jobs:
   build:
-    timeout-minutes: 15
+    timeout-minutes: 20
     name: Build
     runs-on: ubuntu-latest
     env:

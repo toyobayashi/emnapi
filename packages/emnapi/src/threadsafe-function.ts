@@ -356,7 +356,7 @@ const emnapiTSFN = {
     let arr: any, index: number
 // #if MEMORY64
     arr = new BigUint64Array(wasmMemory.buffer)
-    index = (func + offset) >> 3
+    index = (func + offset) >>> 3
 // #else
     arr = new Uint32Array(wasmMemory.buffer)
     index = (func + offset) >>> 2
@@ -368,7 +368,7 @@ const emnapiTSFN = {
     let arr: any, index: number
 // #if MEMORY64
     arr = new BigUint64Array(wasmMemory.buffer)
-    index = (func + offset) >> 3
+    index = (func + offset) >>> 3
 // #else
     arr = new Uint32Array(wasmMemory.buffer)
     index = (func + offset) >>> 2
@@ -383,7 +383,7 @@ const emnapiTSFN = {
     let arr: any, index: number
 // #if MEMORY64
     arr = new BigUint64Array(wasmMemory.buffer)
-    index = (func + offset) >> 3
+    index = (func + offset) >>> 3
 // #else
     arr = new Uint32Array(wasmMemory.buffer)
     index = (func + offset) >>> 2
@@ -395,7 +395,7 @@ const emnapiTSFN = {
     let arr: any, index: number
 // #if MEMORY64
     arr = new BigUint64Array(wasmMemory.buffer)
-    index = (func + offset) >> 3
+    index = (func + offset) >>> 3
 // #else
     arr = new Uint32Array(wasmMemory.buffer)
     index = (func + offset) >>> 2
@@ -447,7 +447,7 @@ const emnapiTSFN = {
     if (unsigned) {
 // #if MEMORY64
       arr = new BigUint64Array(wasmMemory.buffer)
-      ret = Number(Atomics.load(arr, offset >> 3))
+      ret = Number(Atomics.load(arr, offset >>> 3))
 // #else
       arr = new Uint32Array(wasmMemory.buffer)
       ret = Atomics.load(arr, offset >>> 2)
@@ -456,7 +456,7 @@ const emnapiTSFN = {
     } else {
 // #if MEMORY64
       arr = new BigInt64Array(wasmMemory.buffer)
-      ret = Number(Atomics.load(arr, offset >> 3))
+      ret = Number(Atomics.load(arr, offset >>> 3))
 // #else
       arr = new Int32Array(wasmMemory.buffer)
       ret = Atomics.load(arr, offset >>> 2)
@@ -469,7 +469,7 @@ const emnapiTSFN = {
     if (unsigned) {
 // #if MEMORY64
       arr = new BigUint64Array(wasmMemory.buffer)
-      Atomics.store(arr, offset >> 3, BigInt(value) as any)
+      Atomics.store(arr, offset >>> 3, BigInt(value) as any)
 // #else
       arr = new Uint32Array(wasmMemory.buffer)
       Atomics.store(arr, offset >>> 2, value)
@@ -478,7 +478,7 @@ const emnapiTSFN = {
     } else {
 // #if MEMORY64
       arr = new BigInt64Array(wasmMemory.buffer)
-      Atomics.store(arr, offset >> 3, BigInt(value >>> 0) as any)
+      Atomics.store(arr, offset >>> 3, BigInt(value >>> 0) as any)
 // #else
       arr = new Int32Array(wasmMemory.buffer)
       Atomics.store(arr, offset >>> 2, value >>> 0)

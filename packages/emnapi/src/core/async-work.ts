@@ -359,6 +359,7 @@ export var napi_create_async_work = singleThreadAsyncWork
     const resourceName = String(emnapiCtx.jsValueFromNapiValue(resource_name)!)
 
     const id = emnapiAWST.create(env, resourceObject, resourceName, execute, complete, data)
+    from64('result')
     makeSetValue('result', 0, 'id', '*')
     return envObject.clearLastError()
   }
