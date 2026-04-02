@@ -45,7 +45,7 @@ export function $CHECK_ENV_NOT_IN_GC (env: napi_env): any {
 /** @macro */
 export function $CHECK_NEW_STRING_ARGS (env: napi_env, str: const_char_p, length: number, result: Pointer<napi_value>): any {
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
-  const autoLength = length === -1
+  const autoLength = length === -1 || length === 4294967295
   const sizelength = length >>> 0
   if (length !== 0) {
     $CHECK_ARG!(envObject, str)

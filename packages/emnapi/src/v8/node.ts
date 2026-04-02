@@ -7,7 +7,7 @@ import { wasmMemory } from 'emscripten:runtime'
  * @__sig ppppi
  */
 export function _node_encode (isolate: Ptr, buf: Ptr, len: size_t, encoding: number): Ptr {
-  const autoLength = len === -1
+  const autoLength = len === -1 || len === 4294967295
   from64('buf')
   from64('len')
 
