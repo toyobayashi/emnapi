@@ -31,6 +31,10 @@ exports.getEntry = getEntry
 
 const RUNTIME_UV_THREADPOOL_SIZE = ('UV_THREADPOOL_SIZE' in process.env) ? Number(process.env.UV_THREADPOOL_SIZE) : 4
 
+function emscripten_get_now () {
+  return performance.timeOrigin + performance.now()
+}
+
 function loadPath (request, options) {
   try {
     if (process.env.EMNAPI_TEST_NATIVE) {
@@ -79,6 +83,7 @@ function loadPath (request, options) {
         loadNapiModule(napiModule, fs.readFileSync(request), {
           wasi,
           overwriteImports (importObject) {
+            importObject.env.emscripten_get_now = emscripten_get_now
             if (process.env.EMNAPI_TEST_WASI_THREADS) {
               importObject.env.memory = new WebAssembly.Memory({
                 initial: 16777216 / 65536,
@@ -87,7 +92,10 @@ function loadPath (request, options) {
               })
             }
           }
-        }).then(() => {
+        }).then((source) => {
+          if (process.env.EMNAPI_TEST_4GB) {
+            source.instance.exports.malloc(2147483648)
+          }
           resolve(napiModule.exports)
         }).catch(reject)
       })
@@ -129,6 +137,7 @@ function loadPath (request, options) {
         loadNapiModule(napiModule, fs.readFileSync(request), {
           overwriteImports (importObject) {
             importObject.env.memory = sharedMemory
+            importObject.env.emscripten_get_now = emscripten_get_now
             importObject.env.console_log = function (fmt, ...args) {
               const fmtString = UTF8ToString(fmt)
               console.log(fmtString, ...args)
@@ -192,6 +201,9 @@ function loadPath (request, options) {
         }
       }).then((Module) => {
         p.Module = Module
+        if (process.env.EMNAPI_TEST_4GB) {
+          Module._malloc(2147483648)
+        }
         resolveEmnapiExports(Module, resolve, reject)
       }).catch(reject)
     })
