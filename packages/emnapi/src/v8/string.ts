@@ -38,7 +38,7 @@ export function _v8_string_object_value_of (self: Ptr): Ptr {
 export function _v8_string_new_from_one_byte (isolate: Ptr, data: Ptr, type: number, length: number): Ptr {
   from64('data')
   from64('length')
-  const str = emnapiString.encode(data as number, length === -1, length >>> 0, (c) => String.fromCharCode(c))
+  const str = emnapiString.encode(data as number, length === -1 || length === 4294967295, length >>> 0, (c) => String.fromCharCode(c))
   return emnapiCtx.napiValueFromJsValue(str)
 }
 
@@ -62,7 +62,7 @@ export function _v8_string_new_from_two_byte (isolate: Ptr, data: Ptr, type: num
 export function _v8_string_new_external_one_byte (isolate: Ptr, data: Ptr, length: number): Ptr {
   from64('data')
   from64('length')
-  const str = emnapiString.encode(data as number, length === -1, length >>> 0, (c) => String.fromCharCode(c))
+  const str = emnapiString.encode(data as number, length === -1 || length === 4294967295, length >>> 0, (c) => String.fromCharCode(c))
   return emnapiCtx.napiValueFromJsValue(str)
 }
 

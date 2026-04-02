@@ -32,7 +32,7 @@ export function napi_define_class (
     if (property_count > 0) {
       if (!properties) return envObject.setLastError(napi_status.napi_invalid_arg)
     }
-    if ((length < -1) || (length > 2147483647) || (!utf8name)) {
+    if (!((length >= -1 && length <= 2147483647) || length === 4294967295) || (!utf8name)) {
       return envObject.setLastError(napi_status.napi_invalid_arg)
     }
     const fresult = emnapiCreateFunction(envObject, utf8name, length, constructor, callback_data)

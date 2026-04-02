@@ -98,6 +98,9 @@ import { v8, asyncWork, tsfn } from '../../node_modules/@emnapi/core/dist/plugin
         wasi,
         overwriteImports (importObject) {
           importObject.env.memory = wasmMemory
+          importObject.env.emscripten_get_now = function () {
+            return performance.timeOrigin + performance.now()
+          }
           importObject.env.console_log = function (fmt, ...args) {
             const fmtString = UTF8ToString(fmt)
             console.log(fmtString, ...args)

@@ -16,13 +16,17 @@
 #include <stdio.h>
 #include "../common.h"
 
+#ifdef __wasm__
+double emscripten_get_now();
+#endif
+
 double now() {
-#if defined(__EMSCRIPTEN__)
+#if defined(__EMSCRIPTEN__) || defined(__wasi__)
   return emscripten_get_now();
-#elif defined(__wasi__)
-  struct timespec t;
-  timespec_get(&t, TIME_UTC);
-  return ((double)t.tv_sec * 1000) + ((double)t.tv_nsec / 1000000);
+// #elif defined(__wasi__)
+//   struct timespec t;
+//   timespec_get(&t, TIME_UTC);
+//   return ((double)t.tv_sec * 1000) + ((double)t.tv_nsec / 1000000);
 #else
   uint64_t start = uv_hrtime();
   return (double)(start / 1000000);
