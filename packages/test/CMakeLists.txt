@@ -90,7 +90,7 @@ if(IS_EMSCRIPTEN)
     "-sSTACK_SIZE=1048576"
     "-sDEFAULT_PTHREAD_STACK_SIZE=1048576"
     "-sINITIAL_MEMORY=16777216"
-    "-sMAXIMUM_MEMORY=2147483648"
+    "-sMAXIMUM_MEMORY=4294967296"
     "-sSAFE_HEAP=1"
     "-sMODULARIZE=1"
     "-sEXPORTED_RUNTIME_METHODS=['emnapiInit','ExitStatus']"
@@ -100,21 +100,21 @@ elseif(IS_WASI_THREADS)
   set(COMMON_LINK_OPTIONS
     # "-v"
     "-mexec-model=reactor"
-    "-Wl,-zstack-size=1048576,--initial-memory=16777216,--max-memory=2147483648,--import-memory,--export-dynamic,--export=malloc,--export=free,--export=emnapi_thread_crashed,--export=napi_register_wasm_v1,--export-if-defined=node_api_module_get_api_version_v1,--import-undefined,--export-table"
+    "-Wl,-zstack-size=1048576,--initial-memory=16777216,--max-memory=4294967296,--import-memory,--export-dynamic,--export=malloc,--export=free,--export=emnapi_thread_crashed,--export=napi_register_wasm_v1,--export-if-defined=node_api_module_get_api_version_v1,--import-undefined,--export-table"
   )
 elseif(IS_WASI)
   add_compile_options("-fno-exceptions")
   set(COMMON_LINK_OPTIONS
     # "-v"
     "-mexec-model=reactor"
-    "-Wl,-zstack-size=1048576,--initial-memory=16777216,--max-memory=2147483648,--export-dynamic,--export=malloc,--export=free,--export=napi_register_wasm_v1,--export-if-defined=node_api_module_get_api_version_v1,--import-undefined,--export-table"
+    "-Wl,-zstack-size=1048576,--initial-memory=16777216,--max-memory=4294967296,--export-dynamic,--export=malloc,--export=free,--export=napi_register_wasm_v1,--export-if-defined=node_api_module_get_api_version_v1,--import-undefined,--export-table"
   )
 elseif(IS_WASM32)
   add_compile_options("-fno-exceptions")
   set(COMMON_LINK_OPTIONS
     # "-v"
     "-nostdlib"
-    "-Wl,-zstack-size=1048576,--initial-memory=16777216,--max-memory=2147483648,--no-entry,--export-dynamic,--export=malloc,--export=free,--export=napi_register_wasm_v1,--export-if-defined=node_api_module_get_api_version_v1,--import-undefined,--export-table"
+    "-Wl,-zstack-size=1048576,--initial-memory=16777216,--max-memory=4294967296,--no-entry,--export-dynamic,--export=malloc,--export=free,--export=napi_register_wasm_v1,--export-if-defined=node_api_module_get_api_version_v1,--import-undefined,--export-table"
   )
 else()
   set(COMMON_LINK_OPTIONS "")

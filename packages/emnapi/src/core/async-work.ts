@@ -91,10 +91,10 @@ var emnapiAWMT = {
       emnapiAWMT.globalAddress = _malloc(to64('emnapiAWMT.globalOffset.end') as number)
       // Ensure the shared state is zero-initialized before use so that
       // idle_threads/mutex/cond and related fields start from a known state.
+      from64('emnapiAWMT.globalAddress')
       const size = emnapiAWMT.globalOffset.end
       const addr = emnapiAWMT.globalAddress
       new Uint8Array(wasmMemory.buffer, addr, size).fill(0)
-      from64('emnapiAWMT.globalAddress')
       emnapiAWMT.queueInit(emnapiAWMT.globalAddress + emnapiAWMT.globalOffset.q)
       emnapiAWMT.queueInit(emnapiAWMT.globalAddress + emnapiAWMT.globalOffset.exit_message)
     }
@@ -126,16 +126,18 @@ var emnapiAWMT = {
       if (index === 0) {
         return Promise.reject(new Error('Failed to create async worker'))
       }
-      if (index > 0) {
-        const view = new DataView(wasmMemory.buffer)
-        const tidOffset = 20
-        const tid = view.getInt32(index + tidOffset, true)
-        const worker = PThread.pthreads[tid]
-        return worker.whenLoaded!
-      } else {
-        const worker = emnapiAWMT.pool[-index - 1]
-        return worker.whenLoaded!
+      let worker: any
+      if (index < 0) {
+        worker = emnapiAWMT.pool[-index - 1]
+        if (worker) return worker.whenLoaded
       }
+      from64('index')
+
+      const view = new DataView(wasmMemory.buffer)
+      const tidOffset = 20
+      const tid = view.getInt32(index + tidOffset, true)
+      worker = PThread.pthreads[tid]
+      return worker.whenLoaded!
     })
     emnapiAWMT.workerReady = Promise.all(promises) as any
     return emnapiAWMT.workerReady as Promise<any>
@@ -351,6 +353,7 @@ export var napi_create_async_work = singleThreadAsyncWork
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const id = emnapiAWST.create(env, resourceObject, resourceName, execute, complete, data)
+    from64('result')
     makeSetValue('result', 0, 'id', '*')
     return envObject.clearLastError()
   }
@@ -371,6 +374,7 @@ export var napi_create_async_work = singleThreadAsyncWork
     const sizeofAW = emnapiAWMT.offset.end
     const aw = _malloc(to64('sizeofAW'))
     if (!aw) return envObject.setLastError(napi_status.napi_generic_failure)
+    from64('aw')
     new Uint8Array(wasmMemory.buffer).subarray(aw, aw + sizeofAW).fill(0)
     const s = envObject.ensureHandleId(resourceObject)
     const resourceRef = emnapiCtx.createReference(envObject, s, 1, ReferenceOwnership.kUserland as any)
@@ -393,14 +397,14 @@ export var napi_delete_async_work = singleThreadAsyncWork
   ? function (env: napi_env, work: number): napi_status {
     const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
     $CHECK_ARG!(envObject, work)
-
+    from64('work')
     emnapiAWST.remove(work)
     return envObject.clearLastError()
   }
   : function (env: napi_env, work: number): napi_status {
     const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
     $CHECK_ARG!(envObject, work)
-
+    from64('work')
     const resource = emnapiAWMT.getResource(work)
     emnapiCtx.refStore.get(resource)!.dispose()
 
@@ -421,7 +425,7 @@ export var napi_queue_async_work = singleThreadAsyncWork
     $CHECK_ENV!(env)
     const envObject = emnapiCtx.envStore.get(env)!
     $CHECK_ARG!(envObject, work)
-
+    from64('work')
     emnapiAWST.queue(work)
     return envObject.clearLastError()
   }
@@ -429,7 +433,7 @@ export var napi_queue_async_work = singleThreadAsyncWork
     $CHECK_ENV!(env)
     const envObject = emnapiCtx.envStore.get(env)!
     $CHECK_ARG!(envObject, work)
-
+    from64('work')
     emnapiAWMT.scheduleWork(work)
     return envObject.clearLastError()
   }
@@ -440,7 +444,7 @@ export var napi_cancel_async_work = singleThreadAsyncWork
     $CHECK_ENV!(env)
     const envObject = emnapiCtx.envStore.get(env)!
     $CHECK_ARG!(envObject, work)
-
+    from64('work')
     const status = emnapiAWST.cancel(work)
     if (status === napi_status.napi_ok) return envObject.clearLastError()
     return envObject.setLastError(status)
@@ -449,7 +453,7 @@ export var napi_cancel_async_work = singleThreadAsyncWork
     $CHECK_ENV!(env)
     const envObject = emnapiCtx.envStore.get(env)!
     $CHECK_ARG!(envObject, work)
-
+    from64('work')
     const status = emnapiAWMT.cancelWork(work)
     if (status === napi_status.napi_ok) return envObject.clearLastError()
     return envObject.setLastError(status)
@@ -457,6 +461,7 @@ export var napi_cancel_async_work = singleThreadAsyncWork
 
 /** @__sig pp */
 export function _emnapi_async_worker (globalAddress: number): number {
+  from64('globalAddress')
   emnapiAWMT.globalAddress = globalAddress
   const mutex = emnapiAWMT.getMutex()
   const cond = emnapiAWMT.getCond()

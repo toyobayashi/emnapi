@@ -137,6 +137,7 @@ export const emnapiTSFN = {
     const size = 2 * POINTER_SIZE
     const queue = _malloc(to64('size'))
     if (!queue) return false
+    from64('queue')
     new Uint8Array(wasmMemory.buffer, queue, size).fill(0)
     emnapiTSFN.storeSizeTypeValue(func + emnapiTSFN.offset.queue, queue, false)
     return true
@@ -155,6 +156,7 @@ export const emnapiTSFN = {
     const size = 2 * POINTER_SIZE
     const node = _malloc(to64('size'))
     if (!node) throw new Error('OOM')
+    from64('node')
     emnapiTSFN.storeSizeTypeValue(node, data, false)
     emnapiTSFN.storeSizeTypeValue(node + POINTER_SIZE, 0, false)
     if (head === 0 && tail === 0) {
@@ -338,10 +340,10 @@ export const emnapiTSFN = {
     let arr: any, index: number
 // #if MEMORY64
     arr = new BigUint64Array(wasmMemory.buffer)
-    index = (func + offset) >> 3
+    index = (func + offset) >>> 3
 // #else
     arr = new Uint32Array(wasmMemory.buffer)
-    index = (func + offset) >> 2
+    index = (func + offset) >>> 2
 // #endif
     Atomics.add(arr, index, to64('1') as any)
   },
@@ -350,10 +352,10 @@ export const emnapiTSFN = {
     let arr: any, index: number
 // #if MEMORY64
     arr = new BigUint64Array(wasmMemory.buffer)
-    index = (func + offset) >> 3
+    index = (func + offset) >>> 3
 // #else
     arr = new Uint32Array(wasmMemory.buffer)
-    index = (func + offset) >> 2
+    index = (func + offset) >>> 2
 // #endif
     Atomics.sub(arr, index, to64('1') as any)
   },
@@ -365,10 +367,10 @@ export const emnapiTSFN = {
     let arr: any, index: number
 // #if MEMORY64
     arr = new BigUint64Array(wasmMemory.buffer)
-    index = (func + offset) >> 3
+    index = (func + offset) >>> 3
 // #else
     arr = new Uint32Array(wasmMemory.buffer)
-    index = (func + offset) >> 2
+    index = (func + offset) >>> 2
 // #endif
     Atomics.add(arr, index, to64('1') as any)
   },
@@ -377,18 +379,18 @@ export const emnapiTSFN = {
     let arr: any, index: number
 // #if MEMORY64
     arr = new BigUint64Array(wasmMemory.buffer)
-    index = (func + offset) >> 3
+    index = (func + offset) >>> 3
 // #else
     arr = new Uint32Array(wasmMemory.buffer)
-    index = (func + offset) >> 2
+    index = (func + offset) >>> 2
 // #endif
     Atomics.sub(arr, index, to64('1') as any)
   },
   getState (func: number): number {
-    return Atomics.load(new Int32Array(wasmMemory.buffer), (func + emnapiTSFN.offset.state) >> 2)
+    return Atomics.load(new Int32Array(wasmMemory.buffer), (func + emnapiTSFN.offset.state) >>> 2)
   },
   setState (func: number, value: 0 | 1 | 2): void {
-    Atomics.store(new Int32Array(wasmMemory.buffer), (func + emnapiTSFN.offset.state) >> 2, value)
+    Atomics.store(new Int32Array(wasmMemory.buffer), (func + emnapiTSFN.offset.state) >>> 2, value)
   },
   getHandlesClosing (func: number): number {
     return Atomics.load(new Int8Array(wasmMemory.buffer), (func + emnapiTSFN.offset.handles_closing))
@@ -397,7 +399,7 @@ export const emnapiTSFN = {
     Atomics.store(new Int8Array(wasmMemory.buffer), (func + emnapiTSFN.offset.handles_closing), value)
   },
   getDispatchState (func: number): number {
-    return Atomics.load(new Uint32Array(wasmMemory.buffer), (func + emnapiTSFN.offset.dispatch_state) >> 2)
+    return Atomics.load(new Uint32Array(wasmMemory.buffer), (func + emnapiTSFN.offset.dispatch_state) >>> 2)
   },
   getContext (func: number): number {
     return emnapiTSFN.loadSizeTypeValue(func + emnapiTSFN.offset.context, false)
@@ -429,19 +431,19 @@ export const emnapiTSFN = {
     if (unsigned) {
 // #if MEMORY64
       arr = new BigUint64Array(wasmMemory.buffer)
-      ret = Number(Atomics.load(arr, offset >> 3))
+      ret = Number(Atomics.load(arr, offset >>> 3))
 // #else
       arr = new Uint32Array(wasmMemory.buffer)
-      ret = Atomics.load(arr, offset >> 2)
+      ret = Atomics.load(arr, offset >>> 2)
 // #endif
       return ret
     } else {
 // #if MEMORY64
       arr = new BigInt64Array(wasmMemory.buffer)
-      ret = Number(Atomics.load(arr, offset >> 3))
+      ret = Number(Atomics.load(arr, offset >>> 3))
 // #else
       arr = new Int32Array(wasmMemory.buffer)
-      ret = Atomics.load(arr, offset >> 2)
+      ret = Atomics.load(arr, offset >>> 2)
 // #endif
       return ret
     }
@@ -451,19 +453,19 @@ export const emnapiTSFN = {
     if (unsigned) {
 // #if MEMORY64
       arr = new BigUint64Array(wasmMemory.buffer)
-      Atomics.store(arr, offset >> 3, BigInt(value) as any)
+      Atomics.store(arr, offset >>> 3, BigInt(value) as any)
 // #else
       arr = new Uint32Array(wasmMemory.buffer)
-      Atomics.store(arr, offset >> 2, value)
+      Atomics.store(arr, offset >>> 2, value)
 // #endif
       return undefined
     } else {
 // #if MEMORY64
       arr = new BigInt64Array(wasmMemory.buffer)
-      Atomics.store(arr, offset >> 3, BigInt(value >>> 0) as any)
+      Atomics.store(arr, offset >>> 3, BigInt(value >>> 0) as any)
 // #else
       arr = new Int32Array(wasmMemory.buffer)
-      Atomics.store(arr, offset >> 2, value >>> 0)
+      Atomics.store(arr, offset >>> 2, value >>> 0)
 // #endif
       return undefined
     }
@@ -485,7 +487,7 @@ export const emnapiTSFN = {
       emnapiCtx.removeCleanupHook(envObject, emnapiTSFN.cleanup, func)
       envObject.unref()
 
-      const asyncRefOffset = (func + emnapiTSFN.offset.async_ref) >> 2
+      const asyncRefOffset = (func + emnapiTSFN.offset.async_ref) >>> 2
       const arr = new Uint32Array(wasmMemory.buffer)
       if (Atomics.load(arr, asyncRefOffset) > 0) {
         Atomics.store(arr, asyncRefOffset, 0)
@@ -692,7 +694,7 @@ export const emnapiTSFN = {
 
     let iterations_left = 1000
     const ui32a = new Uint32Array(wasmMemory.buffer)
-    const index = (func + emnapiTSFN.offset.dispatch_state) >> 2
+    const index = (func + emnapiTSFN.offset.dispatch_state) >>> 2
     while (has_more && --iterations_left !== 0) {
       Atomics.store(ui32a, index, 1)
       has_more = emnapiTSFN.dispatchOne(func)
@@ -707,7 +709,7 @@ export const emnapiTSFN = {
     }
   },
   send (func: number): void {
-    const current_state = Atomics.or(new Uint32Array(wasmMemory.buffer), (func + emnapiTSFN.offset.dispatch_state) >> 2, 1 << 1)
+    const current_state = Atomics.or(new Uint32Array(wasmMemory.buffer), (func + emnapiTSFN.offset.dispatch_state) >>> 2, 1 << 1)
     if ((current_state & 1) === 1) {
       return
     }
@@ -923,7 +925,7 @@ export function napi_unref_threadsafe_function (env: napi_env, func: number): na
     return napi_status.napi_invalid_arg
   }
   from64('func')
-  const asyncRefOffset = (func + emnapiTSFN.offset.async_ref) >> 2
+  const asyncRefOffset = (func + emnapiTSFN.offset.async_ref) >>> 2
   const arr = new Uint32Array(wasmMemory.buffer)
   const currentValue = Atomics.load(arr, asyncRefOffset)
   if (currentValue > 0) {
@@ -943,7 +945,7 @@ export function napi_ref_threadsafe_function (env: napi_env, func: number): napi
     return napi_status.napi_invalid_arg
   }
   from64('func')
-  const asyncRefOffset = (func + emnapiTSFN.offset.async_ref) >> 2
+  const asyncRefOffset = (func + emnapiTSFN.offset.async_ref) >>> 2
   const arr = new Uint32Array(wasmMemory.buffer)
   const currentValue = Atomics.load(arr, asyncRefOffset)
   if (!currentValue) {

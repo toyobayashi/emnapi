@@ -1,6 +1,6 @@
 import { _free, wasmMemory, _malloc } from 'emscripten:runtime'
 import { emnapiCtx } from 'emnapi:shared'
-import { to64 } from 'emscripten:parse-tools'
+import { from64, to64 } from 'emscripten:parse-tools'
 
 export type ViewConstuctor =
   Int8ArrayConstructor |
@@ -113,6 +113,7 @@ export const emnapiExternalMemory: {
 
     const pointer = _malloc(to64('arrayBuffer.byteLength'))
     if (!pointer) throw new Error('Out of memory')
+    from64('pointer')
     new Uint8Array(wasmMemory.buffer).set(new Uint8Array(arrayBuffer), pointer)
 
     info.address = pointer

@@ -71,7 +71,7 @@
     })
     const memory = new WebAssembly.Memory({
       initial: 16777216 / 65536,
-      maximum: 2147483648 / 65536,
+      maximum: 4294967296 / 65536,
       shared: true
     })
     let input

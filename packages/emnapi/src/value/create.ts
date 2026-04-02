@@ -413,6 +413,7 @@ export function napi_create_buffer (
     } else {
       pointer = _malloc(to64('size'))
       if (!pointer) throw new Error('Out of memory')
+      from64('pointer')
       new Uint8Array(wasmMemory.buffer).subarray(pointer, pointer + size).fill(0)
       const buffer = Buffer.from(wasmMemory.buffer, pointer, size)
       const viewDescriptor: MemoryViewDescriptor = {
@@ -608,7 +609,7 @@ export function node_api_symbol_for (env: napi_env, utf8description: const_char_
   from64('utf8description')
   from64('result')
 
-  const autoLength = length === -1
+  const autoLength = length === -1 || length === 4294967295
   const sizelength = length >>> 0
   if (length !== 0) {
     $CHECK_ARG!(envObject, utf8description)
