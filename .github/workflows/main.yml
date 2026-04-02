@@ -42,6 +42,7 @@ jobs:
   build:
     timeout-minutes: 20
     name: Build
+    if: ${{ github.event_name != 'workflow_dispatch' || (github.event_name == 'workflow_dispatch' && (!inputs.release_independent_package || inputs.release_independent_package == 'none')) }}
     runs-on: ubuntu-latest
     env:
       EM_VERSION: '5.0.3'
@@ -196,7 +197,7 @@ jobs:
     env:
       EM_VERSION: '4.0.11'
     if: ${{ github.event_name == 'workflow_dispatch' && inputs.release_independent_package == 'main' }}
-    needs: build
+    # needs: build
     runs-on: ubuntu-latest
 
     steps:
@@ -267,7 +268,7 @@ jobs:
   release-independent-package:
     name: Release independent package
     if: ${{ github.event_name == 'workflow_dispatch' && inputs.release_independent_package && inputs.release_independent_package != 'none' && inputs.release_independent_package != 'main' }}
-    needs: build
+    # needs: build
     runs-on: ubuntu-latest
 
     steps:
