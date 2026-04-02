@@ -353,6 +353,7 @@ export var napi_create_async_work = singleThreadAsyncWork
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const id = emnapiAWST.create(env, resourceObject, resourceName, execute, complete, data)
+    from64('result')
     makeSetValue('result', 0, 'id', '*')
     return envObject.clearLastError()
   }
