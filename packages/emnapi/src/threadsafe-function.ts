@@ -137,6 +137,7 @@ export const emnapiTSFN = {
     const size = 2 * POINTER_SIZE
     const queue = _malloc(to64('size'))
     if (!queue) return false
+    from64('queue')
     new Uint8Array(wasmMemory.buffer, queue, size).fill(0)
     emnapiTSFN.storeSizeTypeValue(func + emnapiTSFN.offset.queue, queue, false)
     return true
@@ -155,6 +156,7 @@ export const emnapiTSFN = {
     const size = 2 * POINTER_SIZE
     const node = _malloc(to64('size'))
     if (!node) throw new Error('OOM')
+    from64('node')
     emnapiTSFN.storeSizeTypeValue(node, data, false)
     emnapiTSFN.storeSizeTypeValue(node + POINTER_SIZE, 0, false)
     if (head === 0 && tail === 0) {

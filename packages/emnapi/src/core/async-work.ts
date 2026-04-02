@@ -373,6 +373,7 @@ export var napi_create_async_work = singleThreadAsyncWork
     const sizeofAW = emnapiAWMT.offset.end
     const aw = _malloc(to64('sizeofAW'))
     if (!aw) return envObject.setLastError(napi_status.napi_generic_failure)
+    from64('aw')
     new Uint8Array(wasmMemory.buffer).subarray(aw, aw + sizeofAW).fill(0)
     const s = envObject.ensureHandleId(resourceObject)
     const resourceRef = emnapiCtx.createReference(envObject, s, 1, ReferenceOwnership.kUserland as any)

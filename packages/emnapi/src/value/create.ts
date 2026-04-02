@@ -413,6 +413,7 @@ export function napi_create_buffer (
     } else {
       pointer = _malloc(to64('size'))
       if (!pointer) throw new Error('Out of memory')
+      from64('pointer')
       new Uint8Array(wasmMemory.buffer).subarray(pointer, pointer + size).fill(0)
       const buffer = Buffer.from(wasmMemory.buffer, pointer, size)
       const viewDescriptor: MemoryViewDescriptor = {
