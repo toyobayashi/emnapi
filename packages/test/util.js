@@ -82,7 +82,7 @@ function loadPath (request, options) {
             if (process.env.EMNAPI_TEST_WASI_THREADS) {
               importObject.env.memory = new WebAssembly.Memory({
                 initial: 16777216 / 65536,
-                maximum: 2147483648 / 65536,
+                maximum: 4294967296 / 65536,
                 shared: true
               })
             }
@@ -123,7 +123,7 @@ function loadPath (request, options) {
         }
         const sharedMemory = new WebAssembly.Memory({
           initial: 16777216 / 65536,
-          maximum: 2147483648 / 65536,
+          maximum: 4294967296 / 65536,
           shared: true
         })
         loadNapiModule(napiModule, fs.readFileSync(request), {
