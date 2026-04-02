@@ -138,7 +138,7 @@ export class WASIThreads {
 
       if (!isNewABI) {
         const malloc = this.wasmInstance.exports.malloc as (size: number | bigint) => (number | bigint)
-        errorOrTid = wasm64 ? Number(malloc(BigInt(8))) : malloc(8) as number
+        errorOrTid = wasm64 ? Number(malloc(BigInt(8))) : (malloc(8) as number >>> 0)
         if (!errorOrTid) {
           return -48 /* ENOMEM */
         }

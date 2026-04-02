@@ -44,9 +44,9 @@ export interface TransformOptions extends BaseTransformOptions {
 //   return text.length > 1 && text.charAt(0) === '$' && text.charAt(1) !== '$'
 // }
 
-function expandFrom64 (factory: NodeFactory, defines: Record<string, any>, node: ExpressionStatement): Statement | undefined {
+function expandFrom64 (factory: NodeFactory, defines: Record<string, any>, node: ExpressionStatement): Statement {
+  const varName = ((node.expression as CallExpression).arguments[0] as StringLiteral).text
   if (defines.MEMORY64) {
-    const varName = ((node.expression as CallExpression).arguments[0] as StringLiteral).text
     if (!varName) return node
     return factory.createExpressionStatement(factory.createBinaryExpression(
       factory.createIdentifier(varName),
@@ -58,7 +58,11 @@ function expandFrom64 (factory: NodeFactory, defines: Record<string, any>, node:
       )
     ))
   }
-  return undefined
+  return factory.createExpressionStatement(factory.createBinaryExpression(
+    factory.createIdentifier(varName),
+    factory.createToken(ts.SyntaxKind.GreaterThanGreaterThanGreaterThanEqualsToken),
+    factory.createNumericLiteral('0')
+  ))
 }
 
 function expandTo64 (factory: NodeFactory, defines: Record<string, any>, node: CallExpression): Expression {
