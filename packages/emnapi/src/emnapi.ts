@@ -150,7 +150,7 @@ export function $emnapiSyncMemory<T extends ArrayBufferLike | ArrayBufferView> (
   if (arrayBufferOrView instanceof ArrayBuffer || emnapiExternalMemory.isSharedArrayBuffer(arrayBufferOrView)) {
     const pointer = emnapiExternalMemory.getArrayBufferPointer(arrayBufferOrView, false).address
     if (!pointer) throw new Error('Unknown ArrayBuffer address')
-    if (typeof len !== 'number' || len === -1) {
+    if (typeof len !== 'number' || len === -1 || len === 4294967295) {
       len = arrayBufferOrView.byteLength - offset
     }
     len = len >>> 0
@@ -172,7 +172,7 @@ export function $emnapiSyncMemory<T extends ArrayBufferLike | ArrayBufferView> (
     const latestView = viewPointerInfo.view
     const pointer = viewPointerInfo.address
     if (!pointer) throw new Error('Unknown ArrayBuffer address')
-    if (typeof len !== 'number' || len === -1) {
+    if (typeof len !== 'number' || len === -1 || len === 4294967295) {
       len = latestView.byteLength - offset
     }
     len = len >>> 0

@@ -126,12 +126,24 @@ jobs:
         npm run rebuild:wt -w packages/test
         npm run test:wt -w packages/test
 
+    - name: Test wasm32-wasi-threads (4GB)
+      if: ${{ matrix.target == 'wasm32-wasi-threads' }}
+      env:
+        EMNAPI_TEST_4GB: '1'
+      run: npm run test:wt -w packages/test
+
     - name: Test wasm32-unknown-emscripten
       if: ${{ matrix.target == 'wasm32-unknown-emscripten' }}
       run: |
         npm run test:version
         npm run rebuild -w packages/test
         npm run test -w packages/test
+
+    - name: Test wasm32-unknown-emscripten (4GB)
+      if: ${{ matrix.target == 'wasm32-unknown-emscripten' }}
+      env:
+        EMNAPI_TEST_4GB: '1'
+      run: npm run test -w packages/test
 
     - name: Test wasm64-unknown-emscripten
       if: ${{ matrix.target == 'wasm64-unknown-emscripten' }}
@@ -143,17 +155,38 @@ jobs:
         node ./packages/test/script/build-emscripten.js Debug
         node ./packages/test/script/test.js
 
+    - name: Test wasm64-unknown-emscripten (4GB)
+      if: ${{ matrix.target == 'wasm64-unknown-emscripten' }}
+      env:
+        MEMORY64: '1'
+        EMNAPI_TEST_4GB: '1'
+        UV_THREADPOOL_SIZE: '2'
+        NODE_TEST_KNOWN_GLOBALS: '0'
+      run: node ./packages/test/script/test.js
+
     - name: Test wasm32-wasi
       if: ${{ matrix.target == 'wasm32-wasi' }}
       run: |
         npm run rebuild:w -w packages/test
         npm run test:w -w packages/test
 
+    - name: Test wasm32-wasi (4GB)
+      if: ${{ matrix.target == 'wasm32-wasi' }}
+      env:
+        EMNAPI_TEST_4GB: '1'
+      run: npm run test:w -w packages/test
+
     - name: Test wasm32-unknown-unknown
       if: ${{ matrix.target == 'wasm32-unknown-unknown' }}
       run: |
         npm run rebuild:wasm32 -w packages/test
         npm run test:wasm32 -w packages/test
+
+    - name: Test wasm32-unknown-unknown (4GB)
+      if: ${{ matrix.target == 'wasm32-unknown-unknown' }}
+      env:
+        EMNAPI_TEST_4GB: '1'
+      run: npm run test:wasm32 -w packages/test
 
   release:
     name: Release main packages

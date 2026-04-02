@@ -29,7 +29,7 @@ function build (model) {
     '-Wl,--shared-memory',
     '-Wl,--export-memory',
     '-Wl,--export-dynamic',
-    '-Wl,--max-memory=2147483648',
+    '-Wl,--max-memory=4294967296',
     '-Wl,--export=malloc,--export=free',
     join(__dirname, 'main.c')
   ]

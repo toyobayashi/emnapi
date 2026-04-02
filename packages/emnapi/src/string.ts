@@ -134,7 +134,7 @@ export var emnapiString = {
     ptr >>>= 0
     const HEAPU8 = new Uint8Array(wasmMemory.buffer)
     let end = ptr
-    if (length === -1) {
+    if (length === -1 || length === 4294967295) {
       for (; HEAPU8[end];) ++end
     } else {
       end = ptr + (length >>> 0)
@@ -209,11 +209,11 @@ export var emnapiString = {
     if (!ptr || !length) return ''
     ptr >>>= 0
     let end = ptr
-    if (length === -1) {
-      let idx = end >> 1
+    if (length === -1 || length === 4294967295) {
+      let idx = end >>> 1
       const HEAPU16 = new Uint16Array(wasmMemory.buffer)
       while (HEAPU16[idx]) ++idx
-      end = idx << 1
+      end = (idx << 1) >>> 0
     } else {
       end = ptr + (length >>> 0) * 2
     }

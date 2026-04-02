@@ -608,7 +608,7 @@ export function node_api_symbol_for (env: napi_env, utf8description: const_char_
   from64('utf8description')
   from64('result')
 
-  const autoLength = length === -1
+  const autoLength = length === -1 || length === 4294967295
   const sizelength = length >>> 0
   if (length !== 0) {
     $CHECK_ARG!(envObject, utf8description)
