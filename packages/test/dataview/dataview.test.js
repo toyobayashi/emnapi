@@ -5,7 +5,9 @@
 const assert = require('assert')
 const { load } = require('../util')
 
-module.exports = load('dataview').then(test_dataview => {
+const loadPromise = load('dataview')
+
+module.exports = loadPromise.then(test_dataview => {
   // Test for creating dataview with ArrayBuffer
   {
     const buffer = new ArrayBuffer(128)
@@ -42,5 +44,32 @@ module.exports = load('dataview').then(test_dataview => {
     assert.throws(() => {
       test_dataview.CreateDataView(buffer, 10, 200)
     }, RangeError)
+  }
+
+  {
+    const binding = test_dataview
+    const wasmMemory = loadPromise.Module.wasmMemory
+    const before = wasmMemory.buffer
+    const view = binding.CreateDataView(before, 0, 4)
+    if (loadPromise.Module.growMemory) {
+      loadPromise.Module.growMemory(before.byteLength + 65536)
+    } else {
+      wasmMemory.grow(1)
+    }
+
+    const after = wasmMemory.buffer
+    const cloned = binding.CreateDataViewFromJSDataView(view)
+
+    const result = {
+      trackedViewUsesCurrentBuffer: view.buffer === before,
+      bufferIdentityChangedAfterGrow: before !== after,
+      oldBufferLength: before.byteLength,
+      newBufferLength: after.byteLength,
+      returnedViewUsesOldBuffer: cloned.buffer === before,
+      returnedViewUsesNewBuffer: cloned.buffer === after
+    }
+    console.log(result)
+    assert.strictEqual(result.returnedViewUsesOldBuffer, false)
+    assert.strictEqual(result.returnedViewUsesNewBuffer, true)
   }
 })
