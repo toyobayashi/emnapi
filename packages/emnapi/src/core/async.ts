@@ -2,7 +2,7 @@
 
 import { napiModule } from 'emnapi:shared'
 import { ENVIRONMENT_IS_NODE, wasmMemory, ENVIRONMENT_IS_PTHREAD, PThread } from 'emscripten:runtime'
-import { POINTER_SIZE, makeDynCall, makeGetValue, to64 } from 'emscripten:parse-tools'
+import { POINTER_SIZE, from64, makeDynCall, makeGetValue, to64 } from 'emscripten:parse-tools'
 import { _emnapi_set_immediate, _emnapi_next_tick } from '../util'
 
 function emnapiGetWorkerByPthreadPtr (pthreadPtr: number): any {
@@ -28,6 +28,7 @@ function emnapiGetWorkerByPthreadPtr (pthreadPtr: number): any {
 /** @__sig vp */
 export function _emnapi_worker_ref (pthreadPtr: number): void {
   if (ENVIRONMENT_IS_PTHREAD) return
+  from64('pthreadPtr')
   const worker = emnapiGetWorkerByPthreadPtr(pthreadPtr)
   if (worker && typeof worker.ref === 'function') {
     worker.ref()
@@ -37,6 +38,7 @@ export function _emnapi_worker_ref (pthreadPtr: number): void {
 /** @__sig vp */
 export function _emnapi_worker_unref (pthreadPtr: number): void {
   if (ENVIRONMENT_IS_PTHREAD) return
+  from64('pthreadPtr')
   const worker = emnapiGetWorkerByPthreadPtr(pthreadPtr)
   if (worker && typeof worker.unref === 'function') {
     worker.unref()
