@@ -249,6 +249,10 @@ export class Context {
     return this.isolate.createResolver<T>()
   }
 
+  public adjustAmountOfExternalAllocatedMemory (changeInBytes: number | bigint): bigint {
+    return this.isolate.adjustAmountOfExternalAllocatedMemory(changeInBytes)
+  }
+
   public createEnv (
     filename: string,
     moduleApiVersion: number,

@@ -8,9 +8,11 @@ import { detectFeatures, type Resolver, type Features } from './util'
 import type { HandleScope, ICallbackInfo } from './HandleScope'
 import { External, getExternalValue, isExternal } from './External'
 import { deletePrivate, getPrivate, hasPrivate, Private, setPrivate } from './Private'
+import { ExternalMemory } from './ExternalMemory'
 
 export interface IsolateOptions {
   features?: Partial<Features>
+  onExternalMemoryChange?: (current: bigint, old: bigint, delta: bigint) => any
 }
 
 export class Isolate {
@@ -18,6 +20,7 @@ export class Isolate {
   private _globalThis: typeof globalThis
   private _scopeStore: ScopeStore
   private _handleStore: HandleStore
+  private _externalMemory: ExternalMemory
   /** @internal */
   public globalHandleStore: PersistentStore
   public readonly features: Features
@@ -29,6 +32,7 @@ export class Isolate {
     this._handleStore = new HandleStore(this.features)
     this.globalHandleStore = new PersistentStore()
     this._lastException = new Persistent<any>(this)
+    this._externalMemory = new ExternalMemory(options?.onExternalMemoryChange)
   }
 
   //#region Local handles
@@ -122,6 +126,12 @@ export class Isolate {
     const err = this._lastException.deref()
     this._lastException.reset()
     return err
+  }
+  //#endregion
+
+  //#region External Memory
+  public adjustAmountOfExternalAllocatedMemory (changeInBytes: number | bigint): bigint {
+    return this._externalMemory.adjust(changeInBytes)
   }
   //#endregion
 
