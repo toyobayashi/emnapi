@@ -1,4 +1,4 @@
-export { createContext, getDefaultContext, Context, type CleanupHookCallbackFunction } from './Context'
+export { createContext, getDefaultContext, Context, type CleanupHookCallbackFunction, type ContextOptions } from './Context'
 export { Deferred, type IDeferrdValue } from './Deferred'
 export { Env, NodeEnv, type IReferenceBinding } from './env'
 export { EmnapiError, NotSupportWeakRefError, NotSupportBufferError } from './errors'

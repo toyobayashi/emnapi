@@ -24,6 +24,7 @@ import { Reference, ReferenceWithData, ReferenceWithFinalizer, type ReferenceOwn
 import { type IDeferrdValue, Deferred } from './Deferred'
 import { Store } from './Store'
 import { TrackedFinalizer } from './TrackedFinalizer'
+import { ExternalMemory } from './ExternalMemory'
 
 export type CleanupHookCallbackFunction = number | ((arg: number) => void)
 
@@ -110,6 +111,10 @@ class NodejsWaitingRequestCounter {
   }
 }
 
+export interface ContextOptions {
+  onExternalMemoryChange?: (current: bigint, old: bigint, delta: bigint) => any
+}
+
 export class Context {
   private _isStopping = false
   private _canCallIntoJs = true
@@ -122,6 +127,7 @@ export class Context {
   public handleStore = new HandleStore()
   private readonly refCounter?: NodejsWaitingRequestCounter
   private readonly cleanupQueue: CleanupQueue
+  private readonly _externalMemory: ExternalMemory
 
   public feature = {
     supportReflect,
@@ -135,8 +141,9 @@ export class Context {
     MessageChannel: _MessageChannel
   }
 
-  public constructor () {
+  public constructor (options?: ContextOptions) {
     this.cleanupQueue = new CleanupQueue()
+    this._externalMemory = new ExternalMemory(options?.onExternalMemoryChange)
     if (typeof process === 'object' && process !== null && typeof process.once === 'function') {
       this.refCounter = new NodejsWaitingRequestCounter()
       process.once('beforeExit', () => {
@@ -231,7 +238,11 @@ export class Context {
     return Deferred.create(this, value)
   }
 
-  createEnv (
+  public adjustAmountOfExternalAllocatedMemory (changeInBytes: number | bigint): bigint {
+    return this._externalMemory.adjust(changeInBytes)
+  }
+
+  public createEnv (
     filename: string,
     moduleApiVersion: number,
     makeDynCall_vppp: (cb: Ptr) => (a: Ptr, b: Ptr, c: Ptr) => void,
@@ -331,8 +342,8 @@ export class Context {
 
 let defaultContext: Context
 
-export function createContext (): Context {
-  return new Context()
+export function createContext (options?: ContextOptions): Context {
+  return new Context(options)
 }
 
 export function getDefaultContext (): Context {
