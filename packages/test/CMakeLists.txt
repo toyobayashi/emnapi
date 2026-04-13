@@ -93,7 +93,7 @@ if(IS_EMSCRIPTEN)
     "-sMAXIMUM_MEMORY=4294967296"
     "-sSAFE_HEAP=1"
     "-sMODULARIZE=1"
-    "-sEXPORTED_RUNTIME_METHODS=['emnapiInit','ExitStatus']"
+    "-sEXPORTED_RUNTIME_METHODS=['emnapiInit','ExitStatus','wasmMemory','growMemory']"
   )
 elseif(IS_WASI_THREADS)
   add_compile_options("-fno-exceptions")
