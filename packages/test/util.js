@@ -93,6 +93,7 @@ function loadPath (request, options) {
             }
           }
         }).then((source) => {
+          napiModule.wasmMemory = source.instance.exports.memory
           if (process.env.EMNAPI_TEST_4GB) {
             source.instance.exports.malloc(2147483648)
           }
@@ -157,6 +158,7 @@ function loadPath (request, options) {
           }
         }).then(({ instance }) => {
           wasmMemory = instance.exports.memory || sharedMemory
+          napiModule.wasmMemory = wasmMemory
           resolve(napiModule.exports)
         }).catch(reject)
       })

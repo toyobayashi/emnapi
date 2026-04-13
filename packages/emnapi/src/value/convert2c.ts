@@ -115,7 +115,7 @@ export function napi_get_typedarray_info (
   if (!(ArrayBuffer.isView(jsValue)) && !(jsValue instanceof DataView)) {
     return envObject.setLastError(napi_status.napi_invalid_arg)
   }
-  const v: ArrayBufferView = jsValue
+  let v: ArrayBufferView = jsValue
   if (type) {
     from64('type')
     let t: napi_typedarray_type
@@ -148,13 +148,13 @@ export function napi_get_typedarray_info (
     }
     makeSetValue('type', 0, 't', 'i32')
   }
+  v = emnapiExternalMemory.getOrUpdateMemoryView(v)
   if (length) {
     from64('length')
     makeSetValue('length', 0, 'v.length', SIZE_TYPE)
   }
-  let buffer: ArrayBufferLike
+
   if (data || arraybuffer) {
-    buffer = v.buffer
     if (data) {
       from64('data')
 
@@ -164,7 +164,7 @@ export function napi_get_typedarray_info (
     if (arraybuffer) {
       from64('arraybuffer')
 
-      const ab = emnapiCtx.napiValueFromJsValue(buffer)
+      const ab = emnapiCtx.napiValueFromJsValue(v.buffer)
       makeSetValue('arraybuffer', 0, 'ab', '*')
     }
   }
@@ -213,14 +213,13 @@ export function napi_get_dataview_info (
   if (!(jsValue instanceof DataView)) {
     return envObject.setLastError(napi_status.napi_invalid_arg)
   }
-  const v = jsValue as DataView
+  const v = emnapiExternalMemory.getOrUpdateMemoryView(jsValue as DataView)
   if (byte_length) {
     from64('byte_length')
     makeSetValue('byte_length', 0, 'v.byteLength', SIZE_TYPE)
   }
-  let buffer: ArrayBufferLike
+
   if (data || arraybuffer) {
-    buffer = v.buffer
     if (data) {
       from64('data')
 
@@ -230,7 +229,7 @@ export function napi_get_dataview_info (
     if (arraybuffer) {
       from64('arraybuffer')
 
-      const ab = emnapiCtx.napiValueFromJsValue(buffer)
+      const ab = emnapiCtx.napiValueFromJsValue(v.buffer)
       makeSetValue('arraybuffer', 0, 'ab', '*')
     }
   }
