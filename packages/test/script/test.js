@@ -13,7 +13,6 @@ let ignore = [
   'rust/**/*',
   'tsfn2/tsfn2_st.test.js',
   'async/async_st.test.js',
-  'node-addon-api/async_progress_worker.test.js', // flaky test, needs investigation
 ]
 
 const pthread = [
