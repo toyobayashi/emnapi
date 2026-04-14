@@ -42,9 +42,10 @@ function loadPath (request, options) {
     }
 
     if (process.env.EMNAPI_TEST_WASI) {
-      const { WASI } = require('./wasi')
+      const { WASI } = require('node:wasi')
       const { createNapiModule, loadNapiModule } = require('@emnapi/core')
       const wasi = new WASI({
+        version: 'preview1',
         fs
       })
       const napiModule = createNapiModule({
