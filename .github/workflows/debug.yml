@@ -19,8 +19,6 @@ jobs:
         target: 'debug'
         needs-emscripten: 'true'
         needs-wasi-sdk: 'true'
-    - name: NPM Build
-      run: npm run build --workspaces --if-present
-    - name: Setup tmate session
+    - name: Setup debug session
       uses: ./.github/actions/debugger
       if: ${{ github.event_name == 'workflow_dispatch' }}
