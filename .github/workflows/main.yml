@@ -41,7 +41,6 @@ jobs:
       run: npm install -g npm@latest
     - name: NPM Build main packages
       if: ${{ inputs.release_target == 'main' }}
-      shell: bash
       run: npm run build --workspaces --if-present
     - name: Publish main packages
       if: ${{ inputs.release_target == 'main' }}
@@ -50,7 +49,6 @@ jobs:
         npm publish --ignore-scripts -w packages/runtime -w packages/node -w packages/emnapi -w packages/core
     - name: Build independent package
       if: ${{ inputs.release_target != 'main' }}
-      shell: bash
       run: npm run build -w packages/${{ inputs.release_target }}
     - name: Publish independent package
       if: ${{ inputs.release_target != 'main' }}
