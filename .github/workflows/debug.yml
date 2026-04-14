@@ -1,0 +1,33 @@
+name: Debug
+
+on:
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: write
+
+jobs:
+  debug:
+    name: Debug with tmate
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v6
+    - uses: ./.github/actions/setup-target-ci
+      with:
+        target: 'debug'
+        needs-emscripten: 'true'
+        needs-wasi-sdk: 'true'
+    - name: NPM Build
+      run: npm run build --workspaces --if-present
+    - name: Setup tmate session
+      uses: ./.github/actions/debugger
+      if: ${{ github.event_name == 'workflow_dispatch' }}
+
+    name: Debug
+    runs-on: ubuntu-latest
+    steps:
+    - name: Setup tmate session
+      uses: mxschmitt/action-tmate@v3
+      if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
