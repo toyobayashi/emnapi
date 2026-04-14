@@ -1,26 +1,14 @@
-name: Build
+name: Release
 
 on:
-  push:
-    paths-ignore:
-    - '**/*.md'
-    - '**/docs/**'
-    branches:
-    - main
-    - test-*
-  pull_request:
-    paths-ignore:
-    - '**/*.md'
-    - '**/docs/**'
   workflow_dispatch:
     inputs:
-      release_independent_package:
-        description: 'Release independent package'
+      release_target:
+        description: 'Release target'
         required: true
-        default: 'none'
+        default: 'main'
         type: choice
         options:
-        - 'none'
         - 'main'
         - 'wasi-threads'
         - 'ts-transform-macro'
@@ -32,272 +20,71 @@ permissions:
   contents: write
 
 env:
-  WASI_VERSION: '29'
-  WASI_VERSION_FULL: '29.0'
-  WASI_SDK_PATH: './wasi-sdk-29.0'
-  EM_CACHE_FOLDER: 'emsdk-cache'
   NODE_VERSION: '24.11.1'
+  MAIN_EM_VERSION: '4.0.11'
 
 jobs:
-  build:
-    timeout-minutes: 20
-    name: Build
-    if: ${{ github.event_name != 'workflow_dispatch' || (github.event_name == 'workflow_dispatch' && (!inputs.release_independent_package || inputs.release_independent_package == 'none')) }}
-    runs-on: ubuntu-latest
-    env:
-      EM_VERSION: '5.0.3'
-    strategy:
-      fail-fast: false
-      matrix:
-        target:
-        - 'wasm32-unknown-emscripten'
-        - 'wasm64-unknown-emscripten'
-        - 'wasm32-wasi-threads'
-        # - 'wasm32-unknown-unknown'
-        # - 'wasm32-wasi'
-
-    steps:
-    - uses: actions/checkout@v4
-    - name: Install Ninja
-      run: |
-        sudo apt-get update
-        sudo apt-get install ninja-build
-    - name: Setup Emscripten cache
-      if: ${{ contains(matrix.target, 'emscripten') }}
-      id: cache-system-libraries
-      uses: actions/cache@v3
-      with:
-        path: ${{env.EM_CACHE_FOLDER}}
-        key: ${{env.EM_VERSION}}-${{ runner.os }}-${{ matrix.target }}
-    - uses: mymindstorm/setup-emsdk@v14
-      if: ${{ contains(matrix.target, 'emscripten') }}
-      with:
-        version: ${{ env.EM_VERSION }}
-        # no-cache: true
-        actions-cache-folder: ${{ env.EM_CACHE_FOLDER }}
-
-    # - uses: actions-rs/toolchain@v1
-    #   if: ${{ matrix.target == 'wasm32-unknown-unknown' || matrix.target == 'wasm32-wasi' }}
-    #   with:
-    #     toolchain: nightly
-    #     default: true
-    #     target: ${{ matrix.target }}
-
-    - name: Install wasi-sdk
-      if: ${{ matrix.target == 'wasm32-unknown-unknown' || matrix.target == 'wasm32-wasi' || matrix.target == 'wasm32-wasi-threads' }}
-      shell: bash
-      run: |
-        wget -q https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${WASI_VERSION}/wasi-sdk-${WASI_VERSION_FULL}-x86_64-linux.tar.gz
-        mkdir -p $WASI_SDK_PATH
-        tar zxvf wasi-sdk-${WASI_VERSION_FULL}-x86_64-linux.tar.gz -C $WASI_SDK_PATH --strip 1
-
-    - uses: actions/setup-node@v3
-      with:
-        node-version: ${{ env.NODE_VERSION }}
-        registry-url: 'https://registry.npmjs.org'
-
-    - name: NPM Install
-      shell: bash
-      run: |
-        npm install -g node-gyp
-        npm install --ignore-scripts
-
-    - name: Fetch v8 headers
-      run: node ./script/fetch-v8-headers.js
-
-    - name: NPM Build
-      shell: bash
-      run: npm run build --workspaces --if-present
-
-    - name: Test Emscripten ESM library
-      shell: bash
-      run: npm run test -w packages/ts-transform-emscripten-esm-library
-
-    - name: Test @emnapi/wasi-threads
-      if: ${{ matrix.target == 'wasm32-wasi-threads' }}
-      shell: bash
-      run: |
-        node ./packages/wasi-threads/test/build.js
-        npm run test -w packages/wasi-threads
-      timeout-minutes: 1
-
-    # - name: Lint
-    #   run: npm run lint
-
-    - name: Test wasm32-wasi-threads
-      if: ${{ matrix.target == 'wasm32-wasi-threads' }}
-      run: |
-        npm run rebuild:wt -w packages/test
-        npm run test:wt -w packages/test
-
-    - name: Test wasm32-wasi-threads (4GB)
-      if: ${{ matrix.target == 'wasm32-wasi-threads' }}
-      env:
-        EMNAPI_TEST_4GB: '1'
-      run: npm run test:wt -w packages/test
-
-    - name: Test wasm32-unknown-emscripten
-      if: ${{ matrix.target == 'wasm32-unknown-emscripten' }}
-      run: |
-        npm run test:version
-        npm run rebuild -w packages/test
-        npm run test -w packages/test
-
-    - name: Test wasm32-unknown-emscripten (4GB)
-      if: ${{ matrix.target == 'wasm32-unknown-emscripten' }}
-      env:
-        EMNAPI_TEST_4GB: '1'
-      run: npm run test -w packages/test
-
-    - name: Test wasm64-unknown-emscripten
-      if: ${{ matrix.target == 'wasm64-unknown-emscripten' }}
-      env:
-        MEMORY64: '1'
-        UV_THREADPOOL_SIZE: '2'
-        NODE_TEST_KNOWN_GLOBALS: '0'
-      run: |
-        node ./packages/test/script/build-emscripten.js Debug
-        node ./packages/test/script/test.js
-
-    - name: Test wasm64-unknown-emscripten (4GB)
-      if: ${{ matrix.target == 'wasm64-unknown-emscripten' }}
-      env:
-        MEMORY64: '1'
-        EMNAPI_TEST_4GB: '1'
-        UV_THREADPOOL_SIZE: '2'
-        NODE_TEST_KNOWN_GLOBALS: '0'
-      run: node ./packages/test/script/test.js
-
-    - name: Test wasm32-wasi
-      if: ${{ matrix.target == 'wasm32-wasi' }}
-      run: |
-        npm run rebuild:w -w packages/test
-        npm run test:w -w packages/test
-
-    - name: Test wasm32-wasi (4GB)
-      if: ${{ matrix.target == 'wasm32-wasi' }}
-      env:
-        EMNAPI_TEST_4GB: '1'
-      run: npm run test:w -w packages/test
-
-    - name: Test wasm32-unknown-unknown
-      if: ${{ matrix.target == 'wasm32-unknown-unknown' }}
-      run: |
-        npm run rebuild:wasm32 -w packages/test
-        npm run test:wasm32 -w packages/test
-
-    - name: Test wasm32-unknown-unknown (4GB)
-      if: ${{ matrix.target == 'wasm32-unknown-unknown' }}
-      env:
-        EMNAPI_TEST_4GB: '1'
-      run: npm run test:wasm32 -w packages/test
-
   release:
-    name: Release main packages
-    env:
-      EM_VERSION: '4.0.11'
-    if: ${{ github.event_name == 'workflow_dispatch' && inputs.release_independent_package == 'main' }}
-    # needs: build
+    name: Release ${{ inputs.release_target }}
     runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v4
-    - name: Install Ninja
-      run: |
-        sudo apt-get update
-        sudo apt-get install ninja-build
-    - uses: mymindstorm/setup-emsdk@v14
+    - uses: ./.github/actions/setup-target-ci
       with:
-        version: ${{ env.EM_VERSION }}
-        # no-cache: true
-        actions-cache-folder: ${{ env.EM_CACHE_FOLDER }}
-    - name: Install wasi-sdk
-      shell: bash
-      run: |
-        wget -q https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${WASI_VERSION}/wasi-sdk-${WASI_VERSION_FULL}-x86_64-linux.tar.gz
-        mkdir -p $WASI_SDK_PATH
-        tar zxvf wasi-sdk-${WASI_VERSION_FULL}-x86_64-linux.tar.gz -C $WASI_SDK_PATH --strip 1
-    - uses: actions/setup-node@v3
-      with:
+        target: release-${{ inputs.release_target }}
         node-version: ${{ env.NODE_VERSION }}
-        registry-url: 'https://registry.npmjs.org'
-    
+        em-version: ${{ env.MAIN_EM_VERSION }}
+        needs-emscripten: ${{ inputs.release_target == 'main' && 'true' || 'false' }}
+        needs-wasi-sdk: ${{ inputs.release_target == 'main' && 'true' || 'false' }}
     - name: Update npm
       run: npm install -g npm@latest
-    - name: NPM Install
-      shell: bash
-      run: |
-        npm install -g node-gyp
-        npm install --ignore-scripts
-    
-    - name: Fetch v8 headers
-      run: node ./script/fetch-v8-headers.js
-
-    - name: NPM Build
+    - name: NPM Build main packages
+      if: ${{ inputs.release_target == 'main' }}
       shell: bash
       run: npm run build --workspaces --if-present
-
-    - name: Publish
+    - name: Publish main packages
+      if: ${{ inputs.release_target == 'main' }}
       run: |
         node ./script/release.js
         npm publish --ignore-scripts -w packages/runtime -w packages/node -w packages/emnapi -w packages/core
-    
-    - name: Get version
-      id: pkg
+    - name: Build independent package
+      if: ${{ inputs.release_target != 'main' }}
+      shell: bash
+      run: npm run build -w packages/${{ inputs.release_target }}
+    - name: Publish independent package
+      if: ${{ inputs.release_target != 'main' }}
+      run: npm publish --ignore-scripts -w packages/${{ inputs.release_target }}
+    - name: Get release metadata
+      id: meta
+      shell: bash
       run: |
-        version=$(node -p "require('./packages/emnapi/package.json').version")
-        echo "version=$version" >> $GITHUB_OUTPUT
-
+        if [ "${{ inputs.release_target }}" = "main" ]; then
+          version=$(node -p "require('./packages/emnapi/package.json').version")
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=v$version" >> "$GITHUB_OUTPUT"
+          echo "release_name=v$version" >> "$GITHUB_OUTPUT"
+          echo "create_release=true" >> "$GITHUB_OUTPUT"
+        else
+          version=$(node -p "require('./packages/${{ inputs.release_target }}/package.json').version")
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=${{ inputs.release_target }}-v$version" >> "$GITHUB_OUTPUT"
+          echo "release_name=${{ inputs.release_target }}-v$version" >> "$GITHUB_OUTPUT"
+          echo "create_release=false" >> "$GITHUB_OUTPUT"
+        fi
     - name: Create tag
       run: |
-        git tag v${{ steps.pkg.outputs.version }}
-        git push origin v${{ steps.pkg.outputs.version }}
-
-    - name: Create release
+        git tag ${{ steps.meta.outputs.tag }}
+        git push origin ${{ steps.meta.outputs.tag }}
+    - name: Create GitHub release
+      if: ${{ steps.meta.outputs.create_release == 'true' }}
       uses: softprops/action-gh-release@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: v${{ steps.pkg.outputs.version }}
-        name: v${{ steps.pkg.outputs.version }}
+        tag_name: ${{ steps.meta.outputs.tag }}
+        name: ${{ steps.meta.outputs.release_name }}
         draft: true
         prerelease: false
         generate_release_notes: true
         files: ./script/emnapi.zip
-
-  release-independent-package:
-    name: Release independent package
-    if: ${{ github.event_name == 'workflow_dispatch' && inputs.release_independent_package && inputs.release_independent_package != 'none' && inputs.release_independent_package != 'main' }}
-    # needs: build
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v4
-    - uses: actions/setup-node@v3
-      with:
-        node-version: ${{ env.NODE_VERSION }}
-        registry-url: 'https://registry.npmjs.org'
-
-    - name: NPM Install
-      shell: bash
-      run: |
-        npm install -g node-gyp
-        npm install --ignore-scripts
-
-    - name: NPM Build
-      shell: bash
-      run: npm run build -w packages/${{ inputs.release_independent_package }}
-
-    - name: Publish
-      run: npm publish --ignore-scripts -w packages/${{ inputs.release_independent_package }}
-    
-    - name: Get version
-      id: pkg
-      run: |
-        version=$(node -p "require('./packages/${{ inputs.release_independent_package }}/package.json').version")
-        echo "version=$version" >> $GITHUB_OUTPUT
-
-    - name: Create tag
-      run: |
-        git tag ${{ inputs.release_independent_package }}-v${{ steps.pkg.outputs.version }}
-        git push origin ${{ inputs.release_independent_package }}-v${{ steps.pkg.outputs.version }}

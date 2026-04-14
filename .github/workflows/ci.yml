@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    paths-ignore:
+    - '**/*.md'
+    - '**/docs/**'
+    branches:
+    - main
+    - test-*
+  pull_request:
+    paths-ignore:
+    - '**/*.md'
+    - '**/docs/**'
+
+permissions:
+  id-token: write
+  contents: write
+
+jobs:
+  wasm32-unknown-emscripten:
+    uses: ./.github/workflows/ci-wasm32-unknown-emscripten.yml
+    secrets: inherit
+
+  wasm64-unknown-emscripten:
+    uses: ./.github/workflows/ci-wasm64-unknown-emscripten.yml
+    secrets: inherit
+
+  wasm32-wasip1-threads:
+    uses: ./.github/workflows/ci-wasm32-wasip1-threads.yml
+    secrets: inherit
+
+  wasm32-wasip1:
+    uses: ./.github/workflows/ci-wasm32-wasip1.yml
+    secrets: inherit
+
+  wasm32-unknown-unknown:
+    uses: ./.github/workflows/ci-wasm32-unknown-unknown.yml
+    secrets: inherit

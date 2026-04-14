@@ -1,0 +1,89 @@
+name: Setup target CI
+description: Prepare toolchains and dependencies for target-specific CI jobs
+
+inputs:
+  target:
+    description: Target identifier for cache keys and logging
+    required: true
+  node-version:
+    description: Node.js version
+    required: false
+    default: '24.11.1'
+  em-version:
+    description: Emscripten version
+    required: false
+    default: '5.0.3'
+  em-cache-folder:
+    description: Emscripten cache folder
+    required: false
+    default: 'emsdk-cache'
+  wasi-version:
+    description: WASI SDK version
+    required: false
+    default: '29'
+  wasi-version-full:
+    description: Full WASI SDK version
+    required: false
+    default: '29.0'
+  wasi-sdk-path:
+    description: WASI SDK install path
+    required: false
+    default: './wasi-sdk-29.0'
+  needs-emscripten:
+    description: Whether Emscripten is needed
+    required: false
+    default: 'false'
+  needs-wasi-sdk:
+    description: Whether WASI SDK is needed
+    required: false
+    default: 'false'
+
+runs:
+  using: composite
+  steps:
+  - name: Export CI environment
+    shell: bash
+    run: |
+      echo "WASI_VERSION=${{ inputs.wasi-version }}" >> "$GITHUB_ENV"
+      echo "WASI_VERSION_FULL=${{ inputs.wasi-version-full }}" >> "$GITHUB_ENV"
+      echo "WASI_SDK_PATH=${{ inputs.wasi-sdk-path }}" >> "$GITHUB_ENV"
+      echo "EM_CACHE_FOLDER=${{ inputs.em-cache-folder }}" >> "$GITHUB_ENV"
+      echo "EM_VERSION=${{ inputs.em-version }}" >> "$GITHUB_ENV"
+      echo "CI_TARGET=${{ inputs.target }}" >> "$GITHUB_ENV"
+  - name: Install Ninja
+    shell: bash
+    run: |
+      sudo apt-get update
+      sudo apt-get install ninja-build
+  - name: Setup Emscripten cache
+    if: ${{ inputs.needs-emscripten == 'true' }}
+    uses: actions/cache@v3
+    with:
+      path: ${{ inputs.em-cache-folder }}
+      key: ${{ inputs.em-version }}-${{ runner.os }}-${{ inputs.target }}
+  - name: Setup Emscripten
+    if: ${{ inputs.needs-emscripten == 'true' }}
+    uses: emscripten-core/setup-emsdk@v16
+    with:
+      version: ${{ inputs.em-version }}
+      actions-cache-folder: ${{ inputs.em-cache-folder }}
+  - name: Install wasi-sdk
+    if: ${{ inputs.needs-wasi-sdk == 'true' }}
+    shell: bash
+    run: |
+      wget -q https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${{ inputs.wasi-version }}/wasi-sdk-${{ inputs.wasi-version-full }}-x86_64-linux.tar.gz
+      mkdir -p ${{ inputs.wasi-sdk-path }}
+      tar zxvf wasi-sdk-${{ inputs.wasi-version-full }}-x86_64-linux.tar.gz -C ${{ inputs.wasi-sdk-path }} --strip 1
+  - name: Setup Node.js
+    uses: actions/setup-node@v3
+    with:
+      node-version: ${{ inputs.node-version }}
+      registry-url: 'https://registry.npmjs.org'
+  - name: NPM Install
+    shell: bash
+    run: |
+      npm install -g node-gyp
+      npm install --ignore-scripts
+  - name: Fetch v8 headers
+    shell: bash
+    run: node ./script/fetch-v8-headers.js
