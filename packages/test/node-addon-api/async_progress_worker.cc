@@ -38,6 +38,7 @@ class TestWorker : public AsyncProgressWorker<ProgressData> {
     for (int32_t idx = 0; idx < _times; idx++) {
       data.progress = idx;
       progress.Send(&data, 1);
+
       {
         std::unique_lock<std::mutex> lk(_cvm);
         _cv.wait(lk, [this] { return dataSent; });
