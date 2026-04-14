@@ -164,6 +164,7 @@ export var napiModule: INapiModule = {
       const envObject = napiModule.envObject || (() => {
         let address = _emnapi_create_env() as number
         from64('address')
+        address += 8
         const envObject = napiModule.envObject = emnapiEnv = emnapiCtx.createEnv(
           napiModule.filename,
           moduleApiVersion,
