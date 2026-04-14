@@ -19,7 +19,7 @@ permissions:
 
 jobs:
   wasm32-unknown-emscripten:
-    timeout-minutes: 20
+    timeout-minutes: 15
     name: CI wasm32-unknown-emscripten
     runs-on: ubuntu-latest
 
@@ -39,11 +39,13 @@ jobs:
       run: npm run test:version
     - name: Test target
       run: npm run test -w packages/test
+      timeout-minutes: 3
     - name: Test target (4GB)
       run: EMNAPI_TEST_4GB=1 npm run test -w packages/test
+      timeout-minutes: 3
 
   wasm64-unknown-emscripten:
-    timeout-minutes: 20
+    timeout-minutes: 15
     name: CI wasm64-unknown-emscripten
     runs-on: ubuntu-latest
 
@@ -59,11 +61,13 @@ jobs:
       run: MEMORY64=1 node ./packages/test/script/build-emscripten.js Debug
     - name: Test target
       run: MEMORY64=1 UV_THREADPOOL_SIZE=2 NODE_TEST_KNOWN_GLOBALS=0 node ./packages/test/script/test.js
+      timeout-minutes: 3
     - name: Test target (4GB)
       run: MEMORY64=1 EMNAPI_TEST_4GB=1 UV_THREADPOOL_SIZE=2 NODE_TEST_KNOWN_GLOBALS=0 node ./packages/test/script/test.js
+      timeout-minutes: 3
 
   wasm32-wasip1-threads:
-    timeout-minutes: 20
+    timeout-minutes: 15
     name: CI wasm32-wasip1-threads
     runs-on: ubuntu-latest
 
@@ -84,11 +88,13 @@ jobs:
       timeout-minutes: 1
     - name: Test target
       run: npm run test:wt -w packages/test
+      timeout-minutes: 3
     - name: Test target (4GB)
       run: EMNAPI_TEST_4GB=1 npm run test:wt -w packages/test
+      timeout-minutes: 3
 
   wasm32-wasip1:
-    timeout-minutes: 20
+    timeout-minutes: 15
     name: CI wasm32-wasip1
     runs-on: ubuntu-latest
 
@@ -108,7 +114,7 @@ jobs:
       run: EMNAPI_TEST_4GB=1 npm run test:w -w packages/test
 
   wasm32-unknown-unknown:
-    timeout-minutes: 20
+    timeout-minutes: 15
     name: CI wasm32-unknown-unknown
     runs-on: ubuntu-latest
 
