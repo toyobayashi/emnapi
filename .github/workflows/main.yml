@@ -29,7 +29,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     - uses: ./.github/actions/setup-target-ci
       with:
         target: release-${{ inputs.release_target }}
@@ -76,7 +76,7 @@ jobs:
         git push origin ${{ steps.meta.outputs.tag }}
     - name: Create GitHub release
       if: ${{ steps.meta.outputs.create_release == 'true' }}
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v3
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
