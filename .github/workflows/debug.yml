@@ -9,7 +9,7 @@ permissions:
 
 jobs:
   debug:
-    name: Debug with tmate
+    name: Debug with upterm
     runs-on: ubuntu-latest
 
     steps:
