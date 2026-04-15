@@ -136,8 +136,15 @@ const emnapiTSFN = {
         const payload = __emnapi__.payload
         if (type === 'tsfn-send') {
           const pendng = payload.tsfn + emnapiTSFN.offset.async_pending
-          if (Atomics.exchange(new Int32Array(wasmMemory.buffer), pendng >>> 2, 0) !== 0) {
-            emnapiTSFN.dispatch(payload.tsfn)
+          if (Atomics.load(new Int32Array(wasmMemory.buffer), pendng >>> 2) !== 0) {
+            emnapiCtx.features.setImmediate(() => {
+              emnapiCtx.features.setImmediate(() => {
+                if (Atomics.exchange(new Int32Array(wasmMemory.buffer), pendng >>> 2, 0) === 0) {
+                  return
+                }
+                emnapiTSFN.dispatch(payload.tsfn)
+              })
+            })
           }
         }
       }
