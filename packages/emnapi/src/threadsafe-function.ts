@@ -46,6 +46,7 @@ const emnapiTSFN = {
     /* size_t */ queue_size: 0,
     /* bool */ is_some: 0,
     /* void* */ queue: 0,
+    // Reuse uv_async_t storage as JS-side wakeup state: pending event + scheduled drain.
     async_pending: 0,
     async_u_fd: 0,
     /* size_t */ thread_count: 0,
@@ -137,14 +138,7 @@ const emnapiTSFN = {
         if (type === 'tsfn-send') {
           const pendng = payload.tsfn + emnapiTSFN.offset.async_pending
           if (Atomics.load(new Int32Array(wasmMemory.buffer), pendng >>> 2) !== 0) {
-            emnapiCtx.features.setImmediate(() => {
-              emnapiCtx.features.setImmediate(() => {
-                if (Atomics.exchange(new Int32Array(wasmMemory.buffer), pendng >>> 2, 0) === 0) {
-                  return
-                }
-                emnapiTSFN.dispatch(payload.tsfn)
-              })
-            })
+            emnapiTSFN.enqueue(payload.tsfn)
           }
         }
       }
@@ -737,6 +731,47 @@ const emnapiTSFN = {
       emnapiTSFN.send(func)
     }
   },
+  enqueue (func: number): void {
+    // `pending` means a worker thread has requested a wakeup that has not
+    // been drained on the main thread yet.
+    const pending = func + emnapiTSFN.offset.async_pending
+    // `scheduled` prevents queueing the same main-thread drain chain more than
+    // once while a previous wakeup is still in flight.
+    const scheduled = func + emnapiTSFN.offset.async_u_fd
+    const i32a = new Int32Array(wasmMemory.buffer)
+    if (Atomics.exchange(i32a, scheduled >>> 2, 1) !== 0) {
+      return
+    }
+
+    // Match uv_async_send-style coalescing in JS: the first turn represents
+    // the wakeup reaching the main thread, and the second turn performs the
+    // actual TSFN drain after nearby Send/Signal calls have had a chance to
+    // collapse into the shared AsyncProgressWorker state.
+    emnapiCtx.features.setImmediate(() => {
+      if (Atomics.load(i32a, pending >>> 2) === 0) {
+        Atomics.store(i32a, scheduled >>> 2, 0)
+        return
+      }
+
+      emnapiCtx.features.setImmediate(() => {
+        try {
+          // Consume the coalesced wakeup once, then let dispatch() observe any
+          // queue mutations through dispatch_state like the C implementation.
+          if (Atomics.exchange(i32a, pending >>> 2, 0) === 0) {
+            return
+          }
+          emnapiTSFN.dispatch(func)
+        } finally {
+          // Allow a later wakeup to schedule a new drain chain. If another
+          // worker-thread send raced with this drain, enqueue one more turn.
+          Atomics.store(i32a, scheduled >>> 2, 0)
+          if (Atomics.load(i32a, pending >>> 2) !== 0) {
+            emnapiTSFN.enqueue(func)
+          }
+        }
+      })
+    })
+  },
   send (func: number): void {
     const current_state = Atomics.or(new Uint32Array(wasmMemory.buffer), (func + emnapiTSFN.offset.dispatch_state) >>> 2, 1 << 1)
     if ((current_state & 1) === 1) {
@@ -744,15 +779,16 @@ const emnapiTSFN = {
     }
 
     const pendng = func + emnapiTSFN.offset.async_pending
-    const busy = func + emnapiTSFN.offset.async_u_fd
+    // A wakeup is already pending, so this send only needs to leave the queued
+    // work in the TSFN queue and let the existing drain pick it up.
     if (Atomics.load(new Int32Array(wasmMemory.buffer), pendng >>> 2) !== 0) {
       return
     }
 
-    Atomics.add(new Int32Array(wasmMemory.buffer), busy >>> 2, 1)
-
     if (Atomics.exchange(new Int32Array(wasmMemory.buffer), pendng >>> 2, 1) === 0) {
       if ((typeof ENVIRONMENT_IS_PTHREAD !== 'undefined') && ENVIRONMENT_IS_PTHREAD) {
+        // Worker threads only post a wakeup token. Main-thread draining is
+        // serialized by enqueue() once the message is received.
         postMessage({
           __emnapi__: {
             type: 'tsfn-send',
@@ -762,16 +798,11 @@ const emnapiTSFN = {
           }
         })
       } else {
-        emnapiCtx.features.setImmediate(() => {
-          if (Atomics.exchange(new Int32Array(wasmMemory.buffer), pendng >>> 2, 0) === 0) {
-            return
-          }
-          emnapiTSFN.dispatch(func)
-        })
+        // On the main thread we can skip the cross-thread hop and schedule the
+        // coalesced drain chain directly.
+        emnapiTSFN.enqueue(func)
       }
     }
-
-    Atomics.add(new Int32Array(wasmMemory.buffer), busy >>> 2, -1)
   }
 }
 

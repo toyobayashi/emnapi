@@ -3,7 +3,6 @@
 #include <chrono>
 #include <condition_variable>
 #include <mutex>
-#include <cstdio>
 #include <thread>
 
 #if (NAPI_VERSION > 3)
@@ -172,19 +171,15 @@ class SignalAfterProgressTestWorker : public AsyncProgressWorker<ProgressData> {
  protected:
   void Execute(const ExecutionProgress& progress) override {
     ProgressData data{0};
-    fprintf(stderr, "progress.Send(&data, 1);\n");
     progress.Send(&data, 1);
-    fprintf(stderr, "progress.Signal();\n");
     progress.Signal();
   }
 
   void OnProgress(const ProgressData* /* data */, size_t count) override {
-    fprintf(stderr, "OnProgress called with count: %zu\n", count);
     Napi::Env env = Env();
     bool error = false;
     Napi::String reason = Napi::String::New(env, "No error");
     if (count != 1) {
-      fprintf(stderr, "Error: expected count to be 1, but got %zu\n", count);
       error = true;
       reason = Napi::String::New(env, "expect 1 count of data");
     }
