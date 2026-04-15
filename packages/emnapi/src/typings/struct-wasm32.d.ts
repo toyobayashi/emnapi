@@ -27,6 +27,8 @@ declare const enum NapiTSFNOffset32 {
   queue_size = 60,
   queue = 64,
   async = 72,
+  async_pending = 132,
+  async_u_fd = 96,
   thread_count = 136,
   state = 140,
   dispatch_state = 144,
