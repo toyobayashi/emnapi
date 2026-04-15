@@ -46,6 +46,8 @@ const emnapiTSFN = {
     /* size_t */ queue_size: 0,
     /* bool */ is_some: 0,
     /* void* */ queue: 0,
+    async_pending: 0,
+    async_u_fd: 0,
     /* size_t */ thread_count: 0,
     /* int32_t */ state: 0,
     /* atomic_uchar */ dispatch_state: 0,
@@ -70,6 +72,8 @@ const emnapiTSFN = {
     emnapiTSFN.offset.queue_size = NapiTSFNOffset64.queue_size
     emnapiTSFN.offset.is_some = NapiTSFNOffset64.async_resource_is_some
     emnapiTSFN.offset.queue = NapiTSFNOffset64.queue
+    emnapiTSFN.offset.async_pending = NapiTSFNOffset64.async_pending
+    emnapiTSFN.offset.async_u_fd = NapiTSFNOffset64.async_u_fd
     emnapiTSFN.offset.thread_count = NapiTSFNOffset64.thread_count
     emnapiTSFN.offset.state = NapiTSFNOffset64.state
     emnapiTSFN.offset.dispatch_state = NapiTSFNOffset64.dispatch_state
@@ -92,6 +96,8 @@ const emnapiTSFN = {
     emnapiTSFN.offset.queue_size = NapiTSFNOffset32.queue_size
     emnapiTSFN.offset.is_some = NapiTSFNOffset32.async_resource_is_some
     emnapiTSFN.offset.queue = NapiTSFNOffset32.queue
+    emnapiTSFN.offset.async_pending = NapiTSFNOffset32.async_pending
+    emnapiTSFN.offset.async_u_fd = NapiTSFNOffset32.async_u_fd
     emnapiTSFN.offset.thread_count = NapiTSFNOffset32.thread_count
     emnapiTSFN.offset.state = NapiTSFNOffset32.state
     emnapiTSFN.offset.dispatch_state = NapiTSFNOffset32.dispatch_state
@@ -129,7 +135,10 @@ const emnapiTSFN = {
         const type = __emnapi__.type
         const payload = __emnapi__.payload
         if (type === 'tsfn-send') {
-          emnapiTSFN.dispatch(payload.tsfn)
+          const pendng = payload.tsfn + emnapiTSFN.offset.async_pending
+          if (Atomics.exchange(new Int32Array(wasmMemory.buffer), pendng >>> 2, 0) !== 0) {
+            emnapiTSFN.dispatch(payload.tsfn)
+          }
         }
       }
     }
@@ -726,20 +735,36 @@ const emnapiTSFN = {
     if ((current_state & 1) === 1) {
       return
     }
-    if ((typeof ENVIRONMENT_IS_PTHREAD !== 'undefined') && ENVIRONMENT_IS_PTHREAD) {
-      postMessage({
-        __emnapi__: {
-          type: 'tsfn-send',
-          payload: {
-            tsfn: func
-          }
-        }
-      })
-    } else {
-      emnapiCtx.features.setImmediate(() => {
-        emnapiTSFN.dispatch(func)
-      })
+
+    const pendng = func + emnapiTSFN.offset.async_pending
+    const busy = func + emnapiTSFN.offset.async_u_fd
+    if (Atomics.load(new Int32Array(wasmMemory.buffer), pendng >>> 2) !== 0) {
+      return
     }
+
+    Atomics.add(new Int32Array(wasmMemory.buffer), busy >>> 2, 1)
+
+    if (Atomics.exchange(new Int32Array(wasmMemory.buffer), pendng >>> 2, 1) === 0) {
+      if ((typeof ENVIRONMENT_IS_PTHREAD !== 'undefined') && ENVIRONMENT_IS_PTHREAD) {
+        postMessage({
+          __emnapi__: {
+            type: 'tsfn-send',
+            payload: {
+              tsfn: func
+            }
+          }
+        })
+      } else {
+        emnapiCtx.features.setImmediate(() => {
+          if (Atomics.exchange(new Int32Array(wasmMemory.buffer), pendng >>> 2, 0) === 0) {
+            return
+          }
+          emnapiTSFN.dispatch(func)
+        })
+      }
+    }
+
+    Atomics.add(new Int32Array(wasmMemory.buffer), busy >>> 2, -1)
   }
 }
 
