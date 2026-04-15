@@ -68,7 +68,7 @@ jobs:
 
   wasm32-wasip1-threads:
     timeout-minutes: 15
-    name: CI wasm32-wasip1-threads
+    name: CI wasm32-wasip1-threads (libemnapi-mt)
     runs-on: ubuntu-latest
 
     steps:
@@ -86,6 +86,28 @@ jobs:
         node ./packages/wasi-threads/test/build.js
         npm run test -w packages/wasi-threads
       timeout-minutes: 1
+    - name: Test target
+      run: npm run test:wt -w packages/test
+      timeout-minutes: 3
+    - name: Test target (4GB)
+      run: EMNAPI_TEST_4GB=1 npm run test:wt -w packages/test
+      timeout-minutes: 3
+
+  wasm32-wasip1-threads-use-js:
+    timeout-minutes: 15
+    name: CI wasm32-wasip1-threads (libemnapi-basic-mt)
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v6
+    - uses: ./.github/actions/setup-target-ci
+      with:
+        target: 'wasm32-wasip1-threads-js'
+        needs-wasi-sdk: 'true'
+    - name: NPM Build
+      run: npm run build --workspaces --if-present
+    - name: Build target
+      run: EMNAPI_WASI_THREADS_LINK_BASIC_MT=1 npm run rebuild:wt -w packages/test
     - name: Test target
       run: npm run test:wt -w packages/test
       timeout-minutes: 3
