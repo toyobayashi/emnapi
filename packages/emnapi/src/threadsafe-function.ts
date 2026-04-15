@@ -38,6 +38,7 @@ const enum State {
  * ```
  */
 const emnapiTSFN = {
+  _liveSet: {} as Set<number>,
   offset: {
     __size__: 0,
     /* napi_ref */ resource: 0,
@@ -65,6 +66,7 @@ const emnapiTSFN = {
     /* int32_t */ cond: 0,
   },
   init () {
+    emnapiTSFN._liveSet = new Set<number>()
 // #if MEMORY64
     emnapiTSFN.offset.__size__ = NapiTSFNOffset64.__size__
     emnapiTSFN.offset.resource = NapiTSFNOffset64.async_resource_resource
@@ -530,6 +532,7 @@ const emnapiTSFN = {
     }
   },
   destroy (func: number) {
+    emnapiTSFN._liveSet.delete(func)
     emnapiTSFN.destroyQueue(func)
     emnapiTSFN.releaseResources(func)
     _free(to64('func') as number)
@@ -748,6 +751,9 @@ const emnapiTSFN = {
     // actual TSFN drain after nearby Send/Signal calls have had a chance to
     // collapse into the shared AsyncProgressWorker state.
     emnapiCtx.features.setImmediate(() => {
+      if (!emnapiTSFN._liveSet.has(func)) {
+        return
+      }
       if (Atomics.load(i32a, pending >>> 2) === 0) {
         Atomics.store(i32a, scheduled >>> 2, 0)
         return
@@ -760,13 +766,20 @@ const emnapiTSFN = {
           if (Atomics.exchange(i32a, pending >>> 2, 0) === 0) {
             return
           }
+          // After destroy(), the func address is freed.  Skip dispatch
+          // to avoid use-after-free (JS-side lifecycle check).
+          if (!emnapiTSFN._liveSet.has(func)) {
+            return
+          }
           emnapiTSFN.dispatch(func)
         } finally {
           // Allow a later wakeup to schedule a new drain chain. If another
           // worker-thread send raced with this drain, enqueue one more turn.
-          Atomics.store(i32a, scheduled >>> 2, 0)
-          if (Atomics.load(i32a, pending >>> 2) !== 0) {
-            emnapiTSFN.enqueue(func)
+          if (emnapiTSFN._liveSet.has(func)) {
+            Atomics.store(i32a, scheduled >>> 2, 0)
+            if (Atomics.load(i32a, pending >>> 2) !== 0) {
+              emnapiTSFN.enqueue(func)
+            }
           }
         }
       })
@@ -901,6 +914,7 @@ export function napi_create_threadsafe_function (
   makeSetValue('tsfn', 'emnapiTSFN.offset.finalize_cb', 'thread_finalize_cb', '*')
   makeSetValue('tsfn', 'emnapiTSFN.offset.call_js_cb', 'call_js_cb', '*')
   emnapiCtx.addCleanupHook(envObject, emnapiTSFN.cleanup, tsfn as number)
+  emnapiTSFN._liveSet.add(tsfn as number)
   envObject.ref()
 
   __emnapi_runtime_keepalive_push()
