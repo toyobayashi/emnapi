@@ -41,6 +41,8 @@ void print_napi_threadsafe_function_info(FILE* f) {
   fprintf(f, "  queue_size = %zu,\n", offsetof(struct napi_threadsafe_function__, queue_size));
   fprintf(f, "  queue = %zu,\n", offsetof(struct napi_threadsafe_function__, queue));
   fprintf(f, "  async = %zu,\n", offsetof(struct napi_threadsafe_function__, async));
+  fprintf(f, "  async_pending = %zu,\n", offsetof(struct napi_threadsafe_function__, async) + offsetof(uv_async_t, pending));
+  fprintf(f, "  async_u_fd = %zu,\n", offsetof(struct napi_threadsafe_function__, async) + offsetof(uv_async_t, u.fd));
   fprintf(f, "  thread_count = %zu,\n", offsetof(struct napi_threadsafe_function__, thread_count));
   fprintf(f, "  state = %zu,\n", offsetof(struct napi_threadsafe_function__, state));
   fprintf(f, "  dispatch_state = %zu,\n", offsetof(struct napi_threadsafe_function__, dispatch_state));

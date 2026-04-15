@@ -1,5 +1,13 @@
 if (process.env.EMNAPI_TEST_WASI_THREADS) {
   process.env.EMNAPI_TEST_WASI = 1
+
+  const { spawnSync } = require('child_process')
+  const path = require('path')
+  const wasmPath = path.join(__dirname, '../.build/wasm32-wasi-threads/Debug/async.wasm')
+  const module = new WebAssembly.Module(require('fs').readFileSync(wasmPath))
+  console.log('libemnapi-basic-mt: ' + (WebAssembly.Module.imports(module).filter(d => {
+    return d.name === 'napi_create_async_work'
+  }).length > 0))
 }
 
 const { spawnSync } = require('child_process')
