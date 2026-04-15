@@ -20,15 +20,15 @@ inputs:
   wasi-version:
     description: WASI SDK version
     required: false
-    default: '29'
+    default: '32'
   wasi-version-full:
     description: Full WASI SDK version
     required: false
-    default: '29.0'
+    default: '32.0'
   wasi-sdk-path:
     description: WASI SDK install path
     required: false
-    default: './wasi-sdk-29.0'
+    default: './wasi-sdk-32.0'
   needs-emscripten:
     description: Whether Emscripten is needed
     required: false
