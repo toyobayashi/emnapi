@@ -173,6 +173,12 @@ const emnapiTSFN = {
   destroyQueue (func: number) {
     const queue = emnapiTSFN.loadSizeTypeValue(func + emnapiTSFN.offset.queue, false)
     if (queue) {
+      let node = emnapiTSFN.loadSizeTypeValue(queue, false)
+      while (node !== 0) {
+        const next = emnapiTSFN.loadSizeTypeValue(node + POINTER_SIZE, false)
+        _free(to64('node') as number)
+        node = next
+      }
       _free(to64('queue') as number)
     }
   },
@@ -631,6 +637,7 @@ const emnapiTSFN = {
         return
       }
       emnapiTSFN.setHandlesClosing(func, 1)
+      Atomics.store(new Int32Array(wasmMemory.buffer), (func + emnapiTSFN.offset.async_pending) >>> 2, 1)
       emnapiCtx.features.setImmediate(() => {
         emnapiTSFN.finalize(func)
       })
