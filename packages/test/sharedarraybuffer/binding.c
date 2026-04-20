@@ -1,10 +1,72 @@
 #define NAPI_EXPERIMENTAL
+#define NODE_API_EXPERIMENTAL_NO_WARNING
 #include <js_native_api.h>
 #include "../common.h"
 #include "../entry_point.h"
 
 #ifdef __wasm__
 #include "emnapi.h"
+#endif
+
+static int deleterCallCount = 0;
+
+static char externalSharedArrayBufferData[1];
+
+static void freeExternalSharedArrayBuffer(void* data, void* hint) {
+  (void)hint;
+  NODE_API_BASIC_ASSERT_RETURN_VOID(
+      data == (void*)externalSharedArrayBufferData,
+      "SharedArrayBuffer points to wrong data");
+  deleterCallCount++;
+}
+
+static napi_value newExternalSharedArrayBuffer(napi_env env,
+                                               napi_callback_info info) {
+  napi_value sab;
+  NODE_API_CALL(
+      env,
+      node_api_create_external_sharedarraybuffer(env,
+                                                 externalSharedArrayBufferData,
+                                                 1,
+                                                 freeExternalSharedArrayBuffer,
+                                                 NULL,
+                                                 &sab));
+  return sab;
+}
+
+static napi_value getDeleterCallCount(napi_env env, napi_callback_info info) {
+  napi_value callCount;
+  NODE_API_CALL(env, napi_create_int32(env, deleterCallCount, &callCount));
+  return callCount;
+}
+
+#ifdef __wasm__
+static napi_value newExternalSharedArrayBufferWithHandle(napi_env env,
+                                                         napi_callback_info info) {
+  napi_value sab;
+  NODE_API_CALL(
+      env,
+      node_api_create_external_sharedarraybuffer(env,
+                                                 externalSharedArrayBufferData,
+                                                 1,
+                                                 freeExternalSharedArrayBuffer,
+                                                 NULL,
+                                                 &sab));
+  void* handle = NULL;
+  NODE_API_CALL(env,
+                emnapi_get_external_sharedarraybuffer_handle(env, sab, &handle));
+
+  napi_value result;
+  NODE_API_CALL(env, napi_create_object(env, &result));
+
+  NODE_API_CALL(env, napi_set_named_property(env, result, "sab", sab));
+
+  napi_value handleValue;
+  NODE_API_CALL(env, napi_create_int64(env, (int64_t)(uintptr_t)handle, &handleValue));
+  NODE_API_CALL(env, napi_set_named_property(env, result, "handle", handleValue));
+
+  return result;
+}
 #endif
 
 static napi_value TestIsSharedArrayBuffer(napi_env env,
@@ -122,6 +184,14 @@ napi_value Init(napi_env env, napi_value exports) {
                                 TestGetSharedArrayBufferInfo),
       DECLARE_NODE_API_PROPERTY("TestSharedArrayBufferData",
                                 TestSharedArrayBufferData),
+      DECLARE_NODE_API_PROPERTY("newExternalSharedArrayBuffer",
+                                newExternalSharedArrayBuffer),
+      DECLARE_NODE_API_PROPERTY("getDeleterCallCount",
+                                getDeleterCallCount),
+#ifdef __wasm__
+      DECLARE_NODE_API_PROPERTY("newExternalSharedArrayBufferWithHandle",
+                                newExternalSharedArrayBufferWithHandle),
+#endif
   };
 
   NODE_API_CALL(

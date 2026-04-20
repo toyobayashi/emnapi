@@ -90,6 +90,16 @@ EMNAPI_EXTERN void emnapi_debug(
   int type
 );
 
+/**
+ * Get the handle for an external SharedArrayBuffer.
+ * This function must be called on the emnapi main thread.
+ */
+EMNAPI_EXTERN
+napi_status emnapi_get_external_sharedarraybuffer_handle(
+    napi_env env,
+    napi_value sharedarraybuffer,
+    void** handle);
+
 #define DEBUGGER_LOG(str, value, type) \
   emnapi_debug(__FILE__, __LINE__, str, value, type)
 

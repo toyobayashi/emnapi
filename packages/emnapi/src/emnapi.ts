@@ -1,7 +1,7 @@
 import { emnapiCtx, emnapiEnv, emnapiNodeBinding } from 'emnapi:shared'
 import { wasmMemory } from 'emscripten:runtime'
-import { from64, makeSetValue, makeGetValue } from 'emscripten:parse-tools'
-import { type MemoryViewDescriptor, type ArrayBufferPointer, emnapiExternalMemory } from './memory'
+import { from64, makeSetValue, makeGetValue, POINTER_SIZE } from 'emscripten:parse-tools'
+import { type MemoryViewDescriptor, type ArrayBufferPointer, emnapiExternalMemory, emnapiExternalSAB } from './memory'
 import { napi_add_finalizer } from './wrap'
 import { $CHECK_ARG, $PREAMBLE, $CHECK_ENV, $GET_RETURN_STATUS } from './macro'
 import { emnapiString } from './string'
@@ -326,5 +326,69 @@ export function emnapi_get_runtime_version (env: napi_env, version: number): nap
   return envObject.clearLastError()
 }
 
-// emnapiImplementHelper('$emnapiSyncMemory', undefined, emnapiSyncMemory, ['$emnapiExternalMemory'], 'syncMemory')
+/**
+ * Get the handle for an external SharedArrayBuffer.
+ * Must be called on the emnapi main thread.
+ * @__sig ippp
+ */
+export function emnapi_get_external_sharedarraybuffer_handle (env: napi_env, sharedarraybuffer: napi_value, handle: Pointer<void_p>): napi_status {
+  return $PREAMBLE!(env, (envObject) => {
+    $CHECK_ARG!(envObject, sharedarraybuffer)
+    $CHECK_ARG!(envObject, handle)
+
+    from64('handle')
+
+    const jsValue = emnapiCtx.jsValueFromNapiValue(sharedarraybuffer)
+    if (!emnapiExternalMemory.isSharedArrayBuffer(jsValue)) {
+      return envObject.setLastError(napi_status.napi_invalid_arg)
+    }
+    const metaPtr = emnapiExternalSAB.handleTable.get(jsValue as SharedArrayBuffer)
+    if (metaPtr === undefined) {
+      return envObject.setLastError(napi_status.napi_invalid_arg)
+    }
+    let p: number = metaPtr
+    makeSetValue('handle', 0, 'p', '*')
+    return $GET_RETURN_STATUS!(envObject)
+  })
+}
+
+/**
+ * Acquire a reference to an external SharedArrayBuffer on the current thread.
+ * Can be called on any thread. Increments refcount and registers in
+ * the current thread's FinalizationRegistry.
+ * Exposed as Module.emnapiAcquireExternalSharedArrayBuffer (emscripten) or
+ * napiModule.emnapi.acquireExternalSharedArrayBuffer (core).
+ */
+export function $emnapiAcquireExternalSharedArrayBuffer (sab: SharedArrayBuffer, handle: number): boolean {
+  if (!emnapiExternalMemory.isSharedArrayBuffer(sab)) {
+    return false
+  }
+  if (!emnapiExternalSAB.registry) {
+    return false
+  }
+
+  const metaPtr = handle
+
+  // Increment refcount atomically
+  Atomics.add(new Int32Array(wasmMemory.buffer, metaPtr, 1), 0, 1)
+
+  // Register in emnapiExternalMemory.table for emnapi_sync_memory support
+  if (!emnapiExternalMemory.table.has(sab)) {
+    let external_data = makeGetValue('metaPtr', POINTER_SIZE, '*')
+    from64('external_data')
+    if (external_data) {
+      emnapiExternalMemory.table.set(sab, {
+        address: external_data as number,
+        ownership: ReferenceOwnership.kUserland,
+        runtimeAllocated: 0
+      })
+    }
+  }
+
+  // Register in handleTable and FinalizationRegistry for this thread
+  emnapiExternalSAB.handleTable.set(sab, metaPtr)
+  emnapiExternalSAB.registry.register(sab, metaPtr)
+
+  return true
+}
 // emnapiImplementHelper('$emnapiGetMemoryAddress', undefined, emnapiGetMemoryAddress, ['$emnapiExternalMemory'], 'getMemoryAddress')

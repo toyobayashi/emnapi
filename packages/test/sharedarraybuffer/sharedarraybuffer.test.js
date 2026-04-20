@@ -1,10 +1,13 @@
 /* eslint-disable camelcase */
 'use strict'
 const assert = require('assert')
+const util = require('util')
+const tick = util.promisify(require('../tick'))
 const { load } = require('../util')
 
 // eslint-disable-next-line camelcase
-module.exports = load('sharedarraybuffer').then(test_sharedarraybuffer => {
+const loadPromise = load('sharedarraybuffer')
+module.exports = loadPromise.then(async (test_sharedarraybuffer) => {
   {
     const sab = new SharedArrayBuffer(16)
     const ab = new ArrayBuffer(16)
@@ -65,5 +68,41 @@ module.exports = load('sharedarraybuffer').then(test_sharedarraybuffer => {
     assert.throws(() => {
       test_sharedarraybuffer.TestGetSharedArrayBufferInfo({})
     }, { name: 'Error', message: 'Invalid argument' })
+  }
+
+  // Test node_api_create_external_sharedarraybuffer
+  {
+    let sab = test_sharedarraybuffer.newExternalSharedArrayBuffer()
+    assert(util.types.isSharedArrayBuffer(sab))
+    assert.strictEqual(sab.byteLength, 1)
+    sab = null
+    global.gc()
+    await tick(10)
+    assert.strictEqual(test_sharedarraybuffer.getDeleterCallCount(), 1)
+  }
+
+  // Test emnapiAcquireExternalSharedArrayBuffer refcount (wasm only)
+  if (test_sharedarraybuffer.newExternalSharedArrayBufferWithHandle) {
+    const acquireFn = process.env.EMNAPI_TEST_WASI || process.env.EMNAPI_TEST_WASM32
+      ? loadPromise.Module.emnapi.acquireExternalSharedArrayBuffer
+      : loadPromise.Module.emnapiAcquireExternalSharedArrayBuffer
+
+    ;(function () {
+      const { sab, handle } = test_sharedarraybuffer.newExternalSharedArrayBufferWithHandle()
+      assert(util.types.isSharedArrayBuffer(sab))
+      assert.strictEqual(sab.byteLength, 1)
+      assert.strictEqual(typeof handle, 'number')
+      assert(handle !== 0, 'handle should not be null')
+
+      // Acquire increases refcount; on same thread, both FinalizationRegistry
+      // callbacks fire when the SAB is GC'd, so finalize is still called.
+      acquireFn(sab, handle)
+    })()
+
+    // Force GC after function scope exits (all local refs are gone)
+    global.gc()
+    await tick(10)
+    // finalize_cb should have been called exactly once more
+    assert.strictEqual(test_sharedarraybuffer.getDeleterCallCount(), 2)
   }
 })
