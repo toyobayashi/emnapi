@@ -359,23 +359,32 @@ export function emnapi_get_external_sharedarraybuffer_handle (env: napi_env, sha
  * Exposed as Module.emnapiAcquireExternalSharedArrayBuffer (emscripten) or
  * napiModule.emnapi.acquireExternalSharedArrayBuffer (core).
  */
-export function $emnapiAcquireExternalSharedArrayBuffer (sab: SharedArrayBuffer, handle: number): boolean {
-  if (!emnapiExternalMemory.isSharedArrayBuffer(sab)) {
-    return false
+export function $emnapiAcquireExternalSharedArrayBuffer (handle: number, sab?: SharedArrayBuffer): SharedArrayBuffer {
+  if (sab != null && !emnapiExternalMemory.isSharedArrayBuffer(sab)) {
+    throw new TypeError('Expected a SharedArrayBuffer')
   }
   if (!emnapiExternalSAB.registry) {
-    return false
+    throw new Error('FinalizationRegistry is not supported in this environment')
+  }
+  from64('handle')
+  const meta = emnapiExternalSAB.readMeta(handle)
+  let external_data = meta.external_data
+  from64('external_data')
+
+  if (sab == null) {
+    sab = new SharedArrayBuffer(meta.byte_length)
+    new Uint8Array(sab).set(new Uint8Array(wasmMemory.buffer, external_data, meta.byte_length))
+  } else {
+    if (emnapiExternalSAB.handleTable.has(sab)) {
+      return sab
+    }
   }
 
-  const metaPtr = handle
-
   // Increment refcount atomically
-  Atomics.add(new Int32Array(wasmMemory.buffer, metaPtr, 1), 0, 1)
+  Atomics.add(new Int32Array(wasmMemory.buffer, handle, 1), 0, 1)
 
   // Register in emnapiExternalMemory.table for emnapi_sync_memory support
   if (!emnapiExternalMemory.table.has(sab)) {
-    let external_data = makeGetValue('metaPtr', POINTER_SIZE, '*')
-    from64('external_data')
     if (external_data) {
       emnapiExternalMemory.table.set(sab, {
         address: external_data as number,
@@ -386,9 +395,8 @@ export function $emnapiAcquireExternalSharedArrayBuffer (sab: SharedArrayBuffer,
   }
 
   // Register in handleTable and FinalizationRegistry for this thread
-  emnapiExternalSAB.handleTable.set(sab, metaPtr)
-  emnapiExternalSAB.registry.register(sab, metaPtr)
-
-  return true
+  emnapiExternalSAB.handleTable.set(sab, handle)
+  emnapiExternalSAB.registry.register(sab, handle)
+  return sab
 }
 // emnapiImplementHelper('$emnapiGetMemoryAddress', undefined, emnapiGetMemoryAddress, ['$emnapiExternalMemory'], 'getMemoryAddress')

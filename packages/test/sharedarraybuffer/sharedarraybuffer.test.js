@@ -96,7 +96,8 @@ module.exports = loadPromise.then(async (test_sharedarraybuffer) => {
 
       // Acquire increases refcount; on same thread, both FinalizationRegistry
       // callbacks fire when the SAB is GC'd, so finalize is still called.
-      acquireFn(sab, handle)
+      acquireFn(handle, sab)
+      acquireFn(handle)
     })()
 
     // Force GC after function scope exits (all local refs are gone)

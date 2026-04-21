@@ -160,6 +160,8 @@ export const emnapiExternalMemory: {
 }
 
 export interface ExternalSABInfo {
+  external_data: number
+  byte_length: number
   finalize_cb: number
   finalize_data: number
   finalize_hint: number
@@ -218,10 +220,12 @@ export const emnapiExternalSAB: {
   },
 
   readMeta: function (metaPtr: number): ExternalSABInfo {
+    const external_data = makeGetValue('metaPtr', POINTER_SIZE, '*')
+    const byte_length = makeGetValue('metaPtr', POINTER_SIZE * 2, '*')
     const finalize_cb = makeGetValue('metaPtr', POINTER_SIZE * 3, '*')
     const finalize_data = makeGetValue('metaPtr', POINTER_SIZE * 4, '*')
     const finalize_hint = makeGetValue('metaPtr', POINTER_SIZE * 5, '*')
-    return { finalize_cb, finalize_data, finalize_hint }
+    return { external_data, byte_length, finalize_cb, finalize_data, finalize_hint }
   },
 
   release: function (metaPtr: number): void {
