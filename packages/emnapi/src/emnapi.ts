@@ -353,6 +353,26 @@ export function emnapi_get_external_sharedarraybuffer_handle (env: napi_env, sha
 }
 
 /**
+ * Acquire a reference to an external SharedArrayBuffer.
+ * Can be called on any thread.
+ * @__sig vp
+ */
+export function emnapi_acquire_external_sharedarraybuffer (handle: void_p): void {
+  from64('handle')
+  Atomics.add(new Int32Array(wasmMemory.buffer, handle as number, 1), 0, 1)
+}
+
+/**
+ * Release a reference to an external SharedArrayBuffer.
+ * Can be called on any thread.
+ * @__sig vp
+ */
+export function emnapi_release_external_sharedarraybuffer (handle: void_p): void {
+  from64('handle')
+  emnapiExternalSAB.release(handle as number)
+}
+
+/**
  * Acquire a reference to an external SharedArrayBuffer on the current thread.
  * Can be called on any thread. Increments refcount and registers in
  * the current thread's FinalizationRegistry.

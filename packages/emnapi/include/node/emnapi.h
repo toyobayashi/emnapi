@@ -100,6 +100,21 @@ napi_status emnapi_get_external_sharedarraybuffer_handle(
     napi_value sharedarraybuffer,
     void** handle);
 
+/**
+ * Acquire a reference to an external SharedArrayBuffer handle.
+ * This function may be called from any thread.
+ */
+EMNAPI_EXTERN
+void emnapi_acquire_external_sharedarraybuffer(void* handle);
+
+/**
+ * Release a reference to an external SharedArrayBuffer handle.
+ * When the refcount reaches zero, finalize_cb is invoked.
+ * This function may be called from any thread.
+ */
+EMNAPI_EXTERN
+void emnapi_release_external_sharedarraybuffer(void* handle);
+
 #define DEBUGGER_LOG(str, value, type) \
   emnapi_debug(__FILE__, __LINE__, str, value, type)
 

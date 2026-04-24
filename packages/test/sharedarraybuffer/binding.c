@@ -4,6 +4,10 @@
 #include "../common.h"
 #include "../entry_point.h"
 
+#if defined(EMNAPI_SHAREDARRAYBUFFER_MT)
+#include <pthread.h>
+#endif
+
 #ifdef __wasm__
 #include "emnapi.h"
 #endif
@@ -39,6 +43,78 @@ static napi_value getDeleterCallCount(napi_env env, napi_callback_info info) {
   NODE_API_CALL(env, napi_create_int32(env, deleterCallCount, &callCount));
   return callCount;
 }
+
+#if defined(EMNAPI_SHAREDARRAYBUFFER_MT)
+typedef struct {
+  void* handle;
+  int32_t refcountAfterAcquire;
+  int32_t refcountAfterRelease;
+} ExternalSharedArrayBufferThreadContext;
+
+static int32_t loadExternalSharedArrayBufferRefcount(void* handle) {
+  return __atomic_load_n((int32_t*)handle, __ATOMIC_SEQ_CST);
+}
+
+static void* acquireAndReleaseExternalSharedArrayBufferThread(void* data) {
+  ExternalSharedArrayBufferThreadContext* context =
+      (ExternalSharedArrayBufferThreadContext*)data;
+  emnapi_acquire_external_sharedarraybuffer(context->handle);
+  context->refcountAfterAcquire =
+      loadExternalSharedArrayBufferRefcount(context->handle);
+  emnapi_release_external_sharedarraybuffer(context->handle);
+  context->refcountAfterRelease =
+      loadExternalSharedArrayBufferRefcount(context->handle);
+  return NULL;
+}
+
+static napi_value acquireAndReleaseExternalSharedArrayBufferInThread(
+    napi_env env,
+    napi_callback_info info) {
+  size_t argc = 1;
+  napi_value args[1];
+  int64_t rawHandle;
+  pthread_t thread;
+  ExternalSharedArrayBufferThreadContext context;
+  napi_value result;
+  napi_value refcountAfterAcquire;
+  napi_value refcountAfterRelease;
+
+  NODE_API_CALL(env, napi_get_cb_info(env, info, &argc, args, NULL, NULL));
+  NODE_API_ASSERT(env, argc >= 1, "Wrong number of arguments");
+
+  NODE_API_CALL(env, napi_get_value_int64(env, args[0], &rawHandle));
+  context.handle = (void*)(uintptr_t)rawHandle;
+  NODE_API_ASSERT(env, context.handle != NULL, "handle must not be null");
+
+  context.refcountAfterAcquire = 0;
+  context.refcountAfterRelease = 0;
+
+  NODE_API_ASSERT(env,
+                  pthread_create(&thread,
+                                 NULL,
+                                 acquireAndReleaseExternalSharedArrayBufferThread,
+                                 &context) == 0,
+                  "Thread creation failed");
+  NODE_API_ASSERT(env, pthread_join(thread, NULL) == 0, "Thread join failed");
+
+  NODE_API_CALL(env, napi_create_object(env, &result));
+  NODE_API_CALL(env, napi_create_int32(
+                         env, context.refcountAfterAcquire, &refcountAfterAcquire));
+  NODE_API_CALL(env, napi_create_int32(
+                         env, context.refcountAfterRelease, &refcountAfterRelease));
+  NODE_API_CALL(env,
+                napi_set_named_property(env,
+                                        result,
+                                        "refcountAfterAcquire",
+                                        refcountAfterAcquire));
+  NODE_API_CALL(env,
+                napi_set_named_property(env,
+                                        result,
+                                        "refcountAfterRelease",
+                                        refcountAfterRelease));
+  return result;
+}
+#endif
 
 #ifdef __wasm__
 static napi_value newExternalSharedArrayBufferWithHandle(napi_env env,
@@ -191,6 +267,10 @@ napi_value Init(napi_env env, napi_value exports) {
 #ifdef __wasm__
       DECLARE_NODE_API_PROPERTY("newExternalSharedArrayBufferWithHandle",
                                 newExternalSharedArrayBufferWithHandle),
+#endif
+#if defined(EMNAPI_SHAREDARRAYBUFFER_MT)
+      DECLARE_NODE_API_PROPERTY("acquireAndReleaseExternalSharedArrayBufferInThread",
+                                acquireAndReleaseExternalSharedArrayBufferInThread),
 #endif
   };
 
