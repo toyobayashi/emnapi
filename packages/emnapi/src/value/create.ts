@@ -2,7 +2,7 @@ import { emnapiCtx, emnapiEnv } from 'emnapi:shared'
 import { wasmMemory, _malloc } from 'emscripten:runtime'
 import { from64, makeGetValue, makeSetValue, POINTER_SIZE, to64 } from 'emscripten:parse-tools'
 import { emnapiString } from '../string'
-import { type MemoryViewDescriptor, emnapiExternalMemory } from '../memory'
+import { type MemoryViewDescriptor, emnapiExternalMemory, emnapiExternalSAB } from '../memory'
 import { emnapi_create_memory_view } from '../emnapi'
 import { napi_add_finalizer } from '../wrap'
 import { $CHECK_ARG, $CHECK_ENV_NOT_IN_GC, $GET_RETURN_STATUS, $PREAMBLE, $RETURN_STATUS_IF_FALSE } from '../macro'
@@ -177,6 +177,66 @@ export function napi_create_external_arraybuffer (
       } else if (status !== napi_status.napi_ok) {
         return envObject.setLastError(status)
       }
+    }
+    makeSetValue('result', 0, 'value', '*')
+    return $GET_RETURN_STATUS!(envObject)
+  })
+}
+
+/**
+ * @__sig ipppppp
+ */
+export function node_api_create_external_sharedarraybuffer (
+  env: napi_env,
+  external_data: void_p,
+  byte_length: size_t,
+  finalize_cb: napi_finalize,
+  finalize_hint: void_p,
+  result: Pointer<napi_value>
+): napi_status {
+  let value: napi_value
+
+  return $PREAMBLE!(env, (envObject) => {
+    $CHECK_ARG!(envObject, result)
+    from64('byte_length')
+    from64('external_data')
+    from64('result')
+
+    byte_length = byte_length >>> 0
+
+    if (!external_data) {
+      byte_length = 0
+    }
+
+    if ((external_data as number + byte_length) > wasmMemory.buffer.byteLength) {
+      throw new RangeError('Memory out of range')
+    }
+    if (!emnapiExternalSAB.registry && finalize_cb) {
+      throw emnapiCtx.createNotSupportWeakRefError('node_api_create_external_sharedarraybuffer', 'Parameter "finalize_cb" must be 0(NULL)')
+    }
+    const sharedArrayBuffer = new SharedArrayBuffer(byte_length)
+    if (byte_length !== 0) {
+      const u8arr = new Uint8Array(sharedArrayBuffer)
+      u8arr.set(new Uint8Array(wasmMemory.buffer).subarray(external_data as number, external_data as number + byte_length))
+      emnapiExternalMemory.table.set(sharedArrayBuffer, {
+        address: external_data as number,
+        ownership: ReferenceOwnership.kUserland,
+        runtimeAllocated: 0
+      })
+    }
+    value = emnapiCtx.napiValueFromJsValue(sharedArrayBuffer)
+    if (finalize_cb) {
+      from64('finalize_cb')
+      from64('finalize_hint')
+      const metaPtr = emnapiExternalSAB.allocMeta(
+        external_data as number,
+        byte_length as number,
+        finalize_cb as unknown as number,
+        external_data as number,
+        finalize_hint as number
+      )
+      emnapiExternalSAB.handleTable.set(sharedArrayBuffer, metaPtr)
+      emnapiExternalSAB.registry!.register(sharedArrayBuffer, metaPtr)
     }
     makeSetValue('result', 0, 'value', '*')
     return $GET_RETURN_STATUS!(envObject)

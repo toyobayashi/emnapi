@@ -35,6 +35,7 @@ const pthread = [
   'string/string-pthread.test.js',
   'uv_threadpool_size/**/*',
   'trap_in_thread/**/*',
+  'sharedarraybuffer/sharedarraybuffer_mt.test.js',
 ]
 
 if (process.env.EMNAPI_TEST_NATIVE) {
