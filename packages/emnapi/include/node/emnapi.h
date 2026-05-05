@@ -82,6 +82,31 @@ napi_status emnapi_get_memory_address(napi_env env,
                                       emnapi_ownership* ownership,
                                       bool* runtime_allocated);
 
+/**
+ * Get the handle for an external SharedArrayBuffer.
+ * This function must be called on the emnapi main thread.
+ */
+EMNAPI_EXTERN
+napi_status emnapi_get_external_sharedarraybuffer_handle(
+    napi_env env,
+    napi_value sharedarraybuffer,
+    void** handle);
+
+/**
+ * Acquire a reference to an external SharedArrayBuffer handle.
+ * This function may be called from any thread.
+ */
+EMNAPI_EXTERN
+void emnapi_acquire_external_sharedarraybuffer(void* handle);
+
+/**
+ * Release a reference to an external SharedArrayBuffer handle.
+ * When the refcount reaches zero, finalize_cb is invoked.
+ * This function may be called from any thread.
+ */
+EMNAPI_EXTERN
+void emnapi_release_external_sharedarraybuffer(void* handle);
+
 EXTERN_C_END
 
 #endif

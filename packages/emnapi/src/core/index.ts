@@ -5,7 +5,7 @@ import * as memoryMod from './memory'
 import * as asyncWorkMod from './async-work'
 
 import { emnapiAWST } from '../async-work'
-import { emnapiExternalMemory } from '../memory'
+import { emnapiExternalMemory, emnapiExternalSAB } from '../memory'
 import { emnapiString } from '../string'
 
 import * as utilMod from '../util'
@@ -39,12 +39,14 @@ import * as versionMod from '../version'
 
 emnapiAWST.init()
 emnapiExternalMemory.init()
+emnapiExternalSAB.init()
 emnapiString.init()
 emnapiTSFN.init()
 PThread.init()
 
 napiModule.emnapi.syncMemory = emnapiMod.$emnapiSyncMemory
 napiModule.emnapi.getMemoryAddress = emnapiMod.$emnapiGetMemoryAddress
+napiModule.emnapi.acquireExternalSharedArrayBuffer = emnapiMod.$emnapiAcquireExternalSharedArrayBuffer
 
 function addImports (mod: any): void {
   const keys = Object.keys(mod)
