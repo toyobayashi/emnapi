@@ -361,15 +361,12 @@ export function napi_create_typedarray (
     $CHECK_ARG!(envObject, result)
 
     const handle = emnapiCtx.handleStore.get(arraybuffer)!
-    if (!handle.isArrayBuffer()) {
-      return envObject.setLastError(napi_status.napi_invalid_arg)
-    }
     const buffer = handle.value
 
     from64('byte_offset')
     from64('length')
 
-    const createTypedArray = function (envObject: Env, Type: { new (...args: any[]): ArrayBufferView; name?: string }, size_of_element: number, buffer: ArrayBuffer, byte_offset: size_t, length: size_t): napi_status {
+    const createTypedArray = function (envObject: Env, Type: { new (...args: any[]): ArrayBufferView; name?: string }, size_of_element: number, buffer: ArrayBuffer | SharedArrayBuffer, byte_offset: size_t, length: size_t): napi_status {
       byte_offset = byte_offset >>> 0
       length = length >>> 0
       if (size_of_element > 1) {
@@ -408,36 +405,40 @@ export function napi_create_typedarray (
       return envObject.getReturnStatus()
     }
 
-    switch (type) {
-      case napi_typedarray_type.napi_int8_array:
-        return createTypedArray(envObject, Int8Array, 1, buffer, byte_offset, length)
-      case napi_typedarray_type.napi_uint8_array:
-        return createTypedArray(envObject, Uint8Array, 1, buffer, byte_offset, length)
-      case napi_typedarray_type.napi_uint8_clamped_array:
-        return createTypedArray(envObject, Uint8ClampedArray, 1, buffer, byte_offset, length)
-      case napi_typedarray_type.napi_int16_array:
-        return createTypedArray(envObject, Int16Array, 2, buffer, byte_offset, length)
-      case napi_typedarray_type.napi_uint16_array:
-        return createTypedArray(envObject, Uint16Array, 2, buffer, byte_offset, length)
-      case napi_typedarray_type.napi_int32_array:
-        return createTypedArray(envObject, Int32Array, 4, buffer, byte_offset, length)
-      case napi_typedarray_type.napi_uint32_array:
-        return createTypedArray(envObject, Uint32Array, 4, buffer, byte_offset, length)
-      case napi_typedarray_type.napi_float32_array:
-        return createTypedArray(envObject, Float32Array, 4, buffer, byte_offset, length)
-      case napi_typedarray_type.napi_float64_array:
-        return createTypedArray(envObject, Float64Array, 8, buffer, byte_offset, length)
-      case napi_typedarray_type.napi_bigint64_array:
-        return createTypedArray(envObject, BigInt64Array, 8, buffer, byte_offset, length)
-      case napi_typedarray_type.napi_biguint64_array:
-        return createTypedArray(envObject, BigUint64Array, 8, buffer, byte_offset, length)
-      case napi_typedarray_type.napi_float16_array:
-        if (typeof Float16Array !== 'function') {
+    if (buffer instanceof ArrayBuffer || emnapiExternalMemory.isSharedArrayBuffer(buffer)) {
+      switch (type) {
+        case napi_typedarray_type.napi_int8_array:
+          return createTypedArray(envObject, Int8Array, 1, buffer, byte_offset, length)
+        case napi_typedarray_type.napi_uint8_array:
+          return createTypedArray(envObject, Uint8Array, 1, buffer, byte_offset, length)
+        case napi_typedarray_type.napi_uint8_clamped_array:
+          return createTypedArray(envObject, Uint8ClampedArray, 1, buffer, byte_offset, length)
+        case napi_typedarray_type.napi_int16_array:
+          return createTypedArray(envObject, Int16Array, 2, buffer, byte_offset, length)
+        case napi_typedarray_type.napi_uint16_array:
+          return createTypedArray(envObject, Uint16Array, 2, buffer, byte_offset, length)
+        case napi_typedarray_type.napi_int32_array:
+          return createTypedArray(envObject, Int32Array, 4, buffer, byte_offset, length)
+        case napi_typedarray_type.napi_uint32_array:
+          return createTypedArray(envObject, Uint32Array, 4, buffer, byte_offset, length)
+        case napi_typedarray_type.napi_float32_array:
+          return createTypedArray(envObject, Float32Array, 4, buffer, byte_offset, length)
+        case napi_typedarray_type.napi_float64_array:
+          return createTypedArray(envObject, Float64Array, 8, buffer, byte_offset, length)
+        case napi_typedarray_type.napi_bigint64_array:
+          return createTypedArray(envObject, BigInt64Array, 8, buffer, byte_offset, length)
+        case napi_typedarray_type.napi_biguint64_array:
+          return createTypedArray(envObject, BigUint64Array, 8, buffer, byte_offset, length)
+        case napi_typedarray_type.napi_float16_array:
+          if (typeof Float16Array !== 'function') {
+            return envObject.setLastError(napi_status.napi_invalid_arg)
+          }
+          return createTypedArray(envObject, Float16Array, 2, buffer, byte_offset, length)
+        default:
           return envObject.setLastError(napi_status.napi_invalid_arg)
-        }
-        return createTypedArray(envObject, Float16Array, 2, buffer, byte_offset, length)
-      default:
-        return envObject.setLastError(napi_status.napi_invalid_arg)
+      }
+    } else {
+      return envObject.setLastError(napi_status.napi_invalid_arg)
     }
   })
 }
