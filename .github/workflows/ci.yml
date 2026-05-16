@@ -12,6 +12,7 @@ on:
     paths-ignore:
     - '**/*.md'
     - '**/docs/**'
+  workflow_dispatch:
 
 permissions:
   id-token: write
