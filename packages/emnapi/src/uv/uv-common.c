@@ -22,8 +22,12 @@ static uv__allocator_t uv__allocator = {
 };
 
 char* uv__strdup(const char* s) {
-  size_t len = strlen(s) + 1;
-  char* m = uv__malloc(len);
+  size_t len;
+  char* m;
+  if (s == NULL)
+    return NULL;
+  len = strlen(s) + 1;
+  m = uv__malloc(len);
   if (m == NULL)
     return NULL;
   return memcpy(m, s, len);
@@ -31,7 +35,10 @@ char* uv__strdup(const char* s) {
 
 char* uv__strndup(const char* s, size_t n) {
   char* m;
-  size_t len = strlen(s);
+  size_t len;
+  if (s == NULL)
+    return NULL;
+  len = strlen(s);
   if (n < len)
     len = n;
   m = uv__malloc(len + 1);
@@ -161,6 +168,8 @@ void uv_library_shutdown(void) {
 }
 
 int uv_metrics_info(uv_loop_t* loop, uv_metrics_t* metrics) {
+  if (metrics == NULL)
+    return EINVAL;
   memcpy(metrics,
          &uv__get_loop_metrics(loop)->metrics,
          sizeof(*metrics));
