@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>index-emscripten</title>
+</head>
+<body>
+  <div id="log"></div>
+  <script type="importmap">
+    {
+      "imports": {
+        "@emnapi/runtime": "./node_modules/@emnapi/runtime/dist/emnapi.js"
+      }
+    }
+  </script>
+  <script>
+    const log = console.log;
+    console.log = function(...args) {
+      log.apply(console, args);
+      const logContainer = document.getElementById('log');
+      if (logContainer) {
+        const logEntry = document.createElement('div');
+        logEntry.textContent = args.join(' ');
+        logContainer.appendChild(logEntry);
+      }
+    };
+  </script>
+  <script type="module" src="index-emscripten.js"></script>
+</body>
+</html>

@@ -46,6 +46,7 @@ exports.requiredConfig = {
         '_node_api_module_get_api_version_v1',
         '_emnapi_create_env',
         '_emnapi_delete_env',
+        '_uv_library_shutdown'
       ],
     },
   },
@@ -65,6 +66,7 @@ exports.requiredConfig = {
       '--export=emnapi_thread_crashed',
       '--export-if-defined=emnapi_async_worker_create',
       '--export-if-defined=emnapi_async_worker_init',
+      '--export-if-defined=uv_library_shutdown',
       '--export=emnapi_create_env',
       '--export=emnapi_delete_env',
     ],
