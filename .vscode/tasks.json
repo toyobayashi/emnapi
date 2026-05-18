@@ -75,20 +75,20 @@
     // },
     {
       "type": "cmake",
-      "label": "CMake: configure wasm32-wasi-threads",
+      "label": "CMake: configure wasm32-wasip1-threads",
       "command": "configure",
-      "preset": "configure: wasm32-wasi-threads",
-      "detail": "configure: wasm32-wasi-threads"
+      "preset": "configure: wasm32-wasip1-threads",
+      "detail": "configure: wasm32-wasip1-threads"
     },
     {
       "type": "cmake",
-      "label": "CMake: build wasm32-wasi-threads",
+      "label": "CMake: build wasm32-wasip1-threads",
       "command": "build",
-      "preset": "build: wasm32-wasi-threads",
-      "detail": "build: wasm32-wasi-threads",
+      "preset": "build: wasm32-wasip1-threads",
+      "detail": "build: wasm32-wasip1-threads",
       "group": "build",
       "dependsOn": [
-        "CMake: configure wasm32-wasi-threads"
+        "CMake: configure wasm32-wasip1-threads"
       ]
     }
   ]

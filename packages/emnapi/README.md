@@ -280,7 +280,7 @@ target_link_libraries(binding PRIVATE emnapi-mt)
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
   # ...
-elseif((CMAKE_SYSTEM_NAME STREQUAL "WASI") AND (CMAKE_C_COMPILER_TARGET STREQUAL "wasm32-wasi-threads"))
+elseif((CMAKE_SYSTEM_NAME STREQUAL "WASI") AND ((CMAKE_C_COMPILER_TARGET STREQUAL "wasm32-wasi-threads") OR (CMAKE_C_COMPILER_TARGET STREQUAL "wasm32-wasip1-threads")))
   # ...
 endif()
 ```

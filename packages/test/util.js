@@ -10,7 +10,7 @@ const context = emnapi.getDefaultContext()
 function getDir () {
   let buildDir
   if ('EMNAPI_TEST_WASI_THREADS' in process.env) {
-    buildDir = process.env.MEMORY64 ? '.build/wasm64-wasi-threads' : '.build/wasm32-wasi-threads'
+    buildDir = process.env.MEMORY64 ? '.build/wasm64-wasip1-threads' : '.build/wasm32-wasip1-threads'
   } else if ('EMNAPI_TEST_WASI' in process.env) {
     buildDir = process.env.MEMORY64 ? '.build/wasm64-wasi' : '.build/wasm32-wasi'
   } else if ('EMNAPI_TEST_WASM32' in process.env) {

@@ -84,7 +84,7 @@
       "cStandard": "c11",
       "cppStandard": "c++14",
       "includePath": ["${includePath}"],
-      "compilerArgs": ["--target=wasm32-wasi-threads"]
+      "compilerArgs": ["--target=wasm32-wasip1-threads"]
     },
     {
       "name": "WASM32",

@@ -139,37 +139,6 @@ async function main () {
       '-DNAPI_EXPERIMENTAL=1',
       '-DNODE_API_EXPERIMENTAL_NO_WARNING=1',
       '-H.',
-      '-Bbuild/wasm32-wasi-threads'
-    ], cwd)
-
-    await spawn('cmake', [
-      '--build',
-      'build/wasm32-wasi-threads'
-    ], cwd)
-
-    await spawn('cmake', [
-      '--install',
-      'build/wasm32-wasi-threads',
-      '--prefix',
-      sysroot
-    ], cwd)
-
-    const wasip1ThreadsToolchainFile = path.join(__dirname, 'wasip1-threads.cmake')
-    fs.writeFileSync(
-      wasip1ThreadsToolchainFile,
-      fs.readFileSync(WASI_THREADS_CMAKE_TOOLCHAIN_FILE, 'utf8').replace(/wasm32-wasi-threads/g, 'wasm32-wasip1-threads'),
-      'utf8'
-    )
-
-    await spawn('cmake', [
-      ...generatorOptions,
-      `-DCMAKE_TOOLCHAIN_FILE=${wasip1ThreadsToolchainFile.replace(/\\/g, '/')}`,
-      `-DWASI_SDK_PREFIX=${WASI_SDK_PATH}`,
-      '-DCMAKE_BUILD_TYPE=Release',
-      '-DCMAKE_VERBOSE_MAKEFILE=1',
-      '-DNAPI_EXPERIMENTAL=1',
-      '-DNODE_API_EXPERIMENTAL_NO_WARNING=1',
-      '-H.',
       '-Bbuild/wasm32-wasip1-threads'
     ], cwd)
 
@@ -253,20 +222,6 @@ async function main () {
   console.log('================  clang  =================')
   console.log(llvmClangVersion.toString())
 
-  // fs.writeFileSync(path.join(sysroot, 'lib/emnapi', 'wasm32.txt'), llvmClangVersion)
-  // fs.writeFileSync(path.join(sysroot, 'lib/emnapi', 'wasm32-wasi.txt'), wasiSdkClangVersion)
-  // fs.writeFileSync(path.join(sysroot, 'lib/emnapi', 'wasm32-emscripten.txt'), emccVersion)
-
-  // fs.copySync(path.join(sysroot, 'lib/emnapi', 'wasm32.txt'), path.join(__dirname, '../packages/emnapi/lib/wasm32.txt'))
-  // fs.copySync(path.join(sysroot, 'lib/emnapi', 'wasm32-wasi.txt'), path.join(__dirname, '../packages/emnapi/lib/wasm32-wasi.txt'))
-  // fs.copySync(path.join(sysroot, 'lib/emnapi', 'wasm32-emscripten.txt'), path.join(__dirname, '../packages/emnapi/lib/wasm32-emscripten.txt'))
-
-  // if (WASI_THREADS_CMAKE_TOOLCHAIN_FILE) {
-  //   const { stderr: wasiSdkClangVersion } = spawnSync(path.join(WASI_SDK_PATH, 'bin/clang' + (process.platform === 'win32' ? '.exe' : '')), ['-v', '--target=wasm32-wasi-threads'])
-  //   fs.writeFileSync(path.join(sysroot, 'lib/emnapi', 'wasm32-wasi-threads.txt'), wasiSdkClangVersion)
-  //   fs.copySync(path.join(sysroot, 'lib/emnapi', 'wasm32-wasi-threads.txt'), path.join(__dirname, '../packages/emnapi/lib/wasm32-wasi-threads.txt'))
-  // }
-
   fs.copyFileSync(path.join(__dirname, '../packages/runtime/dist/emnapi.js'), path.join(sysroot, 'dist', 'emnapi.js'))
   // fs.copyFileSync(path.join(__dirname, '../packages/runtime/dist/emnapi.min.js'), path.join(sysroot, 'dist', 'emnapi.min.js'))
   fs.copyFileSync(path.join(__dirname, '../packages/runtime/dist/emnapi.d.ts'), path.join(sysroot, 'dist', 'emnapi.d.ts'))
@@ -280,7 +235,6 @@ async function main () {
   // fs.copySync(path.join(sysroot, 'lib/wasm32-wasip1'), path.join(__dirname, '../packages/emnapi/lib/wasm32-wasip1'))
   // fs.copySync(path.join(sysroot, 'lib/wasm32'), path.join(__dirname, '../packages/emnapi/lib/wasm32'))
   if (WASI_THREADS_CMAKE_TOOLCHAIN_FILE) {
-    fs.copySync(path.join(sysroot, 'lib/wasm32-wasi-threads'), path.join(__dirname, '../packages/emnapi/lib/wasm32-wasi-threads'))
     fs.copySync(path.join(sysroot, 'lib/wasm32-wasip1-threads'), path.join(__dirname, '../packages/emnapi/lib/wasm32-wasip1-threads'))
   }
 

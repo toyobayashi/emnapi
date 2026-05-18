@@ -28,7 +28,7 @@ import * as emnapi from '../../runtime/dist/emnapi.js'
     })
 
     const p = new Promise((resolve, reject) => {
-      loadNapiModule(napiModule, '../.build/wasm32-wasi-threads/Debug/trap_in_thread.wasm', {
+      loadNapiModule(napiModule, '../.build/wasm32-wasip1-threads/Debug/trap_in_thread.wasm', {
         wasi,
         overwriteImports (importObject) {
           importObject.env.memory = wasmMemory

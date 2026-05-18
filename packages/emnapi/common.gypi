@@ -178,11 +178,11 @@
                 'conditions': [
                   ['wasm_threads != 0', {
                     # wasi-threads
-                    'cflags': [ '--target=wasm64-wasi-threads', '-pthread' ],
-                    'ldflags': [ '--target=wasm64-wasi-threads', '-pthread' ],
+                    'cflags': [ '--target=wasm64-wasip1-threads', '-pthread' ],
+                    'ldflags': [ '--target=wasm64-wasip1-threads', '-pthread' ],
                     'xcode_settings': {
-                      'WARNING_CFLAGS': [ '--target=wasm64-wasi-threads', '-pthread' ],
-                      'OTHER_LDFLAGS': [ '--target=wasm64-wasi-threads', '-pthread' ],
+                      'WARNING_CFLAGS': [ '--target=wasm64-wasip1-threads', '-pthread' ],
+                      'OTHER_LDFLAGS': [ '--target=wasm64-wasip1-threads', '-pthread' ],
                     },
                   }, {
                     # wasi
@@ -198,11 +198,11 @@
                 'conditions': [
                   ['wasm_threads != 0', {
                     # wasi-threads
-                    'cflags': [ '--target=wasm32-wasi-threads', '-pthread' ],
-                    'ldflags': [ '--target=wasm32-wasi-threads', '-pthread' ],
+                    'cflags': [ '--target=wasm32-wasip1-threads', '-pthread' ],
+                    'ldflags': [ '--target=wasm32-wasip1-threads', '-pthread' ],
                     'xcode_settings': {
-                      'WARNING_CFLAGS': [ '--target=wasm32-wasi-threads', '-pthread' ],
-                      'OTHER_LDFLAGS': [ '--target=wasm32-wasi-threads', '-pthread' ],
+                      'WARNING_CFLAGS': [ '--target=wasm32-wasip1-threads', '-pthread' ],
+                      'OTHER_LDFLAGS': [ '--target=wasm32-wasip1-threads', '-pthread' ],
                     },
                   }, {
                     # wasi
