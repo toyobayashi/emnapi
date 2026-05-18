@@ -84,6 +84,6 @@ runs:
     run: |
       npm install -g node-gyp
       npm install --ignore-scripts
-  - name: Fetch v8 headers
-    shell: bash
-    run: node ./script/fetch-v8-headers.js
+  # - name: Fetch v8 headers
+  #   shell: bash
+  #   run: node ./script/fetch-v8-headers.js
