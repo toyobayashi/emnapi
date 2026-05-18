@@ -235,6 +235,8 @@ async function main () {
   fs.copyFileSync(path.join(__dirname, '../packages/core/dist/emnapi-core.js'), path.join(sysroot, 'dist', 'emnapi-core.js'))
   // fs.copyFileSync(path.join(__dirname, '../packages/core/dist/emnapi-core.min.js'), path.join(sysroot, 'dist', 'emnapi-core.min.js'))
   fs.copyFileSync(path.join(__dirname, '../packages/core/dist/emnapi-core.d.ts'), path.join(sysroot, 'dist', 'emnapi-core.d.ts'))
+  fs.copyFileSync(path.join(__dirname, '../packages/core/dist/emnapi-core.full.js'), path.join(sysroot, 'dist', 'emnapi-core.full.js'))
+  fs.copyFileSync(path.join(__dirname, '../packages/core/dist/emnapi-core.full.d.ts'), path.join(sysroot, 'dist', 'emnapi-core.full.d.ts'))
 
   fs.copySync(path.join(sysroot, 'lib/wasm32-emscripten'), path.join(__dirname, '../packages/emnapi/lib/wasm32-emscripten'))
   fs.copySync(path.join(sysroot, 'lib/wasm64-emscripten'), path.join(__dirname, '../packages/emnapi/lib/wasm64-emscripten'))
