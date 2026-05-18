@@ -130,9 +130,16 @@ async function main () {
   }
 
   if (WASI_THREADS_CMAKE_TOOLCHAIN_FILE) {
+    const wasip1ThreadsToolchainFile = path.join(__dirname, 'wasip1-threads.cmake')
+    fs.writeFileSync(
+      wasip1ThreadsToolchainFile,
+      fs.readFileSync(WASI_THREADS_CMAKE_TOOLCHAIN_FILE, 'utf8').replace(/wasm32-wasi-threads/g, 'wasm32-wasip1-threads'),
+      'utf8'
+    )
+
     await spawn('cmake', [
       ...generatorOptions,
-      `-DCMAKE_TOOLCHAIN_FILE=${WASI_THREADS_CMAKE_TOOLCHAIN_FILE}`,
+      `-DCMAKE_TOOLCHAIN_FILE=${wasip1ThreadsToolchainFile.replace(/\\/g, '/')}`,
       `-DWASI_SDK_PREFIX=${WASI_SDK_PATH}`,
       '-DCMAKE_BUILD_TYPE=Release',
       '-DCMAKE_VERBOSE_MAKEFILE=1',
