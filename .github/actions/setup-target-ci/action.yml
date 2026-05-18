@@ -37,6 +37,10 @@ inputs:
     description: Whether WASI SDK is needed
     required: false
     default: 'false'
+  needs-v8-headers:
+    description: Whether to fetch v8 headers
+    required: false
+    default: 'true'
 
 runs:
   using: composite
@@ -84,6 +88,7 @@ runs:
     run: |
       npm install -g node-gyp
       npm install --ignore-scripts
-  # - name: Fetch v8 headers
-  #   shell: bash
-  #   run: node ./script/fetch-v8-headers.js
+  - name: Fetch v8 headers
+    if: ${{ inputs.needs-v8-headers == 'true' }}
+    shell: bash
+    run: node ./script/fetch-v8-headers.js
