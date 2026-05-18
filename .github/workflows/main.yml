@@ -14,6 +14,18 @@ on:
         - 'ts-transform-macro'
         - 'rollup-plugin-emscripten-esm-library'
         - 'ts-transform-emscripten-esm-library'
+        - 'node'
+      publish_tag:
+        description: 'npm publish tag'
+        required: false
+        default: 'latest'
+        type: choice
+        options:
+        - 'latest'
+        - 'alpha'
+        - 'beta'
+        - 'next'
+        - 'rc'
 
 permissions:
   id-token: write
@@ -37,6 +49,7 @@ jobs:
         em-version: ${{ env.MAIN_EM_VERSION }}
         needs-emscripten: ${{ inputs.release_target == 'main' && 'true' || 'false' }}
         needs-wasi-sdk: ${{ inputs.release_target == 'main' && 'true' || 'false' }}
+        needs-v8-headers: 'false'
     - name: Update npm
       run: npm install -g npm@latest
     - name: NPM Build main packages
@@ -46,13 +59,13 @@ jobs:
       if: ${{ inputs.release_target == 'main' }}
       run: |
         node ./script/release.js
-        npm publish --ignore-scripts -w packages/runtime -w packages/node -w packages/emnapi -w packages/core
+        npm publish --ignore-scripts ${{ inputs.publish_tag != 'latest' && format('--tag {0}', inputs.publish_tag) || '' }} -w packages/runtime -w packages/emnapi -w packages/core
     - name: Build independent package
       if: ${{ inputs.release_target != 'main' }}
       run: npm run build -w packages/${{ inputs.release_target }}
     - name: Publish independent package
       if: ${{ inputs.release_target != 'main' }}
-      run: npm publish --ignore-scripts -w packages/${{ inputs.release_target }}
+      run: npm publish --ignore-scripts ${{ inputs.publish_tag != 'latest' && format('--tag {0}', inputs.publish_tag) || '' }} -w packages/${{ inputs.release_target }}
     - name: Get release metadata
       id: meta
       shell: bash

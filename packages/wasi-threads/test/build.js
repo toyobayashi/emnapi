@@ -21,7 +21,7 @@ function build (model) {
           '-Wl,--no-entry'
         ]
     ),
-    '--target=wasm32-wasi-threads',
+    '--target=wasm32-wasip1-threads',
     // '-O3',
     '-g',
     '-pthread',

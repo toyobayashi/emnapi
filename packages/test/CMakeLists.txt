@@ -31,7 +31,7 @@ else()
   set(IS_WASI OFF)
 endif()
 
-if((CMAKE_SYSTEM_NAME STREQUAL "WASI") AND (CMAKE_C_COMPILER_TARGET STREQUAL "wasm32-wasi-threads"))
+if((CMAKE_SYSTEM_NAME STREQUAL "WASI") AND ((CMAKE_C_COMPILER_TARGET STREQUAL "wasm32-wasi-threads") OR (CMAKE_C_COMPILER_TARGET STREQUAL "wasm32-wasip1-threads")))
   set(IS_WASI_THREADS ON)
 else()
   set(IS_WASI_THREADS OFF)
@@ -474,7 +474,7 @@ function(add_test_v8 NAME SOURCE_LIST PTHREAD)
   endif()
 endfunction()
 
-if(IS_WASM AND NOT IS_WASM32)
+if(IS_WASM AND NOT IS_WASM32 AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../emnapi/include/node/v8.h")
   add_test_v8("v8_hello_world" "./v8_hello_world/binding.cc" OFF)
   if(IS_EMSCRIPTEN OR IS_WASI_THREADS OR NOT IS_WASM)
     # TODO nan test
