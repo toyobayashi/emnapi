@@ -474,7 +474,7 @@ function(add_test_v8 NAME SOURCE_LIST PTHREAD)
   endif()
 endfunction()
 
-if(IS_WASM AND NOT IS_WASM32)
+if(IS_WASM AND NOT IS_WASM32 AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../emnapi/include/node/v8.h")
   add_test_v8("v8_hello_world" "./v8_hello_world/binding.cc" OFF)
   if(IS_EMSCRIPTEN OR IS_WASI_THREADS OR NOT IS_WASM)
     # TODO nan test

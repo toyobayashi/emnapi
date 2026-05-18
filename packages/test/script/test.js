@@ -38,6 +38,12 @@ const pthread = [
   'sharedarraybuffer/sharedarraybuffer_mt.test.js',
 ]
 
+if (!require('fs').existsSync(path.join(__dirname, '../../emnapi/include/node/v8.h'))) {
+  console.log('v8 headers not found, skipping v8_hello_world tests')
+  ignore.push('v8_hello_world/**/*')
+  ignore.push('nan/**/*')
+}
+
 if (process.env.EMNAPI_TEST_NATIVE) {
   ignore = [...new Set([
     ...ignore,
