@@ -1,6 +1,7 @@
 #include <napi.h>
-#include <time.h>
-#include <pthread.h>
+#include <mutex>
+#include <thread>
+#include <chrono>
 
 struct RunContext {
   int current;
@@ -10,20 +11,15 @@ struct RunContext {
 struct RunData {
   Napi::ThreadSafeFunction tsfn;
   Napi::FunctionReference done_ref;
-  pthread_mutex_t mutex;
+  std::mutex mutex;
   int ref_count;
   RunContext context;
 
-  RunData() : ref_count(2), context{0, 5} {
-    pthread_mutex_init(&mutex, NULL);
-  }
-
-  ~RunData() { pthread_mutex_destroy(&mutex); }
+  RunData() : ref_count(2), context{0, 5} {}
 
   void unref() {
-    pthread_mutex_lock(&mutex);
+    std::lock_guard<std::mutex> lock(mutex);
     int remaining = --ref_count;
-    pthread_mutex_unlock(&mutex);
     if (remaining == 0) delete this;
   }
 };
@@ -34,12 +30,8 @@ class RunWorker : public Napi::AsyncWorker {
       : Napi::AsyncWorker(env, "run_work"), data_(data) {}
 
   void Execute() override {
-    struct timespec ts;
-    ts.tv_sec = 0;
-    ts.tv_nsec = 200 * 1000 * 1000;  // 200ms
-
     for (int i = 0; i < 5; i++) {
-      nanosleep(&ts, nullptr);
+      std::this_thread::sleep_for(std::chrono::milliseconds(200));
       RunContext* ctx = data_->tsfn.GetContext();
       int cur = ++ctx->current;
       int tot = ctx->total;
