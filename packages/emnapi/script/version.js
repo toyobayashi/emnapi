@@ -2,7 +2,7 @@ const fs = require('fs-extra')
 const path = require('path')
 
 async function main () {
-  const [major, minor, patch] = JSON.parse(fs.readFileSync(path.join(__dirname, '../package.json'), 'utf8')).version.split('.').map(Number)
+  const [major, minor, patch] = JSON.parse(fs.readFileSync(path.join(__dirname, '../package.json'), 'utf8')).version.split('-')[0].split('.').map(Number)
   const headerPath = path.join(__dirname, '../include/node/emnapi.h')
   const emnapiHeader = fs.readFileSync(headerPath, 'utf8')
   fs.writeFileSync(
