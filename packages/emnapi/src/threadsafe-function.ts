@@ -119,7 +119,7 @@ const emnapiTSFN = {
     emnapiTSFN.offset.mutex = emnapiTSFN.offset.mutex + 4
     if (typeof PThread !== 'undefined') {
       PThread.unusedWorkers.forEach(emnapiTSFN.addListener)
-      PThread.runningWorkers.forEach(emnapiTSFN.addListener)
+      Object.values(PThread.pthreads).forEach(emnapiTSFN.addListener)
       const __original_getNewWorker = PThread.getNewWorker
       PThread.getNewWorker = function () {
         const r = __original_getNewWorker.apply(this, arguments as any)
