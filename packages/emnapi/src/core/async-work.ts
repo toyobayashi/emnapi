@@ -47,7 +47,7 @@ var emnapiAWMT = {
 
     if (typeof PThread !== 'undefined') {
       PThread.unusedWorkers.forEach(emnapiAWMT.addListener)
-      PThread.runningWorkers.forEach(emnapiAWMT.addListener)
+      Object.values(PThread.pthreads).forEach(emnapiAWMT.addListener)
       const __original_getNewWorker = PThread.getNewWorker
       PThread.getNewWorker = function () {
         const r = __original_getNewWorker.apply(this, arguments as any)

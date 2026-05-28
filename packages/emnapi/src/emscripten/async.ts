@@ -34,7 +34,7 @@ export function _emnapi_worker_unref (pid: number): void {
  * @__postset
  * ```
  * PThread.unusedWorkers.forEach(emnapiAddSendListener);
- * PThread.runningWorkers.forEach(emnapiAddSendListener);
+ * Object.values(PThread.pthreads).forEach(emnapiAddSendListener);
  * (function () {
  *   var __original_getNewWorker = PThread.getNewWorker;
  *   PThread.getNewWorker = function () {

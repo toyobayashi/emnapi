@@ -172,7 +172,7 @@ export class WASIThreads {
       }
 
       let worker: any
-      let tid: number
+      let tid: number | undefined
       const PThread = this.PThread
       try {
         worker = PThread!.getNewWorker(sab)
@@ -193,9 +193,6 @@ export class WASIThreads {
           if (typeof waitThreadStart === 'number') {
             const waitResult = Atomics.wait(sab!, 0, 0, waitThreadStart)
             if (waitResult === 'timed-out') {
-              try {
-                PThread!.cleanThread(worker, tid, true)
-              } catch (_) {}
               throw new Error('Spawning thread timed out. Please check if the worker is created successfully and if message is handled properly in the worker.')
             }
           } else {
@@ -203,13 +200,15 @@ export class WASIThreads {
           }
           const r = Atomics.load(sab!, 0)
           if (r > 1) {
-            try {
-              PThread!.cleanThread(worker, tid, true)
-            } catch (_) {}
             throw deserizeErrorFromBuffer(sab!.buffer as SharedArrayBuffer)!
           }
         }
       } catch (e) {
+        if (worker !== undefined && tid !== undefined) {
+          try {
+            PThread!.cleanThread(worker, tid, true)
+          } catch (_) {}
+        }
         Atomics.store(struct, 0, 1)
         Atomics.store(struct, 1, EAGAIN)
         Atomics.notify(struct, 1)
@@ -226,7 +225,6 @@ export class WASIThreads {
       Atomics.store(struct, 1, tid)
       Atomics.notify(struct, 1)
 
-      PThread!.runningWorkers.push(worker)
       if (!shouldWait) {
         worker.whenLoaded.catch((err: any) => {
           delete worker.whenLoaded
