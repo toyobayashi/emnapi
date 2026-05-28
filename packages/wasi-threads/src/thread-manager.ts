@@ -96,7 +96,6 @@ let nextWorkerID = 0
 /** @public */
 export class ThreadManager {
   public unusedWorkers: WorkerLike[] = []
-  public runningWorkers: WorkerLike[] = []
   public pthreads: Record<number, WorkerLike> = Object.create(null)
   public get nextWorkerID (): number { return nextWorkerID }
 
@@ -218,7 +217,6 @@ export class ThreadManager {
       delete this.pthreads[tid]
     }
     this.unusedWorkers.push(worker)
-    this.runningWorkers.splice(this.runningWorkers.indexOf(worker), 1)
     delete worker.__emnapi_tid
     if (ENVIRONMENT_IS_NODE) {
       (worker as NodeWorker).unref()
@@ -351,10 +349,6 @@ export class ThreadManager {
       this.returnWorkerToPool(worker)
     } else {
       delete this.pthreads[tid]
-      const index = this.runningWorkers.indexOf(worker)
-      if (index !== -1) {
-        this.runningWorkers.splice(index, 1)
-      }
       this.terminateWorker(worker)
       delete worker.__emnapi_tid
     }
@@ -375,14 +369,14 @@ export class ThreadManager {
   }
 
   public terminateAllThreads (): void {
-    for (let i = 0; i < this.runningWorkers.length; ++i) {
-      this.terminateWorker(this.runningWorkers[i])
+    const runningWorkers = Object.values(this.pthreads)
+    for (let i = 0; i < runningWorkers.length; ++i) {
+      this.terminateWorker(runningWorkers[i])
     }
     for (let i = 0; i < this.unusedWorkers.length; ++i) {
       this.terminateWorker(this.unusedWorkers[i])
     }
     this.unusedWorkers = []
-    this.runningWorkers = []
     this.pthreads = Object.create(null)
 
     this.preparePool()
