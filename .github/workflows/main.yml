@@ -62,7 +62,7 @@ jobs:
         npm publish --ignore-scripts ${{ inputs.publish_tag != 'latest' && format('--tag {0}', inputs.publish_tag) || '' }} -w packages/runtime -w packages/emnapi -w packages/core
     - name: Build independent package
       if: ${{ inputs.release_target != 'main' }}
-      run: npm run build -w packages/${{ inputs.release_target }}
+      run: npm run build -w packages/shared && npm run build -w packages/${{ inputs.release_target }}
     - name: Publish independent package
       if: ${{ inputs.release_target != 'main' }}
       run: npm publish --ignore-scripts ${{ inputs.publish_tag != 'latest' && format('--tag {0}', inputs.publish_tag) || '' }} -w packages/${{ inputs.release_target }}

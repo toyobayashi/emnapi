@@ -1,6 +1,6 @@
 {
   "name": "@emnapi/ts-transform-emscripten-parse-tools",
-  "version": "2.0.0-alpha.1",
+  "version": "2.0.0-alpha.2",
   "private": true,
   "description": "",
   "type": "module",

@@ -1,6 +1,6 @@
 {
   "name": "@emnapi/runtime",
-  "version": "2.0.0-alpha.1",
+  "version": "2.0.0-alpha.2",
   "description": "emnapi runtime",
   "type": "module",
   "main": "./dist/emnapi.js",
