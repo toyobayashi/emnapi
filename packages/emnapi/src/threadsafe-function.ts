@@ -515,6 +515,7 @@ export const emnapiTSFN = {
       }
       const resource = emnapiTSFN.getResource(func)
       emnapiCtx.refStore.get(resource)!.dispose()
+      emnapiTSFN.ensureBufferFor(func + emnapiTSFN.offset.is_some + 1)
       makeSetValue('func', 'emnapiTSFN.offset.is_some', '0', 'i8')
 
       emnapiCtx.removeCleanupHook(envObject, emnapiTSFN.cleanup, func)
