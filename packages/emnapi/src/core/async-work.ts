@@ -41,6 +41,21 @@ var emnapiAWMT = {
     /* napi_async_complete_callback */ complete: 6 * POINTER_SIZE + 24,
     end: 7 * POINTER_SIZE + 24
   },
+  /**
+   * When another thread grows the shared WebAssembly.Memory, this agent's
+   * cached `wasmMemory.buffer` may still have the old shorter length
+   * (V8 refreshes it lazily). If a pointer derived from shared memory lies
+   * beyond the cached length, `wasmMemory.grow(0)` forces the agent to
+   * observe the current memory size and refreshes the buffer.
+   */
+  ensureBufferFor (end: number): ArrayBufferLike {
+    let buffer = wasmMemory.buffer
+    if (end > buffer.byteLength) {
+      wasmMemory.grow(0)
+      buffer = wasmMemory.buffer
+    }
+    return buffer
+  },
   init () {
     emnapiAWMT.pool = []
     emnapiAWMT.workerReady = null
@@ -94,7 +109,7 @@ var emnapiAWMT = {
       from64('emnapiAWMT.globalAddress')
       const size = emnapiAWMT.globalOffset.end
       const addr = emnapiAWMT.globalAddress
-      new Uint8Array(wasmMemory.buffer, addr, size).fill(0)
+      new Uint8Array(emnapiAWMT.ensureBufferFor(addr + size), addr, size).fill(0)
       emnapiAWMT.queueInit(emnapiAWMT.globalAddress + emnapiAWMT.globalOffset.q)
       emnapiAWMT.queueInit(emnapiAWMT.globalAddress + emnapiAWMT.globalOffset.exit_message)
     }
@@ -133,8 +148,8 @@ var emnapiAWMT = {
       }
       from64('index')
 
-      const view = new DataView(wasmMemory.buffer)
       const tidOffset = 20
+      const view = new DataView(emnapiAWMT.ensureBufferFor((index as number) + tidOffset + 4))
       const tid = view.getInt32(index + tidOffset, true)
       worker = PThread.pthreads[tid]
       return worker.whenLoaded!
@@ -143,18 +158,23 @@ var emnapiAWMT = {
     return emnapiAWMT.workerReady as Promise<any>
   },
   getResource (work: number): number {
+    emnapiAWMT.ensureBufferFor(work + emnapiAWMT.offset.resource + 4)
     return makeGetValue('work', 'emnapiAWMT.offset.resource', '*')
   },
   getExecute (work: number): number {
+    emnapiAWMT.ensureBufferFor(work + emnapiAWMT.offset.execute + 4)
     return makeGetValue('work', 'emnapiAWMT.offset.execute', '*')
   },
   getComplete (work: number): number {
+    emnapiAWMT.ensureBufferFor(work + emnapiAWMT.offset.complete + 4)
     return makeGetValue('work', 'emnapiAWMT.offset.complete', '*')
   },
   getEnv (work: number): number {
+    emnapiAWMT.ensureBufferFor(work + emnapiAWMT.offset.env + 4)
     return makeGetValue('work', 'emnapiAWMT.offset.env', '*')
   },
   getData (work: number): number {
+    emnapiAWMT.ensureBufferFor(work + emnapiAWMT.offset.data + 4)
     return makeGetValue('work', 'emnapiAWMT.offset.data', '*')
   },
   getMutex () {
@@ -162,7 +182,7 @@ var emnapiAWMT = {
     const mutex = {
       lock () {
         const isBrowserMain = typeof window !== 'undefined' && typeof document !== 'undefined' && !ENVIRONMENT_IS_NODE
-        const i32a = new Int32Array(wasmMemory.buffer, index, 1)
+        const i32a = new Int32Array(emnapiAWMT.ensureBufferFor(index + 4), index, 1)
         if (isBrowserMain) {
           while (true) {
             const oldValue = Atomics.compareExchange(i32a, 0, 0, 10)
@@ -181,7 +201,7 @@ var emnapiAWMT = {
         }
       },
       unlock () {
-        const i32a = new Int32Array(wasmMemory.buffer, index, 1)
+        const i32a = new Int32Array(emnapiAWMT.ensureBufferFor(index + 4), index, 1)
         const oldValue = Atomics.compareExchange(i32a, 0, 10, 0)
         if (oldValue !== 10) {
           throw new Error('Tried to unlock while not holding the mutex')
@@ -205,14 +225,14 @@ var emnapiAWMT = {
     const mutex = emnapiAWMT.getMutex()
     const cond = {
       wait () {
-        const i32a = new Int32Array(wasmMemory.buffer, index, 1)
+        const i32a = new Int32Array(emnapiAWMT.ensureBufferFor(index + 4), index, 1)
         const value = Atomics.load(i32a, 0)
         mutex.unlock()
         Atomics.wait(i32a, 0, value)
         mutex.lock()
       },
       signal () {
-        const i32a = new Int32Array(wasmMemory.buffer, index, 1)
+        const i32a = new Int32Array(emnapiAWMT.ensureBufferFor(index + 4), index, 1)
         Atomics.add(i32a, 0, 1)
         Atomics.notify(i32a, 0, 1)
       }
@@ -220,10 +240,13 @@ var emnapiAWMT = {
     return cond
   },
   queueInit (q: number) {
+    emnapiAWMT.ensureBufferFor(q + POINTER_SIZE + 4)
     makeSetValue('q', 0, 'q', '*')
     makeSetValue('q', POINTER_SIZE, 'q', '*')
   },
   queueInsertTail (h: number, q: number): void {
+    emnapiAWMT.ensureBufferFor(h + POINTER_SIZE + 4)
+    emnapiAWMT.ensureBufferFor(q + POINTER_SIZE + 4)
     makeSetValue('q', 0, 'h', '*')
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const tempValue = makeGetValue('h', POINTER_SIZE, '*')
@@ -234,6 +257,7 @@ var emnapiAWMT = {
     makeSetValue('h', POINTER_SIZE, 'q', '*')
   },
   queueRemove (q: number): void {
+    emnapiAWMT.ensureBufferFor(q + POINTER_SIZE + 4)
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const qprev = makeGetValue('q', POINTER_SIZE, '*')
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -242,6 +266,7 @@ var emnapiAWMT = {
     makeSetValue('qnext', POINTER_SIZE, 'qprev', '*')
   },
   queueEmpty (q: number): boolean {
+    emnapiAWMT.ensureBufferFor(q + 4)
     // eslint-disable-next-line eqeqeq
     return q == makeGetValue('q', 0, '*')
   },
@@ -257,7 +282,7 @@ var emnapiAWMT = {
 
     _emnapi_runtime_keepalive_push()
     emnapiCtx.increaseWaitingRequestCounter()
-    const statusBuffer = new Int32Array(wasmMemory.buffer, work + emnapiAWMT.offset.status, 1)
+    const statusBuffer = new Int32Array(emnapiAWMT.ensureBufferFor(work + emnapiAWMT.offset.status + 4), work + emnapiAWMT.offset.status, 1)
     Atomics.store(statusBuffer, 0, AsyncWorkStatus.Pending)
 
     const mutex = emnapiAWMT.getMutex()
@@ -272,6 +297,7 @@ var emnapiAWMT = {
       throw err
     }
 
+    emnapiAWMT.ensureBufferFor(emnapiAWMT.globalAddress + emnapiAWMT.globalOffset.idle_threads + 4)
     if (makeGetValue('emnapiAWMT.globalAddress', 'emnapiAWMT.globalOffset.idle_threads', 'u32') > 0) {
       cond.signal()
     }
@@ -280,6 +306,7 @@ var emnapiAWMT = {
   cancelWork (work: number) {
     let cancelled = false
     emnapiAWMT.getMutex().execute(() => {
+      emnapiAWMT.ensureBufferFor(work + emnapiAWMT.offset.status + 4)
       cancelled = !emnapiAWMT.queueEmpty(work + emnapiAWMT.offset.queue) && makeGetValue('work', 'emnapiAWMT.offset.status', 'i32') !== AsyncWorkStatus.Completed
       if (cancelled) {
         emnapiAWMT.queueRemove(work + emnapiAWMT.offset.queue)
@@ -288,7 +315,7 @@ var emnapiAWMT = {
     if (!cancelled) {
       return napi_status.napi_generic_failure
     }
-    if (Atomics.compareExchange(new Int32Array(wasmMemory.buffer, work + emnapiAWMT.offset.status, 1), 0, AsyncWorkStatus.Pending, AsyncWorkStatus.Cancelled) !== AsyncWorkStatus.Pending) {
+    if (Atomics.compareExchange(new Int32Array(emnapiAWMT.ensureBufferFor(work + emnapiAWMT.offset.status + 4), work + emnapiAWMT.offset.status, 1), 0, AsyncWorkStatus.Pending, AsyncWorkStatus.Cancelled) !== AsyncWorkStatus.Pending) {
       return napi_status.napi_generic_failure
     }
     emnapiCtx.feature.setImmediate(() => {
@@ -316,7 +343,7 @@ var emnapiAWMT = {
         const resource = emnapiAWMT.getResource(work)
         const resource_value = emnapiCtx.refStore.get(resource)!.get()
         const resourceObject = emnapiCtx.handleStore.get(resource_value)!.value
-        const view = new DataView(wasmMemory.buffer)
+        const view = new DataView(emnapiAWMT.ensureBufferFor(work + emnapiAWMT.offset.trigger_async_id + 8))
         const asyncId = view.getFloat64(work + emnapiAWMT.offset.async_id, true)
         const triggerAsyncId = view.getFloat64(work + emnapiAWMT.offset.trigger_async_id, true)
         emnapiNodeBinding.node.makeCallback(resourceObject, callback, [], {
@@ -375,7 +402,7 @@ export var napi_create_async_work = singleThreadAsyncWork
     const aw = _malloc(to64('sizeofAW'))
     if (!aw) return envObject.setLastError(napi_status.napi_generic_failure)
     from64('aw')
-    new Uint8Array(wasmMemory.buffer).subarray(aw, aw + sizeofAW).fill(0)
+    new Uint8Array(emnapiAWMT.ensureBufferFor(aw + sizeofAW)).subarray(aw, aw + sizeofAW).fill(0)
     const s = envObject.ensureHandleId(resourceObject)
     const resourceRef = emnapiCtx.createReference(envObject, s, 1, ReferenceOwnership.kUserland as any)
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -409,7 +436,7 @@ export var napi_delete_async_work = singleThreadAsyncWork
     emnapiCtx.refStore.get(resource)!.dispose()
 
     if (emnapiNodeBinding) {
-      const view = new DataView(wasmMemory.buffer)
+      const view = new DataView(emnapiAWMT.ensureBufferFor(work + emnapiAWMT.offset.trigger_async_id + 8))
       const asyncId = view.getFloat64(work + emnapiAWMT.offset.async_id, true)
       const triggerAsyncId = view.getFloat64(work + emnapiAWMT.offset.trigger_async_id, true)
       _emnapi_node_emit_async_destroy(asyncId, triggerAsyncId)
@@ -470,10 +497,11 @@ export function _emnapi_async_worker (globalAddress: number): number {
   const idleThreadsAddr = globalAddress + emnapiAWMT.globalOffset.idle_threads
   const workerQueueAddr = globalAddress + emnapiAWMT.globalOffset.q
   for (;;) {
+    emnapiAWMT.ensureBufferFor(workerQueueAddr + 4)
     while (emnapiAWMT.queueEmpty(workerQueueAddr)) {
-      Atomics.add(new Int32Array(wasmMemory.buffer, idleThreadsAddr, 1), 0, 1)
+      Atomics.add(new Int32Array(emnapiAWMT.ensureBufferFor(idleThreadsAddr + 4), idleThreadsAddr, 1), 0, 1)
       cond.wait()
-      Atomics.sub(new Int32Array(wasmMemory.buffer, idleThreadsAddr, 1), 0, 1)
+      Atomics.sub(new Int32Array(emnapiAWMT.ensureBufferFor(idleThreadsAddr + 4), idleThreadsAddr, 1), 0, 1)
     }
     const q = makeGetValue('workerQueueAddr', 0, '*')
     if (q === exitMessageAddr) {
@@ -487,7 +515,7 @@ export function _emnapi_async_worker (globalAddress: number): number {
 
     mutex.unlock()
 
-    const statusBuffer = new Int32Array(wasmMemory.buffer, work + emnapiAWMT.offset.status, 1)
+    const statusBuffer = new Int32Array(emnapiAWMT.ensureBufferFor(work + emnapiAWMT.offset.status + 4), work + emnapiAWMT.offset.status, 1)
     if (Atomics.load(statusBuffer, 0) === AsyncWorkStatus.Cancelled) {
       abort('unreachable')
     }
