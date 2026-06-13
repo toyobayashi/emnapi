@@ -310,21 +310,10 @@ class Transform {
           this.ctx.factory.createNewExpression(
             this.ctx.factory.createIdentifier('DataView'),
             undefined,
-            [this.ctx.factory.createParenthesizedExpression(this.ctx.factory.createBinaryExpression(
-              this.ctx.factory.createCallExpression(
-                this.ctx.factory.createPropertyAccessExpression(
-                  this.ctx.factory.createIdentifier('wasmMemory'),
-                  this.ctx.factory.createIdentifier('grow')
-                ),
-                undefined,
-                [this.ctx.factory.createNumericLiteral('0')]
-              ),
-              this.ctx.factory.createToken(ts.SyntaxKind.CommaToken),
-              this.ctx.factory.createPropertyAccessExpression(
-                this.ctx.factory.createIdentifier('wasmMemory'),
-                this.ctx.factory.createIdentifier('buffer')
-              )
-            ))]
+            [this.ctx.factory.createPropertyAccessExpression(
+              this.createLazyEmscriptenRuntimeSymbol('wasmMemory'),
+              this.ctx.factory.createIdentifier('buffer')
+            )]
           )
         )],
         ts.NodeFlags.None
