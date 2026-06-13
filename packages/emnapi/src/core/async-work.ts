@@ -167,18 +167,23 @@ var emnapiAWMT = {
     return emnapiAWMT.workerReady as Promise<any>
   },
   getResource (work: number): number {
+    emnapiAWMT.ensureBufferFor(work + emnapiAWMT.offset.resource + 4)
     return makeGetValue('work', 'emnapiAWMT.offset.resource', '*')
   },
   getExecute (work: number): number {
+    emnapiAWMT.ensureBufferFor(work + emnapiAWMT.offset.execute + 4)
     return makeGetValue('work', 'emnapiAWMT.offset.execute', '*')
   },
   getComplete (work: number): number {
+    emnapiAWMT.ensureBufferFor(work + emnapiAWMT.offset.complete + 4)
     return makeGetValue('work', 'emnapiAWMT.offset.complete', '*')
   },
   getEnv (work: number): number {
+    emnapiAWMT.ensureBufferFor(work + emnapiAWMT.offset.env + 4)
     return makeGetValue('work', 'emnapiAWMT.offset.env', '*')
   },
   getData (work: number): number {
+    emnapiAWMT.ensureBufferFor(work + emnapiAWMT.offset.data + 4)
     return makeGetValue('work', 'emnapiAWMT.offset.data', '*')
   },
   getMutex () {
@@ -244,10 +249,13 @@ var emnapiAWMT = {
     return cond
   },
   queueInit (q: number) {
+    emnapiAWMT.ensureBufferFor(q + POINTER_SIZE + 4)
     makeSetValue('q', 0, 'q', '*')
     makeSetValue('q', POINTER_SIZE, 'q', '*')
   },
   queueInsertTail (h: number, q: number): void {
+    emnapiAWMT.ensureBufferFor(h + POINTER_SIZE + 4)
+    emnapiAWMT.ensureBufferFor(q + POINTER_SIZE + 4)
     makeSetValue('q', 0, 'h', '*')
     const tempValue = makeGetValue('h', POINTER_SIZE, '*')
     makeSetValue('q', POINTER_SIZE, 'tempValue', '*')
@@ -256,12 +264,14 @@ var emnapiAWMT = {
     makeSetValue('h', POINTER_SIZE, 'q', '*')
   },
   queueRemove (q: number): void {
+    emnapiAWMT.ensureBufferFor(q + POINTER_SIZE + 4)
     const qprev = makeGetValue('q', POINTER_SIZE, '*')
     const qnext = makeGetValue('q', 0, '*')
     makeSetValue('qprev', 0, 'qnext', '*')
     makeSetValue('qnext', POINTER_SIZE, 'qprev', '*')
   },
   queueEmpty (q: number): boolean {
+    emnapiAWMT.ensureBufferFor(q + 4)
     // eslint-disable-next-line eqeqeq
     return q == makeGetValue('q', 0, '*')
   },
@@ -292,6 +302,7 @@ var emnapiAWMT = {
       throw err
     }
 
+    emnapiAWMT.ensureBufferFor(emnapiAWMT.globalAddress + emnapiAWMT.globalOffset.idle_threads + 4)
     if (makeGetValue('emnapiAWMT.globalAddress', 'emnapiAWMT.globalOffset.idle_threads', 'u32') > 0) {
       cond.signal()
     }
@@ -300,6 +311,7 @@ var emnapiAWMT = {
   cancelWork (work: number) {
     let cancelled = false
     emnapiAWMT.getMutex().execute(() => {
+      emnapiAWMT.ensureBufferFor(work + emnapiAWMT.offset.status + 4)
       cancelled = !emnapiAWMT.queueEmpty(work + emnapiAWMT.offset.queue) && makeGetValue('work', 'emnapiAWMT.offset.status', 'i32') !== AsyncWorkStatus.Completed
       if (cancelled) {
         emnapiAWMT.queueRemove(work + emnapiAWMT.offset.queue)
@@ -491,6 +503,7 @@ export function _emnapi_async_worker (globalAddress: number): number {
   const idleThreadsAddr = globalAddress + emnapiAWMT.globalOffset.idle_threads
   const workerQueueAddr = globalAddress + emnapiAWMT.globalOffset.q
   for (;;) {
+    emnapiAWMT.ensureBufferFor(workerQueueAddr + 4)
     while (emnapiAWMT.queueEmpty(workerQueueAddr)) {
       Atomics.add(new Int32Array(emnapiAWMT.ensureBufferFor(idleThreadsAddr + 4), idleThreadsAddr, 1), 0, 1)
       cond.wait()
