@@ -109,6 +109,9 @@ export function napi_call_function (
     }
     const ret = v8func.apply(v8recv, args)
     if (result) {
+      // resolving v BEFORE the write matters: the store target is evaluated
+      // before the RHS, so an RHS running user JS could otherwise write
+      // through a stale heap view after a growth
       v = emnapiCtx.napiValueFromJsValue(ret)
       makeSetValue('result', 0, 'v', '*')
     }
@@ -161,6 +164,7 @@ export function napi_new_instance (
       ret = new BoundCtor()
     }
     if (result) {
+      // see napi_call_function: resolve v before the write
       v = emnapiCtx.napiValueFromJsValue(ret)
       makeSetValue('result', 0, 'v', '*')
     }

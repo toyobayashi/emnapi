@@ -744,13 +744,20 @@ const emnapiTSFN = {
 
     let iterations_left = 1000
     const dispatchStateAddress = func + emnapiTSFN.offset.dispatch_state
-    const ui32a = new Uint32Array(emnapiTSFN.ensureBufferFor(dispatchStateAddress + 4))
     const index = dispatchStateAddress >>> 2
     while (has_more && --iterations_left !== 0) {
-      Atomics.store(ui32a, index, 1)
+      Atomics.store(
+        new Uint32Array(emnapiTSFN.ensureBufferFor(dispatchStateAddress + 4)),
+        index,
+        1
+      )
       has_more = emnapiTSFN.dispatchOne(func)
 
-      if (Atomics.exchange(ui32a, index, 0) !== 1) {
+      if (Atomics.exchange(
+        new Uint32Array(emnapiTSFN.ensureBufferFor(dispatchStateAddress + 4)),
+        index,
+        0
+      ) !== 1) {
         has_more = true
       }
     }
@@ -766,8 +773,9 @@ const emnapiTSFN = {
     // `scheduled` prevents queueing the same main-thread drain chain more than
     // once while a previous wakeup is still in flight.
     const scheduled = func + emnapiTSFN.offset.async_u_fd
-    const i32a = new Int32Array(emnapiTSFN.ensureBufferFor(Math.max(pending, scheduled) + 4))
-    if (Atomics.exchange(i32a, scheduled >>> 2, 1) !== 0) {
+    const end = Math.max(pending, scheduled) + 4
+    const state = (): Int32Array => new Int32Array(emnapiTSFN.ensureBufferFor(end))
+    if (Atomics.exchange(state(), scheduled >>> 2, 1) !== 0) {
       return
     }
 
@@ -779,8 +787,8 @@ const emnapiTSFN = {
       if (!emnapiTSFN._liveSet.has(func)) {
         return
       }
-      if (Atomics.load(i32a, pending >>> 2) === 0) {
-        Atomics.store(i32a, scheduled >>> 2, 0)
+      if (Atomics.load(state(), pending >>> 2) === 0) {
+        Atomics.store(state(), scheduled >>> 2, 0)
         return
       }
 
@@ -788,7 +796,7 @@ const emnapiTSFN = {
         try {
           // Consume the coalesced wakeup once, then let dispatch() observe any
           // queue mutations through dispatch_state like the C implementation.
-          if (Atomics.exchange(i32a, pending >>> 2, 0) === 0) {
+          if (Atomics.exchange(state(), pending >>> 2, 0) === 0) {
             return
           }
           // After destroy(), the func address is freed.  Skip dispatch
@@ -801,8 +809,8 @@ const emnapiTSFN = {
           // Allow a later wakeup to schedule a new drain chain. If another
           // worker-thread send raced with this drain, enqueue one more turn.
           if (emnapiTSFN._liveSet.has(func)) {
-            Atomics.store(i32a, scheduled >>> 2, 0)
-            if (Atomics.load(i32a, pending >>> 2) !== 0) {
+            Atomics.store(state(), scheduled >>> 2, 0)
+            if (Atomics.load(state(), pending >>> 2) !== 0) {
               emnapiTSFN.enqueue(func)
             }
           }

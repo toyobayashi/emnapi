@@ -303,22 +303,67 @@ class Transform {
   }
 
   createHeapDataViewDeclaration (): VariableStatement {
-    return this.ctx.factory.createVariableStatement(
+    const factory = this.ctx.factory
+    const createDataViewOfWasmMemory = (): Expression => factory.createNewExpression(
+      factory.createIdentifier('DataView'),
       undefined,
-      this.ctx.factory.createVariableDeclarationList(
-        [this.ctx.factory.createVariableDeclaration(
-          this.ctx.factory.createIdentifier('HEAP_DATA_VIEW'),
-          undefined,
-          undefined,
-          this.ctx.factory.createNewExpression(
-            this.ctx.factory.createIdentifier('DataView'),
+      [factory.createPropertyAccessExpression(
+        this.createLazyEmscriptenRuntimeSymbol('wasmMemory'),
+        factory.createIdentifier('buffer')
+      )]
+    )
+    // var HEAP_DATA_VIEW = new DataView(wasmMemory.buffer),
+    //     GET_HEAP_DATA_VIEW = () => HEAP_DATA_VIEW.buffer === wasmMemory.buffer
+    //       ? HEAP_DATA_VIEW
+    //       : (HEAP_DATA_VIEW = new DataView(wasmMemory.buffer));
+    // growing a non-shared wasm memory detaches the buffer captured by the
+    // hoisted view, so every access revalidates it by identity (steady state
+    // is a compare, a new DataView is only created after a growth)
+    return factory.createVariableStatement(
+      undefined,
+      factory.createVariableDeclarationList(
+        [
+          factory.createVariableDeclaration(
+            factory.createIdentifier('HEAP_DATA_VIEW'),
             undefined,
-            [this.ctx.factory.createPropertyAccessExpression(
-              this.createLazyEmscriptenRuntimeSymbol('wasmMemory'),
-              this.ctx.factory.createIdentifier('buffer')
-            )]
+            undefined,
+            createDataViewOfWasmMemory()
+          ),
+          factory.createVariableDeclaration(
+            factory.createIdentifier('GET_HEAP_DATA_VIEW'),
+            undefined,
+            undefined,
+            factory.createArrowFunction(
+              undefined,
+              undefined,
+              [],
+              undefined,
+              factory.createToken(ts.SyntaxKind.EqualsGreaterThanToken),
+              factory.createConditionalExpression(
+                factory.createBinaryExpression(
+                  factory.createPropertyAccessExpression(
+                    factory.createIdentifier('HEAP_DATA_VIEW'),
+                    factory.createIdentifier('buffer')
+                  ),
+                  factory.createToken(ts.SyntaxKind.EqualsEqualsEqualsToken),
+                  factory.createPropertyAccessExpression(
+                    this.createLazyEmscriptenRuntimeSymbol('wasmMemory'),
+                    factory.createIdentifier('buffer')
+                  )
+                ),
+                factory.createToken(ts.SyntaxKind.QuestionToken),
+                factory.createIdentifier('HEAP_DATA_VIEW'),
+                factory.createToken(ts.SyntaxKind.ColonToken),
+                factory.createParenthesizedExpression(
+                  factory.createAssignment(
+                    factory.createIdentifier('HEAP_DATA_VIEW'),
+                    createDataViewOfWasmMemory()
+                  )
+                )
+              )
+            )
           )
-        )],
+        ],
         ts.NodeFlags.None
       )
     )
@@ -350,7 +395,7 @@ class Transform {
       if (!statement) return false
       let includeGetOrSet = false
       const statementVisitor: Visitor = (n) => {
-        if (ts.isIdentifier(n) && n.text === 'HEAP_DATA_VIEW') {
+        if (ts.isIdentifier(n) && (n.text === 'HEAP_DATA_VIEW' || n.text === 'GET_HEAP_DATA_VIEW')) {
           if (!this.insertWasmMemoryImport) {
             this.insertWasmMemoryImport = true
           }
@@ -595,7 +640,11 @@ class Transform {
 
     return this.ctx.factory.createCallExpression(
       this.ctx.factory.createPropertyAccessExpression(
-        this.ctx.factory.createIdentifier('HEAP_DATA_VIEW'),
+        this.ctx.factory.createCallExpression(
+          this.ctx.factory.createIdentifier('GET_HEAP_DATA_VIEW'),
+          undefined,
+          []
+        ),
         this.ctx.factory.createIdentifier(getDataViewGetMethod(this.defines, type))
       ),
       undefined,
@@ -642,7 +691,11 @@ class Transform {
     const methodName = getDataViewSetMethod(this.defines, type)
     return this.ctx.factory.createCallExpression(
       this.ctx.factory.createPropertyAccessExpression(
-        this.ctx.factory.createIdentifier('HEAP_DATA_VIEW'),
+        this.ctx.factory.createCallExpression(
+          this.ctx.factory.createIdentifier('GET_HEAP_DATA_VIEW'),
+          undefined,
+          []
+        ),
         this.ctx.factory.createIdentifier(methodName)
       ),
       undefined,

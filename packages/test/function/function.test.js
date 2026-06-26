@@ -4,7 +4,9 @@ const assert = require('assert')
 const common = require('../common')
 const { load } = require('../util')
 
-module.exports = load('function').then(async test_function => {
+const loadPromise = load('function')
+
+module.exports = loadPromise.then(async test_function => {
   function func1 () {
     return 1
   }
@@ -25,6 +27,20 @@ module.exports = load('function').then(async test_function => {
     return func3(input)
   }
   assert.strictEqual(test_function.TestCall(func4, 1), 2)
+
+  const wasmMemory = loadPromise.Module && loadPromise.Module.wasmMemory
+  if (wasmMemory && wasmMemory.buffer instanceof ArrayBuffer) {
+    assert.strictEqual(test_function.TestCall(() => {
+      // Module.growMemory handles the index type of the memory
+      // (wasmMemory.grow(1) throws on i64-indexed MEMORY64 memories)
+      if (loadPromise.Module.growMemory) {
+        loadPromise.Module.growMemory(wasmMemory.buffer.byteLength + 65536)
+      } else {
+        wasmMemory.grow(1)
+      }
+      return 3
+    }), 3)
+  }
 
   assert.strictEqual(test_function.TestName.name, 'Name')
   assert.strictEqual(test_function.TestNameShort.name, 'Name_')
