@@ -121,7 +121,7 @@ export const _MessageChannel: typeof MessageChannel | undefined = typeof Message
     })()
 
 export const _setImmediate = typeof setImmediate === 'function'
-  ? setImmediate
+  ? setImmediate.bind(_global)
   : function (callback: () => void): void {
     if (typeof callback !== 'function') {
       throw new TypeError('The "callback" argument must be of type function')
