@@ -141,7 +141,7 @@ export function detectFeatures (features?: Partial<Features>): Features {
         })(),
 
     setImmediate: typeof setImmediate === 'function'
-      ? setImmediate
+      ? setImmediate.bind(getGlobalThis())
       : function (callback: () => void): void {
         if (typeof callback !== 'function') {
           throw new TypeError('The "callback" argument must be of type function')
