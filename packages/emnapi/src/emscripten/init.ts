@@ -23,6 +23,15 @@ export interface InitOptions {
 export var emnapiCtx: Context = undefined!
 export var emnapiNodeBinding: NodeBinding = undefined!
 export var emnapiAsyncWorkPoolSize: number = 0
+export var emnapiPostMessageTransport: {
+  post: (message: any) => unknown
+  throwsAreDefinitelyNotDelivered: boolean
+} | undefined = {
+  post (message) {
+    postMessage.call(globalThis, message)
+  },
+  throwsAreDefinitelyNotDelivered: true
+}
 
 const emnapiModule: {
   exports: any

@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/indent */
 
 import { ENVIRONMENT_IS_NODE, _malloc, wasmMemory, _free, ENVIRONMENT_IS_PTHREAD, abort, PThread } from 'emscripten:runtime'
-import { emnapiCtx, emnapiNodeBinding } from 'emnapi:shared'
-import { POINTER_SIZE, to64, makeDynCall, from64, makeSetValue, SIZE_TYPE } from 'emscripten:parse-tools'
+import { emnapiCtx, emnapiNodeBinding, emnapiPostMessageTransport } from 'emnapi:shared'
+import { POINTER_SIZE, to64, makeDynCall, from64 } from 'emscripten:parse-tools'
 import { $CHECK_ENV_NOT_IN_GC, $CHECK_ARG } from './macro'
 import { _emnapi_node_emit_async_destroy, _emnapi_node_emit_async_init } from './node'
 import { _emnapi_runtime_keepalive_pop, _emnapi_runtime_keepalive_push } from './util'
@@ -11,6 +11,38 @@ const enum State {
   kOpen,
   kClosing,
   kClosed,
+}
+
+const enum Delivery {
+  kSent,
+  kDefinitelyNotDelivered,
+  kAmbiguous,
+}
+
+function normalizeAddress (address: number): number {
+// #if MEMORY64
+  return address
+// #else
+  // eslint-disable-next-line no-unreachable
+  return address >>> 0
+// #endif
+}
+
+function normalizeEnd (end: number): number {
+// #if MEMORY64
+  return end
+// #else
+  // eslint-disable-next-line no-unreachable
+  return end < 0 ? end >>> 0 : end
+// #endif
+}
+
+function addressEnd (address: number, width: number): number {
+  return normalizeAddress(address) + width
+}
+
+function atomicIndex (address: number, width: number): number {
+  return Math.floor(normalizeAddress(address) / width)
 }
 
 /**
@@ -22,7 +54,8 @@ const enum State {
  * ```
  */
 export const emnapiTSFN = {
-  _liveSet: {} as Set<number>,
+  _liveSet: new Set<number>(),
+  _sendRetryMap: new Map<number, { attempts: number }>(),
   offset: {
     __size__: 0,
     /* napi_ref */ resource: 0,
@@ -51,6 +84,7 @@ export const emnapiTSFN = {
   },
   init () {
     emnapiTSFN._liveSet = new Set<number>()
+    emnapiTSFN._sendRetryMap = new Map<number, { attempts: number }>()
 // #if MEMORY64
     emnapiTSFN.offset.__size__ = NapiTSFNOffset64.__size__
     emnapiTSFN.offset.resource = NapiTSFNOffset64.async_resource_resource
@@ -110,28 +144,53 @@ export const emnapiTSFN = {
         emnapiTSFN.addListener(r)
         return r
       }
-    }
-  },
-  addListener (worker: any) {
-    if (!worker) return false
-    if (worker._emnapiTSFNListener) return true
-    const handler = function (e: any): void {
-      const data = ENVIRONMENT_IS_NODE ? e : e.data
-      const __emnapi__ = data.__emnapi__
-      if (__emnapi__) {
-        const type = __emnapi__.type
-        const payload = __emnapi__.payload
-        if (type === 'tsfn-send') {
-          const pendng = payload.tsfn + emnapiTSFN.offset.async_pending
-          if (Atomics.load(new Int32Array(emnapiTSFN.ensureBufferFor(pendng + 4)), pendng >>> 2) !== 0) {
-            emnapiTSFN.enqueue(payload.tsfn)
+      if (typeof PThread.terminateWorker === 'function') {
+        const __original_terminateWorker = PThread.terminateWorker
+        PThread.terminateWorker = function (worker: any) {
+          emnapiTSFN.addListener(worker)
+          emnapiTSFN.recoverAfterWorkerLoss()
+          try {
+            return __original_terminateWorker.apply(this, arguments as any)
+          } finally {
+            emnapiTSFN.recoverAfterWorkerLoss()
           }
         }
       }
     }
+  },
+  addListener (worker: any) {
+    if (!worker) return false
+    emnapiTSFN.wrapWorkerTerminate(worker)
+    if (worker._emnapiTSFNListener) return true
+    const handler = function (e: any): void {
+      const data = ENVIRONMENT_IS_NODE ? e : e.data
+      const __emnapi__ = data?.__emnapi__
+      if (__emnapi__) {
+        const type = __emnapi__.type
+        const payload = __emnapi__.payload
+        if (
+          type === 'tsfn-send' &&
+          payload &&
+          typeof payload.tsfn === 'number' &&
+          emnapiTSFN._liveSet.has(payload.tsfn)
+        ) {
+          const pending = payload.tsfn + emnapiTSFN.offset.async_pending
+          const state = new Int32Array(
+            emnapiTSFN.ensureBufferFor(addressEnd(pending, 4))
+          )
+          Atomics.store(state, atomicIndex(pending, 4), 2)
+          emnapiTSFN.enqueue(payload.tsfn)
+        }
+      }
+    }
+    const handleWorkerLoss = function (): void {
+      emnapiTSFN.recoverAfterWorkerLoss()
+      dispose()
+    }
     const dispose = function (): void {
       if (ENVIRONMENT_IS_NODE) {
         worker.off('message', handler)
+        worker.off('exit', handleWorkerLoss)
       } else {
         worker.removeEventListener('message', handler, false)
       }
@@ -140,10 +199,221 @@ export const emnapiTSFN = {
     worker._emnapiTSFNListener = { handler, dispose }
     if (ENVIRONMENT_IS_NODE) {
       worker.on('message', handler)
+      worker.once('exit', handleWorkerLoss)
     } else {
       worker.addEventListener('message', handler, false)
     }
     return true
+  },
+  wrapWorkerTerminate (worker: any): void {
+    if (
+      typeof worker.terminate !== 'function' ||
+      worker._emnapiTSFNTerminate
+    ) {
+      return
+    }
+    const original = worker.terminate
+    const wrapped = function (this: any): any {
+      emnapiTSFN.recoverAfterWorkerLoss()
+      try {
+        return original.apply(this, arguments as any)
+      } finally {
+        emnapiTSFN.recoverAfterWorkerLoss()
+      }
+    }
+    worker._emnapiTSFNTerminate = { original, wrapped }
+    worker.terminate = wrapped
+  },
+  recoverAfterWorkerLoss (): void {
+    if ((typeof ENVIRONMENT_IS_PTHREAD !== 'undefined') && ENVIRONMENT_IS_PTHREAD) {
+      return
+    }
+    const live = Array.from(emnapiTSFN._liveSet)
+    for (let i = 0; i < live.length; i++) {
+      const func = live[i]
+      if (!emnapiTSFN._liveSet.has(func)) {
+        continue
+      }
+      const pending = func + emnapiTSFN.offset.async_pending
+      const state = new Int32Array(
+        emnapiTSFN.ensureBufferFor(addressEnd(pending, 4))
+      )
+      const index = atomicIndex(pending, 4)
+      let current = Atomics.load(state, index)
+      while (current !== 0) {
+        const previous = Atomics.compareExchange(state, index, current, 2)
+        if (previous === current) {
+          emnapiTSFN.enqueue(func)
+          break
+        }
+        current = previous
+      }
+    }
+  },
+  getPostMessage (): {
+    post: (message: any) => unknown
+    throwsAreDefinitelyNotDelivered: boolean
+  } | undefined {
+    const transport = emnapiPostMessageTransport
+    if (transport && typeof transport.post === 'function') {
+      return transport
+    }
+    const globalPostMessage = typeof postMessage === 'function'
+      ? postMessage
+      : undefined
+    if (globalPostMessage) {
+      return {
+        post: globalPostMessage.bind(globalThis),
+        throwsAreDefinitelyNotDelivered: true
+      }
+    }
+    return undefined
+  },
+  postMessage (message: any): Delivery {
+    const transport = emnapiTSFN.getPostMessage()
+    if (!transport) {
+      return Delivery.kDefinitelyNotDelivered
+    }
+    let result: unknown
+    try {
+      result = transport.post(message)
+    } catch (err) {
+      let definitelyNotDelivered = transport.throwsAreDefinitelyNotDelivered
+      if (
+        !definitelyNotDelivered &&
+        err &&
+        (typeof err === 'object' || typeof err === 'function')
+      ) {
+        try {
+          definitelyNotDelivered = Boolean(
+            (err as { emnapiNotDelivered?: boolean }).emnapiNotDelivered
+          )
+        } catch (_) {
+          return Delivery.kAmbiguous
+        }
+      }
+      return definitelyNotDelivered
+        ? Delivery.kDefinitelyNotDelivered
+        : Delivery.kAmbiguous
+    }
+    if (
+      !result ||
+      (typeof result !== 'object' && typeof result !== 'function')
+    ) {
+      return Delivery.kSent
+    }
+    let then: unknown
+    try {
+      then = (result as { then?: unknown }).then
+    } catch (_) {
+      return Delivery.kAmbiguous
+    }
+    if (typeof then === 'function') {
+      try {
+        then.call(result, undefined, () => {})
+      } catch (_) {}
+      return Delivery.kAmbiguous
+    }
+    return Delivery.kSent
+  },
+  getFeature (): any {
+    return typeof emnapiCtx === 'object'
+      ? emnapiCtx?.feature
+      : undefined
+  },
+  schedule (callback: () => void): void {
+    const feature = emnapiTSFN.getFeature()
+    if (typeof feature?.setImmediate === 'function') {
+      feature.setImmediate(callback)
+      return
+    }
+    if (typeof (globalThis as any).setImmediate === 'function') {
+      ;(globalThis as any).setImmediate(callback)
+      return
+    }
+    if (typeof (globalThis as any).setTimeout === 'function') {
+      ;(globalThis as any).setTimeout(callback, 0)
+      return
+    }
+    void Promise.resolve().then(callback)
+  },
+  scheduleRetry (callback: () => void, attempts: number): void {
+    if (attempts < 3) {
+      emnapiTSFN.schedule(callback)
+      return
+    }
+    const delay = Math.min(2 ** Math.min(attempts - 3, 10), 1000)
+    const setTimeout = typeof (globalThis as any).setTimeout === 'function'
+      ? (globalThis as any).setTimeout.bind(globalThis)
+      : undefined
+    if (!setTimeout) {
+      emnapiTSFN.schedule(callback)
+      return
+    }
+    const timer = setTimeout(callback, delay)
+    if (
+      timer &&
+      (typeof timer === 'object' || typeof timer === 'function') &&
+      typeof timer.unref === 'function'
+    ) {
+      timer.unref()
+    }
+  },
+  createMessage (func: number): any {
+    return {
+      __emnapi__: {
+        type: 'tsfn-send',
+        payload: { tsfn: func }
+      }
+    }
+  },
+  scheduleSendRetry (func: number): void {
+    if (emnapiTSFN._sendRetryMap.has(func)) {
+      return
+    }
+    const retry = { attempts: 0 }
+    emnapiTSFN._sendRetryMap.set(func, retry)
+    const run = (): void => {
+      if (emnapiTSFN._sendRetryMap.get(func) !== retry) {
+        return
+      }
+      const isPthread = (
+        (typeof ENVIRONMENT_IS_PTHREAD !== 'undefined') &&
+        ENVIRONMENT_IS_PTHREAD
+      )
+      // Only the creator owns `_liveSet`; child agents use the shared pending
+      // state to decide when an in-flight wakeup has been observed.
+      if (!isPthread && !emnapiTSFN._liveSet.has(func)) {
+        emnapiTSFN._sendRetryMap.delete(func)
+        return
+      }
+      const pending = func + emnapiTSFN.offset.async_pending
+      const state = new Int32Array(
+        emnapiTSFN.ensureBufferFor(addressEnd(pending, 4))
+      )
+      if (Atomics.load(state, atomicIndex(pending, 4)) !== 1) {
+        emnapiTSFN._sendRetryMap.delete(func)
+        return
+      }
+      const delivery = emnapiTSFN.postMessage(
+        emnapiTSFN.createMessage(func)
+      )
+      if (
+        delivery === Delivery.kSent ||
+        Atomics.load(
+          new Int32Array(
+            emnapiTSFN.ensureBufferFor(addressEnd(pending, 4))
+          ),
+          atomicIndex(pending, 4)
+        ) !== 1
+      ) {
+        emnapiTSFN._sendRetryMap.delete(func)
+        return
+      }
+      retry.attempts++
+      emnapiTSFN.scheduleRetry(run, retry.attempts)
+    }
+    emnapiTSFN.schedule(run)
   },
   /**
    * When another thread grows the shared WebAssembly.Memory, this agent's
@@ -151,8 +421,9 @@ export const emnapiTSFN = {
    * (V8 refreshes it lazily). If a pointer derived from shared memory lies
    * beyond the cached length, `wasmMemory.grow(0)` forces the agent to
    * observe the current memory size and refreshes the buffer.
-   */
+  */
   ensureBufferFor (end: number): ArrayBufferLike {
+    end = normalizeEnd(end)
     let buffer = wasmMemory.buffer
     if (end > buffer.byteLength) {
       wasmMemory.grow(0)
@@ -160,12 +431,38 @@ export const emnapiTSFN = {
     }
     return buffer
   },
+  zeroMemory (address: number, size: number): void {
+    const byteOffset = normalizeAddress(address)
+    new Uint8Array(
+      emnapiTSFN.ensureBufferFor(byteOffset + size),
+      byteOffset,
+      size
+    ).fill(0)
+  },
+  getFloat64 (address: number): number {
+    address = normalizeAddress(address)
+    return new DataView(
+      emnapiTSFN.ensureBufferFor(address + 8)
+    ).getFloat64(address, true)
+  },
+  setInt8 (address: number, value: number): void {
+    address = normalizeAddress(address)
+    new DataView(
+      emnapiTSFN.ensureBufferFor(address + 1)
+    ).setInt8(address, value)
+  },
+  setUint32 (address: number, value: number): void {
+    address = normalizeAddress(address)
+    new DataView(
+      emnapiTSFN.ensureBufferFor(address + 4)
+    ).setUint32(address, value, true)
+  },
   initQueue (func: number): boolean {
     const size = 2 * POINTER_SIZE
     const queue = _malloc(to64('size'))
     if (!queue) return false
     from64('queue')
-    new Uint8Array(emnapiTSFN.ensureBufferFor(queue + size), queue, size).fill(0)
+    emnapiTSFN.zeroMemory(queue, size)
     emnapiTSFN.storeSizeTypeValue(func + emnapiTSFN.offset.queue, queue, false)
     return true
   },
@@ -181,7 +478,7 @@ export const emnapiTSFN = {
       _free(to64('queue') as number)
     }
   },
-  pushQueue (func: number, data: number): void {
+  pushQueue (func: number, data: number): number {
     const queue = emnapiTSFN.loadSizeTypeValue(func + emnapiTSFN.offset.queue, false)
     const head = emnapiTSFN.loadSizeTypeValue(queue, false)
     const tail = emnapiTSFN.loadSizeTypeValue(queue + POINTER_SIZE, false)
@@ -200,6 +497,43 @@ export const emnapiTSFN = {
       emnapiTSFN.storeSizeTypeValue(queue + POINTER_SIZE, node, false)
     }
     emnapiTSFN.addQueueSize(func)
+    return node
+  },
+  removeQueueNode (func: number, node: number): void {
+    const queue = emnapiTSFN.loadSizeTypeValue(
+      func + emnapiTSFN.offset.queue,
+      true
+    )
+    const head = emnapiTSFN.loadSizeTypeValue(queue, true)
+    const tail = emnapiTSFN.loadSizeTypeValue(queue + POINTER_SIZE, true)
+    if (tail !== node) {
+      throw new Error('TSFN queue rollback target is not the tail')
+    }
+    if (head === node) {
+      emnapiTSFN.storeSizeTypeValue(queue, 0, false)
+      emnapiTSFN.storeSizeTypeValue(queue + POINTER_SIZE, 0, false)
+    } else {
+      let previous = head
+      while (
+        previous !== 0 &&
+        emnapiTSFN.loadSizeTypeValue(
+          previous + POINTER_SIZE,
+          true
+        ) !== node
+      ) {
+        previous = emnapiTSFN.loadSizeTypeValue(
+          previous + POINTER_SIZE,
+          true
+        )
+      }
+      if (previous === 0) {
+        throw new Error('TSFN queue rollback target was not found')
+      }
+      emnapiTSFN.storeSizeTypeValue(previous + POINTER_SIZE, 0, false)
+      emnapiTSFN.storeSizeTypeValue(queue + POINTER_SIZE, previous, false)
+    }
+    _free(to64('node') as number)
+    emnapiTSFN.subQueueSize(func)
   },
   shiftQueue (func: number): number {
     const queue = emnapiTSFN.loadSizeTypeValue(func + emnapiTSFN.offset.queue, false)
@@ -247,8 +581,12 @@ export const emnapiTSFN = {
       }
 
       if (emnapiTSFN.getState(func) === State.kOpen) {
-        emnapiTSFN.pushQueue(func, data)
-        emnapiTSFN.send(func)
+        const node = emnapiTSFN.pushQueue(func, data)
+        const status = emnapiTSFN.send(func)
+        if (status !== napi_status.napi_ok) {
+          emnapiTSFN.removeQueueNode(func, node)
+          return status
+        }
         return napi_status.napi_ok
       }
 
@@ -272,7 +610,12 @@ export const emnapiTSFN = {
     const mutex = {
       lock () {
         const isBrowserMain = typeof window !== 'undefined' && typeof document !== 'undefined' && !ENVIRONMENT_IS_NODE
-        const i32a = new Int32Array(emnapiTSFN.ensureBufferFor(index + 4), index, 1)
+        const byteOffset = normalizeAddress(index)
+        const i32a = new Int32Array(
+          emnapiTSFN.ensureBufferFor(byteOffset + 4),
+          byteOffset,
+          1
+        )
         if (isBrowserMain) {
           while (true) {
             const oldValue = Atomics.compareExchange(i32a, 0, 0, 10)
@@ -294,7 +637,12 @@ export const emnapiTSFN = {
         return new Promise<void>(resolve => {
           const again = (): void => { fn() }
           const fn = (): void => {
-            const i32a = new Int32Array(emnapiTSFN.ensureBufferFor(index + 4), index, 1)
+            const byteOffset = normalizeAddress(index)
+            const i32a = new Int32Array(
+              emnapiTSFN.ensureBufferFor(byteOffset + 4),
+              byteOffset,
+              1
+            )
             const oldValue = Atomics.compareExchange(i32a, 0, 0, 10)
             if (oldValue === 0) {
               resolve()
@@ -306,7 +654,12 @@ export const emnapiTSFN = {
         })
       }, */
       unlock () {
-        const i32a = new Int32Array(emnapiTSFN.ensureBufferFor(index + 4), index, 1)
+        const byteOffset = normalizeAddress(index)
+        const i32a = new Int32Array(
+          emnapiTSFN.ensureBufferFor(byteOffset + 4),
+          byteOffset,
+          1
+        )
         const oldValue = Atomics.compareExchange(i32a, 0, 10, 0)
         if (oldValue !== 10) {
           throw new Error('Tried to unlock while not holding the mutex')
@@ -340,14 +693,24 @@ export const emnapiTSFN = {
     const mutex = emnapiTSFN.getMutex(func)
     const cond = {
       wait () {
-        const i32a = new Int32Array(emnapiTSFN.ensureBufferFor(index + 4), index, 1)
+        const byteOffset = normalizeAddress(index)
+        const i32a = new Int32Array(
+          emnapiTSFN.ensureBufferFor(byteOffset + 4),
+          byteOffset,
+          1
+        )
         const value = Atomics.load(i32a, 0)
         mutex.unlock()
         Atomics.wait(i32a, 0, value)
         mutex.lock()
       },
       /* waitAsync () {
-        const i32a = new Int32Array(emnapiTSFN.ensureBufferFor(index + 4), index, 1)
+        const byteOffset = normalizeAddress(index)
+        const i32a = new Int32Array(
+          emnapiTSFN.ensureBufferFor(byteOffset + 4),
+          byteOffset,
+          1
+        )
         const value = Atomics.load(i32a, 0)
         mutex.unlock()
         const lock = (): Promise<void> => mutex.lockAsync()
@@ -358,7 +721,12 @@ export const emnapiTSFN = {
         }
       }, */
       signal () {
-        const i32a = new Int32Array(emnapiTSFN.ensureBufferFor(index + 4), index, 1)
+        const byteOffset = normalizeAddress(index)
+        const i32a = new Int32Array(
+          emnapiTSFN.ensureBufferFor(byteOffset + 4),
+          byteOffset,
+          1
+        )
         Atomics.add(i32a, 0, 1)
         Atomics.notify(i32a, 0, 1)
       }
@@ -372,11 +740,15 @@ export const emnapiTSFN = {
     const offset = emnapiTSFN.offset.queue_size
     let arr: any, index: number
 // #if MEMORY64
-    arr = new BigUint64Array(emnapiTSFN.ensureBufferFor(func + offset + 8))
-    index = (func + offset) >>> 3
+    arr = new BigUint64Array(
+      emnapiTSFN.ensureBufferFor(addressEnd(func + offset, 8))
+    )
+    index = atomicIndex(func + offset, 8)
 // #else
-    arr = new Uint32Array(emnapiTSFN.ensureBufferFor(func + offset + 4))
-    index = (func + offset) >>> 2
+    arr = new Uint32Array(
+      emnapiTSFN.ensureBufferFor(addressEnd(func + offset, 4))
+    )
+    index = atomicIndex(func + offset, 4)
 // #endif
     Atomics.add(arr, index, to64('1') as any)
   },
@@ -384,11 +756,15 @@ export const emnapiTSFN = {
     const offset = emnapiTSFN.offset.queue_size
     let arr: any, index: number
 // #if MEMORY64
-    arr = new BigUint64Array(emnapiTSFN.ensureBufferFor(func + offset + 8))
-    index = (func + offset) >>> 3
+    arr = new BigUint64Array(
+      emnapiTSFN.ensureBufferFor(addressEnd(func + offset, 8))
+    )
+    index = atomicIndex(func + offset, 8)
 // #else
-    arr = new Uint32Array(emnapiTSFN.ensureBufferFor(func + offset + 4))
-    index = (func + offset) >>> 2
+    arr = new Uint32Array(
+      emnapiTSFN.ensureBufferFor(addressEnd(func + offset, 4))
+    )
+    index = atomicIndex(func + offset, 4)
 // #endif
     Atomics.sub(arr, index, to64('1') as any)
   },
@@ -399,11 +775,15 @@ export const emnapiTSFN = {
     const offset = emnapiTSFN.offset.thread_count
     let arr: any, index: number
 // #if MEMORY64
-    arr = new BigUint64Array(emnapiTSFN.ensureBufferFor(func + offset + 8))
-    index = (func + offset) >>> 3
+    arr = new BigUint64Array(
+      emnapiTSFN.ensureBufferFor(addressEnd(func + offset, 8))
+    )
+    index = atomicIndex(func + offset, 8)
 // #else
-    arr = new Uint32Array(emnapiTSFN.ensureBufferFor(func + offset + 4))
-    index = (func + offset) >>> 2
+    arr = new Uint32Array(
+      emnapiTSFN.ensureBufferFor(addressEnd(func + offset, 4))
+    )
+    index = atomicIndex(func + offset, 4)
 // #endif
     Atomics.add(arr, index, to64('1') as any)
   },
@@ -411,28 +791,58 @@ export const emnapiTSFN = {
     const offset = emnapiTSFN.offset.thread_count
     let arr: any, index: number
 // #if MEMORY64
-    arr = new BigUint64Array(emnapiTSFN.ensureBufferFor(func + offset + 8))
-    index = (func + offset) >>> 3
+    arr = new BigUint64Array(
+      emnapiTSFN.ensureBufferFor(addressEnd(func + offset, 8))
+    )
+    index = atomicIndex(func + offset, 8)
 // #else
-    arr = new Uint32Array(emnapiTSFN.ensureBufferFor(func + offset + 4))
-    index = (func + offset) >>> 2
+    arr = new Uint32Array(
+      emnapiTSFN.ensureBufferFor(addressEnd(func + offset, 4))
+    )
+    index = atomicIndex(func + offset, 4)
 // #endif
     Atomics.sub(arr, index, to64('1') as any)
   },
   getState (func: number): number {
-    return Atomics.load(new Int32Array(emnapiTSFN.ensureBufferFor(func + emnapiTSFN.offset.state + 4)), (func + emnapiTSFN.offset.state) >>> 2)
+    const address = func + emnapiTSFN.offset.state
+    return Atomics.load(
+      new Int32Array(emnapiTSFN.ensureBufferFor(addressEnd(address, 4))),
+      atomicIndex(address, 4)
+    )
   },
   setState (func: number, value: 0 | 1 | 2): void {
-    Atomics.store(new Int32Array(emnapiTSFN.ensureBufferFor(func + emnapiTSFN.offset.state + 4)), (func + emnapiTSFN.offset.state) >>> 2, value)
+    const address = func + emnapiTSFN.offset.state
+    Atomics.store(
+      new Int32Array(emnapiTSFN.ensureBufferFor(addressEnd(address, 4))),
+      atomicIndex(address, 4),
+      value
+    )
   },
   getHandlesClosing (func: number): number {
-    return Atomics.load(new Int8Array(emnapiTSFN.ensureBufferFor(func + emnapiTSFN.offset.handles_closing + 1)), (func + emnapiTSFN.offset.handles_closing))
+    const address = normalizeAddress(
+      func + emnapiTSFN.offset.handles_closing
+    )
+    return Atomics.load(
+      new Int8Array(emnapiTSFN.ensureBufferFor(address + 1)),
+      address
+    )
   },
   setHandlesClosing (func: number, value: 0 | 1): void {
-    Atomics.store(new Int8Array(emnapiTSFN.ensureBufferFor(func + emnapiTSFN.offset.handles_closing + 1)), (func + emnapiTSFN.offset.handles_closing), value)
+    const address = normalizeAddress(
+      func + emnapiTSFN.offset.handles_closing
+    )
+    Atomics.store(
+      new Int8Array(emnapiTSFN.ensureBufferFor(address + 1)),
+      address,
+      value
+    )
   },
   getDispatchState (func: number): number {
-    return Atomics.load(new Uint32Array(emnapiTSFN.ensureBufferFor(func + emnapiTSFN.offset.dispatch_state + 4)), (func + emnapiTSFN.offset.dispatch_state) >>> 2)
+    const address = func + emnapiTSFN.offset.dispatch_state
+    return Atomics.load(
+      new Uint32Array(emnapiTSFN.ensureBufferFor(addressEnd(address, 4))),
+      atomicIndex(address, 4)
+    )
   },
   getContext (func: number): number {
     return emnapiTSFN.loadSizeTypeValue(func + emnapiTSFN.offset.context, false)
@@ -463,20 +873,28 @@ export const emnapiTSFN = {
     let arr: any
     if (unsigned) {
 // #if MEMORY64
-      arr = new BigUint64Array(emnapiTSFN.ensureBufferFor(offset + 8))
-      ret = Number(Atomics.load(arr, offset >>> 3))
+      arr = new BigUint64Array(
+        emnapiTSFN.ensureBufferFor(addressEnd(offset, 8))
+      )
+      ret = Number(Atomics.load(arr, atomicIndex(offset, 8)))
 // #else
-      arr = new Uint32Array(emnapiTSFN.ensureBufferFor(offset + 4))
-      ret = Atomics.load(arr, offset >>> 2)
+      arr = new Uint32Array(
+        emnapiTSFN.ensureBufferFor(addressEnd(offset, 4))
+      )
+      ret = Atomics.load(arr, atomicIndex(offset, 4))
 // #endif
       return ret
     } else {
 // #if MEMORY64
-      arr = new BigInt64Array(emnapiTSFN.ensureBufferFor(offset + 8))
-      ret = Number(Atomics.load(arr, offset >>> 3))
+      arr = new BigInt64Array(
+        emnapiTSFN.ensureBufferFor(addressEnd(offset, 8))
+      )
+      ret = Number(Atomics.load(arr, atomicIndex(offset, 8)))
 // #else
-      arr = new Int32Array(emnapiTSFN.ensureBufferFor(offset + 4))
-      ret = Atomics.load(arr, offset >>> 2)
+      arr = new Int32Array(
+        emnapiTSFN.ensureBufferFor(addressEnd(offset, 4))
+      )
+      ret = Atomics.load(arr, atomicIndex(offset, 4))
 // #endif
       return ret
     }
@@ -485,20 +903,28 @@ export const emnapiTSFN = {
     let arr: any
     if (unsigned) {
 // #if MEMORY64
-      arr = new BigUint64Array(emnapiTSFN.ensureBufferFor(offset + 8))
-      Atomics.store(arr, offset >>> 3, BigInt(value) as any)
+      arr = new BigUint64Array(
+        emnapiTSFN.ensureBufferFor(addressEnd(offset, 8))
+      )
+      Atomics.store(arr, atomicIndex(offset, 8), BigInt(value) as any)
 // #else
-      arr = new Uint32Array(emnapiTSFN.ensureBufferFor(offset + 4))
-      Atomics.store(arr, offset >>> 2, value)
+      arr = new Uint32Array(
+        emnapiTSFN.ensureBufferFor(addressEnd(offset, 4))
+      )
+      Atomics.store(arr, atomicIndex(offset, 4), value)
 // #endif
       return undefined
     } else {
 // #if MEMORY64
-      arr = new BigInt64Array(emnapiTSFN.ensureBufferFor(offset + 8))
-      Atomics.store(arr, offset >>> 3, BigInt(value >>> 0) as any)
+      arr = new BigInt64Array(
+        emnapiTSFN.ensureBufferFor(addressEnd(offset, 8))
+      )
+      Atomics.store(arr, atomicIndex(offset, 8), BigInt(value) as any)
 // #else
-      arr = new Int32Array(emnapiTSFN.ensureBufferFor(offset + 4))
-      Atomics.store(arr, offset >>> 2, value >>> 0)
+      arr = new Int32Array(
+        emnapiTSFN.ensureBufferFor(addressEnd(offset, 4))
+      )
+      Atomics.store(arr, atomicIndex(offset, 4), value >>> 0)
 // #endif
       return undefined
     }
@@ -515,15 +941,16 @@ export const emnapiTSFN = {
       }
       const resource = emnapiTSFN.getResource(func)
       emnapiCtx.refStore.get(resource)!.dispose()
-      emnapiTSFN.ensureBufferFor(func + emnapiTSFN.offset.is_some + 1)
-      makeSetValue('func', 'emnapiTSFN.offset.is_some', '0', 'i8')
+      emnapiTSFN.setInt8(func + emnapiTSFN.offset.is_some, 0)
 
       emnapiCtx.removeCleanupHook(envObject, emnapiTSFN.cleanup, func)
       envObject.unref()
 
       const asyncRefAddress = func + emnapiTSFN.offset.async_ref
-      const asyncRefOffset = asyncRefAddress >>> 2
-      const arr = new Uint32Array(emnapiTSFN.ensureBufferFor(asyncRefAddress + 4))
+      const asyncRefOffset = atomicIndex(asyncRefAddress, 4)
+      const arr = new Uint32Array(
+        emnapiTSFN.ensureBufferFor(addressEnd(asyncRefAddress, 4))
+      )
       if (Atomics.load(arr, asyncRefOffset) > 0) {
         Atomics.store(arr, asyncRefOffset, 0)
         _emnapi_runtime_keepalive_pop()
@@ -531,15 +958,19 @@ export const emnapiTSFN = {
       }
 
       if (emnapiNodeBinding) {
-        const view = new DataView(emnapiTSFN.ensureBufferFor(func + emnapiTSFN.offset.trigger_async_id + 8))
-        const asyncId = view.getFloat64(func + emnapiTSFN.offset.async_id, true)
-        const triggerAsyncId = view.getFloat64(func + emnapiTSFN.offset.trigger_async_id, true)
+        const asyncId = emnapiTSFN.getFloat64(
+          func + emnapiTSFN.offset.async_id
+        )
+        const triggerAsyncId = emnapiTSFN.getFloat64(
+          func + emnapiTSFN.offset.trigger_async_id
+        )
         _emnapi_node_emit_async_destroy(asyncId, triggerAsyncId)
       }
     }
   },
   destroy (func: number) {
     emnapiTSFN._liveSet.delete(func)
+    emnapiTSFN._sendRetryMap.delete(func)
     emnapiTSFN.destroyQueue(func)
     emnapiTSFN.releaseResources(func)
     _free(to64('func') as number)
@@ -603,9 +1034,12 @@ export const emnapiTSFN = {
           const resource = emnapiTSFN.getResource(func)
           const resource_value = emnapiCtx.refStore.get(resource)!.get()
           const resourceObject = emnapiCtx.handleStore.get(resource_value)!.value
-          const view = new DataView(emnapiTSFN.ensureBufferFor(func + emnapiTSFN.offset.trigger_async_id + 8))
-          const asyncId = view.getFloat64(func + emnapiTSFN.offset.async_id, true)
-          const triggerAsyncId = view.getFloat64(func + emnapiTSFN.offset.trigger_async_id, true)
+          const asyncId = emnapiTSFN.getFloat64(
+            func + emnapiTSFN.offset.async_id
+          )
+          const triggerAsyncId = emnapiTSFN.getFloat64(
+            func + emnapiTSFN.offset.trigger_async_id
+          )
           emnapiNodeBinding.node.makeCallback(resourceObject, f, [], {
             asyncId,
             triggerAsyncId
@@ -639,8 +1073,13 @@ export const emnapiTSFN = {
         return
       }
       emnapiTSFN.setHandlesClosing(func, 1)
-      Atomics.store(new Int32Array(emnapiTSFN.ensureBufferFor(func + emnapiTSFN.offset.async_pending + 4)), (func + emnapiTSFN.offset.async_pending) >>> 2, 1)
-      emnapiCtx.feature.setImmediate(() => {
+      const pending = func + emnapiTSFN.offset.async_pending
+      Atomics.store(
+        new Int32Array(emnapiTSFN.ensureBufferFor(addressEnd(pending, 4))),
+        atomicIndex(pending, 4),
+        1
+      )
+      emnapiTSFN.schedule(() => {
         emnapiTSFN.finalize(func)
       })
     } finally {
@@ -711,10 +1150,13 @@ export const emnapiTSFN = {
           const resource = emnapiTSFN.getResource(func)
           const resource_value = emnapiCtx.refStore.get(resource)!.get()
           const resourceObject = emnapiCtx.handleStore.get(resource_value)!.value
-          const view = new DataView(emnapiTSFN.ensureBufferFor(func + emnapiTSFN.offset.trigger_async_id + 8))
           emnapiNodeBinding.node.makeCallback(resourceObject, f, [], {
-            asyncId: view.getFloat64(func + emnapiTSFN.offset.async_id, true),
-            triggerAsyncId: view.getFloat64(func + emnapiTSFN.offset.trigger_async_id, true)
+            asyncId: emnapiTSFN.getFloat64(
+              func + emnapiTSFN.offset.async_id
+            ),
+            triggerAsyncId: emnapiTSFN.getFloat64(
+              func + emnapiTSFN.offset.trigger_async_id
+            )
           })
         } else {
           f()
@@ -731,13 +1173,44 @@ export const emnapiTSFN = {
 
     let iterations_left = 1000
     const dispatchStateAddress = func + emnapiTSFN.offset.dispatch_state
-    const ui32a = new Uint32Array(emnapiTSFN.ensureBufferFor(dispatchStateAddress + 4))
-    const index = dispatchStateAddress >>> 2
+    const index = atomicIndex(dispatchStateAddress, 4)
     while (has_more && --iterations_left !== 0) {
-      Atomics.store(ui32a, index, 1)
-      has_more = emnapiTSFN.dispatchOne(func)
+      Atomics.store(
+        new Uint32Array(
+          emnapiTSFN.ensureBufferFor(addressEnd(dispatchStateAddress, 4))
+        ),
+        index,
+        1
+      )
+      try {
+        has_more = emnapiTSFN.dispatchOne(func)
+      } catch (err) {
+        if (emnapiTSFN._liveSet.has(func)) {
+          // A callback exception must not strand kDispatchRunning.
+          Atomics.exchange(
+            new Uint32Array(
+              emnapiTSFN.ensureBufferFor(
+                addressEnd(dispatchStateAddress, 4)
+              )
+            ),
+            index,
+            0
+          )
+          emnapiTSFN.send(func)
+        }
+        throw err
+      }
+      if (!emnapiTSFN._liveSet.has(func)) {
+        return
+      }
 
-      if (Atomics.exchange(ui32a, index, 0) !== 1) {
+      if (Atomics.exchange(
+        new Uint32Array(
+          emnapiTSFN.ensureBufferFor(addressEnd(dispatchStateAddress, 4))
+        ),
+        index,
+        0
+      ) !== 1) {
         has_more = true
       }
     }
@@ -753,8 +1226,16 @@ export const emnapiTSFN = {
     // `scheduled` prevents queueing the same main-thread drain chain more than
     // once while a previous wakeup is still in flight.
     const scheduled = func + emnapiTSFN.offset.async_u_fd
-    const i32a = new Int32Array(emnapiTSFN.ensureBufferFor(Math.max(pending, scheduled) + 4))
-    if (Atomics.exchange(i32a, scheduled >>> 2, 1) !== 0) {
+    const end = Math.max(
+      normalizeAddress(pending),
+      normalizeAddress(scheduled)
+    ) + 4
+    const state = (): Int32Array => new Int32Array(
+      emnapiTSFN.ensureBufferFor(end)
+    )
+    const pendingIndex = atomicIndex(pending, 4)
+    const scheduledIndex = atomicIndex(scheduled, 4)
+    if (Atomics.exchange(state(), scheduledIndex, 1) !== 0) {
       return
     }
 
@@ -762,20 +1243,20 @@ export const emnapiTSFN = {
     // the wakeup reaching the main thread, and the second turn performs the
     // actual TSFN drain after nearby Send/Signal calls have had a chance to
     // collapse into the shared AsyncProgressWorker state.
-    emnapiCtx.feature.setImmediate(() => {
+    emnapiTSFN.schedule(() => {
       if (!emnapiTSFN._liveSet.has(func)) {
         return
       }
-      if (Atomics.load(i32a, pending >>> 2) === 0) {
-        Atomics.store(i32a, scheduled >>> 2, 0)
+      if (Atomics.load(state(), pendingIndex) === 0) {
+        Atomics.store(state(), scheduledIndex, 0)
         return
       }
 
-      emnapiCtx.feature.setImmediate(() => {
+      emnapiTSFN.schedule(() => {
         try {
           // Consume the coalesced wakeup once, then let dispatch() observe any
           // queue mutations through dispatch_state like the C implementation.
-          if (Atomics.exchange(i32a, pending >>> 2, 0) === 0) {
+          if (Atomics.exchange(state(), pendingIndex, 0) === 0) {
             return
           }
           // After destroy(), the func address is freed.  Skip dispatch
@@ -788,8 +1269,8 @@ export const emnapiTSFN = {
           // Allow a later wakeup to schedule a new drain chain. If another
           // worker-thread send raced with this drain, enqueue one more turn.
           if (emnapiTSFN._liveSet.has(func)) {
-            Atomics.store(i32a, scheduled >>> 2, 0)
-            if (Atomics.load(i32a, pending >>> 2) !== 0) {
+            Atomics.store(state(), scheduledIndex, 0)
+            if (Atomics.load(state(), pendingIndex) !== 0) {
               emnapiTSFN.enqueue(func)
             }
           }
@@ -797,38 +1278,54 @@ export const emnapiTSFN = {
       })
     })
   },
-  send (func: number): void {
+  send (func: number): napi_status {
     const dispatchStateAddress = func + emnapiTSFN.offset.dispatch_state
-    const current_state = Atomics.or(new Uint32Array(emnapiTSFN.ensureBufferFor(dispatchStateAddress + 4)), dispatchStateAddress >>> 2, 1 << 1)
+    const current_state = Atomics.or(
+      new Uint32Array(
+        emnapiTSFN.ensureBufferFor(addressEnd(dispatchStateAddress, 4))
+      ),
+      atomicIndex(dispatchStateAddress, 4),
+      1 << 1
+    )
     if ((current_state & 1) === 1) {
-      return
+      return napi_status.napi_ok
     }
 
-    const pendng = func + emnapiTSFN.offset.async_pending
+    const pending = func + emnapiTSFN.offset.async_pending
+    const state = (): Int32Array => new Int32Array(
+      emnapiTSFN.ensureBufferFor(addressEnd(pending, 4))
+    )
+    const index = atomicIndex(pending, 4)
     // A wakeup is already pending, so this send only needs to leave the queued
     // work in the TSFN queue and let the existing drain pick it up.
-    if (Atomics.load(new Int32Array(emnapiTSFN.ensureBufferFor(pendng + 4)), pendng >>> 2) !== 0) {
-      return
+    if (Atomics.load(state(), index) !== 0) {
+      return napi_status.napi_ok
     }
 
-    if (Atomics.exchange(new Int32Array(emnapiTSFN.ensureBufferFor(pendng + 4)), pendng >>> 2, 1) === 0) {
+    if (Atomics.exchange(state(), index, 1) === 0) {
       if ((typeof ENVIRONMENT_IS_PTHREAD !== 'undefined') && ENVIRONMENT_IS_PTHREAD) {
         // Worker threads only post a wakeup token. Main-thread draining is
         // serialized by enqueue() once the message is received.
-        postMessage({
-          __emnapi__: {
-            type: 'tsfn-send',
-            payload: {
-              tsfn: func
-            }
+        const delivery = emnapiTSFN.postMessage(
+          emnapiTSFN.createMessage(func)
+        )
+        if (delivery === Delivery.kDefinitelyNotDelivered) {
+          if (Atomics.compareExchange(state(), index, 1, 0) === 1) {
+            return napi_status.napi_generic_failure
           }
-        })
+        } else if (
+          delivery === Delivery.kAmbiguous &&
+          Atomics.load(state(), index) === 1
+        ) {
+          emnapiTSFN.scheduleSendRetry(func)
+        }
       } else {
         // On the main thread we can skip the cross-thread hop and schedule the
         // coalesced drain chain directly.
         emnapiTSFN.enqueue(func)
       }
     }
+    return napi_status.napi_ok
   }
 }
 
@@ -900,36 +1397,78 @@ export function napi_create_threadsafe_function (
   let tsfn = _malloc(to64('sizeofTSFN'))
   if (!tsfn) return envObject.setLastError(napi_status.napi_generic_failure)
   from64('tsfn')
-  new Uint8Array(emnapiTSFN.ensureBufferFor(tsfn + sizeofTSFN)).subarray(tsfn, tsfn + sizeofTSFN).fill(0)
+  emnapiTSFN.zeroMemory(tsfn as number, sizeofTSFN)
   const resourceRef = emnapiCtx.createReference(envObject, resource, 1, ReferenceOwnership.kUserland as any)
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const resource_ = resourceRef.id
-  makeSetValue('tsfn', 'emnapiTSFN.offset.resource', 'resource_', '*')
+  emnapiTSFN.storeSizeTypeValue(
+    tsfn as number + emnapiTSFN.offset.resource,
+    resource_,
+    false
+  )
   if (!emnapiTSFN.initQueue(tsfn as number)) {
     _free(to64('tsfn') as number)
     resourceRef.dispose()
     return envObject.setLastError(napi_status.napi_generic_failure)
   }
-  _emnapi_node_emit_async_init(resource, resource_name, -1, tsfn as number + emnapiTSFN.offset.async_id)
-  makeSetValue('tsfn', 'emnapiTSFN.offset.is_some', '1', 'i8')
-  makeSetValue('tsfn', 'emnapiTSFN.offset.thread_count', 'initial_thread_count', SIZE_TYPE)
-  makeSetValue('tsfn', 'emnapiTSFN.offset.context', 'context', '*')
-  makeSetValue('tsfn', 'emnapiTSFN.offset.max_queue_size', 'max_queue_size', SIZE_TYPE)
-  makeSetValue('tsfn', 'emnapiTSFN.offset.ref', 'ref', '*')
-  makeSetValue('tsfn', 'emnapiTSFN.offset.env', 'env', '*')
-  makeSetValue('tsfn', 'emnapiTSFN.offset.finalize_data', 'thread_finalize_data', '*')
-  makeSetValue('tsfn', 'emnapiTSFN.offset.finalize_cb', 'thread_finalize_cb', '*')
-  makeSetValue('tsfn', 'emnapiTSFN.offset.call_js_cb', 'call_js_cb', '*')
+  _emnapi_node_emit_async_init(
+    resource,
+    resource_name,
+    -1,
+    normalizeAddress(tsfn as number + emnapiTSFN.offset.async_id)
+  )
+  emnapiTSFN.setInt8(tsfn as number + emnapiTSFN.offset.is_some, 1)
+  emnapiTSFN.storeSizeTypeValue(
+    tsfn as number + emnapiTSFN.offset.thread_count,
+    initial_thread_count,
+    true
+  )
+  emnapiTSFN.storeSizeTypeValue(
+    tsfn as number + emnapiTSFN.offset.context,
+    context as number,
+    false
+  )
+  emnapiTSFN.storeSizeTypeValue(
+    tsfn as number + emnapiTSFN.offset.max_queue_size,
+    max_queue_size,
+    true
+  )
+  emnapiTSFN.storeSizeTypeValue(
+    tsfn as number + emnapiTSFN.offset.ref,
+    ref,
+    false
+  )
+  emnapiTSFN.storeSizeTypeValue(
+    tsfn as number + emnapiTSFN.offset.env,
+    env as number,
+    false
+  )
+  emnapiTSFN.storeSizeTypeValue(
+    tsfn as number + emnapiTSFN.offset.finalize_data,
+    thread_finalize_data as number,
+    false
+  )
+  emnapiTSFN.storeSizeTypeValue(
+    tsfn as number + emnapiTSFN.offset.finalize_cb,
+    thread_finalize_cb as number,
+    false
+  )
+  emnapiTSFN.storeSizeTypeValue(
+    tsfn as number + emnapiTSFN.offset.call_js_cb,
+    call_js_cb,
+    false
+  )
   emnapiCtx.addCleanupHook(envObject, emnapiTSFN.cleanup, tsfn)
+  emnapiTSFN._sendRetryMap.delete(tsfn as number)
   emnapiTSFN._liveSet.add(tsfn as number)
   envObject.ref()
 
   _emnapi_runtime_keepalive_push()
   emnapiCtx.increaseWaitingRequestCounter()
-  makeSetValue('tsfn', 'emnapiTSFN.offset.async_ref', '1', 'u32')
+  emnapiTSFN.setUint32(tsfn as number + emnapiTSFN.offset.async_ref, 1)
 
   from64('result')
-  makeSetValue('result', 0, 'tsfn', '*')
+  emnapiTSFN.storeSizeTypeValue(result, tsfn as number, false)
 
   return envObject.clearLastError()
 }
@@ -944,7 +1483,7 @@ export function napi_get_threadsafe_function_context (func: number, result: void
   from64('result')
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const context = emnapiTSFN.getContext(func)
-  makeSetValue('result', 0, 'context', '*')
+  emnapiTSFN.storeSizeTypeValue(result, context, false)
   return napi_status.napi_ok
 }
 
@@ -1029,8 +1568,10 @@ export function napi_unref_threadsafe_function (env: napi_env, func: number): na
   }
   from64('func')
   const asyncRefAddress = func + emnapiTSFN.offset.async_ref
-  const asyncRefOffset = asyncRefAddress >>> 2
-  const arr = new Uint32Array(emnapiTSFN.ensureBufferFor(asyncRefAddress + 4))
+  const asyncRefOffset = atomicIndex(asyncRefAddress, 4)
+  const arr = new Uint32Array(
+    emnapiTSFN.ensureBufferFor(addressEnd(asyncRefAddress, 4))
+  )
   const currentValue = Atomics.load(arr, asyncRefOffset)
   if (currentValue > 0) {
     Atomics.store(arr, asyncRefOffset, currentValue - 1)
@@ -1050,8 +1591,10 @@ export function napi_ref_threadsafe_function (env: napi_env, func: number): napi
   }
   from64('func')
   const asyncRefAddress = func + emnapiTSFN.offset.async_ref
-  const asyncRefOffset = asyncRefAddress >>> 2
-  const arr = new Uint32Array(emnapiTSFN.ensureBufferFor(asyncRefAddress + 4))
+  const asyncRefOffset = atomicIndex(asyncRefAddress, 4)
+  const arr = new Uint32Array(
+    emnapiTSFN.ensureBufferFor(addressEnd(asyncRefAddress, 4))
+  )
   const currentValue = Atomics.load(arr, asyncRefOffset)
   if (!currentValue) {
     _emnapi_runtime_keepalive_push()

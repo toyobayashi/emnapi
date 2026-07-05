@@ -9,6 +9,11 @@ declare interface CreateOptions {
   onCreateWorker?: () => any
   print?: (str: string) => void
   printErr?: (str: string) => void
+  /**
+   * Must synchronously enqueue the message or throw before enqueueing it.
+   * The `any` return type is retained for v1 API compatibility; Promise-like
+   * transports are unsupported because this channel is not idempotent.
+   */
   postMessage?: (msg: any) => any
 }
 

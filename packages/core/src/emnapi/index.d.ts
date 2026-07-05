@@ -40,6 +40,11 @@ export declare interface NapiModule {
 
   init (options: InitOptions): any
   initWorker (arg: number, func: [number, number]): void
+  /**
+   * Must synchronously enqueue the message or throw before enqueueing it.
+   * The `any` return type is retained for v1 API compatibility; Promise-like
+   * transports are unsupported because this channel is not idempotent.
+   */
   postMessage?: (msg: any) => any
 
   waitThreadStart: boolean | number
@@ -77,6 +82,11 @@ export declare type BaseCreateOptions = {
   onCreateWorker?: (info: CreateWorkerInfo) => any
   print?: (str: string) => void
   printErr?: (str: string) => void
+  /**
+   * Must synchronously enqueue the message or throw before enqueueing it.
+   * The `any` return type is retained for v1 API compatibility; Promise-like
+   * transports are unsupported because this channel is not idempotent.
+   */
   postMessage?: (msg: any) => any
 }
 

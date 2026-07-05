@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-floating-promises */
 
-import { napiModule } from 'emnapi:shared'
+import { emnapiPostMessage } from 'emnapi:shared'
 import { ENVIRONMENT_IS_NODE, wasmMemory, ENVIRONMENT_IS_PTHREAD, PThread } from 'emscripten:runtime'
 import { POINTER_SIZE, from64, makeDynCall, makeGetValue, to64 } from 'emscripten:parse-tools'
 import { _emnapi_set_immediate, _emnapi_next_tick } from '../util'
@@ -48,8 +48,7 @@ export function _emnapi_worker_unref (pthreadPtr: number): void {
 /** @__sig vipp */
 export function _emnapi_async_send_js (type: number, callback: number, data: number): void {
   if (ENVIRONMENT_IS_PTHREAD) {
-    const postMessage = napiModule.postMessage!
-    postMessage({
+    emnapiPostMessage({
       __emnapi__: {
         type: 'async-send',
         payload: {
@@ -126,8 +125,7 @@ export function _emnapi_tell_js_uvthreadpool (threads: number, size: number): vo
 /** @__sig v */
 export function _emnapi_emit_async_thread_ready (): void {
   if (!ENVIRONMENT_IS_PTHREAD) return
-  const postMessage = napiModule.postMessage!
-  postMessage({
+  emnapiPostMessage({
     __emnapi__: {
       type: 'async-thread-ready',
       payload: {}

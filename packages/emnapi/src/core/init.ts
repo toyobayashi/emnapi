@@ -25,6 +25,11 @@ export interface INapiModule {
 
   init (options: InitOptions): any
   initWorker (arg: number, func: [number, number]): void
+  /**
+   * Must synchronously enqueue the message or throw before enqueueing it.
+   * The `any` return type is retained for v1 API compatibility; Promise-like
+   * transports are unsupported because this channel is not idempotent.
+   */
   postMessage?: (msg: any) => any
 
   waitThreadStart: boolean | number
@@ -140,6 +145,41 @@ export var emnapiNodeBinding: NodeBinding
 export var onCreateWorker: (info: { type: 'thread' | 'async-work'; name: string }) => any = undefined!
 export var out: (str: string) => void
 export var err: (str: string) => void
+export var emnapiPostMessageTransport: {
+  post: (message: any) => unknown
+  throwsAreDefinitelyNotDelivered: boolean
+} | undefined
+
+function consumePostMessageThenable (result: unknown): void {
+  if (
+    !result ||
+    (typeof result !== 'object' && typeof result !== 'function')
+  ) {
+    return
+  }
+  let then: unknown
+  try {
+    then = (result as { then?: unknown }).then
+  } catch (_) {
+    return
+  }
+  if (typeof then === 'function') {
+    try {
+      then.call(result, undefined, () => {})
+    } catch (_) {}
+  }
+}
+
+/**
+ * Non-TSFN worker protocols are not idempotent. The v1 public type still
+ * permits any return value, but transports must synchronously enqueue.
+ */
+export function emnapiPostMessage (message: any): void {
+  const post = emnapiPostMessageTransport?.post ||
+    (napiModule.postMessage as ((message: any) => unknown) | undefined)
+  const result = post!(message)
+  consumePostMessageThenable(result)
+}
 
 if (!ENVIRONMENT_IS_PTHREAD) {
   const context = options.context
@@ -150,13 +190,27 @@ if (!ENVIRONMENT_IS_PTHREAD) {
 } else {
   emnapiCtx = options?.context
 
-  const postMsg = typeof options.postMessage === 'function'
-    ? options.postMessage
-    : typeof postMessage === 'function'
-      ? postMessage
-      : undefined
+  const configuredPostMessage = options.postMessage
+  const globalPostMessage = typeof postMessage === 'function'
+    ? postMessage
+    : undefined
+  const isGlobalPostMessage = (
+    typeof configuredPostMessage !== 'function' ||
+    configuredPostMessage === globalPostMessage
+  )
+  const postMsg = typeof configuredPostMessage === 'function'
+    ? isGlobalPostMessage
+      ? configuredPostMessage.bind(globalThis) as
+        (message: any) => unknown
+      : configuredPostMessage as (message: any) => unknown
+    : globalPostMessage?.bind(globalThis) as
+      ((message: any) => unknown) | undefined
   if (typeof postMsg !== 'function') {
     throw new TypeError('No postMessage found')
+  }
+  emnapiPostMessageTransport = {
+    post: postMsg,
+    throwsAreDefinitelyNotDelivered: isGlobalPostMessage
   }
   napiModule.postMessage = postMsg
 }
@@ -217,8 +271,7 @@ function emnapiAddSendListener (worker: any): boolean {
     const __emnapi__ = data.__emnapi__
     if (__emnapi__ && __emnapi__.type === 'async-send') {
       if (ENVIRONMENT_IS_PTHREAD) {
-        const postMessage = napiModule.postMessage!
-        postMessage({ __emnapi__ })
+        emnapiPostMessage({ __emnapi__ })
       } else {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const callback = __emnapi__.payload.callback

@@ -1,4 +1,4 @@
-import { emnapiCtx, onCreateWorker, napiModule, emnapiNodeBinding, singleThreadAsyncWork, _emnapi_async_work_pool_size } from 'emnapi:shared'
+import { emnapiCtx, onCreateWorker, napiModule, emnapiPostMessage, emnapiNodeBinding, singleThreadAsyncWork, _emnapi_async_work_pool_size } from 'emnapi:shared'
 import { PThread, ENVIRONMENT_IS_NODE, ENVIRONMENT_IS_PTHREAD, wasmInstance, _free, wasmMemory, _malloc, abort } from 'emscripten:runtime'
 import { POINTER_SIZE, to64, makeDynCall, makeSetValue, from64, makeGetValue } from 'emscripten:parse-tools'
 import { emnapiAWST } from '../async-work'
@@ -117,7 +117,6 @@ var emnapiAWMT = {
   terminateWorkers (): void {
     emnapiAWMT.pool.forEach(w => {
       w._emnapiAWMTListener?.dispose()
-      w._emnapiTSFNListener?.dispose()
       w.terminate()
     })
     emnapiAWMT.pool.length = 0
@@ -526,8 +525,7 @@ export function _emnapi_async_worker (globalAddress: number): number {
     const data = emnapiAWMT.getData(work)
     makeDynCall('vpp', 'execute')(env, data)
     Atomics.store(statusBuffer, 0, AsyncWorkStatus.Completed)
-    const postMessage = napiModule.postMessage!
-    postMessage({
+    emnapiPostMessage({
       __emnapi__: {
         type: 'async-work-complete',
         payload: { work }
