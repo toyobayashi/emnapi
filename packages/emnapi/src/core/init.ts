@@ -199,10 +199,7 @@ if (!ENVIRONMENT_IS_PTHREAD) {
   const globalPostMessage = typeof postMessage === 'function'
     ? postMessage
     : undefined
-  const isGlobalPostMessage = (
-    typeof configuredPostMessage !== 'function' ||
-    configuredPostMessage === globalPostMessage
-  )
+  const isGlobalPostMessage = configuredPostMessage === globalPostMessage
   const postMsg = typeof configuredPostMessage === 'function'
     ? isGlobalPostMessage
       ? configuredPostMessage.bind(globalThis) as
@@ -220,7 +217,7 @@ if (!ENVIRONMENT_IS_PTHREAD) {
     },
     get throwsAreDefinitelyNotDelivered () {
       return (
-        isGlobalPostMessage &&
+        typeof configuredPostMessage !== 'function' &&
         napiModule.postMessage === postMsg
       )
     }

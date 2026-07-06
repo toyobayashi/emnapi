@@ -2,6 +2,7 @@
 
 const assert = require('assert')
 const { EventEmitter } = require('events')
+const fs = require('fs')
 const path = require('path')
 const vm = require('vm')
 const ts = require('typescript')
@@ -90,6 +91,83 @@ function loadMemoryView (memory64 = false) {
     WebAssembly
   }, { filename })
   return testModule.exports.emnapiMemory
+}
+
+function loadGeneratedEmscriptenMemory (memory64 = false) {
+  const filename = path.join(
+    __dirname,
+    '../../emnapi/dist/library_napi.js'
+  )
+  const source = fs.readFileSync(filename, 'utf8')
+  const start = source.indexOf('var emnapiMemory = {')
+  assert.notStrictEqual(start, -1)
+  const end = source.indexOf('\n};', start)
+  assert.notStrictEqual(end, -1)
+  const objectSource = source.slice(start, end + 3)
+    .replace(/^(\s*)#(if|else|endif)/gm, '$1// #$2')
+  const { Compiler } = require('../../emnapi/script/preprocess.js')
+  const compiled = new Compiler({
+    defines: memory64 ? { MEMORY64: 1 } : {}
+  }).parseCode(objectSource)
+  const calls = []
+  const testModule = { exports: {} }
+  vm.runInNewContext(`${compiled}\nmodule.exports = emnapiMemory`, {
+    module: testModule,
+    getDataView (_memory, end) {
+      return {
+        setInt32 (address, value, littleEndian) {
+          calls.push({ end, address, value, littleEndian })
+        }
+      }
+    }
+  }, { filename })
+  return {
+    emnapiMemory: testModule.exports,
+    calls
+  }
+}
+
+function loadCoreInit (options, globalPostMessage) {
+  const filename = path.join(
+    __dirname,
+    '../../emnapi/src/core/init.ts'
+  )
+  const testModule = { exports: {} }
+  const sandbox = {
+    module: testModule,
+    exports: testModule.exports,
+    options,
+    postMessage: globalPostMessage,
+    process,
+    Promise,
+    WebAssembly,
+    console,
+    require (id) {
+      if (id === 'emscripten:parse-tools') {
+        return {
+          makeDynCall () {
+            return () => {}
+          },
+          to64 (value) {
+            return Number(value)
+          }
+        }
+      }
+      throw new Error(`Unexpected module: ${id}`)
+    },
+    ThreadManager: class ThreadManager {
+      constructor (threadOptions) {
+        this.options = threadOptions
+      }
+    }
+  }
+  const context = vm.createContext(sandbox)
+  vm.runInContext('this.__globalThis = globalThis', context)
+  vm.runInContext(transpile(filename), context, { filename })
+  return {
+    exports: testModule.exports,
+    globalThis: sandbox.__globalThis
+  }
 }
 
 function loadTSFN ({
@@ -562,6 +640,94 @@ async function testTransportThenableDeferral () {
   await flushMicrotasks()
   assert.strictEqual(thenReads, 1)
   assert.strictEqual(thenCalls, 1)
+}
+
+function testGeneratedMemoryAddressNormalization () {
+  const wasm32 = loadGeneratedEmscriptenMemory()
+  wasm32.emnapiMemory.setInt32({}, -4, 0x12345678)
+  assert.deepStrictEqual(wasm32.calls, [{
+    end: 0x100000000,
+    address: 0xfffffffc,
+    value: 0x12345678,
+    littleEndian: true
+  }])
+
+  const wasm64 = loadGeneratedEmscriptenMemory(true)
+  wasm64.emnapiMemory.setInt32({}, 0x100000000, 0x12345678)
+  assert.deepStrictEqual(wasm64.calls, [{
+    end: 0x100000004,
+    address: 0x100000000,
+    value: 0x12345678,
+    littleEndian: true
+  }])
+}
+
+function testConfiguredGlobalTransportClassification () {
+  const memory = new WebAssembly.Memory({
+    initial: 1,
+    maximum: 2,
+    shared: true
+  })
+  const messages = []
+  const receivers = []
+  let markNotDelivered = false
+  function postMessage (message) {
+    messages.push(message)
+    receivers.push(this)
+    const error = new Error('transport failed after enqueue')
+    if (markNotDelivered) {
+      error.emnapiNotDelivered = true
+    }
+    throw error
+  }
+
+  const configured = loadCoreInit({
+    childThread: true,
+    postMessage
+  }, postMessage)
+  const configuredTransport =
+    configured.exports.emnapiPostMessageTransport
+  assert.notStrictEqual(
+    configured.exports.napiModule.postMessage,
+    postMessage
+  )
+  assert.strictEqual(
+    configuredTransport.throwsAreDefinitelyNotDelivered,
+    false
+  )
+  const configuredTSFN = loadTSFN({
+    wasmMemory: memory,
+    pthread: true,
+    transport: configuredTransport
+  }).emnapiTSFN
+  assert.strictEqual(configuredTSFN.postMessage({ configured: true }), 2)
+  assert.strictEqual(receivers.pop(), configured.globalThis)
+
+  markNotDelivered = true
+  assert.strictEqual(configuredTSFN.postMessage({ marked: true }), 1)
+  assert.strictEqual(receivers.pop(), configured.globalThis)
+
+  markNotDelivered = false
+  const detected = loadCoreInit({
+    childThread: true
+  }, postMessage)
+  const detectedTransport = detected.exports.emnapiPostMessageTransport
+  assert.strictEqual(
+    detectedTransport.throwsAreDefinitelyNotDelivered,
+    true
+  )
+  const detectedTSFN = loadTSFN({
+    wasmMemory: memory,
+    pthread: true,
+    transport: detectedTransport
+  }).emnapiTSFN
+  assert.strictEqual(detectedTSFN.postMessage({ detected: true }), 1)
+  assert.strictEqual(receivers.pop(), detected.globalThis)
+  assert.deepStrictEqual(messages, [
+    { configured: true },
+    { marked: true },
+    { detected: true }
+  ])
 }
 
 function testGenerationTransportAndAccessors () {
@@ -1280,6 +1446,8 @@ module.exports = (async () => {
   testMemoryRefresh()
   testSignedWasm32TopEndpoints()
   await testTransportThenableDeferral()
+  testGeneratedMemoryAddressNormalization()
+  testConfiguredGlobalTransportClassification()
   testGenerationTransportAndAccessors()
   testWorkerMessageValidation()
   testStaleGenerationGuards()

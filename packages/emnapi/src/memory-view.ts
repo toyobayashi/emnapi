@@ -5,15 +5,6 @@ type MemoryDataView = InstanceType<typeof DataView>
 const dataViewCache = new WeakMap<WebAssembly.Memory, MemoryDataView>()
 const uint8ArrayCache = new WeakMap<WebAssembly.Memory, Uint8Array>()
 
-function normalizeAddress (address: number): number {
-// #if MEMORY64
-  return address
-// #else
-  // eslint-disable-next-line no-unreachable
-  return address >>> 0
-// #endif
-}
-
 function normalizeEnd (end: number): number {
 // #if MEMORY64
   return end
@@ -57,6 +48,15 @@ function getDataView (memory: WebAssembly.Memory, end: number): MemoryDataView {
 }
 
 export const emnapiMemory = {
+  normalizeAddress (address: number): number {
+// #if MEMORY64
+    return address
+// #else
+    // eslint-disable-next-line no-unreachable
+    return address >>> 0
+// #endif
+  },
+
   ensureBufferFor (memory: WebAssembly.Memory, end: number): ArrayBufferLike {
     return ensureBufferFor(memory, end)
   },
@@ -76,7 +76,7 @@ export const emnapiMemory = {
   },
 
   getPointer (memory: WebAssembly.Memory, address: number): number {
-    address = normalizeAddress(address)
+    address = emnapiMemory.normalizeAddress(address)
 // #if MEMORY64
     return Number(getDataView(memory, address + 8).getBigUint64(address, true))
 // #else
@@ -86,7 +86,7 @@ export const emnapiMemory = {
   },
 
   getUint32 (memory: WebAssembly.Memory, address: number): number {
-    address = normalizeAddress(address)
+    address = emnapiMemory.normalizeAddress(address)
     return getDataView(memory, address + 4).getUint32(address, true)
   },
 
@@ -95,47 +95,47 @@ export const emnapiMemory = {
   },
 
   setInt8 (memory: WebAssembly.Memory, address: number, value: number): void {
-    address = normalizeAddress(address)
+    address = emnapiMemory.normalizeAddress(address)
     getDataView(memory, address + 1).setInt8(address, value)
   },
 
   setUint8 (memory: WebAssembly.Memory, address: number, value: number): void {
-    address = normalizeAddress(address)
+    address = emnapiMemory.normalizeAddress(address)
     getDataView(memory, address + 1).setUint8(address, value)
   },
 
   setInt16 (memory: WebAssembly.Memory, address: number, value: number): void {
-    address = normalizeAddress(address)
+    address = emnapiMemory.normalizeAddress(address)
     getDataView(memory, address + 2).setInt16(address, value, true)
   },
 
   setUint16 (memory: WebAssembly.Memory, address: number, value: number): void {
-    address = normalizeAddress(address)
+    address = emnapiMemory.normalizeAddress(address)
     getDataView(memory, address + 2).setUint16(address, value, true)
   },
 
   setInt32 (memory: WebAssembly.Memory, address: number, value: number): void {
-    address = normalizeAddress(address)
+    address = emnapiMemory.normalizeAddress(address)
     getDataView(memory, address + 4).setInt32(address, value, true)
   },
 
   setUint32 (memory: WebAssembly.Memory, address: number, value: number): void {
-    address = normalizeAddress(address)
+    address = emnapiMemory.normalizeAddress(address)
     getDataView(memory, address + 4).setUint32(address, value, true)
   },
 
   setFloat64 (memory: WebAssembly.Memory, address: number, value: number): void {
-    address = normalizeAddress(address)
+    address = emnapiMemory.normalizeAddress(address)
     getDataView(memory, address + 8).setFloat64(address, value, true)
   },
 
   setBigInt64 (memory: WebAssembly.Memory, address: number, value: bigint): void {
-    address = normalizeAddress(address)
+    address = emnapiMemory.normalizeAddress(address)
     getDataView(memory, address + 8).setBigInt64(address, value, true)
   },
 
   setPointer (memory: WebAssembly.Memory, address: number, value: number | bigint): void {
-    address = normalizeAddress(address)
+    address = emnapiMemory.normalizeAddress(address)
 // #if MEMORY64
     const pointerValue = BigInt(value)
     getDataView(memory, address + 8).setBigUint64(address, pointerValue, true)
