@@ -113,6 +113,12 @@ class NodejsWaitingRequestCounter {
 
 export interface ContextOptions {
   onExternalMemoryChange?: (current: bigint, old: bigint, delta: bigint) => any
+  /**
+   * Whether to destroy the context automatically on Node.js `beforeExit`.
+   *
+   * @defaultValue `true`
+   */
+  autoDestroy?: boolean
 }
 
 export class Context {
@@ -146,11 +152,13 @@ export class Context {
     this._externalMemory = new ExternalMemory(options?.onExternalMemoryChange)
     if (typeof process === 'object' && process !== null && typeof process.once === 'function') {
       this.refCounter = new NodejsWaitingRequestCounter()
-      process.once('beforeExit', () => {
-        if (!this._suppressDestroy) {
-          this.destroy()
-        }
-      })
+      if (options?.autoDestroy !== false) {
+        process.once('beforeExit', () => {
+          if (!this._suppressDestroy) {
+            this.destroy()
+          }
+        })
+      }
     }
   }
 
