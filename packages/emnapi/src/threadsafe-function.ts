@@ -67,7 +67,9 @@ export const emnapiTSFN: any = {
     observed: Int32Array
   }>(),
   _reclaimSweepActive: false,
-  _nextGeneration: BigInt(0),
+  // v1 embeds this object in library_napi.js, whose Emscripten loader
+  // serializes library values before the postset init hook runs.
+  _nextGeneration: {},
   offset: {
     __size__: 0,
     /* napi_ref */ resource: 0,
