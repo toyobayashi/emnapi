@@ -246,7 +246,7 @@ static void _emnapi_tsfn_close_handles_and_maybe_delete(
     pthread_mutex_lock(&func->mutex);
     func->state = napi_tsfn_state_closing;
     if (func->max_queue_size > 0) {
-      pthread_cond_signal(func->cond);
+      pthread_cond_broadcast(func->cond);
     }
     pthread_mutex_unlock(&func->mutex);
   }
@@ -311,7 +311,7 @@ static bool _emnapi_tsfn_dispatch_one(napi_threadsafe_function func) {
         if (func->thread_count == 0) {
           func->state = napi_tsfn_state_closing;
           if (func->max_queue_size > 0) {
-            pthread_cond_signal(func->cond);
+            pthread_cond_broadcast(func->cond);
           }
           _emnapi_tsfn_close_handles_and_maybe_delete(func, false);
         }
@@ -574,7 +574,7 @@ napi_release_threadsafe_function(napi_threadsafe_function func,
         func->state = napi_tsfn_state_closing;
       }
       if (func->state == napi_tsfn_state_closing && func->max_queue_size > 0) {
-        pthread_cond_signal(func->cond);
+        pthread_cond_broadcast(func->cond);
       }
 
       _emnapi_tsfn_send(func);

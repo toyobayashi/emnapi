@@ -1,7 +1,9 @@
 import { emnapiCtx } from 'emnapi:shared'
+import { wasmMemory } from 'emscripten:runtime'
 import { from64, makeSetValue, makeGetValue, SIZE_TYPE, POINTER_SIZE } from 'emscripten:parse-tools'
 import { emnapiCreateFunction } from './internal'
 import { $PREAMBLE, $CHECK_ARG, $CHECK_ENV, $CHECK_ENV_NOT_IN_GC } from './macro'
+import { emnapiMemory } from './memory-view'
 
 /** @__sig ipppppp */
 export function _emnapi_create_function (env: napi_env, utf8name: Pointer<const_char>, length: size_t, cb: napi_callback, data: void_p, result: Pointer<napi_value>): napi_status {
@@ -15,7 +17,7 @@ export function _emnapi_create_function (env: napi_env, utf8name: Pointer<const_
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const value = valueHandle.id
-  makeSetValue('result', 0, 'value', '*')
+  emnapiMemory.setPointer(wasmMemory, result as number, value)
   return envObject.getReturnStatus()
 }
 
@@ -115,7 +117,7 @@ export function napi_call_function (
     const ret = v8func.apply(v8recv, args)
     if (result) {
       v = envObject.ensureHandleId(ret)
-      makeSetValue('result', 0, 'v', '*')
+      emnapiMemory.setPointer(wasmMemory, result as number, v)
     }
     return envObject.clearLastError()
   })
@@ -167,7 +169,7 @@ export function napi_new_instance (
     }
     if (result) {
       v = envObject.ensureHandleId(ret)
-      makeSetValue('result', 0, 'v', '*')
+      emnapiMemory.setPointer(wasmMemory, result as number, v)
     }
     return envObject.getReturnStatus()
   })
@@ -195,6 +197,6 @@ export function napi_get_new_target (
       ? envObject.ensureHandleId(thiz.constructor)
       : 0
 
-  makeSetValue('result', 0, 'value', '*')
+  emnapiMemory.setPointer(wasmMemory, result as number, value)
   return envObject.clearLastError()
 }

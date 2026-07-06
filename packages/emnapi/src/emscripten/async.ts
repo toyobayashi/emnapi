@@ -50,14 +50,28 @@ export function $emnapiAddSendListener (worker: any): boolean {
   if (worker._emnapiSendListener) return true
   const handler = function (e: any): void {
     const data = ENVIRONMENT_IS_NODE ? e : e.data
-    const __emnapi__ = data.__emnapi__
+    const __emnapi__ = data?.__emnapi__
     if (__emnapi__ && __emnapi__.type === 'async-send') {
+      const payload = __emnapi__.payload
+      if (
+        !payload ||
+        typeof payload.callback !== 'number' ||
+        !Number.isSafeInteger(payload.callback) ||
+        payload.callback < 0 ||
+        (
+          typeof payload.data !== 'bigint' &&
+          (
+            typeof payload.data !== 'number' ||
+            !Number.isSafeInteger(payload.data)
+          )
+        )
+      ) return
       if (ENVIRONMENT_IS_PTHREAD) {
         postMessage({ __emnapi__ })
       } else {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const callback = __emnapi__.payload.callback
-        makeDynCall('vp', 'callback')(__emnapi__.payload.data)
+        const callback = payload.callback
+        makeDynCall('vp', 'callback')(payload.data)
       }
     }
   }

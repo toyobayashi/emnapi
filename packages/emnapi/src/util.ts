@@ -1,6 +1,7 @@
-import { ENVIRONMENT_IS_NODE, ENVIRONMENT_IS_PTHREAD, runtimeKeepalivePop, runtimeKeepalivePush } from 'emscripten:runtime'
-import { from64, makeSetValue, makeDynCall } from 'emscripten:parse-tools'
+import { ENVIRONMENT_IS_NODE, ENVIRONMENT_IS_PTHREAD, runtimeKeepalivePop, runtimeKeepalivePush, wasmMemory } from 'emscripten:runtime'
+import { from64, makeDynCall } from 'emscripten:parse-tools'
 import { emnapiCtx } from 'emnapi:shared'
+import { emnapiMemory } from './memory-view'
 
 /**
  * @__sig ipiip
@@ -38,9 +39,9 @@ export function _emnapi_get_node_version (major: number, minor: number, patch: n
       ? process.versions.node.split('.').map((n: string) => Number(n))
       : [0, 0, 0]
 
-  makeSetValue('major', 0, 'versions[0]', 'u32')
-  makeSetValue('minor', 0, 'versions[1]', 'u32')
-  makeSetValue('patch', 0, 'versions[2]', 'u32')
+  emnapiMemory.setUint32(wasmMemory, major as number, versions[0])
+  emnapiMemory.setUint32(wasmMemory, minor as number, versions[1])
+  emnapiMemory.setUint32(wasmMemory, patch as number, versions[2])
 }
 
 /**
@@ -157,8 +158,8 @@ export function $emnapiSetValueI64 (result: Pointer<int64_t>, numberValue: numbe
     numberValue >>> 0,
     (tempDouble = numberValue, +Math.abs(tempDouble) >= 1 ? tempDouble > 0 ? (Math.min(+Math.floor(tempDouble / 4294967296), 4294967295) | 0) >>> 0 : ~~+Math.ceil((tempDouble - +(~~tempDouble >>> 0)) / 4294967296) >>> 0 : 0)
   ]
-  makeSetValue('result', 0, 'tempI64[0]', 'i32')
-  makeSetValue('result', 4, 'tempI64[1]', 'i32')
+  emnapiMemory.setInt32(wasmMemory, result as number, tempI64[0])
+  emnapiMemory.setInt32(wasmMemory, result as number + 4, tempI64[1])
 }
 
 /**

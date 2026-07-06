@@ -1,8 +1,10 @@
 import { emnapiCtx } from 'emnapi:shared'
+import { wasmMemory } from 'emscripten:runtime'
 import { emnapiDefineProperty } from './internal'
 import { $PREAMBLE, $CHECK_ARG } from './macro'
 import { emnapiString } from './string'
-import { POINTER_SIZE, POINTER_WASM_TYPE, from64, makeGetValue, makeSetValue } from 'emscripten:parse-tools'
+import { POINTER_SIZE, from64 } from 'emscripten:parse-tools'
+import { emnapiMemory } from './memory-view'
 
 /** @__sig ippiiip */
 export function napi_get_all_property_names (
@@ -135,7 +137,7 @@ export function napi_get_all_property_names (
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     value = emnapiCtx.addToCurrentScope(ret).id
-    makeSetValue('result', 0, 'value', '*')
+    emnapiMemory.setPointer(wasmMemory, result as number, value)
     return envObject.getReturnStatus()
   })
 }
@@ -188,7 +190,7 @@ export function napi_has_property (env: napi_env, object: napi_value, key: napi_
     }
     from64('result')
     r = (emnapiCtx.handleStore.get(key)!.value in v) ? 1 : 0
-    makeSetValue('result', 0, 'r', 'i8')
+    emnapiMemory.setInt8(wasmMemory, result as number, r)
     return envObject.getReturnStatus()
   })
 }
@@ -215,7 +217,7 @@ export function napi_get_property (env: napi_env, object: napi_value, key: napi_
     from64('result')
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     value = envObject.ensureHandleId(v[emnapiCtx.handleStore.get(key)!.value])
-    makeSetValue('result', 0, 'value', '*')
+    emnapiMemory.setPointer(wasmMemory, result as number, value)
     return envObject.getReturnStatus()
   })
 }
@@ -244,7 +246,7 @@ export function napi_delete_property (env: napi_env, object: napi_value, key: na
     }
     if (result) {
       from64('result')
-      makeSetValue('result', 0, 'r ? 1 : 0', 'i8')
+      emnapiMemory.setInt8(wasmMemory, result as number, r ? 1 : 0)
     }
     return envObject.getReturnStatus()
   })
@@ -275,7 +277,7 @@ export function napi_has_own_property (env: napi_env, object: napi_value, key: n
     }
     r = Object.prototype.hasOwnProperty.call(v, emnapiCtx.handleStore.get(key)!.value)
     from64('result')
-    makeSetValue('result', 0, 'r ? 1 : 0', 'i8')
+    emnapiMemory.setInt8(wasmMemory, result as number, r ? 1 : 0)
     return envObject.getReturnStatus()
   })
 }
@@ -323,7 +325,7 @@ export function napi_has_named_property (env: napi_env, object: napi_value, utf8
     from64('result')
 
     r = emnapiString.UTF8ToString(utf8name, -1) in v
-    makeSetValue('result', 0, 'r ? 1 : 0', 'i8')
+    emnapiMemory.setInt8(wasmMemory, result as number, r ? 1 : 0)
     return envObject.getReturnStatus()
   })
 }
@@ -354,7 +356,7 @@ export function napi_get_named_property (env: napi_env, object: napi_value, utf8
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     value = envObject.ensureHandleId(v[emnapiString.UTF8ToString(utf8name, -1)])
-    makeSetValue('result', 0, 'value', '*')
+    emnapiMemory.setPointer(wasmMemory, result as number, value)
     return envObject.getReturnStatus()
   })
 }
@@ -393,7 +395,7 @@ export function napi_has_element (env: napi_env, object: napi_value, index: uint
     }
     from64('result')
     r = ((index >>> 0) in v) ? 1 : 0
-    makeSetValue('result', 0, 'r', 'i8')
+    emnapiMemory.setInt8(wasmMemory, result as number, r)
     return envObject.getReturnStatus()
   })
 }
@@ -419,7 +421,7 @@ export function napi_get_element (env: napi_env, object: napi_value, index: uint
     from64('result')
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     value = envObject.ensureHandleId(v[index >>> 0])
-    makeSetValue('result', 0, 'value', '*')
+    emnapiMemory.setPointer(wasmMemory, result as number, value)
     return envObject.getReturnStatus()
   })
 }
@@ -446,7 +448,7 @@ export function napi_delete_element (env: napi_env, object: napi_value, index: u
     }
     if (result) {
       from64('result')
-      makeSetValue('result', 0, 'r ? 1 : 0', 'i8')
+      emnapiMemory.setInt8(wasmMemory, result as number, r ? 1 : 0)
     }
     return envObject.getReturnStatus()
   })
@@ -483,15 +485,14 @@ export function napi_define_properties (
     for (let i = 0; i < property_count; i++) {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       propPtr = properties + (i * (POINTER_SIZE * 8))
-      const utf8Name = makeGetValue('propPtr', 0, '*')
-      const name = makeGetValue('propPtr', POINTER_SIZE, '*')
-      const method = makeGetValue('propPtr', POINTER_SIZE * 2, '*')
-      const getter = makeGetValue('propPtr', POINTER_SIZE * 3, '*')
-      const setter = makeGetValue('propPtr', POINTER_SIZE * 4, '*')
-      const value = makeGetValue('propPtr', POINTER_SIZE * 5, '*')
-      attributes = makeGetValue('propPtr', POINTER_SIZE * 6, POINTER_WASM_TYPE) as number
-      from64('attributes')
-      const data = makeGetValue('propPtr', POINTER_SIZE * 7, '*')
+      const utf8Name = emnapiMemory.getPointer(wasmMemory, propPtr)
+      const name = emnapiMemory.getPointer(wasmMemory, propPtr + POINTER_SIZE)
+      const method = emnapiMemory.getPointer(wasmMemory, propPtr + POINTER_SIZE * 2)
+      const getter = emnapiMemory.getPointer(wasmMemory, propPtr + POINTER_SIZE * 3)
+      const setter = emnapiMemory.getPointer(wasmMemory, propPtr + POINTER_SIZE * 4)
+      const value = emnapiMemory.getPointer(wasmMemory, propPtr + POINTER_SIZE * 5)
+      attributes = emnapiMemory.getUint32(wasmMemory, propPtr + POINTER_SIZE * 6)
+      const data = emnapiMemory.getPointer(wasmMemory, propPtr + POINTER_SIZE * 7)
 
       if (utf8Name) {
         propertyName = emnapiString.UTF8ToString(utf8Name, -1)

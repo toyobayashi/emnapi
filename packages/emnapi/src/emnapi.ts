@@ -1,9 +1,10 @@
 import { emnapiCtx, emnapiNodeBinding } from 'emnapi:shared'
 import { wasmMemory } from 'emscripten:runtime'
-import { from64, makeSetValue, makeGetValue, POINTER_SIZE } from 'emscripten:parse-tools'
+import { from64, makeGetValue } from 'emscripten:parse-tools'
 import { type MemoryViewDescriptor, type ArrayBufferPointer, emnapiExternalMemory, emnapiExternalSAB } from './memory'
 import { napi_add_finalizer } from './wrap'
 import { $CHECK_ARG, $PREAMBLE, $CHECK_ENV } from './macro'
+import { emnapiMemory } from './memory-view'
 
 /**
  * @__sig ipippppp
@@ -35,7 +36,11 @@ export function emnapi_create_memory_view (
     if (byte_length > 2147483647) {
       throw new RangeError('Cannot create a memory view larger than 2147483647 bytes')
     }
-    if ((external_data + byte_length) > wasmMemory.buffer.byteLength) {
+    const memoryBuffer = emnapiMemory.ensureBufferFor(
+      wasmMemory,
+      external_data + byte_length
+    )
+    if ((external_data + byte_length) > memoryBuffer.byteLength) {
       throw new RangeError('Memory out of range')
     }
     if (!emnapiCtx.feature.supportFinalizer && finalize_cb) {
@@ -97,8 +102,8 @@ export function emnapi_create_memory_view (
     }
     const Ctor = viewDescriptor.Ctor
     const typedArray = typedarray_type === emnapi_memory_view_type.emnapi_buffer
-      ? emnapiCtx.feature.Buffer!.from(wasmMemory.buffer, viewDescriptor.address, viewDescriptor.length)
-      : new Ctor(wasmMemory.buffer, viewDescriptor.address, viewDescriptor.length)
+      ? emnapiCtx.feature.Buffer!.from(memoryBuffer, viewDescriptor.address, viewDescriptor.length)
+      : new Ctor(memoryBuffer, viewDescriptor.address, viewDescriptor.length)
     const handle = emnapiCtx.addToCurrentScope(typedArray)
     emnapiExternalMemory.wasmMemoryViewTable.set(typedArray, viewDescriptor)
     if (finalize_cb) {
@@ -112,7 +117,7 @@ export function emnapi_create_memory_view (
       }
     }
     value = handle.id
-    makeSetValue('result', 0, 'value', '*')
+    emnapiMemory.setPointer(wasmMemory, result as number, value)
     return envObject.getReturnStatus()
   })
 }
@@ -157,7 +162,10 @@ export function $emnapiSyncMemory<T extends ArrayBufferLike | ArrayBufferView> (
     if (len === 0) return arrayBufferOrView
     view = new Uint8Array(arrayBufferOrView, offset, len)
 
-    const wasmMemoryU8 = new Uint8Array(wasmMemory.buffer)
+    const wasmMemoryU8 = emnapiMemory.getUint8Array(
+      wasmMemory,
+      pointer + len
+    )
     if (!js_to_wasm) {
       view.set(wasmMemoryU8.subarray(pointer, pointer + len))
     } else {
@@ -179,7 +187,10 @@ export function $emnapiSyncMemory<T extends ArrayBufferLike | ArrayBufferView> (
     if (len === 0) return latestView
     view = new Uint8Array(latestView.buffer, latestView.byteOffset + offset, len)
 
-    const wasmMemoryU8 = new Uint8Array(wasmMemory.buffer)
+    const wasmMemoryU8 = emnapiMemory.getUint8Array(
+      wasmMemory,
+      pointer + len
+    )
     if (!js_to_wasm) {
       view.set(wasmMemoryU8.subarray(pointer, pointer + len))
     } else {
@@ -216,7 +227,7 @@ export function emnapi_sync_memory (env: napi_env, js_to_wasm: bool, arraybuffer
     if (handle.value !== ret) {
       from64('arraybuffer_or_view')
       v = envObject.ensureHandleId(ret)
-      makeSetValue('arraybuffer_or_view', 0, 'v', '*')
+      emnapiMemory.setPointer(wasmMemory, arraybuffer_or_view as number, v)
     }
 
     return envObject.getReturnStatus()
@@ -264,17 +275,17 @@ export function emnapi_get_memory_address (env: napi_env, arraybuffer_or_view: n
     p = info.address
     if (address) {
       from64('address')
-      makeSetValue('address', 0, 'p', '*')
+      emnapiMemory.setPointer(wasmMemory, address as number, p)
     }
     if (ownership) {
       from64('ownership')
       ownershipOut = info.ownership
-      makeSetValue('ownership', 0, 'ownershipOut', 'i32')
+      emnapiMemory.setInt32(wasmMemory, ownership as number, ownershipOut)
     }
     if (runtime_allocated) {
       from64('runtime_allocated')
       runtimeAllocated = info.runtimeAllocated
-      makeSetValue('runtime_allocated', 0, 'runtimeAllocated', 'i8')
+      emnapiMemory.setInt8(wasmMemory, runtime_allocated as number, runtimeAllocated)
     }
 
     return envObject.getReturnStatus()
@@ -302,9 +313,9 @@ export function emnapi_get_runtime_version (env: napi_env, version: number): nap
 
   from64('version')
 
-  makeSetValue('version', 0, 'versions[0]', 'u32')
-  makeSetValue('version', 4, 'versions[1]', 'u32')
-  makeSetValue('version', 8, 'versions[2]', 'u32')
+  emnapiMemory.setUint32(wasmMemory, version, versions[0])
+  emnapiMemory.setUint32(wasmMemory, version + 4, versions[1])
+  emnapiMemory.setUint32(wasmMemory, version + 8, versions[2])
 
   return envObject.clearLastError()
 }
@@ -329,7 +340,7 @@ export function emnapi_get_external_sharedarraybuffer_handle (env: napi_env, sha
     if (metaPtr === undefined) {
       return envObject.setLastError(napi_status.napi_invalid_arg)
     }
-    makeSetValue('handle', 0, 'metaPtr', '*')
+    emnapiMemory.setPointer(wasmMemory, handle as number, metaPtr)
     return envObject.getReturnStatus()
   })
 }
@@ -341,7 +352,15 @@ export function emnapi_get_external_sharedarraybuffer_handle (env: napi_env, sha
  */
 export function emnapi_acquire_external_sharedarraybuffer (handle: void_p): void {
   from64('handle')
-  Atomics.add(new Int32Array(wasmMemory.buffer, handle as number, 1), 0, 1)
+  Atomics.add(
+    new Int32Array(
+      emnapiMemory.ensureBufferFor(wasmMemory, handle as number + 4),
+      handle as number,
+      1
+    ),
+    0,
+    1
+  )
 }
 
 /**
@@ -376,7 +395,16 @@ export function $emnapiAcquireExternalSharedArrayBuffer (handle: number, sab?: S
 
   if (sab == null) {
     sab = new SharedArrayBuffer(meta.byte_length)
-    new Uint8Array(sab).set(new Uint8Array(wasmMemory.buffer, external_data, meta.byte_length))
+    new Uint8Array(sab).set(
+      new Uint8Array(
+        emnapiMemory.ensureBufferFor(
+          wasmMemory,
+          external_data + meta.byte_length
+        ),
+        external_data,
+        meta.byte_length
+      )
+    )
   } else {
     if (emnapiExternalSAB.handleTable.has(sab)) {
       return sab
@@ -384,7 +412,15 @@ export function $emnapiAcquireExternalSharedArrayBuffer (handle: number, sab?: S
   }
 
   // Increment refcount atomically
-  Atomics.add(new Int32Array(wasmMemory.buffer, handle, 1), 0, 1)
+  Atomics.add(
+    new Int32Array(
+      emnapiMemory.ensureBufferFor(wasmMemory, handle + 4),
+      handle,
+      1
+    ),
+    0,
+    1
+  )
 
   // Register in emnapiExternalMemory.table for emnapi_sync_memory support
   if (!emnapiExternalMemory.table.has(sab)) {

@@ -58,35 +58,90 @@ const offsets64 = {
   cond: 152
 }
 
-function loadTSFN ({
-  memory64 = false,
-  wasmMemory,
-  pthread = false,
-  transport,
-  context = {},
-  immediate
-}) {
-  const filename = path.join(
-    __dirname,
-    '../../emnapi/src/threadsafe-function.ts'
-  )
+function transpile (filename, memory64 = false) {
   const { Compiler } = require('../../emnapi/script/preprocess.js')
   const source = new Compiler({
     defines: memory64 ? { MEMORY64: 1 } : {}
   }).parseFile(filename)
-  const output = ts.transpileModule(source, {
+  return ts.transpileModule(source, {
     compilerOptions: {
       module: ts.ModuleKind.CommonJS,
       target: ts.ScriptTarget.ES2020
     }
   }).outputText
+}
+
+function loadMemoryView (memory64 = false) {
+  const filename = path.join(
+    __dirname,
+    '../../emnapi/src/memory-view.ts'
+  )
+  const testModule = { exports: {} }
+  vm.runInNewContext(transpile(filename, memory64), {
+    module: testModule,
+    exports: testModule.exports,
+    ArrayBuffer,
+    BigInt,
+    DataView,
+    Object,
+    SharedArrayBuffer,
+    Uint8Array,
+    WeakMap,
+    WebAssembly
+  }, { filename })
+  return testModule.exports.emnapiMemory
+}
+
+function loadTSFN ({
+  memory64 = false,
+  wasmMemory,
+  pthread = false,
+  transport,
+  context,
+  immediate,
+  timeout,
+  pThread,
+  malloc = () => 0,
+  free = () => {},
+  dynCall
+}) {
+  const filename = path.join(
+    __dirname,
+    '../../emnapi/src/threadsafe-function.ts'
+  )
+  const cleanupHooks = []
+  const feature = {}
+  if (immediate) feature.setImmediate = immediate
+  if (timeout) feature.setTimeout = timeout
+  const defaultContext = {
+    feature,
+    addCleanupHook (envObject, hook, arg) {
+      cleanupHooks.push({ envObject, hook, arg })
+    },
+    removeCleanupHook (envObject, hook, arg) {
+      const index = cleanupHooks.findIndex(item => (
+        item.envObject === envObject &&
+        item.hook === hook &&
+        item.arg === arg
+      ))
+      if (index !== -1) cleanupHooks.splice(index, 1)
+    },
+    envStore: new Map(),
+    refStore: new Map(),
+    handleStore: new Map(),
+    openScope () {},
+    closeScope () {},
+    decreaseWaitingRequestCounter () {}
+  }
+  const emnapiCtx = Object.assign(defaultContext, context)
+  if (context?.feature) emnapiCtx.feature = context.feature
   const shared = {
-    emnapiCtx: context,
+    emnapiCtx,
     emnapiNodeBinding: undefined,
     emnapiPostMessageTransport: transport
   }
   const testModule = { exports: {} }
-  vm.runInNewContext(output, {
+  vm.runInNewContext(transpile(filename, memory64), {
     module: testModule,
     exports: testModule.exports,
     require (id) {
@@ -97,9 +152,9 @@ function loadTSFN ({
           return {
             ENVIRONMENT_IS_NODE: true,
             ENVIRONMENT_IS_PTHREAD: pthread,
-            PThread: undefined,
-            _malloc () {},
-            _free () {},
+            PThread: pThread,
+            _malloc: malloc,
+            _free: free,
             abort () {},
             wasmMemory
           }
@@ -107,7 +162,9 @@ function loadTSFN ({
           return {
             POINTER_SIZE: memory64 ? 8 : 4,
             from64 () {},
-            makeDynCall () {},
+            makeDynCall (signature, name) {
+              return (...args) => dynCall?.(signature, name, args)
+            },
             to64 (value) {
               return memory64 ? BigInt(value) : Number(value)
             }
@@ -115,7 +172,9 @@ function loadTSFN ({
         case './macro':
           return {
             $CHECK_ARG () {},
-            $CHECK_ENV_NOT_IN_GC () {}
+            $CHECK_ENV_NOT_IN_GC (env) {
+              return emnapiCtx.envStore.get(env)
+            }
           }
         case './node':
           return {
@@ -126,6 +185,10 @@ function loadTSFN ({
           return {
             _emnapi_runtime_keepalive_pop () {},
             _emnapi_runtime_keepalive_push () {}
+          }
+        case './memory-view':
+          return {
+            emnapiMemory: loadMemoryView(memory64)
           }
         default:
           throw new Error(`Unexpected test import: ${id}`)
@@ -138,11 +201,17 @@ function loadTSFN ({
       napi_ok: 0,
       napi_invalid_arg: 1,
       napi_generic_failure: 9,
-      napi_closing: 16
+      napi_queue_full: 15,
+      napi_closing: 16,
+      napi_would_deadlock: 21
     },
-    napi_threadsafe_function_call_mode: {},
-    napi_threadsafe_function_release_mode: {},
-    setImmediate: immediate,
+    napi_threadsafe_function_call_mode: {
+      napi_tsfn_nonblocking: 0
+    },
+    napi_threadsafe_function_release_mode: {
+      napi_tsfn_release: 0,
+      napi_tsfn_abort: 1
+    },
     Array,
     Atomics,
     BigInt,
@@ -153,6 +222,8 @@ function loadTSFN ({
     Int32Array,
     Map,
     Math,
+    Number,
+    Object,
     Promise,
     SharedArrayBuffer,
     Uint8Array,
@@ -162,142 +233,270 @@ function loadTSFN ({
   }, { filename })
   const emnapiTSFN = testModule.exports.emnapiTSFN
   emnapiTSFN.init()
-  return { emnapiTSFN, shared }
+  return {
+    cleanupHooks,
+    emnapiCtx,
+    emnapiTSFN,
+    exports: testModule.exports,
+    shared
+  }
 }
 
-function testSignedWasm32Layout () {
-  const buffer = new SharedArrayBuffer(0x80020000)
-  const { emnapiTSFN } = loadTSFN({
-    wasmMemory: { buffer }
-  })
-  const address = -0x80000000
-  const unsignedAddress = address >>> 0
-  const bytes = new Uint8Array(
-    buffer,
-    unsignedAddress,
-    emnapiTSFN.offset.__size__
+function loadEmscriptenAsync (dynCalls) {
+  const filename = path.join(
+    __dirname,
+    '../../emnapi/src/emscripten/async.ts'
   )
+  const testModule = { exports: {} }
+  vm.runInNewContext(transpile(filename), {
+    module: testModule,
+    exports: testModule.exports,
+    require (id) {
+      switch (id) {
+        case 'emscripten:runtime':
+          return {
+            ENVIRONMENT_IS_NODE: true,
+            ENVIRONMENT_IS_PTHREAD: false,
+            PThread: { pthreads: {} }
+          }
+        case 'emscripten:parse-tools':
+          return {
+            makeDynCall () {
+              return data => dynCalls.push(data)
+            }
+          }
+        case '../util':
+          return {
+            _emnapi_next_tick () {},
+            _emnapi_set_immediate () {}
+          }
+        default:
+          throw new Error(`Unexpected async test import: ${id}`)
+      }
+    },
+    Number,
+    postMessage () {}
+  }, { filename })
+  return testModule.exports
+}
 
-  bytes.fill(0xa5)
+function loadCoreAsyncWork () {
+  const filename = path.join(
+    __dirname,
+    '../../emnapi/src/core/async-work.ts'
+  )
+  const testModule = { exports: {} }
+  const napiModule = { childThread: false }
+  const source = `${transpile(filename)}
+module.exports.__emnapiAWMT = emnapiAWMT
+`
+  vm.runInNewContext(source, {
+    module: testModule,
+    exports: testModule.exports,
+    require (id) {
+      switch (id) {
+        case 'emnapi:shared':
+          return {
+            _emnapi_async_work_pool_size () {
+              return 0
+            },
+            emnapiCtx: {},
+            emnapiNodeBinding: undefined,
+            emnapiPostMessage () {},
+            napiModule,
+            onCreateWorker () {},
+            singleThreadAsyncWork: false
+          }
+        case 'emscripten:runtime':
+          return {
+            ENVIRONMENT_IS_NODE: true,
+            ENVIRONMENT_IS_PTHREAD: false,
+            PThread: undefined,
+            _free () {},
+            _malloc () {
+              return 0
+            },
+            abort () {},
+            wasmInstance: { exports: {} },
+            wasmMemory: new WebAssembly.Memory({
+              initial: 1,
+              maximum: 2,
+              shared: true
+            })
+          }
+        case 'emscripten:parse-tools':
+          return {
+            POINTER_SIZE: 4,
+            from64 () {},
+            makeDynCall () {
+              return () => {}
+            },
+            makeGetValue () {
+              return 0
+            },
+            makeSetValue () {},
+            to64 (value) {
+              return Number(value)
+            }
+          }
+        case '../async-work':
+          return { emnapiAWST: {} }
+        case '../macro':
+          return {
+            $CHECK_ARG () {},
+            $CHECK_ENV () {},
+            $CHECK_ENV_NOT_IN_GC () {}
+          }
+        case '../node':
+          return {
+            _emnapi_node_emit_async_destroy () {},
+            _emnapi_node_emit_async_init () {}
+          }
+        case '../threadsafe-function':
+          return {
+            emnapiTSFN: {
+              addListener () {}
+            }
+          }
+        case '../util':
+          return {
+            _emnapi_runtime_keepalive_pop () {},
+            _emnapi_runtime_keepalive_push () {}
+          }
+        case '../memory-view':
+          return {
+            emnapiMemory: loadMemoryView()
+          }
+        default:
+          throw new Error(`Unexpected async-work test import: ${id}`)
+      }
+    },
+    Array,
+    Atomics,
+    BigInt,
+    Int32Array,
+    Map,
+    Number,
+    Object,
+    Promise,
+    SharedArrayBuffer,
+    Uint8Array,
+    WebAssembly,
+    napi_status: {
+      napi_ok: 0
+    }
+  }, { filename })
+  return testModule.exports.__emnapiAWMT
+}
+
+function allocation (emnapiTSFN, address) {
   emnapiTSFN.zeroMemory(address, emnapiTSFN.offset.__size__)
-  assert.deepStrictEqual(
-    Array.from(bytes),
-    new Array(emnapiTSFN.offset.__size__).fill(0)
+  return {
+    address,
+    generation: emnapiTSFN.register(address)
+  }
+}
+
+function getPending (emnapiTSFN, memory, address) {
+  return Atomics.load(
+    new Int32Array(memory.buffer),
+    Math.floor((address + emnapiTSFN.offset.async_pending) / 4)
   )
+}
 
-  emnapiTSFN.addQueueSize(address)
-  assert.strictEqual(emnapiTSFN.getQueueSize(address), 1)
-  emnapiTSFN.addThreadCount(address)
-  assert.strictEqual(emnapiTSFN.getThreadCount(address), 1)
-
-  const mutex = emnapiTSFN.getMutex(address)
-  mutex.lock()
-  mutex.unlock()
-  assert.strictEqual(
-    new DataView(buffer).getInt32(
-      unsignedAddress + emnapiTSFN.offset.mutex,
-      true
-    ),
-    0
-  )
-
-  emnapiTSFN.getCond(address).signal()
-  assert.strictEqual(
-    new DataView(buffer).getInt32(
-      unsignedAddress + emnapiTSFN.offset.cond,
-      true
-    ),
-    1
-  )
-
-  emnapiTSFN.setState(address, 2)
-  assert.strictEqual(emnapiTSFN.getState(address), 2)
-  emnapiTSFN.setHandlesClosing(address, 1)
-  assert.strictEqual(emnapiTSFN.getHandlesClosing(address), 1)
-
-  const contextValue = 0x12345678
-  emnapiTSFN.storeSizeTypeValue(
-    address + emnapiTSFN.offset.context,
-    contextValue,
-    false
-  )
-  assert.strictEqual(emnapiTSFN.getContext(address), contextValue)
-
-  new DataView(buffer).setFloat64(
-    unsignedAddress + emnapiTSFN.offset.async_id,
-    123.5,
-    true
-  )
-  assert.strictEqual(
-    emnapiTSFN.getFloat64(address + emnapiTSFN.offset.async_id),
-    123.5
-  )
-
-  emnapiTSFN.setUint32(address + emnapiTSFN.offset.async_ref, 1)
-  assert.strictEqual(
-    new DataView(buffer).getUint32(
-      unsignedAddress + emnapiTSFN.offset.async_ref,
-      true
-    ),
-    1
-  )
-
-  const pendingAddress = unsignedAddress + emnapiTSFN.offset.async_pending
+function setPending (emnapiTSFN, memory, address, value) {
   Atomics.store(
-    new Int32Array(buffer),
-    Math.floor(pendingAddress / 4),
-    1
+    new Int32Array(memory.buffer),
+    Math.floor((address + emnapiTSFN.offset.async_pending) / 4),
+    value
   )
-  const enqueued = []
-  emnapiTSFN._liveSet.add(address)
-  emnapiTSFN.enqueue = (func) => enqueued.push(func)
-  emnapiTSFN.recoverAfterWorkerLoss()
-  assert.strictEqual(
-    Atomics.load(
-      new Int32Array(buffer),
-      Math.floor(pendingAddress / 4)
-    ),
-    2
-  )
-  assert.deepStrictEqual(enqueued, [address])
 }
 
-function testMemory64HighAddress () {
-  const buffer = new SharedArrayBuffer(0x100020000)
-  const { emnapiTSFN } = loadTSFN({
-    memory64: true,
-    wasmMemory: { buffer }
+async function flushMicrotasks (turns = 4) {
+  for (let i = 0; i < turns; i++) {
+    await Promise.resolve()
+  }
+}
+
+function testMemoryRefresh () {
+  const emnapiMemory = loadMemoryView()
+  const sharedMemory = new WebAssembly.Memory({
+    initial: 1,
+    maximum: 3,
+    shared: true
   })
-  const address = 0x100001000
-  const queueSizeAddress = address + emnapiTSFN.offset.queue_size
-  const queueSizes = new BigUint64Array(buffer)
-  const lowQueueSizeIndex = Math.floor(
-    (queueSizeAddress % 0x100000000) / 8
-  )
-  queueSizes[lowQueueSizeIndex] = 11n
+  const staleBuffer = sharedMemory.buffer
+  sharedMemory.grow(1)
+  const currentBuffer = sharedMemory.buffer
+  let refreshes = 0
+  let stale = true
+  const staleSharedMemory = {
+    get buffer () {
+      return stale ? staleBuffer : currentBuffer
+    },
+    grow (delta) {
+      assert.strictEqual(delta, 0)
+      refreshes++
+      stale = false
+      return 2
+    }
+  }
 
-  emnapiTSFN.addQueueSize(address)
   assert.strictEqual(
-    Atomics.load(queueSizes, Math.floor(queueSizeAddress / 8)),
-    1n
+    emnapiMemory.ensureBufferFor(
+      staleSharedMemory,
+      staleBuffer.byteLength + 1
+    ),
+    currentBuffer
   )
-  assert.strictEqual(Atomics.load(queueSizes, lowQueueSizeIndex), 11n)
+  assert.strictEqual(refreshes, 1)
+  assert.strictEqual(
+    emnapiMemory.getDataView(
+      staleSharedMemory,
+      staleBuffer.byteLength + 1
+    ).buffer,
+    currentBuffer
+  )
+  stale = true
+  emnapiMemory.setUint32(
+    staleSharedMemory,
+    staleBuffer.byteLength,
+    0x12345678
+  )
+  assert.strictEqual(refreshes, 2)
+  assert.strictEqual(
+    new DataView(currentBuffer).getUint32(staleBuffer.byteLength, true),
+    0x12345678
+  )
 
-  const stateAddress = address + emnapiTSFN.offset.state
-  const states = new Int32Array(buffer)
-  const lowStateIndex = Math.floor(
-    (stateAddress % 0x100000000) / 4
+  const unsharedMemory = new WebAssembly.Memory({
+    initial: 1,
+    maximum: 2
+  })
+  const unsharedBuffer = unsharedMemory.buffer
+  let unsharedGrowCalls = 0
+  const guardedUnsharedMemory = {
+    get buffer () {
+      return unsharedBuffer
+    },
+    grow () {
+      unsharedGrowCalls++
+      throw new Error('unshared memory must not refresh with grow(0)')
+    }
+  }
+  assert.throws(
+    () => emnapiMemory.setUint32(
+      guardedUnsharedMemory,
+      unsharedBuffer.byteLength,
+      1
+    ),
+    RangeError
   )
-  states[lowStateIndex] = 7
-  emnapiTSFN.setState(address, 2)
-  assert.strictEqual(
-    Atomics.load(states, Math.floor(stateAddress / 4)),
-    2
-  )
-  assert.strictEqual(Atomics.load(states, lowStateIndex), 7)
+  assert.strictEqual(unsharedGrowCalls, 0)
+  assert.strictEqual(unsharedBuffer.byteLength, 64 * 1024)
 }
 
-function testWasm32TopEndpoints () {
+function testSignedWasm32TopEndpoints () {
   const staleBuffer = new SharedArrayBuffer(64 * 1024)
   const currentBuffer = new SharedArrayBuffer(0x100000000)
   let stale = true
@@ -315,7 +514,7 @@ function testWasm32TopEndpoints () {
   }
   const { emnapiTSFN } = loadTSFN({ wasmMemory })
 
-  emnapiTSFN.setInt8(0xffffffff, 0x5a)
+  emnapiTSFN.setInt8(-1, 0x5a)
   assert.strictEqual(refreshes, 1)
   assert.strictEqual(
     new DataView(currentBuffer).getUint8(0xffffffff),
@@ -323,7 +522,7 @@ function testWasm32TopEndpoints () {
   )
 
   stale = true
-  emnapiTSFN.setUint32(0xfffffffc, 0x12345678)
+  emnapiTSFN.setUint32(-4, 0x12345678)
   assert.strictEqual(refreshes, 2)
   assert.strictEqual(
     new DataView(currentBuffer).getUint32(0xfffffffc, true),
@@ -331,144 +530,766 @@ function testWasm32TopEndpoints () {
   )
 }
 
-function testTransportClassification () {
-  const buffer = new SharedArrayBuffer(64 * 1024)
+async function testTransportThenableDeferral () {
+  const memory = new WebAssembly.Memory({
+    initial: 1,
+    maximum: 2,
+    shared: true
+  })
   let thenReads = 0
   let thenCalls = 0
-  const thenable = {
+  const result = {
     get then () {
       thenReads++
-      return function (_resolve, reject) {
+      return function (resolve) {
         thenCalls++
-        assert.strictEqual(this, thenable)
-        reject(new Error('unsupported async transport'))
+        assert.strictEqual(this, result)
+        resolve()
       }
     }
   }
-  const transport = {
-    post: () => thenable,
-    throwsAreDefinitelyNotDelivered: false
-  }
   const { emnapiTSFN } = loadTSFN({
-    wasmMemory: { buffer },
-    transport
+    wasmMemory: memory,
+    transport: {
+      post: () => result,
+      throwsAreDefinitelyNotDelivered: false
+    }
   })
 
   assert.strictEqual(emnapiTSFN.postMessage({}), 2)
+  assert.strictEqual(thenReads, 0)
+  assert.strictEqual(thenCalls, 0)
+  await flushMicrotasks()
   assert.strictEqual(thenReads, 1)
   assert.strictEqual(thenCalls, 1)
-
-  transport.post = () => Object.defineProperty({}, 'then', {
-    get () {
-      thenReads++
-      throw new Error('then lookup failed')
-    }
-  })
-  assert.strictEqual(emnapiTSFN.postMessage({}), 2)
-  assert.strictEqual(thenReads, 2)
-
-  const markerError = new Error('marker lookup failed')
-  Object.defineProperty(markerError, 'emnapiNotDelivered', {
-    get () {
-      throw new Error('marker getter failed')
-    }
-  })
-  transport.post = () => {
-    throw markerError
-  }
-  assert.strictEqual(emnapiTSFN.postMessage({}), 2)
-
-  transport.post = () => {
-    const error = new Error('rejected before delivery')
-    error.emnapiNotDelivered = true
-    throw error
-  }
-  assert.strictEqual(emnapiTSFN.postMessage({}), 1)
 }
 
-function testWorkerLossAndChildScheduling () {
-  const buffer = new SharedArrayBuffer(64 * 1024)
+function testGenerationTransportAndAccessors () {
+  const memory = new WebAssembly.Memory({
+    initial: 1,
+    maximum: 2,
+    shared: true
+  })
+  const { emnapiTSFN } = loadTSFN({ wasmMemory: memory })
+  const address = 768
+  const { generation } = allocation(emnapiTSFN, address)
+  const enqueued = []
+  emnapiTSFN.enqueue = (func, currentGeneration) => {
+    enqueued.push([func, currentGeneration])
+  }
+  const worker = new EventEmitter()
+  worker.terminate = () => {}
+  emnapiTSFN.addListener(worker)
+
+  const message = emnapiTSFN.createMessage(
+    'tsfn-send',
+    address,
+    generation
+  )
+  assert.strictEqual(
+    message.__emnapi__.payload.generation,
+    generation.toString()
+  )
+  worker.emit('message', JSON.parse(JSON.stringify(message)))
+  assert.deepStrictEqual(enqueued, [[address, generation]])
+
+  for (const invalidGeneration of ['01', '-0', '1.0', 'x', {}, 1]) {
+    worker.emit('message', {
+      __emnapi__: {
+        type: 'tsfn-send',
+        payload: {
+          tsfn: address,
+          generation: invalidGeneration
+        }
+      }
+    })
+  }
+  assert.deepStrictEqual(enqueued, [[address, generation]])
+
+  const observed = new Int32Array(new SharedArrayBuffer(4))
+  worker.emit('message', {
+    __emnapi__: {
+      type: 'invalid',
+      payload: { observed }
+    }
+  })
+  assert.strictEqual(Atomics.load(observed, 0), 1)
+  worker._emnapiTSFNListener.dispose()
+
+  let postGetterReads = 0
+  const throwingPostTransport = {}
+  Object.defineProperty(throwingPostTransport, 'post', {
+    get () {
+      postGetterReads++
+      throw new Error('post getter failed')
+    }
+  })
+  const getterTSFN = loadTSFN({
+    wasmMemory: memory,
+    transport: throwingPostTransport
+  }).emnapiTSFN
+  assert.strictEqual(getterTSFN.postMessage({}), 2)
+  assert.strictEqual(postGetterReads, 1)
+
+  let deliveryGetterReads = 0
+  const throwingDeliveryTransport = {
+    post () {
+      throw new Error('post failed')
+    }
+  }
+  Object.defineProperty(
+    throwingDeliveryTransport,
+    'throwsAreDefinitelyNotDelivered',
+    {
+      get () {
+        deliveryGetterReads++
+        throw new Error('delivery getter failed')
+      }
+    }
+  )
+  const deliveryTSFN = loadTSFN({
+    wasmMemory: memory,
+    transport: throwingDeliveryTransport
+  }).emnapiTSFN
+  assert.strictEqual(deliveryTSFN.postMessage({}), 2)
+  assert.strictEqual(deliveryGetterReads, 1)
+}
+
+function testWorkerMessageValidation () {
+  const asyncCalls = []
+  const { $emnapiAddSendListener } = loadEmscriptenAsync(asyncCalls)
+  const sendWorker = new EventEmitter()
+  $emnapiAddSendListener(sendWorker)
+  assert.doesNotThrow(() => {
+    sendWorker.emit('message', null)
+    sendWorker.emit('message', undefined)
+    sendWorker.emit('message', {
+      __emnapi__: {
+        type: 'async-send',
+        payload: {}
+      }
+    })
+    sendWorker.emit('message', {
+      __emnapi__: {
+        type: 'async-send',
+        payload: { callback: -1, data: 1 }
+      }
+    })
+    sendWorker.emit('message', {
+      __emnapi__: {
+        type: 'async-send',
+        payload: { callback: 1.5, data: 1 }
+      }
+    })
+    sendWorker.emit('message', {
+      __emnapi__: {
+        type: 'async-send',
+        payload: { callback: 1, data: {} }
+      }
+    })
+  })
+  assert.deepStrictEqual(asyncCalls, [])
+  sendWorker.emit('message', {
+    __emnapi__: {
+      type: 'async-send',
+      payload: { callback: 1, data: 123 }
+    }
+  })
+  sendWorker.emit('message', {
+    __emnapi__: {
+      type: 'async-send',
+      payload: { callback: 2, data: 456n }
+    }
+  })
+  assert.deepStrictEqual(asyncCalls, [123, 456n])
+  sendWorker._emnapiSendListener.dispose()
+
+  const emnapiAWMT = loadCoreAsyncWork()
+  const completions = []
+  emnapiAWMT.callComplete = (work, status) => {
+    completions.push([work, status])
+  }
+  const workWorker = new EventEmitter()
+  emnapiAWMT.addListener(workWorker)
+  assert.doesNotThrow(() => {
+    workWorker.emit('message', null)
+    workWorker.emit('message', {
+      __emnapi__: {
+        type: 'async-work-complete',
+        payload: {}
+      }
+    })
+    workWorker.emit('message', {
+      __emnapi__: {
+        type: 'async-work-complete',
+        payload: { work: 0 }
+      }
+    })
+    workWorker.emit('message', {
+      __emnapi__: {
+        type: 'async-work-complete',
+        payload: { work: 1.5 }
+      }
+    })
+  })
+  assert.deepStrictEqual(completions, [])
+  workWorker.emit('message', {
+    __emnapi__: {
+      type: 'async-work-complete',
+      payload: { work: 64 }
+    }
+  })
+  assert.deepStrictEqual(completions, [[64, 0]])
+  workWorker._emnapiAWMTListener.dispose()
+}
+
+function testStaleGenerationGuards () {
+  const memory = new WebAssembly.Memory({
+    initial: 1,
+    maximum: 2,
+    shared: true
+  })
   const scheduled = []
-  let postCount = 0
+  const { emnapiTSFN } = loadTSFN({
+    wasmMemory: memory,
+    immediate: callback => scheduled.push(callback)
+  })
+  const address = 1024
+  const oldAllocation = allocation(emnapiTSFN, address)
+  const dispatches = []
+  emnapiTSFN.dispatch = (func, generation) => {
+    dispatches.push([func, generation])
+  }
+  setPending(emnapiTSFN, memory, address, 2)
+  emnapiTSFN.enqueue(address, oldAllocation.generation)
+  assert.strictEqual(scheduled.length, 1)
+
+  emnapiTSFN.unregister(address, oldAllocation.generation)
+  const replacement = allocation(emnapiTSFN, address)
+  scheduled.shift()()
+  assert.deepStrictEqual(dispatches, [])
+  assert.strictEqual(
+    emnapiTSFN.getGeneration(address),
+    replacement.generation
+  )
+
+  const destroyed = []
+  emnapiTSFN.destroyRetired = (func, generation) => {
+    destroyed.push([func, generation])
+  }
+  const worker = new EventEmitter()
+  worker.terminate = () => {}
+  emnapiTSFN.addListener(worker)
+  const sendObserved = new Int32Array(new SharedArrayBuffer(4))
+  const destroyObserved = new Int32Array(new SharedArrayBuffer(4))
+  worker.emit('message', emnapiTSFN.createMessage(
+    'tsfn-send',
+    address,
+    oldAllocation.generation,
+    sendObserved
+  ))
+  worker.emit('message', emnapiTSFN.createMessage(
+    'tsfn-destroy',
+    address,
+    oldAllocation.generation,
+    destroyObserved
+  ))
+  assert.strictEqual(Atomics.load(sendObserved, 0), 1)
+  assert.strictEqual(Atomics.load(destroyObserved, 0), 1)
+  assert.deepStrictEqual(dispatches, [])
+  assert.deepStrictEqual(destroyed, [])
+
+  const fakeEnv = {}
+  emnapiTSFN.addCleanup(address, replacement.generation, fakeEnv)
+  const staleHook = emnapiTSFN._cleanupMap.get(address).hook
+  emnapiTSFN.unregister(address, replacement.generation)
+  const next = allocation(emnapiTSFN, address)
+  emnapiTSFN.addCleanup(address, next.generation, fakeEnv)
+  staleHook(address)
+  assert.strictEqual(
+    emnapiTSFN._cleanupMap.get(address).generation,
+    next.generation
+  )
+  assert.strictEqual(emnapiTSFN.getGeneration(address), next.generation)
+  worker._emnapiTSFNListener.dispose()
+}
+
+function testCreatorSideWakeupPromotion () {
+  const memory = new WebAssembly.Memory({
+    initial: 1,
+    maximum: 2,
+    shared: true
+  })
+  const { emnapiTSFN } = loadTSFN({ wasmMemory: memory })
+  const address = 2048
+  const { generation } = allocation(emnapiTSFN, address)
+  const enqueued = []
+  emnapiTSFN.enqueue = (func, currentGeneration) => {
+    enqueued.push([func, currentGeneration])
+  }
+
+  setPending(emnapiTSFN, memory, address, 1)
+  assert.strictEqual(emnapiTSFN.send(address, generation), 0)
+  assert.strictEqual(getPending(emnapiTSFN, memory, address), 2)
+  assert.deepStrictEqual(enqueued, [[address, generation]])
+}
+
+function testDefiniteFailureAfterDelivery () {
+  const memory = new WebAssembly.Memory({
+    initial: 1,
+    maximum: 2,
+    shared: true
+  })
+  const scheduled = []
+  const creator = loadTSFN({
+    wasmMemory: memory,
+    immediate: callback => scheduled.push(callback)
+  }).emnapiTSFN
+  const address = 3072
+  const { generation } = allocation(creator, address)
+  const worker = new EventEmitter()
+  worker.terminate = () => {}
+  creator.addListener(worker)
+
+  const child = loadTSFN({
+    wasmMemory: memory,
+    pthread: true,
+    transport: {
+      post (message) {
+        worker.emit('message', message)
+        const error = new Error('reported pre-delivery after enqueue')
+        error.emnapiNotDelivered = true
+        throw error
+      },
+      throwsAreDefinitelyNotDelivered: false
+    }
+  }).emnapiTSFN
+
+  assert.strictEqual(child.send(address, generation), 0)
+  assert.strictEqual(getPending(child, memory, address), 2)
+  assert.strictEqual(scheduled.length, 1)
+  worker._emnapiTSFNListener.dispose()
+}
+
+function testRetryOwnershipAndRetiredMemory () {
+  const memory = new WebAssembly.Memory({
+    initial: 1,
+    maximum: 2,
+    shared: true
+  })
+  const scheduled = []
   const transport = {
     post () {
-      postCount++
-      return postCount === 1
-        ? Object.defineProperty({}, 'then', {
-          get () {
-            throw new Error('ambiguous acceptance')
-          }
-        })
-        : undefined
+      throw new Error('ambiguous delivery')
     },
     throwsAreDefinitelyNotDelivered: false
   }
-  const { emnapiTSFN } = loadTSFN({
-    wasmMemory: { buffer },
+  const child = loadTSFN({
+    wasmMemory: memory,
     pthread: true,
     transport,
-    immediate: (callback) => scheduled.push(callback)
-  })
-  let callbackRan = false
-  emnapiTSFN.schedule(() => {
-    callbackRan = true
-  })
-  assert.strictEqual(scheduled.length, 1)
-  scheduled.shift()()
-  assert.strictEqual(callbackRan, true)
-
-  emnapiTSFN.offset.dispatch_state = 128
-  emnapiTSFN.offset.async_pending = 132
-  const childAddress = 1024
-  assert.strictEqual(emnapiTSFN.send(childAddress), 0)
-  assert.strictEqual(postCount, 1)
-  assert.strictEqual(scheduled.length, 1)
-  scheduled.shift()()
-  assert.strictEqual(postCount, 2)
-  assert.strictEqual(emnapiTSFN._sendRetryMap.size, 0)
-
-  const creator = loadTSFN({
-    wasmMemory: { buffer }
+    immediate: callback => scheduled.push(callback)
   }).emnapiTSFN
-  creator.offset.async_pending = 256
-  const address = 1024
-  const pending = address + creator.offset.async_pending
-  const pendingArray = new Int32Array(buffer)
-  const pendingIndex = Math.floor(pending / 4)
-  const enqueued = []
-  creator._liveSet.add(address)
-  creator.enqueue = (func) => enqueued.push(func)
+  const address = 4096
+  const { generation } = allocation(child, address)
 
-  let terminated = false
-  const worker = new EventEmitter()
-  worker.terminate = () => {
-    terminated = true
+  assert.strictEqual(child.send(address, generation), 0)
+  const sendRetry = child._sendRetryMap.get(address)
+  assert.ok(sendRetry)
+  assert.strictEqual(Atomics.load(sendRetry.observed, 0), 0)
+
+  transport.post = () => undefined
+  assert.strictEqual(child.retire(address, generation), true)
+  assert.strictEqual(child._sendRetryMap.has(address), false)
+  assert.strictEqual(Atomics.load(sendRetry.observed, 0), 1)
+  child.getGeneration = () => {
+    throw new Error('send retry read retired TSFN memory')
   }
-  creator.addListener(worker)
+  assert.doesNotThrow(() => {
+    while (scheduled.length) scheduled.shift()()
+  })
 
-  Atomics.store(pendingArray, pendingIndex, 1)
-  worker.emit('exit')
-  assert.strictEqual(Atomics.load(pendingArray, pendingIndex), 2)
-  assert.deepStrictEqual(enqueued, [address])
-  assert.strictEqual(worker._emnapiTSFNListener, undefined)
-
-  const terminatingWorker = new EventEmitter()
-  terminatingWorker.terminate = () => {
-    terminated = true
+  const destroyScheduled = []
+  let destroyObserved
+  const destroyChild = loadTSFN({
+    wasmMemory: memory,
+    pthread: true,
+    transport: {
+      post (message) {
+        destroyObserved = message.__emnapi__.payload.observed
+        throw new Error('ambiguous destroy delivery')
+      },
+      throwsAreDefinitelyNotDelivered: false
+    },
+    immediate: callback => destroyScheduled.push(callback)
+  }).emnapiTSFN
+  const destroyAddress = 5120
+  const destroyAllocation = allocation(destroyChild, destroyAddress)
+  assert.strictEqual(
+    destroyChild.retire(
+      destroyAddress,
+      destroyAllocation.generation
+    ),
+    true
+  )
+  assert.ok(destroyObserved instanceof Int32Array)
+  Atomics.store(destroyObserved, 0, 1)
+  destroyChild.getGeneration = () => {
+    throw new Error('destroy retry read retired TSFN memory')
   }
-  creator.addListener(terminatingWorker)
-  Atomics.store(pendingArray, pendingIndex, 1)
-  terminatingWorker.terminate()
-  assert.strictEqual(terminated, true)
-  assert.strictEqual(Atomics.load(pendingArray, pendingIndex), 2)
-  assert.deepStrictEqual(enqueued, [address, address, address])
-  terminatingWorker._emnapiTSFNListener.dispose()
+  assert.doesNotThrow(() => destroyScheduled.shift()())
+  assert.strictEqual(destroyChild._destroyRetryMap.has(destroyAddress), false)
 }
 
-module.exports = Promise.resolve().then(() => {
-  testSignedWasm32Layout()
-  testMemory64HighAddress()
-  testWasm32TopEndpoints()
-  testTransportClassification()
-  testWorkerLossAndChildScheduling()
-})
+function testCreatorReclamationAndWorkerLoss () {
+  const memory = new WebAssembly.Memory({
+    initial: 1,
+    maximum: 2,
+    shared: true
+  })
+  const creator = loadTSFN({ wasmMemory: memory }).emnapiTSFN
+  const address = 6144
+  const { generation } = allocation(creator, address)
+  const messages = []
+  const child = loadTSFN({
+    wasmMemory: memory,
+    pthread: true,
+    transport: {
+      post (message) {
+        messages.push(message)
+      },
+      throwsAreDefinitelyNotDelivered: false
+    }
+  }).emnapiTSFN
+  assert.strictEqual(child.retire(address, generation), true)
+  assert.strictEqual(creator.getGeneration(address), 0n)
+  assert.strictEqual(messages.length, 1)
+
+  const destroyed = []
+  creator.destroyRetired = (func, retiredGeneration) => {
+    destroyed.push([func, retiredGeneration])
+  }
+  const worker = new EventEmitter()
+  const originalTerminate = () => {}
+  worker.terminate = originalTerminate
+  creator.addListener(worker)
+  worker.emit('message', messages.shift())
+  assert.deepStrictEqual(destroyed, [[address, generation]])
+  assert.strictEqual(creator._liveMap.has(address), false)
+  worker._emnapiTSFNListener.dispose()
+
+  const lossCreator = loadTSFN({ wasmMemory: memory }).emnapiTSFN
+  const lossAddress = 7168
+  const lossAllocation = allocation(lossCreator, lossAddress)
+  const lossDestroyed = []
+  lossCreator.destroyRetired = (func, retiredGeneration) => {
+    lossDestroyed.push([func, retiredGeneration])
+  }
+  lossCreator.setGeneration(lossAddress, 0n)
+  const lossWorker = new EventEmitter()
+  const lossTerminate = () => {}
+  lossWorker.terminate = lossTerminate
+  lossCreator.addListener(lossWorker)
+  lossWorker.emit('exit', 1)
+  assert.deepStrictEqual(lossDestroyed, [[
+    lossAddress,
+    lossAllocation.generation
+  ]])
+  assert.strictEqual(lossWorker._emnapiTSFNListener, undefined)
+  assert.strictEqual(lossWorker._emnapiTSFNTerminate, undefined)
+  assert.strictEqual(lossWorker.terminate, lossTerminate)
+  assert.strictEqual(lossWorker.listenerCount('message'), 0)
+  assert.strictEqual(lossWorker.listenerCount('exit'), 0)
+}
+
+function testWorkerRecoveryIsolation () {
+  const memory = new WebAssembly.Memory({
+    initial: 1,
+    maximum: 2,
+    shared: true
+  })
+  const { emnapiTSFN } = loadTSFN({ wasmMemory: memory })
+  let terminateCalls = 0
+  const worker = new EventEmitter()
+  worker.terminate = () => {
+    terminateCalls++
+  }
+  emnapiTSFN.recoverAfterWorkerLoss = () => {
+    throw new Error('recovery failed')
+  }
+  emnapiTSFN.startReclaimSweep = () => {
+    throw new Error('sweep failed')
+  }
+  emnapiTSFN.addListener(worker)
+  assert.doesNotThrow(() => worker.terminate())
+  assert.strictEqual(terminateCalls, 1)
+  assert.doesNotThrow(() => worker.emit('exit', 1))
+  assert.strictEqual(worker._emnapiTSFNListener, undefined)
+  assert.strictEqual(worker._emnapiTSFNTerminate, undefined)
+}
+
+async function testSchedulerHardening () {
+  const memory = new WebAssembly.Memory({
+    initial: 1,
+    maximum: 2,
+    shared: true
+  })
+
+  for (const scheduler of [
+    callback => {
+      callback()
+      throw new Error('callback then throw')
+    },
+    () => {
+      throw new Error('throw before callback')
+    },
+    callback => {
+      callback()
+      callback()
+    }
+  ]) {
+    let calls = 0
+    const { emnapiTSFN } = loadTSFN({
+      wasmMemory: memory,
+      immediate: scheduler
+    })
+    assert.doesNotThrow(() => {
+      emnapiTSFN.schedule(() => {
+        calls++
+      })
+    })
+    assert.strictEqual(calls, 0)
+    await flushMicrotasks()
+    assert.strictEqual(calls, 1)
+  }
+
+  let getterCalls = 0
+  const throwingFeature = {}
+  Object.defineProperty(throwingFeature, 'setImmediate', {
+    get () {
+      getterCalls++
+      throw new Error('scheduler getter failed')
+    }
+  })
+  let getterScheduled = 0
+  const getterTSFN = loadTSFN({
+    wasmMemory: memory,
+    context: { feature: throwingFeature }
+  }).emnapiTSFN
+  assert.doesNotThrow(() => {
+    getterTSFN.schedule(() => {
+      getterScheduled++
+    })
+  })
+  await flushMicrotasks()
+  assert.strictEqual(getterCalls, 1)
+  assert.strictEqual(getterScheduled, 1)
+
+  let rejectedSchedulerCalls = 0
+  const rejectedScheduler = loadTSFN({
+    wasmMemory: memory,
+    immediate: () => ({
+      then (_resolve, reject) {
+        reject(new Error('async scheduler rejection'))
+      }
+    })
+  }).emnapiTSFN
+  rejectedScheduler.schedule(() => {
+    rejectedSchedulerCalls++
+  })
+  await flushMicrotasks(8)
+  assert.strictEqual(rejectedSchedulerCalls, 1)
+
+  const queued = []
+  let timerCalls = 0
+  const timerTSFN = loadTSFN({
+    wasmMemory: memory,
+    immediate: callback => queued.push(callback),
+    timeout: callback => {
+      callback()
+      return {
+        unref () {
+          throw new Error('unref failed')
+        }
+      }
+    }
+  }).emnapiTSFN
+  assert.doesNotThrow(() => {
+    timerTSFN.scheduleRetry(() => {
+      timerCalls++
+    }, 3)
+  })
+  assert.strictEqual(timerCalls, 0)
+  assert.strictEqual(queued.length, 1)
+  queued.shift()()
+  assert.strictEqual(timerCalls, 1)
+
+  let rejectedTimerCalls = 0
+  const rejectedTimer = loadTSFN({
+    wasmMemory: memory,
+    timeout: () => ({
+      then (_resolve, reject) {
+        reject(new Error('async timer rejection'))
+      },
+      unref () {}
+    })
+  }).emnapiTSFN
+  rejectedTimer.scheduleRetry(() => {
+    rejectedTimerCalls++
+  }, 3)
+  await flushMicrotasks(8)
+  assert.strictEqual(rejectedTimerCalls, 1)
+}
+
+function testFinalizeCleanupAfterError () {
+  const memory = new WebAssembly.Memory({
+    initial: 1,
+    maximum: 2,
+    shared: true
+  })
+  const expected = new Error('queue cleanup failed')
+  const fakeEnv = {}
+  let closeScopeCalls = 0
+  let maybeDeleteCalls = 0
+  const context = {
+    envStore: new Map([[1, fakeEnv]]),
+    openScope () {},
+    closeScope () {
+      closeScopeCalls++
+    }
+  }
+  const { emnapiTSFN } = loadTSFN({
+    wasmMemory: memory,
+    context
+  })
+  const address = 8192
+  const { generation } = allocation(emnapiTSFN, address)
+  emnapiTSFN.getEnv = () => 1
+  emnapiTSFN.emptyQueue = () => {
+    throw expected
+  }
+  emnapiTSFN.maybeDelete = (func, currentGeneration) => {
+    assert.strictEqual(func, address)
+    assert.strictEqual(currentGeneration, generation)
+    maybeDeleteCalls++
+  }
+
+  assert.throws(
+    () => emnapiTSFN.finalize(address, generation),
+    error => error === expected
+  )
+  assert.strictEqual(maybeDeleteCalls, 1)
+  assert.strictEqual(closeScopeCalls, 1)
+}
+
+function testEmptyQueueDrainsAfterCallbackError () {
+  const memory = new WebAssembly.Memory({
+    initial: 1,
+    maximum: 2,
+    shared: true
+  })
+  const calls = []
+  const expected = new Error('first callback failed')
+  const { emnapiTSFN } = loadTSFN({
+    wasmMemory: memory,
+    dynCall () {
+      calls.push(calls.length + 1)
+      if (calls.length === 1) throw expected
+    }
+  })
+  const queue = [11, 22]
+  emnapiTSFN.getMutex = () => ({
+    execute (callback) {
+      return callback()
+    }
+  })
+  emnapiTSFN.getQueueSize = () => queue.length
+  emnapiTSFN.shiftQueue = () => queue.shift()
+  emnapiTSFN.getCallJSCb = () => 1
+  emnapiTSFN.getContext = () => 33
+
+  assert.throws(
+    () => emnapiTSFN.emptyQueue(1),
+    error => error === expected
+  )
+  assert.deepStrictEqual(calls, [1, 2])
+  assert.deepStrictEqual(queue, [])
+}
+
+function testCreateFailureDoesNotLeakCallbackReference () {
+  const memory = new WebAssembly.Memory({
+    initial: 1,
+    maximum: 2,
+    shared: true
+  })
+  const references = []
+  const disposed = []
+  let nextHandle = 100
+  const envObject = {
+    ensureHandleId () {
+      return nextHandle++
+    },
+    setLastError (status) {
+      return status
+    }
+  }
+  const context = {
+    envStore: new Map([[1, envObject]]),
+    handleStore: new Map([
+      [2, { value: function callback () {} }],
+      [3, { value: 'resource name' }]
+    ]),
+    createReference (_envObject, handleId) {
+      references.push(handleId)
+      return {
+        id: handleId + 1000,
+        dispose () {
+          disposed.push(handleId)
+        }
+      }
+    }
+  }
+  let allocations = 0
+  const loaded = loadTSFN({
+    wasmMemory: memory,
+    context,
+    malloc () {
+      allocations++
+      return allocations === 1 ? 1024 : 0
+    }
+  })
+  const status = loaded.exports.napi_create_threadsafe_function(
+    1,
+    2,
+    0,
+    3,
+    0,
+    1,
+    0,
+    0,
+    0,
+    0,
+    256
+  )
+  assert.strictEqual(status, 9)
+  assert.deepStrictEqual(references, [100])
+  assert.deepStrictEqual(disposed, [100])
+}
+
+module.exports = (async () => {
+  testMemoryRefresh()
+  testSignedWasm32TopEndpoints()
+  await testTransportThenableDeferral()
+  testGenerationTransportAndAccessors()
+  testWorkerMessageValidation()
+  testStaleGenerationGuards()
+  testCreatorSideWakeupPromotion()
+  testDefiniteFailureAfterDelivery()
+  testRetryOwnershipAndRetiredMemory()
+  testCreatorReclamationAndWorkerLoss()
+  testWorkerRecoveryIsolation()
+  await testSchedulerHardening()
+  testFinalizeCleanupAfterError()
+  testEmptyQueueDrainsAfterCallbackError()
+  testCreateFailureDoesNotLeakCallbackReference()
+})()

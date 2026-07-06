@@ -1,9 +1,11 @@
 import { emnapiCtx } from 'emnapi:shared'
-import { SIZE_TYPE, from64, makeGetValue, makeSetValue } from 'emscripten:parse-tools'
+import { wasmMemory } from 'emscripten:runtime'
+import { from64 } from 'emscripten:parse-tools'
 import { $emnapiSetValueI64 as emnapiSetValueI64 } from '../util'
 import { emnapiString } from '../string'
 import { emnapiExternalMemory } from '../memory'
 import { $CHECK_ARG, $CHECK_ENV_NOT_IN_GC, $PREAMBLE, $RETURN_STATUS_IF_FALSE } from '../macro'
+import { emnapiMemory } from '../memory-view'
 
 /**
  * @__sig ippp
@@ -19,7 +21,7 @@ export function napi_get_array_length (env: napi_env, value: napi_value, result:
     from64('result')
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const v = handle.value.length >>> 0
-    makeSetValue('result', 0, 'v', 'u32')
+    emnapiMemory.setUint32(wasmMemory, result as number, v)
     return envObject.getReturnStatus()
   })
 }
@@ -39,11 +41,11 @@ export function napi_get_arraybuffer_info (env: napi_env, arraybuffer: napi_valu
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const p: number = emnapiExternalMemory.getArrayBufferPointer(handle.value, true).address
-    makeSetValue('data', 0, 'p', '*')
+    emnapiMemory.setPointer(wasmMemory, data as number, p)
   }
   if (byte_length) {
     from64('byte_length')
-    makeSetValue('byte_length', 0, 'handle.value.byteLength', SIZE_TYPE)
+    emnapiMemory.setSizeType(wasmMemory, byte_length as number, handle.value.byteLength)
   }
   return envObject.clearLastError()
 }
@@ -93,7 +95,7 @@ export function napi_get_prototype (env: napi_env, value: napi_value, result: Po
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const p = envObject.ensureHandleId(Object.getPrototypeOf(v))
-    makeSetValue('result', 0, 'p', '*')
+    emnapiMemory.setPointer(wasmMemory, result as number, p)
     return envObject.getReturnStatus()
   })
 }
@@ -148,12 +150,12 @@ export function napi_get_typedarray_info (
     } else {
       return envObject.setLastError(napi_status.napi_generic_failure)
     }
-    makeSetValue('type', 0, 't', 'i32')
+    emnapiMemory.setInt32(wasmMemory, type as number, t)
   }
   v = emnapiExternalMemory.getOrUpdateMemoryView(v)
   if (length) {
     from64('length')
-    makeSetValue('length', 0, 'v.length', SIZE_TYPE)
+    emnapiMemory.setSizeType(wasmMemory, length as number, (v as any).length)
   }
 
   if (data || arraybuffer) {
@@ -162,19 +164,19 @@ export function napi_get_typedarray_info (
 
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const p: number = emnapiExternalMemory.getViewPointer(v, true).address
-      makeSetValue('data', 0, 'p', '*')
+      emnapiMemory.setPointer(wasmMemory, data as number, p)
     }
     if (arraybuffer) {
       from64('arraybuffer')
 
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const ab = envObject.ensureHandleId(v.buffer)
-      makeSetValue('arraybuffer', 0, 'ab', '*')
+      emnapiMemory.setPointer(wasmMemory, arraybuffer as number, ab)
     }
   }
   if (byte_offset) {
     from64('byte_offset')
-    makeSetValue('byte_offset', 0, 'v.byteOffset', SIZE_TYPE)
+    emnapiMemory.setSizeType(wasmMemory, byte_offset as number, v.byteOffset)
   }
   return envObject.clearLastError()
 }
@@ -218,7 +220,7 @@ export function napi_get_dataview_info (
   const v = emnapiExternalMemory.getOrUpdateMemoryView(handle.value as DataView<ArrayBufferLike>)
   if (byte_length) {
     from64('byte_length')
-    makeSetValue('byte_length', 0, 'v.byteLength', SIZE_TYPE)
+    emnapiMemory.setSizeType(wasmMemory, byte_length as number, v.byteLength)
   }
 
   if (data || arraybuffer) {
@@ -227,19 +229,19 @@ export function napi_get_dataview_info (
 
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const p: number = emnapiExternalMemory.getViewPointer(v, true).address
-      makeSetValue('data', 0, 'p', '*')
+      emnapiMemory.setPointer(wasmMemory, data as number, p)
     }
     if (arraybuffer) {
       from64('arraybuffer')
 
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const ab = envObject.ensureHandleId(v.buffer)
-      makeSetValue('arraybuffer', 0, 'ab', '*')
+      emnapiMemory.setPointer(wasmMemory, arraybuffer as number, ab)
     }
   }
   if (byte_offset) {
     from64('byte_offset')
-    makeSetValue('byte_offset', 0, 'v.byteOffset', SIZE_TYPE)
+    emnapiMemory.setSizeType(wasmMemory, byte_offset as number, v.byteOffset)
   }
   return envObject.clearLastError()
 }
@@ -260,7 +262,7 @@ export function napi_get_date_value (env: napi_env, value: napi_value, result: P
     }
     from64('result')
     v = (handle.value as Date).valueOf()
-    makeSetValue('result', 0, 'v', 'double')
+    emnapiMemory.setFloat64(wasmMemory, result as number, v)
     return envObject.getReturnStatus()
   })
 }
@@ -279,7 +281,7 @@ export function napi_get_value_bool (env: napi_env, value: napi_value, result: P
   from64('result')
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const r = handle.value ? 1 : 0
-  makeSetValue('result', 0, 'r', 'i8')
+  emnapiMemory.setInt8(wasmMemory, result as number, r)
   return envObject.clearLastError()
 }
 
@@ -297,7 +299,7 @@ export function napi_get_value_double (env: napi_env, value: napi_value, result:
   from64('result')
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const r = handle.value
-  makeSetValue('result', 0, 'r', 'double')
+  emnapiMemory.setFloat64(wasmMemory, result as number, r)
   return envObject.clearLastError()
 }
 
@@ -320,9 +322,9 @@ export function napi_get_value_bigint_int64 (env: napi_env, value: napi_value, r
   from64('lossless')
   from64('result')
   if ((numberValue >= (BigInt(-1) * (BigInt(1) << BigInt(63)))) && (numberValue < (BigInt(1) << BigInt(63)))) {
-    makeSetValue('lossless', 0, '1', 'i8')
+    emnapiMemory.setInt8(wasmMemory, lossless as number, 1)
   } else {
-    makeSetValue('lossless', 0, '0', 'i8')
+    emnapiMemory.setInt8(wasmMemory, lossless as number, 0)
     numberValue = numberValue & ((BigInt(1) << BigInt(64)) - BigInt(1))
     if (numberValue >= (BigInt(1) << BigInt(63))) {
       numberValue = numberValue - (BigInt(1) << BigInt(64))
@@ -332,8 +334,8 @@ export function napi_get_value_bigint_int64 (env: napi_env, value: napi_value, r
   const low = Number(numberValue & BigInt(0xffffffff))
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const high = Number(numberValue >> BigInt(32))
-  makeSetValue('result', 0, 'low', 'i32')
-  makeSetValue('result', 4, 'high', 'i32')
+  emnapiMemory.setInt32(wasmMemory, result as number, low)
+  emnapiMemory.setInt32(wasmMemory, result as number + 4, high)
   return envObject.clearLastError()
 }
 
@@ -356,17 +358,17 @@ export function napi_get_value_bigint_uint64 (env: napi_env, value: napi_value, 
   from64('lossless')
   from64('result')
   if ((numberValue >= BigInt(0)) && (numberValue < (BigInt(1) << BigInt(64)))) {
-    makeSetValue('lossless', 0, '1', 'i8')
+    emnapiMemory.setInt8(wasmMemory, lossless as number, 1)
   } else {
-    makeSetValue('lossless', 0, '0', 'i8')
+    emnapiMemory.setInt8(wasmMemory, lossless as number, 0)
     numberValue = numberValue & ((BigInt(1) << BigInt(64)) - BigInt(1))
   }
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const low = Number(numberValue & BigInt(0xffffffff))
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const high = Number(numberValue >> BigInt(32))
-  makeSetValue('result', 0, 'low', 'u32')
-  makeSetValue('result', 4, 'high', 'u32')
+  emnapiMemory.setUint32(wasmMemory, result as number, low)
+  emnapiMemory.setUint32(wasmMemory, result as number + 4, high)
   return envObject.clearLastError()
 }
 
@@ -396,7 +398,7 @@ export function napi_get_value_bigint_words (
   from64('words')
   from64('word_count')
 
-  let word_count_int = makeGetValue('word_count', 0, SIZE_TYPE) as number
+  let word_count_int = emnapiMemory.getSizeType(wasmMemory, word_count as number)
   from64('word_count_int')
 
   let wordCount = 0
@@ -408,7 +410,7 @@ export function napi_get_value_bigint_words (
   bigintValue = isMinus ? (handle.value * BigInt(-1)) : handle.value
   if (!sign_bit && !words) {
     word_count_int = wordCount
-    makeSetValue('word_count', 0, 'word_count_int', SIZE_TYPE)
+    emnapiMemory.setSizeType(wasmMemory, word_count as number, word_count_int)
   } else {
     if (!sign_bit) return envObject.setLastError(napi_status.napi_invalid_arg)
     if (!words) return envObject.setLastError(napi_status.napi_invalid_arg)
@@ -424,11 +426,11 @@ export function napi_get_value_bigint_words (
       const low = Number(wordsArr[i] & BigInt(0xffffffff))
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const high = Number(wordsArr[i] >> BigInt(32))
-      makeSetValue('words', 'i * 8', 'low', 'u32')
-      makeSetValue('words', 'i * 8 + 4', 'high', 'u32')
+      emnapiMemory.setUint32(wasmMemory, words as number + i * 8, low)
+      emnapiMemory.setUint32(wasmMemory, words as number + i * 8 + 4, high)
     }
-    makeSetValue('sign_bit', 0, 'isMinus ? 1 : 0', 'i32')
-    makeSetValue('word_count', 0, 'len', SIZE_TYPE)
+    emnapiMemory.setInt32(wasmMemory, sign_bit as number, isMinus ? 1 : 0)
+    emnapiMemory.setSizeType(wasmMemory, word_count as number, len)
   }
   return envObject.clearLastError()
 }
@@ -448,7 +450,7 @@ export function napi_get_value_external (env: napi_env, value: napi_value, resul
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const p = handle.data()
-  makeSetValue('result', 0, 'p', '*')
+  emnapiMemory.setPointer(wasmMemory, result as number, p)
   return envObject.clearLastError()
 }
 
@@ -466,7 +468,7 @@ export function napi_get_value_int32 (env: napi_env, value: napi_value, result: 
   from64('result')
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const v = new Int32Array([handle.value])[0]
-  makeSetValue('result', 0, 'v', 'i32')
+  emnapiMemory.setInt32(wasmMemory, result as number, v)
   return envObject.clearLastError()
 }
 
@@ -485,14 +487,14 @@ export function napi_get_value_int64 (env: napi_env, value: napi_value, result: 
   from64('result')
 
   if (numberValue === Number.POSITIVE_INFINITY || numberValue === Number.NEGATIVE_INFINITY || isNaN(numberValue)) {
-    makeSetValue('result', 0, '0', 'i32')
-    makeSetValue('result', 4, '0', 'i32')
+    emnapiMemory.setInt32(wasmMemory, result as number, 0)
+    emnapiMemory.setInt32(wasmMemory, result as number + 4, 0)
   } else if (numberValue < /* INT64_RANGE_NEGATIVE */ -9223372036854776000) {
-    makeSetValue('result', 0, '0', 'i32')
-    makeSetValue('result', 4, '0x80000000', 'i32')
+    emnapiMemory.setInt32(wasmMemory, result as number, 0)
+    emnapiMemory.setInt32(wasmMemory, result as number + 4, 0x80000000)
   } else if (numberValue >= /* INT64_RANGE_POSITIVE */ 9223372036854776000) {
-    makeSetValue('result', 0, '0xffffffff', 'u32')
-    makeSetValue('result', 4, '0x7fffffff', 'u32')
+    emnapiMemory.setUint32(wasmMemory, result as number, 0xffffffff)
+    emnapiMemory.setUint32(wasmMemory, result as number + 4, 0x7fffffff)
   } else {
     emnapiSetValueI64(result, Math.trunc(numberValue))
   }
@@ -516,23 +518,30 @@ export function napi_get_value_string_latin1 (env: napi_env, value: napi_value, 
   }
   if (!buf) {
     if (!result) return envObject.setLastError(napi_status.napi_invalid_arg)
-    makeSetValue('result', 0, 'handle.value.length', SIZE_TYPE)
+    emnapiMemory.setSizeType(wasmMemory, result as number, handle.value.length)
   } else if (buf_size !== 0) {
     let copied: number = 0
     let v: number
+    let HEAPU8 = emnapiMemory.getUint8Array(wasmMemory, buf as number + 1)
     for (let i = 0; i < buf_size - 1; ++i) {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       v = handle.value.charCodeAt(i) & 0xff
-      makeSetValue('buf', 'i', 'v', 'u8')
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const address = buf as number + i
+      if (address + 1 > HEAPU8.byteLength) {
+        HEAPU8 = emnapiMemory.getUint8Array(wasmMemory, address + 1)
+      }
+      HEAPU8[address] = v
       copied++
     }
-    makeSetValue('buf', 'copied', '0', 'u8')
+    const terminator = buf as number + copied
+    if (terminator + 1 > HEAPU8.byteLength) {
+      HEAPU8 = emnapiMemory.getUint8Array(wasmMemory, terminator + 1)
+    }
+    HEAPU8[terminator] = 0
     if (result) {
-      makeSetValue('result', 0, 'copied', SIZE_TYPE)
+      emnapiMemory.setSizeType(wasmMemory, result as number, copied)
     }
   } else if (result) {
-    makeSetValue('result', 0, '0', SIZE_TYPE)
+    emnapiMemory.setSizeType(wasmMemory, result as number, 0)
   }
   return envObject.clearLastError()
 }
@@ -556,15 +565,15 @@ export function napi_get_value_string_utf8 (env: napi_env, value: napi_value, bu
     if (!result) return envObject.setLastError(napi_status.napi_invalid_arg)
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const strLength = emnapiString.lengthBytesUTF8(handle.value)
-    makeSetValue('result', 0, 'strLength', SIZE_TYPE)
+    emnapiMemory.setSizeType(wasmMemory, result as number, strLength)
   } else if (buf_size !== 0) {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const copied = emnapiString.stringToUTF8(handle.value, buf, buf_size)
     if (result) {
-      makeSetValue('result', 0, 'copied', SIZE_TYPE)
+      emnapiMemory.setSizeType(wasmMemory, result as number, copied)
     }
   } else if (result) {
-    makeSetValue('result', 0, '0', SIZE_TYPE)
+    emnapiMemory.setSizeType(wasmMemory, result as number, 0)
   }
   return envObject.clearLastError()
 }
@@ -586,15 +595,15 @@ export function napi_get_value_string_utf16 (env: napi_env, value: napi_value, b
   }
   if (!buf) {
     if (!result) return envObject.setLastError(napi_status.napi_invalid_arg)
-    makeSetValue('result', 0, 'handle.value.length', SIZE_TYPE)
+    emnapiMemory.setSizeType(wasmMemory, result as number, handle.value.length)
   } else if (buf_size !== 0) {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const copied = emnapiString.stringToUTF16(handle.value, buf, buf_size * 2)
     if (result) {
-      makeSetValue('result', 0, 'copied / 2', SIZE_TYPE)
+      emnapiMemory.setSizeType(wasmMemory, result as number, copied / 2)
     }
   } else if (result) {
-    makeSetValue('result', 0, '0', SIZE_TYPE)
+    emnapiMemory.setSizeType(wasmMemory, result as number, 0)
   }
   return envObject.clearLastError()
 }
@@ -613,6 +622,6 @@ export function napi_get_value_uint32 (env: napi_env, value: napi_value, result:
   from64('result')
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const v = new Uint32Array([handle.value])[0]
-  makeSetValue('result', 0, 'v', 'u32')
+  emnapiMemory.setUint32(wasmMemory, result as number, v)
   return envObject.clearLastError()
 }

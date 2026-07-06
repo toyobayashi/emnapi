@@ -1,11 +1,12 @@
 import { emnapiCtx } from 'emnapi:shared'
 import { wasmMemory, _malloc } from 'emscripten:runtime'
-import { from64, makeGetValue, makeSetValue, POINTER_SIZE, to64 } from 'emscripten:parse-tools'
+import { from64, makeGetValue, POINTER_SIZE, to64 } from 'emscripten:parse-tools'
 import { emnapiString } from '../string'
 import { type MemoryViewDescriptor, emnapiExternalMemory, emnapiExternalSAB } from '../memory'
 import { emnapi_create_memory_view } from '../emnapi'
 import { napi_add_finalizer } from '../wrap'
 import { $CHECK_ARG, $CHECK_ENV_NOT_IN_GC, $PREAMBLE, $RETURN_STATUS_IF_FALSE } from '../macro'
+import { emnapiMemory } from '../memory-view'
 
 /**
  * @__sig ipp
@@ -16,7 +17,7 @@ export function napi_create_array (env: napi_env, result: Pointer<napi_value>): 
   from64('result')
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const value = emnapiCtx.addToCurrentScope([]).id
-  makeSetValue('result', 0, 'value', '*')
+  emnapiMemory.setPointer(wasmMemory, result as number, value)
   return envObject.clearLastError()
 }
 
@@ -31,7 +32,7 @@ export function napi_create_array_with_length (env: napi_env, length: size_t, re
   length = length >>> 0
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const value = emnapiCtx.addToCurrentScope(new Array(length)).id
-  makeSetValue('result', 0, 'value', '*')
+  emnapiMemory.setPointer(wasmMemory, result as number, value)
   return envObject.clearLastError()
 }
 
@@ -44,7 +45,7 @@ function emnapiCreateArrayBuffer (byte_length: size_t, data: void_pp, shared: bo
     from64('data')
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const p = emnapiExternalMemory.getArrayBufferPointer(arrayBuffer, true).address
-    makeSetValue('data', 0, 'p', '*')
+    emnapiMemory.setPointer(wasmMemory, data as number, p)
   }
 
   return arrayBuffer
@@ -62,7 +63,7 @@ export function napi_create_arraybuffer (env: napi_env, byte_length: size_t, dat
     from64('result')
     const arrayBuffer = emnapiCreateArrayBuffer(byte_length, data, false)
     value = emnapiCtx.addToCurrentScope(arrayBuffer).id
-    makeSetValue('result', 0, 'value', '*')
+    emnapiMemory.setPointer(wasmMemory, result as number, value)
     return envObject.getReturnStatus()
   })
 }
@@ -79,7 +80,7 @@ export function node_api_create_sharedarraybuffer (env: napi_env, byte_length: s
     from64('result')
     const arrayBuffer = emnapiCreateArrayBuffer(byte_length, data, true)
     value = emnapiCtx.addToCurrentScope(arrayBuffer).id
-    makeSetValue('result', 0, 'value', '*')
+    emnapiMemory.setPointer(wasmMemory, result as number, value)
     return envObject.getReturnStatus()
   })
 }
@@ -96,7 +97,7 @@ export function napi_create_date (env: napi_env, time: double, result: Pointer<n
     from64('result')
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     value = emnapiCtx.addToCurrentScope(new Date(time)).id
-    makeSetValue('result', 0, 'value', '*')
+    emnapiMemory.setPointer(wasmMemory, result as number, value)
     return envObject.getReturnStatus()
   })
 }
@@ -119,7 +120,7 @@ export function napi_create_external (env: napi_env, data: void_p, finalize_cb: 
     }
     from64('result')
     value = externalHandle.id
-    makeSetValue('result', 0, 'value', '*')
+    emnapiMemory.setPointer(wasmMemory, result as number, value)
     return envObject.clearLastError()
   })
 }
@@ -150,7 +151,11 @@ export function napi_create_external_arraybuffer (
       byte_length = 0
     }
 
-    if ((external_data + byte_length) > wasmMemory.buffer.byteLength) {
+    const memoryBuffer = emnapiMemory.ensureBufferFor(
+      wasmMemory,
+      external_data + byte_length
+    )
+    if ((external_data + byte_length) > memoryBuffer.byteLength) {
       throw new RangeError('Memory out of range')
     }
     if (!emnapiCtx.feature.supportFinalizer && finalize_cb) {
@@ -165,7 +170,12 @@ export function napi_create_external_arraybuffer (
       } catch (_) {}
     } else {
       const u8arr = new Uint8Array(arrayBuffer)
-      u8arr.set(new Uint8Array(wasmMemory.buffer).subarray(external_data, external_data + byte_length))
+      u8arr.set(
+        new Uint8Array(memoryBuffer).subarray(
+          external_data,
+          external_data + byte_length
+        )
+      )
       emnapiExternalMemory.table.set(arrayBuffer, {
         address: external_data,
         ownership: ReferenceOwnership.kUserland,
@@ -184,7 +194,7 @@ export function napi_create_external_arraybuffer (
       }
     }
     value = handle.id
-    makeSetValue('result', 0, 'value', '*')
+    emnapiMemory.setPointer(wasmMemory, result as number, value)
     return envObject.getReturnStatus()
   })
 }
@@ -215,7 +225,11 @@ export function node_api_create_external_sharedarraybuffer (
       byte_length = 0
     }
 
-    if ((external_data as number + byte_length) > wasmMemory.buffer.byteLength) {
+    const memoryBuffer = emnapiMemory.ensureBufferFor(
+      wasmMemory,
+      external_data as number + byte_length
+    )
+    if ((external_data as number + byte_length) > memoryBuffer.byteLength) {
       throw new RangeError('Memory out of range')
     }
     if (!emnapiExternalSAB.registry && finalize_cb) {
@@ -224,7 +238,12 @@ export function node_api_create_external_sharedarraybuffer (
     const sharedArrayBuffer = new SharedArrayBuffer(byte_length)
     if (byte_length !== 0) {
       const u8arr = new Uint8Array(sharedArrayBuffer)
-      u8arr.set(new Uint8Array(wasmMemory.buffer).subarray(external_data as number, external_data as number + byte_length))
+      u8arr.set(
+        new Uint8Array(memoryBuffer).subarray(
+          external_data as number,
+          external_data as number + byte_length
+        )
+      )
       emnapiExternalMemory.table.set(sharedArrayBuffer, {
         address: external_data as number,
         ownership: ReferenceOwnership.kUserland,
@@ -245,7 +264,7 @@ export function node_api_create_external_sharedarraybuffer (
       emnapiExternalSAB.handleTable.set(sharedArrayBuffer, metaPtr)
       emnapiExternalSAB.registry!.register(sharedArrayBuffer, metaPtr)
     }
-    makeSetValue('result', 0, 'value', '*')
+    emnapiMemory.setPointer(wasmMemory, result as number, value)
     return envObject.getReturnStatus()
   })
 }
@@ -259,7 +278,7 @@ export function napi_create_object (env: napi_env, result: Pointer<napi_value>):
   from64('result')
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const value = emnapiCtx.addToCurrentScope({}).id
-  makeSetValue('result', 0, 'value', '*')
+  emnapiMemory.setPointer(wasmMemory, result as number, value)
   return envObject.clearLastError()
 }
 
@@ -313,7 +332,7 @@ export function node_api_create_object_with_properties (
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const value = emnapiCtx.addToCurrentScope(obj).id
   from64('result')
-  makeSetValue('result', 0, 'value', '*')
+  emnapiMemory.setPointer(wasmMemory, result as number, value)
   return envObject.clearLastError()
 }
 
@@ -328,7 +347,7 @@ export function napi_create_symbol (env: napi_env, description: napi_value, resu
   if (!description) {
     // eslint-disable-next-line symbol-description, @typescript-eslint/no-unused-vars
     const value = emnapiCtx.addToCurrentScope(Symbol()).id
-    makeSetValue('result', 0, 'value', '*')
+    emnapiMemory.setPointer(wasmMemory, result as number, value)
   } else {
     const handle = emnapiCtx.handleStore.get(description)!
     const desc = handle.value
@@ -337,7 +356,7 @@ export function napi_create_symbol (env: napi_env, description: napi_value, resu
     }
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const v = emnapiCtx.addToCurrentScope(Symbol(desc)).id
-    makeSetValue('result', 0, 'v', '*')
+    emnapiMemory.setPointer(wasmMemory, result as number, v)
   }
   return envObject.clearLastError()
 }
@@ -401,7 +420,7 @@ export function napi_create_typedarray (
 
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       value = emnapiCtx.addToCurrentScope(out).id
-      makeSetValue('result', 0, 'value', '*')
+      emnapiMemory.setPointer(wasmMemory, result as number, value)
       return envObject.getReturnStatus()
     }
 
@@ -471,13 +490,14 @@ export function napi_create_buffer (
     if (!data || (size === 0)) {
       buffer = Buffer.alloc(size)
       value = emnapiCtx.addToCurrentScope(buffer).id
-      makeSetValue('result', 0, 'value', '*')
+      emnapiMemory.setPointer(wasmMemory, result as number, value)
     } else {
       pointer = _malloc(to64('size'))
       if (!pointer) throw new Error('Out of memory')
       from64('pointer')
-      new Uint8Array(wasmMemory.buffer).subarray(pointer, pointer + size).fill(0)
-      const buffer = Buffer.from(wasmMemory.buffer, pointer, size)
+      const memoryBuffer = emnapiMemory.ensureBufferFor(wasmMemory, pointer + size)
+      new Uint8Array(memoryBuffer).subarray(pointer, pointer + size).fill(0)
+      const buffer = Buffer.from(memoryBuffer, pointer, size)
       const viewDescriptor: MemoryViewDescriptor = {
         Ctor: Buffer,
         address: pointer,
@@ -489,9 +509,9 @@ export function napi_create_buffer (
       emnapiExternalMemory.registry?.register(viewDescriptor, pointer)
 
       value = emnapiCtx.addToCurrentScope(buffer).id
-      makeSetValue('result', 0, 'value', '*')
+      emnapiMemory.setPointer(wasmMemory, result as number, value)
       from64('data')
-      makeSetValue('data', 0, 'pointer', '*')
+      emnapiMemory.setPointer(wasmMemory, data as number, pointer)
     }
 
     return envObject.getReturnStatus()
@@ -521,10 +541,14 @@ export function napi_create_buffer_copy (
     const buffer = Buffer.from(arrayBuffer)
     from64('data')
     from64('length')
-    buffer.set(new Uint8Array(wasmMemory.buffer).subarray(data, data + length))
+    buffer.set(
+      emnapiMemory
+        .getUint8Array(wasmMemory, data + length)
+        .subarray(data, data + length)
+    )
     value = emnapiCtx.addToCurrentScope(buffer).id
     from64('result')
-    makeSetValue('result', 0, 'value', '*')
+    emnapiMemory.setPointer(wasmMemory, result as number, value)
     return envObject.getReturnStatus()
   })
 }
@@ -603,7 +627,7 @@ export function node_api_create_buffer_from_arraybuffer (
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     value = emnapiCtx.addToCurrentScope(out).id
-    makeSetValue('result', 0, 'value', '*')
+    emnapiMemory.setPointer(wasmMemory, result as number, value)
     return envObject.getReturnStatus()
   })
 }
@@ -649,7 +673,7 @@ export function napi_create_dataview (
       from64('result')
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const v = emnapiCtx.addToCurrentScope(dataview).id
-      makeSetValue('result', 0, 'v', '*')
+      emnapiMemory.setPointer(wasmMemory, result as number, v)
       return envObject.getReturnStatus()
     }
 
@@ -685,6 +709,6 @@ export function node_api_symbol_for (env: napi_env, utf8description: const_char_
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const value = emnapiCtx.addToCurrentScope(Symbol.for(descriptionString)).id
-  makeSetValue('result', 0, 'value', '*')
+  emnapiMemory.setPointer(wasmMemory, result as number, value)
   return envObject.clearLastError()
 }

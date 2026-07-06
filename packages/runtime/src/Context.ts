@@ -12,6 +12,7 @@ import {
   supportNewFunction,
   canSetFunctionName,
   _setImmediate,
+  _setTimeout,
   _Buffer,
   _MessageChannel,
   version,
@@ -67,12 +68,16 @@ class CleanupQueue {
     hooks.sort((a, b) => (b.order - a.order))
     for (let i = 0; i < hooks.length; ++i) {
       const cb = hooks[i]
+      const index = this._cleanupHooks.indexOf(cb)
+      if (index === -1) {
+        continue
+      }
+      this._cleanupHooks.splice(index, 1)
       if (typeof cb.fn === 'number') {
         cb.envObject.makeDynCall_vp(cb.fn)(cb.arg)
       } else {
         cb.fn(cb.arg)
       }
-      this._cleanupHooks.splice(this._cleanupHooks.indexOf(cb), 1)
     }
   }
 
@@ -134,6 +139,7 @@ export class Context {
   private readonly refCounter?: NodejsWaitingRequestCounter
   private readonly cleanupQueue: CleanupQueue
   private readonly _externalMemory: ExternalMemory
+  private readonly beforeExitListener?: () => void
 
   public feature = {
     supportReflect,
@@ -143,6 +149,7 @@ export class Context {
     supportNewFunction,
     canSetFunctionName,
     setImmediate: _setImmediate,
+    setTimeout: _setTimeout,
     Buffer: _Buffer,
     MessageChannel: _MessageChannel
   }
@@ -151,13 +158,16 @@ export class Context {
     this.cleanupQueue = new CleanupQueue()
     this._externalMemory = new ExternalMemory(options?.onExternalMemoryChange)
     if (typeof process === 'object' && process !== null && typeof process.once === 'function') {
-      this.refCounter = new NodejsWaitingRequestCounter()
+      if (_MessageChannel) {
+        this.refCounter = new NodejsWaitingRequestCounter()
+      }
       if (options?.autoDestroy !== false) {
-        process.once('beforeExit', () => {
+        this.beforeExitListener = () => {
           if (!this._suppressDestroy) {
             this.destroy()
           }
-        })
+        }
+        process.once('beforeExit', this.beforeExitListener)
       }
     }
   }
@@ -172,6 +182,14 @@ export class Context {
    */
   public suppressDestroy (): void {
     this._suppressDestroy = true
+    if (
+      this.beforeExitListener &&
+      typeof process === 'object' &&
+      process !== null &&
+      typeof process.removeListener === 'function'
+    ) {
+      process.removeListener('beforeExit', this.beforeExitListener)
+    }
   }
 
   // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
@@ -342,6 +360,14 @@ export class Context {
    * Associated {@link Env | Env} will be destroyed.
    */
   public destroy (): void {
+    if (
+      this.beforeExitListener &&
+      typeof process === 'object' &&
+      process !== null &&
+      typeof process.removeListener === 'function'
+    ) {
+      process.removeListener('beforeExit', this.beforeExitListener)
+    }
     this.setStopping(true)
     this.setCanCallIntoJs(false)
     this.runCleanup()

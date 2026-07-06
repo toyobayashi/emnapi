@@ -6,6 +6,7 @@ import { $CHECK_ENV_NOT_IN_GC, $CHECK_ARG, $CHECK_ENV } from '../macro'
 import { _emnapi_node_emit_async_init, _emnapi_node_emit_async_destroy } from '../node'
 import { emnapiTSFN } from '../threadsafe-function'
 import { _emnapi_runtime_keepalive_pop, _emnapi_runtime_keepalive_push } from '../util'
+import { emnapiMemory } from '../memory-view'
 
 const enum AsyncWorkStatus {
   Pending = 0,
@@ -49,12 +50,7 @@ var emnapiAWMT = {
    * observe the current memory size and refreshes the buffer.
    */
   ensureBufferFor (end: number): ArrayBufferLike {
-    let buffer = wasmMemory.buffer
-    if (end > buffer.byteLength) {
-      wasmMemory.grow(0)
-      buffer = wasmMemory.buffer
-    }
-    return buffer
+    return emnapiMemory.ensureBufferFor(wasmMemory, end)
   },
   init () {
     emnapiAWMT.pool = []
@@ -76,11 +72,17 @@ var emnapiAWMT = {
     if (worker._emnapiAWMTListener) return true
     const handler = function (e: any): void {
       const data = ENVIRONMENT_IS_NODE ? e : e.data
-      const __emnapi__ = data.__emnapi__
+      const __emnapi__ = data?.__emnapi__
       if (__emnapi__) {
         const type = __emnapi__.type
         const payload = __emnapi__.payload
-        if (type === 'async-work-complete') {
+        if (
+          type === 'async-work-complete' &&
+          payload &&
+          typeof payload.work === 'number' &&
+          Number.isSafeInteger(payload.work) &&
+          payload.work > 0
+        ) {
           emnapiAWMT.callComplete(payload.work, napi_status.napi_ok)
         }
       }
@@ -117,7 +119,7 @@ var emnapiAWMT = {
   terminateWorkers (): void {
     emnapiAWMT.pool.forEach(w => {
       w._emnapiAWMTListener?.dispose()
-      w.terminate()
+      PThread.terminateWorker(w)
     })
     emnapiAWMT.pool.length = 0
   },
@@ -380,7 +382,7 @@ export var napi_create_async_work = singleThreadAsyncWork
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const id = emnapiAWST.create(env, resourceObject, resourceName, execute, complete, data)
     from64('result')
-    makeSetValue('result', 0, 'id', '*')
+    emnapiMemory.setPointer(wasmMemory, result, id)
     return envObject.clearLastError()
   }
   : function (env: napi_env, resource: napi_value, resource_name: napi_value, execute: number, complete: number, data: number, result: number): napi_status {
@@ -406,15 +408,15 @@ export var napi_create_async_work = singleThreadAsyncWork
     const resourceRef = emnapiCtx.createReference(envObject, s, 1, ReferenceOwnership.kUserland as any)
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const resource_ = resourceRef.id
-    makeSetValue('aw', 0, 'resource_', '*')
+    emnapiMemory.setPointer(wasmMemory, aw, resource_)
     _emnapi_node_emit_async_init(s, resource_name, -1, aw + emnapiAWMT.offset.async_id)
-    makeSetValue('aw', 'emnapiAWMT.offset.env', 'env', '*')
-    makeSetValue('aw', 'emnapiAWMT.offset.execute', 'execute', '*')
-    makeSetValue('aw', 'emnapiAWMT.offset.complete', 'complete', '*')
-    makeSetValue('aw', 'emnapiAWMT.offset.data', 'data', '*')
+    emnapiMemory.setPointer(wasmMemory, aw + emnapiAWMT.offset.env, env)
+    emnapiMemory.setPointer(wasmMemory, aw + emnapiAWMT.offset.execute, execute)
+    emnapiMemory.setPointer(wasmMemory, aw + emnapiAWMT.offset.complete, complete)
+    emnapiMemory.setPointer(wasmMemory, aw + emnapiAWMT.offset.data, data)
     emnapiAWMT.queueInit(aw + emnapiAWMT.offset.queue)
     from64('result')
-    makeSetValue('result', 0, 'aw', '*')
+    emnapiMemory.setPointer(wasmMemory, result, aw)
     return envObject.clearLastError()
   }
 

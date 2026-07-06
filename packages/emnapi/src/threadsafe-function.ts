@@ -6,6 +6,7 @@ import { POINTER_SIZE, to64, makeDynCall, from64 } from 'emscripten:parse-tools'
 import { $CHECK_ENV_NOT_IN_GC, $CHECK_ARG } from './macro'
 import { _emnapi_node_emit_async_destroy, _emnapi_node_emit_async_init } from './node'
 import { _emnapi_runtime_keepalive_pop, _emnapi_runtime_keepalive_push } from './util'
+import { emnapiMemory } from './memory-view'
 
 const enum State {
   kOpen,
@@ -19,21 +20,15 @@ const enum Delivery {
   kAmbiguous,
 }
 
+const RECLAIMED_GENERATION = BigInt('0xffffffffffffffff')
+const MAX_LIVE_GENERATION = RECLAIMED_GENERATION - BigInt(1)
+
 function normalizeAddress (address: number): number {
 // #if MEMORY64
   return address
 // #else
   // eslint-disable-next-line no-unreachable
   return address >>> 0
-// #endif
-}
-
-function normalizeEnd (end: number): number {
-// #if MEMORY64
-  return end
-// #else
-  // eslint-disable-next-line no-unreachable
-  return end < 0 ? end >>> 0 : end
 // #endif
 }
 
@@ -53,9 +48,26 @@ function atomicIndex (address: number, width: number): number {
  * emnapiTSFN.init();
  * ```
  */
-export const emnapiTSFN = {
-  _liveSet: new Set<number>(),
-  _sendRetryMap: new Map<number, { attempts: number }>(),
+export const emnapiTSFN: any = {
+  _liveMap: new Map<number, bigint>(),
+  _scheduledMap: new Map<number, bigint>(),
+  _cleanupMap: new Map<number, {
+    generation: bigint
+    envObject: Env
+    hook: (func: number) => void
+  }>(),
+  _sendRetryMap: new Map<number, {
+    generation: bigint
+    attempts: number
+    observed: Int32Array
+  }>(),
+  _destroyRetryMap: new Map<number, {
+    generation: bigint
+    attempts: number
+    observed: Int32Array
+  }>(),
+  _reclaimSweepActive: false,
+  _nextGeneration: BigInt(0),
   offset: {
     __size__: 0,
     /* napi_ref */ resource: 0,
@@ -64,7 +76,7 @@ export const emnapiTSFN = {
     /* size_t */ queue_size: 0,
     /* bool */ is_some: 0,
     /* void* */ queue: 0,
-    // Reuse uv_async_t storage as JS-side wakeup state: pending event + scheduled drain.
+    // Reuse uv_async_t storage as JS-side wakeup state: pending event + generation.
     async_pending: 0,
     async_u_fd: 0,
     /* size_t */ thread_count: 0,
@@ -83,8 +95,13 @@ export const emnapiTSFN = {
     /* int32_t */ cond: 0
   },
   init () {
-    emnapiTSFN._liveSet = new Set<number>()
-    emnapiTSFN._sendRetryMap = new Map<number, { attempts: number }>()
+    emnapiTSFN._liveMap = new Map<number, bigint>()
+    emnapiTSFN._scheduledMap = new Map<number, bigint>()
+    emnapiTSFN._cleanupMap = new Map()
+    emnapiTSFN._sendRetryMap = new Map()
+    emnapiTSFN._destroyRetryMap = new Map()
+    emnapiTSFN._reclaimSweepActive = false
+    emnapiTSFN._nextGeneration = BigInt(0)
 // #if MEMORY64
     emnapiTSFN.offset.__size__ = NapiTSFNOffset64.__size__
     emnapiTSFN.offset.resource = NapiTSFNOffset64.async_resource_resource
@@ -137,7 +154,9 @@ export const emnapiTSFN = {
     emnapiTSFN.offset.mutex = emnapiTSFN.offset.mutex + 4
     if (typeof PThread !== 'undefined') {
       PThread.unusedWorkers.forEach(emnapiTSFN.addListener)
-      Object.values(PThread.pthreads).forEach(emnapiTSFN.addListener)
+      Object.keys(PThread.pthreads).forEach((key) => {
+        emnapiTSFN.addListener((PThread.pthreads as any)[key])
+      })
       const __original_getNewWorker = PThread.getNewWorker
       PThread.getNewWorker = function () {
         const r = __original_getNewWorker.apply(this, arguments as any)
@@ -148,11 +167,11 @@ export const emnapiTSFN = {
         const __original_terminateWorker = PThread.terminateWorker
         PThread.terminateWorker = function (worker: any) {
           emnapiTSFN.addListener(worker)
-          emnapiTSFN.recoverAfterWorkerLoss()
+          emnapiTSFN.requestWorkerLossRecovery()
           try {
             return __original_terminateWorker.apply(this, arguments as any)
           } finally {
-            emnapiTSFN.recoverAfterWorkerLoss()
+            emnapiTSFN.requestWorkerLossRecovery()
           }
         }
       }
@@ -168,33 +187,71 @@ export const emnapiTSFN = {
       if (__emnapi__) {
         const type = __emnapi__.type
         const payload = __emnapi__.payload
+        const observed = payload?.observed
+        if (observed instanceof Int32Array && observed.length === 1) {
+          try {
+            Atomics.store(observed, 0, 1)
+          } catch (_) {}
+        }
+        const generation = emnapiTSFN.parseGeneration(payload?.generation)
         if (
           type === 'tsfn-send' &&
           payload &&
           typeof payload.tsfn === 'number' &&
-          emnapiTSFN._liveSet.has(payload.tsfn)
+          generation !== undefined
         ) {
-          const pending = payload.tsfn + emnapiTSFN.offset.async_pending
-          const state = new Int32Array(
-            emnapiTSFN.ensureBufferFor(addressEnd(pending, 4))
-          )
-          Atomics.store(state, atomicIndex(pending, 4), 2)
-          emnapiTSFN.enqueue(payload.tsfn)
+          const func = payload.tsfn
+          if (emnapiTSFN.isLive(func, generation)) {
+            const pending = func + emnapiTSFN.offset.async_pending
+            const state = new Int32Array(
+              emnapiTSFN.ensureBufferFor(addressEnd(pending, 4))
+            )
+            Atomics.store(state, atomicIndex(pending, 4), 2)
+            emnapiTSFN.enqueue(func, generation)
+          }
+        } else if (
+          type === 'tsfn-destroy' &&
+          payload &&
+          typeof payload.tsfn === 'number' &&
+          generation !== undefined
+        ) {
+          const func = payload.tsfn
+          if (
+            emnapiTSFN._liveMap.get(func) === generation &&
+            emnapiTSFN.getGeneration(func) === BigInt(0)
+          ) {
+            emnapiTSFN.unregister(func, generation)
+            emnapiTSFN.destroyRetired(func, generation)
+          }
         }
       }
     }
     const handleWorkerLoss = function (): void {
-      emnapiTSFN.recoverAfterWorkerLoss()
-      dispose()
+      try {
+        emnapiTSFN.requestWorkerLossRecovery()
+      } finally {
+        dispose()
+      }
     }
     const dispose = function (): void {
-      if (ENVIRONMENT_IS_NODE) {
-        worker.off('message', handler)
-        worker.off('exit', handleWorkerLoss)
-      } else {
-        worker.removeEventListener('message', handler, false)
+      try {
+        if (ENVIRONMENT_IS_NODE) {
+          worker.off('message', handler)
+          worker.off('exit', handleWorkerLoss)
+        } else {
+          worker.removeEventListener('message', handler, false)
+        }
+        const terminate = worker._emnapiTSFNTerminate
+        if (terminate) {
+          if (worker.terminate === terminate.wrapped) {
+            worker.terminate = terminate.original
+          }
+          delete worker._emnapiTSFNTerminate
+        }
+        delete worker._emnapiTSFNListener
+      } finally {
+        emnapiTSFN.reclaimRetired()
       }
-      delete worker._emnapiTSFNListener
     }
     worker._emnapiTSFNListener = { handler, dispose }
     if (ENVIRONMENT_IS_NODE) {
@@ -214,41 +271,18 @@ export const emnapiTSFN = {
     }
     const original = worker.terminate
     const wrapped = function (this: any): any {
-      emnapiTSFN.recoverAfterWorkerLoss()
+      emnapiTSFN.requestWorkerLossRecovery()
       try {
         return original.apply(this, arguments as any)
       } finally {
-        emnapiTSFN.recoverAfterWorkerLoss()
+        emnapiTSFN.requestWorkerLossRecovery()
+        if (!ENVIRONMENT_IS_NODE) {
+          worker._emnapiTSFNListener?.dispose()
+        }
       }
     }
     worker._emnapiTSFNTerminate = { original, wrapped }
     worker.terminate = wrapped
-  },
-  recoverAfterWorkerLoss (): void {
-    if ((typeof ENVIRONMENT_IS_PTHREAD !== 'undefined') && ENVIRONMENT_IS_PTHREAD) {
-      return
-    }
-    const live = Array.from(emnapiTSFN._liveSet)
-    for (let i = 0; i < live.length; i++) {
-      const func = live[i]
-      if (!emnapiTSFN._liveSet.has(func)) {
-        continue
-      }
-      const pending = func + emnapiTSFN.offset.async_pending
-      const state = new Int32Array(
-        emnapiTSFN.ensureBufferFor(addressEnd(pending, 4))
-      )
-      const index = atomicIndex(pending, 4)
-      let current = Atomics.load(state, index)
-      while (current !== 0) {
-        const previous = Atomics.compareExchange(state, index, current, 2)
-        if (previous === current) {
-          emnapiTSFN.enqueue(func)
-          break
-        }
-        current = previous
-      }
-    }
   },
   getPostMessage (): {
     post: (message: any) => unknown
@@ -269,8 +303,45 @@ export const emnapiTSFN = {
     }
     return undefined
   },
+  observeThenable (
+    result: unknown,
+    onRejected?: () => void
+  ): void {
+    if (
+      !result ||
+      (typeof result !== 'object' && typeof result !== 'function')
+    ) {
+      return
+    }
+    const reject = (): void => {
+      if (onRejected) {
+        void Promise.resolve().then(onRejected)
+      }
+    }
+    void Promise.resolve().then(() => {
+      let then: unknown
+      try {
+        then = (result as { then?: unknown }).then
+      } catch (_) {
+        reject()
+        return
+      }
+      if (typeof then === 'function') {
+        try {
+          then.call(result, () => {}, reject)
+        } catch (_) {
+          reject()
+        }
+      }
+    })
+  },
   postMessage (message: any): Delivery {
-    const transport = emnapiTSFN.getPostMessage()
+    let transport: ReturnType<typeof emnapiTSFN.getPostMessage>
+    try {
+      transport = emnapiTSFN.getPostMessage()
+    } catch (_) {
+      return Delivery.kAmbiguous
+    }
     if (!transport) {
       return Delivery.kDefinitelyNotDelivered
     }
@@ -278,7 +349,12 @@ export const emnapiTSFN = {
     try {
       result = transport.post(message)
     } catch (err) {
-      let definitelyNotDelivered = transport.throwsAreDefinitelyNotDelivered
+      let definitelyNotDelivered: boolean
+      try {
+        definitelyNotDelivered = transport.throwsAreDefinitelyNotDelivered
+      } catch (_) {
+        return Delivery.kAmbiguous
+      }
       if (
         !definitelyNotDelivered &&
         err &&
@@ -302,19 +378,11 @@ export const emnapiTSFN = {
     ) {
       return Delivery.kSent
     }
-    let then: unknown
-    try {
-      then = (result as { then?: unknown }).then
-    } catch (_) {
-      return Delivery.kAmbiguous
-    }
-    if (typeof then === 'function') {
-      try {
-        then.call(result, undefined, () => {})
-      } catch (_) {}
-      return Delivery.kAmbiguous
-    }
-    return Delivery.kSent
+    // Promise-like transports are outside the public contract. Inspect them
+    // after the caller releases the TSFN mutex so hostile getters or callbacks
+    // cannot reenter a locked TSFN.
+    emnapiTSFN.observeThenable(result)
+    return Delivery.kAmbiguous
   },
   getFeature (): any {
     return typeof emnapiCtx === 'object'
@@ -322,20 +390,51 @@ export const emnapiTSFN = {
       : undefined
   },
   schedule (callback: () => void): void {
-    const feature = emnapiTSFN.getFeature()
-    if (typeof feature?.setImmediate === 'function') {
-      feature.setImmediate(callback)
+    let called = false
+    let scheduling = true
+    const run = (): void => {
+      if (called) return
+      called = true
+      callback()
+    }
+    const scheduledCallback = (): void => {
+      if (scheduling) {
+        void Promise.resolve().then(run)
+      } else {
+        run()
+      }
+    }
+    let scheduler: ((callback: () => void) => unknown) | undefined
+    try {
+      const feature = emnapiTSFN.getFeature()
+      const featureScheduler = feature?.setImmediate
+      const globalSetImmediate = (globalThis as any).setImmediate
+      const globalSetTimeout = (globalThis as any).setTimeout
+      scheduler = typeof featureScheduler === 'function'
+        ? featureScheduler.bind(feature)
+        : typeof globalSetImmediate === 'function'
+          ? globalSetImmediate.bind(globalThis)
+          : typeof globalSetTimeout === 'function'
+            ? (callback: () => void) => {
+                return globalSetTimeout.call(globalThis, callback, 0)
+              }
+            : undefined
+    } catch (_) {
+      void Promise.resolve().then(run)
       return
     }
-    if (typeof (globalThis as any).setImmediate === 'function') {
-      ;(globalThis as any).setImmediate(callback)
+    if (!scheduler) {
+      void Promise.resolve().then(run)
       return
     }
-    if (typeof (globalThis as any).setTimeout === 'function') {
-      ;(globalThis as any).setTimeout(callback, 0)
-      return
+    try {
+      const result = scheduler(scheduledCallback)
+      emnapiTSFN.observeThenable(result, run)
+    } catch (_) {
+      void Promise.resolve().then(run)
+    } finally {
+      scheduling = false
     }
-    void Promise.resolve().then(callback)
   },
   scheduleRetry (callback: () => void, attempts: number): void {
     if (attempts < 3) {
@@ -343,69 +442,128 @@ export const emnapiTSFN = {
       return
     }
     const delay = Math.min(2 ** Math.min(attempts - 3, 10), 1000)
-    const setTimeout = typeof (globalThis as any).setTimeout === 'function'
-      ? (globalThis as any).setTimeout.bind(globalThis)
-      : undefined
+    let setTimeout:
+      ((callback: () => void, delay: number) => unknown) | undefined
+    try {
+      const feature = emnapiTSFN.getFeature()
+      const featureSetTimeout = feature?.setTimeout
+      const globalSetTimeout = (globalThis as any).setTimeout
+      setTimeout = typeof featureSetTimeout === 'function'
+        ? featureSetTimeout.bind(feature)
+        : typeof globalSetTimeout === 'function'
+          ? globalSetTimeout.bind(globalThis)
+          : undefined
+    } catch (_) {
+      emnapiTSFN.schedule(callback)
+      return
+    }
     if (!setTimeout) {
       emnapiTSFN.schedule(callback)
       return
     }
-    const timer = setTimeout(callback, delay)
-    if (
-      timer &&
-      (typeof timer === 'object' || typeof timer === 'function') &&
-      typeof timer.unref === 'function'
-    ) {
-      timer.unref()
+    let requested = false
+    let scheduling = true
+    const run = (): void => {
+      if (requested) return
+      requested = true
+      if (scheduling) {
+        emnapiTSFN.schedule(callback)
+      } else {
+        callback()
+      }
+    }
+    try {
+      const timer = setTimeout(run, delay)
+      emnapiTSFN.observeThenable(timer, run)
+      if (
+        timer &&
+        (typeof timer === 'object' || typeof timer === 'function')
+      ) {
+        const unref = (timer as { unref?: unknown }).unref
+        if (typeof unref === 'function') {
+          unref.call(timer)
+        }
+      }
+    } catch (_) {
+      run()
+    } finally {
+      scheduling = false
     }
   },
-  createMessage (func: number): any {
+  createMessage (
+    type: 'tsfn-send' | 'tsfn-destroy',
+    func: number,
+    generation: bigint,
+    observed?: Int32Array
+  ): any {
+    const payload: {
+      tsfn: number
+      generation: string
+      observed?: Int32Array
+    } = {
+      tsfn: func,
+      generation: generation.toString()
+    }
+    if (observed) {
+      payload.observed = observed
+    }
     return {
       __emnapi__: {
-        type: 'tsfn-send',
-        payload: { tsfn: func }
+        type,
+        payload
       }
     }
   },
-  scheduleSendRetry (func: number): void {
-    if (emnapiTSFN._sendRetryMap.has(func)) {
+  parseGeneration (value: unknown): bigint | undefined {
+    if (typeof value === 'bigint') {
+      return value
+    }
+    if (typeof value !== 'string') {
+      return undefined
+    }
+    try {
+      const generation = BigInt(value)
+      return generation.toString() === value
+        ? generation
+        : undefined
+    } catch (_) {
+      return undefined
+    }
+  },
+  cancelSendRetry (func: number, generation: bigint): void {
+    const retry = emnapiTSFN._sendRetryMap.get(func)
+    if (retry?.generation !== generation) {
       return
     }
-    const retry = { attempts: 0 }
+    Atomics.store(retry.observed, 0, 1)
+    emnapiTSFN._sendRetryMap.delete(func)
+  },
+  scheduleSendRetry (
+    func: number,
+    generation: bigint,
+    observed: Int32Array
+  ): void {
+    const existing = emnapiTSFN._sendRetryMap.get(func)
+    if (existing?.generation === generation) {
+      return
+    }
+    const retry = { generation, attempts: 0, observed }
     emnapiTSFN._sendRetryMap.set(func, retry)
+
     const run = (): void => {
       if (emnapiTSFN._sendRetryMap.get(func) !== retry) {
         return
       }
-      const isPthread = (
-        (typeof ENVIRONMENT_IS_PTHREAD !== 'undefined') &&
-        ENVIRONMENT_IS_PTHREAD
-      )
-      // Only the creator owns `_liveSet`; child agents use the shared pending
-      // state to decide when an in-flight wakeup has been observed.
-      if (!isPthread && !emnapiTSFN._liveSet.has(func)) {
-        emnapiTSFN._sendRetryMap.delete(func)
-        return
-      }
-      const pending = func + emnapiTSFN.offset.async_pending
-      const state = new Int32Array(
-        emnapiTSFN.ensureBufferFor(addressEnd(pending, 4))
-      )
-      if (Atomics.load(state, atomicIndex(pending, 4)) !== 1) {
+      if (Atomics.load(observed, 0) !== 0) {
         emnapiTSFN._sendRetryMap.delete(func)
         return
       }
       const delivery = emnapiTSFN.postMessage(
-        emnapiTSFN.createMessage(func)
+        emnapiTSFN.createMessage('tsfn-send', func, generation, observed)
       )
       if (
         delivery === Delivery.kSent ||
-        Atomics.load(
-          new Int32Array(
-            emnapiTSFN.ensureBufferFor(addressEnd(pending, 4))
-          ),
-          atomicIndex(pending, 4)
-        ) !== 1
+        Atomics.load(observed, 0) !== 0
       ) {
         emnapiTSFN._sendRetryMap.delete(func)
         return
@@ -415,6 +573,240 @@ export const emnapiTSFN = {
     }
     emnapiTSFN.schedule(run)
   },
+  scheduleDestroyRetry (
+    func: number,
+    generation: bigint,
+    observed: Int32Array
+  ): void {
+    const existing = emnapiTSFN._destroyRetryMap.get(func)
+    if (existing?.generation === generation) {
+      return
+    }
+    const retry = { generation, attempts: 0, observed }
+    emnapiTSFN._destroyRetryMap.set(func, retry)
+
+    const run = (): void => {
+      if (emnapiTSFN._destroyRetryMap.get(func) !== retry) {
+        return
+      }
+      if (Atomics.load(observed, 0) !== 0) {
+        emnapiTSFN._destroyRetryMap.delete(func)
+        return
+      }
+      const delivery = emnapiTSFN.postMessage(
+        emnapiTSFN.createMessage('tsfn-destroy', func, generation, observed)
+      )
+      if (
+        delivery === Delivery.kSent ||
+        Atomics.load(observed, 0) !== 0
+      ) {
+        emnapiTSFN.unregister(func, generation)
+        return
+      }
+      retry.attempts++
+      emnapiTSFN.scheduleRetry(run, retry.attempts)
+    }
+
+    emnapiTSFN.schedule(run)
+  },
+  recoverAfterWorkerLoss (): void {
+    if ((typeof ENVIRONMENT_IS_PTHREAD !== 'undefined') && ENVIRONMENT_IS_PTHREAD) {
+      return
+    }
+    const live = Array.from(
+      emnapiTSFN._liveMap.entries()
+    ) as Array<[number, bigint]>
+    for (let i = 0; i < live.length; i++) {
+      const [func, generation] = live[i]
+      if (!emnapiTSFN.isLive(func, generation)) {
+        continue
+      }
+      const pending = func + emnapiTSFN.offset.async_pending
+      const state = new Int32Array(
+        emnapiTSFN.ensureBufferFor(addressEnd(pending, 4))
+      )
+      const index = atomicIndex(pending, 4)
+      let current = Atomics.load(state, index)
+      while (current !== 0) {
+        const previous = Atomics.compareExchange(state, index, current, 2)
+        if (previous === current) {
+          emnapiTSFN.enqueue(func, generation)
+          break
+        }
+        current = previous
+      }
+    }
+    emnapiTSFN.reclaimRetired()
+  },
+  requestWorkerLossRecovery (): void {
+    try {
+      emnapiTSFN.recoverAfterWorkerLoss()
+    } catch (_) {}
+    try {
+      emnapiTSFN.startReclaimSweep()
+    } catch (_) {}
+  },
+  startReclaimSweep (): void {
+    if (
+      ((typeof ENVIRONMENT_IS_PTHREAD !== 'undefined') && ENVIRONMENT_IS_PTHREAD) ||
+      emnapiTSFN._reclaimSweepActive ||
+      emnapiTSFN._liveMap.size === 0
+    ) {
+      return
+    }
+    emnapiTSFN._reclaimSweepActive = true
+    const run = (): void => {
+      if (!emnapiTSFN._reclaimSweepActive) {
+        return
+      }
+      try {
+        // Worker termination wrappers run recovery before and after requesting
+        // termination, and Node's exit event performs a definitive final scan.
+        // One deferred scan covers termination implementations that complete
+        // just after terminate() returns without polling for unrelated TSFNs.
+        emnapiTSFN.recoverAfterWorkerLoss()
+      } finally {
+        emnapiTSFN._reclaimSweepActive = false
+      }
+    }
+    emnapiTSFN.schedule(run)
+  },
+  reclaimRetired (): void {
+    if ((typeof ENVIRONMENT_IS_PTHREAD !== 'undefined') && ENVIRONMENT_IS_PTHREAD) {
+      return
+    }
+    const retired: Array<[number, bigint]> = []
+    emnapiTSFN._liveMap.forEach((generation: bigint, func: number) => {
+      if (emnapiTSFN.getGeneration(func) === BigInt(0)) {
+        retired.push([func, generation])
+      }
+    })
+    for (let i = 0; i < retired.length; i++) {
+      const [func, generation] = retired[i]
+      if (
+        emnapiTSFN._liveMap.get(func) === generation &&
+        emnapiTSFN.getGeneration(func) === BigInt(0)
+      ) {
+        emnapiTSFN.unregister(func, generation)
+        emnapiTSFN.destroyRetired(func, generation)
+      }
+    }
+  },
+  getGeneration (func: number): bigint {
+    const address = func + emnapiTSFN.offset.async_u_fd
+    const view = new BigUint64Array(
+      emnapiTSFN.ensureBufferFor(addressEnd(address, 8))
+    )
+    return Atomics.load(
+      view as any,
+      atomicIndex(address, 8)
+    ) as unknown as bigint
+  },
+  setGeneration (func: number, generation: bigint): void {
+    const address = func + emnapiTSFN.offset.async_u_fd
+    const view = new BigUint64Array(
+      emnapiTSFN.ensureBufferFor(addressEnd(address, 8))
+    )
+    Atomics.store(view as any, atomicIndex(address, 8), generation as any)
+  },
+  register (func: number): bigint {
+    const cleanup = emnapiTSFN._cleanupMap.get(func)
+    if (cleanup) {
+      emnapiTSFN.removeCleanup(func, cleanup.generation)
+    }
+    emnapiTSFN._nextGeneration += BigInt(1)
+    if (emnapiTSFN._nextGeneration > MAX_LIVE_GENERATION) {
+      emnapiTSFN._nextGeneration = BigInt(1)
+    }
+    const generation = emnapiTSFN._nextGeneration
+    emnapiTSFN.setGeneration(func, generation)
+    emnapiTSFN._liveMap.set(func, generation)
+    emnapiTSFN._scheduledMap.delete(func)
+    return generation
+  },
+  unregister (func: number, generation: bigint): void {
+    if (emnapiTSFN._liveMap.get(func) === generation) {
+      emnapiTSFN._liveMap.delete(func)
+    }
+    if (emnapiTSFN._scheduledMap.get(func) === generation) {
+      emnapiTSFN._scheduledMap.delete(func)
+    }
+    emnapiTSFN.cancelSendRetry(func, generation)
+    if (emnapiTSFN._destroyRetryMap.get(func)?.generation === generation) {
+      emnapiTSFN._destroyRetryMap.delete(func)
+    }
+    emnapiTSFN.removeCleanup(func, generation)
+    if (emnapiTSFN._liveMap.size === 0) {
+      emnapiTSFN._reclaimSweepActive = false
+    }
+  },
+  addCleanup (func: number, generation: bigint, envObject: Env): void {
+    const hook = (address: number): void => {
+      emnapiTSFN.closeHandlesAndMaybeDelete(address, 1, generation)
+    }
+    emnapiTSFN._cleanupMap.set(func, { generation, envObject, hook })
+    emnapiCtx.addCleanupHook(envObject, hook, func)
+  },
+  removeCleanup (func: number, generation: bigint): void {
+    const cleanup = emnapiTSFN._cleanupMap.get(func)
+    if (!cleanup || cleanup.generation !== generation) {
+      return
+    }
+    emnapiCtx.removeCleanupHook(cleanup.envObject, cleanup.hook, func)
+    emnapiTSFN._cleanupMap.delete(func)
+  },
+  claimRetirement (func: number, generation: bigint): boolean {
+    if (generation === BigInt(0)) {
+      return false
+    }
+    emnapiTSFN.cancelSendRetry(func, generation)
+    const address = func + emnapiTSFN.offset.async_u_fd
+    const view = new BigUint64Array(
+      emnapiTSFN.ensureBufferFor(addressEnd(address, 8))
+    )
+    if ((Atomics.compareExchange(
+      view as any,
+      atomicIndex(address, 8),
+      generation as any,
+      BigInt(0) as any
+    ) as unknown as bigint) !== generation) {
+      return false
+    }
+    return true
+  },
+  finishRetirement (func: number, generation: bigint): void {
+    const isPthread = (typeof ENVIRONMENT_IS_PTHREAD !== 'undefined') && ENVIRONMENT_IS_PTHREAD
+    if (isPthread) {
+      const observed = new Int32Array(new SharedArrayBuffer(4))
+      const delivery = emnapiTSFN.postMessage(
+        emnapiTSFN.createMessage('tsfn-destroy', func, generation, observed)
+      )
+      if (
+        delivery !== Delivery.kSent &&
+        Atomics.load(observed, 0) === 0
+      ) {
+        emnapiTSFN.scheduleDestroyRetry(func, generation, observed)
+        return
+      }
+    }
+    emnapiTSFN.unregister(func, generation)
+  },
+  retire (func: number, generation: bigint): boolean {
+    if (!emnapiTSFN.claimRetirement(func, generation)) {
+      return false
+    }
+    emnapiTSFN.finishRetirement(func, generation)
+    return true
+  },
+  hasGeneration (func: number, generation: bigint): boolean {
+    return generation !== BigInt(0) && emnapiTSFN.getGeneration(func) === generation
+  },
+  isLive (func: number, generation: bigint): boolean {
+    if (generation === BigInt(0) || emnapiTSFN._liveMap.get(func) !== generation) {
+      return false
+    }
+    return emnapiTSFN.hasGeneration(func, generation)
+  },
   /**
    * When another thread grows the shared WebAssembly.Memory, this agent's
    * cached `wasmMemory.buffer` may still have the old shorter length
@@ -423,13 +815,7 @@ export const emnapiTSFN = {
    * observe the current memory size and refreshes the buffer.
   */
   ensureBufferFor (end: number): ArrayBufferLike {
-    end = normalizeEnd(end)
-    let buffer = wasmMemory.buffer
-    if (end > buffer.byteLength) {
-      wasmMemory.grow(0)
-      buffer = wasmMemory.buffer
-    }
-    return buffer
+    return emnapiMemory.ensureBufferFor(wasmMemory, end)
   },
   zeroMemory (address: number, size: number): void {
     const byteOffset = normalizeAddress(address)
@@ -560,7 +946,7 @@ export const emnapiTSFN = {
       return queueSize >= maxSize && maxSize > 0 && emnapiTSFN.getState(func) === State.kOpen
     }
     const isBrowserMain = typeof window !== 'undefined' && typeof document !== 'undefined' && !ENVIRONMENT_IS_NODE
-    let shouldDelete = false
+    let retiredGeneration = BigInt(0)
     const ret = mutex.execute(() => {
       while (waitCondition()) {
         if (mode === napi_threadsafe_function_call_mode.napi_tsfn_nonblocking) {
@@ -597,11 +983,19 @@ export const emnapiTSFN = {
       if (!(emnapiTSFN.getState(func) === State.kClosed && emnapiTSFN.getThreadCount(func) === 0)) {
         return napi_status.napi_closing
       }
-      shouldDelete = true
+      const generation = emnapiTSFN.getGeneration(func)
+      if (emnapiTSFN.claimRetirement(func, generation)) {
+        retiredGeneration = generation
+      }
       return napi_status.napi_closing
     })
-    if (shouldDelete) {
-      emnapiTSFN.destroy(func)
+    if (retiredGeneration !== BigInt(0)) {
+      emnapiTSFN.finishRetirement(func, retiredGeneration)
+      if (
+        !((typeof ENVIRONMENT_IS_PTHREAD !== 'undefined') && ENVIRONMENT_IS_PTHREAD)
+      ) {
+        emnapiTSFN.destroyRetired(func, retiredGeneration)
+      }
     }
     return ret
   },
@@ -729,6 +1123,16 @@ export const emnapiTSFN = {
         )
         Atomics.add(i32a, 0, 1)
         Atomics.notify(i32a, 0, 1)
+      },
+      broadcast () {
+        const byteOffset = normalizeAddress(index)
+        const i32a = new Int32Array(
+          emnapiTSFN.ensureBufferFor(byteOffset + 4),
+          byteOffset,
+          1
+        )
+        Atomics.add(i32a, 0, 1)
+        Atomics.notify(i32a, 0)
       }
     }
     return cond
@@ -929,7 +1333,7 @@ export const emnapiTSFN = {
       return undefined
     }
   },
-  releaseResources (func: number) {
+  releaseResources (func: number, generation: bigint) {
     if (emnapiTSFN.getState(func) !== State.kClosed) {
       emnapiTSFN.setState(func, State.kClosed)
 
@@ -943,7 +1347,7 @@ export const emnapiTSFN = {
       emnapiCtx.refStore.get(resource)!.dispose()
       emnapiTSFN.setInt8(func + emnapiTSFN.offset.is_some, 0)
 
-      emnapiCtx.removeCleanupHook(envObject, emnapiTSFN.cleanup, func)
+      emnapiTSFN.removeCleanup(func, generation)
       envObject.unref()
 
       const asyncRefAddress = func + emnapiTSFN.offset.async_ref
@@ -968,11 +1372,19 @@ export const emnapiTSFN = {
       }
     }
   },
-  destroy (func: number) {
-    emnapiTSFN._liveSet.delete(func)
-    emnapiTSFN._sendRetryMap.delete(func)
+  destroy (func: number, generation: bigint = emnapiTSFN.getGeneration(func)) {
+    if (!emnapiTSFN.retire(func, generation)) {
+      return
+    }
+    if ((typeof ENVIRONMENT_IS_PTHREAD !== 'undefined') && ENVIRONMENT_IS_PTHREAD) {
+      return
+    }
+    emnapiTSFN.destroyRetired(func, generation)
+  },
+  destroyRetired (func: number, generation: bigint) {
+    emnapiTSFN.setGeneration(func, RECLAIMED_GENERATION)
     emnapiTSFN.destroyQueue(func)
-    emnapiTSFN.releaseResources(func)
+    emnapiTSFN.releaseResources(func, generation)
     _free(to64('func') as number)
   },
   emptyQueue (func: number) {
@@ -986,28 +1398,53 @@ export const emnapiTSFN = {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const context = emnapiTSFN.getContext(func)
     let data: number
+    let firstError: unknown
     for (let i = 0; i < drainQueue.length; i++) {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       data = drainQueue[i]
       if (callJsCb) {
-        makeDynCall('vpppp', 'callJsCb')(to64('0'), to64('0'), to64('context'), to64('data'))
+        try {
+          makeDynCall('vpppp', 'callJsCb')(
+            to64('0'),
+            to64('0'),
+            to64('context'),
+            to64('data')
+          )
+        } catch (err) {
+          if (firstError === undefined) {
+            firstError = err
+          }
+        }
       }
     }
+    if (firstError !== undefined) {
+      // eslint-disable-next-line @typescript-eslint/no-throw-literal
+      throw firstError
+    }
   },
-  maybeDelete (func: number) {
+  maybeDelete (func: number, generation: bigint) {
+    if (!emnapiTSFN.isLive(func, generation)) {
+      return
+    }
     let shouldDelete = false
     emnapiTSFN.getMutex(func).execute(() => {
+      if (!emnapiTSFN.isLive(func, generation)) {
+        return
+      }
       if (emnapiTSFN.getThreadCount(func) > 0) {
-        emnapiTSFN.releaseResources(func)
+        emnapiTSFN.releaseResources(func, generation)
       } else {
         shouldDelete = true
       }
     })
     if (shouldDelete) {
-      emnapiTSFN.destroy(func)
+      emnapiTSFN.destroy(func, generation)
     }
   },
-  finalize (func: number) {
+  finalize (func: number, generation: bigint) {
+    if (!emnapiTSFN.isLive(func, generation)) {
+      return
+    }
     const env = emnapiTSFN.getEnv(func)
     const envObject = emnapiCtx.envStore.get(env)!
     emnapiCtx.openScope(envObject)
@@ -1027,8 +1464,12 @@ export const emnapiTSFN = {
       )
     }
 
+    let firstError: unknown
     try {
       emnapiTSFN.emptyQueue(func)
+      if (!emnapiTSFN.isLive(func, generation)) {
+        return
+      }
       if (finalize) {
         if (emnapiNodeBinding) {
           const resource = emnapiTSFN.getResource(func)
@@ -1048,15 +1489,39 @@ export const emnapiTSFN = {
           f()
         }
       }
-      emnapiTSFN.maybeDelete(func)
+    } catch (err) {
+      firstError = err
     } finally {
-      emnapiCtx.closeScope(envObject)
+      try {
+        if (emnapiTSFN.isLive(func, generation)) {
+          emnapiTSFN.maybeDelete(func, generation)
+        }
+      } catch (err) {
+        if (firstError === undefined) {
+          firstError = err
+        }
+      }
+      try {
+        emnapiCtx.closeScope(envObject)
+      } catch (err) {
+        if (firstError === undefined) {
+          firstError = err
+        }
+      }
+    }
+    if (firstError !== undefined) {
+      // eslint-disable-next-line @typescript-eslint/no-throw-literal
+      throw firstError
     }
   },
-  cleanup (func: number) {
-    emnapiTSFN.closeHandlesAndMaybeDelete(func, 1)
-  },
-  closeHandlesAndMaybeDelete (func: number, set_closing: number) {
+  closeHandlesAndMaybeDelete (
+    func: number,
+    set_closing: number,
+    generation: bigint
+  ) {
+    if (!emnapiTSFN.isLive(func, generation)) {
+      return
+    }
     const env = emnapiTSFN.getEnv(func)
     const envObject = emnapiCtx.envStore.get(env)!
     emnapiCtx.openScope(envObject)
@@ -1065,7 +1530,7 @@ export const emnapiTSFN = {
         emnapiTSFN.getMutex(func).execute(() => {
           emnapiTSFN.setState(func, State.kClosing)
           if (emnapiTSFN.getMaxQueueSize(func) > 0) {
-            emnapiTSFN.getCond(func).signal()
+            emnapiTSFN.getCond(func).broadcast()
           }
         })
       }
@@ -1080,17 +1545,21 @@ export const emnapiTSFN = {
         1
       )
       emnapiTSFN.schedule(() => {
-        emnapiTSFN.finalize(func)
+        emnapiTSFN.finalize(func, generation)
       })
     } finally {
       emnapiCtx.closeScope(envObject)
     }
   },
-  dispatchOne (func: number): boolean {
+  dispatchOne (func: number, generation: bigint): boolean {
+    if (!emnapiTSFN.isLive(func, generation)) {
+      return false
+    }
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     let data = 0
     let popped_value = false
     let has_more = false
+    let should_close = false
 
     const mutex = emnapiTSFN.getMutex(func)
     const cond = emnapiTSFN.getCond(func)
@@ -1110,17 +1579,21 @@ export const emnapiTSFN = {
           if (emnapiTSFN.getThreadCount(func) === 0) {
             emnapiTSFN.setState(func, State.kClosing)
             if (emnapiTSFN.getMaxQueueSize(func) > 0) {
-              cond.signal()
+              cond.broadcast()
             }
-            emnapiTSFN.closeHandlesAndMaybeDelete(func, 0)
+            should_close = true
           }
         } else {
           has_more = true
         }
       } else {
-        emnapiTSFN.closeHandlesAndMaybeDelete(func, 0)
+        should_close = true
       }
     })
+
+    if (should_close) {
+      emnapiTSFN.closeHandlesAndMaybeDelete(func, 0, generation)
+    }
 
     if (popped_value) {
       const env = emnapiTSFN.getEnv(func)
@@ -1168,7 +1641,10 @@ export const emnapiTSFN = {
 
     return has_more
   },
-  dispatch (func: number) {
+  dispatch (func: number, generation: bigint) {
+    if (!emnapiTSFN.isLive(func, generation)) {
+      return
+    }
     let has_more = true
 
     let iterations_left = 1000
@@ -1183,9 +1659,9 @@ export const emnapiTSFN = {
         1
       )
       try {
-        has_more = emnapiTSFN.dispatchOne(func)
+        has_more = emnapiTSFN.dispatchOne(func, generation)
       } catch (err) {
-        if (emnapiTSFN._liveSet.has(func)) {
+        if (emnapiTSFN.isLive(func, generation)) {
           // A callback exception must not strand kDispatchRunning.
           Atomics.exchange(
             new Uint32Array(
@@ -1196,11 +1672,11 @@ export const emnapiTSFN = {
             index,
             0
           )
-          emnapiTSFN.send(func)
+          emnapiTSFN.send(func, generation)
         }
         throw err
       }
-      if (!emnapiTSFN._liveSet.has(func)) {
+      if (!emnapiTSFN.isLive(func, generation)) {
         return
       }
 
@@ -1216,69 +1692,74 @@ export const emnapiTSFN = {
     }
 
     if (has_more) {
-      emnapiTSFN.send(func)
+      emnapiTSFN.send(func, generation)
     }
   },
-  enqueue (func: number): void {
-    // `pending` means a worker thread has requested a wakeup that has not
-    // been drained on the main thread yet.
-    const pending = func + emnapiTSFN.offset.async_pending
-    // `scheduled` prevents queueing the same main-thread drain chain more than
-    // once while a previous wakeup is still in flight.
-    const scheduled = func + emnapiTSFN.offset.async_u_fd
-    const end = Math.max(
-      normalizeAddress(pending),
-      normalizeAddress(scheduled)
-    ) + 4
-    const state = (): Int32Array => new Int32Array(
-      emnapiTSFN.ensureBufferFor(end)
-    )
-    const pendingIndex = atomicIndex(pending, 4)
-    const scheduledIndex = atomicIndex(scheduled, 4)
-    if (Atomics.exchange(state(), scheduledIndex, 1) !== 0) {
+  enqueue (func: number, generation: bigint): void {
+    if (!emnapiTSFN.isLive(func, generation)) {
       return
     }
+    // `pending` is 0 when idle, 1 while a worker wakeup is in transport, and
+    // 2 after the creator observes the message. Any nonzero state is pending.
+    const pending = func + emnapiTSFN.offset.async_pending
+    const state = (): Int32Array => new Int32Array(
+      emnapiTSFN.ensureBufferFor(addressEnd(pending, 4))
+    )
+    if (emnapiTSFN._scheduledMap.get(func) === generation) {
+      return
+    }
+    emnapiTSFN._scheduledMap.set(func, generation)
 
     // Match uv_async_send-style coalescing in JS: the first turn represents
     // the wakeup reaching the main thread, and the second turn performs the
     // actual TSFN drain after nearby Send/Signal calls have had a chance to
     // collapse into the shared AsyncProgressWorker state.
     emnapiTSFN.schedule(() => {
-      if (!emnapiTSFN._liveSet.has(func)) {
+      if (!emnapiTSFN.isLive(func, generation)) {
         return
       }
-      if (Atomics.load(state(), pendingIndex) === 0) {
-        Atomics.store(state(), scheduledIndex, 0)
+      if (Atomics.load(state(), atomicIndex(pending, 4)) === 0) {
+        emnapiTSFN.unregisterScheduled(func, generation)
         return
       }
 
       emnapiTSFN.schedule(() => {
         try {
+          if (!emnapiTSFN.isLive(func, generation)) {
+            return
+          }
           // Consume the coalesced wakeup once, then let dispatch() observe any
           // queue mutations through dispatch_state like the C implementation.
-          if (Atomics.exchange(state(), pendingIndex, 0) === 0) {
+          if (Atomics.exchange(state(), atomicIndex(pending, 4), 0) === 0) {
             return
           }
-          // After destroy(), the func address is freed.  Skip dispatch
-          // to avoid use-after-free (JS-side lifecycle check).
-          if (!emnapiTSFN._liveSet.has(func)) {
-            return
-          }
-          emnapiTSFN.dispatch(func)
+          emnapiTSFN.dispatch(func, generation)
         } finally {
           // Allow a later wakeup to schedule a new drain chain. If another
           // worker-thread send raced with this drain, enqueue one more turn.
-          if (emnapiTSFN._liveSet.has(func)) {
-            Atomics.store(state(), scheduledIndex, 0)
-            if (Atomics.load(state(), pendingIndex) !== 0) {
-              emnapiTSFN.enqueue(func)
+          if (emnapiTSFN.isLive(func, generation)) {
+            emnapiTSFN.unregisterScheduled(func, generation)
+            if (Atomics.load(state(), atomicIndex(pending, 4)) !== 0) {
+              emnapiTSFN.enqueue(func, generation)
             }
           }
         }
       })
     })
   },
-  send (func: number): napi_status {
+  unregisterScheduled (func: number, generation: bigint): void {
+    if (emnapiTSFN._scheduledMap.get(func) === generation) {
+      emnapiTSFN._scheduledMap.delete(func)
+    }
+  },
+  send (
+    func: number,
+    generation: bigint = emnapiTSFN.getGeneration(func)
+  ): napi_status {
+    if (generation === BigInt(0)) {
+      return napi_status.napi_closing
+    }
+    const isPthread = (typeof ENVIRONMENT_IS_PTHREAD !== 'undefined') && ENVIRONMENT_IS_PTHREAD
     const dispatchStateAddress = func + emnapiTSFN.offset.dispatch_state
     const current_state = Atomics.or(
       new Uint32Array(
@@ -1292,37 +1773,56 @@ export const emnapiTSFN = {
     }
 
     const pending = func + emnapiTSFN.offset.async_pending
-    const state = (): Int32Array => new Int32Array(
+    const pendingState = new Int32Array(
       emnapiTSFN.ensureBufferFor(addressEnd(pending, 4))
     )
-    const index = atomicIndex(pending, 4)
-    // A wakeup is already pending, so this send only needs to leave the queued
-    // work in the TSFN queue and let the existing drain pick it up.
-    if (Atomics.load(state(), index) !== 0) {
+    const pendingIndex = atomicIndex(pending, 4)
+    // A nonzero wakeup is already in transport or observed by the creator, so
+    // this send only needs to leave the queued work for that drain.
+    if (Atomics.load(pendingState, pendingIndex) !== 0) {
+      if (!isPthread) {
+        // Creator-side work is itself a durable continuation. Promote an
+        // in-flight worker token so a later definite-failure rollback cannot
+        // erase the creator's only request to continue draining.
+        Atomics.compareExchange(pendingState, pendingIndex, 1, 2)
+        emnapiTSFN.enqueue(func, generation)
+      }
       return napi_status.napi_ok
     }
 
-    if (Atomics.exchange(state(), index, 1) === 0) {
-      if ((typeof ENVIRONMENT_IS_PTHREAD !== 'undefined') && ENVIRONMENT_IS_PTHREAD) {
+    if (Atomics.exchange(
+      pendingState,
+      pendingIndex,
+      1
+    ) === 0) {
+      if (isPthread) {
         // Worker threads only post a wakeup token. Main-thread draining is
         // serialized by enqueue() once the message is received.
+        const observed = new Int32Array(new SharedArrayBuffer(4))
         const delivery = emnapiTSFN.postMessage(
-          emnapiTSFN.createMessage(func)
+          emnapiTSFN.createMessage('tsfn-send', func, generation, observed)
         )
         if (delivery === Delivery.kDefinitelyNotDelivered) {
-          if (Atomics.compareExchange(state(), index, 1, 0) === 1) {
+          if (Atomics.compareExchange(
+            new Int32Array(
+              emnapiTSFN.ensureBufferFor(addressEnd(pending, 4))
+            ),
+            pendingIndex,
+            1,
+            0
+          ) === 1) {
             return napi_status.napi_generic_failure
           }
         } else if (
           delivery === Delivery.kAmbiguous &&
-          Atomics.load(state(), index) === 1
+          Atomics.load(observed, 0) === 0
         ) {
-          emnapiTSFN.scheduleSendRetry(func)
+          emnapiTSFN.scheduleSendRetry(func, generation, observed)
         }
       } else {
         // On the main thread we can skip the cross-thread hop and schedule the
         // coalesced drain chain directly.
-        emnapiTSFN.enqueue(func)
+        emnapiTSFN.enqueue(func, generation)
       }
     }
     return napi_status.napi_ok
@@ -1368,8 +1868,6 @@ export function napi_create_threadsafe_function (
     if (typeof funcValue !== 'function') {
       return envObject.setLastError(napi_status.napi_invalid_arg)
     }
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    ref = emnapiCtx.createReference(envObject, func, 1, ReferenceOwnership.kUserland as any).id
   }
 
   let asyncResourceObject: any
@@ -1410,6 +1908,14 @@ export function napi_create_threadsafe_function (
     _free(to64('tsfn') as number)
     resourceRef.dispose()
     return envObject.setLastError(napi_status.napi_generic_failure)
+  }
+  if (func) {
+    ref = emnapiCtx.createReference(
+      envObject,
+      func,
+      1,
+      ReferenceOwnership.kUserland as any
+    ).id
   }
   _emnapi_node_emit_async_init(
     resource,
@@ -1458,9 +1964,8 @@ export function napi_create_threadsafe_function (
     call_js_cb,
     false
   )
-  emnapiCtx.addCleanupHook(envObject, emnapiTSFN.cleanup, tsfn)
-  emnapiTSFN._sendRetryMap.delete(tsfn as number)
-  emnapiTSFN._liveSet.add(tsfn as number)
+  const generation = emnapiTSFN.register(tsfn as number)
+  emnapiTSFN.addCleanup(tsfn as number, generation, envObject)
   envObject.ref()
 
   _emnapi_runtime_keepalive_push()
@@ -1527,35 +2032,52 @@ export function napi_release_threadsafe_function (func: number, mode: napi_threa
 
   const mutex = emnapiTSFN.getMutex(func)
   const cond = emnapiTSFN.getCond(func)
-  let shouldDelete = false
+  let retiredGeneration = BigInt(0)
   const ret = mutex.execute(() => {
     if (emnapiTSFN.getThreadCount(func) === 0) {
       return napi_status.napi_invalid_arg
     }
 
     emnapiTSFN.subThreadCount(func)
+    let restoreOpenState = false
 
     if (emnapiTSFN.getThreadCount(func) === 0 || mode === napi_threadsafe_function_release_mode.napi_tsfn_abort) {
       if (emnapiTSFN.getState(func) === State.kOpen) {
         if (mode === napi_threadsafe_function_release_mode.napi_tsfn_abort) {
           emnapiTSFN.setState(func, State.kClosing)
+          restoreOpenState = true
         }
         if (emnapiTSFN.getState(func) === State.kClosing && emnapiTSFN.getMaxQueueSize(func) > 0) {
-          cond.signal()
+          cond.broadcast()
         }
 
-        emnapiTSFN.send(func)
+        const status = emnapiTSFN.send(func)
+        if (status !== napi_status.napi_ok) {
+          emnapiTSFN.addThreadCount(func)
+          if (restoreOpenState) {
+            emnapiTSFN.setState(func, State.kOpen)
+          }
+          return status
+        }
       }
     }
 
     if (!(emnapiTSFN.getState(func) === State.kClosed && emnapiTSFN.getThreadCount(func) === 0)) {
       return napi_status.napi_ok
     }
-    shouldDelete = true
+    const generation = emnapiTSFN.getGeneration(func)
+    if (emnapiTSFN.claimRetirement(func, generation)) {
+      retiredGeneration = generation
+    }
     return napi_status.napi_ok
   })
-  if (shouldDelete) {
-    emnapiTSFN.destroy(func)
+  if (retiredGeneration !== BigInt(0)) {
+    emnapiTSFN.finishRetirement(func, retiredGeneration)
+    if (
+      !((typeof ENVIRONMENT_IS_PTHREAD !== 'undefined') && ENVIRONMENT_IS_PTHREAD)
+    ) {
+      emnapiTSFN.destroyRetired(func, retiredGeneration)
+    }
   }
   return ret
 }

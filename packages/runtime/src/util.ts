@@ -122,7 +122,7 @@ export const _MessageChannel: typeof MessageChannel | undefined = typeof Message
 
 export const _setImmediate = typeof setImmediate === 'function'
   ? setImmediate.bind(_global)
-  : function (callback: () => void): void {
+  : function (callback: () => void): any {
     if (typeof callback !== 'function') {
       throw new TypeError('The "callback" argument must be of type function')
     }
@@ -134,10 +134,18 @@ export const _setImmediate = typeof setImmediate === 'function'
         callback()
       }
       channel.port2.postMessage(null)
-    } else {
-      setTimeout(callback, 0)
+      return
     }
+    if (typeof setTimeout === 'function') {
+      return setTimeout.call(_global, callback, 0)
+    }
+    return Promise.resolve().then(callback)
   }
+
+export const _setTimeout: typeof setTimeout | undefined =
+  typeof setTimeout === 'function'
+    ? setTimeout.bind(_global)
+    : undefined
 
 export const _Buffer: BufferCtor | undefined = typeof Buffer === 'function'
   ? Buffer

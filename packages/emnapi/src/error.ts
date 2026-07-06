@@ -1,8 +1,9 @@
-import { abort } from 'emscripten:runtime'
+import { abort, wasmMemory } from 'emscripten:runtime'
 import { emnapiCtx, emnapiNodeBinding } from 'emnapi:shared'
-import { from64, makeSetValue } from 'emscripten:parse-tools'
+import { from64 } from 'emscripten:parse-tools'
 import { $PREAMBLE, $CHECK_ARG, $CHECK_ENV_NOT_IN_GC } from './macro'
 import { emnapiString } from './string'
+import { emnapiMemory } from './memory-view'
 
 /** @__sig vpppp */
 export function _emnapi_get_last_error_info (env: napi_env, error_code: Pointer<napi_status>, engine_error_code: Pointer<uint32_t>, engine_reserved: void_pp): void {
@@ -20,9 +21,9 @@ export function _emnapi_get_last_error_info (env: napi_env, error_code: Pointer<
   const engineReserved = lastError.engineReserved
   from64('engineReserved')
 
-  makeSetValue('error_code', 0, 'errorCode', 'i32')
-  makeSetValue('engine_error_code', 0, 'engineErrorCode', 'u32')
-  makeSetValue('engine_reserved', 0, 'engineReserved', '*')
+  emnapiMemory.setInt32(wasmMemory, error_code as number, errorCode)
+  emnapiMemory.setUint32(wasmMemory, engine_error_code as number, engineErrorCode)
+  emnapiMemory.setPointer(wasmMemory, engine_reserved as number, engineReserved)
 }
 
 /** @__sig ipp */
@@ -101,7 +102,7 @@ export function napi_is_exception_pending (env: napi_env, result: Pointer<bool>)
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const r = envObject.tryCatch.hasCaught()
   from64('result')
-  makeSetValue('result', 0, 'r ? 1 : 0', 'i8')
+  emnapiMemory.setInt8(wasmMemory, result as number, r ? 1 : 0)
   return envObject.clearLastError()
 }
 
@@ -128,7 +129,7 @@ export function napi_create_error (env: napi_env, code: napi_value, msg: napi_va
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const value = emnapiCtx.addToCurrentScope(error).id
-  makeSetValue('result', 0, 'value', '*')
+  emnapiMemory.setPointer(wasmMemory, result as number, value)
   return envObject.clearLastError()
 }
 
@@ -154,7 +155,7 @@ export function napi_create_type_error (env: napi_env, code: napi_value, msg: na
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const value = emnapiCtx.addToCurrentScope(error).id
-  makeSetValue('result', 0, 'value', '*')
+  emnapiMemory.setPointer(wasmMemory, result as number, value)
   return envObject.clearLastError()
 }
 
@@ -179,7 +180,7 @@ export function napi_create_range_error (env: napi_env, code: napi_value, msg: n
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const value = emnapiCtx.addToCurrentScope(error).id
-  makeSetValue('result', 0, 'value', '*')
+  emnapiMemory.setPointer(wasmMemory, result as number, value)
   return envObject.clearLastError()
 }
 
@@ -204,7 +205,7 @@ export function node_api_create_syntax_error (env: napi_env, code: napi_value, m
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const value = emnapiCtx.addToCurrentScope(error).id
-  makeSetValue('result', 0, 'value', '*')
+  emnapiMemory.setPointer(wasmMemory, result as number, value)
   return envObject.clearLastError()
 }
 
@@ -215,13 +216,13 @@ export function napi_get_and_clear_last_exception (env: napi_env, result: Pointe
   from64('result')
 
   if (!envObject.tryCatch.hasCaught()) {
-    makeSetValue('result', 0, '1', '*') // ID_UNDEFINED
+    emnapiMemory.setPointer(wasmMemory, result as number, 1) // ID_UNDEFINED
     return envObject.clearLastError()
   } else {
     const err = envObject.tryCatch.exception()!
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const value = envObject.ensureHandleId(err)
-    makeSetValue('result', 0, 'value', '*')
+    emnapiMemory.setPointer(wasmMemory, result as number, value)
     envObject.tryCatch.reset()
   }
   return envObject.clearLastError()

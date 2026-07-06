@@ -1,9 +1,11 @@
 /* eslint-disable @typescript-eslint/indent */
 
 import { emnapiCtx } from 'emnapi:shared'
-import { from64, makeSetValue } from 'emscripten:parse-tools'
+import { wasmMemory } from 'emscripten:runtime'
+import { from64 } from 'emscripten:parse-tools'
 import { $CHECK_ARG, $PREAMBLE } from './macro'
 import { napi_set_last_error } from './util'
+import { emnapiMemory } from './memory-view'
 
 /** @__sig ippp */
 export function napi_run_script (env: napi_env, script: napi_value, result: Pointer<napi_value>): napi_status {
@@ -25,7 +27,7 @@ export function napi_run_script (env: napi_env, script: napi_value, result: Poin
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     value = envObject.ensureHandleId(ret)
-    makeSetValue('result', 0, 'value', '*')
+    emnapiMemory.setPointer(wasmMemory, result as number, value)
     status = envObject.getReturnStatus()
   })
 // #else

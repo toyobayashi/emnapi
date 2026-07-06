@@ -1,6 +1,7 @@
 import { _free, wasmMemory, _malloc } from 'emscripten:runtime'
 import { emnapiCtx } from 'emnapi:shared'
-import { from64, to64, makeDynCall, POINTER_SIZE, makeSetValue, makeGetValue } from 'emscripten:parse-tools'
+import { from64, to64, makeDynCall, POINTER_SIZE } from 'emscripten:parse-tools'
+import { emnapiMemory } from './memory-view'
 
 export type ViewConstuctor =
   Int8ArrayConstructor |
@@ -98,7 +99,9 @@ export const emnapiExternalMemory: {
         return cachedInfo
       }
       if (shouldCopy && cachedInfo.ownership === ReferenceOwnership.kRuntime && cachedInfo.runtimeAllocated === 1) {
-        new Uint8Array(wasmMemory.buffer).set(new Uint8Array(arrayBuffer), cachedInfo.address)
+        emnapiMemory
+          .getUint8Array(wasmMemory, cachedInfo.address + arrayBuffer.byteLength)
+          .set(new Uint8Array(arrayBuffer), cachedInfo.address)
       }
       return cachedInfo
     }
@@ -114,7 +117,9 @@ export const emnapiExternalMemory: {
     const pointer = _malloc(to64('arrayBuffer.byteLength'))
     if (!pointer) throw new Error('Out of memory')
     from64('pointer')
-    new Uint8Array(wasmMemory.buffer).set(new Uint8Array(arrayBuffer), pointer)
+    emnapiMemory
+      .getUint8Array(wasmMemory, pointer + arrayBuffer.byteLength)
+      .set(new Uint8Array(arrayBuffer), pointer)
 
     info.address = pointer
     info.ownership = emnapiExternalMemory.registry ? ReferenceOwnership.kRuntime : ReferenceOwnership.kUserland
@@ -143,12 +148,17 @@ export const emnapiExternalMemory: {
     if (maybeOldWasmMemory && emnapiExternalMemory.wasmMemoryViewTable.has(view)) {
       const info = emnapiExternalMemory.wasmMemoryViewTable.get(view)!
       const Ctor = info.Ctor
+      const bytesPerElement = (Ctor as any).BYTES_PER_ELEMENT ?? 1
+      const buffer = emnapiMemory.ensureBufferFor(
+        wasmMemory,
+        info.address + info.length * bytesPerElement
+      )
       let newView: ArrayBufferView
       const Buffer = emnapiCtx.feature.Buffer
       if (typeof Buffer === 'function' && Ctor === Buffer) {
-        newView = Buffer.from(wasmMemory.buffer, info.address, info.length)
+        newView = Buffer.from(buffer, info.address, info.length)
       } else {
-        newView = new Ctor(wasmMemory.buffer, info.address, info.length)
+        newView = new Ctor(buffer, info.address, info.length)
       }
       emnapiExternalMemory.wasmMemoryViewTable.set(newView, info)
       return newView as unknown as T
@@ -225,26 +235,42 @@ export const emnapiExternalSAB: {
     if (!metaPtr) throw new Error('Out of memory')
     from64('metaPtr')
     // refcount = 1
-    Atomics.store(new Int32Array(wasmMemory.buffer, metaPtr as number, 1), 0, 1)
-    makeSetValue('metaPtr', POINTER_SIZE, 'external_data', '*')
-    makeSetValue('metaPtr', POINTER_SIZE * 2, 'byte_length', '*')
-    makeSetValue('metaPtr', POINTER_SIZE * 3, 'finalize_cb', '*')
-    makeSetValue('metaPtr', POINTER_SIZE * 4, 'finalize_data', '*')
-    makeSetValue('metaPtr', POINTER_SIZE * 5, 'finalize_hint', '*')
+    Atomics.store(
+      new Int32Array(
+        emnapiMemory.ensureBufferFor(wasmMemory, metaPtr as number + size),
+        metaPtr as number,
+        1
+      ),
+      0,
+      1
+    )
+    emnapiMemory.setPointer(wasmMemory, metaPtr as number + POINTER_SIZE, external_data)
+    emnapiMemory.setSizeType(wasmMemory, metaPtr as number + POINTER_SIZE * 2, byte_length)
+    emnapiMemory.setPointer(wasmMemory, metaPtr as number + POINTER_SIZE * 3, finalize_cb)
+    emnapiMemory.setPointer(wasmMemory, metaPtr as number + POINTER_SIZE * 4, finalize_data)
+    emnapiMemory.setPointer(wasmMemory, metaPtr as number + POINTER_SIZE * 5, finalize_hint)
     return metaPtr as number
   },
 
   readMeta: function (metaPtr: number): ExternalSABInfo {
-    const external_data = makeGetValue('metaPtr', POINTER_SIZE, '*')
-    const byte_length = makeGetValue('metaPtr', POINTER_SIZE * 2, '*')
-    const finalize_cb = makeGetValue('metaPtr', POINTER_SIZE * 3, '*')
-    const finalize_data = makeGetValue('metaPtr', POINTER_SIZE * 4, '*')
-    const finalize_hint = makeGetValue('metaPtr', POINTER_SIZE * 5, '*')
+    const external_data = emnapiMemory.getPointer(wasmMemory, metaPtr + POINTER_SIZE)
+    const byte_length = emnapiMemory.getSizeType(wasmMemory, metaPtr + POINTER_SIZE * 2)
+    const finalize_cb = emnapiMemory.getPointer(wasmMemory, metaPtr + POINTER_SIZE * 3)
+    const finalize_data = emnapiMemory.getPointer(wasmMemory, metaPtr + POINTER_SIZE * 4)
+    const finalize_hint = emnapiMemory.getPointer(wasmMemory, metaPtr + POINTER_SIZE * 5)
     return { external_data, byte_length, finalize_cb, finalize_data, finalize_hint }
   },
 
   release: function (metaPtr: number): void {
-    const oldRefcount = Atomics.sub(new Int32Array(wasmMemory.buffer, metaPtr, 1), 0, 1)
+    const oldRefcount = Atomics.sub(
+      new Int32Array(
+        emnapiMemory.ensureBufferFor(wasmMemory, metaPtr + 4),
+        metaPtr,
+        1
+      ),
+      0,
+      1
+    )
     if (oldRefcount === 1) {
       // refcount reached 0, we are the last holder
       const info = emnapiExternalSAB.readMeta(metaPtr)

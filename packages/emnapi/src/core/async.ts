@@ -4,9 +4,9 @@ import { emnapiPostMessage } from 'emnapi:shared'
 import { ENVIRONMENT_IS_NODE, wasmMemory, ENVIRONMENT_IS_PTHREAD, PThread } from 'emscripten:runtime'
 import { POINTER_SIZE, from64, makeDynCall, makeGetValue, to64 } from 'emscripten:parse-tools'
 import { _emnapi_set_immediate, _emnapi_next_tick } from '../util'
+import { emnapiMemory } from '../memory-view'
 
 function emnapiGetWorkerByPthreadPtr (pthreadPtr: number): any {
-  const view = new DataView(wasmMemory.buffer)
   /**
    * wasi-sdk-20.0+threads
    *
@@ -18,9 +18,11 @@ function emnapiGetWorkerByPthreadPtr (pthreadPtr: number): any {
    *   int tid;                     // 20
    *   // ...
    * }
-   */
+  */
   const tidOffset = 20
-  const tid = view.getInt32(pthreadPtr + tidOffset, true)
+  const tid = emnapiMemory
+    .getDataView(wasmMemory, pthreadPtr + tidOffset + 4)
+    .getInt32(pthreadPtr + tidOffset, true)
   const worker = PThread.pthreads[tid]
   return worker
 }
@@ -99,7 +101,7 @@ export function _emnapi_tell_js_uvthreadpool (threads: number, size: number): vo
     p.push(new Promise<void>((resolve) => {
       const handler = function (e: any): void {
         const data = ENVIRONMENT_IS_NODE ? e : e.data
-        const __emnapi__ = data.__emnapi__
+        const __emnapi__ = data?.__emnapi__
         if (__emnapi__ && __emnapi__.type === 'async-thread-ready') {
           resolve()
           if (worker && typeof worker.unref === 'function') {

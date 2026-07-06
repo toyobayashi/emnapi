@@ -26,9 +26,12 @@ export interface INapiModule {
   init (options: InitOptions): any
   initWorker (arg: number, func: [number, number]): void
   /**
-   * Must synchronously enqueue the message or throw before enqueueing it.
+   * Must synchronously enqueue the message. Before throwing for a message that
+   * was not enqueued, set `error.emnapiNotDelivered = true`; unmarked failures
+   * are ambiguous and thread-safe function control messages may be retried.
    * The `any` return type is retained for v1 API compatibility; Promise-like
-   * transports are unsupported because this channel is not idempotent.
+   * transports are unsupported because this channel also carries
+   * non-idempotent worker protocols.
    */
   postMessage?: (msg: any) => any
 
@@ -157,17 +160,19 @@ function consumePostMessageThenable (result: unknown): void {
   ) {
     return
   }
-  let then: unknown
-  try {
-    then = (result as { then?: unknown }).then
-  } catch (_) {
-    return
-  }
-  if (typeof then === 'function') {
+  void Promise.resolve().then(() => {
+    let then: unknown
     try {
-      then.call(result, undefined, () => {})
-    } catch (_) {}
-  }
+      then = (result as { then?: unknown }).then
+    } catch (_) {
+      return
+    }
+    if (typeof then === 'function') {
+      try {
+        then.call(result, () => {}, () => {})
+      } catch (_) {}
+    }
+  })
 }
 
 /**
@@ -208,11 +213,18 @@ if (!ENVIRONMENT_IS_PTHREAD) {
   if (typeof postMsg !== 'function') {
     throw new TypeError('No postMessage found')
   }
-  emnapiPostMessageTransport = {
-    post: postMsg,
-    throwsAreDefinitelyNotDelivered: isGlobalPostMessage
-  }
   napiModule.postMessage = postMsg
+  emnapiPostMessageTransport = {
+    post (message) {
+      return (napiModule.postMessage as (message: any) => unknown)(message)
+    },
+    get throwsAreDefinitelyNotDelivered () {
+      return (
+        isGlobalPostMessage &&
+        napiModule.postMessage === postMsg
+      )
+    }
+  }
 }
 
 if (typeof options.filename === 'string') {
@@ -268,14 +280,27 @@ function emnapiAddSendListener (worker: any): boolean {
   if (worker._emnapiSendListener) return true
   const handler = function (e: any): void {
     const data = ENVIRONMENT_IS_NODE ? e : e.data
-    const __emnapi__ = data.__emnapi__
+    const __emnapi__ = data?.__emnapi__
     if (__emnapi__ && __emnapi__.type === 'async-send') {
+      const payload = __emnapi__.payload
+      if (
+        !payload ||
+        typeof payload.callback !== 'number' ||
+        !Number.isSafeInteger(payload.callback) ||
+        payload.callback < 0 ||
+        (
+          typeof payload.data !== 'bigint' &&
+          (
+            typeof payload.data !== 'number' ||
+            !Number.isSafeInteger(payload.data)
+          )
+        )
+      ) return
       if (ENVIRONMENT_IS_PTHREAD) {
         emnapiPostMessage({ __emnapi__ })
       } else {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const callback = __emnapi__.payload.callback
-        makeDynCall('vp', 'callback')(__emnapi__.payload.data)
+        const callback = payload.callback
+        makeDynCall('vp', 'callback')(payload.data)
       }
     }
   }

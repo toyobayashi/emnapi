@@ -1,6 +1,8 @@
 import { emnapiCtx } from 'emnapi:shared'
-import { from64, makeSetValue } from 'emscripten:parse-tools'
+import { wasmMemory } from 'emscripten:runtime'
+import { from64 } from 'emscripten:parse-tools'
 import { $CHECK_ENV_NOT_IN_GC, $CHECK_ARG, $PREAMBLE } from './macro'
+import { emnapiMemory } from './memory-view'
 
 /** @__sig ippp */
 export function napi_typeof (env: napi_env, value: napi_value, result: Pointer<napi_valuetype>): napi_status {
@@ -40,7 +42,7 @@ export function napi_typeof (env: napi_env, value: napi_value, result: Pointer<n
     return envObject.setLastError(napi_status.napi_invalid_arg)
   }
 
-  makeSetValue('result', 0, 'r', 'i32')
+  emnapiMemory.setInt32(wasmMemory, result as number, r)
 
   return envObject.clearLastError()
 }
@@ -57,7 +59,7 @@ export function napi_coerce_to_bool (env: napi_env, value: napi_value, result: P
     from64('result')
 
     v = handle.value ? GlobalHandle.TRUE : GlobalHandle.FALSE
-    makeSetValue('result', 0, 'v', '*')
+    emnapiMemory.setPointer(wasmMemory, result as number, v)
     return envObject.getReturnStatus()
   })
 }
@@ -78,7 +80,7 @@ export function napi_coerce_to_number (env: napi_env, value: napi_value, result:
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     v = emnapiCtx.addToCurrentScope(Number(handle.value)).id
-    makeSetValue('result', 0, 'v', '*')
+    emnapiMemory.setPointer(wasmMemory, result as number, v)
     return envObject.getReturnStatus()
   })
 }
@@ -99,7 +101,7 @@ export function napi_coerce_to_object (env: napi_env, value: napi_value, result:
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     v = envObject.ensureHandleId(Object(handle.value))
-    makeSetValue('result', 0, 'v', '*')
+    emnapiMemory.setPointer(wasmMemory, result as number, v)
     return envObject.getReturnStatus()
   })
 }
@@ -120,7 +122,7 @@ export function napi_coerce_to_string (env: napi_env, value: napi_value, result:
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     v = emnapiCtx.addToCurrentScope(String(handle.value)).id
-    makeSetValue('result', 0, 'v', '*')
+    emnapiMemory.setPointer(wasmMemory, result as number, v)
     return envObject.getReturnStatus()
   })
 }
@@ -135,7 +137,7 @@ export function napi_instanceof (env: napi_env, object: napi_value, constructor:
     $CHECK_ARG!(envObject, result)
     $CHECK_ARG!(envObject, constructor)
     from64('result')
-    makeSetValue('result', 0, '0', 'i8')
+    emnapiMemory.setInt8(wasmMemory, result as number, 0)
     const ctor = emnapiCtx.handleStore.get(constructor)!
     if (!ctor.isFunction()) {
       return envObject.setLastError(napi_status.napi_function_expected)
@@ -143,7 +145,7 @@ export function napi_instanceof (env: napi_env, object: napi_value, constructor:
     const val = emnapiCtx.handleStore.get(object)!.value
     const ret = val instanceof ctor.value
     r = ret ? 1 : 0
-    makeSetValue('result', 0, 'r', 'i8')
+    emnapiMemory.setInt8(wasmMemory, result as number, r)
     return envObject.getReturnStatus()
   })
 }
@@ -157,7 +159,7 @@ export function napi_is_array (env: napi_env, value: napi_value, result: Pointer
   from64('result')
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const r = h.isArray() ? 1 : 0
-  makeSetValue('result', 0, 'r', 'i8')
+  emnapiMemory.setInt8(wasmMemory, result as number, r)
   return envObject.clearLastError()
 }
 
@@ -170,7 +172,7 @@ export function napi_is_arraybuffer (env: napi_env, value: napi_value, result: P
   from64('result')
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const r = h.isArrayBuffer() ? 1 : 0
-  makeSetValue('result', 0, 'r', 'i8')
+  emnapiMemory.setInt8(wasmMemory, result as number, r)
   return envObject.clearLastError()
 }
 
@@ -188,7 +190,7 @@ export function node_api_is_sharedarraybuffer (env: napi_env, value: napi_value,
   )
     ? 1
     : 0
-  makeSetValue('result', 0, 'r', 'i8')
+  emnapiMemory.setInt8(wasmMemory, result as number, r)
   return envObject.clearLastError()
 }
 
@@ -201,7 +203,7 @@ export function napi_is_date (env: napi_env, value: napi_value, result: Pointer<
   from64('result')
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const r = h.isDate() ? 1 : 0
-  makeSetValue('result', 0, 'r', 'i8')
+  emnapiMemory.setInt8(wasmMemory, result as number, r)
   return envObject.clearLastError()
 }
 
@@ -214,7 +216,7 @@ export function napi_is_error (env: napi_env, value: napi_value, result: Pointer
   from64('result')
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const r = (val instanceof Error) ? 1 : 0
-  makeSetValue('result', 0, 'r', 'i8')
+  emnapiMemory.setInt8(wasmMemory, result as number, r)
   return envObject.clearLastError()
 }
 
@@ -227,7 +229,7 @@ export function napi_is_typedarray (env: napi_env, value: napi_value, result: Po
   from64('result')
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const r = h.isTypedArray() ? 1 : 0
-  makeSetValue('result', 0, 'r', 'i8')
+  emnapiMemory.setInt8(wasmMemory, result as number, r)
   return envObject.clearLastError()
 }
 
@@ -240,7 +242,7 @@ export function napi_is_buffer (env: napi_env, value: napi_value, result: Pointe
   from64('result')
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const r = h.isBuffer(emnapiCtx.feature.Buffer) ? 1 : 0
-  makeSetValue('result', 0, 'r', 'i8')
+  emnapiMemory.setInt8(wasmMemory, result as number, r)
   return envObject.clearLastError()
 }
 
@@ -253,7 +255,7 @@ export function napi_is_dataview (env: napi_env, value: napi_value, result: Poin
   from64('result')
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const r = h.isDataView() ? 1 : 0
-  makeSetValue('result', 0, 'r', 'i8')
+  emnapiMemory.setInt8(wasmMemory, result as number, r)
   return envObject.clearLastError()
 }
 
@@ -270,7 +272,7 @@ export function napi_strict_equals (env: napi_env, lhs: napi_value, rhs: napi_va
     const rv = emnapiCtx.handleStore.get(rhs)!.value
     from64('result')
     r = (lv === rv) ? 1 : 0
-    makeSetValue('result', 0, 'r', 'i8')
+    emnapiMemory.setInt8(wasmMemory, result as number, r)
     return envObject.getReturnStatus()
   })
 }
@@ -309,11 +311,11 @@ export function napi_is_detached_arraybuffer (env: napi_env, arraybuffer: napi_v
         // eslint-disable-next-line no-new
         new Uint8Array(h.value as ArrayBuffer)
       } catch (_) {
-        makeSetValue('result', 0, '1', 'i8')
+        emnapiMemory.setInt8(wasmMemory, result as number, 1)
         return envObject.getReturnStatus()
       }
     }
-    makeSetValue('result', 0, '0', 'i8')
+    emnapiMemory.setInt8(wasmMemory, result as number, 0)
     return envObject.getReturnStatus()
   })
 }

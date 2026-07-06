@@ -1,9 +1,10 @@
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { emnapiCtx } from 'emnapi:shared'
-import { Module } from 'emscripten:runtime'
-import { from64, makeSetValue } from 'emscripten:parse-tools'
+import { Module, wasmMemory } from 'emscripten:runtime'
+import { from64 } from 'emscripten:parse-tools'
 import { emnapiString } from '../string'
 import { $CHECK_ARG, $PREAMBLE } from '../macro'
+import { emnapiMemory } from '../memory-view'
 
 /**
  * @__sig ipp
@@ -18,7 +19,7 @@ export function emnapi_get_module_object (env: napi_env, result: Pointer<napi_va
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     value = envObject.ensureHandleId(Module)
-    makeSetValue('result', 0, 'value', '*')
+    emnapiMemory.setPointer(wasmMemory, result as number, value)
     return envObject.getReturnStatus()
   })
 }
@@ -38,7 +39,7 @@ export function emnapi_get_module_property (env: napi_env, utf8name: const_char_
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     value = envObject.ensureHandleId(Module[emnapiString.UTF8ToString(utf8name, -1)])
-    makeSetValue('result', 0, 'value', '*')
+    emnapiMemory.setPointer(wasmMemory, result as number, value)
     return envObject.getReturnStatus()
   })
 }

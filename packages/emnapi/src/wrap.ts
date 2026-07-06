@@ -1,9 +1,10 @@
 import { emnapiCtx } from 'emnapi:shared'
 import { wasmMemory } from 'emscripten:runtime'
-import { from64, POINTER_SIZE, makeGetValue, POINTER_WASM_TYPE, makeSetValue } from 'emscripten:parse-tools'
+import { from64, POINTER_SIZE } from 'emscripten:parse-tools'
 import { emnapiString } from './string'
 import { emnapiCreateFunction, emnapiDefineProperty, emnapiWrap, emnapiUnwrap, emnapiGetHandle } from './internal'
 import { $CHECK_ARG, $CHECK_ENV, $CHECK_ENV_NOT_IN_GC, $PREAMBLE } from './macro'
+import { emnapiMemory } from './memory-view'
 
 /**
  * @__sig ipppppppp
@@ -45,15 +46,14 @@ export function napi_define_class (
     for (let i = 0; i < property_count; i++) {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       propPtr = properties + (i * (POINTER_SIZE * 8))
-      const utf8Name = makeGetValue('propPtr', 0, '*')
-      const name = makeGetValue('propPtr', POINTER_SIZE, '*')
-      const method = makeGetValue('propPtr', POINTER_SIZE * 2, '*')
-      const getter = makeGetValue('propPtr', POINTER_SIZE * 3, '*')
-      const setter = makeGetValue('propPtr', POINTER_SIZE * 4, '*')
-      const value = makeGetValue('propPtr', POINTER_SIZE * 5, '*')
-      attributes = makeGetValue('propPtr', POINTER_SIZE * 6, POINTER_WASM_TYPE) as number
-      from64('attributes')
-      const data = makeGetValue('propPtr', POINTER_SIZE * 7, '*')
+      const utf8Name = emnapiMemory.getPointer(wasmMemory, propPtr)
+      const name = emnapiMemory.getPointer(wasmMemory, propPtr + POINTER_SIZE)
+      const method = emnapiMemory.getPointer(wasmMemory, propPtr + POINTER_SIZE * 2)
+      const getter = emnapiMemory.getPointer(wasmMemory, propPtr + POINTER_SIZE * 3)
+      const setter = emnapiMemory.getPointer(wasmMemory, propPtr + POINTER_SIZE * 4)
+      const value = emnapiMemory.getPointer(wasmMemory, propPtr + POINTER_SIZE * 5)
+      attributes = emnapiMemory.getUint32(wasmMemory, propPtr + POINTER_SIZE * 6)
+      const data = emnapiMemory.getPointer(wasmMemory, propPtr + POINTER_SIZE * 7)
 
       if (utf8Name) {
         propertyName = emnapiString.UTF8ToString(utf8Name, -1)
@@ -78,7 +78,7 @@ export function napi_define_class (
     const valueHandle = emnapiCtx.addToCurrentScope(F)
     valueHandleId = valueHandle.id
     from64('result')
-    makeSetValue('result', 0, 'valueHandleId', '*')
+    emnapiMemory.setPointer(wasmMemory, result as number, valueHandleId)
     return envObject.getReturnStatus()
   })
 }
@@ -125,7 +125,13 @@ export function napi_type_tag_object (env: napi_env, object: napi_value, type_ta
       return envObject.setLastError(envObject.tryCatch.hasCaught() ? napi_status.napi_pending_exception : napi_status.napi_invalid_arg)
     }
     const tag = new Uint8Array(16)
-    tag.set(new Uint8Array(wasmMemory.buffer, type_tag, 16))
+    tag.set(
+      new Uint8Array(
+        emnapiMemory.ensureBufferFor(wasmMemory, type_tag as number + 16),
+        type_tag as number,
+        16
+      )
+    )
     binding.tag = new Uint32Array(tag.buffer)
 
     return envObject.getReturnStatus()
@@ -157,7 +163,11 @@ export function napi_check_object_type_tag (env: napi_env, object: napi_value, t
     if (binding.tag !== null) {
       from64('type_tag')
       const tag = binding.tag
-      const typeTag = new Uint32Array(wasmMemory.buffer, type_tag, 4)
+      const typeTag = new Uint32Array(
+        emnapiMemory.ensureBufferFor(wasmMemory, type_tag as number + 16),
+        type_tag as number,
+        4
+      )
       ret = (
         tag[0] === typeTag[0] &&
         tag[1] === typeTag[1] &&
@@ -169,7 +179,7 @@ export function napi_check_object_type_tag (env: napi_env, object: napi_value, t
     }
 
     from64('result')
-    makeSetValue('result', 0, 'ret ? 1 : 0', 'i8')
+    emnapiMemory.setInt8(wasmMemory, result as number, ret ? 1 : 0)
 
     return envObject.getReturnStatus()
   })
@@ -203,7 +213,7 @@ export function napi_add_finalizer (env: napi_env, js_object: napi_value, finali
     from64('result')
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const referenceId = reference.id
-    makeSetValue('result', 0, 'referenceId', '*')
+    emnapiMemory.setPointer(wasmMemory, result as number, referenceId)
   }
 
   return envObject.clearLastError()

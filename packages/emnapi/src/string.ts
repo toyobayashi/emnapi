@@ -1,9 +1,10 @@
 /* eslint-disable @typescript-eslint/indent */
 
 import { wasmMemory } from 'emscripten:runtime'
-import { getUnsharedTextDecoderView, makeSetValue, from64 } from 'emscripten:parse-tools'
+import { getUnsharedTextDecoderView, from64 } from 'emscripten:parse-tools'
 import { emnapiCtx } from 'emnapi:shared'
 import { $CHECK_NEW_STRING_ARGS } from './macro'
+import { emnapiMemory } from './memory-view'
 
 export interface Decoder {
   decode (input: Uint8Array): string
@@ -132,28 +133,41 @@ export var emnapiString = {
   UTF8ToString (ptr: void_p, length: int): string {
     if (!ptr || !length) return ''
     ptr >>>= 0
-    const HEAPU8 = new Uint8Array(wasmMemory.buffer)
+    let HEAPU8 = emnapiMemory.getUint8Array(wasmMemory, ptr + 1)
     let end = ptr
     if (length === -1 || length === 4294967295) {
-      for (; HEAPU8[end];) ++end
+      while (true) {
+        if (end + 1 > HEAPU8.byteLength) {
+          HEAPU8 = emnapiMemory.getUint8Array(wasmMemory, end + 1)
+        }
+        if (!HEAPU8[end]) break
+        end++
+      }
     } else {
       end = ptr + (length >>> 0)
+      HEAPU8 = emnapiMemory.getUint8Array(wasmMemory, end)
     }
 // #if TEXTDECODER != 2
     length = end - ptr
     if (length <= 16) {
       let idx = ptr
+      const readByte = (address: number): number => {
+        if (address + 1 > HEAPU8.byteLength) {
+          HEAPU8 = emnapiMemory.getUint8Array(wasmMemory, address + 1)
+        }
+        return HEAPU8[address]
+      }
       var str = ''
       while (idx < end) {
-        var u0 = HEAPU8[idx++]
+        var u0 = readByte(idx++)
         if (!(u0 & 0x80)) { str += String.fromCharCode(u0); continue }
-        var u1 = HEAPU8[idx++] & 63
+        var u1 = readByte(idx++) & 63
         if ((u0 & 0xE0) === 0xC0) { str += String.fromCharCode(((u0 & 31) << 6) | u1); continue }
-        var u2 = HEAPU8[idx++] & 63
+        var u2 = readByte(idx++) & 63
         if ((u0 & 0xF0) === 0xE0) {
           u0 = ((u0 & 15) << 12) | (u1 << 6) | u2
         } else {
-          u0 = ((u0 & 7) << 18) | (u1 << 12) | (u2 << 6) | (HEAPU8[idx++] & 63)
+          u0 = ((u0 & 7) << 18) | (u1 << 12) | (u2 << 6) | (readByte(idx++) & 63)
         }
 
         if (u0 < 0x10000) {
@@ -169,18 +183,22 @@ export var emnapiString = {
     return emnapiString.utf8Decoder.decode(getUnsharedTextDecoderView('HEAPU8', 'ptr', 'end') as Uint8Array)
   },
   stringToUTF8 (str: string, outPtr: number, maxBytesToWrite: number): number {
-    const HEAPU8 = new Uint8Array(wasmMemory.buffer)
     let outIdx = outPtr
     outIdx >>>= 0
     if (!(maxBytesToWrite > 0)) { return 0 }
 
     var startIdx = outIdx
     var endIdx = outIdx + maxBytesToWrite - 1
+    let HEAPU8 = emnapiMemory.getUint8Array(wasmMemory, Math.min(endIdx + 1, outIdx + 4))
     for (var i = 0; i < str.length; ++i) {
       var u = str.charCodeAt(i)
       if (u >= 0xD800 && u <= 0xDFFF) {
         var u1 = str.charCodeAt(++i)
         u = 0x10000 + ((u & 0x3FF) << 10) | (u1 & 0x3FF)
+      }
+      const requiredEnd = Math.min(endIdx + 1, outIdx + 4)
+      if (requiredEnd > HEAPU8.byteLength) {
+        HEAPU8 = emnapiMemory.getUint8Array(wasmMemory, requiredEnd)
       }
       if (u <= 0x7F) {
         if (outIdx >= endIdx) break
@@ -202,6 +220,9 @@ export var emnapiString = {
         HEAPU8[outIdx++] = 0x80 | (u & 63)
       }
     }
+    if (outIdx + 1 > HEAPU8.byteLength) {
+      HEAPU8 = emnapiMemory.getUint8Array(wasmMemory, outIdx + 1)
+    }
     HEAPU8[outIdx] = 0
     return outIdx - startIdx
   },
@@ -210,21 +231,26 @@ export var emnapiString = {
     ptr >>>= 0
     let end = ptr
     if (length === -1 || length === 4294967295) {
-      let idx = end >>> 1
-      const HEAPU16 = new Uint16Array(wasmMemory.buffer)
-      while (HEAPU16[idx]) ++idx
-      end = (idx << 1) >>> 0
+      let view = emnapiMemory.getDataView(wasmMemory, end + 2)
+      while (true) {
+        if (end + 2 > view.byteLength) {
+          view = emnapiMemory.getDataView(wasmMemory, end + 2)
+        }
+        if (!view.getUint16(end, true)) break
+        end += 2
+      }
     } else {
       end = ptr + (length >>> 0) * 2
     }
 // #if TEXTDECODER != 2
     length = end - ptr
     if (length <= 32) {
-      return String.fromCharCode.apply(null, new Uint16Array(wasmMemory.buffer, ptr, length / 2) as any)
+      const buffer = emnapiMemory.ensureBufferFor(wasmMemory, end)
+      return String.fromCharCode.apply(null, new Uint16Array(buffer, ptr, length / 2) as any)
     }
 // #endif
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const HEAPU8 = new Uint8Array(wasmMemory.buffer)
+    const HEAPU8 = emnapiMemory.getUint8Array(wasmMemory, end)
     return emnapiString.utf16Decoder.decode(getUnsharedTextDecoderView('HEAPU8', 'ptr', 'end') as Uint8Array)
   },
   stringToUTF16 (str: string, outPtr: number, maxBytesToWrite: number): number {
@@ -235,13 +261,19 @@ export var emnapiString = {
     maxBytesToWrite -= 2
     var startPtr = outPtr
     var numCharsToWrite = (maxBytesToWrite < str.length * 2) ? (maxBytesToWrite / 2) : str.length
+    let outputView = emnapiMemory.getDataView(wasmMemory, outPtr + 2)
     for (var i = 0; i < numCharsToWrite; ++i) {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       var codeUnit = str.charCodeAt(i)
-      makeSetValue('outPtr', 0, 'codeUnit', 'i16')
+      if (outPtr + 2 > outputView.buffer.byteLength) {
+        outputView = emnapiMemory.getDataView(wasmMemory, outPtr + 2)
+      }
+      outputView.setUint16(outPtr, codeUnit, true)
       outPtr += 2
     }
-    makeSetValue('outPtr', 0, '0', 'i16')
+    if (outPtr + 2 > outputView.buffer.byteLength) {
+      outputView = emnapiMemory.getDataView(wasmMemory, outPtr + 2)
+    }
+    outputView.setUint16(outPtr, 0, true)
     return outPtr - startPtr
   },
   newString (env: napi_env,
@@ -266,7 +298,7 @@ export var emnapiString = {
     from64('result')
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const value = emnapiCtx.addToCurrentScope(strValue).id
-    makeSetValue('result', 0, 'value', '*')
+    emnapiMemory.setPointer(wasmMemory, result as number, value)
     return envObject.clearLastError()
   },
   newExternalString (
@@ -292,12 +324,30 @@ export var emnapiString = {
     const status = createApi(env, str, length, result)
     if (status === napi_status.napi_ok) {
       if (copied) {
-        makeSetValue('copied', 0, '1', 'i8')
+        emnapiMemory.setInt8(wasmMemory, copied as number, 1)
       }
       if (finalize_callback) {
         envObject.callFinalizer(finalize_callback, str, finalize_hint)
       }
     }
     return status
+  },
+  encode (str: number, autoLength: boolean, sizeLength: number, convert: (c: number) => string) {
+    const end = autoLength ? str + 1 : str + sizeLength
+    let bytes = emnapiMemory.getUint8Array(wasmMemory, end)
+    let latin1String = ''
+    let offset = 0
+    while (true) {
+      if (!autoLength && offset >= sizeLength) break
+      const address = str + offset
+      if (address + 1 > bytes.byteLength) {
+        bytes = emnapiMemory.getUint8Array(wasmMemory, address + 1)
+      }
+      const ch = bytes[address]
+      if (!ch) break
+      latin1String += convert(ch)
+      offset++
+    }
+    return latin1String
   }
 }

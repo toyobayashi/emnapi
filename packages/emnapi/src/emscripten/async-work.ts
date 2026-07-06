@@ -1,7 +1,9 @@
 import { emnapiCtx } from 'emnapi:shared'
-import { from64, makeSetValue } from 'emscripten:parse-tools'
+import { wasmMemory } from 'emscripten:runtime'
+import { from64 } from 'emscripten:parse-tools'
 import { emnapiAWST } from '../async-work'
 import { $CHECK_ARG, $CHECK_ENV, $CHECK_ENV_NOT_IN_GC } from '../macro'
+import { emnapiMemory } from '../memory-view'
 
 /**
  * @__sig ippppppp
@@ -25,7 +27,7 @@ export function napi_create_async_work (env: napi_env, resource: napi_value, res
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const id = emnapiAWST.create(env, resourceObject, resourceName, execute, complete, data)
   from64('result')
-  makeSetValue('result', 0, 'id', '*')
+  emnapiMemory.setPointer(wasmMemory, result, id)
   return envObject.clearLastError()
 }
 

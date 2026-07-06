@@ -1,6 +1,8 @@
 import { emnapiNodeBinding, emnapiCtx } from 'emnapi:shared'
-import { from64, makeSetValue, makeGetValue, POINTER_SIZE } from 'emscripten:parse-tools'
+import { wasmMemory } from 'emscripten:runtime'
+import { from64, makeGetValue, POINTER_SIZE } from 'emscripten:parse-tools'
 import { $PREAMBLE, $CHECK_ARG } from './macro'
+import { emnapiMemory } from './memory-view'
 
 /** @__sig vppdp */
 export function _emnapi_node_emit_async_init (
@@ -18,8 +20,8 @@ export function _emnapi_node_emit_async_init (
   const asyncId = asyncContext.asyncId; const triggerAsyncId = asyncContext.triggerAsyncId
   if (result) {
     from64('result')
-    makeSetValue('result', 0, 'asyncId', 'double')
-    makeSetValue('result', 8, 'triggerAsyncId', 'double')
+    emnapiMemory.setFloat64(wasmMemory, result as number, asyncId)
+    emnapiMemory.setFloat64(wasmMemory, result as number + 8, triggerAsyncId)
   }
 }
 
@@ -79,7 +81,7 @@ export function _emnapi_node_make_callback (env: napi_env, async_resource: napi_
     const envObject = emnapiCtx.envStore.get(env)!
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     v = envObject.ensureHandleId(ret)
-    makeSetValue('result', 0, 'v', '*')
+    emnapiMemory.setPointer(wasmMemory, result as number, v)
   }
 }
 
@@ -111,8 +113,8 @@ export function _emnapi_async_init_js (async_resource: napi_value, async_resourc
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const high = Number(numberValue >> BigInt(32))
   from64('result')
-  makeSetValue('result', 0, 'low', 'i32')
-  makeSetValue('result', 4, 'high', 'i32')
+  emnapiMemory.setInt32(wasmMemory, result as number, low)
+  emnapiMemory.setInt32(wasmMemory, result as number + 4, high)
 
   return napi_status.napi_ok
 }
@@ -191,7 +193,7 @@ export function napi_make_callback (env: napi_env, async_context: Pointer<int64_
       from64('result')
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       v = envObject.ensureHandleId(ret.value)
-      makeSetValue('result', 0, 'v', '*')
+      emnapiMemory.setPointer(wasmMemory, result as number, v)
     }
     return envObject.getReturnStatus()
   })

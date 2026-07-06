@@ -41,9 +41,12 @@ export declare interface NapiModule {
   init (options: InitOptions): any
   initWorker (arg: number, func: [number, number]): void
   /**
-   * Must synchronously enqueue the message or throw before enqueueing it.
+   * Must synchronously enqueue the message. Before throwing for a message that
+   * was not enqueued, set `error.emnapiNotDelivered = true`; unmarked failures
+   * are ambiguous and thread-safe function control messages may be retried.
    * The `any` return type is retained for v1 API compatibility; Promise-like
-   * transports are unsupported because this channel is not idempotent.
+   * transports are unsupported because this channel also carries
+   * non-idempotent worker protocols.
    */
   postMessage?: (msg: any) => any
 
@@ -83,9 +86,12 @@ export declare type BaseCreateOptions = {
   print?: (str: string) => void
   printErr?: (str: string) => void
   /**
-   * Must synchronously enqueue the message or throw before enqueueing it.
+   * Must synchronously enqueue the message. Before throwing for a message that
+   * was not enqueued, set `error.emnapiNotDelivered = true`; unmarked failures
+   * are ambiguous and thread-safe function control messages may be retried.
    * The `any` return type is retained for v1 API compatibility; Promise-like
-   * transports are unsupported because this channel is not idempotent.
+   * transports are unsupported because this channel also carries
+   * non-idempotent worker protocols.
    */
   postMessage?: (msg: any) => any
 }

@@ -1,9 +1,11 @@
 /* eslint-disable @typescript-eslint/indent */
 
 import { emnapiCtx } from 'emnapi:shared'
-import { from64, makeGetValue, makeSetValue } from 'emscripten:parse-tools'
+import { wasmMemory } from 'emscripten:runtime'
+import { from64 } from 'emscripten:parse-tools'
 import { emnapiString } from '../string'
 import { $CHECK_ARG, $CHECK_ENV_NOT_IN_GC, $PREAMBLE } from '../macro'
+import { emnapiMemory } from '../memory-view'
 
 /**
  * @__sig ipip
@@ -14,7 +16,7 @@ export function napi_create_int32 (env: napi_env, value: int32_t, result: Pointe
   from64('result')
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const v = emnapiCtx.addToCurrentScope(value).id
-  makeSetValue('result', 0, 'v', '*')
+  emnapiMemory.setPointer(wasmMemory, result as number, v)
   return envObject.clearLastError()
 }
 
@@ -27,7 +29,7 @@ export function napi_create_uint32 (env: napi_env, value: uint32_t, result: Poin
   from64('result')
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const v = emnapiCtx.addToCurrentScope(value >>> 0).id
-  makeSetValue('result', 0, 'v', '*')
+  emnapiMemory.setPointer(wasmMemory, result as number, v)
   return envObject.clearLastError()
 }
 
@@ -45,13 +47,13 @@ export function napi_create_int64 (env: napi_env, low: int32_t, high: int32_t, r
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const v1 = emnapiCtx.addToCurrentScope(value).id
   from64('high')
-  makeSetValue('high', 0, 'v1', '*')
+  emnapiMemory.setPointer(wasmMemory, high, v1)
 // #else
   if (!result) return envObject.setLastError(napi_status.napi_invalid_arg)
   value = (low >>> 0) + (high * Math.pow(2, 32))
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const v2 = emnapiCtx.addToCurrentScope(value).id
-  makeSetValue('result', 0, 'v2', '*')
+  emnapiMemory.setPointer(wasmMemory, result as number, v2)
 // #endif
 
   return envObject.clearLastError()
@@ -66,7 +68,7 @@ export function napi_create_double (env: napi_env, value: double, result: Pointe
   from64('result')
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const v = emnapiCtx.addToCurrentScope(value).id
-  makeSetValue('result', 0, 'v', '*')
+  emnapiMemory.setPointer(wasmMemory, result as number, v)
   return envObject.clearLastError()
 }
 
@@ -75,25 +77,7 @@ export function napi_create_double (env: napi_env, value: double, result: Pointe
  */
 export function napi_create_string_latin1 (env: napi_env, str: const_char_p, length: size_t, result: Pointer<napi_value>): napi_status {
   return emnapiString.newString(env, str, length, result, (str, autoLength, sizeLength) => {
-    let latin1String = ''
-    let len = 0
-    if (autoLength) {
-      while (true) {
-        const ch = makeGetValue('str', 0, 'u8') as number
-        if (!ch) break
-        latin1String += String.fromCharCode(ch)
-        str++
-      }
-    } else {
-      while (len < sizeLength) {
-        const ch = makeGetValue('str', 0, 'u8') as number
-        if (!ch) break
-        latin1String += String.fromCharCode(ch)
-        len++
-        str++
-      }
-    }
-    return latin1String
+    return emnapiString.encode(str, autoLength, sizeLength, (c) => String.fromCharCode(c))
   })
 }
 
@@ -203,13 +187,13 @@ export function napi_create_bigint_int64 (env: napi_env, low: int32_t, high: int
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const v1 = emnapiCtx.addToCurrentScope(value).id
   from64('high')
-  makeSetValue('high', 0, 'v1', '*')
+  emnapiMemory.setPointer(wasmMemory, high, v1)
 // #else
   if (!result) return envObject.setLastError(napi_status.napi_invalid_arg)
   value = BigInt(low >>> 0) | (BigInt(high) << BigInt(32))
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const v2 = emnapiCtx.addToCurrentScope(value).id
-  makeSetValue('result', 0, 'v2', '*')
+  emnapiMemory.setPointer(wasmMemory, result as number, v2)
 // #endif
 
   return envObject.clearLastError()
@@ -232,13 +216,13 @@ export function napi_create_bigint_uint64 (env: napi_env, low: int32_t, high: in
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const v1 = emnapiCtx.addToCurrentScope(value).id
   from64('high')
-  makeSetValue('high', 0, 'v1', '*')
+  emnapiMemory.setPointer(wasmMemory, high, v1)
 // #else
   if (!result) return envObject.setLastError(napi_status.napi_invalid_arg)
   value = BigInt(low >>> 0) | (BigInt(high >>> 0) << BigInt(32))
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const v2 = emnapiCtx.addToCurrentScope(value).id
-  makeSetValue('result', 0, 'v2', '*')
+  emnapiMemory.setPointer(wasmMemory, result as number, v2)
 // #endif
 
   return envObject.clearLastError()
@@ -267,15 +251,15 @@ export function napi_create_bigint_words (env: napi_env, sign_bit: int, word_cou
     }
     let value: bigint = BigInt(0)
     for (i = 0; i < word_count; i++) {
-      const low = makeGetValue('words', 'i * 8', 'u32')
-      const high = makeGetValue('words', 'i * 8 + 4', 'u32')
+      const low = emnapiMemory.getUint32(wasmMemory, words as number + i * 8)
+      const high = emnapiMemory.getUint32(wasmMemory, words as number + i * 8 + 4)
       const wordi = BigInt(low) | (BigInt(high) << BigInt(32))
       value += wordi << BigInt(64 * i)
     }
     value *= ((BigInt(sign_bit) % BigInt(2) === BigInt(0)) ? BigInt(1) : BigInt(-1))
     from64('result')
     v = emnapiCtx.addToCurrentScope(value).id
-    makeSetValue('result', 0, 'v', '*')
+    emnapiMemory.setPointer(wasmMemory, result as number, v)
     return envObject.getReturnStatus()
   })
 }
