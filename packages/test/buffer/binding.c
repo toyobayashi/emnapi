@@ -140,6 +140,24 @@ static napi_value bufferInfo(napi_env env, napi_callback_info info) {
   return returnValue;
 }
 
+static napi_value bufferFirstByte(napi_env env, napi_callback_info info) {
+  size_t argc = 1;
+  napi_value args[1];
+  NODE_API_CALL(env, napi_get_cb_info(env, info, &argc, args, NULL, NULL));
+  NODE_API_ASSERT(env, argc == 1, "Wrong number of arguments");
+
+  uint8_t* bufferData;
+  size_t bufferLength;
+  NODE_API_CALL(env,
+      napi_get_buffer_info(
+          env, args[0], (void**)(&bufferData), &bufferLength));
+  NODE_API_ASSERT(env, bufferLength > 0, "Expected a non-empty buffer");
+
+  napi_value returnValue;
+  NODE_API_CALL(env, napi_create_uint32(env, bufferData[0], &returnValue));
+  return returnValue;
+}
+
 static napi_value staticBuffer(napi_env env, napi_callback_info info) {
   napi_value theBuffer;
   NODE_API_CALL(env,
@@ -243,6 +261,7 @@ static napi_value Init(napi_env env, napi_value exports) {
     DECLARE_NODE_API_PROPERTY("copyBuffer", copyBuffer),
     DECLARE_NODE_API_PROPERTY("bufferHasInstance", bufferHasInstance),
     DECLARE_NODE_API_PROPERTY("bufferInfo", bufferInfo),
+    DECLARE_NODE_API_PROPERTY("bufferFirstByte", bufferFirstByte),
     DECLARE_NODE_API_PROPERTY("staticBuffer", staticBuffer),
     DECLARE_NODE_API_PROPERTY("invalidObjectAsBuffer", invalidObjectAsBuffer),
     DECLARE_NODE_API_PROPERTY("getMemoryDataAsArray", getMemoryDataAsArray),

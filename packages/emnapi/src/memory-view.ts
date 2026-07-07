@@ -4,6 +4,28 @@ type MemoryDataView = InstanceType<typeof DataView>
 
 const dataViewCache = new WeakMap<WebAssembly.Memory, MemoryDataView>()
 const uint8ArrayCache = new WeakMap<WebAssembly.Memory, Uint8Array>()
+const arrayBufferByteLength = Object.getOwnPropertyDescriptor(
+  ArrayBuffer.prototype,
+  'byteLength'
+)!.get!
+
+function isSharedArrayBuffer (value: ArrayBufferLike): boolean {
+  try {
+    // DataView accepts both ArrayBuffer brands, including cross-realm values.
+    // The ArrayBuffer getter then distinguishes shared memory without relying
+    // on Symbol.toStringTag or a local SharedArrayBuffer constructor.
+    // eslint-disable-next-line no-new
+    new DataView(value, 0, 0)
+  } catch (_) {
+    return false
+  }
+  try {
+    arrayBufferByteLength.call(value)
+    return false
+  } catch (_) {
+    return true
+  }
+}
 
 function normalizeEnd (end: number): number {
 // #if MEMORY64
@@ -21,7 +43,7 @@ function ensureBufferFor (memory: WebAssembly.Memory, end: number): ArrayBufferL
   let buffer = memory.buffer
   if (
     end > buffer.byteLength &&
-    Object.prototype.toString.call(buffer) === '[object SharedArrayBuffer]'
+    isSharedArrayBuffer(buffer)
   ) {
     // Shared memory can grow on another agent while this agent still observes
     // an older, shorter buffer. Unshared memory cannot be stale this way, and

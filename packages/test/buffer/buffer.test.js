@@ -4,8 +4,10 @@ const common = require('../common')
 const { load } = require('../util')
 // const tick = require('util').promisify(require('../tick'))
 
+const loadPromise = load('buffer')
+
 // eslint-disable-next-line camelcase
-module.exports = load('buffer').then(async binding => {
+module.exports = loadPromise.then(async binding => {
   await (async function () {
     assert.strictEqual(binding.newBuffer().toString(), binding.theText)
     assert.strictEqual(binding.newExternalBuffer().toString(), binding.theText)
@@ -49,6 +51,20 @@ module.exports = load('buffer').then(async binding => {
   assert.deepStrictEqual(binding.getMemoryDataAsArray(arrayBuffer), Array(6).fill(99))
   assert.deepStrictEqual(binding.getMemoryDataAsArray(typedArray), Array(6).fill(99))
   assert.deepStrictEqual(binding.getMemoryDataAsArray(dataView), Array(6).fill(99))
+
+  const wasmMemory = loadPromise.Module && loadPromise.Module.wasmMemory
+  if (
+    wasmMemory &&
+    wasmMemory.buffer instanceof ArrayBuffer &&
+    !process.env.EMNAPI_TEST_4GB
+  ) {
+    // The 4GB lane reserves 2GB before each test module is initialized, so
+    // another allocation larger than the current memory cannot fit in wasm32.
+    const initialMemoryByteLength = wasmMemory.buffer.byteLength
+    const forcingBuffer = Buffer.alloc(initialMemoryByteLength + 1, 44)
+    assert.strictEqual(binding.bufferFirstByte(forcingBuffer), 44)
+    assert(wasmMemory.buffer.byteLength > initialMemoryByteLength)
+  }
 
   const buffer = Buffer.allocUnsafe(6).fill(66)
   arrayBuffer = buffer.buffer

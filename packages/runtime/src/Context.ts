@@ -13,8 +13,11 @@ import {
   canSetFunctionName,
   _setImmediate,
   _setTimeout,
+  _clearTimeout,
+  _releaseTimerHandle,
   _Buffer,
   _MessageChannel,
+  type Features,
   version,
   NODE_API_SUPPORTED_VERSION_MAX,
   NAPI_VERSION_EXPERIMENTAL,
@@ -88,36 +91,254 @@ class CleanupQueue {
 }
 
 class NodejsWaitingRequestCounter {
-  private readonly refHandle: { ref: () => void; unref: () => void }
-  private count: number
+  private refHandle?: {
+    ref?: unknown
+    unref?: unknown
+    close?: unknown
+  }
 
-  constructor () {
-    this.refHandle = new _MessageChannel!().port1 as unknown as import('worker_threads').MessagePort
-    this.count = 0
+  private readonly timerBackends: Array<{
+    setTimeout: (callback: () => void, delay: number) => unknown
+    clearTimeout: (timeout: unknown) => void
+  }>
+
+  private timer?: {
+    token: object
+    handle: unknown
+    clearTimeout: (timeout: unknown) => void
+  }
+
+  private refHandleEpoch = 0
+  private refHandleReconciling = false
+  private timerEpoch = 0
+  private count = 0
+
+  constructor (
+    MessageChannelCtor: typeof globalThis.MessageChannel | undefined,
+    timerBackend?: {
+      setTimeout: (callback: () => void, delay: number) => unknown
+      clearTimeout: (timeout: unknown) => void
+    },
+    fallbackTimerBackend?: {
+      setTimeout: (callback: () => void, delay: number) => unknown
+      clearTimeout: (timeout: unknown) => void
+    }
+  ) {
+    if (MessageChannelCtor) {
+      try {
+        this.refHandle = new MessageChannelCtor().port1 as unknown as import('worker_threads').MessagePort
+      } catch (_) {}
+    }
+    this.timerBackends = timerBackend ? [timerBackend] : []
+    if (fallbackTimerBackend) {
+      this.timerBackends.push(fallbackTimerBackend)
+    }
+  }
+
+  private callHandleMethod (
+    handle: unknown,
+    method: 'close' | 'ref' | 'unref'
+  ): boolean {
+    if (
+      !handle ||
+      (typeof handle !== 'object' && typeof handle !== 'function')
+    ) {
+      return false
+    }
+    try {
+      const fn = (handle as Record<string, unknown>)[method]
+      if (typeof fn !== 'function') {
+        return false
+      }
+      fn.call(handle)
+      return true
+    } catch (_) {
+      return false
+    }
+  }
+
+  private discardRefHandle (
+    handle: NonNullable<NodejsWaitingRequestCounter['refHandle']>
+  ): void {
+    if (this.refHandle === handle) {
+      this.refHandle = undefined
+    }
+    if (!this.callHandleMethod(handle, 'close')) {
+      this.callHandleMethod(handle, 'unref')
+    }
+  }
+
+  private reconcileRefHandle (): void {
+    this.refHandleEpoch++
+    if (this.refHandleReconciling) {
+      return
+    }
+    this.refHandleReconciling = true
+    try {
+      while (true) {
+        const epoch = this.refHandleEpoch
+        const shouldRef = this.count !== 0
+        const handle = this.refHandle
+        if (!handle) {
+          if (shouldRef) {
+            if (!this.timer) {
+              this.startTimer()
+            }
+          } else {
+            this.stopTimer()
+          }
+          if (this.refHandleEpoch === epoch) {
+            return
+          }
+          continue
+        }
+
+        if (shouldRef) {
+          const referenced = this.callHandleMethod(handle, 'ref')
+          if (
+            this.refHandleEpoch !== epoch ||
+            this.count === 0 ||
+            this.refHandle !== handle
+          ) {
+            continue
+          }
+          if (!referenced) {
+            this.discardRefHandle(handle)
+            continue
+          }
+          this.stopTimer()
+          if (
+            this.refHandleEpoch === epoch &&
+            this.count !== 0 &&
+            this.refHandle === handle
+          ) {
+            return
+          }
+          continue
+        }
+
+        this.stopTimer()
+        if (
+          this.refHandleEpoch !== epoch ||
+          this.count !== 0 ||
+          this.refHandle !== handle
+        ) {
+          continue
+        }
+        const unreferenced = this.callHandleMethod(handle, 'unref')
+        if (
+          this.refHandleEpoch !== epoch ||
+          this.count !== 0 ||
+          this.refHandle !== handle
+        ) {
+          continue
+        }
+        if (!unreferenced) {
+          this.discardRefHandle(handle)
+          continue
+        }
+        return
+      }
+    } finally {
+      this.refHandleReconciling = false
+    }
+  }
+
+  private releaseTimer (
+    clearTimeout: (timeout: unknown) => void,
+    handle: unknown
+  ): void {
+    try {
+      clearTimeout(handle)
+      return
+    } catch (_) {}
+    if (!this.callHandleMethod(handle, 'close')) {
+      this.callHandleMethod(handle, 'unref')
+    }
+  }
+
+  private startTimer (): void {
+    const epoch = ++this.timerEpoch
+    for (let i = 0; i < this.timerBackends.length; i++) {
+      if (this.count === 0 || this.timerEpoch !== epoch) {
+        return
+      }
+      const backend = this.timerBackends[i]
+      const token = {}
+      let scheduling = true
+      let firedSynchronously = false
+      const callback = (): void => {
+        if (scheduling) {
+          firedSynchronously = true
+          return
+        }
+        if (this.timer?.token !== token) {
+          return
+        }
+        this.timer = undefined
+        if (this.count !== 0) {
+          this.startTimer()
+        }
+      }
+      let handle: unknown
+      try {
+        handle = backend.setTimeout(callback, 0x7fffffff)
+      } catch (_) {
+        scheduling = false
+        continue
+      }
+      scheduling = false
+      if (this.count === 0 || this.timerEpoch !== epoch) {
+        this.releaseTimer(backend.clearTimeout, handle)
+        return
+      }
+      if (firedSynchronously) {
+        this.releaseTimer(backend.clearTimeout, handle)
+        continue
+      }
+      this.timer = {
+        token,
+        handle,
+        clearTimeout: backend.clearTimeout
+      }
+      return
+    }
+  }
+
+  private stopTimer (): void {
+    this.timerEpoch++
+    const timer = this.timer
+    if (!timer) {
+      return
+    }
+    this.timer = undefined
+    this.releaseTimer(timer.clearTimeout, timer.handle)
   }
 
   public increase (): void {
-    if (this.count === 0) {
-      if (this.refHandle.ref) {
-        this.refHandle.ref()
-      }
+    if (this.count !== 0) {
+      this.count++
+      return
     }
-    this.count++
+    // Callers acquire native keepalive state before incrementing this counter,
+    // so scheduler and host-handle failures must never escape.
+    this.count = 1
+    this.reconcileRefHandle()
   }
 
   public decrease (): void {
     if (this.count === 0) return
-    if (this.count === 1) {
-      if (this.refHandle.unref) {
-        this.refHandle.unref()
-      }
-    }
     this.count--
+    if (this.count !== 0) {
+      return
+    }
+    this.reconcileRefHandle()
   }
 }
 
 export interface ContextOptions {
   onExternalMemoryChange?: (current: bigint, old: bigint, delta: bigint) => any
+  features?: Partial<Features>
   /**
    * Whether to destroy the context automatically on Node.js `beforeExit`.
    *
@@ -141,7 +362,7 @@ export class Context {
   private readonly _externalMemory: ExternalMemory
   private readonly beforeExitListener?: () => void
 
-  public feature = {
+  public feature: Features = {
     supportReflect,
     supportFinalizer,
     supportWeakSymbol,
@@ -150,17 +371,52 @@ export class Context {
     canSetFunctionName,
     setImmediate: _setImmediate,
     setTimeout: _setTimeout,
+    clearTimeout: _clearTimeout,
     Buffer: _Buffer,
     MessageChannel: _MessageChannel
   }
 
   public constructor (options?: ContextOptions) {
+    const featureOverrides = options?.features
+    const setTimeoutOverride = featureOverrides?.setTimeout
+    const clearTimeoutOverride = featureOverrides?.clearTimeout
+    const hasSetTimeoutOverride =
+      setTimeoutOverride !== undefined && setTimeoutOverride !== null
+    const hasClearTimeoutOverride =
+      clearTimeoutOverride !== undefined && clearTimeoutOverride !== null
+    this.feature = {
+      ...this.feature,
+      ...featureOverrides,
+      setImmediate: featureOverrides?.setImmediate ?? this.feature.setImmediate,
+      setTimeout: setTimeoutOverride ?? this.feature.setTimeout,
+      clearTimeout: hasSetTimeoutOverride
+        ? clearTimeoutOverride ?? _releaseTimerHandle
+        : this.feature.clearTimeout
+    }
     this.cleanupQueue = new CleanupQueue()
     this._externalMemory = new ExternalMemory(options?.onExternalMemoryChange)
     if (typeof process === 'object' && process !== null && typeof process.once === 'function') {
-      if (_MessageChannel) {
-        this.refCounter = new NodejsWaitingRequestCounter()
-      }
+      const useFeatureTimer =
+        !hasSetTimeoutOverride || hasClearTimeoutOverride
+      const timerBackend =
+        useFeatureTimer &&
+        typeof this.feature.setTimeout === 'function' &&
+        typeof this.feature.clearTimeout === 'function'
+          ? {
+              setTimeout: this.feature.setTimeout.bind(this.feature),
+              clearTimeout: this.feature.clearTimeout.bind(this.feature)
+            }
+          : undefined
+      this.refCounter = new NodejsWaitingRequestCounter(
+        this.feature.MessageChannel,
+        timerBackend,
+        typeof _setTimeout === 'function'
+          ? {
+              setTimeout: _setTimeout,
+              clearTimeout: _clearTimeout
+            }
+          : undefined
+      )
       if (options?.autoDestroy !== false) {
         this.beforeExitListener = () => {
           if (!this._suppressDestroy) {

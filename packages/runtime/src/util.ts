@@ -2,6 +2,23 @@ declare const __webpack_public_path__: any
 declare const __non_webpack_require__: ((id: string) => any) | undefined
 declare const global: typeof globalThis
 
+export interface Features {
+  supportReflect: boolean
+  supportFinalizer: boolean
+  supportWeakSymbol: boolean
+  supportBigInt: boolean
+  supportNewFunction: boolean
+  canSetFunctionName: boolean
+  setImmediate: (callback: () => void) => any
+  setTimeout: ((callback: () => void, delay: number) => any) | undefined
+  /**
+   * Pair this with `setTimeout` when overriding the timer implementation.
+   */
+  clearTimeout?: (timeout: unknown) => void
+  Buffer: BufferCtor | undefined
+  MessageChannel: typeof MessageChannel | undefined
+}
+
 export const supportNewFunction = /*#__PURE__*/ (function () {
   let f: Function
   try {
@@ -146,6 +163,42 @@ export const _setTimeout: typeof setTimeout | undefined =
   typeof setTimeout === 'function'
     ? setTimeout.bind(_global)
     : undefined
+
+export const _releaseTimerHandle = function (timeout: unknown): void {
+  if (
+    !timeout ||
+    (typeof timeout !== 'object' && typeof timeout !== 'function')
+  ) {
+    return
+  }
+  const handle = timeout as {
+    close?: unknown
+    unref?: unknown
+  }
+  try {
+    const close = handle.close
+    if (typeof close === 'function') {
+      close.call(timeout)
+      return
+    }
+  } catch (_) {}
+  try {
+    const unref = handle.unref
+    if (typeof unref === 'function') {
+      unref.call(timeout)
+    }
+  } catch (_) {}
+}
+
+export const _clearTimeout: (timeout: unknown) => void =
+  typeof clearTimeout === 'function'
+    ? (timeout: unknown): void => {
+        clearTimeout.call(
+          _global,
+          timeout as ReturnType<typeof setTimeout>
+        )
+      }
+    : _releaseTimerHandle
 
 export const _Buffer: BufferCtor | undefined = typeof Buffer === 'function'
   ? Buffer

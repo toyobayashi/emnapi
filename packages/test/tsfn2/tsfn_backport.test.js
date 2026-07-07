@@ -72,7 +72,7 @@ function transpile (filename, memory64 = false) {
   }).outputText
 }
 
-function loadMemoryView (memory64 = false) {
+function loadMemoryView (memory64 = false, globals = {}) {
   const filename = path.join(
     __dirname,
     '../../emnapi/src/memory-view.ts'
@@ -88,7 +88,8 @@ function loadMemoryView (memory64 = false) {
     SharedArrayBuffer,
     Uint8Array,
     WeakMap,
-    WebAssembly
+    WebAssembly,
+    ...globals
   }, { filename })
   return testModule.exports.emnapiMemory
 }
@@ -547,12 +548,73 @@ function testMemoryRefresh () {
     0x12345678
   )
 
+  const noSharedConstructorMemory = loadMemoryView(false, {
+    SharedArrayBuffer: undefined
+  })
+  const sharedMemoryWithoutConstructor = new WebAssembly.Memory({
+    initial: 1,
+    maximum: 2,
+    shared: true
+  })
+  const staleBufferWithoutConstructor = sharedMemoryWithoutConstructor.buffer
+  sharedMemoryWithoutConstructor.grow(1)
+  const memoryBufferGetter = Object.getOwnPropertyDescriptor(
+    WebAssembly.Memory.prototype,
+    'buffer'
+  ).get
+  const originalGrow = sharedMemoryWithoutConstructor.grow.bind(
+    sharedMemoryWithoutConstructor
+  )
+  let constructorlessStale = true
+  let constructorlessRefreshes = 0
+  Object.defineProperties(sharedMemoryWithoutConstructor, {
+    buffer: {
+      configurable: true,
+      get () {
+        return constructorlessStale
+          ? staleBufferWithoutConstructor
+          : memoryBufferGetter.call(sharedMemoryWithoutConstructor)
+      }
+    },
+    grow: {
+      configurable: true,
+      value (delta) {
+        assert.strictEqual(delta, 0)
+        constructorlessRefreshes++
+        constructorlessStale = false
+        return originalGrow(delta)
+      }
+    }
+  })
+  try {
+    const address = staleBufferWithoutConstructor.byteLength
+    noSharedConstructorMemory.setUint8(
+      sharedMemoryWithoutConstructor,
+      address,
+      0x5a
+    )
+    assert.strictEqual(constructorlessRefreshes, 1)
+    assert.strictEqual(
+      new Uint8Array(
+        memoryBufferGetter.call(sharedMemoryWithoutConstructor)
+      )[address],
+      0x5a
+    )
+  } finally {
+    delete sharedMemoryWithoutConstructor.buffer
+    delete sharedMemoryWithoutConstructor.grow
+  }
+
   const unsharedMemory = new WebAssembly.Memory({
     initial: 1,
     maximum: 2
   })
   const unsharedBuffer = unsharedMemory.buffer
   let unsharedGrowCalls = 0
+  Object.defineProperty(unsharedBuffer, Symbol.toStringTag, {
+    configurable: true,
+    value: 'SharedArrayBuffer'
+  })
   const guardedUnsharedMemory = {
     get buffer () {
       return unsharedBuffer
@@ -562,16 +624,24 @@ function testMemoryRefresh () {
       throw new Error('unshared memory must not refresh with grow(0)')
     }
   }
-  assert.throws(
-    () => emnapiMemory.setUint32(
-      guardedUnsharedMemory,
-      unsharedBuffer.byteLength,
-      1
-    ),
-    RangeError
-  )
-  assert.strictEqual(unsharedGrowCalls, 0)
-  assert.strictEqual(unsharedBuffer.byteLength, 64 * 1024)
+  try {
+    assert.strictEqual(
+      Object.prototype.toString.call(unsharedBuffer),
+      '[object SharedArrayBuffer]'
+    )
+    assert.throws(
+      () => emnapiMemory.setUint32(
+        guardedUnsharedMemory,
+        unsharedBuffer.byteLength,
+        1
+      ),
+      RangeError
+    )
+    assert.strictEqual(unsharedGrowCalls, 0)
+    assert.strictEqual(unsharedBuffer.byteLength, 64 * 1024)
+  } finally {
+    delete unsharedBuffer[Symbol.toStringTag]
+  }
 }
 
 function testSignedWasm32TopEndpoints () {
