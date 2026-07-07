@@ -13,14 +13,33 @@ export class Deferred<T = any> implements IStoreValue {
     return deferred
   }
 
-  public id: number
-  public ctx: Context
-  public value: IDeferrdValue<T>
+  public id!: number
+  public ctx!: Context
+  public value!: IDeferrdValue<T>
 
   public constructor (ctx: Context, value: IDeferrdValue<T>) {
-    this.id = 0
-    this.ctx = ctx
-    this.value = value
+    // Plain assignment would invoke inherited setters before these fields
+    // become own properties.
+    Object.defineProperties(this, {
+      id: {
+        configurable: true,
+        enumerable: true,
+        value: 0,
+        writable: true
+      },
+      ctx: {
+        configurable: true,
+        enumerable: true,
+        value: ctx,
+        writable: true
+      },
+      value: {
+        configurable: true,
+        enumerable: true,
+        value,
+        writable: true
+      }
+    })
   }
 
   public resolve (value: T): void {

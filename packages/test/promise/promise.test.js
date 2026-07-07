@@ -1,12 +1,61 @@
 /* eslint-disable symbol-description */
 /* eslint-disable camelcase */
+/* eslint-disable no-extend-native, accessor-pairs */
 'use strict'
 const assert = require('assert')
 const common = require('../common')
 const { load } = require('../util')
 
 module.exports = load('promise').then(async test_promise => {
-// A resolution
+  // Deferred state must define its storage as own properties before constructor
+  // or disposal writes can reach inherited setters.
+  {
+    const keys = ['id', 'ctx', 'value']
+    const originalDescriptors = new Map(
+      keys.map(key => [key, Object.getOwnPropertyDescriptor(Object.prototype, key)])
+    )
+    Object.defineProperties(
+      Object.prototype,
+      Object.fromEntries(
+        keys.map(key => [
+          key,
+          {
+            configurable: true,
+            set () {
+              throw new Error(`inherited ${key} setter invoked`)
+            }
+          }
+        ])
+      )
+    )
+
+    try {
+      const resolvedPromise = test_promise.createPromise()
+      test_promise.concludeCurrentPromise(42, true)
+      assert.strictEqual(await resolvedPromise, 42)
+
+      const rejectedPromise = test_promise.createPromise()
+      test_promise.concludeCurrentPromise('rejected', false)
+      let rejection
+      try {
+        await rejectedPromise
+      } catch (err) {
+        rejection = err
+      }
+      assert.strictEqual(rejection, 'rejected')
+    } finally {
+      for (const key of keys) {
+        const descriptor = originalDescriptors.get(key)
+        if (descriptor) {
+          Object.defineProperty(Object.prototype, key, descriptor)
+        } else {
+          delete Object.prototype[key]
+        }
+      }
+    }
+  }
+
+  // A resolution
   {
     const expected_result = 42
     const promise = test_promise.createPromise()
