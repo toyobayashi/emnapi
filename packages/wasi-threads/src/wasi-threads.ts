@@ -57,6 +57,55 @@ export interface StartResult {
 }
 
 const patchedWasiInstances = new WeakMap<WASIThreads, WeakSet<WASIInstance>>()
+const THREAD_SPAWN_RESULT_SIZE = Int32Array.BYTES_PER_ELEMENT * 2
+
+// Intrinsic SharedArrayBuffer.prototype.byteLength getter: it reads the
+// internal slot, so it is a conclusive brand check that a spoofed own
+// Symbol.toStringTag (which fools Object.prototype.toString) cannot satisfy.
+const sharedArrayBufferByteLength: ((this: any) => number) | undefined =
+  typeof SharedArrayBuffer === 'function'
+    ? Object.getOwnPropertyDescriptor(SharedArrayBuffer.prototype, 'byteLength')!.get!
+    : undefined
+
+function isConclusivelySharedArrayBuffer (buffer: ArrayBufferLike): boolean {
+  if (sharedArrayBufferByteLength === undefined) return false
+  try {
+    sharedArrayBufferByteLength.call(buffer)
+    return true
+  } catch (_) {
+    return false
+  }
+}
+
+function getThreadSpawnResultView (
+  memory: WebAssembly.Memory,
+  address: number | bigint,
+  wasm64: boolean
+): Int32Array {
+  // The result pointer arrives across the wasm ABI: an i64 (memory64) address
+  // is a bigint, and an upper-half i32 address is a negative Number. Normalize
+  // it the way malloc results are normalized elsewhere in this file.
+  const offset = typeof address === 'bigint' ? Number(address) : address >>> 0
+  let buffer = memory.buffer
+  if (
+    offset + THREAD_SPAWN_RESULT_SIZE > buffer.byteLength &&
+    // Only refresh shared memory. A conclusive brand check is required here:
+    // grow(0) detaches an *unshared* buffer (spec: even at delta 0), so a
+    // spoofed 'SharedArrayBuffer' tag must never be allowed to reach it.
+    isConclusivelySharedArrayBuffer(buffer)
+  ) {
+    // Another agent may have grown shared memory while this agent still sees
+    // the previous shorter buffer. A zero-page grow refreshes the local view
+    // without changing the memory size.
+    if (wasm64) {
+      ;(memory.grow as any)(BigInt(0))
+    } else {
+      memory.grow(0)
+    }
+    buffer = memory.buffer
+  }
+  return new Int32Array(buffer, offset, 2)
+}
 
 /** @public */
 export class WASIThreads {
@@ -126,7 +175,11 @@ export class WASIThreads {
       } catch (err) {
         this.PThread?.printErr(err.stack)
         if (isNewABI) {
-          const struct = new Int32Array(this.wasmMemory.buffer, errorOrTid!, 2)
+          const struct = getThreadSpawnResultView(
+            this.wasmMemory,
+            errorOrTid!,
+            wasm64
+          )
           Atomics.store(struct, 0, 1)
           Atomics.store(struct, 1, EAGAIN)
           Atomics.notify(struct, 1)
@@ -145,7 +198,11 @@ export class WASIThreads {
       }
       const _free = this.wasmInstance.exports.free as (ptr: number | bigint) => void
       const free = wasm64 ? (ptr: number) => { _free(BigInt(ptr)) } : _free
-      const struct = new Int32Array(this.wasmMemory.buffer, errorOrTid!, 2)
+      const struct = getThreadSpawnResultView(
+        this.wasmMemory,
+        errorOrTid!,
+        wasm64
+      )
       Atomics.store(struct, 0, 0)
       Atomics.store(struct, 1, 0)
 
