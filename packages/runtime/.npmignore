@@ -5,6 +5,7 @@ node_modules
 /src
 .gitignore
 .npmignore
+/test
 api-extractor.json
 tsconfig.json
 /dist/types

@@ -8,14 +8,20 @@
   "types": "./dist/emnapi.d.ts",
   "sideEffects": false,
   "exports": {
-    ".": "./dist/emnapi.js",
+    ".": {
+      "types": "./dist/emnapi.d.ts",
+      "import": "./dist/emnapi.js",
+      "require": "./index.cjs",
+      "default": "./dist/emnapi.js"
+    },
     "./package.json": "./package.json"
   },
   "dependencies": {
     "tslib": "^2.4.0"
   },
   "scripts": {
-    "build": "rollup -c"
+    "build": "rollup -c",
+    "test": "node ./test/index.js"
   },
   "repository": {
     "type": "git",
