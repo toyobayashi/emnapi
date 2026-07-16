@@ -751,7 +751,22 @@ const emnapiTSFN = {
         index,
         1
       )
-      has_more = emnapiTSFN.dispatchOne(func)
+      try {
+        has_more = emnapiTSFN.dispatchOne(func)
+      } catch (err) {
+        // A throwing callback must not leave dispatch_state marked as
+        // dispatching, or every later send() would be swallowed. Re-arm
+        // the state and schedule another drain before rethrowing.
+        if (emnapiTSFN._liveSet.has(func)) {
+          Atomics.exchange(
+            new Uint32Array(emnapiTSFN.ensureBufferFor(dispatchStateAddress + 4)),
+            index,
+            0
+          )
+          emnapiTSFN.send(func)
+        }
+        throw err
+      }
 
       if (Atomics.exchange(
         new Uint32Array(emnapiTSFN.ensureBufferFor(dispatchStateAddress + 4)),
@@ -793,15 +808,16 @@ const emnapiTSFN = {
       }
 
       emnapiCtx.features.setImmediate(() => {
+        // After destroy(), the func address is freed.  Skip the atomics
+        // on that address entirely to avoid use-after-free (JS-side
+        // lifecycle check must run before touching the state words).
+        if (!emnapiTSFN._liveSet.has(func)) {
+          return
+        }
         try {
           // Consume the coalesced wakeup once, then let dispatch() observe any
           // queue mutations through dispatch_state like the C implementation.
           if (Atomics.exchange(state(), pending >>> 2, 0) === 0) {
-            return
-          }
-          // After destroy(), the func address is freed.  Skip dispatch
-          // to avoid use-after-free (JS-side lifecycle check).
-          if (!emnapiTSFN._liveSet.has(func)) {
             return
           }
           emnapiTSFN.dispatch(func)
