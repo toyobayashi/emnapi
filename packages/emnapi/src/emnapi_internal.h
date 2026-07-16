@@ -3,6 +3,33 @@
 
 #include "emnapi.h"
 
+#ifdef EMNAPI_NAPI_RS_IMPORTS
+#include "node_api.h"
+#if NAPI_VERSION >= 8
+// The napi-rs targets resolve every `napi_*` reference through the `env` wasm
+// import module (see the NAPI_EXTERN compile definition in CMakeLists.txt),
+// but napi-rs itself imports the env cleanup hooks from the `napi` module
+// (`#[link(wasm_import_module = "napi")]` in napi-rs crates/napi/src/lib.rs).
+// The last declaration wins in clang, so re-declaring the two hooks here
+// rebinds only these two symbols to the `napi` import module. The
+// re-declaration lives in this shared header because every translation unit
+// referencing the hooks — async_cleanup_hook.c and, in the full composition,
+// threadsafe_function.c — must agree on the import module, or wasm-ld
+// rejects the final link with an import module mismatch.
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wignored-attributes"
+EXTERN_C_START
+__attribute__((__import_module__("napi")))
+napi_status NAPI_CDECL napi_add_env_cleanup_hook(
+    node_api_basic_env env, napi_cleanup_hook fun, void* arg);
+__attribute__((__import_module__("napi")))
+napi_status NAPI_CDECL napi_remove_env_cleanup_hook(
+    node_api_basic_env env, napi_cleanup_hook fun, void* arg);
+EXTERN_C_END
+#pragma clang diagnostic pop
+#endif
+#endif
+
 #if defined(__EMSCRIPTEN__) || defined(__wasi__)
 #include <assert.h>
 #include <stdlib.h>
