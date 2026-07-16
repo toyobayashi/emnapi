@@ -189,6 +189,9 @@ export function napi_make_callback (env: napi_env, async_context: Pointer<int64_
     if (result) {
       from64('result')
 
+      // The makeCallback call into JS above may have grown wasm memory:
+      // resolve v before the write (the store target is evaluated before the
+      // RHS, so an RHS running user JS could write through a stale heap view)
       v = emnapiCtx.napiValueFromJsValue(ret.value)
       makeSetValue('result', 0, 'v', '*')
     }
