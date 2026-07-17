@@ -91,36 +91,34 @@ async function main () {
   //   sysroot
   // ], cwd)
 
-  // const wasip1ToolchainFile = path.join(__dirname, 'wasip1.cmake')
-  // fs.writeFileSync(
-  //   wasip1ToolchainFile,
-  //   fs.readFileSync(wasiToolchainFile, 'utf8').replace(/wasm32-wasi/g, 'wasm32-wasip1'),
-  //   'utf8'
-  // )
+  // wasi-sdk >= 25 ships a toolchain file targeting wasm32-wasip1 directly
+  if (fs.existsSync(path.join(wasiSdkPath, 'share/cmake/wasi-sdk-p1.cmake'))) {
+    await spawn('cmake', [
+      ...generatorOptions,
+      `-DCMAKE_TOOLCHAIN_FILE=${WASI_SDK_PATH}/share/cmake/wasi-sdk-p1.cmake`,
+      `-DWASI_SDK_PREFIX=${WASI_SDK_PATH}`,
+      '-DCMAKE_BUILD_TYPE=Release',
+      '-DCMAKE_VERBOSE_MAKEFILE=1',
+      '-DNAPI_EXPERIMENTAL=1',
+      '-DNODE_API_EXPERIMENTAL_NO_WARNING=1',
+      '-H.',
+      '-Bbuild/wasm32-wasip1'
+    ], cwd)
 
-  // await spawn('cmake', [
-  //   ...generatorOptions,
-  //   `-DCMAKE_TOOLCHAIN_FILE=${wasip1ToolchainFile.replace(/\\/g, '/')}`,
-  //   `-DWASI_SDK_PREFIX=${WASI_SDK_PATH}`,
-  //   '-DCMAKE_BUILD_TYPE=Release',
-  //   '-DCMAKE_VERBOSE_MAKEFILE=1',
-  //   '-DNAPI_EXPERIMENTAL=1',
-  //   '-DNODE_API_EXPERIMENTAL_NO_WARNING=1',
-  //   '-H.',
-  //   '-Bbuild/wasm32-wasip1'
-  // ], cwd)
+    await spawn('cmake', [
+      '--build',
+      'build/wasm32-wasip1'
+    ], cwd)
 
-  // await spawn('cmake', [
-  //   '--build',
-  //   'build/wasm32-wasip1'
-  // ], cwd)
-
-  // await spawn('cmake', [
-  //   '--install',
-  //   'build/wasm32-wasip1',
-  //   '--prefix',
-  //   sysroot
-  // ], cwd)
+    await spawn('cmake', [
+      '--install',
+      'build/wasm32-wasip1',
+      '--prefix',
+      sysroot
+    ], cwd)
+  } else {
+    throw new Error('share/cmake/wasi-sdk-p1.cmake not found, please use latest wasi-sdk')
+  }
 
   let WASI_THREADS_CMAKE_TOOLCHAIN_FILE = ''
   if (fs.existsSync(path.join(wasiSdkPath, 'share/cmake/wasi-sdk-pthread.cmake'))) {
@@ -240,17 +238,58 @@ async function main () {
 
   fs.copySync(path.join(sysroot, 'lib/wasm32-emscripten'), path.join(__dirname, '../packages/emnapi/lib/wasm32-emscripten'))
   fs.copySync(path.join(sysroot, 'lib/wasm64-emscripten'), path.join(__dirname, '../packages/emnapi/lib/wasm64-emscripten'))
+
+  // the freshly built sysroot must contain exactly the expected archive sets;
+  // checked before copying so that stale files in packages/emnapi/lib can
+  // never mask an archive missing from this build
+  for (const [arch, expected] of Object.entries(EXPECTED_WASI_ARCHIVES)) {
+    assertArchiveSet(path.join(sysroot, 'lib', arch), expected)
+  }
+
   // fs.copySync(path.join(sysroot, 'lib/wasm32-wasi'), path.join(__dirname, '../packages/emnapi/lib/wasm32-wasi'))
-  // fs.copySync(path.join(sysroot, 'lib/wasm32-wasip1'), path.join(__dirname, '../packages/emnapi/lib/wasm32-wasip1'))
+  fs.copySync(path.join(sysroot, 'lib/wasm32-wasip1'), path.join(__dirname, '../packages/emnapi/lib/wasm32-wasip1'))
   // fs.copySync(path.join(sysroot, 'lib/wasm32'), path.join(__dirname, '../packages/emnapi/lib/wasm32'))
   if (WASI_THREADS_CMAKE_TOOLCHAIN_FILE) {
     fs.copySync(path.join(sysroot, 'lib/wasm32-wasip1-threads'), path.join(__dirname, '../packages/emnapi/lib/wasm32-wasip1-threads'))
+  }
+
+  // the shipped lib dirs must match exactly too (catches leftovers from
+  // previous local runs, since fs.copySync merges into an existing dir)
+  for (const [arch, expected] of Object.entries(EXPECTED_WASI_ARCHIVES)) {
+    assertArchiveSet(path.join(__dirname, '../packages/emnapi/lib', arch), expected)
   }
 
   crossZip.zipSync(sysroot, path.join(__dirname, 'emnapi.zip'))
   // fs.rmSync(sysroot, { force: true, recursive: true })
 
   console.log(`Output: ${sysroot}`)
+}
+
+// exact archive sets shipped in packages/emnapi/lib for each wasi target;
+// keep in sync with the install() rules in packages/emnapi/CMakeLists.txt
+const EXPECTED_WASI_ARCHIVES = {
+  'wasm32-wasip1': [
+    'libemnapi.a',
+    'libemnapi-basic-napi-rs.a'
+  ],
+  'wasm32-wasip1-threads': [
+    'libemnapi.a',
+    'libemnapi-mt.a',
+    'libemnapi-napi-rs-mt.a'
+  ]
+}
+
+function assertArchiveSet (libDir, expected) {
+  const actual = fs.existsSync(libDir) ? fs.readdirSync(libDir) : []
+  const missing = expected.filter(name => !actual.includes(name))
+  const unexpected = actual.filter(name => !expected.includes(name))
+  if (missing.length > 0 || unexpected.length > 0) {
+    throw new Error(
+      `Unexpected archive set in ${libDir}\n` +
+      `  missing: ${missing.length > 0 ? missing.join(', ') : '(none)'}\n` +
+      `  unexpected: ${unexpected.length > 0 ? unexpected.join(', ') : '(none)'}`
+    )
+  }
 }
 
 main().catch(err => {

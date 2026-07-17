@@ -96,7 +96,7 @@ set(EMNAPI_BASIC_MT_TARGET_NAME "emnapi-basic-mt")
 set(EMNAPI_TARGET_NAME "emnapi")
 set(EMNAPI_MT_TARGET_NAME "emnapi-mt")
 
-set(EMNAPI_BASIC_NAPI_RS_MT_TARGET_NAME "emnapi-basic-napi-rs-mt")
+set(EMNAPI_BASIC_NAPI_RS_TARGET_NAME "emnapi-basic-napi-rs")
 set(EMNAPI_NAPI_RS_MT_TARGET_NAME "emnapi-napi-rs-mt")
 
 set(DLMALLOC_TARGET_NAME "dlmalloc")
@@ -214,38 +214,48 @@ if(EMNAPI_BUILD_BASIC_LIBS)
     target_link_options(${EMNAPI_BASIC_TARGET_NAME} INTERFACE "--js-library=${EMNAPI_JS_LIB}")
   endif()
 
-  if(IS_WASM32 OR IS_WASM32_WASIP1 OR IS_WASM32_WASIP1_THREADS)
+  if(IS_WASM32 OR IS_WASM32_WASIP1_THREADS)
     set(EMNAPI_BUILD_BASIC_MT ON)
   else()
     set(EMNAPI_BUILD_BASIC_MT OFF)
   endif()
 endif()
 
-if(IS_WASM32_WASIP1_THREADS)
+if(IS_WASM32_WASIP1 OR IS_WASM32_WASIP1_THREADS)
   set(EMNAPI_BUILD_FOR_NAPI_RS ON)
 else()
   set(EMNAPI_BUILD_FOR_NAPI_RS OFF)
 endif()
 
+# napi-rs links these archives against plain `extern "C"` declarations, so
+# every `napi_*` reference must resolve through the `env` wasm import module
+# (the NAPI_EXTERN compile definition below), except
+# `napi_add_env_cleanup_hook` / `napi_remove_env_cleanup_hook` which napi-rs
+# imports from the `napi` module: src/emnapi_internal.h re-declares the two
+# hooks under `napi` (EMNAPI_NAPI_RS_IMPORTS) so that every translation unit
+# referencing them — async_cleanup_hook.c and, in the full composition,
+# threadsafe_function.c — binds them to the same import module.
+#
+# wasm32-wasip1-threads ships the FULL composition: the same C async work and
+# thread-safe function implementation the emscripten emnapi-mt archive uses.
+# Plain wasm32-wasip1 ships the basic composition: async work and thread-safe
+# functions remain wasm imports resolved by the JavaScript implementations
+# from @emnapi/core plugins.
 if(EMNAPI_BUILD_FOR_NAPI_RS)
-  add_library(${EMNAPI_NAPI_RS_MT_TARGET_NAME} STATIC ${EMNAPI_SRC} ${UV_SRC})
-  target_include_directories(${EMNAPI_NAPI_RS_MT_TARGET_NAME} PUBLIC ${EMNAPI_INCLUDE})
-  target_compile_definitions(${EMNAPI_NAPI_RS_MT_TARGET_NAME}
-    PUBLIC ${EMNAPI_DEFINES} "NAPI_EXTERN=__attribute__((__import_module__(\"env\")))"
-  )
-
-  if(EMNAPI_BUILD_BASIC_LIBS)
-    add_library(${EMNAPI_BASIC_NAPI_RS_MT_TARGET_NAME} STATIC
-      ${ENAPI_BASIC_SRC}
-      ${UV_SRC}
-      "${CMAKE_CURRENT_SOURCE_DIR}/src/thread/async_worker_create.c"
-      "${CMAKE_CURRENT_SOURCE_DIR}/src/thread/async_worker_init.S"
-    )
-    target_include_directories(${EMNAPI_BASIC_NAPI_RS_MT_TARGET_NAME} PUBLIC ${EMNAPI_INCLUDE})
-    target_compile_definitions(${EMNAPI_BASIC_NAPI_RS_MT_TARGET_NAME}
-      PUBLIC ${EMNAPI_DEFINES} "NAPI_EXTERN=__attribute__((__import_module__(\"env\")))"
-    )
+  if(IS_WASM32_WASIP1_THREADS)
+    set(EMNAPI_NAPI_RS_TARGET ${EMNAPI_NAPI_RS_MT_TARGET_NAME})
+    set(EMNAPI_NAPI_RS_SRC ${EMNAPI_SRC} ${UV_SRC})
+  else()
+    set(EMNAPI_NAPI_RS_TARGET ${EMNAPI_BASIC_NAPI_RS_TARGET_NAME})
+    set(EMNAPI_NAPI_RS_SRC ${ENAPI_BASIC_SRC} ${UV_SRC})
   endif()
+
+  add_library(${EMNAPI_NAPI_RS_TARGET} STATIC ${EMNAPI_NAPI_RS_SRC})
+  target_include_directories(${EMNAPI_NAPI_RS_TARGET} PUBLIC ${EMNAPI_INCLUDE})
+  target_compile_definitions(${EMNAPI_NAPI_RS_TARGET}
+    PUBLIC ${EMNAPI_DEFINES} "NAPI_EXTERN=__attribute__((__import_module__(\"env\")))"
+    PRIVATE "EMNAPI_NAPI_RS_IMPORTS"
+  )
 endif()
 
 if(EMNAPI_BUILD_BASIC_LIBS)
@@ -334,10 +344,7 @@ if(LIB_ARCH)
   endif()
 
   if(EMNAPI_BUILD_FOR_NAPI_RS)
-    install(TARGETS ${EMNAPI_NAPI_RS_MT_TARGET_NAME} DESTINATION "lib/${LIB_ARCH}")
-    if(EMNAPI_BUILD_BASIC_LIBS)
-      install(TARGETS ${EMNAPI_BASIC_NAPI_RS_MT_TARGET_NAME} DESTINATION "lib/${LIB_ARCH}")
-    endif()
+    install(TARGETS ${EMNAPI_NAPI_RS_TARGET} DESTINATION "lib/${LIB_ARCH}")
   endif()
   if(IS_WASM32)
     install(TARGETS ${DLMALLOC_TARGET_NAME} DESTINATION "lib/${LIB_ARCH}")
