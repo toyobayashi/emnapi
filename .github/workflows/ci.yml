@@ -36,6 +36,9 @@ jobs:
       run: npm run rebuild -w packages/test
     - name: Test Emscripten ESM library
       run: npm run test -w packages/ts-transform-emscripten-esm-library
+    - name: Test @emnapi/runtime
+      run: npm run test -w packages/runtime
+      timeout-minutes: 1
     - name: Test building Node-API versions
       run: npm run test:version
     - name: Test target
