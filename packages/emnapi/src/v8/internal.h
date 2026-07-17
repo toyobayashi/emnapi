@@ -24,7 +24,13 @@ struct HandleScopeData final {
 
 class Isolate {
  private:
-  char data_[1024];
+  // The isolate data is accessed through `internal::Address*`
+  // (e.g. `Internals::GetRootSlot`), so it must be at least
+  // pointer-aligned. Without this, whether the static instance in
+  // `Isolate::GetCurrent()` is sufficiently aligned depends on the
+  // surrounding data layout, and misaligned wasm64 i64 loads trap
+  // under SAFE_HEAP=1 (alignment fault).
+  alignas(kApiSystemPointerSize) char data_[1024];
 
  public:
   explicit Isolate();
