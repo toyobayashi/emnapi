@@ -270,16 +270,19 @@ async function main () {
 const EXPECTED_WASI_ARCHIVES = {
   'wasm32-wasip1': [
     'libemnapi.a',
-    'libemnapi-basic-napi-rs.a',
-    'libv8.a'
+    'libemnapi-basic-napi-rs.a'
   ],
   'wasm32-wasip1-threads': [
     'libemnapi.a',
     'libemnapi-mt.a',
-    'libemnapi-napi-rs-mt.a',
-    'libv8.a',
-    'libv8-mt.a'
+    'libemnapi-napi-rs-mt.a'
   ]
+}
+
+if (fs.existsSync(path.join(__dirname, '../packages/emnapi/include/node/v8.h'))) {
+  EXPECTED_WASI_ARCHIVES['wasm32-wasip1'].push('libv8.a')
+  EXPECTED_WASI_ARCHIVES['wasm32-wasip1-threads'].push('libv8.a')
+  EXPECTED_WASI_ARCHIVES['wasm32-wasip1-threads'].push('libv8-mt.a')
 }
 
 function assertArchiveSet (libDir, expected) {
