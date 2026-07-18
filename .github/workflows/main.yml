@@ -50,8 +50,8 @@ jobs:
         needs-emscripten: ${{ inputs.release_target == 'main' && 'true' || 'false' }}
         needs-wasi-sdk: ${{ inputs.release_target == 'main' && 'true' || 'false' }}
         needs-v8-headers: 'false'
-    - name: Update npm
-      run: npm install -g npm@latest
+    # - name: Update npm
+    #   run: npm install -g npm@latest
     - name: NPM Build main packages
       if: ${{ inputs.release_target == 'main' }}
       run: npm run build --workspaces --if-present
