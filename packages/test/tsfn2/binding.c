@@ -22,6 +22,7 @@ void free(void* p);
 struct ctx {
   int in;
   int count;
+  int raw;
   napi_async_work work;
   napi_ref ok_callback;
   napi_threadsafe_function progress_callback;
@@ -37,9 +38,12 @@ static void Execute(napi_env env, void* user_data) {
 #else
     sleep(1);
 #endif
-    int* index = (int*)malloc(sizeof(int));
+    int* index = NULL;
     data->out++;
-    *index = data->out;
+    if (!data->raw) {
+      index = (int*)malloc(sizeof(int));
+      *index = data->out;
+    }
     if (napi_ok != napi_call_threadsafe_function(data->progress_callback, index, napi_tsfn_blocking)) {
       data->status = 1;
       return;
@@ -85,19 +89,23 @@ static void call_js(napi_env env, napi_value cb, void* hint, void* data) {
 }
 
 static napi_value Test(napi_env env, napi_callback_info info) {
-  size_t argc = 4;
-  napi_value argv[4];
+  size_t argc = 5;
+  napi_value argv[5];
   napi_value resname1, resname2;
   NODE_API_CALL(env, napi_get_cb_info(env, info, &argc, argv, NULL, NULL));
   NODE_API_CALL(env, napi_create_string_utf8(env, "progress_callback", -1, &resname1));
   NODE_API_CALL(env, napi_create_string_utf8(env, "tsfntest", -1, &resname2));
 
   int32_t in, count;
+  bool raw = false;
   napi_ref ok_callback;
-  
+
   NODE_API_CALL(env, napi_get_value_int32(env, argv[0], &in));
   NODE_API_CALL(env, napi_get_value_int32(env, argv[1], &count));
   NODE_API_CALL(env, napi_create_reference(env, argv[2], 1, &ok_callback));
+  if (argc > 4) {
+    NODE_API_CALL(env, napi_get_value_bool(env, argv[4], &raw));
+  }
 
   struct ctx* data = (struct ctx*)malloc(sizeof(struct ctx));
   if (!data) {
@@ -106,6 +114,7 @@ static napi_value Test(napi_env env, napi_callback_info info) {
   }
   data->in = in;
   data->count = count;
+  data->raw = raw ? 1 : 0;
   data->ok_callback = ok_callback;
   data->out = in;
   data->status = 0;
@@ -113,7 +122,7 @@ static napi_value Test(napi_env env, napi_callback_info info) {
   NODE_API_CALL(env, napi_create_async_work(env, NULL, resname2, Execute, Complete, data, &data->work));
   NODE_API_CALL(env, napi_create_threadsafe_function(env,
     argv[3], NULL, resname1, 0, 1,
-    data, tsfn_finalize, NULL, call_js, &data->progress_callback));
+    data, tsfn_finalize, NULL, raw ? NULL : call_js, &data->progress_callback));
   NODE_API_CALL(env, napi_queue_async_work(env, data->work));
   return NULL;
 }

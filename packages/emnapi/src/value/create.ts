@@ -464,7 +464,8 @@ export function napi_create_buffer (
       if (!pointer) throw new Error('Out of memory')
       from64('pointer')
       new Uint8Array(wasmMemory.buffer).subarray(pointer, pointer + size).fill(0)
-      const buffer = Buffer.from(wasmMemory.buffer, pointer, size)
+      // capture Buffer.from at creation so a later refreshed view uses it
+      const buffer = emnapiExternalMemory.getBufferFrom()(wasmMemory.buffer, pointer, size) as Uint8Array
       const viewDescriptor: MemoryViewDescriptor = {
         Ctor: Buffer,
         address: pointer,
@@ -571,7 +572,8 @@ export function node_api_create_buffer_from_arraybuffer (
     if (!Buffer) {
       throw emnapiCtx.createNotSupportBufferError('node_api_create_buffer_from_arraybuffer', '')
     }
-    const out = Buffer.from(buffer, byte_offset, byte_length)
+    // capture Buffer.from at creation so a later refreshed view uses it
+    const out = emnapiExternalMemory.getBufferFrom()(buffer, byte_offset, byte_length) as Uint8Array
     if (buffer === wasmMemory.buffer) {
       if (!emnapiExternalMemory.wasmMemoryViewTable.has(out)) {
         emnapiExternalMemory.wasmMemoryViewTable.set(out, {
