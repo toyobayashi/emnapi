@@ -3,7 +3,7 @@
 const assert = require('assert')
 const util = require('util')
 const tick = util.promisify(require('../tick'))
-const { load } = require('../util')
+const { load } = require('../util.mjs')
 
 const loadPromise = load('sharedarraybuffer_mt')
 
