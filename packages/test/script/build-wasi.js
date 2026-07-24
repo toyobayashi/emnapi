@@ -4,7 +4,7 @@ const { spawn, ChildProcessError } = require('../../../script/spawn.js')
 const { which } = require('../../../script/which.js')
 
 async function main () {
-  const buildDir = path.join(__dirname, '../.build/wasm32-wasi')
+  const buildDir = path.join(__dirname, '../.build/wasm32-wasip1')
   const cwd = path.join(__dirname, '..')
 
   fs.rmSync(buildDir, { force: true, recursive: true })
@@ -25,7 +25,7 @@ async function main () {
           ? ['-G', 'Ninja']
           : (process.platform === 'win32' ? ['-G', 'MinGW Makefiles', '-DCMAKE_MAKE_PROGRAM=make'] : [])
       ),
-      `-DCMAKE_TOOLCHAIN_FILE=${WASI_SDK_PATH}/share/cmake/wasi-sdk.cmake`,
+      `-DCMAKE_TOOLCHAIN_FILE=${WASI_SDK_PATH}/share/cmake/wasi-sdk-p1.cmake`,
       `-DWASI_SDK_PREFIX=${WASI_SDK_PATH}`,
       `-DCMAKE_BUILD_TYPE=${process.argv[2] || 'Debug'}`,
       // '-DCMAKE_VERBOSE_MAKEFILE=1',

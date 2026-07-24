@@ -10,7 +10,7 @@
 // return the correct status.
 
 const { mustNotCall } = require('../common')
-const { load } = require('../util')
+const { load } = require('../util.mjs')
 
 function runTests (addon, isVersion8) {
   addon.createRef(mustNotCall())

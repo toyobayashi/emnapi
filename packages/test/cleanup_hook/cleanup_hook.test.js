@@ -1,7 +1,7 @@
 /* eslint-disable camelcase */
 'use strict'
 const assert = require('assert')
-const { load } = require('../util')
+const { load } = require('../util.mjs')
 const child_process = require('child_process')
 
 if (process.argv[2] === 'child') {

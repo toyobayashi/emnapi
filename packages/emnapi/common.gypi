@@ -206,11 +206,11 @@
                     },
                   }, {
                     # wasi
-                    'cflags': [ '--target=wasm32-wasi' ],
-                    'ldflags': [ '--target=wasm32-wasi' ],
+                    'cflags': [ '--target=wasm32-wasip1' ],
+                    'ldflags': [ '--target=wasm32-wasip1' ],
                     'xcode_settings': {
-                      'WARNING_CFLAGS': [ '--target=wasm32-wasi' ],
-                      'OTHER_LDFLAGS': [ '--target=wasm32-wasi' ],
+                      'WARNING_CFLAGS': [ '--target=wasm32-wasip1' ],
+                      'OTHER_LDFLAGS': [ '--target=wasm32-wasip1' ],
                     },
                   }],
                 ],

@@ -1,6 +1,6 @@
 'use strict'
 const assert = require('assert')
-const { load } = require('../util')
+const { load } = require('../util.mjs')
 
 // eslint-disable-next-line camelcase
 module.exports = load('array').then(test_array => {

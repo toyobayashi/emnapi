@@ -41,15 +41,15 @@
       "toolchainFile": "${sourceDir}/../emnapi/cmake/wasm32.cmake"
     },
     {
-      "name": "configure: wasm32-wasi",
-      "displayName": "configure: wasm32-wasi",
+      "name": "configure: wasm32-wasip1",
+      "displayName": "configure: wasm32-wasip1",
       "generator": "Ninja",
-      "binaryDir": "${sourceDir}/.build/wasm32-wasi",
+      "binaryDir": "${sourceDir}/.build/wasm32-wasip1",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
         "WASI_SDK_PREFIX": "$env{WASI_SDK_PATH}"
       },
-      "toolchainFile": "$env{WASI_SDK_PATH}/share/cmake/wasi-sdk.cmake"
+      "toolchainFile": "$env{WASI_SDK_PATH}/share/cmake/wasi-sdk-p1.cmake"
     },
     {
       "name": "configure: wasm32-wasip1-threads",
@@ -80,8 +80,8 @@
       "configurePreset": "configure: wasm32-unknown-unknown"
     },
     {
-      "name": "build: wasm32-wasi",
-      "configurePreset": "configure: wasm32-wasi"
+      "name": "build: wasm32-wasip1",
+      "configurePreset": "configure: wasm32-wasip1"
     },
     {
       "name": "build: wasm32-wasip1-threads",

@@ -5,7 +5,7 @@
 
 const assert = require('assert')
 const common = require('../common')
-const { load } = require('../util')
+const { load } = require('../util.mjs')
 
 const supportFinalizer = typeof FinalizationRegistry === 'function'
 

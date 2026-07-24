@@ -24,7 +24,7 @@ assert.strictEqual(
   'precondition: the shared memory buffer must be a genuine SAB'
 )
 
-const { load } = require('../util')
+const { load } = require('../util.mjs')
 
 load('buffer').then((binding) => {
   const r = binding.getArrayBufferInfoOutputs(sab)

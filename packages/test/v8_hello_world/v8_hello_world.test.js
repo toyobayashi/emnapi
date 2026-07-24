@@ -1,6 +1,6 @@
 'use strict'
 const assert = require('assert')
-const { load, getEntry } = require('../util')
+const { load, getEntry } = require('../util.mjs')
 
 module.exports = load('v8_hello_world').then(async binding => {
   assert.strictEqual(binding.hello(), 'world');

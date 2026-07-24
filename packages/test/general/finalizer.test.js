@@ -4,7 +4,7 @@
 'use strict'
 const assert = require('assert')
 const common = require('../common')
-const { load } = require('../util')
+const { load } = require('../util.mjs')
 
 module.exports = load('general').then(async test_general => {
   let finalized = {}

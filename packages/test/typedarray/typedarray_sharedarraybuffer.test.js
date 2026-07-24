@@ -5,7 +5,7 @@
 // napi_create_typedarray() while preserving existing ArrayBuffer behavior.
 
 const assert = require('assert')
-const { load } = require('../util')
+const { load } = require('../util.mjs')
 
 module.exports = load('typedarray_sharedarraybuffer').then(
   (test_typedarray_sharedarraybuffer) => {

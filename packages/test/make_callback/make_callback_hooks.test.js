@@ -1,7 +1,7 @@
 /* eslint-disable camelcase */
 'use strict'
 const assert = require('assert')
-const { load } = require('../util')
+const { load } = require('../util.mjs')
 const async_hooks = require('async_hooks')
 
 module.exports = load('make_callback', { nodeBinding: require('@emnapi/node-binding') }).then(async binding => {

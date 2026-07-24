@@ -55,24 +55,24 @@
     //     "CMake: configure wasm32-unknown-unknown"
     //   ]
     // },
-    // {
-    //   "type": "cmake",
-    //   "label": "CMake: configure wasm32-wasi",
-    //   "command": "configure",
-    //   "preset": "configure: wasm32-wasi",
-    //   "detail": "configure: wasm32-wasi"
-    // },
-    // {
-    //   "type": "cmake",
-    //   "label": "CMake: build wasm32-wasi",
-    //   "command": "build",
-    //   "preset": "build: wasm32-wasi",
-    //   "detail": "build: wasm32-wasi",
-    //   "group": "build",
-    //   "dependsOn": [
-    //     "CMake: configure wasm32-wasi"
-    //   ]
-    // },
+    {
+      "type": "cmake",
+      "label": "CMake: configure wasm32-wasip1",
+      "command": "configure",
+      "preset": "configure: wasm32-wasip1",
+      "detail": "configure: wasm32-wasip1"
+    },
+    {
+      "type": "cmake",
+      "label": "CMake: build wasm32-wasip1",
+      "command": "build",
+      "preset": "build: wasm32-wasip1",
+      "detail": "build: wasm32-wasip1",
+      "group": "build",
+      "dependsOn": [
+        "CMake: configure wasm32-wasip1"
+      ]
+    },
     {
       "type": "cmake",
       "label": "CMake: configure wasm32-wasip1-threads",

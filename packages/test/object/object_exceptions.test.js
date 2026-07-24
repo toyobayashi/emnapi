@@ -1,7 +1,7 @@
 /* eslint-disable symbol-description */
 /* eslint-disable camelcase */
 'use strict'
-const { load } = require('../util')
+const { load } = require('../util.mjs')
 const common = require('../common')
 
 module.exports = load('object_exception').then(test_object => {
