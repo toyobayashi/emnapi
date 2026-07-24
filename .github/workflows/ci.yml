@@ -18,6 +18,9 @@ permissions:
   id-token: write
   contents: write
 
+env:
+  EMNAPI_TEST_CONCURRENCY: '4'
+
 jobs:
   wasm32-unknown-emscripten:
     timeout-minutes: 15
