@@ -32,7 +32,7 @@ permissions:
   contents: write
 
 env:
-  NODE_VERSION: '24.11.1'
+  NODE_VERSION: '24.18.0'
   MAIN_EM_VERSION: '4.0.23'
 
 jobs:

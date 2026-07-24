@@ -15,7 +15,7 @@ function getDir () {
   if ('EMNAPI_TEST_WASI_THREADS' in process.env) {
     buildDir = process.env.MEMORY64 ? '.build/wasm64-wasip1-threads' : '.build/wasm32-wasip1-threads'
   } else if ('EMNAPI_TEST_WASI' in process.env) {
-    buildDir = process.env.MEMORY64 ? '.build/wasm64-wasi' : '.build/wasm32-wasi'
+    buildDir = process.env.MEMORY64 ? '.build/wasm64-wasip1' : '.build/wasm32-wasip1'
   } else if ('EMNAPI_TEST_WASM32' in process.env) {
     buildDir = process.env.MEMORY64 ? '.build/wasm64-unknown-unknown' : '.build/wasm32-unknown-unknown'
   } else if ('EMNAPI_TEST_NATIVE' in process.env) {

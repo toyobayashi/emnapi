@@ -25,7 +25,7 @@ async function main () {
           ? ['-G', 'Ninja']
           : (process.platform === 'win32' ? ['-G', 'MinGW Makefiles', '-DCMAKE_MAKE_PROGRAM=make'] : [])
       ),
-      `-DCMAKE_TOOLCHAIN_FILE=${WASI_SDK_PATH}/share/cmake/wasi-sdk.cmake`,
+      `-DCMAKE_TOOLCHAIN_FILE=${WASI_SDK_PATH}/share/cmake/wasi-sdk-p1.cmake`,
       `-DWASI_SDK_PREFIX=${WASI_SDK_PATH}`,
       `-DCMAKE_BUILD_TYPE=${process.argv[2] || 'Debug'}`,
       // '-DCMAKE_VERBOSE_MAKEFILE=1',
