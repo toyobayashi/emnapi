@@ -3,11 +3,13 @@ const path = require('path')
 const chalk = require('chalk')
 
 const cwd = process.cwd()
-console.log(chalk.blueBright(`=> ${process.argv[2]}`))
+const childReporter = process.env.EMNAPI_TEST_CHILD_REPORTER === '1'
+if (!childReporter) console.log(chalk.blueBright(`=> ${process.argv[2]}`))
 const start = Date.now()
 const entry = require(path.join(cwd, process.argv[2]))
 
 process.once('exit', code => {
+  if (childReporter) return
   if (entry.skip) return
   if (code === 0) {
     console.log(chalk.greenBright(`✔  ${process.argv[2]} ${(Date.now() - start) / 1000}s`))
