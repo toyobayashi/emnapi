@@ -10,6 +10,7 @@ if (process.env.EMNAPI_TEST_WASI_THREADS) {
 }
 
 const { spawn } = require('child_process')
+const os = require('os')
 const path = require('path')
 const glob = require('glob')
 const chalk = require('chalk')
@@ -20,7 +21,10 @@ const cwd = path.join(__dirname, '..')
 const options = parseOptions(process.argv.slice(2))
 const subdir = options.subdir
 const silent = options.silent
-const concurrency = parseConcurrency(process.env.EMNAPI_TEST_CONCURRENCY)
+const concurrency = parseConcurrency(
+  process.env.EMNAPI_TEST_CONCURRENCY,
+  process.env.EMNAPI_TEST_4GB ? 2 : os.availableParallelism()
+)
 const startTime = Date.now()
 
 let ignore = [
@@ -412,8 +416,8 @@ function parseOptions (args) {
   return { subdir, silent }
 }
 
-function parseConcurrency (value) {
-  if (value === undefined || value === '') return 1
+function parseConcurrency (value, defaultValue) {
+  if (value === undefined || value === '') return defaultValue
 
   const parsed = Number(value)
   if (!Number.isInteger(parsed) || parsed < 1) {
