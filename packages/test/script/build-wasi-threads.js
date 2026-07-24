@@ -18,6 +18,13 @@ async function main () {
   }
   WASI_SDK_PATH = WASI_SDK_PATH.replace(/\\/g, '/')
 
+  const wasip1ThreadsToolchainFile = path.join(__dirname, '../../../script/wasip1-threads.cmake')
+  fs.writeFileSync(
+    wasip1ThreadsToolchainFile,
+    fs.readFileSync(`${WASI_SDK_PATH}/share/cmake/wasi-sdk-pthread.cmake`, 'utf8').replace(/wasm32-wasi-threads/g, 'wasm32-wasip1-threads'),
+    'utf8'
+  )
+
   try {
     await spawn('cmake', [
       ...(
@@ -25,7 +32,7 @@ async function main () {
           ? ['-G', 'Ninja']
           : (process.platform === 'win32' ? ['-G', 'MinGW Makefiles', '-DCMAKE_MAKE_PROGRAM=make'] : [])
       ),
-      `-DCMAKE_TOOLCHAIN_FILE=${WASI_SDK_PATH}/share/cmake/wasi-sdk-pthread.cmake`,
+      `-DCMAKE_TOOLCHAIN_FILE=${wasip1ThreadsToolchainFile.replace(/\\/g, '/')}`,
       `-DWASI_SDK_PREFIX=${WASI_SDK_PATH}`,
       `-DCMAKE_BUILD_TYPE=${process.argv[2] || 'Debug'}`,
       // '-DCMAKE_VERBOSE_MAKEFILE=1',

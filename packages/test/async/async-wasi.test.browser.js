@@ -29,7 +29,7 @@ test('async-wasi', async function main () {
     })
 
     const p = new Promise((resolve, reject) => {
-      loadNapiModule(napiModule, '../.build/wasm32-wasi-threads/Debug/async.wasm', {
+      loadNapiModule(napiModule, '../.build/wasm32-wasip1-threads/Debug/async.wasm', {
         wasi,
         overwriteImports (importObject) {
           importObject.env.memory = wasmMemory
