@@ -34,6 +34,12 @@ export function napi_get_arraybuffer_info (env: napi_env, arraybuffer: napi_valu
   if (!handle.isArrayBuffer() && !emnapiExternalMemory.isSharedArrayBuffer(handle.value)) {
     return envObject.setLastError(napi_status.napi_invalid_arg)
   }
+  // metadata is read through cached intrinsic getters (internal slots, like
+  // native Node-API): no user JS can run inside this call. Only emnapi's own
+  // getArrayBufferPointer() can still grow the memory (malloc for the copy of
+  // an external buffer), which detaches the previous non-shared buffer, so
+  // each value is resolved into a local BEFORE its makeSetValue write (the
+  // store target is evaluated before the RHS).
   if (data) {
     from64('data')
 
@@ -43,7 +49,10 @@ export function napi_get_arraybuffer_info (env: napi_env, arraybuffer: napi_valu
   }
   if (byte_length) {
     from64('byte_length')
-    makeSetValue('byte_length', 0, 'handle.value.byteLength', SIZE_TYPE)
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const len = emnapiExternalMemory.bufferByteLength(handle.value)
+    makeSetValue('byte_length', 0, 'len', SIZE_TYPE)
   }
   return envObject.clearLastError()
 }
@@ -113,68 +122,73 @@ export function napi_get_typedarray_info (
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, typedarray)
   const handle = emnapiCtx.handleStore.get(typedarray)!
-  if (!handle.isTypedArray()) {
+  if (!(emnapiExternalMemory.intrinsics.isView(handle.value))) {
     return envObject.setLastError(napi_status.napi_invalid_arg)
   }
   let v: ArrayBufferView = handle.value
+  // all view metadata (kind, buffer, byteOffset, length) is read through
+  // cached intrinsic prototype getters: like native Node-API they read the
+  // internal slots, never consult user accessors (no user JS can run inside
+  // this call) and work for instances from any realm. Only emnapi's own
+  // getViewPointer() can still grow the memory (malloc for the copy of an
+  // external buffer), which detaches the previous non-shared buffer, so each
+  // value is resolved into a local BEFORE its makeSetValue write (the store
+  // target is evaluated before the RHS).
   if (type) {
     from64('type')
     let t: napi_typedarray_type
-    if (v instanceof Int8Array) {
-      t = napi_typedarray_type.napi_int8_array
-    } else if (v instanceof Uint8Array) {
-      t = napi_typedarray_type.napi_uint8_array
-    } else if (v instanceof Uint8ClampedArray) {
-      t = napi_typedarray_type.napi_uint8_clamped_array
-    } else if (v instanceof Int16Array) {
-      t = napi_typedarray_type.napi_int16_array
-    } else if (v instanceof Uint16Array) {
-      t = napi_typedarray_type.napi_uint16_array
-    } else if (v instanceof Int32Array) {
-      t = napi_typedarray_type.napi_int32_array
-    } else if (v instanceof Uint32Array) {
-      t = napi_typedarray_type.napi_uint32_array
-    } else if (typeof Float16Array === 'function' && v instanceof Float16Array) {
-      t = napi_typedarray_type.napi_float16_array
-    } else if (v instanceof Float32Array) {
-      t = napi_typedarray_type.napi_float32_array
-    } else if (v instanceof Float64Array) {
-      t = napi_typedarray_type.napi_float64_array
-    } else if (v instanceof BigInt64Array) {
-      t = napi_typedarray_type.napi_bigint64_array
-    } else if (v instanceof BigUint64Array) {
+    switch (emnapiExternalMemory.intrinsics.typedArray.tag.call(v)) {
+      case 'Int8Array': t = napi_typedarray_type.napi_int8_array; break
+      case 'Uint8Array': t = napi_typedarray_type.napi_uint8_array; break
+      case 'Uint8ClampedArray': t = napi_typedarray_type.napi_uint8_clamped_array; break
+      case 'Int16Array': t = napi_typedarray_type.napi_int16_array; break
+      case 'Uint16Array': t = napi_typedarray_type.napi_uint16_array; break
+      case 'Int32Array': t = napi_typedarray_type.napi_int32_array; break
+      case 'Uint32Array': t = napi_typedarray_type.napi_uint32_array; break
+      case 'Float16Array': t = napi_typedarray_type.napi_float16_array; break
+      case 'Float32Array': t = napi_typedarray_type.napi_float32_array; break
+      case 'Float64Array': t = napi_typedarray_type.napi_float64_array; break
+      case 'BigInt64Array': t = napi_typedarray_type.napi_bigint64_array; break
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      t = napi_typedarray_type.napi_biguint64_array
-    } else {
-      return envObject.setLastError(napi_status.napi_generic_failure)
+      case 'BigUint64Array': t = napi_typedarray_type.napi_biguint64_array; break
+      default:
+        return envObject.setLastError(napi_status.napi_generic_failure)
     }
     makeSetValue('type', 0, 't', 'i32')
   }
   v = emnapiExternalMemory.getOrUpdateMemoryView(v)
   if (length) {
     from64('length')
-    makeSetValue('length', 0, 'v.length', SIZE_TYPE)
-  }
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const len = emnapiExternalMemory.viewLength(v)
+    makeSetValue('length', 0, 'len', SIZE_TYPE)
+  }
   if (data || arraybuffer) {
     if (data) {
       from64('data')
 
+      const vp = emnapiExternalMemory.getViewPointer(v, true)
+      v = vp.view
+
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const p: number = emnapiExternalMemory.getViewPointer(v, true).address
+      const p: number = vp.address
       makeSetValue('data', 0, 'p', '*')
     }
     if (arraybuffer) {
       from64('arraybuffer')
 
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const ab = envObject.ensureHandleId(v.buffer)
+      const ab = envObject.ensureHandleId(emnapiExternalMemory.viewBuffer(v))
       makeSetValue('arraybuffer', 0, 'ab', '*')
     }
   }
   if (byte_offset) {
     from64('byte_offset')
-    makeSetValue('byte_offset', 0, 'v.byteOffset', SIZE_TYPE)
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const offset = emnapiExternalMemory.viewByteOffset(v)
+    makeSetValue('byte_offset', 0, 'offset', SIZE_TYPE)
   }
   return envObject.clearLastError()
 }
@@ -191,8 +205,12 @@ export function napi_get_buffer_info (
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, buffer)
   const handle = emnapiCtx.handleStore.get(buffer)!
-  $RETURN_STATUS_IF_FALSE!(envObject, handle.isBuffer(emnapiCtx.feature.Buffer), napi_status.napi_invalid_arg)
-  if (handle.isDataView()) {
+  const Buffer = emnapiCtx.feature.Buffer
+  const bool = (emnapiExternalMemory.intrinsics.isView(handle.value) || (typeof Buffer === 'function' && Buffer.isBuffer(handle.value)))
+  $RETURN_STATUS_IF_FALSE!(envObject, bool, napi_status.napi_invalid_arg)
+  // any-realm slot-based classification: the intrinsic @@toStringTag getter
+  // returns undefined exactly for DataViews among ArrayBuffer views
+  if (emnapiExternalMemory.intrinsics.typedArray.tag.call(handle.value) === undefined) {
     return napi_get_dataview_info(env, buffer, length, data, 0, 0)
   }
   return napi_get_typedarray_info(env, buffer, 0, length, data, 0, 0)
@@ -212,34 +230,51 @@ export function napi_get_dataview_info (
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, dataview)
   const handle = emnapiCtx.handleStore.get(dataview)!
-  if (!handle.isDataView()) {
+  // any-realm slot-based classification (see napi_get_buffer_info)
+  if (!(emnapiExternalMemory.intrinsics.isView(handle.value)) || emnapiExternalMemory.intrinsics.typedArray.tag.call(handle.value) !== undefined) {
     return envObject.setLastError(napi_status.napi_invalid_arg)
   }
-  const v = emnapiExternalMemory.getOrUpdateMemoryView(handle.value as DataView<ArrayBufferLike>)
+  let v: ArrayBufferView = emnapiExternalMemory.getOrUpdateMemoryView(handle.value as DataView<ArrayBufferLike>)
+  // all view metadata is read through cached intrinsic prototype getters:
+  // like native Node-API they read the internal slots, never consult user
+  // accessors (no user JS can run inside this call) and work for instances
+  // from any realm. Only emnapi's own getViewPointer() can still grow the
+  // memory (malloc for the copy of an external buffer), which detaches the
+  // previous non-shared buffer, so each value is resolved into a local
+  // BEFORE its makeSetValue write (the store target is evaluated before
+  // the RHS).
   if (byte_length) {
     from64('byte_length')
-    makeSetValue('byte_length', 0, 'v.byteLength', SIZE_TYPE)
-  }
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const len = emnapiExternalMemory.viewLength(v)
+    makeSetValue('byte_length', 0, 'len', SIZE_TYPE)
+  }
   if (data || arraybuffer) {
     if (data) {
       from64('data')
 
+      const vp = emnapiExternalMemory.getViewPointer(v, true)
+      v = vp.view
+
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const p: number = emnapiExternalMemory.getViewPointer(v, true).address
+      const p: number = vp.address
       makeSetValue('data', 0, 'p', '*')
     }
     if (arraybuffer) {
       from64('arraybuffer')
 
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const ab = envObject.ensureHandleId(v.buffer)
+      const ab = envObject.ensureHandleId(emnapiExternalMemory.viewBuffer(v))
       makeSetValue('arraybuffer', 0, 'ab', '*')
     }
   }
   if (byte_offset) {
     from64('byte_offset')
-    makeSetValue('byte_offset', 0, 'v.byteOffset', SIZE_TYPE)
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const offset = emnapiExternalMemory.viewByteOffset(v)
+    makeSetValue('byte_offset', 0, 'offset', SIZE_TYPE)
   }
   return envObject.clearLastError()
 }

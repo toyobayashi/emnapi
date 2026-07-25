@@ -97,7 +97,8 @@ export function emnapi_create_memory_view (
     }
     const Ctor = viewDescriptor.Ctor
     const typedArray = typedarray_type === emnapi_memory_view_type.emnapi_buffer
-      ? emnapiCtx.feature.Buffer!.from(wasmMemory.buffer, viewDescriptor.address, viewDescriptor.length)
+      // capture Buffer.from at creation so a later refreshed view uses it
+      ? emnapiExternalMemory.getBufferFrom()(wasmMemory.buffer, viewDescriptor.address, viewDescriptor.length)
       : new Ctor(wasmMemory.buffer, viewDescriptor.address, viewDescriptor.length)
     const handle = emnapiCtx.addToCurrentScope(typedArray)
     emnapiExternalMemory.wasmMemoryViewTable.set(typedArray, viewDescriptor)
@@ -138,12 +139,21 @@ export function emnapi_is_node_binding_available (): int {
   return emnapiNodeBinding ? 1 : 0
 }
 
+/**
+ * Synchronize data between the wasm memory and an ArrayBuffer / view.
+ *
+ * Note: when a non-shared wasm memory has grown, a view over the detached
+ * old buffer is re-created over the current buffer through the intrinsic
+ * base-class constructor, so for view inputs the returned view may be a
+ * base-class instance (e.g. `Uint8Array` or `DataView`) instead of the
+ * subclass that was passed in.
+ */
 export function $emnapiSyncMemory<T extends ArrayBufferLike | ArrayBufferView> (
   js_to_wasm: boolean,
   arrayBufferOrView: T,
   offset?: number,
   len?: int
-): T {
+): T extends ArrayBufferView ? ArrayBufferView : T {
   offset = offset ?? 0
   offset = offset >>> 0
   let view: Uint8Array
@@ -154,7 +164,7 @@ export function $emnapiSyncMemory<T extends ArrayBufferLike | ArrayBufferView> (
       len = arrayBufferOrView.byteLength - offset
     }
     len = len >>> 0
-    if (len === 0) return arrayBufferOrView
+    if (len === 0) return arrayBufferOrView as (T extends ArrayBufferView ? ArrayBufferView : T)
     view = new Uint8Array(arrayBufferOrView, offset, len)
 
     const wasmMemoryU8 = new Uint8Array(wasmMemory.buffer)
@@ -164,7 +174,7 @@ export function $emnapiSyncMemory<T extends ArrayBufferLike | ArrayBufferView> (
       wasmMemoryU8.set(view, pointer)
     }
 
-    return arrayBufferOrView
+    return arrayBufferOrView as (T extends ArrayBufferView ? ArrayBufferView : T)
   }
 
   if (ArrayBuffer.isView(arrayBufferOrView)) {
@@ -176,7 +186,7 @@ export function $emnapiSyncMemory<T extends ArrayBufferLike | ArrayBufferView> (
       len = latestView.byteLength - offset
     }
     len = len >>> 0
-    if (len === 0) return latestView
+    if (len === 0) return latestView as (T extends ArrayBufferView ? ArrayBufferView : T)
     view = new Uint8Array(latestView.buffer, latestView.byteOffset + offset, len)
 
     const wasmMemoryU8 = new Uint8Array(wasmMemory.buffer)
@@ -186,7 +196,7 @@ export function $emnapiSyncMemory<T extends ArrayBufferLike | ArrayBufferView> (
       wasmMemoryU8.set(view, pointer)
     }
 
-    return latestView
+    return latestView as (T extends ArrayBufferView ? ArrayBufferView : T)
   }
   throw new TypeError('emnapiSyncMemory expect ArrayBuffer or ArrayBufferView as first parameter')
 }

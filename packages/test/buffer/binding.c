@@ -202,6 +202,142 @@ static napi_value getMemoryDataAsArray(napi_env env, napi_callback_info info) {
   return ret;
 }
 
+static napi_value getMemoryFirstByte(napi_env env, napi_callback_info info) {
+  size_t argc = 1;
+  napi_value args[1];
+  NODE_API_CALL(env, napi_get_cb_info(env, info, &argc, args, NULL, NULL));
+  NODE_API_ASSERT(env, argc == 1, "Wrong number of arguments");
+  uint8_t* data;
+  size_t size;
+  bool is_arraybuffer, is_dataview;
+  NODE_API_CALL(env, napi_is_arraybuffer(env, args[0], &is_arraybuffer));
+  NODE_API_CALL(env, napi_is_dataview(env, args[0], &is_dataview));
+  if (is_arraybuffer) {
+    NODE_API_CALL(env,
+        napi_get_arraybuffer_info(env, args[0], (void**)(&data), &size));
+  } else if (is_dataview) {
+    NODE_API_CALL(env,
+        napi_get_dataview_info(
+            env, args[0], &size, (void**)(&data), NULL, NULL));
+  } else {
+    NODE_API_CALL(env,
+        napi_get_buffer_info(env, args[0], (void**)(&data), &size));
+  }
+  NODE_API_ASSERT(env, size > 0, "Expected non-empty data");
+
+  napi_value returnValue;
+  NODE_API_CALL(env, napi_create_uint32(env, data[0], &returnValue));
+  return returnValue;
+}
+
+static napi_value getInfoOutputs(napi_env env, napi_callback_info info) {
+  size_t argc = 2;
+  napi_value args[2];
+  NODE_API_CALL(env, napi_get_cb_info(env, info, &argc, args, NULL, NULL));
+  NODE_API_ASSERT(env, argc >= 1, "Wrong number of arguments");
+  bool with_type = false;
+  if (argc > 1) {
+    NODE_API_CALL(env, napi_get_value_bool(env, args[1], &with_type));
+  }
+  bool is_dataview;
+  NODE_API_CALL(env, napi_is_dataview(env, args[0], &is_dataview));
+  void* data = NULL;
+  napi_value arraybuffer = NULL;
+  size_t byte_offset = (size_t)-1;
+  size_t length = 0;
+  napi_typedarray_type type = (napi_typedarray_type)-1;
+  if (is_dataview) {
+    NODE_API_CALL(env,
+        napi_get_dataview_info(
+            env, args[0], &length, &data, &arraybuffer, &byte_offset));
+  } else {
+    NODE_API_CALL(env,
+        napi_get_typedarray_info(
+            env, args[0], with_type ? &type : NULL, &length, &data,
+            &arraybuffer, &byte_offset));
+  }
+
+  napi_value ret, data_value, length_value, byte_offset_value;
+  NODE_API_CALL(env, napi_create_object(env, &ret));
+  NODE_API_CALL(env,
+      napi_create_double(env, (double)(size_t)data, &data_value));
+  NODE_API_CALL(env, napi_create_double(env, (double)length, &length_value));
+  NODE_API_CALL(env,
+      napi_create_double(env, (double)byte_offset, &byte_offset_value));
+  NODE_API_CALL(env, napi_set_named_property(env, ret, "data", data_value));
+  NODE_API_CALL(env, napi_set_named_property(env, ret, "length", length_value));
+  NODE_API_CALL(env,
+      napi_set_named_property(env, ret, "byteOffset", byte_offset_value));
+  NODE_API_CALL(env,
+      napi_set_named_property(env, ret, "arraybuffer", arraybuffer));
+  if (with_type && !is_dataview) {
+    napi_value type_value;
+    NODE_API_CALL(env, napi_create_int32(env, (int32_t)type, &type_value));
+    NODE_API_CALL(env, napi_set_named_property(env, ret, "type", type_value));
+  }
+  return ret;
+}
+
+// Calls napi_get_dataview_info UNCONDITIONALLY (no realm-local napi_is_dataview
+// dispatch), so a cross-realm DataView actually exercises that entry point.
+// Returns the raw status plus the four outputs.
+static napi_value getDataViewInfoOutputs(napi_env env, napi_callback_info info) {
+  size_t argc = 1;
+  napi_value args[1];
+  NODE_API_CALL(env, napi_get_cb_info(env, info, &argc, args, NULL, NULL));
+  NODE_API_ASSERT(env, argc == 1, "Wrong number of arguments");
+  void* data = NULL;
+  napi_value arraybuffer = NULL;
+  size_t byte_offset = (size_t)-1;
+  size_t length = 0;
+  napi_status status = napi_get_dataview_info(
+      env, args[0], &length, &data, &arraybuffer, &byte_offset);
+
+  napi_value ret, status_value, data_value, length_value, byte_offset_value;
+  NODE_API_CALL(env, napi_create_object(env, &ret));
+  NODE_API_CALL(env, napi_create_int32(env, (int32_t)status, &status_value));
+  NODE_API_CALL(env, napi_set_named_property(env, ret, "status", status_value));
+  if (status == napi_ok) {
+    NODE_API_CALL(env,
+        napi_create_double(env, (double)(size_t)data, &data_value));
+    NODE_API_CALL(env, napi_create_double(env, (double)length, &length_value));
+    NODE_API_CALL(env,
+        napi_create_double(env, (double)byte_offset, &byte_offset_value));
+    NODE_API_CALL(env, napi_set_named_property(env, ret, "data", data_value));
+    NODE_API_CALL(env,
+        napi_set_named_property(env, ret, "length", length_value));
+    NODE_API_CALL(env,
+        napi_set_named_property(env, ret, "byteOffset", byte_offset_value));
+    NODE_API_CALL(env,
+        napi_set_named_property(env, ret, "arraybuffer", arraybuffer));
+  }
+  return ret;
+}
+
+static napi_value getArrayBufferInfoOutputs(napi_env env,
+                                            napi_callback_info info) {
+  size_t argc = 1;
+  napi_value args[1];
+  NODE_API_CALL(env, napi_get_cb_info(env, info, &argc, args, NULL, NULL));
+  NODE_API_ASSERT(env, argc == 1, "Wrong number of arguments");
+  void* data = NULL;
+  size_t byte_length = 0;
+  napi_status status =
+      napi_get_arraybuffer_info(env, args[0], &data, &byte_length);
+
+  napi_value ret, status_value, byte_length_value;
+  NODE_API_CALL(env, napi_create_object(env, &ret));
+  NODE_API_CALL(env, napi_create_int32(env, (int32_t)status, &status_value));
+  NODE_API_CALL(env, napi_set_named_property(env, ret, "status", status_value));
+  if (status == napi_ok) {
+    NODE_API_CALL(env,
+        napi_create_double(env, (double)byte_length, &byte_length_value));
+    NODE_API_CALL(env,
+        napi_set_named_property(env, ret, "byteLength", byte_length_value));
+  }
+  return ret;
+}
+
 static napi_value bufferFromArrayBuffer(napi_env env,
                                         napi_callback_info info) {
   napi_status status;
@@ -246,6 +382,10 @@ static napi_value Init(napi_env env, napi_value exports) {
     DECLARE_NODE_API_PROPERTY("staticBuffer", staticBuffer),
     DECLARE_NODE_API_PROPERTY("invalidObjectAsBuffer", invalidObjectAsBuffer),
     DECLARE_NODE_API_PROPERTY("getMemoryDataAsArray", getMemoryDataAsArray),
+    DECLARE_NODE_API_PROPERTY("getMemoryFirstByte", getMemoryFirstByte),
+    DECLARE_NODE_API_PROPERTY("getInfoOutputs", getInfoOutputs),
+    DECLARE_NODE_API_PROPERTY("getDataViewInfoOutputs", getDataViewInfoOutputs),
+    DECLARE_NODE_API_PROPERTY("getArrayBufferInfoOutputs", getArrayBufferInfoOutputs),
     DECLARE_NODE_API_PROPERTY("bufferFromArrayBuffer", bufferFromArrayBuffer),
   };
 
