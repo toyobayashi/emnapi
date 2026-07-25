@@ -20,7 +20,7 @@ permissions:
   contents: write
 
 env:
-  NODE_VERSION: '24.11.1'
+  NODE_VERSION: '24.18.0'
   MAIN_EM_VERSION: '4.0.23'
 
 jobs:
@@ -37,8 +37,8 @@ jobs:
         em-version: ${{ env.MAIN_EM_VERSION }}
         needs-emscripten: ${{ inputs.release_target == 'main' && 'true' || 'false' }}
         needs-wasi-sdk: ${{ inputs.release_target == 'main' && 'true' || 'false' }}
-    - name: Update npm
-      run: npm install -g npm@latest
+    # - name: Update npm
+    #   run: npm install -g npm@latest
     - name: NPM Build main packages
       if: ${{ inputs.release_target == 'main' }}
       run: npm run build --workspaces --if-present
