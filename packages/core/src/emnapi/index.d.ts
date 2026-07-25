@@ -28,12 +28,21 @@ export declare interface NapiModule {
   filename: string
   childThread: boolean
   emnapi: {
+    /**
+     * Synchronize data between the wasm memory and an ArrayBuffer / view.
+     *
+     * Note: when a non-shared wasm memory has grown, a view over the
+     * detached old buffer is re-created over the current buffer through the
+     * intrinsic base-class constructor, so for view inputs the returned view
+     * may be a base-class instance (e.g. `Uint8Array` or `DataView`)
+     * instead of the subclass that was passed in.
+     */
     syncMemory<T extends ArrayBuffer | ArrayBufferView> (
       js_to_wasm: boolean,
       arrayBufferOrView: T,
       offset?: number,
       len?: number
-    ): T
+    ): T extends ArrayBufferView ? ArrayBufferView : T
     getMemoryAddress (arrayBufferOrView: ArrayBuffer | ArrayBufferView): PointerInfo
     addSendListener (worker: any): boolean
   }
