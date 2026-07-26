@@ -41,6 +41,10 @@ inputs:
     description: Whether to fetch v8 headers
     required: false
     default: 'true'
+  needs-browser:
+    description: Whether to install Chromium for Vitest browser tests
+    required: false
+    default: 'false'
 
 runs:
   using: composite
@@ -88,6 +92,10 @@ runs:
     run: |
       npm install -g node-gyp
       npm install --ignore-scripts
+  - name: Install Chromium
+    if: ${{ inputs.needs-browser == 'true' }}
+    shell: bash
+    run: npx playwright install --with-deps chromium
   - name: Fetch v8 headers
     if: ${{ inputs.needs-v8-headers == 'true' }}
     shell: bash

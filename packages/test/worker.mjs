@@ -23,6 +23,8 @@ import { v8, asyncWork, tsfn } from '../../node_modules/@emnapi/core/dist/plugin
 
   if (ENVIRONMENT_IS_NODE) {
     ready = (async function () {
+      // Install the worker globals before the first await yields execution.
+      // eslint-disable-next-line prefer-const
       let parentPort
       Object.assign(globalThis, {
         self: globalThis,
@@ -55,7 +57,7 @@ import { v8, asyncWork, tsfn } from '../../node_modules/@emnapi/core/dist/plugin
     })()
   } else {
     ready = (async function () {
-      const { Buffer } = await import('https://esm.sh/buffer@6.0.3')
+      const { Buffer } = await import('buffer')
       globalThis.Buffer = Buffer
       const memfs = await import('../../node_modules/memfs-browser/dist/memfs.esm.js')
       const wasmUtil = await import('../../node_modules/@tybys/wasm-util/dist/wasm-util.esm.js')

@@ -28,7 +28,6 @@ const concurrency = parseConcurrency(
 const startTime = Date.now()
 
 let ignore = [
-  'rust/**/*',
   'tsfn2/tsfn2_st.test.js',
   'async/async_st.test.js',
 ]
@@ -59,7 +58,6 @@ if (process.env.EMNAPI_TEST_NATIVE) {
     ...ignore,
     'filename/**/*',
     'objwrap/objwrapref.test.js',
-    // 'rust/**/*',
     '**/{emnapitest,node-addon-api}/**/*'
   ])]
 } else if (!process.env.EMNAPI_TEST_WASI_THREADS && (process.env.EMNAPI_TEST_WASI || process.env.EMNAPI_TEST_WASM32)) {
@@ -70,7 +68,6 @@ if (process.env.EMNAPI_TEST_NATIVE) {
 } else {
   ignore = [...new Set([
     ...ignore,
-    // 'rust/**/*'
   ])]
 }
 

@@ -30,6 +30,7 @@ jobs:
       with:
         target: 'wasm32-unknown-emscripten'
         needs-emscripten: 'true'
+        needs-browser: 'true'
     - name: NPM Build
       run: npm run build --workspaces --if-present
     - name: Build target
@@ -44,6 +45,9 @@ jobs:
     - name: Test target
       run: npm run test -w packages/test
       timeout-minutes: 3
+    - name: Test target in browser
+      run: npm run test:browser -w packages/test
+      timeout-minutes: 5
     - name: Test target (4GB)
       run: EMNAPI_TEST_CONCURRENCY=2 EMNAPI_TEST_4GB=1 npm run test -w packages/test
       timeout-minutes: 3
@@ -59,6 +63,7 @@ jobs:
       with:
         target: 'wasm64-unknown-emscripten'
         needs-emscripten: 'true'
+        needs-browser: 'true'
     - name: NPM Build
       run: npm run build --workspaces --if-present
     - name: Build target
@@ -66,6 +71,9 @@ jobs:
     - name: Test target
       run: MEMORY64=1 UV_THREADPOOL_SIZE=2 NODE_TEST_KNOWN_GLOBALS=0 node ./packages/test/script/test.js
       timeout-minutes: 3
+    - name: Test target in browser
+      run: npm run test:browser:wasm64 -w packages/test
+      timeout-minutes: 5
     - name: Test target (4GB)
       run: MEMORY64=1 EMNAPI_TEST_CONCURRENCY=2 EMNAPI_TEST_4GB=1 UV_THREADPOOL_SIZE=2 NODE_TEST_KNOWN_GLOBALS=0 node ./packages/test/script/test.js
       timeout-minutes: 3
@@ -81,6 +89,7 @@ jobs:
       with:
         target: 'wasm32-wasip1-threads'
         needs-wasi-sdk: 'true'
+        needs-browser: 'true'
     - name: NPM Build
       run: npm run build --workspaces --if-present
     - name: Build target
@@ -93,6 +102,9 @@ jobs:
     - name: Test target
       run: npm run test:wt -w packages/test
       timeout-minutes: 3
+    - name: Test target in browser
+      run: npm run test:browser:wt -w packages/test
+      timeout-minutes: 5
     - name: Test target (4GB)
       run: EMNAPI_TEST_CONCURRENCY=2 EMNAPI_TEST_4GB=1 npm run test:wt -w packages/test
       timeout-minutes: 3
@@ -108,6 +120,7 @@ jobs:
       with:
         target: 'wasm32-wasip1-threads-js'
         needs-wasi-sdk: 'true'
+        needs-browser: 'true'
     - name: NPM Build
       run: npm run build --workspaces --if-present
     - name: Build target
@@ -115,6 +128,9 @@ jobs:
     - name: Test target
       run: npm run test:wt -w packages/test
       timeout-minutes: 3
+    - name: Test target in browser
+      run: npm run test:browser:wt -w packages/test
+      timeout-minutes: 5
     - name: Test target (4GB)
       run: EMNAPI_TEST_CONCURRENCY=2 EMNAPI_TEST_4GB=1 npm run test:wt -w packages/test
       timeout-minutes: 3
@@ -130,12 +146,16 @@ jobs:
       with:
         target: 'wasm32-wasip1'
         needs-wasi-sdk: 'true'
+        needs-browser: 'true'
     - name: NPM Build
       run: npm run build --workspaces --if-present
     - name: Build target
       run: npm run rebuild:w -w packages/test
     - name: Test target
       run: npm run test:w -w packages/test
+    - name: Test target in browser
+      run: npm run test:browser:w -w packages/test
+      timeout-minutes: 5
     - name: Test target (4GB)
       run: EMNAPI_TEST_CONCURRENCY=2 EMNAPI_TEST_4GB=1 npm run test:w -w packages/test
 
@@ -150,11 +170,15 @@ jobs:
       with:
         target: 'wasm32-unknown-unknown'
         needs-wasi-sdk: 'true'
+        needs-browser: 'true'
     - name: NPM Build
       run: npm run build --workspaces --if-present
     - name: Build target
       run: npm run rebuild:wasm32 -w packages/test
     - name: Test target
       run: npm run test:wasm32 -w packages/test
+    - name: Test target in browser
+      run: npm run test:browser:wasm32 -w packages/test
+      timeout-minutes: 5
     - name: Test target (4GB)
       run: EMNAPI_TEST_CONCURRENCY=2 EMNAPI_TEST_4GB=1 npm run test:wasm32 -w packages/test
