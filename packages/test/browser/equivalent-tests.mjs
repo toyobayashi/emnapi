@@ -132,28 +132,6 @@ async function nodeAddonAsyncWorker () {
   })
 }
 
-async function nodeAddonThreadsafeFunction () {
-  const binding = await loadSmoke('naa_binding_noexcept')
-  const tsfn = binding.threadsafe_function
-  const values = []
-
-  await new Promise((resolve) => {
-    tsfn.startThread((value) => {
-      values.push(value)
-      if (values.length === tsfn.ARRAY_LENGTH) {
-        tsfn.stopThread(resolve, false)
-      }
-    }, false, false, 0)
-  })
-
-  assert.deepStrictEqual(
-    values,
-    Array.from({ length: tsfn.ARRAY_LENGTH }, (_, index) => {
-      return tsfn.ARRAY_LENGTH - 1 - index
-    })
-  )
-}
-
 async function safeFinalizer (target) {
   await loadSmoke(target)
   await workerFailure('finalizer error')
@@ -221,7 +199,6 @@ const equivalents = {
   },
   'node-addon-api/async_worker.test.js': nodeAddonAsyncWorker,
   'node-addon-api/error.test.js': () => workerFailure('fatal addon error'),
-  'node-addon-api/threadsafe_function/threadsafe_function.test.js': nodeAddonThreadsafeFunction,
   'objwrap/objwrapbasicfinalizer.test.js': objectWrapFinalizer,
   'pool/pool.test.js': async () => {
     const binding = await loadSmoke('pool')

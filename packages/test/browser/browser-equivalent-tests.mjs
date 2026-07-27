@@ -18,7 +18,6 @@ export const browserEquivalentTests = new Map([
   ['make_callback/make_callback_hooks.test.js', 'requires Node async_hooks and @emnapi/node-binding'],
   ['node-addon-api/async_worker.test.js', 'branches on the host Node runtime version'],
   ['node-addon-api/error.test.js', 'asserts child-process fatal-error behavior'],
-  ['node-addon-api/threadsafe_function/threadsafe_function.test.js', 'repeated TSFN finalization joins can stall the Emscripten browser main thread'],
   ['objwrap/objwrapbasicfinalizer.test.js', 'uses Node-only garbage-collection helpers'],
   ['pool/pool.test.js', 'relies on Node worker-pool lifecycle semantics'],
   ['ref/ref.test.js', 'requires deterministic weak-reference collection'],
