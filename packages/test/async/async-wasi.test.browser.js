@@ -10,10 +10,12 @@ test('async-wasi', async function main () {
   const init = async function () {
     const { WASI } = await import('../../../node_modules/@tybys/wasm-util/dist/wasm-util.esm.js')
     const { createNapiModule, loadNapiModule } = await import('../../core/dist/emnapi-core.js')
+    const { asyncWork } = await import('../../core/dist/plugins/index.js')
     const { getDefaultContext } = await import('../../runtime/dist/emnapi.js')
     const wasi = new WASI()
     const napiModule = createNapiModule({
       context: getDefaultContext(),
+      asyncWorkPoolSize: 4,
       reuseWorker: {
         size: 4
       },
@@ -21,6 +23,7 @@ test('async-wasi', async function main () {
       onCreateWorker () {
         return new Worker(new URL('../worker.mjs', import.meta.url), { type: 'module' })
       },
+      plugins: [asyncWork]
     })
     const wasmMemory = new WebAssembly.Memory({
       initial: 16777216 / 65536,

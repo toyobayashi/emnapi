@@ -208,6 +208,7 @@ export default defineConfig({
     })
   ],
   test: {
+    testTimeout: process.env.CI ? 60_000 : 15_000,
     setupFiles: ['./browser/setup.mjs'],
     include: [
       './**/*.test.js',

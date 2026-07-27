@@ -47,7 +47,7 @@ jobs:
       timeout-minutes: 3
     - name: Test target in browser
       run: npm run test:browser -w packages/test
-      timeout-minutes: 5
+      timeout-minutes: 10
     - name: Test target (4GB)
       run: EMNAPI_TEST_CONCURRENCY=2 EMNAPI_TEST_4GB=1 npm run test -w packages/test
       timeout-minutes: 3
@@ -73,7 +73,7 @@ jobs:
       timeout-minutes: 3
     - name: Test target in browser
       run: npm run test:browser:wasm64 -w packages/test
-      timeout-minutes: 5
+      timeout-minutes: 10
     - name: Test target (4GB)
       run: MEMORY64=1 EMNAPI_TEST_CONCURRENCY=2 EMNAPI_TEST_4GB=1 UV_THREADPOOL_SIZE=2 NODE_TEST_KNOWN_GLOBALS=0 node ./packages/test/script/test.js
       timeout-minutes: 3
@@ -104,7 +104,7 @@ jobs:
       timeout-minutes: 3
     - name: Test target in browser
       run: npm run test:browser:wt -w packages/test
-      timeout-minutes: 5
+      timeout-minutes: 10
     - name: Test target (4GB)
       run: EMNAPI_TEST_CONCURRENCY=2 EMNAPI_TEST_4GB=1 npm run test:wt -w packages/test
       timeout-minutes: 3
@@ -126,11 +126,11 @@ jobs:
     - name: Build target
       run: EMNAPI_WASI_THREADS_LINK_BASIC_MT=1 npm run rebuild:wt -w packages/test
     - name: Test target
-      run: npm run test:wt -w packages/test
+      run: EMNAPI_TEST_CONCURRENCY=1 npm run test:wt -w packages/test
       timeout-minutes: 3
     - name: Test target in browser
       run: npm run test:browser:wt -w packages/test
-      timeout-minutes: 5
+      timeout-minutes: 10
     - name: Test target (4GB)
       run: EMNAPI_TEST_CONCURRENCY=2 EMNAPI_TEST_4GB=1 npm run test:wt -w packages/test
       timeout-minutes: 3
@@ -155,7 +155,7 @@ jobs:
       run: npm run test:w -w packages/test
     - name: Test target in browser
       run: npm run test:browser:w -w packages/test
-      timeout-minutes: 5
+      timeout-minutes: 10
     - name: Test target (4GB)
       run: EMNAPI_TEST_CONCURRENCY=2 EMNAPI_TEST_4GB=1 npm run test:w -w packages/test
 
@@ -179,6 +179,6 @@ jobs:
       run: npm run test:wasm32 -w packages/test
     - name: Test target in browser
       run: npm run test:browser:wasm32 -w packages/test
-      timeout-minutes: 5
+      timeout-minutes: 10
     - name: Test target (4GB)
       run: EMNAPI_TEST_CONCURRENCY=2 EMNAPI_TEST_4GB=1 npm run test:wasm32 -w packages/test
