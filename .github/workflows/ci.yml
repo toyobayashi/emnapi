@@ -19,166 +19,104 @@ permissions:
   contents: write
 
 jobs:
-  wasm32-unknown-emscripten:
+  test:
     timeout-minutes: 15
-    name: CI wasm32-unknown-emscripten
+    name: CI ${{ matrix.target.name }} (${{ matrix.mode }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+        - name: wasm32-unknown-emscripten
+          setup: wasm32-unknown-emscripten
+          needs_emscripten: 'true'
+          needs_wasi_sdk: 'false'
+          build: npm run rebuild -w packages/test
+          test: npm run test -w packages/test
+          browser: npm run test:browser -w packages/test
+          test_4gb: EMNAPI_TEST_CONCURRENCY=2 EMNAPI_TEST_4GB=1 npm run test -w packages/test
+        - name: wasm64-unknown-emscripten
+          setup: wasm64-unknown-emscripten
+          needs_emscripten: 'true'
+          needs_wasi_sdk: 'false'
+          build: MEMORY64=1 node ./packages/test/script/build-emscripten.js Debug
+          test: MEMORY64=1 UV_THREADPOOL_SIZE=2 NODE_TEST_KNOWN_GLOBALS=0 node ./packages/test/script/test.js
+          browser: npm run test:browser:wasm64 -w packages/test
+          test_4gb: MEMORY64=1 EMNAPI_TEST_CONCURRENCY=2 EMNAPI_TEST_4GB=1 UV_THREADPOOL_SIZE=2 NODE_TEST_KNOWN_GLOBALS=0 node ./packages/test/script/test.js
+        - name: wasm32-wasip1-threads (libemnapi-mt)
+          setup: wasm32-wasip1-threads
+          needs_emscripten: 'false'
+          needs_wasi_sdk: 'true'
+          build: npm run rebuild:wt -w packages/test
+          test: npm run test:wt -w packages/test
+          browser: npm run test:browser:wt -w packages/test
+          test_4gb: EMNAPI_TEST_CONCURRENCY=2 EMNAPI_TEST_4GB=1 npm run test:wt -w packages/test
+        - name: wasm32-wasip1-threads (libemnapi-basic-mt)
+          setup: wasm32-wasip1-threads-js
+          needs_emscripten: 'false'
+          needs_wasi_sdk: 'true'
+          build: EMNAPI_WASI_THREADS_LINK_BASIC_MT=1 npm run rebuild:wt -w packages/test
+          test: EMNAPI_TEST_CONCURRENCY=1 npm run test:wt -w packages/test
+          browser: npm run test:browser:wt -w packages/test
+          test_4gb: EMNAPI_TEST_CONCURRENCY=2 EMNAPI_TEST_4GB=1 npm run test:wt -w packages/test
+        - name: wasm32-wasip1
+          setup: wasm32-wasip1
+          needs_emscripten: 'false'
+          needs_wasi_sdk: 'true'
+          build: npm run rebuild:w -w packages/test
+          test: npm run test:w -w packages/test
+          browser: npm run test:browser:w -w packages/test
+          test_4gb: EMNAPI_TEST_CONCURRENCY=2 EMNAPI_TEST_4GB=1 npm run test:w -w packages/test
+        - name: wasm32-unknown-unknown
+          setup: wasm32-unknown-unknown
+          needs_emscripten: 'false'
+          needs_wasi_sdk: 'true'
+          build: npm run rebuild:wasm32 -w packages/test
+          test: npm run test:wasm32 -w packages/test
+          browser: npm run test:browser:wasm32 -w packages/test
+          test_4gb: EMNAPI_TEST_CONCURRENCY=2 EMNAPI_TEST_4GB=1 npm run test:wasm32 -w packages/test
+        mode:
+        - node
+        - browser
+        - 4GB
 
     steps:
     - uses: actions/checkout@v6
     - uses: ./.github/actions/setup-target-ci
       with:
-        target: 'wasm32-unknown-emscripten'
-        needs-emscripten: 'true'
-        needs-browser: 'true'
+        target: ${{ matrix.target.setup }}
+        needs-emscripten: ${{ matrix.target.needs_emscripten }}
+        needs-wasi-sdk: ${{ matrix.target.needs_wasi_sdk }}
+        needs-browser: ${{ matrix.mode == 'browser' }}
     - name: NPM Build
       run: npm run build --workspaces --if-present
     - name: Build target
-      run: npm run rebuild -w packages/test
+      run: ${{ matrix.target.build }}
     - name: Test Emscripten ESM library
+      if: matrix.target.name == 'wasm32-unknown-emscripten' && matrix.mode == 'node'
       run: npm run test -w packages/ts-transform-emscripten-esm-library
     - name: Test @emnapi/runtime
+      if: matrix.target.name == 'wasm32-unknown-emscripten' && matrix.mode == 'node'
       run: npm run test -w packages/runtime
       timeout-minutes: 1
     - name: Test building Node-API versions
+      if: matrix.target.name == 'wasm32-unknown-emscripten' && matrix.mode == 'node'
       run: npm run test:version
-    - name: Test target
-      run: npm run test -w packages/test
-      timeout-minutes: 3
-    - name: Test target in browser
-      run: npm run test:browser -w packages/test
-      timeout-minutes: 10
-    - name: Test target (4GB)
-      run: EMNAPI_TEST_CONCURRENCY=2 EMNAPI_TEST_4GB=1 npm run test -w packages/test
-      timeout-minutes: 3
-
-  wasm64-unknown-emscripten:
-    timeout-minutes: 15
-    name: CI wasm64-unknown-emscripten
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v6
-    - uses: ./.github/actions/setup-target-ci
-      with:
-        target: 'wasm64-unknown-emscripten'
-        needs-emscripten: 'true'
-        needs-browser: 'true'
-    - name: NPM Build
-      run: npm run build --workspaces --if-present
-    - name: Build target
-      run: MEMORY64=1 node ./packages/test/script/build-emscripten.js Debug
-    - name: Test target
-      run: MEMORY64=1 UV_THREADPOOL_SIZE=2 NODE_TEST_KNOWN_GLOBALS=0 node ./packages/test/script/test.js
-      timeout-minutes: 3
-    - name: Test target in browser
-      run: npm run test:browser:wasm64 -w packages/test
-      timeout-minutes: 10
-    - name: Test target (4GB)
-      run: MEMORY64=1 EMNAPI_TEST_CONCURRENCY=2 EMNAPI_TEST_4GB=1 UV_THREADPOOL_SIZE=2 NODE_TEST_KNOWN_GLOBALS=0 node ./packages/test/script/test.js
-      timeout-minutes: 3
-
-  wasm32-wasip1-threads:
-    timeout-minutes: 15
-    name: CI wasm32-wasip1-threads (libemnapi-mt)
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v6
-    - uses: ./.github/actions/setup-target-ci
-      with:
-        target: 'wasm32-wasip1-threads'
-        needs-wasi-sdk: 'true'
-        needs-browser: 'true'
-    - name: NPM Build
-      run: npm run build --workspaces --if-present
-    - name: Build target
-      run: npm run rebuild:wt -w packages/test
     - name: Test @emnapi/wasi-threads
+      if: matrix.target.setup == 'wasm32-wasip1-threads' && matrix.mode == 'node'
       run: |
         node ./packages/wasi-threads/test/build.js
         npm run test -w packages/wasi-threads
       timeout-minutes: 1
     - name: Test target
-      run: npm run test:wt -w packages/test
+      if: matrix.mode == 'node'
+      run: ${{ matrix.target.test }}
+      timeout-minutes: 3
+    - name: Test target (4GB)
+      if: matrix.mode == '4GB'
+      run: ${{ matrix.target.test_4gb }}
       timeout-minutes: 3
     - name: Test target in browser
-      run: npm run test:browser:wt -w packages/test
+      if: matrix.mode == 'browser'
+      run: ${{ matrix.target.browser }}
       timeout-minutes: 10
-    - name: Test target (4GB)
-      run: EMNAPI_TEST_CONCURRENCY=2 EMNAPI_TEST_4GB=1 npm run test:wt -w packages/test
-      timeout-minutes: 3
-
-  wasm32-wasip1-threads-use-js:
-    timeout-minutes: 15
-    name: CI wasm32-wasip1-threads (libemnapi-basic-mt)
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v6
-    - uses: ./.github/actions/setup-target-ci
-      with:
-        target: 'wasm32-wasip1-threads-js'
-        needs-wasi-sdk: 'true'
-        needs-browser: 'true'
-    - name: NPM Build
-      run: npm run build --workspaces --if-present
-    - name: Build target
-      run: EMNAPI_WASI_THREADS_LINK_BASIC_MT=1 npm run rebuild:wt -w packages/test
-    - name: Test target
-      run: EMNAPI_TEST_CONCURRENCY=1 npm run test:wt -w packages/test
-      timeout-minutes: 3
-    - name: Test target in browser
-      run: npm run test:browser:wt -w packages/test
-      timeout-minutes: 10
-    - name: Test target (4GB)
-      run: EMNAPI_TEST_CONCURRENCY=2 EMNAPI_TEST_4GB=1 npm run test:wt -w packages/test
-      timeout-minutes: 3
-
-  wasm32-wasip1:
-    timeout-minutes: 15
-    name: CI wasm32-wasip1
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v6
-    - uses: ./.github/actions/setup-target-ci
-      with:
-        target: 'wasm32-wasip1'
-        needs-wasi-sdk: 'true'
-        needs-browser: 'true'
-    - name: NPM Build
-      run: npm run build --workspaces --if-present
-    - name: Build target
-      run: npm run rebuild:w -w packages/test
-    - name: Test target
-      run: npm run test:w -w packages/test
-    - name: Test target in browser
-      run: npm run test:browser:w -w packages/test
-      timeout-minutes: 10
-    - name: Test target (4GB)
-      run: EMNAPI_TEST_CONCURRENCY=2 EMNAPI_TEST_4GB=1 npm run test:w -w packages/test
-
-  wasm32-unknown-unknown:
-    timeout-minutes: 15
-    name: CI wasm32-unknown-unknown
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v6
-    - uses: ./.github/actions/setup-target-ci
-      with:
-        target: 'wasm32-unknown-unknown'
-        needs-wasi-sdk: 'true'
-        needs-browser: 'true'
-    - name: NPM Build
-      run: npm run build --workspaces --if-present
-    - name: Build target
-      run: npm run rebuild:wasm32 -w packages/test
-    - name: Test target
-      run: npm run test:wasm32 -w packages/test
-    - name: Test target in browser
-      run: npm run test:browser:wasm32 -w packages/test
-      timeout-minutes: 10
-    - name: Test target (4GB)
-      run: EMNAPI_TEST_CONCURRENCY=2 EMNAPI_TEST_4GB=1 npm run test:wasm32 -w packages/test
