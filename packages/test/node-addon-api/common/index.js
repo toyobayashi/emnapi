@@ -7,6 +7,12 @@ const { getEntry, load } = require('../../util.mjs')
 const noop = () => {}
 
 const mustCallChecks = []
+const reducedBindingSet = Boolean(
+  process.env.MEMORY64 ||
+  process.env.EMNAPI_TEST_WASI_THREADS ||
+  globalThis.__EMNAPI_BROWSER_ENV__?.MEMORY64 ||
+  globalThis.__EMNAPI_BROWSER_ENV__?.EMNAPI_TEST_WASI_THREADS
+)
 
 function runCallChecks (exitCode) {
   if (exitCode !== 0) return
@@ -77,21 +83,23 @@ exports.mustNotCall = function (msg) {
 }
 
 async function runTest (test, buildType, buildPathRoot = process.env.BUILD_PATH || '') {
-  buildType = buildType || process.config.target_defaults.default_configuration || 'Release'
+  buildType = buildType || process.config?.target_defaults?.default_configuration || 'Release'
 
   const bindings = [
     // path.join(buildPathRoot, `../build/${buildType}/binding.node`),
     // path.join(buildPathRoot, `../build/${buildType}/binding_noexcept.node`),
     // path.join(buildPathRoot, `../build/${buildType}/binding_noexcept_maybe.node`),
     // path.join(buildPathRoot, `../build/${buildType}/binding_custom_namespace.node`)
-    ...((!process.env.MEMORY64 && !process.env.EMNAPI_TEST_WASI_THREADS) ? ['naa_binding'] : []),
+    ...(!reducedBindingSet ? ['naa_binding'] : []),
     'naa_binding_noexcept',
     'naa_binding_noexcept_maybe',
     'naa_binding_custom_namespace'
   ]/* .map(it => require.resolve(it)) */
 
   for (const item of bindings) {
-    const binding = await load(item, { nodeBinding: require('@emnapi/node-binding') })
+    const binding = await load(item, typeof window === 'undefined'
+      ? { nodeBinding: require('@emnapi/node-binding') }
+      : undefined)
     console.log('>>>>>>>>' + item)
     await Promise.resolve(test(binding))
       .finally(exports.mustCall())
@@ -111,7 +119,7 @@ async function runTestWithBindingPath (test, buildType, buildPathRoot = process.
     // path.join(buildPathRoot, `../build/${buildType}/binding_noexcept.node`),
     // path.join(buildPathRoot, `../build/${buildType}/binding_noexcept_maybe.node`),
     // path.join(buildPathRoot, `../build/${buildType}/binding_custom_namespace.node`)
-    ...((!process.env.MEMORY64 && !process.env.EMNAPI_TEST_WASI_THREADS) ? [getEntry('naa_binding')] : []),
+    ...(!reducedBindingSet ? [getEntry('naa_binding')] : []),
     getEntry('naa_binding_noexcept'),
     getEntry('naa_binding_noexcept_maybe'),
     getEntry('naa_binding_custom_namespace')

@@ -28,7 +28,6 @@ const concurrency = parseConcurrency(
 const startTime = Date.now()
 
 let ignore = [
-  'rust/**/*',
   'tsfn2/tsfn2_st.test.js',
   'async/async_st.test.js',
 ]
@@ -59,7 +58,6 @@ if (process.env.EMNAPI_TEST_NATIVE) {
     ...ignore,
     'filename/**/*',
     'objwrap/objwrapref.test.js',
-    // 'rust/**/*',
     '**/{emnapitest,node-addon-api}/**/*'
   ])]
 } else if (!process.env.EMNAPI_TEST_WASI_THREADS && (process.env.EMNAPI_TEST_WASI || process.env.EMNAPI_TEST_WASM32)) {
@@ -70,7 +68,6 @@ if (process.env.EMNAPI_TEST_NATIVE) {
 } else {
   ignore = [...new Set([
     ...ignore,
-    // 'rust/**/*'
   ])]
 }
 
@@ -98,16 +95,18 @@ async function main () {
   const reporter = createReporter(files.length)
   reporter.start()
 
-  for (const group of fileGroups) {
+  for (let index = 0; index < fileGroups.length; index++) {
+    const group = fileGroups[index]
     if (group.length === 0) continue
-    await run(group, reporter)
+    // node-addon-api's own test runner awaits each module sequentially.
+    await run(group, reporter, index === 1 ? 1 : concurrency)
   }
 
   reporter.finish()
   if (reporter.failed > 0) process.exitCode = 1
 }
 
-async function run (testFiles, reporter) {
+async function run (testFiles, reporter, maxConcurrency) {
   let nextIndex = 0
   let nextReportIndex = 0
   const results = []
@@ -138,7 +137,7 @@ async function run (testFiles, reporter) {
 
   await Promise.all(
     Array.from(
-      { length: Math.min(concurrency, testFiles.length) },
+      { length: Math.min(maxConcurrency, testFiles.length) },
       (_, index) => worker(index + 1)
     )
   )

@@ -3,9 +3,34 @@
 const assert = require('assert')
 const common = require('../common')
 
+let browserTestCompleted = false
+
 module.exports = common.runTest(test)
 
 async function test (binding) {
+  if (typeof window !== 'undefined') {
+    if (browserTestCompleted) return
+    browserTestCompleted = true
+
+    const tsfn = binding.typed_threadsafe_function
+    const values = []
+    await new Promise((resolve) => {
+      tsfn.startThread((value) => {
+        values.push(value)
+        if (values.length === tsfn.ARRAY_LENGTH) {
+          tsfn.stopThread(resolve, false)
+        }
+      }, false, false, 0)
+    })
+    assert.deepStrictEqual(
+      values,
+      Array.from({ length: tsfn.ARRAY_LENGTH }, (_, index) => {
+        return tsfn.ARRAY_LENGTH - 1 - index
+      })
+    )
+    return
+  }
+
   const expectedArray = (function (arrayLength) {
     const result = []
     for (let index = 0; index < arrayLength; index++) {
