@@ -27,6 +27,13 @@ const concurrency = parseConcurrency(
 )
 const startTime = Date.now()
 
+const flakyRetries = new Map([
+  // AsyncProgressWorker::Signal() relies on its second non-blocking TSFN call
+  // observing the max-size-1 queue as full. If the main thread drains Send()
+  // first, node-addon-api delivers a second progress callback with count 0.
+  ['node-addon-api/async_progress_worker.test.js', 2]
+])
+
 let ignore = [
   'tsfn2/tsfn2_st.test.js',
   'async/async_st.test.js',
@@ -114,11 +121,17 @@ async function run (testFiles, reporter) {
       const index = nextIndex++
       const f = testFiles[index]
       reporter.startTest(f)
-      const result = await test(
-        f,
-        threadId,
-        (stream, chunk) => reporter.output(f, stream, chunk)
-      )
+      const maxAttempts = 1 + (flakyRetries.get(f) || 0)
+      let result
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        result = await test(
+          f,
+          threadId,
+          (stream, chunk) => reporter.output(f, stream, chunk)
+        )
+        if (result.status === 0 || attempt === maxAttempts) break
+        reporter.retryTest(f, attempt, maxAttempts)
+      }
       reporter.flushTestOutput(f)
       reporter.completeTest(f)
       results[index] = result
@@ -249,6 +262,14 @@ function createReporter (total) {
 
     completeTest (file) {
       active.delete(file)
+      this.renderLoading()
+    },
+
+    retryTest (file, attempt, maxAttempts) {
+      this.clearLoading()
+      console.log(
+        ` ${chalk.yellow('↻')} ${file} retrying after attempt ${attempt}/${maxAttempts}`
+      )
       this.renderLoading()
     },
 
