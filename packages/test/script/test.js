@@ -31,7 +31,10 @@ const flakyRetries = new Map([
   // AsyncProgressWorker::Signal() relies on its second non-blocking TSFN call
   // observing the max-size-1 queue as full. If the main thread drains Send()
   // first, node-addon-api delivers a second progress callback with count 0.
-  ['node-addon-api/async_progress_worker.test.js', 2]
+  ['node-addon-api/async_progress_worker.test.js', 2],
+  // The upstream test blocks the main thread for a fixed 200ms to let the
+  // worker fill its queue. Under 4GB CI load the worker can start later.
+  ['node-addon-api/typed_threadsafe_function/typed_threadsafe_function.test.js', 2]
 ])
 
 let ignore = [
