@@ -298,8 +298,13 @@ function emnapiAddSendListener (worker: any): boolean {
         const postMessage = napiModule.postMessage!
         postMessage({ __emnapi__ })
       } else {
-        const callback = __emnapi__.payload.callback
-        makeDynCall('vp', 'callback')(__emnapi__.payload.data)
+        const { type, callback, data } = __emnapi__.payload
+        const call = (): void => makeDynCall('vp', 'callback')(data)
+        switch (type) {
+          case 0: emnapiCtx.features.setImmediate(call); break
+          case 1: Promise.resolve().then(call); break
+          default: break
+        }
       }
     }
   }

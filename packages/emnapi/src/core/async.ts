@@ -51,6 +51,7 @@ export function _emnapi_async_send_js (type: number, callback: number, data: num
       __emnapi__: {
         type: 'async-send',
         payload: {
+          type,
           callback,
           data
         }

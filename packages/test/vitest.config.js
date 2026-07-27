@@ -11,9 +11,6 @@ const browserDir = fileURLToPath(new URL('./browser/', import.meta.url))
 const buildDir = fileURLToPath(new URL('./.build', import.meta.url))
 const testDir = fileURLToPath(new URL('./', import.meta.url))
 const browserFilter = process.env.EMNAPI_TEST_BROWSER_FILTER || ''
-const flakyRetries = new Map([
-  ['node-addon-api/async_progress_worker.test.js', 2]
-])
 const browserEnv = Object.fromEntries(
   [
     'EMNAPI_TEST_4GB',
@@ -104,7 +101,7 @@ function legacyTestFiles () {
         import common from ${JSON.stringify(browserDir + 'common.js')}
         import entry from ${JSON.stringify(filename + '?emnapi-legacy')}
 
-        test(${JSON.stringify(name)}, { retry: ${flakyRetries.get(name) || 0} }, async (context) => {
+        test(${JSON.stringify(name)}, async (context) => {
           common.resetMustCalls()
           if (entry && entry.skip) {
             context.skip()

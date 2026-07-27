@@ -27,16 +27,6 @@ const concurrency = parseConcurrency(
 )
 const startTime = Date.now()
 
-const flakyRetries = new Map([
-  // AsyncProgressWorker::Signal() relies on its second non-blocking TSFN call
-  // observing the max-size-1 queue as full. If the main thread drains Send()
-  // first, node-addon-api delivers a second progress callback with count 0.
-  ['node-addon-api/async_progress_worker.test.js', 2],
-  // The upstream test blocks the main thread for a fixed 200ms to let the
-  // worker fill its queue. Under 4GB CI load the worker can start later.
-  ['node-addon-api/typed_threadsafe_function/typed_threadsafe_function.test.js', 2]
-])
-
 let ignore = [
   'tsfn2/tsfn2_st.test.js',
   'async/async_st.test.js',
@@ -105,16 +95,18 @@ async function main () {
   const reporter = createReporter(files.length)
   reporter.start()
 
-  for (const group of fileGroups) {
+  for (let index = 0; index < fileGroups.length; index++) {
+    const group = fileGroups[index]
     if (group.length === 0) continue
-    await run(group, reporter)
+    // node-addon-api's own test runner awaits each module sequentially.
+    await run(group, reporter, index === 1 ? 1 : concurrency)
   }
 
   reporter.finish()
   if (reporter.failed > 0) process.exitCode = 1
 }
 
-async function run (testFiles, reporter) {
+async function run (testFiles, reporter, maxConcurrency) {
   let nextIndex = 0
   let nextReportIndex = 0
   const results = []
@@ -124,17 +116,11 @@ async function run (testFiles, reporter) {
       const index = nextIndex++
       const f = testFiles[index]
       reporter.startTest(f)
-      const maxAttempts = 1 + (flakyRetries.get(f) || 0)
-      let result
-      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-        result = await test(
-          f,
-          threadId,
-          (stream, chunk) => reporter.output(f, stream, chunk)
-        )
-        if (result.status === 0 || attempt === maxAttempts) break
-        reporter.retryTest(f, attempt, maxAttempts)
-      }
+      const result = await test(
+        f,
+        threadId,
+        (stream, chunk) => reporter.output(f, stream, chunk)
+      )
       reporter.flushTestOutput(f)
       reporter.completeTest(f)
       results[index] = result
@@ -151,7 +137,7 @@ async function run (testFiles, reporter) {
 
   await Promise.all(
     Array.from(
-      { length: Math.min(concurrency, testFiles.length) },
+      { length: Math.min(maxConcurrency, testFiles.length) },
       (_, index) => worker(index + 1)
     )
   )
@@ -265,14 +251,6 @@ function createReporter (total) {
 
     completeTest (file) {
       active.delete(file)
-      this.renderLoading()
-    },
-
-    retryTest (file, attempt, maxAttempts) {
-      this.clearLoading()
-      console.log(
-        ` ${chalk.yellow('↻')} ${file} retrying after attempt ${attempt}/${maxAttempts}`
-      )
       this.renderLoading()
     },
 
