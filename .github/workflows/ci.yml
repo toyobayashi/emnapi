@@ -131,7 +131,7 @@ jobs:
         - name: Emscripten ESM library
           target: ts-transform-emscripten-esm-library
           needs_wasi_sdk: 'false'
-          build: npm run build -w packages/ts-transform-emscripten-esm-library
+          build: npm run build -w packages/ts-transform-emscripten-esm-library -w packages/rollup-plugin-emscripten-esm-library
           test: npm run test -w packages/ts-transform-emscripten-esm-library
         - name: '@emnapi/runtime'
           target: runtime
