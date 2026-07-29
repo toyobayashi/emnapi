@@ -5,9 +5,6 @@
   "description": "emnapi test",
   "main": "index.js",
   "devDependencies": {
-    "@emnapi/core": "2.0.0-alpha.3",
-    "@emnapi/node-binding": "1.4.0",
-    "@emnapi/runtime": "2.0.0-alpha.3",
     "@tybys/wasm-util": "^0.10.3",
     "@vitest/browser-playwright": "^4.1.10",
     "chalk": "^4.1.2",
@@ -17,6 +14,7 @@
     "nan": "^2.22.2",
     "node-addon-api": "8.6.0",
     "tap": "~0.7.1",
+    "vite": "^7.3.6",
     "vite-plugin-commonjs": "^0.10.4",
     "vite-plugin-node-polyfills": "^0.28.0",
     "vitest": "^4.1.10",

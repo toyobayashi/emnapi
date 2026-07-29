@@ -9,7 +9,6 @@
     "bench:json": "node ./bench.mjs --json"
   },
   "devDependencies": {
-    "@emnapi/runtime": "2.0.0-alpha.3",
     "node-addon-api": "^8.6.0",
     "benchmark": "^2.1.4"
   }
