@@ -5,9 +5,9 @@
   "description": "emnapi test",
   "main": "index.js",
   "devDependencies": {
-    "@emnapi/core": "*",
-    "@emnapi/node-binding": "*",
-    "@emnapi/runtime": "*",
+    "@emnapi/core": "2.0.0-alpha.3",
+    "@emnapi/node-binding": "1.4.0",
+    "@emnapi/runtime": "2.0.0-alpha.3",
     "@tybys/wasm-util": "^0.10.3",
     "@vitest/browser-playwright": "^4.1.10",
     "chalk": "^4.1.2",
