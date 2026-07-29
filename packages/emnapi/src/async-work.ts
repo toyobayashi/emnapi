@@ -38,6 +38,7 @@ export var emnapiAWST = {
   idGen: {} as unknown as {
     nextId: number
     list: number[]
+    listHead: number
     generate: () => number
     reuse: (id: number) => void
   },
@@ -49,10 +50,15 @@ export var emnapiAWST = {
     const idGen = {
       nextId: 1,
       list: [] as number[],
+      listHead: 0,
       generate: function (): number {
         let id: number
-        if (idGen.list.length) {
-          id = idGen.list.shift()!
+        if (idGen.listHead < idGen.list.length) {
+          id = idGen.list[idGen.listHead++]
+          if (idGen.listHead === idGen.list.length) {
+            idGen.list.length = 0
+            idGen.listHead = 0
+          }
         } else {
           id = idGen.nextId
           idGen.nextId++

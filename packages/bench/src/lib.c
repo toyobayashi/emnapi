@@ -30,8 +30,8 @@ static napi_value convert_string(napi_env env, napi_callback_info info) {
   napi_get_cb_info(env, info, &argc, &argv, NULL, NULL);
   size_t len = 0;
   napi_get_value_string_utf8(env, argv, NULL, 0, &len);
-  char* buf = (char*) malloc(len);
-  napi_get_value_string_utf8(env, argv, buf, len, &len);
+  char* buf = (char*) malloc(len + 1);
+  napi_get_value_string_utf8(env, argv, buf, len + 1, &len);
   napi_create_string_utf8(env, buf, len, &ret);
   free(buf);
   return ret;
@@ -64,6 +64,44 @@ static napi_value js_fib(napi_env env, napi_callback_info info) {
   return ret;
 }
 
+static napi_value handle_churn(napi_env env, napi_callback_info info) {
+  size_t argc = 1;
+  napi_value argv;
+  uint32_t count = 0;
+  napi_value ret = NULL;
+  napi_get_cb_info(env, info, &argc, &argv, NULL, NULL);
+  napi_get_value_uint32(env, argv, &count);
+  for (uint32_t i = 0; i < count; i++) {
+    napi_create_uint32(env, i, &ret);
+  }
+  return ret;
+}
+
+static napi_value reference_churn(napi_env env, napi_callback_info info) {
+  size_t argc = 2;
+  napi_value argv[2];
+  uint32_t count = 0;
+  napi_value ret;
+  napi_get_cb_info(env, info, &argc, argv, NULL, NULL);
+  napi_get_value_uint32(env, argv[1], &count);
+
+  napi_ref* refs = (napi_ref*) malloc(sizeof(napi_ref) * count);
+  if (refs == NULL && count != 0) {
+    napi_throw_error(env, NULL, "Could not allocate reference array");
+    return NULL;
+  }
+  for (uint32_t i = 0; i < count; i++) {
+    napi_create_reference(env, argv[0], 1, &refs[i]);
+  }
+  for (uint32_t i = 0; i < count; i++) {
+    napi_delete_reference(env, refs[i]);
+  }
+  free(refs);
+
+  napi_create_uint32(env, count, &ret);
+  return ret;
+}
+
 #define EXPORT_FUNCTION(env, exports, name, f) \
   do { \
     napi_value f##_fn; \
@@ -79,6 +117,8 @@ NAPI_MODULE_INIT() {
   EXPORT_FUNCTION(env, exports, "objectGet", object_get);
   EXPORT_FUNCTION(env, exports, "objectSet", object_set);
   EXPORT_FUNCTION(env, exports, "fib", js_fib);
+  EXPORT_FUNCTION(env, exports, "handleChurn", handle_churn);
+  EXPORT_FUNCTION(env, exports, "referenceChurn", reference_churn);
 
   return exports;
 }

@@ -3,7 +3,10 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "rebuild": "emcmake cmake -DCMAKE_BUILD_TYPE=Release -H. -B.build && cmake --build .build"
+    "rebuild": "emcmake cmake -DCMAKE_BUILD_TYPE=Release -H. -B.build && cmake --build .build",
+    "bench": "node ./bench.mjs",
+    "bench:quick": "node ./bench.mjs --quick",
+    "bench:json": "node ./bench.mjs --json"
   },
   "devDependencies": {
     "node-addon-api": "^8.6.0",

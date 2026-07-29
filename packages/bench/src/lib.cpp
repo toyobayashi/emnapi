@@ -1,4 +1,5 @@
 #include <napi.h>
+#include <vector>
 #include "fib.h"
 
 namespace {
@@ -33,6 +34,28 @@ Napi::Value ObjectSet(const Napi::CallbackInfo& info) {
 Napi::Value JsFib(const Napi::CallbackInfo& info) {
   int32_t input = info[0].As<Napi::Number>().Int32Value();
   return Napi::Number::New(info.Env(), fib(input));
+}
+
+Napi::Value HandleChurn(const Napi::CallbackInfo& info) {
+  uint32_t count = info[0].As<Napi::Number>().Uint32Value();
+  Napi::Value ret = info.Env().Undefined();
+  for (uint32_t i = 0; i < count; i++) {
+    ret = Napi::Number::New(info.Env(), i);
+  }
+  return ret;
+}
+
+Napi::Value ReferenceChurn(const Napi::CallbackInfo& info) {
+  uint32_t count = info[1].As<Napi::Number>().Uint32Value();
+  std::vector<Napi::Reference<Napi::Value>> refs;
+  refs.reserve(count);
+  for (uint32_t i = 0; i < count; i++) {
+    refs.push_back(Napi::Persistent(info[0]));
+  }
+  for (uint32_t i = 0; i < count; i++) {
+    refs[i].Reset();
+  }
+  return Napi::Number::New(info.Env(), count);
 }
 
 Napi::Object Init(Napi::Env env, Napi::Object exports) {
@@ -80,6 +103,20 @@ Napi::Object Init(Napi::Env env, Napi::Object exports) {
 
   maybeResult = exports.Set("fib",
     Napi::Function::New(env, JsFib));
+  if (maybeResult.IsNothing()) {
+    Napi::Error e = env.GetAndClearPendingException();
+    e.ThrowAsJavaScriptException();
+  }
+
+  maybeResult = exports.Set("handleChurn",
+    Napi::Function::New(env, HandleChurn));
+  if (maybeResult.IsNothing()) {
+    Napi::Error e = env.GetAndClearPendingException();
+    e.ThrowAsJavaScriptException();
+  }
+
+  maybeResult = exports.Set("referenceChurn",
+    Napi::Function::New(env, ReferenceChurn));
   if (maybeResult.IsNothing()) {
     Napi::Error e = env.GetAndClearPendingException();
     e.ThrowAsJavaScriptException();
