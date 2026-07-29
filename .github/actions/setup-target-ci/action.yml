@@ -91,7 +91,7 @@ runs:
     shell: bash
     run: |
       npm install -g node-gyp
-      npm install --ignore-scripts --legacy-peer-deps --omit=optional
+      npm install --ignore-scripts --legacy-peer-deps
   - name: Install Chromium
     if: ${{ inputs.needs-browser == 'true' }}
     shell: bash
