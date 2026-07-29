@@ -5,6 +5,8 @@
   "description": "emnapi test",
   "main": "index.js",
   "devDependencies": {
+    "@emnapi/core": "*",
+    "@emnapi/node-binding": "*",
     "@emnapi/runtime": "*",
     "@tybys/wasm-util": "^0.10.3",
     "@vitest/browser-playwright": "^4.1.10",
