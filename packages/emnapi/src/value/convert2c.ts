@@ -335,25 +335,19 @@ export function napi_get_value_bigint_int64 (env: napi_env, value: napi_value, r
   $CHECK_ARG!(envObject, value)
   $CHECK_ARG!(envObject, result)
   $CHECK_ARG!(envObject, lossless)
-  let numberValue = emnapiCtx.jsValueFromNapiValue(value)!
+  const numberValue = emnapiCtx.jsValueFromNapiValue(value)!
   if (typeof numberValue !== 'bigint') {
     return envObject.setLastError(napi_status.napi_number_expected)
   }
   from64('lossless')
   from64('result')
-  if ((numberValue >= (BigInt(-1) * (BigInt(1) << BigInt(63)))) && (numberValue < (BigInt(1) << BigInt(63)))) {
-    makeSetValue('lossless', 0, '1', 'i8')
-  } else {
-    makeSetValue('lossless', 0, '0', 'i8')
-    numberValue = numberValue & ((BigInt(1) << BigInt(64)) - BigInt(1))
-    if (numberValue >= (BigInt(1) << BigInt(63))) {
-      numberValue = numberValue - (BigInt(1) << BigInt(64))
-    }
-  }
+  const int64Value = BigInt.asIntN(64, numberValue)
+  const isLossless = int64Value === numberValue ? 1 : 0
+  makeSetValue('lossless', 0, 'isLossless', 'i8')
 
-  const low = Number(numberValue & BigInt(0xffffffff))
+  const low = Number(int64Value & BigInt(0xffffffff))
 
-  const high = Number(numberValue >> BigInt(32))
+  const high = Number(int64Value >> BigInt(32))
   makeSetValue('result', 0, 'low', 'i32')
   makeSetValue('result', 4, 'high', 'i32')
   return envObject.clearLastError()
@@ -370,22 +364,19 @@ export function napi_get_value_bigint_uint64 (env: napi_env, value: napi_value, 
   $CHECK_ARG!(envObject, value)
   $CHECK_ARG!(envObject, result)
   $CHECK_ARG!(envObject, lossless)
-  let numberValue = emnapiCtx.jsValueFromNapiValue(value)!
+  const numberValue = emnapiCtx.jsValueFromNapiValue(value)!
   if (typeof numberValue !== 'bigint') {
     return envObject.setLastError(napi_status.napi_number_expected)
   }
   from64('lossless')
   from64('result')
-  if ((numberValue >= BigInt(0)) && (numberValue < (BigInt(1) << BigInt(64)))) {
-    makeSetValue('lossless', 0, '1', 'i8')
-  } else {
-    makeSetValue('lossless', 0, '0', 'i8')
-    numberValue = numberValue & ((BigInt(1) << BigInt(64)) - BigInt(1))
-  }
+  const uint64Value = BigInt.asUintN(64, numberValue)
+  const isLossless = uint64Value === numberValue ? 1 : 0
+  makeSetValue('lossless', 0, 'isLossless', 'i8')
 
-  const low = Number(numberValue & BigInt(0xffffffff))
+  const low = Number(uint64Value & BigInt(0xffffffff))
 
-  const high = Number(numberValue >> BigInt(32))
+  const high = Number(uint64Value >> BigInt(32))
   makeSetValue('result', 0, 'low', 'u32')
   makeSetValue('result', 4, 'high', 'u32')
   return envObject.clearLastError()
@@ -421,31 +412,28 @@ export function napi_get_value_bigint_words (
   from64('word_count_int')
 
   let wordCount = 0
-  let bigintValue: bigint = isMinus ? (jsValue * BigInt(-1)) : jsValue
+  const magnitude = isMinus ? -jsValue : jsValue
+  let bigintValue = magnitude
   while (bigintValue !== BigInt(0)) {
     wordCount++
     bigintValue = bigintValue >> BigInt(64)
   }
-  bigintValue = isMinus ? (jsValue * BigInt(-1)) : jsValue
   if (!sign_bit && !words) {
     word_count_int = wordCount
     makeSetValue('word_count', 0, 'word_count_int', SIZE_TYPE)
   } else {
     if (!sign_bit) return envObject.setLastError(napi_status.napi_invalid_arg)
     if (!words) return envObject.setLastError(napi_status.napi_invalid_arg)
-    const wordsArr = []
-    while (bigintValue !== BigInt(0)) {
-      const uint64 = bigintValue & ((BigInt(1) << BigInt(64)) - BigInt(1))
-      wordsArr.push(uint64)
-      bigintValue = bigintValue >> BigInt(64)
-    }
-    const len = Math.min(word_count_int, wordsArr.length)
+    bigintValue = magnitude
+    const len = Math.min(word_count_int, wordCount)
     for (let i = 0; i < len; i++) {
-      const low = Number(wordsArr[i] & BigInt(0xffffffff))
+      const uint64 = BigInt.asUintN(64, bigintValue)
+      const low = Number(uint64 & BigInt(0xffffffff))
 
-      const high = Number(wordsArr[i] >> BigInt(32))
+      const high = Number(uint64 >> BigInt(32))
       makeSetValue('words', 'i * 8', 'low', 'u32')
       makeSetValue('words', 'i * 8 + 4', 'high', 'u32')
+      bigintValue = bigintValue >> BigInt(64)
     }
     makeSetValue('sign_bit', 0, 'isMinus ? 1 : 0', 'i32')
     makeSetValue('word_count', 0, 'len', SIZE_TYPE)
@@ -484,7 +472,7 @@ export function napi_get_value_int32 (env: napi_env, value: napi_value, result: 
   }
   from64('result')
 
-  const v = new Int32Array([jsValue])[0]
+  const v = jsValue | 0
   makeSetValue('result', 0, 'v', 'i32')
   return envObject.clearLastError()
 }
@@ -537,13 +525,11 @@ export function napi_get_value_string_latin1 (env: napi_env, value: napi_value, 
     if (!result) return envObject.setLastError(napi_status.napi_invalid_arg)
     makeSetValue('result', 0, 'jsValue.length', SIZE_TYPE)
   } else if (buf_size !== 0) {
-    let copied: number = 0
+    const copied = Math.min(jsValue.length, buf_size - 1)
     let v: number
-    for (let i = 0; i < buf_size - 1; ++i) {
+    for (let i = 0; i < copied; ++i) {
       v = jsValue.charCodeAt(i) & 0xff
       makeSetValue('buf', 'i', 'v', 'u8')
-
-      copied++
     }
     makeSetValue('buf', 'copied', '0', 'u8')
     if (result) {
@@ -628,7 +614,7 @@ export function napi_get_value_uint32 (env: napi_env, value: napi_value, result:
   }
   from64('result')
 
-  const v = new Uint32Array([jsValue])[0]
+  const v = jsValue >>> 0
   makeSetValue('result', 0, 'v', 'u32')
   return envObject.clearLastError()
 }

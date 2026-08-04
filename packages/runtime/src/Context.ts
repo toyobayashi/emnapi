@@ -26,7 +26,7 @@ const callbackWrapper = (envObject: Env, callback: (env: Env) => napi_value) => 
   return (!napiValue) ? undefined : envObject.ctx.jsValueFromNapiValue(napiValue)!
 }
 
-const withScope = (envObject: Env, thiz: any, args: any[], data: number | bigint, getFunction: () => Function, wrapper: (envObject: Env, callback: (env: Env) => napi_value) => any, callback: (env: Env) => napi_value) => {
+const withScope = (envObject: Env, thiz: any, args: ArrayLike<any>, data: number | bigint, getFunction: () => Function, wrapper: (envObject: Env, callback: (env: Env) => napi_value) => any, callback: (env: Env) => napi_value) => {
   const scope = envObject.ctx.openScope(envObject)
   const callbackInfo = scope.callbackInfo
   callbackInfo.data = data
@@ -48,24 +48,48 @@ class CleanupHookCallback {
   constructor (
     public envObject: Env,
     public fn: CleanupHookCallbackFunction,
-    public arg: number,
-    public order: number
+    public arg: number
   ) {}
 }
 
 class CleanupQueue {
+  private static readonly INDEX_THRESHOLD = 16
   private readonly _cleanupHooks = [] as CleanupHookCallback[]
-  private _cleanupHookCounter = 0
+  private _cleanupHookIndex?: WeakMap<Env, Map<CleanupHookCallbackFunction, Set<number>>>
 
   public empty (): boolean {
     return this._cleanupHooks.length === 0
   }
 
   public add (envObject: Env, fn: CleanupHookCallbackFunction, arg: number): void {
-    if (this._cleanupHooks.filter((hook) => (hook.envObject === envObject && hook.fn === fn && hook.arg === arg)).length > 0) {
+    if (this._cleanupHookIndex === undefined) {
+      for (let i = 0; i < this._cleanupHooks.length; ++i) {
+        const hook = this._cleanupHooks[i]
+        if (hook.envObject === envObject && hook.fn === fn && hook.arg === arg) {
+          throw new Error('Can not add same fn and arg twice')
+        }
+      }
+      this._cleanupHooks.push(new CleanupHookCallback(envObject, fn, arg))
+      if (this._cleanupHooks.length > CleanupQueue.INDEX_THRESHOLD) {
+        this._createIndex()
+      }
+      return
+    }
+
+    let envHooks = this._cleanupHookIndex.get(envObject)
+    if (envHooks === undefined) {
+      envHooks = new Map()
+      this._cleanupHookIndex.set(envObject, envHooks)
+    }
+    let args = envHooks.get(fn)
+    if (args === undefined) {
+      args = new Set()
+      envHooks.set(fn, args)
+    } else if (args.has(arg)) {
       throw new Error('Can not add same fn and arg twice')
     }
-    this._cleanupHooks.push(new CleanupHookCallback(envObject, fn, arg, this._cleanupHookCounter++))
+    args.add(arg)
+    this._cleanupHooks.push(new CleanupHookCallback(envObject, fn, arg))
   }
 
   public remove (envObject: Env, fn: CleanupHookCallbackFunction, arg: number): void {
@@ -73,6 +97,7 @@ class CleanupQueue {
       const hook = this._cleanupHooks[i]
       if (hook.envObject === envObject && hook.fn === fn && hook.arg === arg) {
         this._cleanupHooks.splice(i, 1)
+        this._deleteIndex(hook)
         return
       }
     }
@@ -80,21 +105,61 @@ class CleanupQueue {
 
   public drain (): void {
     const hooks = this._cleanupHooks.slice()
-    hooks.sort((a, b) => (b.order - a.order))
-    for (let i = 0; i < hooks.length; ++i) {
+    for (let i = hooks.length - 1; i >= 0; --i) {
       const cb = hooks[i]
       if (typeof cb.fn === 'number') {
         cb.envObject.bridge.makeDynCall_vp(cb.fn)(cb.arg)
       } else {
         cb.fn(cb.arg)
       }
-      this._cleanupHooks.splice(this._cleanupHooks.indexOf(cb), 1)
+      const lastIndex = this._cleanupHooks.length - 1
+      if (this._cleanupHooks[lastIndex] === cb) {
+        this._cleanupHooks.pop()
+        this._deleteIndex(cb)
+      } else {
+        const index = this._cleanupHooks.lastIndexOf(cb)
+        if (index !== -1) {
+          this._cleanupHooks.splice(index, 1)
+          this._deleteIndex(cb)
+        }
+      }
     }
+    if (this._cleanupHooks.length === 0) {
+      this._cleanupHookIndex = undefined
+    }
+  }
+
+  private _createIndex (): void {
+    const index = new WeakMap<Env, Map<CleanupHookCallbackFunction, Set<number>>>()
+    for (let i = 0; i < this._cleanupHooks.length; ++i) {
+      const hook = this._cleanupHooks[i]
+      let envHooks = index.get(hook.envObject)
+      if (envHooks === undefined) {
+        envHooks = new Map()
+        index.set(hook.envObject, envHooks)
+      }
+      let args = envHooks.get(hook.fn)
+      if (args === undefined) {
+        args = new Set()
+        envHooks.set(hook.fn, args)
+      }
+      args.add(hook.arg)
+    }
+    this._cleanupHookIndex = index
+  }
+
+  private _deleteIndex (hook: CleanupHookCallback): void {
+    if (this._cleanupHookIndex === undefined) return
+    const envHooks = this._cleanupHookIndex.get(hook.envObject)!
+    const args = envHooks.get(hook.fn)!
+    args.delete(hook.arg)
+    if (args.size === 0) envHooks.delete(hook.fn)
+    if (envHooks.size === 0) this._cleanupHookIndex.delete(hook.envObject)
   }
 
   public dispose (): void {
     this._cleanupHooks.length = 0
-    this._cleanupHookCounter = 0
+    this._cleanupHookIndex = undefined
   }
 }
 
@@ -297,8 +362,8 @@ export class Context {
 
     // @ts-expect-error
     const staticFunctionWrapper = (withScope, envObject, data, callbackWrapper, callback) => {
-      return function (this: any, ...args: any[]) {
-        return withScope(envObject, this, args, data, _, callbackWrapper, callback)
+      return function (this: any) {
+        return withScope(envObject, this, arguments, data, _, callbackWrapper, callback)
       }
     }
 
@@ -307,8 +372,8 @@ export class Context {
     if (name && dynamicExecution && this.features.makeDynamicFunction) {
       try {
         functionWrapper = this.features.makeDynamicFunction('withScope', 'envObject', 'data', 'callbackWrapper', 'callback',
-          'return function ' + name + '(...args){' +
-            'return withScope(envObject,this,args,data,' + name + ',callbackWrapper,callback)' +
+          'return function ' + name + '(){' +
+            'return withScope(envObject,this,arguments,data,' + name + ',callbackWrapper,callback)' +
           '};'
         )
       } catch (_) {

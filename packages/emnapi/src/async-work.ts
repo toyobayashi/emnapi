@@ -45,6 +45,7 @@ export var emnapiAWST = {
   values: [undefined] as unknown as AsyncWork[],
   queued: new Set<number>(),
   pending: [] as number[],
+  pendingHead: 0,
 
   init: function () {
     const idGen = {
@@ -73,6 +74,7 @@ export var emnapiAWST = {
     emnapiAWST.values = [undefined!]
     emnapiAWST.queued = new Set<number>()
     emnapiAWST.pending = []
+    emnapiAWST.pendingHead = 0
   },
 
   create: function (env: napi_env, resource: object, resourceName: string, execute: number, complete: number, data: number): number {
@@ -132,6 +134,10 @@ export var emnapiAWST = {
     if (work.status === 0) {
       work.status = 1
       if (emnapiAWST.queued.size >= (Math.abs(emnapiAsyncWorkPoolSize) || 4)) {
+        if (emnapiAWST.pendingHead >= 1024 && emnapiAWST.pendingHead * 2 >= emnapiAWST.pending.length) {
+          emnapiAWST.pending.splice(0, emnapiAWST.pendingHead)
+          emnapiAWST.pendingHead = 0
+        }
         emnapiAWST.pending.push(id)
         return
       }
@@ -149,8 +155,12 @@ export var emnapiAWST = {
           emnapiAWST.callComplete(work, napi_status.napi_ok)
         })
 
-        if (emnapiAWST.pending.length > 0) {
-          const nextWorkId = emnapiAWST.pending.shift()!
+        if (emnapiAWST.pendingHead < emnapiAWST.pending.length) {
+          const nextWorkId = emnapiAWST.pending[emnapiAWST.pendingHead++]
+          if (emnapiAWST.pendingHead === emnapiAWST.pending.length) {
+            emnapiAWST.pending.length = 0
+            emnapiAWST.pendingHead = 0
+          }
           emnapiAWST.values[nextWorkId].status = 0
           emnapiAWST.queue(nextWorkId)
         }
@@ -159,12 +169,16 @@ export var emnapiAWST = {
   },
 
   cancel: function (id: number): napi_status {
-    const index = emnapiAWST.pending.indexOf(id)
+    const index = emnapiAWST.pending.indexOf(id, emnapiAWST.pendingHead)
     if (index !== -1) {
       const work = emnapiAWST.values[id]
       if (work && (work.status === 1)) {
         work.status = 4
         emnapiAWST.pending.splice(index, 1)
+        if (emnapiAWST.pendingHead === emnapiAWST.pending.length) {
+          emnapiAWST.pending.length = 0
+          emnapiAWST.pendingHead = 0
+        }
 
         emnapiCtx.features.setImmediate(() => {
           emnapiAWST.callComplete(work, napi_status.napi_cancelled)

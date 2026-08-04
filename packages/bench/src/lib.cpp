@@ -58,6 +58,16 @@ Napi::Value ReferenceChurn(const Napi::CallbackInfo& info) {
   return Napi::Number::New(info.Env(), count);
 }
 
+Napi::Value SumArrayBuffer(const Napi::CallbackInfo& info) {
+  Napi::ArrayBuffer input = info[0].As<Napi::ArrayBuffer>();
+  uint32_t sum = 0;
+  const uint8_t* data = static_cast<const uint8_t*>(input.Data());
+  for (size_t i = 0; i < input.ByteLength(); i++) {
+    sum += data[i];
+  }
+  return Napi::Number::New(info.Env(), sum);
+}
+
 Napi::Object Init(Napi::Env env, Napi::Object exports) {
   Napi::Maybe<bool> maybeResult = exports.Set("emptyFunction",
     Napi::Function::New(env, EmptyFunction));
@@ -117,6 +127,12 @@ Napi::Object Init(Napi::Env env, Napi::Object exports) {
 
   maybeResult = exports.Set("referenceChurn",
     Napi::Function::New(env, ReferenceChurn));
+  if (maybeResult.IsNothing()) {
+    Napi::Error e = env.GetAndClearPendingException();
+    e.ThrowAsJavaScriptException();
+  }
+  maybeResult = exports.Set("sumArrayBuffer",
+    Napi::Function::New(env, SumArrayBuffer));
   if (maybeResult.IsNothing()) {
     Napi::Error e = env.GetAndClearPendingException();
     e.ThrowAsJavaScriptException();

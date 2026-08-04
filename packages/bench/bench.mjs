@@ -40,6 +40,47 @@ const cases = [
     run: binding => () => binding.convertInteger(1)
   },
   {
+    name: 'convertBigIntInt64',
+    description: 'truncate a wide BigInt to int64 and create a BigInt result',
+    providers: ['c'],
+    run: binding => {
+      const value = (1n << 100n) + 123n
+      return () => binding.convertBigIntInt64(value)
+    }
+  },
+  {
+    name: 'convertBigIntUint64',
+    description: 'truncate a wide BigInt to uint64 and create a BigInt result',
+    providers: ['c'],
+    run: binding => {
+      const value = (1n << 100n) + 123n
+      return () => binding.convertBigIntUint64(value)
+    }
+  },
+  {
+    name: 'getBigIntWords4',
+    description: 'read four uint64 words from a BigInt',
+    providers: ['c'],
+    operationsPerRun: 4,
+    run: binding => {
+      const value = (1n << 250n) + (1n << 190n) + (1n << 130n) + 123n
+      return () => binding.getBigIntWords(value)
+    }
+  },
+  {
+    name: 'getLatin1Oversized',
+    description: 'copy a short Latin-1 string into a 256-byte buffer',
+    providers: ['c'],
+    run: binding => () => binding.getLatin1Oversized('node-api')
+  },
+  {
+    name: 'createBigIntWords4',
+    description: 'create a BigInt from four uint64 words',
+    providers: ['c'],
+    operationsPerRun: 4,
+    run: binding => () => binding.createBigIntWords()
+  },
+  {
     name: 'convertString',
     description: 'function (str) { return copy(str) }',
     providers: ['embind', 'c', 'cpp'],
@@ -81,11 +122,55 @@ const cases = [
     }
   },
   {
+    name: 'sumArrayBuffer64',
+    description: 'read and sum a 64-byte ArrayBuffer through Node-API',
+    providers: ['c', 'cpp'],
+    operationsPerRun: 64,
+    run: binding => {
+      const value = new ArrayBuffer(64)
+      return () => binding.sumArrayBuffer(value)
+    }
+  },
+  {
     name: 'objectTemplateAccessor64',
     description: 'read accessors from 64 ObjectTemplate instances',
     providers: ['runtime'],
     operationsPerRun: 64,
     run: binding => () => binding.readAccessors()
+  },
+  {
+    name: 'functionTemplateCall64',
+    description: 'call a V8 FunctionTemplate wrapper 64 times',
+    providers: ['runtime'],
+    operationsPerRun: 64,
+    run: binding => () => binding.callFunctionTemplate()
+  },
+  {
+    name: 'finalizerQueueDrain1024',
+    description: 'drain 1024 pending finalizers in FIFO order',
+    providers: ['runtime'],
+    operationsPerRun: 1024,
+    run: binding => () => binding.drainFinalizers()
+  },
+  {
+    name: 'cleanupQueue1',
+    description: 'register and drain one cleanup hook',
+    providers: ['runtime'],
+    run: binding => () => binding.runCleanupHooks(1)
+  },
+  {
+    name: 'cleanupQueue16',
+    description: 'register and drain 16 cleanup hooks in LIFO order',
+    providers: ['runtime'],
+    operationsPerRun: 16,
+    run: binding => () => binding.runCleanupHooks(16)
+  },
+  {
+    name: 'cleanupQueue1024',
+    description: 'register and drain 1024 cleanup hooks in LIFO order',
+    providers: ['runtime'],
+    operationsPerRun: 1024,
+    run: binding => () => binding.runCleanupHooks(1024)
   }
 ]
 
@@ -125,6 +210,13 @@ for (const testCase of selectedCases) {
     }
   })
   suite.run({ async: false })
+}
+
+if (providers.runtime.binding.verifyFinalizerOrder() !== '0,2,1') {
+  throw new Error('runtime: finalizer queue is not FIFO')
+}
+if (providers.runtime.binding.verifyCleanupHooks() !== 'duplicate:2,0') {
+  throw new Error('runtime: cleanup queue ordering or duplicate detection failed')
 }
 
 if (json) {
@@ -180,6 +272,23 @@ function createRuntimeAccessorBenchmark (runtime) {
   )
   const instances = Array.from({ length: 64 }, () => template.newInstance(null))
   const derived = Object.create(instances[0])
+  const functionTemplate = isolate.createFunctionTemplate(() => 0, 0, undefined)
+  const templateFunction = functionTemplate.getFunction()
+  const bridge = {
+    address: 1,
+    deleteEnv () {},
+    setLastError () {},
+    makeDynCall_vppp () { return () => {} },
+    makeDynCall_vp () { return () => {} },
+    abort (message) { throw new Error(message) }
+  }
+  const env = new runtime.NodeEnv(context, new runtime.ArrayStore(), bridge)
+  const verificationEnv = new runtime.NodeEnv(context, new runtime.ArrayStore(), bridge)
+  const finalizers = Array.from({ length: 1024 }, () => {
+    const finalizer = new runtime.RefTracker()
+    finalizer.finalize = () => {}
+    return finalizer
+  })
   return {
     readAccessors () {
       let sum = 0
@@ -190,6 +299,48 @@ function createRuntimeAccessorBenchmark (runtime) {
     },
     readDerivedAccessor () {
       return derived.value
+    },
+    callFunctionTemplate () {
+      for (let i = 0; i < 64; i++) templateFunction(i)
+    },
+    drainFinalizers () {
+      env.pendingFinalizers = finalizers.slice()
+      env.drainFinalizerQueue()
+    },
+    verifyFinalizerOrder () {
+      const order = []
+      const items = Array.from({ length: 3 }, (_, index) => {
+        const finalizer = new runtime.RefTracker()
+        finalizer.finalize = () => { order.push(index) }
+        return finalizer
+      })
+      for (const item of items) verificationEnv.enqueueFinalizer(item)
+      verificationEnv.dequeueFinalizer(items[1])
+      verificationEnv.enqueueFinalizer(items[1])
+      verificationEnv.drainFinalizerQueue()
+      return order.join(',')
+    },
+    runCleanupHooks (count) {
+      for (let i = 0; i < count; i++) {
+        context.addCleanupHook(env, () => {}, i)
+      }
+      context.runCleanup()
+    },
+    verifyCleanupHooks () {
+      const order = []
+      const hooks = Array.from({ length: 3 }, (_, index) => () => { order.push(index) })
+      context.addCleanupHook(env, hooks[0], 0)
+      context.addCleanupHook(env, hooks[1], 1)
+      let duplicate = ''
+      try {
+        context.addCleanupHook(env, hooks[0], 0)
+      } catch (_) {
+        duplicate = 'duplicate:'
+      }
+      context.addCleanupHook(env, hooks[2], 2)
+      context.removeCleanupHook(env, hooks[1], 1)
+      context.runCleanup()
+      return duplicate + order.join(',')
     }
   }
 }
@@ -219,6 +370,25 @@ function verifyProviders (loadedProviders) {
     if (binding.referenceChurn(value, 8) !== 8) {
       throw new Error(`${providerName}: referenceChurn failed`)
     }
+    if (binding.sumArrayBuffer(new Uint8Array([1, 2, 3]).buffer) !== 6) {
+      throw new Error(`${providerName}: sumArrayBuffer failed`)
+    }
+  }
+  if (loadedProviders.c.binding.convertBigIntInt64((1n << 100n) + 123n) !== 123n) {
+    throw new Error('emnapi-c: convertBigIntInt64 failed')
+  }
+  if (loadedProviders.c.binding.getBigIntWords((1n << 250n) + 1n) !== 4) {
+    throw new Error('emnapi-c: getBigIntWords failed')
+  }
+  if (loadedProviders.c.binding.convertBigIntUint64((1n << 100n) + 123n) !== 123n) {
+    throw new Error('emnapi-c: convertBigIntUint64 failed')
+  }
+  if (loadedProviders.c.binding.getLatin1Oversized('node-api') !== 8) {
+    throw new Error('emnapi-c: getLatin1Oversized failed')
+  }
+  const expectedWords = 123n | (456n << 64n) | (789n << 128n) | (101112n << 192n)
+  if (loadedProviders.c.binding.createBigIntWords() !== expectedWords) {
+    throw new Error('emnapi-c: createBigIntWords failed')
   }
   if (loadedProviders.runtime.binding.readAccessors() !== 64) {
     throw new Error('runtime: ObjectTemplate accessor failed')
@@ -226,6 +396,8 @@ function verifyProviders (loadedProviders) {
   if (loadedProviders.runtime.binding.readDerivedAccessor() !== 1) {
     throw new Error('runtime: inherited ObjectTemplate accessor failed')
   }
+  loadedProviders.runtime.binding.callFunctionTemplate()
+  loadedProviders.runtime.binding.drainFinalizers()
 }
 
 function formatNumber (value) {

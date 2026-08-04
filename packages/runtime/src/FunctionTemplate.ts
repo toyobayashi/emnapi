@@ -64,7 +64,7 @@ export class FunctionTemplate extends Template {
       return this._cached[0]
     }
     const { ctx, callback, v8FunctionCallback, data, signature, _instanceTemplate } = this
-    function _ (this: any, ...args: any[]) {
+    function _ (this: any) {
       if (signature && signature.receiver) {
         const f = signature.receiver.getFunction()
         if (!(this instanceof f)) {
@@ -76,7 +76,7 @@ export class FunctionTemplate extends Template {
       let returnValue: any
       try {
         callbackInfo.data = data
-        callbackInfo.args = args
+        callbackInfo.args = arguments
         callbackInfo.thiz = this
         callbackInfo.holder = findHolder(this, _) || this
         callbackInfo.fn = _

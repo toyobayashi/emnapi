@@ -51,6 +51,7 @@ export class Persistent<T> extends Disposable {
   private _param: any
   private _callback: ((param: any) => void) | undefined
   private _isolate: Isolate
+  private _slotId: number
   public id: number
 
   private static readonly _registry = supportFinalizer
@@ -71,6 +72,7 @@ export class Persistent<T> extends Disposable {
     this.id = 0
     this._isolate = isolate
     isolate.insertRef(this)
+    this._slotId = 0x80000000 + this.id
     this.setSlot(args.length === 0 ? undefined : new StrongRef(args[0]))
   }
 
@@ -116,7 +118,7 @@ export class Persistent<T> extends Disposable {
   }
 
   slot (): number {
-    return 0x80000000 + this.id
+    return this._slotId
   }
 
   getSlot (): PersistentValueType<T> {

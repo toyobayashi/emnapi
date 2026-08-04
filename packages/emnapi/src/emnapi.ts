@@ -184,7 +184,7 @@ export function $emnapiSyncMemory<T extends ArrayBufferLike | ArrayBufferView> (
     if (len === 0) return arrayBufferOrView as (T extends ArrayBufferView ? ArrayBufferView : T)
     view = new Uint8Array(arrayBufferOrView, offset, len)
 
-    const wasmMemoryU8 = new Uint8Array(wasmMemory.buffer)
+    const wasmMemoryU8 = emnapiExternalMemory.getHEAPU8()
     if (!js_to_wasm) {
       view.set(wasmMemoryU8.subarray(pointer as number, pointer as number + len))
     } else {
@@ -206,7 +206,7 @@ export function $emnapiSyncMemory<T extends ArrayBufferLike | ArrayBufferView> (
     if (len === 0) return latestView as (T extends ArrayBufferView ? ArrayBufferView : T)
     view = new Uint8Array(latestView.buffer, latestView.byteOffset + offset, len)
 
-    const wasmMemoryU8 = new Uint8Array(wasmMemory.buffer)
+    const wasmMemoryU8 = emnapiExternalMemory.getHEAPU8()
     if (!js_to_wasm) {
       view.set(wasmMemoryU8.subarray(pointer as number, pointer as number + len))
     } else {
@@ -403,7 +403,7 @@ export function $emnapiAcquireExternalSharedArrayBuffer (handle: number, sab?: S
 
   if (sab == null) {
     sab = new SharedArrayBuffer(meta.byte_length)
-    new Uint8Array(sab).set(new Uint8Array(wasmMemory.buffer, external_data, meta.byte_length))
+    new Uint8Array(sab).set(emnapiExternalMemory.getHEAPU8().subarray(external_data, external_data + meta.byte_length))
   } else {
     if (emnapiExternalSAB.handleTable.has(sab)) {
       return sab
