@@ -75,10 +75,6 @@ export class HandleScope extends Disposable {
     if (this._escapeCalled) return 0
     this._escapeCalled = true
 
-    if (handle < this.start || handle >= this.end) {
-      return 0
-    }
-
     const id = this.start
     this.handleStore.swap(handle, id)
     this.start++
