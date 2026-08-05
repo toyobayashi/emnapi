@@ -159,7 +159,7 @@ export function napi_create_external_arraybuffer (
       } catch (_) {}
     } else {
       const u8arr = new Uint8Array(arrayBuffer)
-      u8arr.set(new Uint8Array(wasmMemory.buffer).subarray(external_data as number, external_data as number + byte_length))
+      u8arr.set(emnapiExternalMemory.getHEAPU8().subarray(external_data as number, external_data as number + byte_length))
       emnapiExternalMemory.table.set(arrayBuffer, {
         address: external_data as number,
         ownership: ReferenceOwnership.kUserland,
@@ -217,7 +217,7 @@ export function node_api_create_external_sharedarraybuffer (
     const sharedArrayBuffer = new SharedArrayBuffer(byte_length)
     if (byte_length !== 0) {
       const u8arr = new Uint8Array(sharedArrayBuffer)
-      u8arr.set(new Uint8Array(wasmMemory.buffer).subarray(external_data as number, external_data as number + byte_length))
+      u8arr.set(emnapiExternalMemory.getHEAPU8().subarray(external_data as number, external_data as number + byte_length))
       emnapiExternalMemory.table.set(sharedArrayBuffer, {
         address: external_data as number,
         ownership: ReferenceOwnership.kUserland,
@@ -463,7 +463,7 @@ export function napi_create_buffer (
       pointer = _malloc(to64('size')) as number
       if (!pointer) throw new Error('Out of memory')
       from64('pointer')
-      new Uint8Array(wasmMemory.buffer).subarray(pointer, pointer + size).fill(0)
+      emnapiExternalMemory.getHEAPU8().subarray(pointer, pointer + size).fill(0)
       // capture Buffer.from at creation so a later refreshed view uses it
       const buffer = emnapiExternalMemory.getBufferFrom()(wasmMemory.buffer, pointer, size) as Uint8Array
       const viewDescriptor: MemoryViewDescriptor = {
@@ -508,7 +508,7 @@ export function napi_create_buffer_copy (
     const buffer = Buffer.from(arrayBuffer)
     from64('data')
     from64('length')
-    buffer.set(new Uint8Array(wasmMemory.buffer).subarray(data as number, data as number + length))
+    buffer.set(emnapiExternalMemory.getHEAPU8().subarray(data as number, data as number + length))
     value = emnapiCtx.napiValueFromJsValue(buffer)
     from64('result')
     makeSetValue('result', 0, 'value', '*')

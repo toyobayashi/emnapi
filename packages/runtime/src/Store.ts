@@ -31,10 +31,16 @@ export class CountIdAllocator extends Disposable implements IdAllocator {
 
 export class CountIdReuseAllocator extends CountIdAllocator implements IdAllocator {
   private _freeList: number[] = []
+  private _freeListHead = 0
 
   public override aquire (): number {
-    if (this._freeList.length) {
-      return this._freeList.shift()!
+    if (this._freeListHead < this._freeList.length) {
+      const id = this._freeList[this._freeListHead++]
+      if (this._freeListHead === this._freeList.length) {
+        this._freeList.length = 0
+        this._freeListHead = 0
+      }
+      return id
     }
     return super.aquire()
   }
@@ -45,6 +51,7 @@ export class CountIdReuseAllocator extends CountIdAllocator implements IdAllocat
 
   public override dispose (): void {
     this._freeList.length = 0
+    this._freeListHead = 0
     super.dispose()
   }
 }
@@ -60,7 +67,10 @@ export class BaseArrayStore<T> extends Disposable implements ObjectAllocator<T> 
 
   public constructor (initialCapacity = 1) {
     super()
-    this._values = Array(initialCapacity) as [undefined, ...(T | undefined)[]]
+    this._values = [undefined]
+    for (let i = 1; i < initialCapacity; i++) {
+      this._values.push(undefined)
+    }
   }
 
   /** @virtual */
@@ -100,10 +110,6 @@ export class ArrayStore<T extends { id: number | bigint }> extends BaseArrayStor
 
   public insert (value: T): void {
     const id = this._allocator.aquire()
-    while (id >= this._values.length) {
-      const cap = this._values.length
-      this._values.length = cap + (cap >> 1) + 16
-    }
     value.id = id
     this._values[id as number] = value
   }

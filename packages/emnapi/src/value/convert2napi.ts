@@ -210,7 +210,7 @@ export function napi_create_bigint_uint64 (env: napi_env, low: int32_t, high: in
 
 // #if WASM_BIGINT
   if (!high) return envObject.setLastError(napi_status.napi_invalid_arg)
-  value = (low as unknown as bigint) & ((BigInt(1) << BigInt(64)) - BigInt(1))
+  value = BigInt.asUintN(64, low as unknown as bigint)
 
   const v1 = emnapiCtx.napiValueFromJsValue(value)
   from64('high')
@@ -246,14 +246,17 @@ export function napi_create_bigint_words (env: napi_env, sign_bit: int, word_cou
     if (word_count > (1024 * 1024 / (4 * 8) / 2)) {
       throw new RangeError('Maximum BigInt size exceeded')
     }
-    let value: bigint = BigInt(0)
-    for (i = 0; i < word_count; i++) {
-      const low = makeGetValue('words', 'i * 8', 'u32')
-      const high = makeGetValue('words', 'i * 8 + 4', 'u32')
+    let value = BigInt(0)
+    for (i = word_count; i > 0; --i) {
+      const wordIndex = i - 1
+      const low = makeGetValue('words', 'wordIndex * 8', 'u32')
+      const high = makeGetValue('words', 'wordIndex * 8 + 4', 'u32')
       const wordi = BigInt(low) | (BigInt(high) << BigInt(32))
-      value += wordi << BigInt(64 * i)
+      value = (value << BigInt(64)) | wordi
     }
-    value *= ((BigInt(sign_bit) % BigInt(2) === BigInt(0)) ? BigInt(1) : BigInt(-1))
+    if (sign_bit % 2 !== 0) {
+      value = -value
+    }
     from64('result')
     v = emnapiCtx.napiValueFromJsValue(value)
     makeSetValue('result', 0, 'v', '*')

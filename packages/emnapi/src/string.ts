@@ -18,7 +18,29 @@ export interface Decoder {
 export var emnapiString = {
   utf8Decoder: undefined! as Decoder,
   utf16Decoder: undefined! as Decoder,
+  cachedMemoryBuffer: undefined as ArrayBufferLike | undefined,
+  cachedHEAPU8: undefined as Uint8Array | undefined,
+  cachedHEAPU16: undefined as Uint16Array | undefined,
+  getHEAPU8 (): Uint8Array {
+    const buffer = wasmMemory.buffer
+    if (buffer !== emnapiString.cachedMemoryBuffer || emnapiString.cachedHEAPU8?.byteLength !== buffer.byteLength) {
+      emnapiString.cachedMemoryBuffer = buffer
+      emnapiString.cachedHEAPU8 = new Uint8Array(buffer)
+      emnapiString.cachedHEAPU16 = undefined
+    }
+    return emnapiString.cachedHEAPU8!
+  },
+  getHEAPU16 (): Uint16Array {
+    emnapiString.getHEAPU8()
+    if (emnapiString.cachedHEAPU16 === undefined) {
+      emnapiString.cachedHEAPU16 = new Uint16Array(emnapiString.cachedMemoryBuffer!)
+    }
+    return emnapiString.cachedHEAPU16
+  },
   init () {
+    emnapiString.cachedMemoryBuffer = undefined
+    emnapiString.cachedHEAPU8 = undefined
+    emnapiString.cachedHEAPU16 = undefined
 // #if !TEXTDECODER || TEXTDECODER == 1
     const fallbackDecoder = {
       decode (bytes: Uint8Array) {
@@ -132,7 +154,7 @@ export var emnapiString = {
   UTF8ToString (ptr: number, length: int): string {
     if (!ptr || !length) return ''
     ptr >>>= 0
-    const HEAPU8 = new Uint8Array(wasmMemory.buffer)
+    const HEAPU8 = emnapiString.getHEAPU8()
     let end = ptr
     if (length === -1 || length === 4294967295) {
       for (; HEAPU8[end];) ++end
@@ -169,7 +191,7 @@ export var emnapiString = {
     return emnapiString.utf8Decoder.decode(getUnsharedTextDecoderView('HEAPU8', 'ptr', 'end') as Uint8Array)
   },
   stringToUTF8 (str: string, outPtr: number, maxBytesToWrite: number): number {
-    const HEAPU8 = new Uint8Array(wasmMemory.buffer)
+    const HEAPU8 = emnapiString.getHEAPU8()
     let outIdx = outPtr
     outIdx >>>= 0
     if (!(maxBytesToWrite > 0)) { return 0 }
@@ -211,7 +233,7 @@ export var emnapiString = {
     let end = ptr
     if (length === -1 || length === 4294967295) {
       let idx = end >>> 1
-      const HEAPU16 = new Uint16Array(wasmMemory.buffer)
+      const HEAPU16 = emnapiString.getHEAPU16()
       while (HEAPU16[idx]) ++idx
       end = (idx << 1) >>> 0
     } else {
@@ -224,7 +246,7 @@ export var emnapiString = {
     }
 // #endif
 
-    const HEAPU8 = new Uint8Array(wasmMemory.buffer)
+    const HEAPU8 = emnapiString.getHEAPU8()
     return emnapiString.utf16Decoder.decode(getUnsharedTextDecoderView('HEAPU8', 'ptr', 'end') as Uint8Array)
   },
   stringToUTF16 (str: string, outPtr: number, maxBytesToWrite: number): number {

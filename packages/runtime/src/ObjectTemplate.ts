@@ -57,6 +57,8 @@ export interface AccessorConfig {
   attribute: number
   getterSideEffectType: number
   setterSideEffectType: number
+  getterFunction: (() => any) | undefined
+  setterFunction: ((value: any) => void) | undefined
 }
 
 /** @public */
@@ -66,6 +68,7 @@ export class ObjectTemplate extends Template {
   public internalFieldCount: number = 0
 
   private _accessors: Map<string | symbol, AccessorConfig> = new Map()
+  private _instances: WeakSet<object> = new WeakSet()
 
   constructor (
     ctx: Isolate,
@@ -86,7 +89,7 @@ export class ObjectTemplate extends Template {
     getterSideEffectType: number,
     setterSideEffectType: number
   ): void {
-    this._accessors.set(name, {
+    const config: AccessorConfig = {
       name,
       getterWrap,
       setterWrap,
@@ -95,65 +98,74 @@ export class ObjectTemplate extends Template {
       data,
       attribute,
       getterSideEffectType,
-      setterSideEffectType
-    })
+      setterSideEffectType,
+      getterFunction: undefined,
+      setterFunction: undefined
+    }
+    config.getterFunction = getter
+      ? this._createAccessorWrapper('getter', config)
+      : undefined
+    config.setterFunction = setter
+      ? this._createAccessorWrapper('setter', config)
+      : undefined
+    this._accessors.set(name, config)
   }
 
   setInternalFieldCount (value: number) {
     this.internalFieldCount = value
   }
 
+  private _createAccessorWrapper (type: 'getter' | 'setter', config: AccessorConfig) {
+    const { ctx } = this
+    const instances = this._instances
+    const resolveHolder = (receiver: any) => {
+      let holder = receiver
+      while (holder != null && !instances.has(holder)) {
+        holder = Object.getPrototypeOf(holder)
+      }
+      return holder || receiver
+    }
+    function accessor (this: any, value?: any) {
+      const scope = ctx.openScope()
+      const callbackInfo = scope.callbackInfo
+      let returnValue: any
+      try {
+        callbackInfo.data = config.data
+        callbackInfo.args = type === 'getter' ? [] : [value]
+        callbackInfo.thiz = this
+        callbackInfo.holder = resolveHolder(this)
+        callbackInfo.fn = accessor
+        const ret = type === 'getter'
+          ? config.getterWrap(ctx.napiValueFromJsValue(config.name), ctx.getCurrentScope().id, config.getter)
+          : config.setterWrap(ctx.napiValueFromJsValue(config.name), ctx.napiValueFromJsValue(value), ctx.getCurrentScope().id, config.setter)
+        returnValue = ret ? ctx.jsValueFromNapiValue(ret) : undefined
+      } catch (err) {
+        ctx.throwException(err)
+      }
+      ctx.closeScope(scope)
+      if (ctx.hasPendingException()) {
+        if (TryCatch.top) {
+          TryCatch.top.setError(ctx.getAndClearLastException())
+        } else {
+          throw ctx.getAndClearLastException()
+        }
+      }
+      return returnValue
+    }
+    return accessor
+  }
+
   applyToInstance (instance: any) {
+    this._instances.add(instance)
     internalField.set(instance, Array(this.internalFieldCount))
     this._addPropertiesToInstance(instance)
 
-    const createAccessorWrapper = (type: 'getter' | 'setter', data: any, cb: (value?: any) => Ptr) => {
-      const { ctx } = this
-      function _ (this: any, value?: any) {
-        const scope = ctx.openScope()
-        const callbackInfo = scope.callbackInfo
-        let returnValue: any
-        try {
-          callbackInfo.data = data
-          callbackInfo.args = type === 'getter' ? [] : [value]
-          callbackInfo.thiz = this
-          callbackInfo.holder = findHolder(this, _) || this
-          callbackInfo.fn = _
-          const ret = cb(value)
-          returnValue = ret ? ctx.jsValueFromNapiValue(ret) : undefined
-        } catch (err) {
-          ctx.throwException(err)
-        }
-        ctx.closeScope(scope)
-        if (ctx.hasPendingException()) {
-          if (TryCatch.top) {
-            TryCatch.top.setError(ctx.getAndClearLastException())
-          } else {
-            throw ctx.getAndClearLastException()
-          }
-        }
-        return returnValue
-      }
-      return _
-    }
-
     this._accessors.forEach((config, name) => {
-      const { ctx } = this
-      const { getterWrap, setterWrap, getter, setter, data, attribute } = config
-
       Object.defineProperty(instance, name, {
-        get: getter
-          ? createAccessorWrapper('getter', data, () => {
-            return getterWrap(ctx.napiValueFromJsValue(name), ctx.getCurrentScope()!.id, getter)
-          }).bind(instance)
-          : undefined,
-        set: setter
-          ? createAccessorWrapper('setter', data, (value) => {
-            return setterWrap(ctx.napiValueFromJsValue(name), ctx.napiValueFromJsValue(value), ctx.getCurrentScope()!.id, setter)
-          }).bind(instance)
-          : undefined,
-        enumerable: !(attribute & 2), // DontEnum
-        configurable: !(attribute & 4) // DontDelete
+        get: config.getterFunction,
+        set: config.setterFunction,
+        enumerable: !(config.attribute & 2), // DontEnum
+        configurable: !(config.attribute & 4) // DontDelete
       })
     })
   }

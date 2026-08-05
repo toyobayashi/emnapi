@@ -31,6 +31,8 @@ export const emnapiExternalMemory: {
   registry: FinalizationRegistry<number> | undefined
   table: WeakMap<ArrayBufferLike, ArrayBufferPointer>
   wasmMemoryViewTable: WeakMap<ArrayBufferView, MemoryViewDescriptor>
+  cachedMemoryBuffer: ArrayBufferLike | undefined
+  cachedHEAPU8: Uint8Array | undefined
   intrinsics: {
     isView: (value: any) => value is ArrayBufferView
     typedArray: {
@@ -57,6 +59,7 @@ export const emnapiExternalMemory: {
     bufferFrom: ((buffer: ArrayBufferLike, byteOffset?: number, length?: number) => ArrayBufferView) | undefined
   }
   init: () => void
+  getHEAPU8: () => Uint8Array
   isSharedArrayBuffer: (value: any) => value is SharedArrayBuffer
   isDetachedArrayBuffer: (arrayBuffer: ArrayBufferLike) => boolean
   bufferByteLength: (buffer: ArrayBufferLike) => number
@@ -71,6 +74,8 @@ export const emnapiExternalMemory: {
   registry: typeof FinalizationRegistry === 'function' ? new FinalizationRegistry(function (_pointer) { _free(to64('_pointer') as number) }) : undefined,
   table: new WeakMap(),
   wasmMemoryViewTable: new WeakMap(),
+  cachedMemoryBuffer: undefined,
+  cachedHEAPU8: undefined,
 
   // populated by init(): live intrinsic function references must not exist at
   // library definition time — the emscripten jsifier re-serializes this object
@@ -81,6 +86,8 @@ export const emnapiExternalMemory: {
     emnapiExternalMemory.registry = typeof FinalizationRegistry === 'function' ? new FinalizationRegistry(function (_pointer) { _free(to64('_pointer') as number) }) : undefined
     emnapiExternalMemory.table = new WeakMap()
     emnapiExternalMemory.wasmMemoryViewTable = new WeakMap()
+    emnapiExternalMemory.cachedMemoryBuffer = undefined
+    emnapiExternalMemory.cachedHEAPU8 = undefined
 
     const sharedArrayBufferByteLength = typeof SharedArrayBuffer === 'function'
       ? Object.getOwnPropertyDescriptor(SharedArrayBuffer.prototype, 'byteLength')?.get
@@ -132,6 +139,15 @@ export const emnapiExternalMemory: {
       },
       bufferFrom: undefined
     }
+  },
+
+  getHEAPU8: function (): Uint8Array {
+    const buffer = wasmMemory.buffer
+    if (buffer !== emnapiExternalMemory.cachedMemoryBuffer || emnapiExternalMemory.cachedHEAPU8?.byteLength !== buffer.byteLength) {
+      emnapiExternalMemory.cachedMemoryBuffer = buffer
+      emnapiExternalMemory.cachedHEAPU8 = new Uint8Array(buffer)
+    }
+    return emnapiExternalMemory.cachedHEAPU8!
   },
 
   isSharedArrayBuffer (value: any): value is SharedArrayBuffer {
@@ -237,14 +253,14 @@ export const emnapiExternalMemory: {
     }
 
     const isDetached = emnapiExternalMemory.isDetachedArrayBuffer(arrayBuffer)
-    if (emnapiExternalMemory.table.has(arrayBuffer)) {
-      const cachedInfo = emnapiExternalMemory.table.get(arrayBuffer)!
+    const cachedInfo = emnapiExternalMemory.table.get(arrayBuffer)
+    if (cachedInfo !== undefined) {
       if (isDetached) {
         cachedInfo.address = 0
         return cachedInfo
       }
       if (shouldCopy && cachedInfo.ownership === ReferenceOwnership.kRuntime && cachedInfo.runtimeAllocated === 1) {
-        new Uint8Array(wasmMemory.buffer).set(new Uint8Array(arrayBuffer), cachedInfo.address)
+        emnapiExternalMemory.getHEAPU8().set(new Uint8Array(arrayBuffer), cachedInfo.address)
       }
       return cachedInfo
     }
@@ -261,7 +277,7 @@ export const emnapiExternalMemory: {
     let pointer = _malloc(to64('byteLength'))
     if (!pointer) throw new Error('Out of memory')
     from64('pointer')
-    new Uint8Array(wasmMemory.buffer).set(new Uint8Array(arrayBuffer), pointer as number)
+    emnapiExternalMemory.getHEAPU8().set(new Uint8Array(arrayBuffer), pointer as number)
 
     info.address = pointer as number
     info.ownership = emnapiExternalMemory.registry ? ReferenceOwnership.kRuntime : ReferenceOwnership.kUserland
@@ -286,7 +302,7 @@ export const emnapiExternalMemory: {
     const isDataView = tag === undefined
     const buffer: ArrayBufferLike = isDataView ? intrinsics.dataView.buffer.call(view) : intrinsics.typedArray.buffer.call(view)
     if (buffer === wasmMemory.buffer) {
-      if (!emnapiExternalMemory.wasmMemoryViewTable.has(view)) {
+      if (emnapiExternalMemory.wasmMemoryViewTable.get(view) === undefined) {
         emnapiExternalMemory.wasmMemoryViewTable.set(view, {
           // store the intrinsic element-type constructor keyed by the
           // @@toStringTag slot (never view.constructor and never a
@@ -305,8 +321,9 @@ export const emnapiExternalMemory: {
     }
 
     const maybeOldWasmMemory = emnapiExternalMemory.isDetachedArrayBuffer(buffer) || emnapiExternalMemory.isSharedArrayBuffer(buffer)
-    if (maybeOldWasmMemory && emnapiExternalMemory.wasmMemoryViewTable.has(view)) {
-      const info = emnapiExternalMemory.wasmMemoryViewTable.get(view)!
+    const oldViewInfo = maybeOldWasmMemory ? emnapiExternalMemory.wasmMemoryViewTable.get(view) : undefined
+    if (oldViewInfo !== undefined) {
+      const info = oldViewInfo
       const Ctor = info.Ctor
       let newView: ArrayBufferView
       const Buffer = emnapiCtx.features.Buffer
@@ -327,8 +344,9 @@ export const emnapiExternalMemory: {
     view = emnapiExternalMemory.getOrUpdateMemoryView(view)
     const buffer = emnapiExternalMemory.viewBuffer(view)
     if (buffer === wasmMemory.buffer) {
-      if (emnapiExternalMemory.wasmMemoryViewTable.has(view)) {
-        const { address, ownership, runtimeAllocated } = emnapiExternalMemory.wasmMemoryViewTable.get(view)!
+      const info = emnapiExternalMemory.wasmMemoryViewTable.get(view)
+      if (info !== undefined) {
+        const { address, ownership, runtimeAllocated } = info
         return { address, ownership, runtimeAllocated, view }
       }
       return { address: emnapiExternalMemory.viewByteOffset(view), ownership: ReferenceOwnership.kUserland, runtimeAllocated: 0, view }

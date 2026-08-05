@@ -5,6 +5,7 @@ import { supportFinalizer } from './util'
 
 export class PersistentStore extends ArrayStore<Persistent<any>> {
   private _recyleList: (number | bigint)[] = []
+  private _recyleListHead = 0
 
   constructor (initialCapacity: number = 4) {
     super(initialCapacity)
@@ -15,8 +16,12 @@ export class PersistentStore extends ArrayStore<Persistent<any>> {
   }
 
   public recycle () {
-    while (this._recyleList.length > 0) {
-      const id = this._recyleList.shift()!
+    while (this._recyleListHead < this._recyleList.length) {
+      const id = this._recyleList[this._recyleListHead++]
+      if (this._recyleListHead === this._recyleList.length) {
+        this._recyleList.length = 0
+        this._recyleListHead = 0
+      }
       const persistent = this.deref(id)!
       persistent.dispose()
     }
@@ -46,6 +51,7 @@ export class Persistent<T> extends Disposable {
   private _param: any
   private _callback: ((param: any) => void) | undefined
   private _isolate: Isolate
+  private _slotId: number
   public id: number
 
   private static readonly _registry = supportFinalizer
@@ -66,6 +72,7 @@ export class Persistent<T> extends Disposable {
     this.id = 0
     this._isolate = isolate
     isolate.insertRef(this)
+    this._slotId = 0x80000000 + this.id
     this.setSlot(args.length === 0 ? undefined : new StrongRef(args[0]))
   }
 
@@ -111,7 +118,7 @@ export class Persistent<T> extends Disposable {
   }
 
   slot (): number {
-    return 0x80000000 + this.id
+    return this._slotId
   }
 
   getSlot (): PersistentValueType<T> {
