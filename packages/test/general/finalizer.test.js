@@ -8,7 +8,8 @@ const { load } = require('../util.mjs')
 
 module.exports = load('general').then(async test_general => {
   let finalized = {}
-  const callback = common.mustCall(2)
+  let finalizedCount = 0
+  const callback = common.mustCall(() => { finalizedCount++ }, 2)
 
   // Add two items to be finalized and ensure the callback is called for each.
   test_general.addFinalizerOnly(finalized, callback)
@@ -22,7 +23,8 @@ module.exports = load('general').then(async test_general => {
   assert.throws(() => test_general.removeWrap(finalized),
     { name: 'Error', message: 'Invalid argument' })
   finalized = null
-  global.gc()
+  await common.gcUntil('finalizer only',
+    () => finalizedCount === 2)
 
   // Add an item to an object that is already wrapped, and ensure that its
   // finalizer as well as the wrap finalizer gets called.
