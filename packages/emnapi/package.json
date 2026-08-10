@@ -1,6 +1,6 @@
 {
   "name": "emnapi",
-  "version": "2.0.0-alpha.3",
+  "version": "2.0.0-alpha.4",
   "description": "Node-API implementation for Emscripten",
   "main": "index.js",
   "gypfile": false,
