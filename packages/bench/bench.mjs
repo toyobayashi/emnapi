@@ -304,7 +304,7 @@ function createRuntimeAccessorBenchmark (runtime) {
       for (let i = 0; i < 64; i++) templateFunction(i)
     },
     drainFinalizers () {
-      env.pendingFinalizers = finalizers.slice()
+      env.pendingFinalizers = new Set(finalizers)
       env.drainFinalizerQueue()
     },
     verifyFinalizerOrder () {

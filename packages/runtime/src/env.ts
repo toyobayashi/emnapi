@@ -44,8 +44,7 @@ export abstract class Env extends Disposable {
   public reflist = new RefTracker()
   public finalizing_reflist = new RefTracker()
 
-  public pendingFinalizers: RefTracker[] = []
-  protected _pendingFinalizersHead = 0
+  public pendingFinalizers: Set<RefTracker> = new Set()
 
   moduleApiVersion!: number
   filename!: string
@@ -150,25 +149,12 @@ export abstract class Env extends Disposable {
 
   /** @virtual */
   public enqueueFinalizer (finalizer: RefTracker): void {
-    if (this._pendingFinalizersHead >= 1024 && this._pendingFinalizersHead * 2 >= this.pendingFinalizers.length) {
-      this.pendingFinalizers.splice(0, this._pendingFinalizersHead)
-      this._pendingFinalizersHead = 0
-    }
-    if (this.pendingFinalizers.indexOf(finalizer, this._pendingFinalizersHead) === -1) {
-      this.pendingFinalizers.push(finalizer)
-    }
+    this.pendingFinalizers.add(finalizer)
   }
 
   /** @virtual */
   public dequeueFinalizer (finalizer: RefTracker): void {
-    const index = this.pendingFinalizers.indexOf(finalizer, this._pendingFinalizersHead)
-    if (index !== -1) {
-      this.pendingFinalizers.splice(index, 1)
-      if (this._pendingFinalizersHead === this.pendingFinalizers.length) {
-        this.pendingFinalizers.length = 0
-        this._pendingFinalizersHead = 0
-      }
-    }
+    this.pendingFinalizers.delete(finalizer)
   }
 
   /** @virtual */
@@ -319,12 +305,8 @@ export class NodeEnv extends Env {
   }
 
   public drainFinalizerQueue (): void {
-    while (this._pendingFinalizersHead < this.pendingFinalizers.length) {
-      const refTracker = this.pendingFinalizers[this._pendingFinalizersHead++]
-      if (this._pendingFinalizersHead === this.pendingFinalizers.length) {
-        this.pendingFinalizers.length = 0
-        this._pendingFinalizersHead = 0
-      }
+    for (const refTracker of this.pendingFinalizers) {
+      this.pendingFinalizers.delete(refTracker)
       refTracker.finalize()
     }
   }
