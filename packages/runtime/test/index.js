@@ -35,4 +35,53 @@ const nsOfCjs = await import(cjsEntry)
 const nsOfCjsKeys = Object.getOwnPropertyNames(nsOfCjs).filter(k => k !== 'default' && k !== 'module.exports').sort()
 assert.deepStrictEqual(nsOfCjsKeys, esmKeys, 'import() of index.cjs named exports must exactly match the ESM export names')
 
+// 4. finalizer queue operations preserve FIFO order while allowing O(1)
+// duplicate detection and removal.
+const context = esm.createContext()
+const bridge = {
+  address: 1,
+  deleteEnv () {},
+  setLastError () {},
+  makeDynCall_vppp () { return () => {} },
+  makeDynCall_vp () { return () => {} },
+  abort (message) { throw new Error(message) }
+}
+const env = new esm.NodeEnv(context, new esm.ArrayStore(), bridge)
+assert.ok(env.pendingFinalizers instanceof Set, 'finalizer queue must use constant-time membership checks')
+
+const order = []
+const finalizers = Array.from({ length: 4 }, (_, index) => {
+  const finalizer = new esm.RefTracker()
+  finalizer.finalize = () => { order.push(index) }
+  return finalizer
+})
+env.enqueueFinalizer(finalizers[0])
+env.enqueueFinalizer(finalizers[1])
+env.enqueueFinalizer(finalizers[1])
+env.enqueueFinalizer(finalizers[2])
+env.dequeueFinalizer(finalizers[1])
+env.enqueueFinalizer(finalizers[1])
+finalizers[0].finalize = () => {
+  order.push(0)
+  env.dequeueFinalizer(finalizers[2])
+  env.enqueueFinalizer(finalizers[3])
+}
+env.drainFinalizerQueue()
+assert.deepStrictEqual(order, [0, 1, 3], 'finalizer queue mutation must preserve FIFO semantics')
+assert.strictEqual(env.pendingFinalizers.size, 0, 'drained finalizer queue must be empty')
+
+// A throwing finalizer is consumed, but later finalizers remain queued so a
+// subsequent drain can resume where the interrupted drain stopped.
+const throwing = new esm.RefTracker()
+const afterThrow = new esm.RefTracker()
+throwing.finalize = () => { throw new Error('finalizer failure') }
+afterThrow.finalize = () => { order.push(4) }
+env.enqueueFinalizer(throwing)
+env.enqueueFinalizer(afterThrow)
+assert.throws(() => env.drainFinalizerQueue(), /finalizer failure/)
+assert.strictEqual(env.pendingFinalizers.has(throwing), false)
+assert.strictEqual(env.pendingFinalizers.has(afterThrow), true)
+env.drainFinalizerQueue()
+assert.deepStrictEqual(order, [0, 1, 3, 4])
+
 console.log(`ok - CJS entry exposes ${esmKeys.length} mutable named exports`)
