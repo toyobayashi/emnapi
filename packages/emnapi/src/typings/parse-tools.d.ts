@@ -11,6 +11,7 @@ declare module 'emscripten:parse-tools' {
   export function makeGetValue (ptrVar: string, pos: number | string, type: PtrType): number
   export function makeGetValue (ptrVar: string, pos: number | string, type: ValType): number | bigint
   export function makeSetValue (ptrVar: string, pos: number | string, valueVar: string, type: ValType): void
+  export function getHeapViewOrCopy (heap: string, start: string, end: string): ArrayBufferView
   export function getUnsharedTextDecoderView (heap: string, start: string, end: string): ArrayBufferView
 
   export function from64 (x: string | string[]): void

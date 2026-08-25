@@ -555,8 +555,8 @@ class Transform {
         if (functionName === 'makeDynCall') {
           return this.expandMakeDynCall(node)
         }
-        if (functionName === 'getUnsharedTextDecoderView') {
-          return this.expandGetUnsharedTextDecoderView(node)
+        if (functionName === 'getHeapViewOrCopy' || functionName === 'getUnsharedTextDecoderView') {
+          return this.expandGetHeapViewOrCopy(node)
         }
       }
       const removeDeps = [
@@ -772,10 +772,10 @@ class Transform {
     ))
   }
 
-  expandGetUnsharedTextDecoderView (node: CallExpression): Expression {
+  expandGetHeapViewOrCopy (node: CallExpression): Expression {
     const argv = node.arguments
     if (argv.length !== 3) {
-      throw new Error('getUnsharedTextDecoderView argument length != 3')
+      throw new Error('getHeapViewOrCopy argument length != 3')
     }
 
     const argv0 = argv[0]
@@ -786,7 +786,7 @@ class Transform {
         !ts.isStringLiteral(argv1) ||
         !ts.isStringLiteral(argv2)
     ) {
-      throw new Error('getUnsharedTextDecoderView arguments include non string literal')
+      throw new Error('getHeapViewOrCopy arguments include non string literal')
     }
 
     const heap = argv0.text
