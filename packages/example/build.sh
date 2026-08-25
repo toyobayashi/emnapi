@@ -3,6 +3,9 @@
 mkdir -p out/emscripten
 mkdir -p out/wasi-sdk
 
+# wasi-sdk 34 changed the wasi-libc futex ABI. Override this for wasi-sdk <= 33.
+WASI_THREADS_LIB_DIR=${EMNAPI_WASI_THREADS_LIB_DIR:-wasm32-wasip1-threads-wasi-sdk-34}
+
 $EMSDK/upstream/emscripten/emcc -O3 \
     -pthread \
     -DBUILDING_NODE_EXTENSION \
@@ -26,7 +29,7 @@ $WASI_SDK_PATH/bin/clang --target=wasm32-wasip1-threads -O3 \
     -pthread -matomics -mbulk-memory \
     -DBUILDING_NODE_EXTENSION \
     -I./node_modules/emnapi/include/node \
-    -L./node_modules/emnapi/lib/wasm32-wasip1-threads \
+    -L./node_modules/emnapi/lib/$WASI_THREADS_LIB_DIR \
     --sysroot=$WASI_SDK_PATH/share/wasi-sysroot \
     -mexec-model=reactor \
     -Wl,--initial-memory=16777216 \
@@ -77,7 +80,7 @@ $WASI_SDK_PATH/bin/clang++ --target=wasm32-wasip1-threads -O3 \
     -DNAPI_DISABLE_CPP_EXCEPTIONS \
     -I./node_modules/emnapi/include/node \
     -I$(node -p "require('node-addon-api').include_dir") \
-    -L./node_modules/emnapi/lib/wasm32-wasip1-threads \
+    -L./node_modules/emnapi/lib/$WASI_THREADS_LIB_DIR \
     --sysroot=$WASI_SDK_PATH/share/wasi-sysroot \
     -mexec-model=reactor \
     -Wl,--initial-memory=16777216 \

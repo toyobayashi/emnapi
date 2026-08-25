@@ -6,6 +6,24 @@
 #include <stdio.h>
 #include "emnapi_internal.h"
 
+// wasi-sdk 34 changed the wasi-threads futex ABI from
+// (addr, op, val, timeout) to (addr, val, timeout). wasi/libc.h exists in
+// older SDKs too, so use wasi/version.h as the feature test instead of just
+// testing for the public libc header.
+#if defined(__has_include)
+#if __has_include(<wasi/version.h>)
+#include <wasi/version.h>
+#endif
+#endif
+
+#ifndef EMNAPI_WASI_FUTEX_NEW_ABI
+#if defined(__wasi_sdk_major__) && __wasi_sdk_major__ >= 34
+#define EMNAPI_WASI_FUTEX_NEW_ABI 1
+#else
+#define EMNAPI_WASI_FUTEX_NEW_ABI 0
+#endif
+#endif
+
 EMNAPI_INTERNAL_EXTERN void _emnapi_worker_ref(pthread_t pid);
 
 struct __pthread {
@@ -19,7 +37,11 @@ struct __pthread {
 
 #define INFINITY __builtin_inff()
 
+#if EMNAPI_WASI_FUTEX_NEW_ABI
+int __wasilibc_futex_wait_atomic_wait(volatile void *addr, int val, int64_t max_wait_ns);
+#else
 int __wasilibc_futex_wait_atomic_wait(volatile void *addr, int op, int val, int64_t max_wait_ns);
+#endif
 
 static _Atomic pthread_t crashed_thread_id = NULL;
 
@@ -69,13 +91,23 @@ int _emnapi_wait(int is_runtime_thread, volatile void *addr, int op, int val, do
     if (max_wait_ms != INFINITY) {
       max_wait_ns = (int64_t)(max_wait_ms*1000*1000);
     }
+#if EMNAPI_WASI_FUTEX_NEW_ABI
+    (void) op;
+    return __wasilibc_futex_wait_atomic_wait(addr, val, max_wait_ns);
+#else
     return __wasilibc_futex_wait_atomic_wait(addr, op, val, max_wait_ns);
+#endif
   }
 
   return _emnapi_wait_main_browser_thread(is_runtime_thread, addr, op, val, max_wait_ms);
 }
 
+#if EMNAPI_WASI_FUTEX_NEW_ABI
+int __wasilibc_futex_wait_maybe_busy(volatile void *addr, int val, int64_t max_wait_ns) {
+  int op = 0;
+#else
 int __wasilibc_futex_wait_maybe_busy(volatile void *addr, int op, int val, int64_t max_wait_ns) {
+#endif
   // https://github.com/emscripten-core/emscripten/blob/89ce854a99238d04116a3d9b5afe241eec90c6c3/system/lib/libc/musl/src/thread/__timedwait.c#L60
   int r = 0;
   double msecsToSleep = max_wait_ns >= 0 ? (max_wait_ns / 1000000.0) : INFINITY;

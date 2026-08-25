@@ -150,12 +150,18 @@ emcc -O3 -pthread \
 
 Build with wasi-sdk:
 
+The `wasi-libc` futex ABI changed in wasi-sdk 34. The package keeps the
+original `wasm32-wasip1-threads` archive set for wasi-sdk 33 or older and
+ships the new ABI under `wasm32-wasip1-threads-wasi-sdk-34` for wasi-sdk 34 or
+newer. Keep the directory and the wasi-sdk used for linking matched; the
+archive name remains `-lemnapi-mt` in both cases.
+
 ```bash
 "$WASI_SDK_PATH/bin/clang" --target=wasm32-wasip1-threads -O3 \
     -pthread -matomics -mbulk-memory \
     -DBUILDING_NODE_EXTENSION \
     -I./node_modules/emnapi/include/node \
-    -L./node_modules/emnapi/lib/wasm32-wasip1-threads \
+    -L./node_modules/emnapi/lib/wasm32-wasip1-threads-wasi-sdk-34 \
     --sysroot="$WASI_SDK_PATH/share/wasi-sysroot" \
     -mexec-model=reactor \
     -Wl,--import-memory -Wl,--shared-memory -Wl,--export-memory \
@@ -245,7 +251,7 @@ Build with wasi-sdk:
     -DNAPI_DISABLE_CPP_EXCEPTIONS \
     -I./node_modules/emnapi/include/node \
     -I$(node -p "require('node-addon-api').include_dir") \
-    -L./node_modules/emnapi/lib/wasm32-wasip1-threads \
+    -L./node_modules/emnapi/lib/wasm32-wasip1-threads-wasi-sdk-34 \
     --sysroot="$WASI_SDK_PATH/share/wasi-sysroot" \
     -mexec-model=reactor \
     -Wl,--import-memory -Wl,--shared-memory -Wl,--export-memory \

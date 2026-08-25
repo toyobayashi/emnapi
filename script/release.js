@@ -5,6 +5,7 @@ import { which } from './which.js'
 import { spawn, spawnSync, ChildProcessError } from './spawn.js'
 
 const __dirname = import.meta.dirname
+const WASI_THREADS_NEW_ARCH = 'wasm32-wasip1-threads-wasi-sdk-34'
 
 async function main () {
   await Promise.resolve()
@@ -139,6 +140,7 @@ async function main () {
       ...generatorOptions,
       `-DCMAKE_TOOLCHAIN_FILE=${wasip1ThreadsToolchainFile.replace(/\\/g, '/')}`,
       `-DWASI_SDK_PREFIX=${WASI_SDK_PATH}`,
+      '-DEMNAPI_WASI_FUTEX_ABI=LEGACY',
       '-DCMAKE_BUILD_TYPE=Release',
       '-DCMAKE_VERBOSE_MAKEFILE=1',
       '-DNAPI_EXPERIMENTAL=1',
@@ -155,6 +157,37 @@ async function main () {
     await spawn('cmake', [
       '--install',
       'build/wasm32-wasip1-threads',
+      '--prefix',
+      sysroot
+    ], cwd)
+
+    // wasi-sdk 34 changed the wasi-libc futex ABI. Keep the existing archive
+    // directory for wasi-sdk <= 33, and publish a second archive set compiled
+    // with the new signature for wasi-sdk 34. The compiler target stays
+    // wasm32-wasip1-threads; only the install directory and the ABI-specific
+    // C compilation differ.
+    await spawn('cmake', [
+      ...generatorOptions,
+      `-DCMAKE_TOOLCHAIN_FILE=${wasip1ThreadsToolchainFile.replace(/\\/g, '/')}`,
+      `-DWASI_SDK_PREFIX=${WASI_SDK_PATH}`,
+      '-DEMNAPI_WASI_FUTEX_ABI=NEW',
+      `-DEMNAPI_INSTALL_ARCH=${WASI_THREADS_NEW_ARCH}`,
+      '-DCMAKE_BUILD_TYPE=Release',
+      '-DCMAKE_VERBOSE_MAKEFILE=1',
+      '-DNAPI_EXPERIMENTAL=1',
+      '-DNODE_API_EXPERIMENTAL_NO_WARNING=1',
+      '-H.',
+      `-Bbuild/${WASI_THREADS_NEW_ARCH}`
+    ], cwd)
+
+    await spawn('cmake', [
+      '--build',
+      `build/${WASI_THREADS_NEW_ARCH}`
+    ], cwd)
+
+    await spawn('cmake', [
+      '--install',
+      `build/${WASI_THREADS_NEW_ARCH}`,
       '--prefix',
       sysroot
     ], cwd)
@@ -250,7 +283,9 @@ async function main () {
   fs.copySync(path.join(sysroot, 'lib/wasm32-wasip1'), path.join(__dirname, '../packages/emnapi/lib/wasm32-wasip1'))
   // fs.copySync(path.join(sysroot, 'lib/wasm32'), path.join(__dirname, '../packages/emnapi/lib/wasm32'))
   if (WASI_THREADS_CMAKE_TOOLCHAIN_FILE) {
-    fs.copySync(path.join(sysroot, 'lib/wasm32-wasip1-threads'), path.join(__dirname, '../packages/emnapi/lib/wasm32-wasip1-threads'))
+    for (const arch of ['wasm32-wasip1-threads', WASI_THREADS_NEW_ARCH]) {
+      fs.copySync(path.join(sysroot, 'lib', arch), path.join(__dirname, '../packages/emnapi/lib', arch))
+    }
   }
 
   // the shipped lib dirs must match exactly too (catches leftovers from
@@ -276,6 +311,11 @@ const EXPECTED_WASI_ARCHIVES = {
     'libemnapi.a',
     'libemnapi-mt.a',
     'libemnapi-napi-rs-mt.a'
+  ],
+  [WASI_THREADS_NEW_ARCH]: [
+    'libemnapi.a',
+    'libemnapi-mt.a',
+    'libemnapi-napi-rs-mt.a'
   ]
 }
 
@@ -283,6 +323,8 @@ if (fs.existsSync(path.join(__dirname, '../packages/emnapi/include/node/v8.h')))
   EXPECTED_WASI_ARCHIVES['wasm32-wasip1'].push('libv8.a')
   EXPECTED_WASI_ARCHIVES['wasm32-wasip1-threads'].push('libv8.a')
   EXPECTED_WASI_ARCHIVES['wasm32-wasip1-threads'].push('libv8-mt.a')
+  EXPECTED_WASI_ARCHIVES[WASI_THREADS_NEW_ARCH].push('libv8.a')
+  EXPECTED_WASI_ARCHIVES[WASI_THREADS_NEW_ARCH].push('libv8-mt.a')
 }
 
 function assertArchiveSet (libDir, expected) {

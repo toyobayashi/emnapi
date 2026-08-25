@@ -22,6 +22,7 @@ const __dirname = import.meta.dirname
 const repoRoot = path.join(__dirname, '..')
 const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm'
 const exe = (name) => name + (process.platform === 'win32' ? '.exe' : '')
+const WASI_THREADS_NEW_ARCH = 'wasm32-wasip1-threads-wasi-sdk-34'
 
 // exact `lib/wasm32-wasip1*` entries allowed in the packed emnapi tarball;
 // keep in sync with EXPECTED_WASI_ARCHIVES in script/release.js
@@ -30,12 +31,31 @@ const EXPECTED_WASI_LIB_FILES = [
   'lib/wasm32-wasip1/libemnapi-basic-napi-rs.a',
   'lib/wasm32-wasip1-threads/libemnapi.a',
   'lib/wasm32-wasip1-threads/libemnapi-mt.a',
-  'lib/wasm32-wasip1-threads/libemnapi-napi-rs-mt.a'
+  'lib/wasm32-wasip1-threads/libemnapi-napi-rs-mt.a',
+  `lib/${WASI_THREADS_NEW_ARCH}/libemnapi.a`,
+  `lib/${WASI_THREADS_NEW_ARCH}/libemnapi-mt.a`,
+  `lib/${WASI_THREADS_NEW_ARCH}/libemnapi-napi-rs-mt.a`
 ]
+
+if (fs.existsSync(path.join(repoRoot, 'packages/emnapi/include/node/v8.h'))) {
+  EXPECTED_WASI_LIB_FILES.push(
+    'lib/wasm32-wasip1/libv8.a',
+    'lib/wasm32-wasip1-threads/libv8.a',
+    'lib/wasm32-wasip1-threads/libv8-mt.a',
+    `lib/${WASI_THREADS_NEW_ARCH}/libv8.a`,
+    `lib/${WASI_THREADS_NEW_ARCH}/libv8-mt.a`
+  )
+}
 
 const NAPI_RS_ARCHIVES = [
   { target: 'wasm32-wasip1', archive: 'libemnapi-basic-napi-rs.a', mt: false },
-  { target: 'wasm32-wasip1-threads', archive: 'libemnapi-napi-rs-mt.a', mt: true }
+  { target: 'wasm32-wasip1-threads', archive: 'libemnapi-napi-rs-mt.a', mt: true },
+  {
+    target: WASI_THREADS_NEW_ARCH,
+    compilerTarget: 'wasm32-wasip1-threads',
+    archive: 'libemnapi-napi-rs-mt.a',
+    mt: true
+  }
 ]
 
 // symbols implemented by src/async_work.c + src/threadsafe_function.c: the
@@ -220,7 +240,7 @@ function checkImportModules (packageDir, wasiSdkPath, tempDir) {
   const probeSource = path.join(tempDir, 'probe.c')
   fs.writeFileSync(probeSource, PROBE_SOURCE, 'utf8')
   const problems = []
-  for (const { target, archive, mt } of NAPI_RS_ARCHIVES) {
+  for (const { target, compilerTarget = target, archive, mt } of NAPI_RS_ARCHIVES) {
     const label = `lib/${target}/${archive}`
     const libDir = path.join(packageDir, 'lib', target)
     if (!fs.existsSync(path.join(libDir, archive))) {
@@ -230,7 +250,7 @@ function checkImportModules (packageDir, wasiSdkPath, tempDir) {
     const output = path.join(tempDir, `probe-${target}.wasm`)
     try {
       run(clang, [
-        `--target=${target}`,
+        `--target=${compilerTarget}`,
         ...(mt ? ['-pthread'] : []),
         '-O2',
         '-mexec-model=reactor',
@@ -354,7 +374,11 @@ async function main () {
 
   const wasiSdkPath = resolveWasiSdkPath()
   const shippedLibDir = path.join(repoRoot, 'packages/emnapi/lib')
-  if (!tarball && (!fs.existsSync(path.join(shippedLibDir, 'wasm32-wasip1')) || !fs.existsSync(path.join(shippedLibDir, 'wasm32-wasip1-threads')))) {
+  if (!tarball && (
+    !fs.existsSync(path.join(shippedLibDir, 'wasm32-wasip1')) ||
+    !fs.existsSync(path.join(shippedLibDir, 'wasm32-wasip1-threads')) ||
+    !fs.existsSync(path.join(shippedLibDir, WASI_THREADS_NEW_ARCH))
+  )) {
     throw new Error(
       'release output is absent (packages/emnapi/lib/wasm32-wasip1*): ' +
       'run `node ./script/release.js` first, then re-run this script'
