@@ -12,7 +12,7 @@ inputs:
   em-version:
     description: Emscripten version
     required: false
-    default: '5.0.3'
+    default: '6.0.3'
   em-cache-folder:
     description: Emscripten cache folder
     required: false
@@ -20,15 +20,15 @@ inputs:
   wasi-version:
     description: WASI SDK version
     required: false
-    default: '32'
+    default: '34'
   wasi-version-full:
     description: Full WASI SDK version
     required: false
-    default: '32.0'
+    default: '34.0'
   wasi-sdk-path:
     description: WASI SDK install path
     required: false
-    default: './wasi-sdk-32.0'
+    default: './wasi-sdk-34.0'
   needs-emscripten:
     description: Whether Emscripten is needed
     required: false
