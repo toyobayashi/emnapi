@@ -1,7 +1,7 @@
 /* eslint-disable @stylistic/indent */
 
 import { wasmMemory } from 'emscripten:runtime'
-import { makeSetValue, from64, makeGetValue } from 'emscripten:parse-tools'
+import { getUnsharedTextDecoderView, makeSetValue, from64, makeGetValue } from 'emscripten:parse-tools'
 import { emnapiCtx, emnapiEnv } from 'emnapi:shared'
 import { $CHECK_NEW_STRING_ARGS } from './macro'
 
@@ -36,12 +36,6 @@ export var emnapiString = {
       emnapiString.cachedHEAPU16 = new Uint16Array(emnapiString.cachedMemoryBuffer!)
     }
     return emnapiString.cachedHEAPU16
-  },
-  getHeapViewOrCopy (heap: Uint8Array, start: number, end: number): Uint8Array {
-    const buffer = heap.buffer
-    const isShared = Object.prototype.toString.call(buffer) === '[object SharedArrayBuffer]'
-    const isResizable = (buffer as ArrayBufferLike & { resizable?: boolean }).resizable === true
-    return isShared || isResizable ? heap.slice(start, end) : heap.subarray(start, end)
   },
   init () {
     emnapiString.cachedMemoryBuffer = undefined
@@ -194,7 +188,7 @@ export var emnapiString = {
       return str
     }
 // #endif
-    return emnapiString.utf8Decoder.decode(emnapiString.getHeapViewOrCopy(HEAPU8, ptr, end))
+    return emnapiString.utf8Decoder.decode(getUnsharedTextDecoderView('HEAPU8', 'ptr', 'end') as Uint8Array)
   },
   stringToUTF8 (str: string, outPtr: number, maxBytesToWrite: number): number {
     const HEAPU8 = emnapiString.getHEAPU8()
@@ -253,7 +247,7 @@ export var emnapiString = {
 // #endif
 
     const HEAPU8 = emnapiString.getHEAPU8()
-    return emnapiString.utf16Decoder.decode(emnapiString.getHeapViewOrCopy(HEAPU8, ptr, end))
+    return emnapiString.utf16Decoder.decode(getUnsharedTextDecoderView('HEAPU8', 'ptr', 'end') as Uint8Array)
   },
   stringToUTF16 (str: string, outPtr: number, maxBytesToWrite: number): number {
     if (maxBytesToWrite === undefined) {
