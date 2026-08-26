@@ -100,7 +100,7 @@ if(IS_EMSCRIPTEN)
     "-sSAFE_HEAP=1"
     "-sMODULARIZE=1"
     "-sEXPORTED_RUNTIME_METHODS=['emnapiInit','ExitStatus','wasmMemory','growMemory']"
-    "-sINCOMING_MODULE_JS_API=['mainScriptUrlOrBlob','locateFile']"
+    "-sINCOMING_MODULE_JS_API=['mainScriptUrlOrBlob','locateFile','noExitRuntime']"
   )
   set(COMMON_EXPORTS_NAPI
     "-sEXPORTED_FUNCTIONS=['_malloc','_free','_napi_register_wasm_v1','_node_api_module_get_api_version_v1','_emnapi_create_env','_emnapi_delete_env']"
