@@ -1,3 +1,5 @@
+import type { SerializedError } from './command'
+
 declare const WXWebAssembly: typeof WebAssembly | undefined
 const _WebAssembly = typeof WebAssembly !== 'undefined'
   ? WebAssembly
@@ -17,13 +19,77 @@ export function getPostMessage (options?: { postMessage?: (message: any) => void
       : undefined
 }
 
-export function serizeErrorToBuffer (sab: SharedArrayBuffer, code: number, error?: Error): void {
+/** @public */
+export function normalizeError (value: unknown): Error {
+  if (value instanceof Error) return value
+
+  if (typeof value === 'object' && value !== null && 'error' in value) {
+    const nested = (value as { error?: unknown }).error
+    if (nested !== undefined && nested !== value) return normalizeError(nested)
+  }
+
+  const record = typeof value === 'object' && value !== null
+    ? value as Record<string, unknown>
+    : undefined
+  const message = record?.message !== undefined
+    ? String(record.message)
+    : typeof value === 'string'
+      ? value
+      : 'Worker sent an unknown error'
+  const name = record?.name !== undefined ? String(record.name) : 'Error'
+  let error: Error
+  try {
+    const ErrorConstructor = name === 'RuntimeError'
+      ? (_WebAssembly?.RuntimeError ?? Error)
+      : Error
+    error = new ErrorConstructor(message)
+  } catch (_) {
+    error = new Error(message)
+  }
+  error.name = name
+  if (record?.stack !== undefined) {
+    Object.defineProperty(error, 'stack', {
+      value: String(record.stack),
+      writable: true,
+      enumerable: false,
+      configurable: true
+    })
+  }
+  if (record?.cause !== undefined) {
+    Object.defineProperty(error, 'cause', {
+      value: record.cause,
+      writable: true,
+      enumerable: false,
+      configurable: true
+    })
+  }
+  return error
+}
+
+/** @public */
+export function serializeError (value: unknown): SerializedError {
+  const error = normalizeError(value)
+  const serialized: SerializedError = {
+    name: error.name,
+    message: error.message
+  }
+  if (error.stack !== undefined) serialized.stack = error.stack
+  if ('cause' in error && error.cause !== undefined) serialized.cause = error.cause
+  return serialized
+}
+
+/** @public */
+export function deserializeError (value: SerializedError): Error {
+  return normalizeError(value)
+}
+
+export function serializeErrorToBuffer (sab: SharedArrayBuffer, code: number, error?: Error): void {
   const i32array = new Int32Array(sab)
   Atomics.store(i32array, 0, code)
   if (code > 1 && error) {
     const name = error.name
     const message = error.message
-    const stack = error.stack
+    const stack = error.stack ?? ''
     const nameBuffer = new TextEncoder().encode(name)
     const messageBuffer = new TextEncoder().encode(message)
     const stackBuffer = new TextEncoder().encode(stack)
@@ -37,7 +103,7 @@ export function serizeErrorToBuffer (sab: SharedArrayBuffer, code: number, error
   }
 }
 
-export function deserizeErrorFromBuffer (sab: SharedArrayBuffer): Error | null {
+export function deserializeErrorFromBuffer (sab: SharedArrayBuffer): Error | null {
   const i32array = new Int32Array(sab)
   const status = Atomics.load(i32array, 0)
   if (status <= 1) {
@@ -65,6 +131,12 @@ export function deserizeErrorFromBuffer (sab: SharedArrayBuffer): Error | null {
   return error
 }
 
+/** @deprecated Use {@link serializeErrorToBuffer}. */
+export const serizeErrorToBuffer = serializeErrorToBuffer
+
+/** @deprecated Use {@link deserializeErrorFromBuffer}. */
+export const deserizeErrorFromBuffer = deserializeErrorFromBuffer
+
 /** @public */
 export function isSharedArrayBuffer (value: any): value is SharedArrayBuffer {
   return (
@@ -76,8 +148,8 @@ export function isSharedArrayBuffer (value: any): value is SharedArrayBuffer {
 /** @public */
 export function isTrapError (e: Error): e is WebAssembly.RuntimeError {
   try {
-    return e instanceof _WebAssembly.RuntimeError
+    return e instanceof _WebAssembly.RuntimeError || e?.name === 'RuntimeError'
   } catch (_) {
-    return false
+    return e?.name === 'RuntimeError'
   }
 }

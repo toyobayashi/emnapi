@@ -1,6 +1,6 @@
-import { type LoadPayload, MessageEventData, StartPayload, createMessage } from './command'
+import { type LoadPayload, MessageEventData, StartPayload, createMessage, type ThreadFailurePhase } from './command'
 import type { WorkerMessageEvent } from './thread-manager'
-import { getPostMessage, serizeErrorToBuffer } from './util'
+import { getPostMessage, normalizeError, serializeError, serializeErrorToBuffer } from './util'
 
 export interface OnStartData {
   tid: number
@@ -33,7 +33,7 @@ export class ThreadMessageHandler {
     }
     this.postMessage = postMsg
     this.onLoad = options?.onLoad
-    this.onError = typeof options?.onError === 'function' ? options.onError : (_type, err) => { throw err }
+    this.onError = typeof options?.onError === 'function' ? options.onError : (error) => { throw error }
     this.instance = undefined
     // this.module = undefined
     this.messagesBeforeLoad = []
@@ -62,7 +62,8 @@ export class ThreadMessageHandler {
           })
         }
       } catch (err) {
-        this.onError(err, type)
+        const tid = type === 'start' ? (payload as StartPayload).tid : undefined
+        this.reportError(err, type, tid)
       }
     }
   }
@@ -81,7 +82,13 @@ export class ThreadMessageHandler {
       then.call(
         source,
         (source) => { this._loaded(null, source, payload) },
-        (err) => { this._loaded(err, null, payload) }
+        (err) => {
+          try {
+            this._loaded(normalizeError(err), null, payload)
+          } catch (loadError) {
+            this.reportError(loadError, 'load')
+          }
+        }
       )
     } else {
       this._loaded(null, source as WebAssembly.WebAssemblyInstantiatedSource, payload)
@@ -103,6 +110,7 @@ export class ThreadMessageHandler {
       wasi_thread_start(tid, startArg)
     } catch (err) {
       if (err !== 'unwind') {
+        notifyPthreadCreateResult(payload.sab, 2, normalizeError(err))
         throw err
       } else {
         return
@@ -151,11 +159,29 @@ export class ThreadMessageHandler {
       this.messagesBeforeLoad.push(e.data)
     }
   }
+
+  /** @internal */
+  protected beforeReportError (_error: Error, _type: WorkerMessageType | 'async-worker-init', _tid?: number): void {}
+
+  /** @internal */
+  protected reportError (value: unknown, type: WorkerMessageType | 'async-worker-init', tid?: number): void {
+    const error = normalizeError(value)
+    this.beforeReportError(error, type, tid)
+    const phase: ThreadFailurePhase = type === 'async-worker-init' ? 'async-work' : type
+    try {
+      this.postMessage(createMessage('thread-error', {
+        error: serializeError(error),
+        phase,
+        tid
+      }))
+    } catch (_) {}
+    this.onError(error, type as WorkerMessageType)
+  }
 }
 
 function notifyPthreadCreateResult (sab: Int32Array | undefined, result: number, error?: Error): void {
   if (sab) {
-    serizeErrorToBuffer(sab.buffer as SharedArrayBuffer, result, error)
+    serializeErrorToBuffer(sab.buffer as SharedArrayBuffer, result, error)
     Atomics.notify(sab, 0)
   }
 }

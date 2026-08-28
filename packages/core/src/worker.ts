@@ -2,7 +2,8 @@ import {
   ThreadMessageHandler,
   type ThreadMessageHandlerOptions,
   type LoadPayload,
-  type WorkerMessageEvent
+  type WorkerMessageEvent,
+  type WorkerMessageType
 } from '@emnapi/wasi-threads'
 import type { NapiModule } from './emnapi/index'
 import type { InstantiatedSource } from './load'
@@ -26,13 +27,6 @@ export class MessageHandler extends ThreadMessageHandler {
     super({
       ...options,
       onError: (err, type) => {
-        const emnapi_thread_crashed = this.instance?.exports.emnapi_thread_crashed as () => void
-        if (typeof emnapi_thread_crashed === 'function') {
-          emnapi_thread_crashed()
-        } /* else {
-          tryWakeUpPthreadJoin(this.instance!)
-        } */
-
         if (typeof userOnError === 'function') {
           userOnError(err, type)
         } else {
@@ -41,6 +35,15 @@ export class MessageHandler extends ThreadMessageHandler {
       }
     })
     this.napiModule = undefined
+  }
+
+  protected override beforeReportError (_error: Error, _type: WorkerMessageType | 'async-worker-init'): void {
+    const emnapi_thread_crashed = this.instance?.exports.emnapi_thread_crashed as () => void
+    if (typeof emnapi_thread_crashed === 'function') {
+      emnapi_thread_crashed()
+    } /* else {
+      tryWakeUpPthreadJoin(this.instance!)
+    } */
   }
 
   public override instantiate (data: LoadPayload): InstantiatedSource | PromiseLike<InstantiatedSource> {
@@ -68,7 +71,7 @@ export class MessageHandler extends ThreadMessageHandler {
           })
         }
       } catch (err) {
-        this.onError(err, type)
+        this.reportError(err, 'async-worker-init')
       }
     }
   }

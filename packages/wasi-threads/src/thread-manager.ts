@@ -1,6 +1,13 @@
 import type { Worker as NodeWorker } from 'worker_threads'
-import { ENVIRONMENT_IS_NODE, isSharedArrayBuffer } from './util'
-import { type MessageEventData, createMessage, type CommandPayloadMap, type CleanupThreadPayload, SpawnThreadPayload } from './command'
+import { deserializeError, ENVIRONMENT_IS_NODE, isSharedArrayBuffer, normalizeError } from './util'
+import {
+  type MessageEventData,
+  createMessage,
+  type CommandPayloadMap,
+  type CleanupThreadPayload,
+  type SpawnThreadPayload,
+  type ThreadErrorPayload
+} from './command'
 
 /** @public */
 export type WorkerLike = (Worker | NodeWorker) & {
@@ -102,6 +109,10 @@ export class ThreadManager {
   public wasmModule: WebAssembly.Module | null = null
   public wasmMemory: WebAssembly.Memory | null = null
   private readonly messageEvents = new WeakMap<WorkerLike, Set<(e: WorkerMessageEvent) => void>>()
+  private readonly registeredWorkers = new Set<WorkerLike>()
+  private readonly expectedTerminations = new WeakSet<WorkerLike>()
+  private readonly loadRejects = new WeakMap<WorkerLike, (reason?: any) => void>()
+  private _fatalError: Error | undefined
 
   private readonly _childThread: boolean
   private readonly _onCreateWorker: WorkerFactory
@@ -202,7 +213,22 @@ export class ThreadManager {
     this.wasmMemory = wasmMemory
   }
 
+  private assertRunning (): void {
+    if (this._fatalError) throw this._fatalError
+  }
+
+  private fail (value: unknown, rethrow: boolean): void {
+    if (this._fatalError) return
+    this._fatalError = normalizeError(value)
+    this.shutdownAllWorkers(false, this._fatalError)
+    if (rethrow) {
+      const error = this._fatalError
+      Promise.resolve().then(() => { throw error })
+    }
+  }
+
   public markId (worker: WorkerLike): number {
+    this.assertRunning()
     if (worker.__emnapi_tid) return worker.__emnapi_tid
     const tid = nextWorkerID + 43
     nextWorkerID = (nextWorkerID + 1) % (WASI_THREADS_MAX_TID - 42)
@@ -212,6 +238,10 @@ export class ThreadManager {
   }
 
   public returnWorkerToPool (worker: WorkerLike): void {
+    if (this._fatalError) {
+      this.terminateWorker(worker)
+      return
+    }
     var tid = worker.__emnapi_tid
     if (tid !== undefined) {
       delete this.pthreads[tid]
@@ -224,29 +254,35 @@ export class ThreadManager {
   }
 
   public loadWasmModuleToWorker (worker: WorkerLike, sab?: Int32Array): Promise<WorkerLike> {
+    this.assertRunning()
     if (worker.whenLoaded) return worker.whenLoaded
+    this.registeredWorkers.add(worker)
     const err = this.printErr
     const beforeLoad = this._beforeLoad
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const _this = this
     worker.whenLoaded = new Promise<WorkerLike>((resolve, reject) => {
       const handleError = function (e: Event | Error): void {
+        if (_this.expectedTerminations.has(worker)) return
         let message = 'worker sent an error!'
         if (worker.__emnapi_tid !== undefined) {
           message = 'worker (tid = ' + worker.__emnapi_tid + ') sent an error!'
         }
-        if ('message' in e) {
-          err(message + ' ' + e.message)
-          if (e.message.indexOf('RuntimeError') !== -1 || e.message.indexOf('unreachable') !== -1) {
-            try {
-              _this.terminateAllThreads()
-            } catch (_) {}
-          }
+        const error = normalizeError(e)
+        if (error.message) {
+          err(message + ' ' + error.message)
         } else {
           err(message)
         }
-        reject(e)
-        throw e
+        if (!worker.loaded) {
+          reject(error)
+          _this.loadRejects.delete(worker)
+          _this.terminateWorker(worker)
+          return
+        } else {
+          _this.fail(error, false)
+        }
+        throw error
       }
       const handleMessage = (data: MessageEventData<keyof CommandPayloadMap>): void => {
         if (data.__emnapi__) {
@@ -254,6 +290,7 @@ export class ThreadManager {
           const payload = data.__emnapi__.payload
           if (type === 'loaded') {
             worker.loaded = true
+            this.loadRejects.delete(worker)
             if (ENVIRONMENT_IS_NODE && !worker.__emnapi_tid) {
               (worker as NodeWorker).unref()
             }
@@ -272,6 +309,16 @@ export class ThreadManager {
             )
           } else if (type === 'terminate-all-threads') {
             this.terminateAllThreads()
+          } else if (type === 'thread-error') {
+            const threadError = payload as ThreadErrorPayload
+            const error = deserializeError(threadError.error)
+            if (!worker.loaded && threadError.phase === 'load') {
+              reject(error)
+              this.loadRejects.delete(worker)
+              this.terminateWorker(worker)
+            } else {
+              this.fail(error, true)
+            }
           }
         }
       };
@@ -281,6 +328,9 @@ export class ThreadManager {
         this.fireMessageEvent(worker, e)
       };
       (worker as Worker).onerror = handleError
+      ;(worker as Worker).onmessageerror = (e) => {
+        handleError(normalizeError(e))
+      }
       if (ENVIRONMENT_IS_NODE) {
         (worker as NodeWorker).on('message', function (data: any) {
           (worker as any).onmessage?.({
@@ -290,38 +340,57 @@ export class ThreadManager {
         (worker as NodeWorker).on('error', function (e) {
           (worker as any).onerror?.(e)
         });
+        (worker as NodeWorker).on('messageerror', function (e) {
+          handleError(normalizeError(e))
+        });
+        (worker as NodeWorker).on('exit', function (code) {
+          if (!_this.expectedTerminations.has(worker)) {
+            handleError(new Error('Worker stopped with exit code ' + code))
+          }
+        });
         (worker as NodeWorker).on('detachedExit', function () {})
       }
 
-      if (typeof beforeLoad === 'function') {
-        beforeLoad(worker)
-      }
+      this.loadRejects.set(worker, reject)
 
       try {
+        if (typeof beforeLoad === 'function') {
+          beforeLoad(worker)
+        }
         worker.postMessage(createMessage('load', {
           wasmModule: this.wasmModule!,
           wasmMemory: this.wasmMemory!,
           sab
         }))
-      } catch (err) {
-        checkSharedWasmMemory(this.wasmMemory)
-        throw err
+      } catch (caughtError) {
+        let error = caughtError
+        try {
+          checkSharedWasmMemory(this.wasmMemory)
+        } catch (memoryError) {
+          error = memoryError
+        }
+        reject(error)
+        this.loadRejects.delete(worker)
+        this.terminateWorker(worker)
       }
     })
     return worker.whenLoaded
   }
 
   public allocateUnusedWorker (): WorkerLike {
+    this.assertRunning()
     const _onCreateWorker = this._onCreateWorker
     if (typeof _onCreateWorker !== 'function') {
       throw new TypeError('`options.onCreateWorker` is not provided')
     }
     const worker = _onCreateWorker({ type: 'thread', name: 'emnapi-pthread' })
+    this.registeredWorkers.add(worker)
     this.unusedWorkers.push(worker)
     return worker
   }
 
   public getNewWorker (sab?: Int32Array): WorkerLike | undefined {
+    this.assertRunning()
     if (this._reuseWorker) {
       if (this.unusedWorkers.length === 0) {
         if (this._reuseWorker.strict) {
@@ -357,6 +426,9 @@ export class ThreadManager {
   public terminateWorker (worker: WorkerLike): void {
     const tid = worker.__emnapi_tid
 
+    this.expectedTerminations.add(worker)
+    this.registeredWorkers.delete(worker)
+    this.loadRejects.delete(worker)
     worker.terminate()
     this.messageEvents.get(worker)?.clear()
     this.messageEvents.delete(worker);
@@ -369,17 +441,23 @@ export class ThreadManager {
   }
 
   public terminateAllThreads (): void {
-    const runningWorkers = Object.values(this.pthreads)
-    for (let i = 0; i < runningWorkers.length; ++i) {
-      this.terminateWorker(runningWorkers[i])
-    }
-    for (let i = 0; i < this.unusedWorkers.length; ++i) {
-      this.terminateWorker(this.unusedWorkers[i])
-    }
+    this.shutdownAllWorkers(true)
+  }
+
+  private shutdownAllWorkers (recreatePool: boolean, reason?: Error): void {
+    const workers = new Set<WorkerLike>([
+      ...this.registeredWorkers,
+      ...Object.values(this.pthreads),
+      ...this.unusedWorkers
+    ])
+    workers.forEach((worker) => {
+      if (reason) this.loadRejects.get(worker)?.(reason)
+      this.terminateWorker(worker)
+    })
     this.unusedWorkers = []
     this.pthreads = Object.create(null)
 
-    this.preparePool()
+    if (recreatePool && !this._fatalError) this.preparePool()
   }
 
   public addMessageEventListener (worker: WorkerLike, onMessage: (e: WorkerMessageEvent) => void): () => void {
