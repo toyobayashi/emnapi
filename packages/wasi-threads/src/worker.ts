@@ -1,6 +1,6 @@
 import { type LoadPayload, MessageEventData, StartPayload, createMessage, type ThreadFailurePhase } from './command'
 import type { WorkerMessageEvent } from './thread-manager'
-import { getPostMessage, normalizeError, serializeError, serializeErrorToBuffer } from './util'
+import { ENVIRONMENT_IS_NODE, getPostMessage, normalizeError, serializeError, serializeErrorToBuffer } from './util'
 
 export interface OnStartData {
   tid: number
@@ -168,14 +168,26 @@ export class ThreadMessageHandler {
     const error = normalizeError(value)
     this.beforeReportError(error, type, tid)
     const phase: ThreadFailurePhase = type === 'async-worker-init' ? 'async-work' : type
-    try {
-      this.postMessage(createMessage('thread-error', {
-        error: serializeError(error),
-        phase,
-        tid
-      }))
-    } catch (_) {}
-    this.onError(error, type as WorkerMessageType)
+    const report = (): void => {
+      try {
+        this.postMessage(createMessage('thread-error', {
+          error: serializeError(error),
+          phase,
+          tid
+        }))
+      } catch (_) {}
+    }
+
+    if (ENVIRONMENT_IS_NODE) {
+      // Node worker_threads reports a thrown worker error through its native
+      // error event. Let that be the terminal channel when onError throws;
+      // posting the protocol error first can race with worker termination.
+      this.onError(error, type as WorkerMessageType)
+      report()
+    } else {
+      report()
+      this.onError(error, type as WorkerMessageType)
+    }
   }
 }
 

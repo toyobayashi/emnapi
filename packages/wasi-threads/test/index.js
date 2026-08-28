@@ -373,8 +373,9 @@ function testThreadMessageHandlerPreservesOriginalTrap () {
   assert.strictEqual(threadError.__emnapi__.payload.phase, 'start')
   assert.strictEqual(threadError.__emnapi__.payload.tid, 43)
 
+  const defaultMessages = []
   const defaultHandler = new ThreadMessageHandler({
-    postMessage () {},
+    postMessage (data) { defaultMessages.push(data) },
     onLoad: () => ({
       instance: {
         exports: {
@@ -384,10 +385,14 @@ function testThreadMessageHandlerPreservesOriginalTrap () {
     })
   })
   defaultHandler.handle({ data: message('load', { wasmModule: {}, wasmMemory: {} }) })
+  defaultMessages.length = 0
   assert.throws(
     () => defaultHandler.handle({ data: message('start', { tid: 44, arg: 0 }) }),
     error => error === trap
   )
+  // In Node, a thrown worker error is delivered by worker_threads' native
+  // error event. Do not race that event with a second protocol notification.
+  assert.deepStrictEqual(defaultMessages, [])
 }
 
 await testThreadSpawnAfterCrossAgentMemoryGrowth()
