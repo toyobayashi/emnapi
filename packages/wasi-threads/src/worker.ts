@@ -110,7 +110,6 @@ export class ThreadMessageHandler {
       wasi_thread_start(tid, startArg)
     } catch (err) {
       if (err !== 'unwind') {
-        notifyPthreadCreateResult(payload.sab, 2, normalizeError(err))
         throw err
       } else {
         return
@@ -177,11 +176,10 @@ export class ThreadMessageHandler {
         }))
       } catch (_) {}
     }
-
     if (ENVIRONMENT_IS_NODE) {
-      // Node worker_threads reports a thrown worker error through its native
-      // error event. Let that be the terminal channel when onError throws;
-      // posting the protocol error first can race with worker termination.
+      // In Node, the default handler throws and worker_threads delivers that
+      // failure through the native worker error event. Only use the protocol
+      // channel when a custom handler consumes the error.
       this.onError(error, type as WorkerMessageType)
       report()
     } else {

@@ -217,12 +217,14 @@ export class ThreadManager {
     if (this._fatalError) throw this._fatalError
   }
 
-  private fail (value: unknown): void {
+  private fail (value: unknown, rethrow: boolean): void {
     if (this._fatalError) return
     this._fatalError = normalizeError(value)
     this.shutdownAllWorkers(false, this._fatalError)
-    const error = this._fatalError
-    Promise.resolve().then(() => { throw error })
+    if (rethrow) {
+      const error = this._fatalError
+      Promise.resolve().then(() => { throw error })
+    }
   }
 
   public markId (worker: WorkerLike): number {
@@ -278,7 +280,8 @@ export class ThreadManager {
           _this.terminateWorker(worker)
           return
         }
-        _this.fail(error)
+        _this.fail(error, !ENVIRONMENT_IS_NODE)
+        if (ENVIRONMENT_IS_NODE) throw error
       }
       const handleMessage = (data: MessageEventData<keyof CommandPayloadMap>): void => {
         if (data.__emnapi__) {
@@ -313,7 +316,7 @@ export class ThreadManager {
               this.loadRejects.delete(worker)
               this.terminateWorker(worker)
             } else {
-              this.fail(error)
+              this.fail(error, true)
             }
           }
         }
