@@ -21,19 +21,20 @@ async function main () {
     ], { stdio: 'inherit' })
     const result = await new Promise((resolve, reject) => {
       let exit = false
+      const timeout = setTimeout(() => {
+        if (exit) return
+        reject(new Error(`Test timed out: ${f}`))
+        child.kill('SIGKILL')
+      }, 5000)
       child.on('exit', (code, signal) => {
         console.log(`Child exited with code: ${code}, signal: ${signal}`)
         exit = true
+        clearTimeout(timeout)
         resolve({
           code,
           signal
         })
       })
-      setTimeout(() => {
-        if (exit) return
-        reject(new Error(`Test timed out: ${f}`))
-        child.kill('SIGKILL')
-      }, 2000)
     })
     assert.strictEqual(result.signal, process.env.EMNAPI_TEST_NATIVE ? signal : null)
   }

@@ -1,6 +1,6 @@
-import { type LoadPayload, MessageEventData, StartPayload, createMessage } from './command'
+import { type LoadPayload, MessageEventData, StartPayload, createMessage, type ThreadFailurePhase } from './command'
 import type { WorkerMessageEvent } from './thread-manager'
-import { getPostMessage, serizeErrorToBuffer } from './util'
+import { ENVIRONMENT_IS_NODE, getPostMessage, normalizeError, serializeError, serializeErrorToBuffer } from './util'
 
 export interface OnStartData {
   tid: number
@@ -33,7 +33,7 @@ export class ThreadMessageHandler {
     }
     this.postMessage = postMsg
     this.onLoad = options?.onLoad
-    this.onError = typeof options?.onError === 'function' ? options.onError : (_type, err) => { throw err }
+    this.onError = typeof options?.onError === 'function' ? options.onError : (error) => { throw error }
     this.instance = undefined
     // this.module = undefined
     this.messagesBeforeLoad = []
@@ -62,7 +62,8 @@ export class ThreadMessageHandler {
           })
         }
       } catch (err) {
-        this.onError(err, type)
+        const tid = type === 'start' ? (payload as StartPayload).tid : undefined
+        this.reportError(err, type, tid)
       }
     }
   }
@@ -81,7 +82,13 @@ export class ThreadMessageHandler {
       then.call(
         source,
         (source) => { this._loaded(null, source, payload) },
-        (err) => { this._loaded(err, null, payload) }
+        (err) => {
+          try {
+            this._loaded(normalizeError(err), null, payload)
+          } catch (loadError) {
+            this.reportError(loadError, 'load')
+          }
+        }
       )
     } else {
       this._loaded(null, source as WebAssembly.WebAssemblyInstantiatedSource, payload)
@@ -151,11 +158,40 @@ export class ThreadMessageHandler {
       this.messagesBeforeLoad.push(e.data)
     }
   }
+
+  /** @internal */
+  protected beforeReportError (_error: Error, _type: WorkerMessageType | 'async-worker-init', _tid?: number): void {}
+
+  /** @internal */
+  protected reportError (value: unknown, type: WorkerMessageType | 'async-worker-init', tid?: number): void {
+    const error = normalizeError(value)
+    this.beforeReportError(error, type, tid)
+    const phase: ThreadFailurePhase = type === 'async-worker-init' ? 'async-work' : type
+    const report = (): void => {
+      try {
+        this.postMessage(createMessage('thread-error', {
+          error: serializeError(error),
+          phase,
+          tid
+        }))
+      } catch (_) {}
+    }
+    if (ENVIRONMENT_IS_NODE) {
+      // In Node, the default handler throws and worker_threads delivers that
+      // failure through the native worker error event. Only use the protocol
+      // channel when a custom handler consumes the error.
+      this.onError(error, type as WorkerMessageType)
+      report()
+    } else {
+      report()
+      this.onError(error, type as WorkerMessageType)
+    }
+  }
 }
 
 function notifyPthreadCreateResult (sab: Int32Array | undefined, result: number, error?: Error): void {
   if (sab) {
-    serizeErrorToBuffer(sab.buffer as SharedArrayBuffer, result, error)
+    serializeErrorToBuffer(sab.buffer as SharedArrayBuffer, result, error)
     Atomics.notify(sab, 0)
   }
 }

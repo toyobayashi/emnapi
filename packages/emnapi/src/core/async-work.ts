@@ -555,20 +555,25 @@ export function _emnapi_spawn_worker (f: number, globalAddress: number): number 
     throw new TypeError('`emnapi_async_worker_create` is not exported, please try to add `--export=emnapi_async_worker_create` to linker flags')
   }
   args.push((wasmInstance.exports.emnapi_async_worker_create as (directlySpawn: number, globalAddress: number) => number)(0, 0))
-  const handleError = (e: Event | Error): void => {
-    if ('message' in e && (e.message.indexOf('RuntimeError') !== -1 || e.message.indexOf('unreachable') !== -1)) {
-      emnapiAWMT.terminateWorkers()
-    }
-  }
   let ret: number
   try {
     const worker = onCreateWorker({ type: 'async-work', name: 'emnapi-async-worker' })
-    const p = PThread.loadWasmModuleToWorker(worker)
+    const handleError = (): void => {
+      // Loading failures reject loadWasmModuleToWorker and are local to this
+      // worker. Once loaded, every uncaught worker error is terminal; do not
+      // depend on engine-specific RuntimeError message text.
+      if (!worker.loaded) return
+      Promise.resolve().then(() => {
+        emnapiAWMT.terminateWorkers()
+        PThread.terminateAllThreads()
+      })
+    }
     if (ENVIRONMENT_IS_NODE) {
       worker.on('error', handleError)
     } else {
       worker.addEventListener('error', handleError, false)
     }
+    const p = PThread.loadWasmModuleToWorker(worker)
     emnapiAWMT.addListener(worker)
     if (typeof emnapiPluginCtx.emnapiTSFN !== 'undefined') {
       emnapiPluginCtx.emnapiTSFN.addListener(worker)

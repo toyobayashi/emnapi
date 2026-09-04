@@ -24,6 +24,24 @@ export interface CleanupThreadPayload {
 export interface TerminateAllThreadsPayload {}
 
 /** @public */
+export type ThreadFailurePhase = 'load' | 'start' | 'async-work' | 'message' | 'messageerror' | 'exit'
+
+/** @public */
+export interface SerializedError {
+  name: string
+  message: string
+  stack?: string
+  cause?: unknown
+}
+
+/** @public */
+export interface ThreadErrorPayload {
+  error: SerializedError
+  phase: ThreadFailurePhase
+  tid?: number
+}
+
+/** @public */
 export interface SpawnThreadPayload {
   startArg: number
   errorOrTid: number
@@ -37,6 +55,7 @@ export interface CommandPayloadMap {
   'cleanup-thread': CleanupThreadPayload
   'terminate-all-threads': TerminateAllThreadsPayload
   'spawn-thread': SpawnThreadPayload
+  'thread-error': ThreadErrorPayload
 }
 
 /** @public */
