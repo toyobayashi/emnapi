@@ -17,7 +17,7 @@
     "./package.json": "./package.json"
   },
   "dependencies": {
-    "@emnapi/wasi-threads": "2.0.1",
+    "@emnapi/wasi-threads": "2.1.0",
     "tslib": "^2.4.0"
   },
   "scripts": {
