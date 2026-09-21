@@ -424,7 +424,14 @@ export class ObjectTemplate extends Template {
         } catch (err) {
           ctx.throwException(err)
         }
-        const returnValue = ret ? ctx.jsValueFromNapiValue(ret) : undefined
+        const returnValue = ret === 0
+          ? 0
+          : (() => {
+              const value = ctx.jsValueFromNapiValue(ret)
+              return value === undefined && ret !== 1 && ret !== 2
+                ? Number(ret) >> 1
+                : value
+            })()
         ctx.closeScope(scope)
         if (ctx.hasPendingException()) {
           throw ctx.getAndClearLastException()

@@ -1,5 +1,27 @@
 import { from64, makeDynCall } from 'emscripten:parse-tools'
 
+export function _v8_global_value_identity (value: Ptr): Ptr {
+  return emnapiCtx.isolate.acquireGlobalValueIdentity(
+    emnapiCtx.jsValueFromNapiValue(value)
+  )
+}
+
+/**
+ * @__deps $emnapiCtx
+ * @__sig vp
+ */
+export function _v8_retain_global_value_identity (identity: Ptr): void {
+  emnapiCtx.isolate.retainGlobalValueIdentity(identity)
+}
+
+/**
+ * @__deps $emnapiCtx
+ * @__sig vp
+ */
+export function _v8_release_global_value_identity (identity: Ptr): void {
+  emnapiCtx.isolate.releaseGlobalValueIdentity(identity)
+}
+
 /**
  * @__deps $emnapiCtx
  * @__sig pp

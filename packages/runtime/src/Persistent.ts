@@ -28,6 +28,80 @@ export class PersistentStore extends ArrayStore<Persistent<any>> {
   }
 }
 
+interface GlobalIdentity {
+  reference: Persistent<any>
+  count: number
+  pending: boolean
+  retired: boolean
+  objectLike: boolean
+  primitiveValue?: unknown
+}
+
+/** @internal */
+export class GlobalIdentityStore {
+  private readonly _isolate: Isolate
+  private readonly _objects = new WeakMap<object, GlobalIdentity>()
+  private readonly _primitives = new Map<unknown, GlobalIdentity>()
+  private readonly _bySlot = new Map<number, GlobalIdentity>()
+
+  public constructor (isolate: Isolate) {
+    this._isolate = isolate
+  }
+
+  public acquire (value: unknown): number {
+    const objectLike = value !== null &&
+      (typeof value === 'object' || typeof value === 'function')
+    const table = objectLike ? this._objects : this._primitives
+    let identity = table.get(value as never)
+    if (identity?.retired) identity = undefined
+
+    if (!identity) {
+      const reference = new Persistent(this._isolate, value)
+      // The actual V8 Persistent owns the value. The canonical identity must
+      // not keep a weakly-held value alive by itself.
+      if (objectLike) reference.setWeak(undefined, () => {})
+      identity = {
+        reference,
+        count: 0,
+        pending: false,
+        retired: false,
+        objectLike,
+        primitiveValue: objectLike ? undefined : value
+      }
+      table.set(value as never, identity)
+      this._bySlot.set(reference.slot(), identity)
+    }
+
+    identity.count++
+    identity.pending = false
+    return identity.reference.slot()
+  }
+
+  public retain (slot: number | bigint): void {
+    const identity = this._bySlot.get(Number(slot))
+    if (!identity || identity.retired) return
+    identity.count++
+    identity.pending = false
+  }
+
+  public release (slot: number | bigint): void {
+    const identity = this._bySlot.get(Number(slot))
+    if (!identity || identity.retired || identity.count === 0) return
+    if (--identity.count !== 0 || identity.pending) return
+    identity.pending = true
+    Promise.resolve().then(() => {
+      identity.pending = false
+      if (identity.count !== 0 || identity.retired) return
+      identity.retired = true
+      this._bySlot.delete(identity.reference.slot())
+      if (!identity.objectLike) {
+        this._primitives.delete(identity.primitiveValue)
+      }
+      identity.reference.dispose()
+    })
+  }
+}
+
 export class StrongRef<T> extends Disposable {
   private _value: T
 

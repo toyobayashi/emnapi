@@ -95,7 +95,18 @@ export class FunctionTemplate extends Template {
           : callback
             ? callback(ctx.getCurrentScope()!.id, v8FunctionCallback)
             : 0
-        returnValue = ret ? ctx.jsValueFromNapiValue(ret) : undefined
+        if (callHandler) {
+          if (ret === 0) {
+            returnValue = 0
+          } else {
+            const value = ctx.jsValueFromNapiValue(ret)
+            returnValue = value === undefined && ret !== 1 && ret !== 2
+              ? Number(ret) >> 1
+              : value
+          }
+        } else {
+          returnValue = ret ? ctx.jsValueFromNapiValue(ret) : undefined
+        }
       } catch (err) {
         if (err !== 'unwind') {
           ctx.throwException(err)

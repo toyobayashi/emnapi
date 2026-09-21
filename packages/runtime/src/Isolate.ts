@@ -3,7 +3,7 @@ import { HandleStore } from './Handle'
 import { TryCatch } from './TryCatch'
 import { FunctionTemplate, Signature } from './FunctionTemplate'
 import { ObjectTemplate, setInternalField, getInternalField, getInternalFieldCount } from './ObjectTemplate'
-import { Persistent, PersistentStore, type PersistentValueType } from './Persistent'
+import { GlobalIdentityStore, Persistent, PersistentStore, type PersistentValueType } from './Persistent'
 import { detectFeatures, type Resolver, type Features } from './util'
 import type { HandleScope, ICallbackInfo } from './HandleScope'
 import { External, getExternalValue, isExternal } from './External'
@@ -21,6 +21,7 @@ export class Isolate {
   private _scopeStore: ScopeStore
   private _handleStore: HandleStore
   private _externalMemory: ExternalMemory
+  private _globalIdentityStore: GlobalIdentityStore
   /** @internal */
   public globalHandleStore: PersistentStore
   public readonly features: Features
@@ -31,6 +32,7 @@ export class Isolate {
     this._scopeStore = new ScopeStore()
     this._handleStore = new HandleStore(this.features)
     this.globalHandleStore = new PersistentStore()
+    this._globalIdentityStore = new GlobalIdentityStore(this)
     this._lastException = new Persistent<any>(this)
     this._externalMemory = new ExternalMemory(options?.onExternalMemoryChange)
   }
@@ -76,6 +78,18 @@ export class Isolate {
 
   public getRef<T = any> (ref: napi_ref): Persistent<T> | undefined {
     return this.globalHandleStore.deref(ref)
+  }
+
+  public acquireGlobalValueIdentity (value: unknown): number {
+    return this._globalIdentityStore.acquire(value)
+  }
+
+  public retainGlobalValueIdentity (slot: number | bigint): void {
+    this._globalIdentityStore.retain(slot)
+  }
+
+  public releaseGlobalValueIdentity (slot: number | bigint): void {
+    this._globalIdentityStore.release(slot)
   }
 
   public removeRef (ref: napi_ref, force = false) {
