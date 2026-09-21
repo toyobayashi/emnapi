@@ -89,7 +89,8 @@ export function _v8_array_buffer_get_backing_store (
   const value = emnapiCtx.jsValueFromNapiValue<ArrayBufferLike>(buffer)
   if (value == null) return 0
   const source = new Uint8Array(value as ArrayBufferLike)
-  const pointer = Number(_malloc(source.byteLength))
+  let pointer = _malloc(source.byteLength) as number
+  from64('pointer')
   new Uint8Array(wasmMemory.buffer).set(source, pointer)
   const byteLength = source.byteLength
   from64('byte_length')

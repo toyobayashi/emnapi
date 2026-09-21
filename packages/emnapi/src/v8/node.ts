@@ -32,7 +32,8 @@ export function _node_buffer_new (
  */
 export function _node_buffer_new_alloc (isolate: Ptr, length: size_t): Ptr {
   from64('length')
-  const data = Number(_malloc(length))
+  let data = _malloc(length) as number
+  from64('data')
   new Uint8Array(wasmMemory.buffer).fill(0, data, data + (length >>> 0))
   return emnapiCtx.napiValueFromJsValue(bufferFromWasmMemory(data, length >>> 0))
 }
@@ -45,7 +46,8 @@ export function _node_buffer_new_alloc (isolate: Ptr, length: size_t): Ptr {
 export function _node_buffer_copy (isolate: Ptr, data: Ptr, length: size_t): Ptr {
   from64('data')
   from64('length')
-  const out = Number(_malloc(length))
+  let out = _malloc(length) as number
+  from64('out')
   const heap = new Uint8Array(wasmMemory.buffer)
   heap.set(
     heap.subarray(data as number, (data as number) + (length >>> 0)),
