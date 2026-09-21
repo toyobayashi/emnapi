@@ -1,6 +1,46 @@
 import { from64, makeSetValue, SIZE_TYPE } from 'emscripten:parse-tools'
 import { wasmMemory, _malloc } from 'emscripten:runtime'
 
+const backingStoreData = new Map<Ptr, { data: Ptr, byteLength: number }>()
+
+/**
+ * @__sig vppi
+ */
+export function _v8_backing_store_set (
+  backing_store: Ptr,
+  data: Ptr,
+  byte_length: size_t
+): void {
+  from64('backing_store')
+  from64('data')
+  from64('byte_length')
+  backingStoreData.set(backing_store, { data, byteLength: byte_length })
+}
+
+/**
+ * @__sig pp
+ */
+export function _v8_backing_store_data (backing_store: Ptr): Ptr {
+  from64('backing_store')
+  return backingStoreData.get(backing_store)?.data ?? 0
+}
+
+/**
+ * @__sig ip
+ */
+export function _v8_backing_store_byte_length (backing_store: Ptr): size_t {
+  from64('backing_store')
+  return backingStoreData.get(backing_store)?.byteLength ?? 0
+}
+
+/**
+ * @__sig vp
+ */
+export function _v8_backing_store_delete (backing_store: Ptr): void {
+  from64('backing_store')
+  backingStoreData.delete(backing_store)
+}
+
 /**
  * @__deps $emnapiCtx
  * @__sig pp
