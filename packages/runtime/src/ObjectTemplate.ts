@@ -126,6 +126,15 @@ export class ObjectTemplate extends Template {
       return holder || receiver
     }
     function accessor (this: any, value?: any) {
+      if (type === 'setter' && !instances.has(this)) {
+        Object.defineProperty(this, config.name, {
+          value,
+          writable: !(config.attribute & 1),
+          enumerable: !(config.attribute & 2),
+          configurable: !(config.attribute & 4)
+        })
+        return undefined
+      }
       const scope = ctx.openScope()
       const callbackInfo = scope.callbackInfo
       let returnValue: any
