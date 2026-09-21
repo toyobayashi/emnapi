@@ -96,12 +96,15 @@ export class FunctionTemplate extends Template {
             ? callback(ctx.getCurrentScope()!.id, v8FunctionCallback)
             : 0
         if (callHandler) {
-          if (ret === 0) {
+          const retNumber = typeof ret === 'bigint' ? Number(ret) : ret
+          if (retNumber === 0) {
             returnValue = 0
           } else {
             const value = ctx.jsValueFromNapiValue(ret)
-            returnValue = value === undefined && ret !== 1 && ret !== 2
-              ? Number(ret) >> 1
+            returnValue = value === undefined && retNumber !== 1 && retNumber !== 2
+              ? retNumber >= 0x100000000 || typeof ret === 'bigint'
+                ? Math.trunc(Number(ret) / 0x100000000)
+                : Number(ret) >> 1
               : value
           }
         } else {

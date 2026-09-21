@@ -140,7 +140,8 @@ export function _v8_object_get_internal_field (
   index: number
 ): Ptr {
   const objValue = emnapiCtx.jsValueFromNapiValue(obj)
-  return emnapiCtx.isolate.napiValueFromJsValue(emnapiCtx.isolate.getInternalField(objValue, index))
+  const value = emnapiCtx.isolate.getInternalField(objValue, index)
+  return emnapiCtx.isolate.napiValueFromJsValue(value)
 }
 
 /**
@@ -152,7 +153,8 @@ export function _v8_object_get_aligned_pointer_in_internal_field (
   index: number
 ): Ptr {
   const objValue = emnapiCtx.jsValueFromNapiValue(obj)
-  return emnapiCtx.isolate.getInternalField(objValue, index)
+  const value = emnapiCtx.isolate.getInternalField(objValue, index)
+  return value
 }
 
 /**

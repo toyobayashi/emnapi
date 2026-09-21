@@ -11,7 +11,7 @@ function bufferFromWasmMemory (data: number, length: number): any {
 
 /**
  * @__deps $emnapiCtx
- * @__sig pppipp
+ * @__sig pppppp
  */
 export function _node_buffer_new (
   isolate: Ptr,
@@ -28,7 +28,7 @@ export function _node_buffer_new (
 /**
  * @__deps $emnapiCtx
  * @__deps malloc
- * @__sig ppi
+ * @__sig ppp
  */
 export function _node_buffer_new_alloc (isolate: Ptr, length: size_t): Ptr {
   from64('length')
@@ -40,7 +40,7 @@ export function _node_buffer_new_alloc (isolate: Ptr, length: size_t): Ptr {
 /**
  * @__deps $emnapiCtx
  * @__deps malloc
- * @__sig ppi
+ * @__sig pppp
  */
 export function _node_buffer_copy (isolate: Ptr, data: Ptr, length: size_t): Ptr {
   from64('data')
@@ -65,7 +65,7 @@ export function _node_buffer_data (value: Ptr): Ptr {
 
 /**
  * @__deps $emnapiCtx
- * @__sig ip
+ * @__sig pp
  */
 export function _node_buffer_length (value: Ptr): size_t {
   const view = emnapiCtx.jsValueFromNapiValue<any>(value)

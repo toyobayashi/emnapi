@@ -4,7 +4,7 @@ import { wasmMemory, _malloc } from 'emscripten:runtime'
 const backingStoreData = new Map<Ptr, { data: Ptr, byteLength: number }>()
 
 /**
- * @__sig vppi
+ * @__sig vppp
  */
 export function _v8_backing_store_set (
   backing_store: Ptr,
@@ -26,7 +26,7 @@ export function _v8_backing_store_data (backing_store: Ptr): Ptr {
 }
 
 /**
- * @__sig ip
+ * @__sig pp
  */
 export function _v8_backing_store_byte_length (backing_store: Ptr): size_t {
   from64('backing_store')
@@ -53,7 +53,7 @@ export function _v8_array_buffer_view_buffer (view: Ptr): Ptr {
 
 /**
  * @__deps $emnapiCtx
- * @__sig ip
+ * @__sig pp
  */
 export function _v8_array_buffer_view_byte_offset (view: Ptr): size_t {
   const value = emnapiCtx.jsValueFromNapiValue<any>(view)
@@ -62,7 +62,7 @@ export function _v8_array_buffer_view_byte_offset (view: Ptr): size_t {
 
 /**
  * @__deps $emnapiCtx
- * @__sig ip
+ * @__sig pp
  */
 export function _v8_array_buffer_view_byte_length (view: Ptr): size_t {
   const value = emnapiCtx.jsValueFromNapiValue<any>(view)
@@ -71,7 +71,7 @@ export function _v8_array_buffer_view_byte_length (view: Ptr): size_t {
 
 /**
  * @__deps $emnapiCtx
- * @__sig ip
+ * @__sig pp
  */
 export function _v8_array_buffer_byte_length (buffer: Ptr): size_t {
   const value = emnapiCtx.jsValueFromNapiValue<any>(buffer)

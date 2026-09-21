@@ -424,12 +424,15 @@ export class ObjectTemplate extends Template {
         } catch (err) {
           ctx.throwException(err)
         }
-        const returnValue = ret === 0
+        const retNumber = typeof ret === 'bigint' ? Number(ret) : ret
+        const returnValue = retNumber === 0
           ? 0
           : (() => {
               const value = ctx.jsValueFromNapiValue(ret)
-              return value === undefined && ret !== 1 && ret !== 2
-                ? Number(ret) >> 1
+              return value === undefined && retNumber !== 1 && retNumber !== 2
+                ? retNumber >= 0x100000000 || typeof ret === 'bigint'
+                  ? Math.trunc(Number(ret) / 0x100000000)
+                  : Number(ret) >> 1
                 : value
             })()
         ctx.closeScope(scope)
