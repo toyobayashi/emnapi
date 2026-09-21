@@ -23,6 +23,17 @@ export function _v8_globalize_reference (isolate: Ptr, value: Ptr): Ptr {
 
 /**
  * @__deps $emnapiCtx
+ * @__sig ipp
+ */
+export function _v8_global_reference_equals (lhs: Ptr, rhs: Ptr): number {
+  const left = emnapiCtx.isolate.getRef(lhs)
+  const right = emnapiCtx.isolate.getRef(rhs)
+  if (!left || !right) return 0
+  return left.getSlot()?.deref() === right.getSlot()?.deref() ? 1 : 0
+}
+
+/**
+ * @__deps $emnapiCtx
  * @__sig pp
  */
 export function _v8_copy_global_reference (from: Ptr): Ptr {

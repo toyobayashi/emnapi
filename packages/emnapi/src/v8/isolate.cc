@@ -6,9 +6,14 @@ namespace v8 {
 extern "C" {
   V8_EXTERN internal::Address _v8_isolate_get_current_context(const Isolate* isolate);
   V8_EXTERN internal::Address _v8_isolate_throw_exception(v8::internal::Address);
+  V8_EXTERN internal::Address _v8_context_global(const Context* context);
 }
 
 void Context::CheckCast(v8::Data*) {}
+
+Local<Object> Context::Global() {
+  return v8impl::V8LocalValueFromAddress(_v8_context_global(this)).As<Object>();
+}
 
 Isolate* Context::GetIsolate() {
   return v8::Isolate::GetCurrent();

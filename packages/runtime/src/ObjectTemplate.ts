@@ -89,26 +89,31 @@ export class ObjectTemplate extends Template {
     getterSideEffectType: number,
     setterSideEffectType: number
   ): void {
-    const config: AccessorConfig = {
-      name,
-      getterWrap,
-      setterWrap,
-      getter,
-      setter,
-      data,
-      attribute,
-      getterSideEffectType,
-      setterSideEffectType,
-      getterFunction: undefined,
-      setterFunction: undefined
-    }
-    config.getterFunction = getter
-      ? this._createAccessorWrapper('getter', config)
-      : undefined
-    config.setterFunction = setter
-      ? this._createAccessorWrapper('setter', config)
-      : undefined
+    const config = this._createAccessorConfig(
+      name, getterWrap, setterWrap, getter, setter, data,
+      attribute, getterSideEffectType, setterSideEffectType
+    )
     this._accessors.set(name, config)
+  }
+
+  setAccessorOnInstance (
+    instance: any,
+    name: string | symbol,
+    getterWrap: (property: Ptr, info: Ptr, getter: Ptr) => Ptr,
+    setterWrap: (property: Ptr, value: Ptr, info: Ptr, setter: Ptr) => Ptr,
+    getter: Ptr,
+    setter: Ptr,
+    data: any,
+    attribute: number,
+    getterSideEffectType: number,
+    setterSideEffectType: number
+  ): void {
+    const config = this._createAccessorConfig(
+      name, getterWrap, setterWrap, getter, setter, data,
+      attribute, getterSideEffectType, setterSideEffectType
+    )
+    this._instances.add(instance)
+    this._defineAccessor(instance, config)
   }
 
   setInternalFieldCount (value: number) {
@@ -169,13 +174,48 @@ export class ObjectTemplate extends Template {
     internalField.set(instance, Array(this.internalFieldCount))
     this._addPropertiesToInstance(instance)
 
-    this._accessors.forEach((config, name) => {
-      Object.defineProperty(instance, name, {
-        get: config.getterFunction,
-        set: config.setterFunction,
-        enumerable: !(config.attribute & 2), // DontEnum
-        configurable: !(config.attribute & 4) // DontDelete
-      })
+    this._accessors.forEach(config => this._defineAccessor(instance, config))
+  }
+
+  private _createAccessorConfig (
+    name: string | symbol,
+    getterWrap: (property: Ptr, info: Ptr, getter: Ptr) => Ptr,
+    setterWrap: (property: Ptr, value: Ptr, info: Ptr, setter: Ptr) => Ptr,
+    getter: Ptr,
+    setter: Ptr,
+    data: any,
+    attribute: number,
+    getterSideEffectType: number,
+    setterSideEffectType: number
+  ): AccessorConfig {
+    const config: AccessorConfig = {
+      name,
+      getterWrap,
+      setterWrap,
+      getter,
+      setter,
+      data,
+      attribute,
+      getterSideEffectType,
+      setterSideEffectType,
+      getterFunction: undefined,
+      setterFunction: undefined
+    }
+    config.getterFunction = getter
+      ? this._createAccessorWrapper('getter', config)
+      : undefined
+    config.setterFunction = setter
+      ? this._createAccessorWrapper('setter', config)
+      : undefined
+    return config
+  }
+
+  private _defineAccessor (instance: any, config: AccessorConfig): void {
+    Object.defineProperty(instance, config.name, {
+      get: config.getterFunction,
+      set: config.setterFunction,
+      enumerable: !(config.attribute & 2), // DontEnum
+      configurable: !(config.attribute & 4) // DontDelete
     })
   }
 

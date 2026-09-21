@@ -1,4 +1,4 @@
-import { from64, makeSetValue } from 'emscripten:parse-tools'
+import { from64, makeDynCall, makeSetValue } from 'emscripten:parse-tools'
 
 /**
  * @__deps $emnapiCtx
@@ -16,6 +16,57 @@ export function _v8_object_set (obj: Ptr, context: Ptr, key: Ptr, value: Ptr, su
     const v = r ? 1 : 0
     makeSetValue('success', 0, 'v', 'i32')
   }
+  return 0
+}
+
+/**
+ * @__deps $emnapiCtx
+ * @__sig ippppppppiiip
+ */
+export function _v8_object_set_accessor (
+  obj: Ptr,
+  _context: Ptr,
+  name: Ptr,
+  getter_wrap: Ptr,
+  setter_wrap: Ptr,
+  getter: Ptr,
+  setter: Ptr,
+  data: Ptr,
+  attribute: number,
+  getter_side_effect_type: number,
+  setter_side_effect_type: number,
+  success: Ptr
+): number {
+  if (emnapiCtx.isolate.hasPendingException()) return 1
+
+  from64('getter_wrap')
+  from64('setter_wrap')
+  const getterWrap = getter_wrap ? makeDynCall('pppp', 'getter_wrap') : undefined
+  const setterWrap = setter_wrap ? makeDynCall('ppppp', 'setter_wrap') : undefined
+
+  try {
+    const objectTemplate = emnapiCtx.isolate.createObjectTemplate(undefined)
+    const nameValue = emnapiCtx.jsValueFromNapiValue(name) as string | symbol
+    if (nameValue == null) return 1
+    objectTemplate.setAccessorOnInstance(
+      emnapiCtx.jsValueFromNapiValue(obj),
+      nameValue,
+      getterWrap!,
+      setterWrap!,
+      getter,
+      setter,
+      emnapiCtx.jsValueFromNapiValue(data),
+      attribute,
+      getter_side_effect_type,
+      setter_side_effect_type
+    )
+  } catch (err) {
+    emnapiCtx.isolate.throwException(err)
+    return 1
+  }
+
+  from64('success')
+  if (success) makeSetValue('success', 0, '1', 'i32')
   return 0
 }
 

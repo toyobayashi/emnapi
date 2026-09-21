@@ -17,6 +17,56 @@ extern "C" {
   V8_EXTERN int _v8_object_delete_private(Object* obj, Context* context, internal::Address key, int* success);
   V8_EXTERN internal::Address _v8_object_new(Isolate* isolate);
   V8_EXTERN internal::Address _v8_private_for_api(Isolate* isolate, internal::Address name);
+  V8_EXTERN void _v8_get_property_cb_info(internal::Address info, internal::Address* args);
+  V8_EXTERN int _v8_object_set_accessor(
+    Object* obj, Context* context, internal::Address name,
+    internal::Address (*getter_wrap)(internal::Address property, internal::Address info, AccessorNameGetterCallback getter),
+    internal::Address (*setter_wrap)(internal::Address property, internal::Address value, internal::Address info, AccessorNameSetterCallback setter),
+    AccessorNameGetterCallback getter, AccessorNameSetterCallback setter,
+    internal::Address data, PropertyAttribute attribute,
+    SideEffectType getter_side_effect_type, SideEffectType setter_side_effect_type,
+    int* success);
+}
+
+namespace {
+
+struct ObjectPropertyCallbackInfoImpl {
+  internal::Address* args_;
+
+  explicit ObjectPropertyCallbackInfoImpl(internal::Address info) {
+    internal::Address* list = new internal::Address[8]{0};
+    *(list + 2) = reinterpret_cast<internal::Address>(Isolate::GetCurrent());
+    *(list + 4) = internal::ValueHelper::kEmpty;
+    _v8_get_property_cb_info(info, list);
+    args_ = list;
+  }
+
+  ObjectPropertyCallbackInfoImpl(const ObjectPropertyCallbackInfoImpl&) = delete;
+  ObjectPropertyCallbackInfoImpl& operator=(const ObjectPropertyCallbackInfoImpl&) = delete;
+  ~ObjectPropertyCallbackInfoImpl() { delete[] args_; }
+};
+
+internal::Address ObjectPropertyGetterWrap(
+    internal::Address property, internal::Address info,
+    AccessorNameGetterCallback getter) {
+  const ObjectPropertyCallbackInfoImpl cbinfo{info};
+  const v8::PropertyCallbackInfo<Value>* args =
+      reinterpret_cast<const v8::PropertyCallbackInfo<Value>*>(&cbinfo);
+  getter(v8impl::V8LocalValueFromAddress(property).As<Name>(), *args);
+  return v8impl::AddressFromV8LocalValue(args->GetReturnValue().Get());
+}
+
+internal::Address ObjectPropertySetterWrap(
+    internal::Address property, internal::Address value, internal::Address info,
+    AccessorNameSetterCallback setter) {
+  const ObjectPropertyCallbackInfoImpl cbinfo{info};
+  const v8::PropertyCallbackInfo<void>* args =
+      reinterpret_cast<const v8::PropertyCallbackInfo<void>*>(&cbinfo);
+  setter(v8impl::V8LocalValueFromAddress(property).As<Name>(),
+         v8impl::V8LocalValueFromAddress(value), *args);
+  return v8impl::AddressFromV8LocalValue(args->GetReturnValue().Get());
+}
+
 }
 
 void Object::CheckCast(v8::Value*) {}
@@ -39,6 +89,27 @@ Maybe<bool> Object::Set(v8::Local<v8::Context> context, v8::Local<v8::Value> key
     v8impl::AddressFromV8LocalValue(key), v8impl::AddressFromV8LocalValue(value), &success);
   if (r != 0) return Nothing<bool>();
   return Just<bool>(success);
+}
+
+Maybe<bool> Object::SetAccessor(
+    Local<Context> context, Local<Name> name,
+    AccessorNameGetterCallback getter, AccessorNameSetterCallback setter,
+    MaybeLocal<Value> data, AccessControl, PropertyAttribute attribute,
+    SideEffectType getter_side_effect_type,
+    SideEffectType setter_side_effect_type) {
+  Local<Value> data_value;
+  internal::Address data_address = 0;
+  if (data.ToLocal(&data_value)) {
+    data_address = v8impl::AddressFromV8LocalValue(data_value);
+  }
+  int success = 0;
+  int r = _v8_object_set_accessor(
+      this, *context, v8impl::AddressFromV8LocalValue(name),
+      ObjectPropertyGetterWrap, ObjectPropertySetterWrap,
+      getter, setter, data_address, attribute,
+      getter_side_effect_type, setter_side_effect_type, &success);
+  if (r != 0) return Nothing<bool>();
+  return Just<bool>(success != 0);
 }
 
 Maybe<bool> Object::SetPrivate(Local<Context> context, Local<Private> key, Local<Value> value) {

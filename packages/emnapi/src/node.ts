@@ -9,7 +9,14 @@ export function _emnapi_node_emit_async_init (
   trigger_async_id: double,
   result: Pointer<[double, double]>
 ): void {
-  if (!emnapiNodeBinding) return
+  if (!emnapiNodeBinding) {
+    if (result) {
+      from64('result')
+      makeSetValue('result', 0, '0', 'double')
+      makeSetValue('result', 8, 'trigger_async_id', 'double')
+    }
+    return
+  }
   const resource = emnapiCtx.jsValueFromNapiValue(async_resource)!
   const resource_name = emnapiCtx.jsValueFromNapiValue<string>(async_resource_name)!
 
@@ -54,12 +61,11 @@ export function _emnapi_node_close_callback_scope (scope: Pointer<int64_t>): voi
 } */
 
 /** @__sig ipppppddp */
-export function _emnapi_node_make_callback (env: napi_env, async_resource: napi_value, cb: napi_value, argv: Pointer<napi_value>, size: size_t, async_id: double, trigger_async_id: double, result: Pointer<napi_value>): void {
+export function _emnapi_node_make_callback (env: napi_env, async_resource: napi_value, cb: napi_value, argv: Pointer<napi_value>, size: size_t, async_id: double, trigger_async_id: double, result: Pointer<napi_value>): napi_status {
   let i = 0
 
   let v: napi_value
 
-  if (!emnapiNodeBinding) return
   const resource = emnapiCtx.jsValueFromNapiValue(async_resource)!
   const callback = emnapiCtx.jsValueFromNapiValue<any>(cb)!
   from64('argv')
@@ -69,6 +75,20 @@ export function _emnapi_node_make_callback (env: napi_env, async_resource: napi_
   for (; i < size; i++) {
     const argVal = makeGetValue('argv', 'i * ' + POINTER_SIZE, '*')
     arr[i] = emnapiCtx.jsValueFromNapiValue(argVal)!
+  }
+  if (!emnapiNodeBinding) {
+    try {
+      const ret = callback.apply(resource, arr)
+      if (result) {
+        from64('result')
+        const v = emnapiCtx.napiValueFromJsValue(ret)
+        makeSetValue('result', 0, 'v', '*')
+      }
+      return napi_status.napi_ok
+    } catch (err) {
+      emnapiCtx.isolate.throwException(err)
+      return napi_status.napi_generic_failure
+    }
   }
   const ret = emnapiNodeBinding.node.makeCallback(resource, callback, arr, {
     asyncId: async_id,
@@ -80,6 +100,7 @@ export function _emnapi_node_make_callback (env: napi_env, async_resource: napi_
     v = emnapiCtx.napiValueFromJsValue(ret)
     makeSetValue('result', 0, 'v', '*')
   }
+  return napi_status.napi_ok
 }
 
 /** @__sig ippp */

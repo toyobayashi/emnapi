@@ -20,6 +20,7 @@ extern "C" {
                                WeakCallbackInfo<void>::Callback weak_callback,
                                WeakCallbackType type);
   V8_EXTERN void* _v8_clear_weak(internal::Address location);
+  V8_EXTERN int _v8_global_reference_equals(internal::Address lhs, internal::Address rhs);
 }
 
 namespace internal {
@@ -120,6 +121,15 @@ void MakeWeak(internal::Address* location, void* data,
 void* ClearWeak(internal::Address* location) {
   return _v8_clear_weak(*location);
 };
+
+bool GlobalHandlesEqual(internal::Address* lhs, internal::Address* rhs) {
+  if (lhs == nullptr || rhs == nullptr) return lhs == rhs;
+  const internal::GlobalHandle* left =
+      reinterpret_cast<const internal::GlobalHandle*>(lhs);
+  const internal::GlobalHandle* right =
+      reinterpret_cast<const internal::GlobalHandle*>(rhs);
+  return _v8_global_reference_equals(left->ref, right->ref) != 0;
+}
 
 }  // namespace api_internal
 
