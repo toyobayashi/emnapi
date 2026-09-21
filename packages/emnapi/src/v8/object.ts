@@ -133,7 +133,7 @@ export function _v8_object_set_aligned_pointer_in_internal_field (
 
 /**
  * @__deps $emnapiCtx
- * @__sig pip
+ * @__sig ppi
  */
 export function _v8_object_get_internal_field (
   obj: Ptr,
@@ -146,7 +146,7 @@ export function _v8_object_get_internal_field (
 
 /**
  * @__deps $emnapiCtx
- * @__sig pip
+ * @__sig ppi
  */
 export function _v8_object_get_aligned_pointer_in_internal_field (
   obj: Ptr,

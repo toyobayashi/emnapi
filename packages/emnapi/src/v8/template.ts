@@ -112,10 +112,10 @@ export function _v8_cbinfo_new_target (info: napi_callback_info): Pointer<unknow
   const cbinfoValue = emnapiCtx.getCallbackInfo(info)
   const { thiz, fn } = cbinfoValue
 
-  const value = thiz == null || thiz.constructor == null
+  const value = thiz == null || typeof fn !== 'function'
     ? 0
     : thiz instanceof fn
-      ? emnapiCtx.napiValueFromJsValue(thiz.constructor)
+      ? emnapiCtx.napiValueFromJsValue(fn)
       : 0
 
   return value

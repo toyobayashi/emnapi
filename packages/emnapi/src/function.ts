@@ -187,10 +187,10 @@ export function napi_get_new_target (
   const cbinfoValue = emnapiCtx.getCallbackInfo(cbinfo)
   const { thiz, fn } = cbinfoValue
 
-  const value = thiz == null || thiz.constructor == null
+  const value = thiz == null || typeof fn !== 'function'
     ? 0
     : thiz instanceof fn
-      ? emnapiCtx.napiValueFromJsValue(thiz.constructor)
+      ? emnapiCtx.napiValueFromJsValue(fn)
       : 0
 
   makeSetValue('result', 0, 'value', '*')
