@@ -1,5 +1,76 @@
 import { from64 } from 'emscripten:parse-tools'
-import { wasmMemory } from 'emscripten:runtime'
+import { wasmMemory, _malloc } from 'emscripten:runtime'
+
+function bufferFromWasmMemory (data: number, length: number): any {
+  const Buffer = emnapiCtx.features.Buffer
+  if (typeof Buffer !== 'function') {
+    return new Uint8Array(wasmMemory.buffer, data, length)
+  }
+  return Buffer.from(wasmMemory.buffer, data, length)
+}
+
+/**
+ * @__deps $emnapiCtx
+ * @__sig pppipp
+ */
+export function _node_buffer_new (
+  isolate: Ptr,
+  data: Ptr,
+  length: size_t,
+  callback: Ptr,
+  hint: Ptr
+): Ptr {
+  from64('data')
+  from64('length')
+  return emnapiCtx.napiValueFromJsValue(bufferFromWasmMemory(data as number, length >>> 0))
+}
+
+/**
+ * @__deps $emnapiCtx
+ * @__deps malloc
+ * @__sig ppi
+ */
+export function _node_buffer_new_alloc (isolate: Ptr, length: size_t): Ptr {
+  from64('length')
+  const data = Number(_malloc(length))
+  new Uint8Array(wasmMemory.buffer).fill(0, data, data + (length >>> 0))
+  return emnapiCtx.napiValueFromJsValue(bufferFromWasmMemory(data, length >>> 0))
+}
+
+/**
+ * @__deps $emnapiCtx
+ * @__deps malloc
+ * @__sig ppi
+ */
+export function _node_buffer_copy (isolate: Ptr, data: Ptr, length: size_t): Ptr {
+  from64('data')
+  from64('length')
+  const out = Number(_malloc(length))
+  const heap = new Uint8Array(wasmMemory.buffer)
+  heap.set(
+    heap.subarray(data as number, (data as number) + (length >>> 0)),
+    out
+  )
+  return emnapiCtx.napiValueFromJsValue(bufferFromWasmMemory(out, length >>> 0))
+}
+
+/**
+ * @__deps $emnapiCtx
+ * @__sig pp
+ */
+export function _node_buffer_data (value: Ptr): Ptr {
+  const view = emnapiCtx.jsValueFromNapiValue<any>(value)
+  return view == null ? 0 : view.byteOffset
+}
+
+/**
+ * @__deps $emnapiCtx
+ * @__sig ip
+ */
+export function _node_buffer_length (value: Ptr): size_t {
+  const view = emnapiCtx.jsValueFromNapiValue<any>(value)
+  return view == null ? 0 : view.byteLength
+}
 
 /**
  * @__deps $emnapiCtx

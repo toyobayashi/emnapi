@@ -61,6 +61,27 @@ export interface AccessorConfig {
   setterFunction: ((value: any) => void) | undefined
 }
 
+export interface PropertyHandlerConfig {
+  getterWrap: ((property: Ptr, info: Ptr, getter: Ptr) => Ptr) | undefined
+  setterWrap: ((property: Ptr, value: Ptr, info: Ptr, setter: Ptr) => Ptr) | undefined
+  queryWrap: ((property: Ptr, info: Ptr, query: Ptr) => Ptr) | undefined
+  deleterWrap: ((property: Ptr, info: Ptr, deleter: Ptr) => Ptr) | undefined
+  enumeratorWrap: ((info: Ptr, enumerator: Ptr) => Ptr) | undefined
+  getter: Ptr
+  setter: Ptr
+  query: Ptr
+  deleter: Ptr
+  enumerator: Ptr
+  data: any
+  flags: number
+}
+
+export interface CallHandlerConfig {
+  callbackWrap: (info: Ptr, callback: Ptr) => Ptr
+  callback: Ptr
+  data: any
+}
+
 /** @public */
 export class ObjectTemplate extends Template {
   public Ctor: any
@@ -69,6 +90,9 @@ export class ObjectTemplate extends Template {
 
   private _accessors: Map<string | symbol, AccessorConfig> = new Map()
   private _instances: WeakSet<object> = new WeakSet()
+  private _namedPropertyHandler: PropertyHandlerConfig | undefined
+  private _indexedPropertyHandler: PropertyHandlerConfig | undefined
+  private _callAsFunctionHandler: CallHandlerConfig | undefined
 
   constructor (
     ctx: Isolate,
@@ -118,6 +142,18 @@ export class ObjectTemplate extends Template {
 
   setInternalFieldCount (value: number) {
     this.internalFieldCount = value
+  }
+
+  setNamedPropertyHandler (config: PropertyHandlerConfig): void {
+    this._namedPropertyHandler = config
+  }
+
+  setIndexedPropertyHandler (config: PropertyHandlerConfig): void {
+    this._indexedPropertyHandler = config
+  }
+
+  setCallAsFunctionHandler (config: CallHandlerConfig): void {
+    this._callAsFunctionHandler = config
   }
 
   private _createAccessorWrapper (type: 'getter' | 'setter', config: AccessorConfig) {
@@ -171,10 +207,158 @@ export class ObjectTemplate extends Template {
 
   applyToInstance (instance: any) {
     this._instances.add(instance)
-    internalField.set(instance, Array(this.internalFieldCount))
+    const fields = Array(this.internalFieldCount)
+    internalField.set(instance, fields)
     this._addPropertiesToInstance(instance)
 
     this._accessors.forEach(config => this._defineAccessor(instance, config))
+
+    if (this._namedPropertyHandler || this._indexedPropertyHandler) {
+      const proxy = this._createPropertyHandlerProxy(instance)
+      this._instances.add(proxy)
+      internalField.set(proxy, fields)
+      return proxy
+    }
+    return instance
+  }
+
+  private _createPropertyHandlerProxy (target: any) {
+    const { ctx } = this
+    const configuredHandler = this._namedPropertyHandler || this._indexedPropertyHandler
+    const resolveHandler = (property: PropertyKey): { config: PropertyHandlerConfig, index?: number } | undefined => {
+      const index = typeof property === 'string' && /^(?:0|[1-9]\d*)$/.test(property)
+        ? Number(property)
+        : undefined
+      if (index !== undefined && index <= 0xffffffff - 1 && this._indexedPropertyHandler) {
+        return { config: this._indexedPropertyHandler, index }
+      }
+      if (typeof property === 'string' && this._namedPropertyHandler) {
+        return { config: this._namedPropertyHandler }
+      }
+      return undefined
+    }
+    const invoke = (
+      config: PropertyHandlerConfig,
+      property: string | number,
+      receiver: any,
+      holder: any,
+      kind: 'getter' | 'setter' | 'query' | 'deleter' | 'enumerator',
+      value?: any
+    ): { intercepted: boolean, value: any } => {
+      const wrap = kind === 'getter'
+        ? config.getterWrap
+        : kind === 'setter'
+          ? config.setterWrap
+          : kind === 'query'
+            ? config.queryWrap
+            : kind === 'deleter'
+              ? config.deleterWrap
+              : config.enumeratorWrap
+      if (!wrap) return { intercepted: false, value: undefined }
+      const scope = ctx.openScope()
+      const callbackInfo = scope.callbackInfo
+      const trap = function () {}
+      callbackInfo.data = config.data
+      callbackInfo.args = kind === 'setter' ? [value] : []
+      callbackInfo.thiz = receiver
+      callbackInfo.holder = holder
+      callbackInfo.fn = trap
+      let result: Ptr = 0
+      try {
+        const propertyValue = typeof property === 'number'
+          ? property
+          : ctx.napiValueFromJsValue(property)
+        if (kind === 'getter') {
+          result = (wrap as (property: Ptr, info: Ptr, getter: Ptr) => Ptr)(propertyValue, scope.id, config.getter)
+        } else if (kind === 'setter') {
+          result = (wrap as (property: Ptr, value: Ptr, info: Ptr, setter: Ptr) => Ptr)(
+            propertyValue, ctx.napiValueFromJsValue(value), scope.id, config.setter
+          )
+        } else if (kind === 'query') {
+          result = (wrap as (property: Ptr, info: Ptr, query: Ptr) => Ptr)(propertyValue, scope.id, config.query)
+        } else if (kind === 'deleter') {
+          result = (wrap as (property: Ptr, info: Ptr, deleter: Ptr) => Ptr)(propertyValue, scope.id, config.deleter)
+        } else {
+          result = (wrap as (info: Ptr, enumerator: Ptr) => Ptr)(scope.id, config.enumerator)
+        }
+      } catch (err) {
+        ctx.throwException(err)
+      }
+      const returnValue = result ? ctx.jsValueFromNapiValue(result) : undefined
+      ctx.closeScope(scope)
+      if (ctx.hasPendingException()) {
+        if (TryCatch.top) {
+          TryCatch.top.setError(ctx.getAndClearLastException())
+        } else {
+          throw ctx.getAndClearLastException()
+        }
+      }
+      return {
+        intercepted: Number(result) !== 0,
+        value: returnValue
+      }
+    }
+
+    const getOwnPropertyDescriptor = (_target: any, property: PropertyKey) => {
+      const handler = resolveHandler(property)
+      if (!handler || !handler.config.queryWrap) return Reflect.getOwnPropertyDescriptor(target, property)
+      const result = invoke(handler.config, handler.index === undefined ? String(property) : handler.index, target, target, 'query')
+      if (!result.intercepted) return Reflect.getOwnPropertyDescriptor(target, property)
+      if (result.value === undefined) return undefined
+      const attr = Number(result.value)
+      return {
+        value: Reflect.get(target, property, target),
+        writable: !(attr & 1),
+        enumerable: !(attr & 2),
+        configurable: !(attr & 4)
+      }
+    }
+
+    let proxy: any
+    const proxyHandler: ProxyHandler<any> = {
+      get (_target, property, receiver) {
+        const handler = resolveHandler(property)
+        if (!handler || !handler.config.getterWrap) return Reflect.get(target, property, receiver)
+        const result = invoke(handler.config, handler.index === undefined ? String(property) : handler.index, receiver, target, 'getter')
+        return result.intercepted ? result.value : Reflect.get(target, property, receiver)
+      },
+      set (_target, property, value, receiver) {
+        const handler = resolveHandler(property)
+        if (!handler || !handler.config.setterWrap) return Reflect.set(target, property, value, receiver)
+        const result = invoke(handler.config, handler.index === undefined ? String(property) : handler.index, receiver, target, 'setter', value)
+        return result.intercepted ? true : Reflect.set(target, property, value, receiver)
+      },
+      has (_target, property) {
+        const handler = resolveHandler(property)
+        if (!handler || !handler.config.queryWrap) return Reflect.has(target, property)
+        const result = invoke(handler.config, handler.index === undefined ? String(property) : handler.index, proxy, target, 'query')
+        return result.intercepted ? result.value !== undefined : Reflect.has(target, property)
+      },
+      deleteProperty (_target, property) {
+        const handler = resolveHandler(property)
+        if (!handler || !handler.config.deleterWrap) return Reflect.deleteProperty(target, property)
+        const result = invoke(handler.config, handler.index === undefined ? String(property) : handler.index, proxy, target, 'deleter')
+        return result.intercepted ? Boolean(result.value) : Reflect.deleteProperty(target, property)
+      },
+      ownKeys (_target) {
+        const handler = configuredHandler
+        if (!handler || !handler.enumeratorWrap) return Reflect.ownKeys(target)
+        const result = invoke(handler, '', proxy, target, 'enumerator')
+        if (!Array.isArray(result.value)) return Reflect.ownKeys(target)
+        const keys = result.value.map(key => typeof key === 'number' ? String(key) : key)
+        for (const key of Reflect.ownKeys(target)) {
+          const descriptor = Reflect.getOwnPropertyDescriptor(target, key)
+          if (descriptor && !descriptor.configurable && !keys.includes(key)) keys.push(key)
+        }
+        return keys
+      },
+      getOwnPropertyDescriptor,
+      defineProperty (_target, property, descriptor) {
+        return Reflect.defineProperty(target, property, descriptor)
+      }
+    }
+    proxy = new Proxy(target, proxyHandler)
+    return proxy
   }
 
   private _createAccessorConfig (
@@ -222,10 +406,37 @@ export class ObjectTemplate extends Template {
   newInstance (_context: any) {
     const { ctx, Ctor } = this
     let instance: any
-    try {
-      instance = new Ctor()
-    } catch (err) {
-      ctx.throwException(err)
+    if (this._callAsFunctionHandler) {
+      const template = this
+      instance = function (this: any, ...args: any[]) {
+        const scope = ctx.openScope()
+        const callbackInfo = scope.callbackInfo
+        callbackInfo.data = template._callAsFunctionHandler!.data
+        callbackInfo.args = args
+        callbackInfo.thiz = this
+        callbackInfo.holder = this
+        callbackInfo.fn = instance
+        let ret: Ptr = 0
+        try {
+          ret = template._callAsFunctionHandler!.callbackWrap(
+            scope.id, template._callAsFunctionHandler!.callback
+          )
+        } catch (err) {
+          ctx.throwException(err)
+        }
+        const returnValue = ret ? ctx.jsValueFromNapiValue(ret) : undefined
+        ctx.closeScope(scope)
+        if (ctx.hasPendingException()) {
+          throw ctx.getAndClearLastException()
+        }
+        return returnValue
+      }
+    } else {
+      try {
+        instance = new Ctor()
+      } catch (err) {
+        ctx.throwException(err)
+      }
     }
     this.applyToInstance(instance)
     return instance

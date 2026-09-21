@@ -1,4 +1,5 @@
 export * from './array'
+export * from './array_buffer'
 export * from './boolean'
 export * from './date'
 export * from './exception'

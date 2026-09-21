@@ -2,6 +2,12 @@
 
 namespace v8 {
 
+#if defined(V8_MAJOR_VERSION) && +    (V8_MAJOR_VERSION > 12 || +     (V8_MAJOR_VERSION == 12 && defined(V8_MINOR_VERSION) && +      V8_MINOR_VERSION > 4))
+#define EMNAPI_V8_NEW_PROPERTY_CALLBACKS 1
+#else
+#define EMNAPI_V8_NEW_PROPERTY_CALLBACKS 0
+#endif
+
 extern "C" {
   V8_EXTERN Value* _v8_cbinfo_new_target(internal::Address info);
   V8_EXTERN Value* _v8_cbinfo_holder(internal::Address info);
@@ -16,9 +22,17 @@ extern "C" {
       uint16_t allowed_receiver_instance_type_range_end);
   V8_EXTERN internal::Address _v8_function_template_get_function(FunctionTemplate* tpl, Context* context);
   V8_EXTERN void _v8_function_template_set_class_name(FunctionTemplate* tpl, internal::Address name);
+  V8_EXTERN void _v8_function_template_set_call_handler(
+      FunctionTemplate* tpl,
+      internal::Address (*callback_wrap)(internal::Address, FunctionCallback),
+      FunctionCallback callback, internal::Address data);
   V8_EXTERN int _v8_get_cb_info(internal::Address info, size_t* argc, internal::Address* argv, internal::Address* this_arg, void** data);
   V8_EXTERN internal::Address _v8_object_template_new(Isolate* isolate, internal::Address constructor);
   V8_EXTERN void _v8_object_template_set_internal_field_count(ObjectTemplate* obj_tpl, int value);
+  V8_EXTERN void _v8_object_template_set_call_as_function_handler(
+      ObjectTemplate* obj_tpl,
+      internal::Address (*callback_wrap)(internal::Address, FunctionCallback),
+      FunctionCallback callback, internal::Address data);
   V8_EXTERN internal::Address _v8_object_template_new_instance(ObjectTemplate* obj_tpl, Context* context);
   V8_EXTERN internal::Address _v8_signature_new(Isolate* isolate, internal::Address receiver);
   V8_EXTERN void _v8_template_set(Template* tpl, internal::Address name, internal::Address value, 
@@ -35,6 +49,28 @@ extern "C" {
     SideEffectType getter_side_effect_type,
     SideEffectType setter_side_effect_type
   );
+  V8_EXTERN void _v8_object_template_set_named_property_handler(
+      ObjectTemplate* obj_tpl,
+      internal::Address (*getter_wrap)(internal::Address, internal::Address, internal::Address),
+      internal::Address (*setter_wrap)(internal::Address, internal::Address, internal::Address, internal::Address),
+      internal::Address (*query_wrap)(internal::Address, internal::Address, internal::Address),
+      internal::Address (*deleter_wrap)(internal::Address, internal::Address, internal::Address),
+      internal::Address (*enumerator_wrap)(internal::Address, internal::Address),
+      internal::Address getter, internal::Address setter,
+      internal::Address query, internal::Address deleter,
+      internal::Address enumerator, internal::Address data,
+      int flags);
+  V8_EXTERN void _v8_object_template_set_indexed_property_handler(
+      ObjectTemplate* obj_tpl,
+      internal::Address (*getter_wrap)(internal::Address, internal::Address, internal::Address),
+      internal::Address (*setter_wrap)(internal::Address, internal::Address, internal::Address, internal::Address),
+      internal::Address (*query_wrap)(internal::Address, internal::Address, internal::Address),
+      internal::Address (*deleter_wrap)(internal::Address, internal::Address, internal::Address),
+      internal::Address (*enumerator_wrap)(internal::Address, internal::Address),
+      internal::Address getter, internal::Address setter,
+      internal::Address query, internal::Address deleter,
+      internal::Address enumerator, internal::Address data,
+      int flags);
   V8_EXTERN internal::Address _v8_function_new(
     Context* context,
     internal::Address (*callback)(internal::Address info, v8::FunctionCallback cb),
@@ -110,7 +146,24 @@ struct PropertyCallbackInfoImpl {
   ~PropertyCallbackInfoImpl() {
     delete[] args_;
   }
+
+  internal::Address ReturnValue() const {
+    return args_[4];
+  }
 };
+
+internal::Address PropertyCallbackReturnValue(
+    const PropertyCallbackInfoImpl& cbinfo, bool intercepted = true,
+    bool emptyMeansNoIntercept = false) {
+  if (!intercepted) return 0;
+  if (cbinfo.ReturnValue() == 0 ||
+      cbinfo.ReturnValue() == 1 ||
+      cbinfo.ReturnValue() == internal::ValueHelper::kEmpty) {
+    if (emptyMeansNoIntercept) return 0;
+    return v8impl::AddressFromV8LocalValue(Undefined(Isolate::GetCurrent()));
+  }
+  return cbinfo.ReturnValue();
+}
 
 internal::Address PropertyGetterWrap(internal::Address property, internal::Address info, AccessorNameGetterCallback getter) {
   const PropertyCallbackInfoImpl cbinfo{info};
@@ -128,6 +181,212 @@ internal::Address PropertySetterWrap(internal::Address property, internal::Addre
   setter(v8impl::V8LocalValueFromAddress(property).As<Name>(), v8impl::V8LocalValueFromAddress(value), args_ref);
   Local<Value> ret = args->GetReturnValue().Get();
   return v8impl::AddressFromV8LocalValue(ret);
+}
+
+internal::Address NamedPropertyGetterWrap(
+    internal::Address property, internal::Address info, internal::Address getter) {
+  const PropertyCallbackInfoImpl cbinfo{info};
+#if EMNAPI_V8_NEW_PROPERTY_CALLBACKS
+  const v8::PropertyCallbackInfo<Value>* args =
+      reinterpret_cast<const v8::PropertyCallbackInfo<Value>*>(&cbinfo);
+  const auto callback = reinterpret_cast<NamedPropertyGetterCallback>(getter);
+  const Intercepted intercepted =
+      callback(v8impl::V8LocalValueFromAddress(property).As<Name>(), *args);
+#else
+  const v8::PropertyCallbackInfo<Value>* args =
+      reinterpret_cast<const v8::PropertyCallbackInfo<Value>*>(&cbinfo);
+  const auto callback =
+      reinterpret_cast<GenericNamedPropertyGetterCallback>(getter);
+  callback(v8impl::V8LocalValueFromAddress(property).As<Name>(), *args);
+#endif
+#if EMNAPI_V8_NEW_PROPERTY_CALLBACKS
+  return PropertyCallbackReturnValue(
+      cbinfo, intercepted == Intercepted::kYes);
+#else
+  return PropertyCallbackReturnValue(cbinfo, true, true);
+#endif
+}
+
+internal::Address NamedPropertySetterWrap(
+  internal::Address property, internal::Address value,
+    internal::Address info, internal::Address setter) {
+  const PropertyCallbackInfoImpl cbinfo{info};
+#if EMNAPI_V8_NEW_PROPERTY_CALLBACKS
+  const v8::PropertyCallbackInfo<void>* args =
+      reinterpret_cast<const v8::PropertyCallbackInfo<void>*>(&cbinfo);
+  const auto callback = reinterpret_cast<NamedPropertySetterCallback>(setter);
+  const Intercepted intercepted = callback(
+      v8impl::V8LocalValueFromAddress(property).As<Name>(),
+      v8impl::V8LocalValueFromAddress(value), *args);
+#else
+  const v8::PropertyCallbackInfo<Value>* args =
+      reinterpret_cast<const v8::PropertyCallbackInfo<Value>*>(&cbinfo);
+  const auto callback =
+      reinterpret_cast<GenericNamedPropertySetterCallback>(setter);
+  callback(v8impl::V8LocalValueFromAddress(property).As<Name>(),
+           v8impl::V8LocalValueFromAddress(value), *args);
+#endif
+#if EMNAPI_V8_NEW_PROPERTY_CALLBACKS
+  return PropertyCallbackReturnValue(
+      cbinfo, intercepted == Intercepted::kYes);
+#else
+  return PropertyCallbackReturnValue(cbinfo, true, true);
+#endif
+}
+
+internal::Address NamedPropertyQueryWrap(
+internal::Address property, internal::Address info, internal::Address query) {
+  const PropertyCallbackInfoImpl cbinfo{info};
+  const v8::PropertyCallbackInfo<Integer>* args =
+      reinterpret_cast<const v8::PropertyCallbackInfo<Integer>*>(&cbinfo);
+#if EMNAPI_V8_NEW_PROPERTY_CALLBACKS
+  const auto callback = reinterpret_cast<NamedPropertyQueryCallback>(query);
+  const Intercepted intercepted = callback(
+      v8impl::V8LocalValueFromAddress(property).As<Name>(), *args);
+#else
+  const auto callback =
+      reinterpret_cast<GenericNamedPropertyQueryCallback>(query);
+  callback(v8impl::V8LocalValueFromAddress(property).As<Name>(), *args);
+#endif
+#if EMNAPI_V8_NEW_PROPERTY_CALLBACKS
+  return PropertyCallbackReturnValue(
+      cbinfo, intercepted == Intercepted::kYes);
+#else
+  return PropertyCallbackReturnValue(cbinfo, true, true);
+#endif
+}
+
+internal::Address NamedPropertyDeleterWrap(
+    internal::Address property, internal::Address info,
+    internal::Address deleter) {
+  const PropertyCallbackInfoImpl cbinfo{info};
+  const v8::PropertyCallbackInfo<Boolean>* args =
+      reinterpret_cast<const v8::PropertyCallbackInfo<Boolean>*>(&cbinfo);
+#if EMNAPI_V8_NEW_PROPERTY_CALLBACKS
+  const auto callback = reinterpret_cast<NamedPropertyDeleterCallback>(deleter);
+  const Intercepted intercepted = callback(
+      v8impl::V8LocalValueFromAddress(property).As<Name>(), *args);
+#else
+  const auto callback =
+      reinterpret_cast<GenericNamedPropertyDeleterCallback>(deleter);
+  callback(v8impl::V8LocalValueFromAddress(property).As<Name>(), *args);
+#endif
+#if EMNAPI_V8_NEW_PROPERTY_CALLBACKS
+  return PropertyCallbackReturnValue(
+      cbinfo, intercepted == Intercepted::kYes);
+#else
+  return PropertyCallbackReturnValue(cbinfo, true, true);
+#endif
+}
+
+internal::Address NamedPropertyEnumeratorWrap(
+    internal::Address info, internal::Address enumerator) {
+  const PropertyCallbackInfoImpl cbinfo{info};
+  const v8::PropertyCallbackInfo<Array>* args =
+      reinterpret_cast<const v8::PropertyCallbackInfo<Array>*>(&cbinfo);
+  const auto callback =
+      reinterpret_cast<NamedPropertyEnumeratorCallback>(enumerator);
+  callback(*args);
+  return PropertyCallbackReturnValue(cbinfo, true, true);
+}
+
+internal::Address IndexedPropertyGetterWrap(
+internal::Address index, internal::Address info, internal::Address getter) {
+  const PropertyCallbackInfoImpl cbinfo{info};
+  const v8::PropertyCallbackInfo<Value>* args =
+      reinterpret_cast<const v8::PropertyCallbackInfo<Value>*>(&cbinfo);
+#if EMNAPI_V8_NEW_PROPERTY_CALLBACKS
+  const auto callback = reinterpret_cast<IndexedPropertyGetterCallbackV2>(getter);
+  const Intercepted intercepted = callback(
+      static_cast<uint32_t>(index), *args);
+#else
+  const auto callback = reinterpret_cast<IndexedPropertyGetterCallback>(getter);
+  callback(static_cast<uint32_t>(index), *args);
+#endif
+#if EMNAPI_V8_NEW_PROPERTY_CALLBACKS
+  return PropertyCallbackReturnValue(
+      cbinfo, intercepted == Intercepted::kYes);
+#else
+  return PropertyCallbackReturnValue(cbinfo, true, true);
+#endif
+}
+
+internal::Address IndexedPropertySetterWrap(
+    internal::Address index, internal::Address value,
+    internal::Address info, internal::Address setter) {
+  const PropertyCallbackInfoImpl cbinfo{info};
+#if EMNAPI_V8_NEW_PROPERTY_CALLBACKS
+  const v8::PropertyCallbackInfo<void>* args =
+      reinterpret_cast<const v8::PropertyCallbackInfo<void>*>(&cbinfo);
+  const auto callback = reinterpret_cast<IndexedPropertySetterCallbackV2>(setter);
+  const Intercepted intercepted = callback(
+      static_cast<uint32_t>(index), v8impl::V8LocalValueFromAddress(value),
+      *args);
+#else
+  const v8::PropertyCallbackInfo<Value>* args =
+      reinterpret_cast<const v8::PropertyCallbackInfo<Value>*>(&cbinfo);
+  const auto callback = reinterpret_cast<IndexedPropertySetterCallback>(setter);
+  callback(static_cast<uint32_t>(index), v8impl::V8LocalValueFromAddress(value),
+           *args);
+#endif
+#if EMNAPI_V8_NEW_PROPERTY_CALLBACKS
+  return PropertyCallbackReturnValue(
+      cbinfo, intercepted == Intercepted::kYes);
+#else
+  return PropertyCallbackReturnValue(cbinfo, true, true);
+#endif
+}
+
+internal::Address IndexedPropertyQueryWrap(
+    internal::Address index, internal::Address info, internal::Address query) {
+  const PropertyCallbackInfoImpl cbinfo{info};
+  const v8::PropertyCallbackInfo<Integer>* args =
+      reinterpret_cast<const v8::PropertyCallbackInfo<Integer>*>(&cbinfo);
+#if EMNAPI_V8_NEW_PROPERTY_CALLBACKS
+  const auto callback = reinterpret_cast<IndexedPropertyQueryCallbackV2>(query);
+  const Intercepted intercepted = callback(static_cast<uint32_t>(index), *args);
+#else
+  const auto callback = reinterpret_cast<IndexedPropertyQueryCallback>(query);
+  callback(static_cast<uint32_t>(index), *args);
+#endif
+#if EMNAPI_V8_NEW_PROPERTY_CALLBACKS
+  return PropertyCallbackReturnValue(
+      cbinfo, intercepted == Intercepted::kYes);
+#else
+  return PropertyCallbackReturnValue(cbinfo, true, true);
+#endif
+}
+
+internal::Address IndexedPropertyDeleterWrap(
+    internal::Address index, internal::Address info, internal::Address deleter) {
+  const PropertyCallbackInfoImpl cbinfo{info};
+  const v8::PropertyCallbackInfo<Boolean>* args =
+      reinterpret_cast<const v8::PropertyCallbackInfo<Boolean>*>(&cbinfo);
+#if EMNAPI_V8_NEW_PROPERTY_CALLBACKS
+  const auto callback = reinterpret_cast<IndexedPropertyDeleterCallbackV2>(deleter);
+  const Intercepted intercepted =
+      callback(static_cast<uint32_t>(index), *args);
+#else
+  const auto callback = reinterpret_cast<IndexedPropertyDeleterCallback>(deleter);
+  callback(static_cast<uint32_t>(index), *args);
+#endif
+#if EMNAPI_V8_NEW_PROPERTY_CALLBACKS
+  return PropertyCallbackReturnValue(
+      cbinfo, intercepted == Intercepted::kYes);
+#else
+  return PropertyCallbackReturnValue(cbinfo, true, true);
+#endif
+}
+
+internal::Address IndexedPropertyEnumeratorWrap(
+    internal::Address info, internal::Address enumerator) {
+  const PropertyCallbackInfoImpl cbinfo{info};
+  const v8::PropertyCallbackInfo<Array>* args =
+      reinterpret_cast<const v8::PropertyCallbackInfo<Array>*>(&cbinfo);
+  const auto callback =
+      reinterpret_cast<IndexedPropertyEnumeratorCallback>(enumerator);
+  callback(*args);
+  return PropertyCallbackReturnValue(cbinfo, true, true);
 }
 
 }
@@ -161,6 +420,13 @@ MaybeLocal<Function> FunctionTemplate::GetFunction(v8::Local<v8::Context> contex
 
 void FunctionTemplate::SetClassName(v8::Local<v8::String> name) {
   _v8_function_template_set_class_name(this, v8impl::AddressFromV8LocalValue(name));
+}
+
+void FunctionTemplate::SetCallHandler(
+    FunctionCallback callback, Local<Value> data, SideEffectType side_effect_type,
+    const MemorySpan<const CFunction>& c_function) {
+  _v8_function_template_set_call_handler(
+      this, CallbackWrap, callback, v8impl::AddressFromV8LocalValue(data));
 }
 
 Local<ObjectTemplate> FunctionTemplate::InstanceTemplate() {
@@ -217,6 +483,42 @@ MaybeLocal<Object> ObjectTemplate::NewInstance(v8::Local<v8::Context> context) {
 
 void ObjectTemplate::SetInternalFieldCount(int value) {
   _v8_object_template_set_internal_field_count(this, value);
+}
+
+void ObjectTemplate::SetCallAsFunctionHandler(
+    FunctionCallback callback, Local<Value> data) {
+  _v8_object_template_set_call_as_function_handler(
+      this, CallbackWrap, callback, v8impl::AddressFromV8LocalValue(data));
+}
+
+void ObjectTemplate::SetHandler(
+    const NamedPropertyHandlerConfiguration& configuration) {
+  _v8_object_template_set_named_property_handler(
+      this, NamedPropertyGetterWrap, NamedPropertySetterWrap,
+      NamedPropertyQueryWrap, NamedPropertyDeleterWrap,
+      NamedPropertyEnumeratorWrap,
+      reinterpret_cast<internal::Address>(configuration.getter),
+      reinterpret_cast<internal::Address>(configuration.setter),
+      reinterpret_cast<internal::Address>(configuration.query),
+      reinterpret_cast<internal::Address>(configuration.deleter),
+      reinterpret_cast<internal::Address>(configuration.enumerator),
+      v8impl::AddressFromV8LocalValue(configuration.data),
+      static_cast<int>(configuration.flags));
+}
+
+void ObjectTemplate::SetHandler(
+    const IndexedPropertyHandlerConfiguration& configuration) {
+  _v8_object_template_set_indexed_property_handler(
+      this, IndexedPropertyGetterWrap, IndexedPropertySetterWrap,
+      IndexedPropertyQueryWrap, IndexedPropertyDeleterWrap,
+      IndexedPropertyEnumeratorWrap,
+      reinterpret_cast<internal::Address>(configuration.getter),
+      reinterpret_cast<internal::Address>(configuration.setter),
+      reinterpret_cast<internal::Address>(configuration.query),
+      reinterpret_cast<internal::Address>(configuration.deleter),
+      reinterpret_cast<internal::Address>(configuration.enumerator),
+      v8impl::AddressFromV8LocalValue(configuration.data),
+      static_cast<int>(configuration.flags));
 }
 
 MaybeLocal<Function> Function::New(

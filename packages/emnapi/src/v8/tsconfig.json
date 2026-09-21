@@ -6,6 +6,7 @@
   },
   "include": [
     "../../../runtime/src/typings/**/*.d.ts",
+    "../emscripten/runtime.d.ts",
     "../typings/**/*.d.ts",
     "./**/*.ts"
   ]

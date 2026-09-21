@@ -23,7 +23,10 @@ module.exports = {
     assert.strictEqual(derived.prop1, 'this is property 1')
     derived.prop2 = 'setting a new value'
     assert.strictEqual(derived.prop2, 'setting a new value')
-    if (parseInt(process.versions.node.split('.')[0], 10) > 22) {
+    const nodeMajor = typeof process !== 'undefined' && process.versions?.node
+      ? parseInt(process.versions.node.split('.')[0], 10)
+      : 23
+    if (nodeMajor > 22) {
       assert.strictEqual(settergetter.prop2, 'setting a value')
       settergetter.prop2 = 'setting another value'
       assert.strictEqual(settergetter.prop2, 'setting another value')

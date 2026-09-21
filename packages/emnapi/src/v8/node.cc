@@ -1,4 +1,5 @@
 #include "node.h"
+#include "node_buffer.h"
 #include "v8_impl.h"
 #include "uv.h"
 
@@ -8,6 +9,15 @@ extern "C" struct uv_loop_s* uv_default_loop();
 
 extern "C" {
   V8_EXTERN v8::internal::Address _node_encode(v8::Isolate*, const void* buf, size_t len, int encoding);
+  V8_EXTERN v8::internal::Address _node_buffer_new(
+      v8::Isolate*, v8::internal::Address data, size_t length,
+      v8::internal::Address callback, v8::internal::Address hint);
+  V8_EXTERN v8::internal::Address _node_buffer_new_alloc(
+      v8::Isolate*, size_t length);
+  V8_EXTERN v8::internal::Address _node_buffer_copy(
+      v8::Isolate*, v8::internal::Address data, size_t length);
+  V8_EXTERN v8::internal::Address _node_buffer_data(v8::internal::Address value);
+  V8_EXTERN size_t _node_buffer_length(v8::internal::Address value);
   V8_EXTERN void _emnapi_node_emit_async_init(
       v8::internal::Address resource, v8::internal::Address name,
       double trigger_async_id, async_context* result);
@@ -22,6 +32,62 @@ extern "C" {
 struct uv_loop_s* GetCurrentEventLoop(v8::Isolate*) {
   return uv_default_loop();
 }
+
+namespace Buffer {
+
+bool HasInstance(v8::Local<v8::Value> val) {
+  return val->IsUint8Array();
+}
+
+bool HasInstance(v8::Local<v8::Object> val) {
+  return HasInstance(val.As<v8::Value>());
+}
+
+char* Data(v8::Local<v8::Value> val) {
+  return reinterpret_cast<char*>(_node_buffer_data(
+      v8::v8impl::AddressFromV8LocalValue(val)));
+}
+
+char* Data(v8::Local<v8::Object> val) {
+  return Data(val.As<v8::Value>());
+}
+
+size_t Length(v8::Local<v8::Value> val) {
+  return _node_buffer_length(v8::v8impl::AddressFromV8LocalValue(val));
+}
+
+size_t Length(v8::Local<v8::Object> val) {
+  return Length(val.As<v8::Value>());
+}
+
+v8::MaybeLocal<v8::Object> Copy(v8::Isolate* isolate, const char* data,
+                                size_t len) {
+  return v8::v8impl::V8LocalValueFromAddress(
+      _node_buffer_copy(isolate, reinterpret_cast<v8::internal::Address>(data), len))
+      .As<v8::Object>();
+}
+
+v8::MaybeLocal<v8::Object> New(v8::Isolate* isolate, size_t length) {
+  return v8::v8impl::V8LocalValueFromAddress(
+      _node_buffer_new_alloc(isolate, length)).As<v8::Object>();
+}
+
+v8::MaybeLocal<v8::Object> New(v8::Isolate* isolate, char* data,
+                               size_t length, FreeCallback callback,
+                               void* hint) {
+  return v8::v8impl::V8LocalValueFromAddress(
+      _node_buffer_new(isolate, reinterpret_cast<v8::internal::Address>(data),
+                       length, reinterpret_cast<v8::internal::Address>(callback),
+                       reinterpret_cast<v8::internal::Address>(hint)))
+      .As<v8::Object>();
+}
+
+v8::MaybeLocal<v8::Object> New(v8::Isolate* isolate, char* data,
+                               size_t length) {
+  return New(isolate, data, length, nullptr, nullptr);
+}
+
+}  // namespace Buffer
 
 async_context EmitAsyncInit(v8::Isolate*, v8::Local<v8::Object> resource,
                             const char* name, async_id trigger_async_id) {

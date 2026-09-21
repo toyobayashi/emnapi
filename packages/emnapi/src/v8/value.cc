@@ -19,6 +19,8 @@ extern "C" {
   V8_EXTERN bool _v8_value_is_false(const Value*);
   V8_EXTERN bool _v8_value_is_string(const Value*);
   V8_EXTERN bool _v8_value_is_number(const Value*);
+  V8_EXTERN bool _v8_value_is_array_buffer_view(const Value*);
+  V8_EXTERN bool _v8_value_is_object(const Value*);
 }
 
 void Value::CheckCast(Data*) {}
@@ -73,6 +75,14 @@ bool Value::IsFunction() const {
 
 bool Value::IsNumber() const {
   return _v8_value_is_number(this);
+}
+
+bool Value::IsArrayBufferView() const {
+  return _v8_value_is_array_buffer_view(this);
+}
+
+bool Value::IsObject() const {
+  return _v8_value_is_object(this);
 }
 
 MaybeLocal<Object> Value::ToObject(Local<Context> context) const {

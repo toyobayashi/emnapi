@@ -46,6 +46,7 @@ endif()
 
 set(V8_SRC
   "${CMAKE_CURRENT_SOURCE_DIR}/src/v8/array.cc"
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/v8/array_buffer.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/v8/external.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/v8/exception.cc"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/v8/date.cc"

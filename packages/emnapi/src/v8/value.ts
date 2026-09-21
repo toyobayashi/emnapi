@@ -125,6 +125,27 @@ export function _v8_value_is_number (value: Ptr): number {
  * @__deps $emnapiCtx
  * @__sig ip
  */
+export function _v8_value_is_array_buffer_view (value: Ptr): number {
+  const jsValue = emnapiCtx.jsValueFromNapiValue(value)
+  return ArrayBuffer.isView(jsValue) ? 1 : 0
+}
+
+/**
+ * @__deps $emnapiCtx
+ * @__sig ip
+ */
+export function _v8_value_is_object (value: Ptr): number {
+  const jsValue = emnapiCtx.jsValueFromNapiValue(value)
+  return jsValue !== null &&
+    (typeof jsValue === 'object' || typeof jsValue === 'function')
+    ? 1
+    : 0
+}
+
+/**
+ * @__deps $emnapiCtx
+ * @__sig ip
+ */
 export function _v8_value_is_undefined (value: Ptr): number {
   const jsValue = emnapiCtx.jsValueFromNapiValue(value)
   const isUndefined = jsValue === undefined

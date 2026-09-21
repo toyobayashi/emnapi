@@ -21,6 +21,29 @@ export function _v8_object_set (obj: Ptr, context: Ptr, key: Ptr, value: Ptr, su
 
 /**
  * @__deps $emnapiCtx
+ * @__sig ippipp
+ */
+export function _v8_object_set_index (obj: Ptr, _context: Ptr, index: number, value: Ptr, success: Ptr): number {
+  let r = false
+  try {
+    r = Reflect.set(
+      emnapiCtx.jsValueFromNapiValue(obj),
+      index >>> 0,
+      emnapiCtx.jsValueFromNapiValue(value)
+    )
+  } catch (_) {
+    return 10
+  }
+  from64('success')
+  if (success) {
+    const v = r ? 1 : 0
+    makeSetValue('success', 0, 'v', 'i32')
+  }
+  return 0
+}
+
+/**
+ * @__deps $emnapiCtx
  * @__sig ippppppppiiip
  */
 export function _v8_object_set_accessor (
