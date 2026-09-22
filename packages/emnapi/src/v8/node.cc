@@ -3,12 +3,22 @@
 #include "v8_impl.h"
 #include "uv.h"
 
+#include <sys/types.h>
+
 namespace node {
 
 extern "C" struct uv_loop_s* uv_default_loop();
 
 extern "C" {
   V8_EXTERN v8::internal::Address _node_encode(v8::Isolate*, const void* buf, size_t len, int encoding);
+  V8_EXTERN ssize_t _node_decode_bytes(
+      v8::Isolate*, v8::internal::Address value, int encoding);
+  V8_EXTERN ssize_t _node_decode_write(
+      v8::Isolate*, v8::internal::Address output, size_t length,
+      v8::internal::Address value, int encoding);
+  V8_EXTERN v8::internal::Address _node_errno_exception(
+      v8::Isolate*, int errorno, v8::internal::Address syscall,
+      v8::internal::Address message, v8::internal::Address path);
   V8_EXTERN v8::internal::Address _node_buffer_new(
       v8::Isolate*, v8::internal::Address data, size_t length,
       v8::internal::Address callback, v8::internal::Address hint);
@@ -151,6 +161,29 @@ v8::Local<v8::Value> Encode(v8::Isolate* isolate,
                             const uint16_t* buf,
                             size_t len) {
   return v8::v8impl::V8LocalValueFromAddress(_node_encode(isolate, buf, len, -1));
+}
+
+ssize_t DecodeBytes(v8::Isolate* isolate, v8::Local<v8::Value> value,
+                    enum encoding encoding) {
+  return _node_decode_bytes(
+      isolate, v8::v8impl::AddressFromV8LocalValue(value),
+      static_cast<int>(encoding));
+}
+
+ssize_t DecodeWrite(v8::Isolate* isolate, char* output, size_t length,
+                    v8::Local<v8::Value> value, enum encoding encoding) {
+  return _node_decode_write(
+      isolate, reinterpret_cast<v8::internal::Address>(output), length,
+      v8::v8impl::AddressFromV8LocalValue(value), static_cast<int>(encoding));
+}
+
+v8::Local<v8::Value> ErrnoException(v8::Isolate* isolate, int errorno,
+                                    const char* syscall, const char* message,
+                                    const char* path) {
+  return v8::v8impl::V8LocalValueFromAddress(_node_errno_exception(
+      isolate, errorno, reinterpret_cast<v8::internal::Address>(syscall),
+      reinterpret_cast<v8::internal::Address>(message),
+      reinterpret_cast<v8::internal::Address>(path)));
 }
 
 }

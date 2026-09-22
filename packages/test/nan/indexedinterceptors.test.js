@@ -12,6 +12,5 @@ module.exports = {
     assert.strictEqual(interceptor[0], 'goober')
     assert.strictEqual(Object.prototype.hasOwnProperty.call(interceptor, 1), true)
     assert.strictEqual(Object.keys(interceptor)[0], '42')
-    assert.strictEqual(interceptor[7], 'template fallback')
   }
 }

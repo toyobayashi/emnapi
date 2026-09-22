@@ -88,7 +88,7 @@ export class FunctionTemplate extends Template {
         callbackInfo.data = callHandler ? callHandler.data : data
         callbackInfo.args = arguments
         callbackInfo.thiz = callbackThis
-        callbackInfo.holder = findHolder(callbackThis, _) || callbackThis
+        callbackInfo.holder = signature ? callbackThis : (findHolder(callbackThis, _) || callbackThis)
         callbackInfo.fn = _
         const ret = callHandler
           ? callHandler.callbackWrap(ctx.getCurrentScope()!.id, callHandler.callback)

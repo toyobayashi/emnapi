@@ -2,24 +2,21 @@ import type { Isolate } from './Isolate'
 import { Template } from './Template'
 import { TryCatch } from './TryCatch'
 
-export function findHolder (obj: any, _target: any) {
-  // TODO
-  /* let ret: any
-  while (obj != null) {
-    const descs = Object.getOwnPropertyDescriptors(obj)
-    const keys = Object.keys(descs)
+export function findHolder (obj: any, target: any) {
+  let value = obj
+  while (value != null) {
+    const keys = Reflect.ownKeys(value)
 
     for (let i = 0; i < keys.length; i++) {
       const key = keys[i]
-      const desc = descs[key]
-      if (desc.value === target || desc.get === target || desc.set === target) {
-        return obj
+      const desc = Object.getOwnPropertyDescriptor(value, key)
+      if (desc && (desc.value === target || desc.get === target || desc.set === target)) {
+        return value
       }
     }
 
-    obj = Object.getPrototypeOf(obj)
+    value = Object.getPrototypeOf(value)
   }
-  return ret */
   return obj
 }
 

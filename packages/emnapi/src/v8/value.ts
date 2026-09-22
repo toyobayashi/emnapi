@@ -1,3 +1,5 @@
+import { from64, makeSetValue } from 'emscripten:parse-tools'
+
 /**
  * @__deps $emnapiCtx
  * @__sig ipp
@@ -6,6 +8,28 @@ export function _v8_value_strict_equals (value: Ptr, that: Ptr): int {
   const jsValue = emnapiCtx.jsValueFromNapiValue(value)
   const jsThat = emnapiCtx.jsValueFromNapiValue(that)
   return Object.is(jsValue, jsThat) ? 1 : 0
+}
+
+/**
+ * @__deps $emnapiCtx
+ * @__sig ipppp
+ */
+export function _v8_value_equals (value: Ptr, _context: Ptr, that: Ptr, result: Ptr): number {
+  from64('value')
+  from64('that')
+  from64('result')
+  try {
+    const left = emnapiCtx.jsValueFromNapiValue(value)
+    const right = emnapiCtx.jsValueFromNapiValue(that)
+    // eslint-disable-next-line eqeqeq
+    const equals = left == right
+    const equalsValue = equals ? 1 : 0
+    if (result) makeSetValue('result', 0, 'equalsValue', 'i32')
+    return 0
+  } catch (err) {
+    emnapiCtx.isolate.throwException(err)
+    return 1
+  }
 }
 
 /**

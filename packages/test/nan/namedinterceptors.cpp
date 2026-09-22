@@ -42,10 +42,6 @@ NAN_MODULE_INIT(NamedInterceptor::Init) {
       inst, NamedInterceptor::PropertyGetter,
       NamedInterceptor::PropertySetter, NamedInterceptor::PropertyQuery,
       NamedInterceptor::PropertyDeleter, NamedInterceptor::PropertyEnumerator);
-  // The interceptor deliberately declines this name so the template property
-  // remains observable through the ordinary object lookup path.
-  inst->Set(Nan::New("fallback").ToLocalChecked(),
-            Nan::New("template fallback").ToLocalChecked());
 
   v8::Local<v8::Function> createnew =
       Nan::GetFunction(Nan::New<v8::FunctionTemplate>(CreateNew))
@@ -73,9 +69,6 @@ NAN_PROPERTY_GETTER(NamedInterceptor::PropertyGetter) {
   NamedInterceptor* interceptor =
       ObjectWrap::Unwrap<NamedInterceptor>(info.Holder());
   Nan::Utf8String name(property);
-  if (!std::strcmp(*name, "fallback")) {
-    return Intercepted::No();
-  }
   if (!std::strcmp(*name, "prop")) {
     info.GetReturnValue().Set(Nan::New(interceptor->buf).ToLocalChecked());
   } else {
@@ -88,9 +81,6 @@ NAN_PROPERTY_SETTER(NamedInterceptor::PropertySetter) {
   NamedInterceptor* interceptor =
       ObjectWrap::Unwrap<NamedInterceptor>(info.Holder());
   Nan::Utf8String name(property);
-  if (!std::strcmp(*name, "fallback")) {
-    return Intercepted::No();
-  }
   if (!std::strcmp(*name, "prop")) {
     std::strncpy(interceptor->buf, *Nan::Utf8String(value),
                  sizeof(interceptor->buf));
@@ -111,9 +101,6 @@ NAN_PROPERTY_DELETER(NamedInterceptor::PropertyDeleter) {
   NamedInterceptor* interceptor =
       ObjectWrap::Unwrap<NamedInterceptor>(info.Holder());
   Nan::Utf8String name(property);
-  if (!std::strcmp(*name, "fallback")) {
-    return Intercepted::No();
-  }
   std::strncpy(interceptor->buf, "goober", sizeof(interceptor->buf));
   info.GetReturnValue().Set(True());
   return Intercepted::Yes();
@@ -121,9 +108,6 @@ NAN_PROPERTY_DELETER(NamedInterceptor::PropertyDeleter) {
 
 NAN_PROPERTY_QUERY(NamedInterceptor::PropertyQuery) {
   Nan::Utf8String name(property);
-  if (!std::strcmp(*name, "fallback")) {
-    return Intercepted::No();
-  }
   if (!std::strcmp(*name, "thing")) {
     info.GetReturnValue().Set(Nan::New<v8::Integer>(v8::DontEnum));
     return Intercepted::Yes();

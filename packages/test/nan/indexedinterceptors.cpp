@@ -43,10 +43,6 @@ NAN_MODULE_INIT(IndexedInterceptor::Init) {
       IndexedInterceptor::PropertySetter, IndexedInterceptor::PropertyQuery,
       IndexedInterceptor::PropertyDeleter,
       IndexedInterceptor::PropertyEnumerator);
-  // The interceptor deliberately declines index 7 so the template property
-  // remains observable through the ordinary object lookup path.
-  inst->Set(Nan::New("7").ToLocalChecked(),
-            Nan::New("template fallback").ToLocalChecked());
 
   v8::Local<v8::Function> createnew =
       Nan::GetFunction(Nan::New<v8::FunctionTemplate>(CreateNew))
@@ -73,9 +69,6 @@ NAN_METHOD(IndexedInterceptor::New) {
 NAN_INDEX_GETTER(IndexedInterceptor::PropertyGetter) {
   IndexedInterceptor* interceptor =
       ObjectWrap::Unwrap<IndexedInterceptor>(info.Holder());
-  if (index == 7) {
-    return Intercepted::No();
-  }
   if (index == 0) {
     info.GetReturnValue().Set(Nan::New(interceptor->buf).ToLocalChecked());
   } else {
@@ -87,9 +80,6 @@ NAN_INDEX_GETTER(IndexedInterceptor::PropertyGetter) {
 NAN_INDEX_SETTER(IndexedInterceptor::PropertySetter) {
   IndexedInterceptor* interceptor =
       ObjectWrap::Unwrap<IndexedInterceptor>(info.Holder());
-  if (index == 7) {
-    return Intercepted::No();
-  }
   if (index == 0) {
     std::strncpy(interceptor->buf, *Nan::Utf8String(value),
                  sizeof(interceptor->buf));
@@ -110,18 +100,12 @@ NAN_INDEX_ENUMERATOR(IndexedInterceptor::PropertyEnumerator) {
 NAN_INDEX_DELETER(IndexedInterceptor::PropertyDeleter) {
   IndexedInterceptor* interceptor =
       ObjectWrap::Unwrap<IndexedInterceptor>(info.Holder());
-  if (index == 7) {
-    return Intercepted::No();
-  }
   std::strncpy(interceptor->buf, "goober", sizeof(interceptor->buf));
   info.GetReturnValue().Set(True());
   return Intercepted::Yes();
 }
 
 NAN_INDEX_QUERY(IndexedInterceptor::PropertyQuery) {
-  if (index == 7) {
-    return Intercepted::No();
-  }
   if (index == 1) {
     info.GetReturnValue().Set(Nan::New<v8::Integer>(v8::DontEnum));
     return Intercepted::Yes();

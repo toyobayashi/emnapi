@@ -1,29 +1,28 @@
 'use strict'
 const assert = require('assert')
+const browser = typeof globalThis.__EMNAPI_BROWSER_ENV__ !== 'undefined'
 
-module.exports = {
-  target: 'nan_bufferworkerpersistent',
-  test: function (bindings) {
+module.exports = browser
+  ? { skip: true }
+  : {
+      target: 'nan_bufferworkerpersistent',
+      test: function (bindings) {
     return new Promise((resolve, reject) => {
-      const input = Buffer.from('bufferworker')
-      let count = 0
-      bindings.a(1, input, value => {
+      const crypto = require('crypto')
+      const worker = bindings.a
+      let buf = crypto.randomBytes(256)
+      const bufHex = buf.toString('hex')
+      assert.strictEqual(typeof worker, 'function')
+      worker(200, buf, value => {
         try {
           assert.strictEqual(Buffer.isBuffer(value), true)
-          assert.strictEqual(value.toString(), input.toString())
-          count++
-        } catch (err) {
-          reject(err)
-        }
-      })
-      setTimeout(() => {
-        try {
-          assert.strictEqual(count, 3)
+          assert.strictEqual(value.toString('hex'), bufHex)
           resolve()
         } catch (err) {
           reject(err)
         }
-      }, 30)
+      })
+      buf = null
     })
-  }
-}
+      }
+    }

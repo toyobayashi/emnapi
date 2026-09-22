@@ -1,26 +1,34 @@
 'use strict'
 const assert = require('assert')
+const util = require('util')
+const Readable = require('stream').Readable
 
 module.exports = {
   target: 'nan_asyncprogressworkerstream',
   test: function (bindings) {
-    return new Promise((resolve, reject) => {
-      let count = 0
-      bindings.a(100, 5, value => {
-        try {
-          assert.deepStrictEqual(value, { index: count, data: count * 2 })
-          count++
-        } catch (err) {
-          reject(err)
-        }
-      }, () => {
-        try {
-          assert.strictEqual(count, 5)
-          resolve()
-        } catch (err) {
-          reject(err)
-        }
+    function StreamProgressWorker () {
+      Readable.call(this, { objectMode: true })
+      const self = this
+      process.nextTick(() => {
+        bindings.a(100, 5, value => self.push(value), () => self.push(null))
       })
+    }
+    util.inherits(StreamProgressWorker, Readable)
+    StreamProgressWorker.prototype._read = function () {}
+
+    return new Promise((resolve, reject) => {
+      const stream = new StreamProgressWorker()
+      let progressed = 0
+      stream.on('error', reject)
+        .on('end', () => {
+          try {
+            assert.strictEqual(progressed, 5)
+            resolve()
+          } catch (err) {
+            reject(err)
+          }
+        })
+        .on('data', () => { progressed++ })
     })
   }
 }
