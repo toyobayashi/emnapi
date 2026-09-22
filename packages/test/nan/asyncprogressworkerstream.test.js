@@ -6,7 +6,7 @@ module.exports = {
   test: function (bindings) {
     return new Promise((resolve, reject) => {
       let count = 0
-      bindings.a(1, 5, value => {
+      bindings.a(100, 5, value => {
         try {
           assert.deepStrictEqual(value, { index: count, data: count * 2 })
           count++
