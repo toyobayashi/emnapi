@@ -285,24 +285,25 @@ export function _v8_get_property_cb_info (
   const cbinfoValue = emnapiCtx.getCallbackInfo(cbinfo)
 
   /**
-   * static constexpr int kShouldThrowOnErrorIndex = 0;
-   * static constexpr int kHolderIndex = 1;
-   * static constexpr int kIsolateIndex = 2;
-   * static constexpr int kUnusedIndex = 3;
-   * static constexpr int kReturnValueIndex = 4;
-   * static constexpr int kDataIndex = 5;
-   * static constexpr int kThisIndex = 6;
-   * static constexpr int kArgsLength = 7;
+   * static constexpr int kPropertyKeyIndex = 0;
+   * static constexpr int kShouldThrowOnErrorIndex = 1;
+   * static constexpr int kHolderIndex = 2;
+   * static constexpr int kIsolateIndex = 3;
+   * static constexpr int kHolderV2Index = 4;
+   * static constexpr int kReturnValueIndex = 5;
+   * static constexpr int kDataIndex = 6;
+   * static constexpr int kThisIndex = 7;
+   * static constexpr int kArgsLength = 8;
    */
   from64('args')
 
   const thiz = emnapiCtx.napiValueFromJsValue(cbinfoValue.thiz)
   const holder = emnapiCtx.napiValueFromJsValue(cbinfoValue.holder)
-  makeSetValue('args', '1 * ' + POINTER_SIZE, 'holder', '*')
-  makeSetValue('args', '6 * ' + POINTER_SIZE, 'thiz', '*')
+  makeSetValue('args', '2 * ' + POINTER_SIZE, 'holder', '*')
+  makeSetValue('args', '7 * ' + POINTER_SIZE, 'thiz', '*')
 
   const localData = emnapiCtx.napiValueFromJsValue(cbinfoValue.data)
-  makeSetValue('args', '5 * ' + POINTER_SIZE, 'localData', '*')
+  makeSetValue('args', '6 * ' + POINTER_SIZE, 'localData', '*')
 }
 
 /**
@@ -403,7 +404,7 @@ export function _v8_object_template_set_indexed_property_handler (
  * @__deps $emnapiCtx
  * @__sig vpppppppiii
  */
-export function _v8_object_template_set_accessor (
+export function _v8_object_template_set_native_data_property (
   tpl: Ptr,
   name: Ptr,
   getter_wrap: Ptr,
@@ -425,7 +426,7 @@ export function _v8_object_template_set_accessor (
   const getterWrap = makeDynCall('pppp', 'getter_wrap')
   const setterWrap = makeDynCall('ppppp', 'setter_wrap')
 
-  templateObject.setAccessor(
+  templateObject.setNativeDataProperty(
     nameValue,
     getterWrap,
     setterWrap,

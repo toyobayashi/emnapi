@@ -335,7 +335,7 @@ export function _v8_object_call_as_constructor (obj: Ptr, _context: Ptr, argc: n
  * @__deps $emnapiCtx
  * @__sig ippppppppiiip
  */
-export function _v8_object_set_accessor (
+export function _v8_object_set_native_data_property (
   obj: Ptr,
   _context: Ptr,
   name: Ptr,
@@ -360,7 +360,7 @@ export function _v8_object_set_accessor (
     const objectTemplate = emnapiCtx.isolate.createObjectTemplate(undefined)
     const nameValue = emnapiCtx.jsValueFromNapiValue(name) as string | symbol
     if (nameValue == null) return 1
-    objectTemplate.setAccessorOnInstance(
+    objectTemplate.setNativeDataPropertyOnInstance(
       emnapiCtx.jsValueFromNapiValue(obj),
       nameValue,
       getterWrap!,

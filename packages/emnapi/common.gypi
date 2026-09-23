@@ -21,7 +21,7 @@
     'defines': [
       'BUILDING_NODE_EXTENSION',
       '__STDC_FORMAT_MACROS',
-      'V8_ENABLE_DIRECT_LOCAL',
+      'V8_ENABLE_DIRECT_HANDLE',
     ],
 
     'cflags': [
@@ -32,7 +32,8 @@
     'cflags_cc': [
       '-fno-rtti',
       '-fno-exceptions',
-      '-std=c++17'
+      '-fno-strict-aliasing',
+      '-std=gnu++20'
     ],
 
     'xcode_settings': {
@@ -41,7 +42,7 @@
       # OTHER_CPLUSPLUSFLAGS == cflags_cc
       # OTHER_LDFLAGS == ldflags
 
-      'CLANG_CXX_LANGUAGE_STANDARD': 'c++17',
+      'CLANG_CXX_LANGUAGE_STANDARD': 'gnu++20',
       'GCC_ENABLE_CPP_RTTI': 'NO',
       'GCC_ENABLE_CPP_EXCEPTIONS': 'NO',
       'WARNING_CFLAGS': [

@@ -31,7 +31,7 @@ extern "C" {
   V8_EXTERN internal::Address _v8_object_new(Isolate* isolate);
   V8_EXTERN internal::Address _v8_private_for_api(Isolate* isolate, internal::Address name);
   V8_EXTERN void _v8_get_property_cb_info(internal::Address info, internal::Address* args);
-  V8_EXTERN int _v8_object_set_accessor(
+  V8_EXTERN int _v8_object_set_native_data_property(
     Object* obj, Context* context, internal::Address name,
     internal::Address (*getter_wrap)(internal::Address property, internal::Address info, AccessorNameGetterCallback getter),
     internal::Address (*setter_wrap)(internal::Address property, internal::Address value, internal::Address info, AccessorNameSetterCallback setter),
@@ -44,19 +44,17 @@ extern "C" {
 namespace {
 
 struct ObjectPropertyCallbackInfoImpl {
-  internal::Address* args_;
+  internal::Address args_[8];
 
-  explicit ObjectPropertyCallbackInfoImpl(internal::Address info) {
-    internal::Address* list = new internal::Address[8]{0};
-    *(list + 2) = reinterpret_cast<internal::Address>(Isolate::GetCurrent());
-    *(list + 4) = internal::ValueHelper::kEmpty;
-    _v8_get_property_cb_info(info, list);
-    args_ = list;
+  explicit ObjectPropertyCallbackInfoImpl(internal::Address info) : args_{} {
+    args_[3] = reinterpret_cast<internal::Address>(Isolate::GetCurrent());
+    args_[4] = internal::ValueHelper::kEmpty;
+    args_[5] = internal::ValueHelper::kEmpty;
+    _v8_get_property_cb_info(info, args_);
   }
 
   ObjectPropertyCallbackInfoImpl(const ObjectPropertyCallbackInfoImpl&) = delete;
   ObjectPropertyCallbackInfoImpl& operator=(const ObjectPropertyCallbackInfoImpl&) = delete;
-  ~ObjectPropertyCallbackInfoImpl() { delete[] args_; }
 };
 
 internal::Address ObjectPropertyGetterWrap(
@@ -208,19 +206,17 @@ MaybeLocal<Value> Object::CallAsConstructor(
   return v8impl::V8LocalValueFromAddress(result);
 }
 
-Maybe<bool> Object::SetAccessor(
+Maybe<bool> Object::SetNativeDataProperty(
     Local<Context> context, Local<Name> name,
     AccessorNameGetterCallback getter, AccessorNameSetterCallback setter,
-    MaybeLocal<Value> data, AccessControl, PropertyAttribute attribute,
+    Local<Value> data, PropertyAttribute attribute,
     SideEffectType getter_side_effect_type,
     SideEffectType setter_side_effect_type) {
-  Local<Value> data_value;
-  internal::Address data_address = 0;
-  if (data.ToLocal(&data_value)) {
-    data_address = v8impl::AddressFromV8LocalValue(data_value);
-  }
+  const internal::Address data_address = data.IsEmpty()
+      ? 0
+      : v8impl::AddressFromV8LocalValue(data);
   int success = 0;
-  int r = _v8_object_set_accessor(
+  int r = _v8_object_set_native_data_property(
       this, *context, v8impl::AddressFromV8LocalValue(name),
       ObjectPropertyGetterWrap, ObjectPropertySetterWrap,
       getter, setter, data_address, attribute,

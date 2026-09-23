@@ -19,7 +19,7 @@ Isolate* Context::GetIsolate() {
   return v8::Isolate::GetCurrent();
 }
 
-Local<Context> Context::New(v8::Isolate*, v8::ExtensionConfiguration*, v8::MaybeLocal<v8::ObjectTemplate>, v8::MaybeLocal<v8::Value>, v8::DeserializeInternalFieldsCallback, v8::MicrotaskQueue*, v8::DeserializeContextDataCallback) {
+Local<Context> Context::New(v8::Isolate*, v8::ExtensionConfiguration*, v8::MaybeLocal<v8::ObjectTemplate>, v8::MaybeLocal<v8::Value>, v8::DeserializeInternalFieldsCallback, v8::MicrotaskQueue*, v8::DeserializeContextDataCallback, v8::DeserializeAPIWrapperCallback) {
   return v8impl::V8LocalValueFromAddress(_v8_isolate_get_current_context(nullptr)).As<Context>();
 }
 

@@ -99,7 +99,7 @@ export class ObjectTemplate extends Template {
     this.Ctor = Ctor ?? Object
   }
 
-  setAccessor (
+  setNativeDataProperty (
     name: string | symbol,
     getterWrap: (property: Ptr, info: Ptr, getter: Ptr) => Ptr,
     setterWrap: (property: Ptr, value: Ptr, info: Ptr, setter: Ptr) => Ptr,
@@ -117,7 +117,7 @@ export class ObjectTemplate extends Template {
     this._accessors.set(name, config)
   }
 
-  setAccessorOnInstance (
+  setNativeDataPropertyOnInstance (
     instance: any,
     name: string | symbol,
     getterWrap: (property: Ptr, info: Ptr, getter: Ptr) => Ptr,

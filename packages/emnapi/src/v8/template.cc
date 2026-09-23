@@ -2,6 +2,14 @@
 
 namespace v8 {
 
+namespace api_internal {
+
+Local<Value> GetFunctionTemplateData(Isolate*, Local<Data> raw_target) {
+  return Local<Value>::Cast(raw_target);
+}
+
+}  // namespace api_internal
+
 #if defined(V8_MAJOR_VERSION) && +    (V8_MAJOR_VERSION > 12 || +     (V8_MAJOR_VERSION == 12 && defined(V8_MINOR_VERSION) && +      V8_MINOR_VERSION > 4))
 #define EMNAPI_V8_NEW_PROPERTY_CALLBACKS 1
 #else
@@ -40,7 +48,7 @@ extern "C" {
   V8_EXTERN internal::Address _v8_function_template_instance_template(FunctionTemplate* tpl);
   V8_EXTERN internal::Address _v8_function_template_prototype_template(FunctionTemplate* tpl);
   V8_EXTERN void _v8_get_property_cb_info(internal::Address info, internal::Address* args);
-  V8_EXTERN void _v8_object_template_set_accessor(
+  V8_EXTERN void _v8_object_template_set_native_data_property(
     ObjectTemplate* obj_tpl, internal::Address name,
     internal::Address (*getter_wrap)(internal::Address property, internal::Address info, AccessorNameGetterCallback getter),
     internal::Address (*setter_wrap)(internal::Address property, internal::Address value, internal::Address info, AccessorNameSetterCallback setter),
@@ -128,14 +136,13 @@ internal::Address CallbackWrap(internal::Address info, v8::FunctionCallback call
 }
 
 struct PropertyCallbackInfoImpl {
-  internal::Address* args_;
+  internal::Address args_[8];
 
-  PropertyCallbackInfoImpl(internal::Address info) {
-    internal::Address* list = new internal::Address[8]{0};
-    *(list + 2) = reinterpret_cast<internal::Address>(Isolate::GetCurrent());
-    *(list + 4) = internal::ValueHelper::kEmpty;
-    _v8_get_property_cb_info(info, list);
-    args_ = list;
+  PropertyCallbackInfoImpl(internal::Address info) : args_{} {
+    args_[3] = reinterpret_cast<internal::Address>(Isolate::GetCurrent());
+    args_[4] = internal::ValueHelper::kEmpty;
+    args_[5] = internal::ValueHelper::kEmpty;
+    _v8_get_property_cb_info(info, args_);
   }
 
   PropertyCallbackInfoImpl(const PropertyCallbackInfoImpl&) = delete;
@@ -143,12 +150,8 @@ struct PropertyCallbackInfoImpl {
   PropertyCallbackInfoImpl(PropertyCallbackInfoImpl&&) = delete;
   PropertyCallbackInfoImpl& operator=(PropertyCallbackInfoImpl&&) = delete;
 
-  ~PropertyCallbackInfoImpl() {
-    delete[] args_;
-  }
-
   internal::Address ReturnValue() const {
-    return args_[4];
+    return args_[5];
   }
 };
 
@@ -450,18 +453,17 @@ void Template::Set(Local<Name> name, Local<Data> value,
   _v8_template_set(this, name_value, value_value, attributes);
 }
 
-void ObjectTemplate::SetAccessor(
-      Local<Name> name, AccessorNameGetterCallback getter,
-      AccessorNameSetterCallback setter,
-      Local<Value> data, PropertyAttribute attribute,
-      SideEffectType getter_side_effect_type,
-      SideEffectType setter_side_effect_type) {
-  _v8_object_template_set_accessor(
-    this, v8impl::AddressFromV8LocalValue(name),
-    PropertyGetterWrap, PropertySetterWrap,
-    getter, setter,
-    v8impl::AddressFromV8LocalValue(data), attribute,
-    getter_side_effect_type, setter_side_effect_type);
+void Template::SetNativeDataProperty(
+    Local<Name> name, AccessorNameGetterCallback getter,
+    AccessorNameSetterCallback setter, Local<Value> data,
+    PropertyAttribute attribute, SideEffectType getter_side_effect_type,
+    SideEffectType setter_side_effect_type) {
+  _v8_object_template_set_native_data_property(
+      static_cast<ObjectTemplate*>(this),
+      v8impl::AddressFromV8LocalValue(name),
+      PropertyGetterWrap, PropertySetterWrap, getter, setter,
+      v8impl::AddressFromV8LocalValue(data), attribute,
+      getter_side_effect_type, setter_side_effect_type);
 }
 
 Local<Signature> Signature::New(Isolate* isolate, Local<FunctionTemplate> receiver) {

@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.13)
 
 project(emnapi LANGUAGES C CXX ASM)
 
+set(CMAKE_CXX_EXTENSIONS ON)
+
 option(EMNAPI_INSTALL_SRC "EMNAPI_INSTALL_SRC" OFF)
 option(EMNAPI_FIND_NODE_ADDON_API "EMNAPI_FIND_NODE_ADDON_API" OFF)
 option(EMNAPI_BUILD_BASIC_LIBS "EMNAPI_BUILD_BASIC_LIBS" OFF)
@@ -93,7 +95,7 @@ set(EMNAPI_SRC ${ENAPI_BASIC_SRC} ${EMNAPI_THREADS_SRC})
 
 set(EMNAPI_INCLUDE "${CMAKE_CURRENT_SOURCE_DIR}/include/node")
 set(EMNAPI_DEFINES "BUILDING_NODE_EXTENSION")
-set(V8_DEFINES "V8_ENABLE_DIRECT_LOCAL")
+set(V8_DEFINES "V8_ENABLE_DIRECT_HANDLE")
 
 set(EMNAPI_JS_LIB "${CMAKE_CURRENT_SOURCE_DIR}/dist/library_napi.js")
 set(V8_JS_LIB "${CMAKE_CURRENT_SOURCE_DIR}/dist/library_v8.js")
@@ -182,6 +184,8 @@ endif()
 
 if(EMNAPI_BUILD_V8)
   add_library(${V8_TARGET_NAME} STATIC ${V8_SRC})
+  target_compile_features(${V8_TARGET_NAME} PUBLIC cxx_std_20)
+  target_compile_options(${V8_TARGET_NAME} PUBLIC "-fno-rtti" "-fno-exceptions" "-fno-strict-aliasing")
   target_include_directories(${V8_TARGET_NAME} PUBLIC ${EMNAPI_INCLUDE})
   target_compile_definitions(${V8_TARGET_NAME} PUBLIC ${EMNAPI_DEFINES} ${V8_DEFINES})
   if(IS_EMSCRIPTEN)
@@ -317,8 +321,9 @@ if(EMNAPI_BUILD_MT)
 
   if(EMNAPI_BUILD_V8)
     add_library(${V8_MT_TARGET_NAME} STATIC ${V8_SRC})
+    target_compile_features(${V8_MT_TARGET_NAME} PUBLIC cxx_std_20)
     target_compile_options(${V8_MT_TARGET_NAME}
-      PUBLIC "-matomics" "-mbulk-memory"
+      PUBLIC "-matomics" "-mbulk-memory" "-fno-rtti" "-fno-exceptions" "-fno-strict-aliasing"
       PRIVATE ${EMNAPI_MT_CFLAGS}
     )
     target_include_directories(${V8_MT_TARGET_NAME} PUBLIC ${EMNAPI_INCLUDE})

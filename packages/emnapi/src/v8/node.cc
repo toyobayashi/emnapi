@@ -149,18 +149,32 @@ v8::MaybeLocal<v8::Value> MakeCallback(
   return MakeCallback(isolate, recv, symbol, argc, argv, asyncContext);
 }
 
+v8::MaybeLocal<v8::Value> TryEncode(v8::Isolate* isolate,
+                                    const char* buf,
+                                    size_t len,
+                                    enum encoding encoding) {
+  return v8::v8impl::V8LocalValueFromAddress(
+      _node_encode(isolate, buf, len, static_cast<int>(encoding)));
+}
+
+v8::MaybeLocal<v8::Value> TryEncode(v8::Isolate* isolate,
+                                    const uint16_t* buf,
+                                    size_t len) {
+  return v8::v8impl::V8LocalValueFromAddress(
+      _node_encode(isolate, buf, len, -1));
+}
+
 v8::Local<v8::Value> Encode(v8::Isolate* isolate,
                             const char* buf,
                             size_t len,
                             enum encoding encoding) {
-  return v8::v8impl::V8LocalValueFromAddress(
-      _node_encode(isolate, buf, len, static_cast<int>(encoding)));
+  return TryEncode(isolate, buf, len, encoding).ToLocalChecked();
 }
 
 v8::Local<v8::Value> Encode(v8::Isolate* isolate,
                             const uint16_t* buf,
                             size_t len) {
-  return v8::v8impl::V8LocalValueFromAddress(_node_encode(isolate, buf, len, -1));
+  return TryEncode(isolate, buf, len).ToLocalChecked();
 }
 
 ssize_t DecodeBytes(v8::Isolate* isolate, v8::Local<v8::Value> value,

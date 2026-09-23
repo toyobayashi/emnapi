@@ -130,6 +130,15 @@ NODE_EXTERN v8::Local<v8::Value> Encode(v8::Isolate* isolate,
                                         size_t len,
                                         enum encoding encoding = LATIN1);
 
+NODE_EXTERN v8::MaybeLocal<v8::Value> TryEncode(v8::Isolate* isolate,
+                                                 const char* buf,
+                                                 size_t len,
+                                                 enum encoding encoding = LATIN1);
+
+NODE_EXTERN v8::MaybeLocal<v8::Value> TryEncode(v8::Isolate* isolate,
+                                                 const uint16_t* buf,
+                                                 size_t len);
+
 // Warning: This reverses endianness on Big Endian platforms, even though the
 // signature using uint16_t implies that it should not.
 NODE_EXTERN v8::Local<v8::Value> Encode(v8::Isolate* isolate,
@@ -149,8 +158,6 @@ NODE_EXTERN ssize_t DecodeWrite(v8::Isolate* isolate,
 
 #define NODE_MODULE(modname, regfunc)                                 \
   NODE_MODULE_INIT() { ((node::addon_register_func)regfunc)(exports, module, NULL); }
-
-#define NODE_MODULE_VERSION 127
 
 #define NODE_MODULE_INITIALIZER_BASE node_register_module_v
 
