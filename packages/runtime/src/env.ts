@@ -21,7 +21,7 @@ export interface IReferenceBinding {
 }
 
 export interface EnvNativeBridge {
-  address: number
+  address: number | (() => number)
   deleteEnv: (ptr: number) => void
   setLastError: (env: napi_env, error_code: napi_status, engine_error_code: uint32_t, engine_reserved: number) => void
   makeDynCall_vppp: (cb: Ptr) => (a: Ptr, b: Ptr, c: Ptr) => void
@@ -52,6 +52,7 @@ export abstract class Env extends Disposable {
 
   public inGcFinalizer = false
 
+  public address: number
   public bridge: EnvNativeBridge
 
   public readonly ctx: Context
@@ -69,6 +70,7 @@ export abstract class Env extends Disposable {
     this.store.insert(this)
     this.lastException = new Persistent<any>(ctx.isolate)
     this.bridge = bridge
+    this.address = typeof bridge.address === 'function' ? bridge.address() : bridge.address
   }
 
   /** @virtual */
@@ -92,12 +94,12 @@ export abstract class Env extends Disposable {
   }
 
   public clearLastError (): napi_status {
-    this.bridge.setLastError(this.bridge.address, napi_status.napi_ok, 0, 0)
+    this.bridge.setLastError(this.address, napi_status.napi_ok, 0, 0)
     return napi_status.napi_ok
   }
 
   public setLastError (error_code: napi_status, engine_error_code: uint32_t = 0, engine_reserved: number = 0): napi_status {
-    this.bridge.setLastError(this.bridge.address, error_code, engine_error_code, engine_reserved)
+    this.bridge.setLastError(this.address, error_code, engine_error_code, engine_reserved)
     return error_code
   }
 
@@ -165,7 +167,7 @@ export abstract class Env extends Disposable {
     this.lastException.reset()
     this.store.dealloc(this.id)
 
-    this.bridge.deleteEnv(this.bridge.address)
+    this.bridge.deleteEnv(this.address)
   }
 
   public dispose (): void {
@@ -282,7 +284,7 @@ export class NodeEnv extends Env {
 
   public callFinalizerInternal (forceUncaught: int, cb: napi_finalize, data: void_p, hint: void_p): void {
     const f = this.bridge.makeDynCall_vppp(cb)
-    const env: napi_env = this.bridge.address
+    const env: napi_env = this.address
     const scope = this.ctx.openScope(this)
     try {
       this.callbackIntoModule(Boolean(forceUncaught), () => { f(env, data, hint) })

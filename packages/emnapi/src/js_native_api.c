@@ -12,6 +12,7 @@ struct node_api_base_env__vtable node_api_base_env__vtable_instance = {
 __attribute__((visibility("default")))
 node_api_base_env__* emnapi_create_env() {
   node_api_base_env__* env = (node_api_base_env__*) calloc(1, sizeof(node_api_base_env__));
+  if (!env) return NULL;
   node_api_base_env__ctor(env);
   return env;
 }

@@ -73,6 +73,7 @@ _emnapi_ach_handle_create(node_api_basic_env env,
                           void* user_data) {
   napi_async_cleanup_hook_handle handle =
     (napi_async_cleanup_hook_handle) calloc(1, sizeof(struct napi_async_cleanup_hook_handle__));
+  if (!handle) return NULL;
   handle->env_ = env;
   handle->user_hook_ = user_hook;
   handle->user_data_ = user_data;
