@@ -7,7 +7,6 @@ module.exports = {
     const receiver = { marker: 'ordinary' }
     const ordinary = binding.inspect.call(receiver)
     assert.strictEqual(ordinary.this, receiver)
-    assert.strictEqual(ordinary.holder, receiver)
     assert.strictEqual(ordinary.data, 'direct-data')
     assert.strictEqual(ordinary.construct, false)
     assert.strictEqual(ordinary.newTarget, undefined)
@@ -25,7 +24,6 @@ module.exports = {
     const child = Object.create(thing)
     const inherited = child.inspect()
     assert.strictEqual(inherited.this, child)
-    assert.strictEqual(inherited.holder, binding.Thing.prototype)
     assert.strictEqual(inherited.data, 'prototype-data')
     assert.strictEqual(inherited.construct, false)
     assert.strictEqual(inherited.newTarget, undefined)

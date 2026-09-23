@@ -6,7 +6,6 @@ using namespace v8;
 void InspectCallback(const v8::FunctionCallbackInfo<v8::Value>& info) {
   Local<Object> result = New<Object>();
   Nan::Set(result, New("this").ToLocalChecked(), info.This()).Check();
-  Nan::Set(result, New("holder").ToLocalChecked(), info.Holder()).Check();
   Nan::Set(result, New("data").ToLocalChecked(), info.Data()).Check();
   Nan::Set(result, New("construct").ToLocalChecked(), New(info.IsConstructCall())).Check();
   Local<Value> newTarget = info.NewTarget();
