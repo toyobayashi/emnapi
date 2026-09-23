@@ -185,6 +185,7 @@ export var napiModule: INapiModule = {
           },
           emnapiNodeBinding
         )
+        let address = envObject.address
 // #if MEMORY64
         makeSetValue('address - 8', NapiEnvOffset64.id, 'envObject.id', 'u32')
 // #else
