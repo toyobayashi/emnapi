@@ -11,11 +11,9 @@ extern "C" struct uv_loop_s* uv_default_loop();
 
 extern "C" {
   V8_EXTERN v8::internal::Address _node_encode(v8::Isolate*, const void* buf, size_t len, int encoding);
-  V8_EXTERN ssize_t _node_decode_bytes(
-      v8::Isolate*, v8::internal::Address value, int encoding);
-  V8_EXTERN ssize_t _node_decode_write(
+  V8_EXTERN ssize_t _node_decode(
       v8::Isolate*, v8::internal::Address output, size_t length,
-      v8::internal::Address value, int encoding);
+      v8::internal::Address value, int encoding, int write);
   V8_EXTERN v8::internal::Address _node_errno_exception(
       v8::Isolate*, int errorno, v8::internal::Address syscall,
       v8::internal::Address message, v8::internal::Address path);
@@ -179,16 +177,16 @@ v8::Local<v8::Value> Encode(v8::Isolate* isolate,
 
 ssize_t DecodeBytes(v8::Isolate* isolate, v8::Local<v8::Value> value,
                     enum encoding encoding) {
-  return _node_decode_bytes(
-      isolate, v8::v8impl::AddressFromV8LocalValue(value),
-      static_cast<int>(encoding));
+  return _node_decode(isolate, 0, 0,
+                      v8::v8impl::AddressFromV8LocalValue(value),
+                      static_cast<int>(encoding), 0);
 }
 
 ssize_t DecodeWrite(v8::Isolate* isolate, char* output, size_t length,
                     v8::Local<v8::Value> value, enum encoding encoding) {
-  return _node_decode_write(
+  return _node_decode(
       isolate, reinterpret_cast<v8::internal::Address>(output), length,
-      v8::v8impl::AddressFromV8LocalValue(value), static_cast<int>(encoding));
+      v8::v8impl::AddressFromV8LocalValue(value), static_cast<int>(encoding), 1);
 }
 
 v8::Local<v8::Value> ErrnoException(v8::Isolate* isolate, int errorno,

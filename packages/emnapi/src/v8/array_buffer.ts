@@ -1,44 +1,49 @@
 import { from64, makeSetValue, SIZE_TYPE } from 'emscripten:parse-tools'
-import { wasmMemory, _malloc } from 'emscripten:runtime'
-
-const backingStoreData = new Map<Ptr, { data: Ptr, byteLength: number }>()
 
 /**
- * @__sig vppp
+ * @__sig vpppp
+ * @__deps $emnapiCtx
+ * @__deps $emnapiExternalMemory
  */
 export function _v8_backing_store_set (
   backing_store: Ptr,
+  buffer: Ptr,
   data: Ptr,
   byte_length: size_t
 ): void {
   from64('backing_store')
+  from64('buffer')
   from64('data')
   from64('byte_length')
-  backingStoreData.set(backing_store, { data, byteLength: byte_length })
+  const arrayBuffer = emnapiCtx.jsValueFromNapiValue<ArrayBufferLike>(buffer) as ArrayBufferLike
+  emnapiExternalMemory.setBackingStore(backing_store, data, byte_length, arrayBuffer)
 }
 
 /**
  * @__sig pp
+ * @__deps $emnapiExternalMemory
  */
 export function _v8_backing_store_data (backing_store: Ptr): Ptr {
   from64('backing_store')
-  return backingStoreData.get(backing_store)?.data ?? 0
+  return emnapiExternalMemory.getBackingStoreData(backing_store)
 }
 
 /**
  * @__sig pp
+ * @__deps $emnapiExternalMemory
  */
 export function _v8_backing_store_byte_length (backing_store: Ptr): size_t {
   from64('backing_store')
-  return backingStoreData.get(backing_store)?.byteLength ?? 0
+  return emnapiExternalMemory.getBackingStoreByteLength(backing_store)
 }
 
 /**
  * @__sig vp
+ * @__deps $emnapiExternalMemory
  */
 export function _v8_backing_store_delete (backing_store: Ptr): void {
   from64('backing_store')
-  backingStoreData.delete(backing_store)
+  emnapiExternalMemory.deleteBackingStore(backing_store)
 }
 
 /**
@@ -80,6 +85,7 @@ export function _v8_array_buffer_byte_length (buffer: Ptr): size_t {
 
 /**
  * @__deps $emnapiCtx
+ * @__deps $emnapiExternalMemory
  * @__sig ppp
  */
 export function _v8_array_buffer_get_backing_store (
@@ -88,11 +94,8 @@ export function _v8_array_buffer_get_backing_store (
 ): Ptr {
   const value = emnapiCtx.jsValueFromNapiValue<ArrayBufferLike>(buffer)
   if (value == null) return 0
-  const source = new Uint8Array(value as ArrayBufferLike)
-  let pointer = _malloc(source.byteLength) as number
-  from64('pointer')
-  new Uint8Array(wasmMemory.buffer).set(source, pointer)
-  const byteLength = source.byteLength
+  const pointer = emnapiExternalMemory.getArrayBufferPointer(value as ArrayBufferLike, true).address
+  const byteLength = emnapiExternalMemory.bufferByteLength(value as ArrayBufferLike)
   from64('byte_length')
   if (byte_length) makeSetValue('byte_length', 0, 'byteLength', SIZE_TYPE)
   return pointer

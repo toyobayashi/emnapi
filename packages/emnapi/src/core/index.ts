@@ -92,7 +92,8 @@ addImports(versionMod)
 // napiModule.imports.napi.napi_ref_threadsafe_function = napi_ref_threadsafe_function
 
 const pluginCtx: any = {
-  emnapiString
+  emnapiString,
+  emnapiExternalMemory
 }
 Object.keys(initMod).forEach(k => {
   Object.defineProperty(pluginCtx, k, {

@@ -18,8 +18,8 @@ extern "C" {
   V8_EXTERN internal::Address _v8_array_buffer_get_backing_store(
       internal::Address buffer, size_t* byte_length);
   V8_EXTERN void _v8_backing_store_set(
-      internal::Address backing_store, internal::Address data,
-      size_t byte_length);
+      internal::Address backing_store, internal::Address buffer,
+      internal::Address data, size_t byte_length);
   V8_EXTERN internal::Address _v8_backing_store_data(
       internal::Address backing_store);
   V8_EXTERN size_t _v8_backing_store_byte_length(
@@ -53,8 +53,9 @@ size_t ArrayBuffer::ByteLength() const {
 
 std::shared_ptr<BackingStore> ArrayBuffer::GetBackingStore() {
   size_t byte_length = 0;
+  const internal::Address buffer = reinterpret_cast<internal::Address>(this);
   internal::Address data = _v8_array_buffer_get_backing_store(
-      reinterpret_cast<internal::Address>(this), &byte_length);
+      buffer, &byte_length);
   void* token = std::malloc(1);
   std::shared_ptr<BackingStore> backing_store(
       reinterpret_cast<BackingStore*>(token),
@@ -65,7 +66,7 @@ std::shared_ptr<BackingStore> ArrayBuffer::GetBackingStore() {
       });
   _v8_backing_store_set(
       reinterpret_cast<internal::Address>(backing_store.get()),
-      data, byte_length);
+      buffer, data, byte_length);
   return backing_store;
 }
 

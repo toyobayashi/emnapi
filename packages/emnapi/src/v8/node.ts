@@ -1,51 +1,9 @@
 import { from64, makeDynCall } from 'emscripten:parse-tools'
 import { wasmMemory, _malloc } from 'emscripten:runtime'
 
-function decodeNodeValue (value: any, encoding: number): Uint8Array {
-  const Buffer = emnapiCtx.features.Buffer as any
-  if (typeof Buffer === 'function') {
-    if (encoding === 6 && ArrayBuffer.isView(value)) {
-      return Uint8Array.from(new Uint8Array(value.buffer, value.byteOffset, value.byteLength))
-    }
-    if (encoding === 6) return Uint8Array.from(Buffer.from(String(value)))
-    const names = ['ascii', 'utf8', 'base64', 'utf16le', 'latin1', 'hex'] as const
-    return Uint8Array.from(Buffer.from(String(value), names[encoding]))
-  }
-  if (encoding === 1) return new TextEncoder().encode(String(value))
-  if (encoding === 0 || encoding === 4) {
-    return Uint8Array.from(String(value), char => char.charCodeAt(0) & 0xff)
-  }
-  if (encoding === 2) {
-    return Uint8Array.from(atob(String(value)), char => char.charCodeAt(0))
-  }
-  if (encoding === 3) {
-    const input = String(value)
-    const output = new Uint8Array(input.length * 2)
-    const view = new DataView(output.buffer)
-    for (let i = 0; i < input.length; i++) view.setUint16(i * 2, input.charCodeAt(i), true)
-    return output
-  }
-  if (encoding === 5) {
-    const input = String(value)
-    if (input.length % 2 !== 0 || !/^[0-9a-f]*$/i.test(input)) return new Uint8Array(0)
-    return Uint8Array.from({ length: input.length / 2 }, (_, i) => parseInt(input.slice(i * 2, i * 2 + 2), 16))
-  }
-  if (encoding === 6 && ArrayBuffer.isView(value)) {
-    return Uint8Array.from(new Uint8Array(value.buffer, value.byteOffset, value.byteLength))
-  }
-  throw new TypeError(`Unsupported decode input for encoding ${encoding}`)
-}
-
-function bufferFromWasmMemory (data: number, length: number): any {
-  const Buffer = emnapiCtx.features.Buffer
-  if (typeof Buffer !== 'function') {
-    return new Uint8Array(wasmMemory.buffer, data, length)
-  }
-  return Buffer.from(wasmMemory.buffer, data, length)
-}
-
 /**
  * @__deps $emnapiCtx
+ * @__deps $emnapiExternalMemory
  * @__sig pppppp
  */
 export function _node_buffer_new (
@@ -59,7 +17,11 @@ export function _node_buffer_new (
   from64('length')
   from64('callback')
   from64('hint')
-  const buffer = bufferFromWasmMemory(data as number, length >>> 0)
+  if (typeof emnapiCtx.features.Buffer !== 'function') {
+    emnapiCtx.isolate.throwException(new Error('Buffer is not supported'))
+    return 0
+  }
+  const buffer = emnapiExternalMemory.getBufferFrom()(wasmMemory.buffer, data as number, length >>> 0)
   if (callback) {
     if (!emnapiCtx.features.finalizer) {
       emnapiCtx.isolate.throwException(new Error('Buffer ownership callbacks require runtime finalizer support'))
@@ -78,25 +40,37 @@ export function _node_buffer_new (
 
 /**
  * @__deps $emnapiCtx
+ * @__deps $emnapiExternalMemory
  * @__deps malloc
  * @__sig ppp
  */
 export function _node_buffer_new_alloc (isolate: Ptr, length: size_t): Ptr {
   from64('length')
+  if (typeof emnapiCtx.features.Buffer !== 'function') {
+    emnapiCtx.isolate.throwException(new Error('Buffer is not supported'))
+    return 0
+  }
   let data = _malloc(length) as number
   from64('data')
   new Uint8Array(wasmMemory.buffer).fill(0, data, data + (length >>> 0))
-  return emnapiCtx.napiValueFromJsValue(bufferFromWasmMemory(data, length >>> 0))
+  const buffer = emnapiExternalMemory.getBufferFrom()(wasmMemory.buffer, data, length >>> 0)
+  emnapiExternalMemory.registerBufferAllocation(buffer, data, length >>> 0)
+  return emnapiCtx.napiValueFromJsValue(buffer)
 }
 
 /**
  * @__deps $emnapiCtx
+ * @__deps $emnapiExternalMemory
  * @__deps malloc
  * @__sig pppp
  */
 export function _node_buffer_copy (isolate: Ptr, data: Ptr, length: size_t): Ptr {
   from64('data')
   from64('length')
+  if (typeof emnapiCtx.features.Buffer !== 'function') {
+    emnapiCtx.isolate.throwException(new Error('Buffer is not supported'))
+    return 0
+  }
   let out = _malloc(length) as number
   from64('out')
   const heap = new Uint8Array(wasmMemory.buffer)
@@ -104,7 +78,9 @@ export function _node_buffer_copy (isolate: Ptr, data: Ptr, length: size_t): Ptr
     heap.subarray(data as number, (data as number) + (length >>> 0)),
     out
   )
-  return emnapiCtx.napiValueFromJsValue(bufferFromWasmMemory(out, length >>> 0))
+  const buffer = emnapiExternalMemory.getBufferFrom()(wasmMemory.buffer, out, length >>> 0)
+  emnapiExternalMemory.registerBufferAllocation(buffer, out, length >>> 0)
+  return emnapiCtx.napiValueFromJsValue(buffer)
 }
 
 /**
@@ -187,34 +163,55 @@ export function _node_encode (isolate: Ptr, buf: Ptr, len: size_t, encoding: num
 
 /**
  * @__deps $emnapiCtx
- * @__sig pppi
+ * @__sig pppppii
  */
-export function _node_decode_bytes (isolate: Ptr, value: Ptr, encoding: number): number {
-  from64('value')
-  try {
-    return decodeNodeValue(emnapiCtx.jsValueFromNapiValue(value), encoding).byteLength
-  } catch (err) {
-    emnapiCtx.isolate.throwException(err)
-    return -1
-  }
-}
-
-/**
- * @__deps $emnapiCtx
- * @__sig pppppi
- */
-export function _node_decode_write (
+export function _node_decode (
   isolate: Ptr,
   output: Ptr,
   length: size_t,
   value: Ptr,
-  encoding: number
+  encoding: number,
+  write: number
 ): number {
   from64('output')
   from64('length')
   from64('value')
   try {
-    const decoded = decodeNodeValue(emnapiCtx.jsValueFromNapiValue(value), encoding)
+    const input = emnapiCtx.jsValueFromNapiValue(value)
+    const Buffer = emnapiCtx.features.Buffer as any
+    let decoded: Uint8Array
+    if (typeof Buffer === 'function') {
+      if (encoding === 6 && ArrayBuffer.isView(input)) {
+        decoded = Uint8Array.from(new Uint8Array(input.buffer, input.byteOffset, input.byteLength))
+      } else if (encoding === 6) {
+        decoded = Uint8Array.from(Buffer.from(String(input)))
+      } else {
+        const names = ['ascii', 'utf8', 'base64', 'utf16le', 'latin1', 'hex'] as const
+        decoded = Uint8Array.from(Buffer.from(String(input), names[encoding]))
+      }
+    } else if (encoding === 1) {
+      decoded = new TextEncoder().encode(String(input))
+    } else if (encoding === 0 || encoding === 4) {
+      decoded = Uint8Array.from(String(input), char => char.charCodeAt(0) & 0xff)
+    } else if (encoding === 2) {
+      decoded = Uint8Array.from(atob(String(input)), char => char.charCodeAt(0))
+    } else if (encoding === 3) {
+      const text = String(input)
+      decoded = new Uint8Array(text.length * 2)
+      const view = new DataView(decoded.buffer)
+      for (let i = 0; i < text.length; i++) view.setUint16(i * 2, text.charCodeAt(i), true)
+    } else if (encoding === 5) {
+      const text = String(input)
+      decoded = text.length % 2 !== 0 || !/^[0-9a-f]*$/i.test(text)
+        ? new Uint8Array(0)
+        : Uint8Array.from({ length: text.length / 2 }, (_, i) => parseInt(text.slice(i * 2, i * 2 + 2), 16))
+    } else if (encoding === 6 && ArrayBuffer.isView(input)) {
+      decoded = Uint8Array.from(new Uint8Array(input.buffer, input.byteOffset, input.byteLength))
+    } else {
+      throw new TypeError(`Unsupported decode input for encoding ${encoding}`)
+    }
+
+    if (!write) return decoded.byteLength
     const written = Math.min(Number(length), decoded.byteLength)
     new Uint8Array(wasmMemory.buffer).set(decoded.subarray(0, written), output as number)
     return written

@@ -1,5 +1,6 @@
 declare type PluginContext = {
   emnapiString: typeof import('../string').emnapiString
+  emnapiExternalMemory: typeof import('../memory').emnapiExternalMemory
 } & typeof import('./init') & typeof import('../node') & typeof import('../util')
 
 declare interface EmnapiPlugin {
