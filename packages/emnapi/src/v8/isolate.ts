@@ -9,6 +9,14 @@ export function _v8_isolate_get_current_context (): number {
  * @__deps $emnapiCtx
  * @__sig pp
  */
+export function _v8_context_global (_context: Ptr): Ptr {
+  return emnapiCtx.napiValueFromJsValue(globalThis)
+}
+
+/**
+ * @__deps $emnapiCtx
+ * @__sig pp
+ */
 export function _v8_isolate_throw_exception (error: Ptr): Ptr {
   emnapiCtx.isolate.throwException(emnapiCtx.jsValueFromNapiValue(error))
   return error

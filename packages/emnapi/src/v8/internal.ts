@@ -4,6 +4,32 @@ import { from64, makeDynCall } from 'emscripten:parse-tools'
  * @__deps $emnapiCtx
  * @__sig pp
  */
+export function _v8_global_value_identity (value: Ptr): Ptr {
+  return emnapiCtx.isolate.acquireGlobalValueIdentity(
+    emnapiCtx.jsValueFromNapiValue(value)
+  )
+}
+
+/**
+ * @__deps $emnapiCtx
+ * @__sig vp
+ */
+export function _v8_retain_global_value_identity (identity: Ptr): void {
+  emnapiCtx.isolate.retainGlobalValueIdentity(identity)
+}
+
+/**
+ * @__deps $emnapiCtx
+ * @__sig vp
+ */
+export function _v8_release_global_value_identity (identity: Ptr): void {
+  emnapiCtx.isolate.releaseGlobalValueIdentity(identity)
+}
+
+/**
+ * @__deps $emnapiCtx
+ * @__sig pp
+ */
 export function _v8_local_from_global_reference (ref: Ptr): Ptr {
   const reference = emnapiCtx.isolate.getRef(ref)
   if (reference === undefined) return 1
@@ -19,6 +45,17 @@ export function _v8_globalize_reference (isolate: Ptr, value: Ptr): Ptr {
   const jsValue = emnapiCtx.jsValueFromNapiValue(value)
   if (jsValue === undefined) return 0
   return emnapiCtx.isolate.createReference(jsValue).id
+}
+
+/**
+ * @__deps $emnapiCtx
+ * @__sig ipp
+ */
+export function _v8_global_reference_equals (lhs: Ptr, rhs: Ptr): number {
+  const left = emnapiCtx.isolate.getRef(lhs)
+  const right = emnapiCtx.isolate.getRef(rhs)
+  if (!left || !right) return 0
+  return left.getSlot()?.deref() === right.getSlot()?.deref() ? 1 : 0
 }
 
 /**

@@ -31,6 +31,7 @@ const isNonThreadedStandaloneWasm = Boolean(
 const nonThreadedStandaloneExcludes = [
   '**/v8_hello_world/**',
   '**/nan/**',
+  '**/nan-extensions/**',
   '**/node-addon-api/**',
   '**/pool/**',
   '**/tsfn/**',

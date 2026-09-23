@@ -30,6 +30,7 @@ export interface ViewPointer<T extends ArrayBufferView> extends ArrayBufferPoint
 export const emnapiExternalMemory: {
   registry: FinalizationRegistry<number> | undefined
   table: WeakMap<ArrayBufferLike, ArrayBufferPointer>
+  backingStoreTable: Map<Ptr, { data: Ptr; byteLength: size_t; arrayBuffer: ArrayBufferLike }>
   wasmMemoryViewTable: WeakMap<ArrayBufferView, MemoryViewDescriptor>
   cachedMemoryBuffer: ArrayBufferLike | undefined
   cachedHEAPU8: Uint8Array | undefined
@@ -67,12 +68,18 @@ export const emnapiExternalMemory: {
   viewByteOffset: (view: ArrayBufferView) => number
   viewLength: (view: ArrayBufferView) => number
   getBufferFrom: () => (buffer: ArrayBufferLike, byteOffset?: number, length?: number) => ArrayBufferView
+  setBackingStore: (backingStore: Ptr, data: Ptr, byteLength: size_t, arrayBuffer: ArrayBufferLike) => void
+  getBackingStoreData: (backingStore: Ptr) => Ptr
+  getBackingStoreByteLength: (backingStore: Ptr) => size_t
+  deleteBackingStore: (backingStore: Ptr) => void
+  registerBufferAllocation: (buffer: ArrayBufferView, address: number, length: number) => void
   getOrUpdateMemoryView: <T extends ArrayBufferView>(view: T) => T
   getArrayBufferPointer: (arrayBuffer: ArrayBufferLike, shouldCopy: boolean) => ArrayBufferPointer
   getViewPointer: <T extends ArrayBufferView>(view: T, shouldCopy: boolean) => ViewPointer<T>
 } = {
   registry: typeof FinalizationRegistry === 'function' ? new FinalizationRegistry(function (_pointer) { _free(to64('_pointer') as number) }) : undefined,
   table: new WeakMap(),
+  backingStoreTable: new Map(),
   wasmMemoryViewTable: new WeakMap(),
   cachedMemoryBuffer: undefined,
   cachedHEAPU8: undefined,
@@ -85,6 +92,7 @@ export const emnapiExternalMemory: {
   init: function () {
     emnapiExternalMemory.registry = typeof FinalizationRegistry === 'function' ? new FinalizationRegistry(function (_pointer) { _free(to64('_pointer') as number) }) : undefined
     emnapiExternalMemory.table = new WeakMap()
+    emnapiExternalMemory.backingStoreTable = new Map()
     emnapiExternalMemory.wasmMemoryViewTable = new WeakMap()
     emnapiExternalMemory.cachedMemoryBuffer = undefined
     emnapiExternalMemory.cachedHEAPU8 = undefined
@@ -240,6 +248,38 @@ export const emnapiExternalMemory: {
   getBufferFrom: function () {
     return emnapiExternalMemory.intrinsics.bufferFrom ??
       (emnapiExternalMemory.intrinsics.bufferFrom = emnapiCtx.features.Buffer!.from as any)
+  },
+
+  setBackingStore: function (backingStore: Ptr, data: Ptr, byteLength: size_t, arrayBuffer: ArrayBufferLike): void {
+    // Keep the source alive while a C++ shared_ptr<BackingStore> exists. Its
+    // memory pointer is registered against this ArrayBuffer by
+    // getArrayBufferPointer(), so the existing FinalizationRegistry releases
+    // the allocation once the last BackingStore and ArrayBuffer reference go.
+    emnapiExternalMemory.backingStoreTable.set(backingStore, { data, byteLength, arrayBuffer })
+  },
+
+  getBackingStoreData: function (backingStore: Ptr): Ptr {
+    return emnapiExternalMemory.backingStoreTable.get(backingStore)?.data ?? 0
+  },
+
+  getBackingStoreByteLength: function (backingStore: Ptr): size_t {
+    return emnapiExternalMemory.backingStoreTable.get(backingStore)?.byteLength ?? 0
+  },
+
+  deleteBackingStore: function (backingStore: Ptr): void {
+    emnapiExternalMemory.backingStoreTable.delete(backingStore)
+  },
+
+  registerBufferAllocation: function (buffer: ArrayBufferView, address: number, length: number): void {
+    const viewDescriptor: MemoryViewDescriptor = {
+      Ctor: emnapiCtx.features.Buffer!,
+      address,
+      length,
+      ownership: emnapiExternalMemory.registry ? ReferenceOwnership.kRuntime : ReferenceOwnership.kUserland,
+      runtimeAllocated: 1
+    }
+    emnapiExternalMemory.wasmMemoryViewTable.set(buffer, viewDescriptor)
+    emnapiExternalMemory.registry?.register(viewDescriptor, address)
   },
 
   getArrayBufferPointer: function (arrayBuffer: ArrayBufferLike, shouldCopy: boolean): ArrayBufferPointer {

@@ -35,7 +35,7 @@ EscapableHandleScopeBase::EscapableHandleScopeBase(Isolate* isolate): HandleScop
 
 internal::Address* EscapableHandleScopeBase::EscapeSlot(internal::Address* escape_value) {
   if (escape_slot_ != nullptr) {
-    abort();
+    return nullptr;
   }
   internal::Address* prev_next_ = *reinterpret_cast<internal::Address**>(reinterpret_cast<internal::Address>(this) + internal::kApiSystemPointerSize * 1);
   escape_slot_ = reinterpret_cast<internal::Address*>(

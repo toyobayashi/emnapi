@@ -349,7 +349,7 @@ async function build () {
       v8TsconfigPath,
       path.join(__dirname, '../src/v8/index.ts'),
       path.join(outputDir, 'v8.js'),
-      ['emnapiCtx', 'emnapiString']
+      ['emnapiCtx', 'emnapiExternalMemory', 'emnapiString']
     ),
     buildNonEmscriptenPlugin(
       coreTsconfigPath,

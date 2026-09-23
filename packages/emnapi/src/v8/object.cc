@@ -4,6 +4,19 @@ namespace v8 {
 
 extern "C" {
   V8_EXTERN int _v8_object_set(Object* obj, Context* context, internal::Address key, internal::Address value, int* success);
+  V8_EXTERN int _v8_object_set_index(Object* obj, Context* context, uint32_t index, internal::Address value, int* success);
+  V8_EXTERN int _v8_object_define_own_property(Object* obj, Context* context, internal::Address key, internal::Address value, PropertyAttribute attributes, int* success);
+  V8_EXTERN int _v8_object_get_property_attributes(Object* obj, Context* context, internal::Address key, int* attributes);
+  V8_EXTERN int _v8_object_has(Object* obj, Context* context, internal::Address key, int* has);
+  V8_EXTERN int _v8_object_has_index(Object* obj, Context* context, uint32_t index, int* has);
+  V8_EXTERN int _v8_object_delete(Object* obj, Context* context, internal::Address key, int* success);
+  V8_EXTERN int _v8_object_delete_index(Object* obj, Context* context, uint32_t index, int* success);
+  V8_EXTERN internal::Address _v8_object_get_property_names(Object* obj, Context* context);
+  V8_EXTERN internal::Address _v8_object_get_own_property_names(Object* obj, Context* context);
+  V8_EXTERN int _v8_object_set_prototype(Object* obj, Context* context, internal::Address prototype, int* success);
+  V8_EXTERN int _v8_object_has_own_property(Object* obj, Context* context, internal::Address key, int* has);
+  V8_EXTERN internal::Address _v8_object_call_as_function(Object* obj, Context* context, internal::Address receiver, int argc, internal::Address* argv);
+  V8_EXTERN internal::Address _v8_object_call_as_constructor(Object* obj, Context* context, int argc, internal::Address* argv);
   V8_EXTERN void _v8_object_set_internal_field(Object* obj, int index, internal::Address data);
   V8_EXTERN void _v8_object_set_aligned_pointer_in_internal_field(Object* obj, int index, void* data);
   V8_EXTERN void* _v8_object_get_aligned_pointer_in_internal_field(Object* obj, int index);
@@ -17,6 +30,54 @@ extern "C" {
   V8_EXTERN int _v8_object_delete_private(Object* obj, Context* context, internal::Address key, int* success);
   V8_EXTERN internal::Address _v8_object_new(Isolate* isolate);
   V8_EXTERN internal::Address _v8_private_for_api(Isolate* isolate, internal::Address name);
+  V8_EXTERN void _v8_get_property_cb_info(internal::Address info, internal::Address* args);
+  V8_EXTERN int _v8_object_set_native_data_property(
+    Object* obj, Context* context, internal::Address name,
+    internal::Address (*getter_wrap)(internal::Address property, internal::Address info, AccessorNameGetterCallback getter),
+    internal::Address (*setter_wrap)(internal::Address property, internal::Address value, internal::Address info, AccessorNameSetterCallback setter),
+    AccessorNameGetterCallback getter, AccessorNameSetterCallback setter,
+    internal::Address data, PropertyAttribute attribute,
+    SideEffectType getter_side_effect_type, SideEffectType setter_side_effect_type,
+    int* success);
+}
+
+namespace {
+
+struct ObjectPropertyCallbackInfoImpl {
+  internal::Address args_[8];
+
+  explicit ObjectPropertyCallbackInfoImpl(internal::Address info) : args_{} {
+    args_[3] = reinterpret_cast<internal::Address>(Isolate::GetCurrent());
+    args_[4] = internal::ValueHelper::kEmpty;
+    args_[5] = internal::ValueHelper::kEmpty;
+    _v8_get_property_cb_info(info, args_);
+  }
+
+  ObjectPropertyCallbackInfoImpl(const ObjectPropertyCallbackInfoImpl&) = delete;
+  ObjectPropertyCallbackInfoImpl& operator=(const ObjectPropertyCallbackInfoImpl&) = delete;
+};
+
+internal::Address ObjectPropertyGetterWrap(
+    internal::Address property, internal::Address info,
+    AccessorNameGetterCallback getter) {
+  const ObjectPropertyCallbackInfoImpl cbinfo{info};
+  const v8::PropertyCallbackInfo<Value>* args =
+      reinterpret_cast<const v8::PropertyCallbackInfo<Value>*>(&cbinfo);
+  getter(v8impl::V8LocalValueFromAddress(property).As<Name>(), *args);
+  return v8impl::AddressFromV8LocalValue(args->GetReturnValue().Get());
+}
+
+internal::Address ObjectPropertySetterWrap(
+    internal::Address property, internal::Address value, internal::Address info,
+    AccessorNameSetterCallback setter) {
+  const ObjectPropertyCallbackInfoImpl cbinfo{info};
+  const v8::PropertyCallbackInfo<void>* args =
+      reinterpret_cast<const v8::PropertyCallbackInfo<void>*>(&cbinfo);
+  setter(v8impl::V8LocalValueFromAddress(property).As<Name>(),
+         v8impl::V8LocalValueFromAddress(value), *args);
+  return v8impl::AddressFromV8LocalValue(args->GetReturnValue().Get());
+}
+
 }
 
 void Object::CheckCast(v8::Value*) {}
@@ -39,6 +100,129 @@ Maybe<bool> Object::Set(v8::Local<v8::Context> context, v8::Local<v8::Value> key
     v8impl::AddressFromV8LocalValue(key), v8impl::AddressFromV8LocalValue(value), &success);
   if (r != 0) return Nothing<bool>();
   return Just<bool>(success);
+}
+
+Maybe<bool> Object::Set(v8::Local<v8::Context> context, uint32_t index, v8::Local<v8::Value> value) {
+  int success = 0;
+  int r = _v8_object_set_index(this, *context, index,
+    v8impl::AddressFromV8LocalValue(value), &success);
+  if (r != 0) return Nothing<bool>();
+  return Just<bool>(success != 0);
+}
+
+Maybe<bool> Object::DefineOwnProperty(
+    Local<Context> context, Local<Name> key, Local<Value> value,
+    PropertyAttribute attributes) {
+  int success = 0;
+  int r = _v8_object_define_own_property(
+      this, *context, v8impl::AddressFromV8LocalValue(key),
+      v8impl::AddressFromV8LocalValue(value), attributes, &success);
+  if (r != 0) return Nothing<bool>();
+  return Just<bool>(success != 0);
+}
+
+Maybe<PropertyAttribute> Object::GetPropertyAttributes(
+    Local<Context> context, Local<Value> key) {
+  int attributes = None;
+  int r = _v8_object_get_property_attributes(
+      this, *context, v8impl::AddressFromV8LocalValue(key), &attributes);
+  if (r != 0) return Nothing<PropertyAttribute>();
+  return Just<PropertyAttribute>(static_cast<PropertyAttribute>(attributes));
+}
+
+Maybe<bool> Object::Has(Local<Context> context, Local<Value> key) {
+  int has = 0;
+  int r = _v8_object_has(
+      this, *context, v8impl::AddressFromV8LocalValue(key), &has);
+  if (r != 0) return Nothing<bool>();
+  return Just<bool>(has != 0);
+}
+
+Maybe<bool> Object::Has(Local<Context> context, uint32_t index) {
+  int has = 0;
+  int r = _v8_object_has_index(this, *context, index, &has);
+  if (r != 0) return Nothing<bool>();
+  return Just<bool>(has != 0);
+}
+
+Maybe<bool> Object::Delete(Local<Context> context, Local<Value> key) {
+  int success = 0;
+  int r = _v8_object_delete(
+      this, *context, v8impl::AddressFromV8LocalValue(key), &success);
+  if (r != 0) return Nothing<bool>();
+  return Just<bool>(success != 0);
+}
+
+Maybe<bool> Object::Delete(Local<Context> context, uint32_t index) {
+  int success = 0;
+  int r = _v8_object_delete_index(this, *context, index, &success);
+  if (r != 0) return Nothing<bool>();
+  return Just<bool>(success != 0);
+}
+
+MaybeLocal<Array> Object::GetPropertyNames(Local<Context> context) {
+  internal::Address names = _v8_object_get_property_names(this, *context);
+  if (!names) return MaybeLocal<Array>();
+  return v8impl::V8LocalValueFromAddress(names).As<Array>();
+}
+
+MaybeLocal<Array> Object::GetOwnPropertyNames(Local<Context> context) {
+  internal::Address names = _v8_object_get_own_property_names(this, *context);
+  if (!names) return MaybeLocal<Array>();
+  return v8impl::V8LocalValueFromAddress(names).As<Array>();
+}
+
+Maybe<bool> Object::SetPrototype(Local<Context> context, Local<Value> prototype) {
+  int success = 0;
+  int r = _v8_object_set_prototype(
+      this, *context, v8impl::AddressFromV8LocalValue(prototype), &success);
+  if (r != 0) return Nothing<bool>();
+  return Just<bool>(success != 0);
+}
+
+Maybe<bool> Object::HasOwnProperty(Local<Context> context, Local<Name> key) {
+  int has = 0;
+  int r = _v8_object_has_own_property(
+      this, *context, v8impl::AddressFromV8LocalValue(key), &has);
+  if (r != 0) return Nothing<bool>();
+  return Just<bool>(has != 0);
+}
+
+MaybeLocal<Value> Object::CallAsFunction(
+    Local<Context> context, Local<Value> receiver, int argc,
+    Local<Value> argv[]) {
+  internal::Address result = _v8_object_call_as_function(
+      this, *context, v8impl::AddressFromV8LocalValue(receiver), argc,
+      reinterpret_cast<internal::Address*>(argv));
+  if (!result) return MaybeLocal<Value>();
+  return v8impl::V8LocalValueFromAddress(result);
+}
+
+MaybeLocal<Value> Object::CallAsConstructor(
+    Local<Context> context, int argc, Local<Value> argv[]) {
+  internal::Address result = _v8_object_call_as_constructor(
+      this, *context, argc, reinterpret_cast<internal::Address*>(argv));
+  if (!result) return MaybeLocal<Value>();
+  return v8impl::V8LocalValueFromAddress(result);
+}
+
+Maybe<bool> Object::SetNativeDataProperty(
+    Local<Context> context, Local<Name> name,
+    AccessorNameGetterCallback getter, AccessorNameSetterCallback setter,
+    Local<Value> data, PropertyAttribute attribute,
+    SideEffectType getter_side_effect_type,
+    SideEffectType setter_side_effect_type) {
+  const internal::Address data_address = data.IsEmpty()
+      ? 0
+      : v8impl::AddressFromV8LocalValue(data);
+  int success = 0;
+  int r = _v8_object_set_native_data_property(
+      this, *context, v8impl::AddressFromV8LocalValue(name),
+      ObjectPropertyGetterWrap, ObjectPropertySetterWrap,
+      getter, setter, data_address, attribute,
+      getter_side_effect_type, setter_side_effect_type, &success);
+  if (r != 0) return Nothing<bool>();
+  return Just<bool>(success != 0);
 }
 
 Maybe<bool> Object::SetPrivate(Local<Context> context, Local<Private> key, Local<Value> value) {

@@ -1,3 +1,5 @@
+import { from64, makeSetValue } from 'emscripten:parse-tools'
+
 /**
  * @__deps $emnapiCtx
  * @__sig ipp
@@ -6,6 +8,28 @@ export function _v8_value_strict_equals (value: Ptr, that: Ptr): int {
   const jsValue = emnapiCtx.jsValueFromNapiValue(value)
   const jsThat = emnapiCtx.jsValueFromNapiValue(that)
   return Object.is(jsValue, jsThat) ? 1 : 0
+}
+
+/**
+ * @__deps $emnapiCtx
+ * @__sig ipppp
+ */
+export function _v8_value_equals (value: Ptr, _context: Ptr, that: Ptr, result: Ptr): number {
+  from64('value')
+  from64('that')
+  from64('result')
+  try {
+    const left = emnapiCtx.jsValueFromNapiValue(value)
+    const right = emnapiCtx.jsValueFromNapiValue(that)
+    // eslint-disable-next-line eqeqeq
+    const equals = left == right
+    const equalsValue = equals ? 1 : 0
+    if (result) makeSetValue('result', 0, 'equalsValue', 'i32')
+    return 0
+  } catch (err) {
+    emnapiCtx.isolate.throwException(err)
+    return 1
+  }
 }
 
 /**
@@ -119,6 +143,27 @@ export function _v8_value_is_number (value: Ptr): number {
   if (jsValue == null) return 0
   const isFunction = typeof jsValue === 'number'
   return isFunction ? 1 : 0
+}
+
+/**
+ * @__deps $emnapiCtx
+ * @__sig ip
+ */
+export function _v8_value_is_array_buffer_view (value: Ptr): number {
+  const jsValue = emnapiCtx.jsValueFromNapiValue(value)
+  return ArrayBuffer.isView(jsValue) ? 1 : 0
+}
+
+/**
+ * @__deps $emnapiCtx
+ * @__sig ip
+ */
+export function _v8_value_is_object (value: Ptr): number {
+  const jsValue = emnapiCtx.jsValueFromNapiValue(value)
+  return jsValue !== null &&
+    (typeof jsValue === 'object' || typeof jsValue === 'function')
+    ? 1
+    : 0
 }
 
 /**

@@ -169,7 +169,7 @@
         'script.cc'
       ],
       'defines': [
-        'V8_ENABLE_DIRECT_LOCAL'
+        'V8_ENABLE_DIRECT_HANDLE'
       ],
       'link_settings': {
         'target_conditions': [

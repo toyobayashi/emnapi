@@ -1,5 +1,7 @@
 #include "v8_impl.h"
 
+#include <climits>
+
 namespace v8 {
 
 extern "C" {
@@ -80,7 +82,34 @@ int String::WriteUtf8(Isolate* isolate, char* buffer, int length,
       this, isolate, buffer, length, nchars_ref, options);
 }
 
-String::Utf8Value::Utf8Value(Isolate* isolate, Local<v8::Value> obj) {
+size_t String::WriteUtf8V2(Isolate* isolate, char* buffer, size_t capacity,
+                           int flags,
+                           size_t* processed_characters_return) const {
+  int processed_characters = 0;
+  int options = 0;
+  if ((flags & WriteFlags::kNullTerminate) == 0) {
+    options |= NO_NULL_TERMINATION;
+  }
+  if ((flags & WriteFlags::kReplaceInvalidUtf8) != 0) {
+    options |= REPLACE_INVALID_UTF8;
+  }
+  const int length = capacity > static_cast<size_t>(INT_MAX)
+                         ? INT_MAX
+                         : static_cast<int>(capacity);
+  const int written = WriteUtf8(isolate, buffer, length,
+                                processed_characters_return == nullptr
+                                    ? nullptr
+                                    : &processed_characters,
+                                options);
+  if (processed_characters_return != nullptr) {
+    *processed_characters_return =
+        static_cast<size_t>(processed_characters);
+  }
+  return written < 0 ? 0 : static_cast<size_t>(written);
+}
+
+String::Utf8Value::Utf8Value(Isolate* isolate, Local<v8::Value> obj,
+                             WriteOptions options) {
   if (obj.IsEmpty() || !obj->IsString()) {
     str_ = nullptr;
     length_ = 0;
@@ -90,7 +119,7 @@ String::Utf8Value::Utf8Value(Isolate* isolate, Local<v8::Value> obj) {
   Local<String> str = obj.As<String>();
   length_ = str->Utf8Length(isolate);
   str_ = new char[length_ + 1];
-  str->WriteUtf8(isolate, str_, length_ + 1);
+  str->WriteUtf8(isolate, str_, length_ + 1, nullptr, options);
   str_[length_] = '\0';
 }
 

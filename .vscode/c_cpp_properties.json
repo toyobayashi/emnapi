@@ -55,7 +55,7 @@
       "compilerPath": "${env:EMSDK}/upstream/emscripten/emcc",
       "intelliSenseMode": "linux-clang-x86",
       "cStandard": "c11",
-      "cppStandard": "c++17",
+      "cppStandard": "c++20",
       "includePath": ["${includePath}"]
     },
     {
@@ -64,7 +64,7 @@
       "compilerPath": "${env:EMSDK}\\upstream\\emscripten\\emcc.bat",
       "intelliSenseMode": "linux-clang-x86",
       "cStandard": "c11",
-      "cppStandard": "c++17",
+      "cppStandard": "c++20",
       "includePath": ["${includePath}"]
     },
     {
@@ -73,7 +73,7 @@
       "compilerPath": "${env:WASI_SDK_PATH}/bin/clang",
       "intelliSenseMode": "clang-x86",
       "cStandard": "c11",
-      "cppStandard": "c++14",
+      "cppStandard": "c++20",
       "includePath": ["${includePath}"]
     },
     {
@@ -82,7 +82,7 @@
       "compilerPath": "${env:WASI_SDK_PATH}/bin/clang",
       "intelliSenseMode": "clang-x86",
       "cStandard": "c11",
-      "cppStandard": "c++14",
+      "cppStandard": "c++20",
       "includePath": ["${includePath}"],
       "compilerArgs": ["--target=wasm32-wasip1-threads"]
     },
@@ -92,7 +92,7 @@
       "compilerPath": "${env:WASI_SDK_PATH}/bin/clang",
       "intelliSenseMode": "clang-x86",
       "cStandard": "c11",
-      "cppStandard": "c++14",
+      "cppStandard": "c++20",
       "includePath": ["${includePath}"],
       "compilerArgs": ["--target=wasm32"]
     }

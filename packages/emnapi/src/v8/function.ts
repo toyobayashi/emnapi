@@ -15,7 +15,7 @@ export function _v8_function_set_name (fn: Ptr, name: Ptr): void {
 
 /**
  * @__deps $emnapiCtx
- * @__sig ppppp
+ * @__sig pppip
  */
 export function _v8_function_new_instance (fn: Ptr, ctx: Ptr, argc: number, argv: Ptr): Ptr {
   if (emnapiCtx.isolate.hasPendingException()) return 1

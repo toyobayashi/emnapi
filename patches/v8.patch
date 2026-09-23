@@ -1,20 +1,28 @@
-diff -urN node-22.16.0/v8-local-handle.h node/v8-local-handle.h
---- node-22.16.0/v8-local-handle.h	2025-07-18 10:49:05
-+++ node/v8-local-handle.h	2025-07-31 16:44:50
-@@ -717,7 +717,8 @@
+diff -urN node-24.18.1/v8-local-handle.h node/v8-local-handle.h
+--- node-24.18.1/v8-local-handle.h	2026-09-23 14:20:18
++++ node/v8-local-handle.h	2026-09-23 14:20:18
+@@ -744,10 +744,15 @@
    template <class T>
    V8_INLINE Local<T> Escape(Local<T> value) {
- #ifdef V8_ENABLE_DIRECT_LOCAL
+ #ifdef V8_ENABLE_DIRECT_HANDLE
 -    return value;
 +    if (value.IsEmpty()) return value;
-+    return Local<T>::FromAddress(reinterpret_cast<internal::Address>(EscapeSlot(reinterpret_cast<internal::Address*>(*value))));
++    internal::Address* slot = EscapeSlot(reinterpret_cast<internal::Address*>(*value));
++    if (slot == nullptr) return Local<T>();
++    return Local<T>::FromAddress(reinterpret_cast<internal::Address>(slot));
  #else
      if (value.IsEmpty()) return value;
-     return Local<T>::FromSlot(EscapeSlot(value.slot()));
-diff -urN node-22.16.0/v8-object.h node/v8-object.h
---- node-22.16.0/v8-object.h	2025-07-18 10:49:05
-+++ node/v8-object.h	2025-07-18 10:49:05
-@@ -739,69 +739,15 @@
+-    return Local<T>::FromSlot(EscapeSlot(value.slot()));
++    internal::Address* slot = EscapeSlot(value.slot());
++    if (slot == nullptr) return Local<T>();
++    return Local<T>::FromSlot(slot);
+ #endif
+   }
+ 
+diff -urN node-24.18.1/v8-object.h node/v8-object.h
+--- node-24.18.1/v8-object.h	2026-09-23 14:20:18
++++ node/v8-object.h	2026-09-23 14:20:18
+@@ -854,72 +854,15 @@
  // --- Implementation ---
  
  Local<Data> Object::GetInternalField(int index) {
@@ -26,7 +34,8 @@ diff -urN node-22.16.0/v8-object.h node/v8-object.h
 -  // know where to find the internal fields and can return the value directly.
 -  int instance_type = I::GetInstanceType(obj);
 -  if (I::CanHaveInternalField(instance_type)) {
--    int offset = I::kJSObjectHeaderSize + (I::kEmbedderDataSlotSize * index);
+-    int offset = I::kJSAPIObjectWithEmbedderSlotsHeaderSize +
+-                 (I::kEmbedderDataSlotSize * index);
 -    A value = I::ReadRawField<A>(obj, offset);
 -#ifdef V8_COMPRESS_POINTERS
 -    // We read the full pointer value and then decompress it in order to avoid
@@ -52,7 +61,8 @@ diff -urN node-22.16.0/v8-object.h node/v8-object.h
 -  // know where to find the internal fields and can return the value directly.
 -  auto instance_type = I::GetInstanceType(obj);
 -  if (V8_LIKELY(I::CanHaveInternalField(instance_type))) {
--    int offset = I::kJSObjectHeaderSize + (I::kEmbedderDataSlotSize * index) +
+-    int offset = I::kJSAPIObjectWithEmbedderSlotsHeaderSize +
+-                 (I::kEmbedderDataSlotSize * index) +
 -                 I::kEmbedderDataSlotExternalPointerOffset;
 -    A value =
 -        I::ReadExternalPointerField<internal::kEmbedderDataSlotPayloadTag>(
@@ -72,7 +82,8 @@ diff -urN node-22.16.0/v8-object.h node/v8-object.h
 -  // know where to find the internal fields and can return the value directly.
 -  auto instance_type = I::GetInstanceType(obj);
 -  if (V8_LIKELY(I::CanHaveInternalField(instance_type))) {
--    int offset = I::kJSObjectHeaderSize + (I::kEmbedderDataSlotSize * index) +
+-    int offset = I::kJSAPIObjectWithEmbedderSlotsHeaderSize +
+-                 (I::kEmbedderDataSlotSize * index) +
 -                 I::kEmbedderDataSlotExternalPointerOffset;
 -    Isolate* isolate = I::GetIsolateForSandbox(obj);
 -    A value =
@@ -84,10 +95,10 @@ diff -urN node-22.16.0/v8-object.h node/v8-object.h
    return SlowGetAlignedPointerFromInternalField(index);
  }
  
-diff -urN node-22.16.0/v8-value.h node/v8-value.h
---- node-22.16.0/v8-value.h	2025-07-18 10:49:05
-+++ node/v8-value.h	2025-07-18 10:49:05
-@@ -524,11 +524,7 @@
+diff -urN node-24.18.1/v8-value.h node/v8-value.h
+--- node-24.18.1/v8-value.h	2026-09-23 14:20:18
++++ node/v8-value.h	2026-09-23 14:20:18
+@@ -542,11 +542,7 @@
  }
  
  bool Value::IsUndefined() const {
@@ -99,7 +110,7 @@ diff -urN node-22.16.0/v8-value.h node/v8-value.h
  }
  
  bool Value::QuickIsUndefined() const {
-@@ -545,11 +541,7 @@
+@@ -563,11 +559,7 @@
  }
  
  bool Value::IsNull() const {
@@ -111,7 +122,7 @@ diff -urN node-22.16.0/v8-value.h node/v8-value.h
  }
  
  bool Value::QuickIsNull() const {
-@@ -566,11 +558,7 @@
+@@ -584,11 +576,7 @@
  }
  
  bool Value::IsNullOrUndefined() const {
@@ -123,7 +134,7 @@ diff -urN node-22.16.0/v8-value.h node/v8-value.h
  }
  
  bool Value::QuickIsNullOrUndefined() const {
-@@ -588,11 +576,7 @@
+@@ -606,11 +594,7 @@
  }
  
  bool Value::IsTrue() const {
@@ -135,7 +146,7 @@ diff -urN node-22.16.0/v8-value.h node/v8-value.h
  }
  
  #if V8_STATIC_ROOTS_BOOL
-@@ -605,11 +589,7 @@
+@@ -623,11 +607,7 @@
  #endif  // V8_STATIC_ROOTS_BOOL
  
  bool Value::IsFalse() const {
@@ -147,7 +158,7 @@ diff -urN node-22.16.0/v8-value.h node/v8-value.h
  }
  
  #if V8_STATIC_ROOTS_BOOL
-@@ -622,11 +602,7 @@
+@@ -640,11 +620,7 @@
  #endif  // V8_STATIC_ROOTS_BOOL
  
  bool Value::IsString() const {
@@ -159,10 +170,21 @@ diff -urN node-22.16.0/v8-value.h node/v8-value.h
  }
  
  bool Value::QuickIsString() const {
-diff -urN node-22.16.0/v8config.h node/v8config.h
---- node-22.16.0/v8config.h	2025-07-18 10:49:05
-+++ node/v8config.h	2025-07-18 10:49:05
-@@ -768,14 +768,14 @@
+diff -urN node-24.18.1/v8config.h node/v8config.h
+--- node-24.18.1/v8config.h	2026-09-23 14:20:18
++++ node/v8config.h	2026-09-23 14:34:26
+@@ -25,7 +25,9 @@
+ // clang-format off
+ 
+ // Platform headers for feature detection below.
+-#if defined(__ANDROID__)
++#if defined(__wasm__)
++# include <features.h>
++#elif defined(__ANDROID__)
+ # include <sys/cdefs.h>
+ #elif defined(__APPLE__)
+ # include <TargetConditionals.h>
+@@ -815,14 +817,14 @@
  // The V8_HOST_ARCH_* macros correspond to the architecture on which V8, as a
  // virtual machine and compiler, runs. Don't confuse this with the architecture
  // on which V8 is built.
@@ -179,9 +201,9 @@ diff -urN node-22.16.0/v8config.h node/v8config.h
  #define V8_HOST_ARCH_IA32 1
  #define V8_HOST_ARCH_32_BIT 1
  #elif defined(__AARCH64EL__) || defined(_M_ARM64)
-@@ -827,9 +827,9 @@
-     !V8_TARGET_ARCH_PPC64 && !V8_TARGET_ARCH_S390 &&                          \
-     !V8_TARGET_ARCH_RISCV64 && !V8_TARGET_ARCH_LOONG64 &&                     \
+@@ -867,9 +869,9 @@
+     !V8_TARGET_ARCH_PPC64 && !V8_TARGET_ARCH_S390X &&                     \
+     !V8_TARGET_ARCH_RISCV64 && !V8_TARGET_ARCH_LOONG64 &&                 \
      !V8_TARGET_ARCH_RISCV32
 -#if defined(_M_X64) || defined(__x86_64__)
 +#if defined(_M_X64) || defined(__x86_64__) || defined(__wasm64__)

@@ -112,13 +112,11 @@ export function _v8_cbinfo_new_target (info: napi_callback_info): Pointer<unknow
   const cbinfoValue = emnapiCtx.getCallbackInfo(info)
   const { thiz, fn } = cbinfoValue
 
-  const value = thiz == null || thiz.constructor == null
+  return thiz == null || typeof fn !== 'function'
     ? 0
     : thiz instanceof fn
-      ? emnapiCtx.napiValueFromJsValue(thiz.constructor)
+      ? emnapiCtx.napiValueFromJsValue(fn)
       : 0
-
-  return value
 }
 
 /**
@@ -136,6 +134,27 @@ export function _v8_function_template_set_class_name (template: Ptr, name: Ptr):
   const nameValue = emnapiCtx.jsValueFromNapiValue(name)
   if (!tpl || nameValue == null) return
   tpl.setClassName(nameValue)
+}
+
+/**
+ * @__deps $emnapiCtx
+ * @__sig vpppp
+ */
+export function _v8_function_template_set_call_handler (
+  template: Ptr,
+  callback_wrap: Ptr,
+  callback: Ptr,
+  data: Ptr
+): void {
+  const tpl = emnapiCtx.jsValueFromNapiValue<any>(template)
+  if (!tpl) return
+  from64('callback_wrap')
+  const callbackWrap = makeDynCall('ppp', 'callback_wrap')
+  tpl.setCallHandler({
+    callbackWrap,
+    callback,
+    data: emnapiCtx.jsValueFromNapiValue(data)
+  })
 }
 
 /**
@@ -160,6 +179,27 @@ export function _v8_object_template_set_internal_field_count (
 ): void {
   const templateObject = emnapiCtx.jsValueFromNapiValue(tpl)
   templateObject.setInternalFieldCount(value)
+}
+
+/**
+ * @__deps $emnapiCtx
+ * @__sig vpppp
+ */
+export function _v8_object_template_set_call_as_function_handler (
+  template: Ptr,
+  callback_wrap: Ptr,
+  callback: Ptr,
+  data: Ptr
+): void {
+  const tpl = emnapiCtx.jsValueFromNapiValue<any>(template)
+  if (!tpl) return
+  from64('callback_wrap')
+  const callbackWrap = makeDynCall('ppp', 'callback_wrap')
+  tpl.setCallAsFunctionHandler({
+    callbackWrap,
+    callback,
+    data: emnapiCtx.jsValueFromNapiValue(data)
+  })
 }
 
 /**
@@ -245,31 +285,126 @@ export function _v8_get_property_cb_info (
   const cbinfoValue = emnapiCtx.getCallbackInfo(cbinfo)
 
   /**
-   * static constexpr int kShouldThrowOnErrorIndex = 0;
-   * static constexpr int kHolderIndex = 1;
-   * static constexpr int kIsolateIndex = 2;
-   * static constexpr int kUnusedIndex = 3;
-   * static constexpr int kReturnValueIndex = 4;
-   * static constexpr int kDataIndex = 5;
-   * static constexpr int kThisIndex = 6;
-   * static constexpr int kArgsLength = 7;
+   * static constexpr int kPropertyKeyIndex = 0;
+   * static constexpr int kShouldThrowOnErrorIndex = 1;
+   * static constexpr int kHolderIndex = 2;
+   * static constexpr int kIsolateIndex = 3;
+   * static constexpr int kHolderV2Index = 4;
+   * static constexpr int kReturnValueIndex = 5;
+   * static constexpr int kDataIndex = 6;
+   * static constexpr int kThisIndex = 7;
+   * static constexpr int kArgsLength = 8;
    */
   from64('args')
 
   const thiz = emnapiCtx.napiValueFromJsValue(cbinfoValue.thiz)
   const holder = emnapiCtx.napiValueFromJsValue(cbinfoValue.holder)
-  makeSetValue('args', '1 * ' + POINTER_SIZE, 'holder', '*')
-  makeSetValue('args', '6 * ' + POINTER_SIZE, 'thiz', '*')
+  makeSetValue('args', '2 * ' + POINTER_SIZE, 'holder', '*')
+  makeSetValue('args', '7 * ' + POINTER_SIZE, 'thiz', '*')
 
   const localData = emnapiCtx.napiValueFromJsValue(cbinfoValue.data)
-  makeSetValue('args', '5 * ' + POINTER_SIZE, 'localData', '*')
+  makeSetValue('args', '6 * ' + POINTER_SIZE, 'localData', '*')
+}
+
+/**
+ * @__deps $emnapiCtx
+ * @__sig vppppppppppppi
+ */
+export function _v8_object_template_set_named_property_handler (
+  tpl: Ptr,
+  getter_wrap: Ptr,
+  setter_wrap: Ptr,
+  query_wrap: Ptr,
+  deleter_wrap: Ptr,
+  enumerator_wrap: Ptr,
+  getter: Ptr,
+  setter: Ptr,
+  query: Ptr,
+  deleter: Ptr,
+  enumerator: Ptr,
+  data: Ptr,
+  flags: number
+): void {
+  const templateObject = emnapiCtx.jsValueFromNapiValue(tpl) as any
+  if (!templateObject) return
+  from64('getter_wrap')
+  from64('setter_wrap')
+  from64('query_wrap')
+  from64('deleter_wrap')
+  from64('enumerator_wrap')
+  const getterWrap = getter_wrap ? makeDynCall('pppp', 'getter_wrap') : undefined
+  const setterWrap = setter_wrap ? makeDynCall('ppppp', 'setter_wrap') : undefined
+  const queryWrap = query_wrap ? makeDynCall('pppp', 'query_wrap') : undefined
+  const deleterWrap = deleter_wrap ? makeDynCall('pppp', 'deleter_wrap') : undefined
+  const enumeratorWrap = enumerator_wrap ? makeDynCall('ppp', 'enumerator_wrap') : undefined
+  templateObject.setNamedPropertyHandler({
+    getterWrap,
+    setterWrap,
+    queryWrap,
+    deleterWrap,
+    enumeratorWrap,
+    getter,
+    setter,
+    query,
+    deleter,
+    enumerator,
+    data: emnapiCtx.jsValueFromNapiValue(data),
+    flags
+  })
+}
+
+/**
+ * @__deps $emnapiCtx
+ * @__sig vppppppppppppi
+ */
+export function _v8_object_template_set_indexed_property_handler (
+  tpl: Ptr,
+  getter_wrap: Ptr,
+  setter_wrap: Ptr,
+  query_wrap: Ptr,
+  deleter_wrap: Ptr,
+  enumerator_wrap: Ptr,
+  getter: Ptr,
+  setter: Ptr,
+  query: Ptr,
+  deleter: Ptr,
+  enumerator: Ptr,
+  data: Ptr,
+  flags: number
+): void {
+  const templateObject = emnapiCtx.jsValueFromNapiValue(tpl) as any
+  if (!templateObject) return
+  from64('getter_wrap')
+  from64('setter_wrap')
+  from64('query_wrap')
+  from64('deleter_wrap')
+  from64('enumerator_wrap')
+  const getterWrap = getter_wrap ? makeDynCall('pppp', 'getter_wrap') : undefined
+  const setterWrap = setter_wrap ? makeDynCall('ppppp', 'setter_wrap') : undefined
+  const queryWrap = query_wrap ? makeDynCall('pppp', 'query_wrap') : undefined
+  const deleterWrap = deleter_wrap ? makeDynCall('pppp', 'deleter_wrap') : undefined
+  const enumeratorWrap = enumerator_wrap ? makeDynCall('ppp', 'enumerator_wrap') : undefined
+  templateObject.setIndexedPropertyHandler({
+    getterWrap,
+    setterWrap,
+    queryWrap,
+    deleterWrap,
+    enumeratorWrap,
+    getter,
+    setter,
+    query,
+    deleter,
+    enumerator,
+    data: emnapiCtx.jsValueFromNapiValue(data),
+    flags
+  })
 }
 
 /**
  * @__deps $emnapiCtx
  * @__sig vpppppppiii
  */
-export function _v8_object_template_set_accessor (
+export function _v8_object_template_set_native_data_property (
   tpl: Ptr,
   name: Ptr,
   getter_wrap: Ptr,
@@ -291,7 +426,7 @@ export function _v8_object_template_set_accessor (
   const getterWrap = makeDynCall('pppp', 'getter_wrap')
   const setterWrap = makeDynCall('ppppp', 'setter_wrap')
 
-  templateObject.setAccessor(
+  templateObject.setNativeDataProperty(
     nameValue,
     getterWrap,
     setterWrap,

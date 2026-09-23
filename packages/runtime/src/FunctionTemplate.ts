@@ -1,5 +1,5 @@
 import type { Isolate } from './Isolate'
-import { ObjectTemplate, findHolder } from './ObjectTemplate'
+import { ObjectTemplate, findHolder, type CallHandlerConfig } from './ObjectTemplate'
 import { Template } from './Template'
 import { TryCatch } from './TryCatch'
 
@@ -19,6 +19,7 @@ export class FunctionTemplate extends Template {
   public data: any
   public className: string | undefined
   public signature: Signature | undefined
+  public callHandler: CallHandlerConfig | undefined
 
   private _instanceTemplate: ObjectTemplate | undefined
   private _prototypeTemplate: ObjectTemplate | undefined
@@ -38,7 +39,12 @@ export class FunctionTemplate extends Template {
     this.data = data
     this.className = undefined
     this.signature = signature
+    this.callHandler = undefined
     this._cached = [undefined]
+  }
+
+  setCallHandler (config: CallHandlerConfig): void {
+    this.callHandler = config
   }
 
   setClassName (name: string) {
@@ -64,6 +70,7 @@ export class FunctionTemplate extends Template {
       return this._cached[0]
     }
     const { ctx, callback, v8FunctionCallback, data, signature, _instanceTemplate } = this
+    const callHandler = this.callHandler
     function _ (this: any) {
       if (signature && signature.receiver) {
         const f = signature.receiver.getFunction()
@@ -75,16 +82,34 @@ export class FunctionTemplate extends Template {
       const callbackInfo = scope.callbackInfo
       let returnValue: any
       try {
-        callbackInfo.data = data
+        const callbackThis = _instanceTemplate && this instanceof _
+          ? _instanceTemplate.applyToInstance(this)
+          : this
+        callbackInfo.data = callHandler ? callHandler.data : data
         callbackInfo.args = arguments
-        callbackInfo.thiz = this
-        callbackInfo.holder = findHolder(this, _) || this
+        callbackInfo.thiz = callbackThis
+        callbackInfo.holder = signature ? callbackThis : (findHolder(callbackThis, _) || callbackThis)
         callbackInfo.fn = _
-        if (_instanceTemplate && this instanceof _) {
-          _instanceTemplate.applyToInstance(this)
+        const ret = callHandler
+          ? callHandler.callbackWrap(ctx.getCurrentScope()!.id, callHandler.callback)
+          : callback
+            ? callback(ctx.getCurrentScope()!.id, v8FunctionCallback)
+            : 0
+        if (callHandler) {
+          const retNumber = typeof ret === 'bigint' ? Number(ret) : ret
+          if (retNumber === 0) {
+            returnValue = 0
+          } else {
+            const value = ctx.jsValueFromNapiValue(ret)
+            returnValue = value === undefined && retNumber !== 1 && retNumber !== 2
+              ? retNumber >= 0x100000000 || typeof ret === 'bigint'
+                ? Math.trunc(Number(ret) / 0x100000000)
+                : Number(ret) >> 1
+              : value
+          }
+        } else {
+          returnValue = ret ? ctx.jsValueFromNapiValue(ret) : undefined
         }
-        const ret = callback(ctx.getCurrentScope()!.id, v8FunctionCallback)
-        returnValue = ret ? ctx.jsValueFromNapiValue(ret) : undefined
       } catch (err) {
         if (err !== 'unwind') {
           ctx.throwException(err)

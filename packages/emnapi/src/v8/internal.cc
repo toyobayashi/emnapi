@@ -20,6 +20,10 @@ extern "C" {
                                WeakCallbackInfo<void>::Callback weak_callback,
                                WeakCallbackType type);
   V8_EXTERN void* _v8_clear_weak(internal::Address location);
+  V8_EXTERN int _v8_global_reference_equals(internal::Address lhs, internal::Address rhs);
+  V8_EXTERN internal::Address _v8_global_value_identity(internal::Address value);
+  V8_EXTERN void _v8_retain_global_value_identity(internal::Address identity);
+  V8_EXTERN void _v8_release_global_value_identity(internal::Address identity);
 }
 
 namespace internal {
@@ -65,17 +69,25 @@ void FromJustIsNothing() {
 internal::Address* GlobalizeReference(internal::Isolate* isolate,
                                       internal::Address value) {
   internal::Address ref_id = _v8_globalize_reference(isolate, value);
-  return reinterpret_cast<internal::Address*>(new internal::GlobalHandle{0x80000000u + ref_id, ref_id});
+  internal::Address object_id = _v8_global_value_identity(value);
+  return reinterpret_cast<internal::Address*>(new internal::GlobalHandle{object_id, ref_id});
 }
 
 void DisposeGlobal(internal::Address* global_handle) {
-  _v8_dispose_global(reinterpret_cast<internal::GlobalHandle*>(global_handle)->ref);
+  const internal::GlobalHandle* handle =
+      reinterpret_cast<const internal::GlobalHandle*>(global_handle);
+  _v8_dispose_global(handle->ref);
+  _v8_release_global_value_identity(handle->object);
   delete reinterpret_cast<internal::GlobalHandle*>(global_handle);
 }
 
 internal::Address* CopyGlobalReference(internal::Address* from) {
-  internal::Address ref_id = _v8_copy_global_reference(reinterpret_cast<internal::GlobalHandle*>(from)->ref);
-  return reinterpret_cast<internal::Address*>(new internal::GlobalHandle{0x80000000u + ref_id, ref_id});
+  const internal::GlobalHandle* source =
+      reinterpret_cast<const internal::GlobalHandle*>(from);
+  internal::Address ref_id = _v8_copy_global_reference(source->ref);
+  _v8_retain_global_value_identity(source->object);
+  return reinterpret_cast<internal::Address*>(
+      new internal::GlobalHandle{source->object, ref_id});
 }
 
 internal::Address LocalFromGlobalReference(internal::Address global_handle) {
@@ -120,6 +132,15 @@ void MakeWeak(internal::Address* location, void* data,
 void* ClearWeak(internal::Address* location) {
   return _v8_clear_weak(*location);
 };
+
+bool GlobalHandlesEqual(internal::Address* lhs, internal::Address* rhs) {
+  if (lhs == nullptr || rhs == nullptr) return lhs == rhs;
+  const internal::GlobalHandle* left =
+      reinterpret_cast<const internal::GlobalHandle*>(lhs);
+  const internal::GlobalHandle* right =
+      reinterpret_cast<const internal::GlobalHandle*>(rhs);
+  return _v8_global_reference_equals(left->ref, right->ref) != 0;
+}
 
 }  // namespace api_internal
 
