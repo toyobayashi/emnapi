@@ -1,16 +1,23 @@
 diff -urN node-22.16.0/v8-local-handle.h node/v8-local-handle.h
 --- node-22.16.0/v8-local-handle.h	2025-07-18 10:49:05
 +++ node/v8-local-handle.h	2025-07-31 16:44:50
-@@ -717,7 +717,8 @@
+@@ -717,9 +717,14 @@
    template <class T>
    V8_INLINE Local<T> Escape(Local<T> value) {
  #ifdef V8_ENABLE_DIRECT_LOCAL
 -    return value;
 +    if (value.IsEmpty()) return value;
-+    return Local<T>::FromAddress(reinterpret_cast<internal::Address>(EscapeSlot(reinterpret_cast<internal::Address*>(*value))));
++    internal::Address* slot = EscapeSlot(reinterpret_cast<internal::Address*>(*value));
++    if (slot == nullptr) return Local<T>();
++    return Local<T>::FromAddress(reinterpret_cast<internal::Address>(slot));
  #else
      if (value.IsEmpty()) return value;
-     return Local<T>::FromSlot(EscapeSlot(value.slot()));
+-    return Local<T>::FromSlot(EscapeSlot(value.slot()));
++    internal::Address* slot = EscapeSlot(value.slot());
++    if (slot == nullptr) return Local<T>();
++    return Local<T>::FromSlot(slot);
+ #endif
+   }
 diff -urN node-22.16.0/v8-object.h node/v8-object.h
 --- node-22.16.0/v8-object.h	2025-07-18 10:49:05
 +++ node/v8-object.h	2025-07-18 10:49:05
