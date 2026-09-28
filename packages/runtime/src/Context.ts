@@ -351,11 +351,11 @@ export class Context {
     dynamicExecution: boolean
   ) {
     if (envObject.ctx !== this) {
-      throw new Error(`The napi_env (${envObject.bridge.address}) is not created by this context`)
+      throw new Error(`The napi_env (${envObject.address}) is not created by this context`)
     }
 
     const callback = (envObject: Env) => {
-      return napiCallback(envObject.bridge.address, envObject.ctx.getCurrentScope()!.id)
+      return napiCallback(envObject.address, envObject.ctx.getCurrentScope()!.id)
     }
 
     let _: Function

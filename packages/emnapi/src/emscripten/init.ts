@@ -141,14 +141,19 @@ NODE_MODULE_VERSION ${NODE_MODULE_VERSION}.`)
   const moduleApiVersion = Module._node_api_module_get_api_version_v1()
 
   const envObject = emnapiModule.envObject || (() => {
-    let address = _emnapi_create_env() as number
-    from64('address')
-    address += 8
     const envObject = emnapiModule.envObject = emnapiEnv = emnapiCtx.createEnv(
       filename,
       moduleApiVersion,
       {
-        address,
+        address: () => {
+          let address = _emnapi_create_env() as number
+          from64('address')
+          if (!address) {
+            throw new Error('Failed to create env')
+          }
+          address += 8
+          return address
+        },
         deleteEnv: (ptr) => {
           _emnapi_delete_env((to64('ptr') as number) - (to64('8') as number))
         },
@@ -173,6 +178,7 @@ NODE_MODULE_VERSION ${NODE_MODULE_VERSION}.`)
       },
       emnapiNodeBinding
     )
+    let address = envObject.address
 // #if MEMORY64
     makeSetValue('address - 8', NapiEnvOffset64.id, 'envObject.id', 'u32')
 // #else
@@ -185,7 +191,7 @@ NODE_MODULE_VERSION ${NODE_MODULE_VERSION}.`)
   try {
     envObject.callIntoModule((envObject) => {
       const exports = emnapiModule.exports
-      const env = envObject.bridge.address
+      const env = envObject.address
       const exportsHandle = scope.add(exports)
       const napiValue = Module._napi_register_wasm_v1(to64('env'), to64('exportsHandle'))
       emnapiModule.exports = (!napiValue) ? exports : emnapiCtx.jsValueFromNapiValue(napiValue)!

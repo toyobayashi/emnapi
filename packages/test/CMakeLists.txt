@@ -384,6 +384,8 @@ add_test("runjs_pe" "./runjs/binding.c" OFF)
 target_compile_definitions("runjs_pe" PRIVATE "NAPI_VERSION=9")
 add_test("runjs_cnrj" "./runjs/binding.c" OFF)
 target_compile_definitions("runjs_cnrj" PRIVATE "NAPI_VERSION=10")
+add_test("module_version_mismatch" "./module_version_mismatch/binding.c" OFF)
+target_compile_definitions("module_version_mismatch" PRIVATE "NAPI_VERSION=2147483646")
 
 if(IS_WASM)
   if(IS_EMSCRIPTEN)

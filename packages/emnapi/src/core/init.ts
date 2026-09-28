@@ -162,14 +162,19 @@ export var napiModule: INapiModule = {
       }
 
       const envObject = napiModule.envObject || (() => {
-        let address = _emnapi_create_env() as number
-        from64('address')
-        address += 8
         const envObject = napiModule.envObject = emnapiEnv = emnapiCtx.createEnv(
           napiModule.filename,
           moduleApiVersion,
           {
-            address,
+            address: () => {
+              let address = _emnapi_create_env() as number
+              from64('address')
+              if (!address) {
+                throw new Error('Failed to create env')
+              }
+              address += 8
+              return address
+            },
             deleteEnv: (ptr) => {
               _emnapi_delete_env((to64('ptr') as number) - (to64('8') as number))
             },
@@ -180,6 +185,7 @@ export var napiModule: INapiModule = {
           },
           emnapiNodeBinding
         )
+        let address = envObject.address
 // #if MEMORY64
         makeSetValue('address - 8', NapiEnvOffset64.id, 'envObject.id', 'u32')
 // #else
@@ -192,7 +198,7 @@ export var napiModule: INapiModule = {
       try {
         envObject.callIntoModule((_envObject) => {
           const exports = napiModule.exports
-          const env = envObject.bridge.address
+          const env = envObject.address
           const exportsHandle = scope.add(exports)
           const napi_register_wasm_v1 = instance.exports.napi_register_wasm_v1 as Function
           const napiValue = napi_register_wasm_v1(to64('env'), to64('exportsHandle'))
