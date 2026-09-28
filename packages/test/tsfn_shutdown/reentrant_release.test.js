@@ -10,12 +10,13 @@ async function main () {
     const binding = await load('tsfn_shutdown_reentrant_release', {
       nodeBinding: require('@emnapi/node-binding')
     })
-    void binding
+    assert.ok(binding)
     await new Promise(resolve => setTimeout(resolve, 100))
     return
   }
 
   const child = spawnSync(process.execPath, [
+    '--expose-gc',
     ...(process.env.EMNAPI_TEST_WASI ? ['--experimental-wasi-unstable-preview1'] : []),
     __filename,
     'child'
