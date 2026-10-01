@@ -175,7 +175,8 @@ function loadNapiModuleImpl (loadFn: Function, userNapiModule: NapiModule | unde
       // before it is ready: a worker queues a 'start' that arrives before its
       // instance exists and runs it once loaded (see handleAfterLoad and
       // _loaded in @emnapi/wasi-threads worker.ts). A worker whose load fails
-      // is terminated and leaves the pool; the next spawn creates a new one.
+      // while it is idle is terminated and a fresh, unloaded worker takes its
+      // place, so the pool keeps its size; the next spawn loads that worker.
       // The workers are not ref()'d, so a Node.js process can still exit while
       // the loads are in flight (the pool workers are unref()'d when created).
       // This is the same on every environment: nothing here blocks, so a

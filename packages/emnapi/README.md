@@ -482,7 +482,9 @@ instantiateNapiModule(input, {
    * workers in the background and return without waiting, so the pool is
    * not guaranteed to be ready. A thread started on a pool worker that is
    * still loading runs once that worker has loaded.
-   * A pool worker that fails to load is terminated and removed from the pool.
+   * A pool worker that fails to load while idle is terminated and replaced
+   * by a fresh worker, so the pool keeps its size; the replacement is
+   * loaded when a thread is started on it.
    * A pool worker that was never loaded is loaded on first use.
    * @defaultValue false
    */

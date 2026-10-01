@@ -75,3 +75,56 @@ for (const worker of created) {
   assert.ok(worker.whenLoaded instanceof Promise)
 }
 assert.deepStrictEqual(napiModule.PThread.unusedWorkers, created)
+
+// A spawn on a pool worker that is still loading reports success right away.
+// If that load fails later, the thread is cleaned up and the error is
+// reported; it must not become an unhandled rejection, which makes Node.js
+// exit with code 1.
+{
+  const unhandled = []
+  const onUnhandled = (reason) => { unhandled.push(reason) }
+  process.on('unhandledRejection', onUnhandled)
+  try {
+    const workers = []
+    const errors = []
+    const memory = new WebAssembly.Memory({ initial: 1, maximum: 1, shared: true })
+    let imports
+    const { napiModule } = instantiateNapiModuleSync(wasm, {
+      context: getDefaultContext(),
+      reuseWorker: { size: 1 },
+      wasi: { wasiImport: {}, getImportObject: () => ({}), initialize () {}, start () { return 0 } },
+      getMemory: () => memory,
+      printErr (text) { errors.push(text) },
+      overwriteImports (importObject) {
+        imports = importObject
+        return importObject
+      },
+      onCreateWorker () {
+        const worker = new FakeWorker()
+        workers.push(worker)
+        return worker
+      }
+    })
+    const [worker] = workers
+    assert.deepStrictEqual(worker.posts, ['load'])
+
+    const result = imports.wasi['thread-spawn'](0, 64)
+    assert.strictEqual(result, 0)
+    assert.deepStrictEqual(worker.posts, ['load', 'start'])
+    worker.emit('message', {
+      __emnapi__: {
+        type: 'thread-error',
+        payload: { error: { name: 'Error', message: 'load failed after spawn' }, phase: 'load' }
+      }
+    })
+    await new Promise(resolve => setImmediate(resolve))
+    await new Promise(resolve => setImmediate(resolve))
+
+    assert.deepStrictEqual(unhandled, [])
+    assert.strictEqual(worker.terminated, true)
+    assert.deepStrictEqual(Object.keys(napiModule.PThread.pthreads), [])
+    assert.strictEqual(errors.filter(text => text.includes('load failed after spawn')).length, 1)
+  } finally {
+    process.off('unhandledRejection', onUnhandled)
+  }
+}

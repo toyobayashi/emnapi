@@ -452,9 +452,115 @@ async function testBackgroundPreloadDropsOnlyFailedWorker () {
     assert.strictEqual(w0.terminated, true)
     assert.strictEqual(w1.terminated, false)
     assert.strictEqual(w1.loaded, true)
-    assert.deepStrictEqual(manager.unusedWorkers, [w1])
-    assert.strictEqual(created.length, 2, 'one failed load must not re-create the pool')
+    // The failed worker's slot gets a fresh, unloaded worker; the rest of the
+    // pool is not re-created.
+    assert.strictEqual(created.length, 3, 'one failed load must only replace that worker')
+    const replacement = created[2]
+    assert.deepStrictEqual(manager.unusedWorkers, [w1, replacement])
+    assert.strictEqual(replacement.whenLoaded, undefined)
+    assert.deepStrictEqual(replacement.posts, [])
     assert.deepStrictEqual(unhandled, [])
+    manager.terminateAllThreads()
+  } finally {
+    process.off('unhandledRejection', onUnhandled)
+  }
+}
+
+// Load a second copy of the package with Node.js detection off, so the
+// browser-only paths (for example the strict pool limit) run.
+async function importWithoutNodeDetection () {
+  const url = import.meta.resolve('@emnapi/wasi-threads') + '?no-node'
+  const descriptor = Object.getOwnPropertyDescriptor(globalThis, 'process')
+  Object.defineProperty(globalThis, 'process', { configurable: true, writable: true, value: undefined })
+  try {
+    return await import(url)
+  } finally {
+    Object.defineProperty(globalThis, 'process', descriptor)
+  }
+}
+
+// A strict pool must keep its size when background preloads fail, or every
+// later spawn finds the pool exhausted and fails with EAGAIN.
+async function testStrictPoolKeepsSizeWhenPreloadsFail () {
+  const { WASIThreads: BrowserWASIThreads } = await importWithoutNodeDetection()
+  const created = []
+  const errors = []
+  const memory = new WebAssembly.Memory({ initial: 1, maximum: 1, shared: true })
+  const wasiThreads = new BrowserWASIThreads({
+    wasi: { initialize () {}, start () { return 0 } },
+    printErr (text) { errors.push(text) },
+    reuseWorker: { size: 2, strict: true },
+    onCreateWorker: () => createDeferredWorker(created)
+  })
+  wasiThreads.setup({ exports: { memory } }, {}, memory)
+  const manager = wasiThreads.PThread
+  // What @emnapi/core does on a synchronous instantiate with a pool.
+  for (const worker of manager.unusedWorkers.slice()) {
+    if (!worker.whenLoaded) manager.loadWasmModuleToWorker(worker).then(undefined, () => {})
+  }
+  const [w0, w1] = created
+  // Without Node.js detection, messages arrive through onmessage only.
+  for (const worker of [w0, w1]) {
+    worker.onmessage({
+      data: message('thread-error', { error: { name: 'Error', message: 'preload failed' }, phase: 'load' })
+    })
+  }
+  await new Promise(resolve => setImmediate(resolve))
+  assert.strictEqual(w0.terminated, true)
+  assert.strictEqual(w1.terminated, true)
+  assert.strictEqual(manager.unusedWorkers.length, 2, 'the strict pool must keep its size')
+  assert.strictEqual(created.length, 4)
+
+  const result = wasiThreads.getImportObject().wasi['thread-spawn'](0, 64)
+  assert.strictEqual(result, 0)
+  const worker = created[3]
+  const struct = new Int32Array(memory.buffer, 64, 2)
+  assert.deepStrictEqual(Array.from(struct), [0, worker.__emnapi_tid])
+  assert.deepStrictEqual(worker.posts, ['load', 'start'])
+  assert.strictEqual(created.length, 4)
+  assert.deepStrictEqual(errors.filter(text => /exhausted/.test(text)), [])
+  manager.terminateAllThreads()
+}
+
+// When a spawned thread's worker fails to load after thread-spawn returned
+// success, the failure is cleaned up and reported, not rethrown into a
+// promise nobody holds (an unhandled rejection makes Node.js exit with 1).
+async function testLoadFailureAfterSpawnIsReported () {
+  const created = []
+  const errors = []
+  const unhandled = []
+  const onUnhandled = (reason) => { unhandled.push(reason) }
+  process.on('unhandledRejection', onUnhandled)
+  try {
+    const memory = new WebAssembly.Memory({ initial: 1, maximum: 1, shared: true })
+    const wasiThreads = new WASIThreads({
+      wasi: { initialize () {}, start () { return 0 } },
+      printErr (text) { errors.push(text) },
+      reuseWorker: 1,
+      onCreateWorker: () => createDeferredWorker(created)
+    })
+    wasiThreads.setup({ exports: { memory } }, {}, memory)
+    const manager = wasiThreads.PThread
+    // What @emnapi/core does on a synchronous instantiate with a pool.
+    for (const worker of manager.unusedWorkers.slice()) {
+      if (!worker.whenLoaded) manager.loadWasmModuleToWorker(worker).then(undefined, () => {})
+    }
+    const [worker] = created
+    const result = wasiThreads.getImportObject().wasi['thread-spawn'](0, 64)
+    assert.strictEqual(result, 0)
+    assert.deepStrictEqual(worker.posts, ['load', 'start'])
+    const tid = worker.__emnapi_tid
+    assert.ok(tid)
+    worker.failLoad('load failed after spawn')
+    await new Promise(resolve => setImmediate(resolve))
+    await new Promise(resolve => setImmediate(resolve))
+
+    assert.deepStrictEqual(unhandled, [])
+    assert.strictEqual(worker.terminated, true)
+    assert.deepStrictEqual(Object.keys(manager.pthreads), [])
+    const reported = errors.filter(text => text.includes('load failed after spawn'))
+    assert.strictEqual(reported.length, 1)
+    assert.match(reported[0], new RegExp('thread ' + tid + ':'))
     manager.terminateAllThreads()
   } finally {
     process.off('unhandledRejection', onUnhandled)
@@ -533,6 +639,8 @@ await testNativeWorkerErrorsAndExitAreTerminal()
 testThreadMessageHandlerPreservesOriginalTrap()
 await testTerminatedIdleWorkerLeavesPool()
 await testBackgroundPreloadDropsOnlyFailedWorker()
+await testStrictPoolKeepsSizeWhenPreloadsFail()
+await testLoadFailureAfterSpawnIsReported()
 await testSpawnLoadsNeverLoadedPoolWorker()
 await testLateLoadedFromTerminatedWorkerIsQuiet()
 await testQueuedStartIsFailedWhenLoadFails()
