@@ -403,8 +403,18 @@ export class ThreadManager {
         const worker = this.allocateUnusedWorker()
 
         this.loadWasmModuleToWorker(worker, sab)
+        return this.unusedWorkers.pop()
       }
-      return this.unusedWorkers.pop()
+      const worker = this.unusedWorkers.pop()!
+      // A pool worker may never have been sent 'load' (a pool re-created by
+      // terminateAllThreads, or one created for a synchronous instantiate that
+      // was not loaded yet). Start its load now, so that `whenLoaded` exists
+      // for the caller. The worker queues the 'start' that follows until its
+      // instance is ready.
+      if (!worker.whenLoaded) {
+        this.loadWasmModuleToWorker(worker, sab)
+      }
+      return worker
     }
     const worker = this.allocateUnusedWorker()
 
@@ -427,14 +437,23 @@ export class ThreadManager {
 
     this.expectedTerminations.add(worker)
     this.registeredWorkers.delete(worker)
+    // A terminated worker must leave the pool, so getNewWorker never hands it
+    // out. This covers every failed load and any idle worker terminated on
+    // purpose. shutdownAllWorkers iterates a copy and resets the pool after.
+    const index = this.unusedWorkers.indexOf(worker)
+    if (index !== -1) this.unusedWorkers.splice(index, 1)
     this.loadRejects.delete(worker)
     worker.terminate()
     this.messageEvents.get(worker)?.clear()
     this.messageEvents.delete(worker);
     (worker as Worker).onmessage = (e: any) => {
       if (e.data.__emnapi__) {
+        const type = e.data.__emnapi__.type
+        // A worker terminated while it was still loading may still post
+        // 'loaded'; that is harmless.
+        if (type === 'loaded') return
         const err = this.printErr
-        err('received "' + e.data.__emnapi__.type + '" command from terminated worker: ' + tid)
+        err('received "' + type + '" command from terminated worker: ' + tid)
       }
     }
   }

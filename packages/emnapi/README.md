@@ -475,6 +475,15 @@ instantiateNapiModule(input, {
 
   /**
    * Reuse the thread worker after thread exit to avoid re-creatation
+   *
+   * With `size > 0`, `instantiateNapiModule` / `loadNapiModule` wait until
+   * every pool worker has loaded. `instantiateNapiModuleSync` /
+   * `loadNapiModuleSync` also accept a pool: they start loading the pool
+   * workers in the background and return without waiting, so the pool is
+   * not guaranteed to be ready. A thread started on a pool worker that is
+   * still loading runs once that worker has loaded.
+   * A pool worker that fails to load is terminated and removed from the pool.
+   * A pool worker that was never loaded is loaded on first use.
    * @defaultValue false
    */
   reuseWorker: {

@@ -167,11 +167,26 @@ function loadNapiModuleImpl (loadFn: Function, userNapiModule: NapiModule | unde
     }
 
     if (napiModule.PThread.shouldPreloadWorkers()) {
-      const poolReady = napiModule.PThread.loadWasmModuleToAllWorkers()
       if (loadFn === loadCallback) {
-        return poolReady.then(emnapiInit)
-      } else {
-        throw new Error('Synchronous loading is not supported with worker pool (reuseWorker.size > 0)')
+        return napiModule.PThread.loadWasmModuleToAllWorkers().then(emnapiInit)
+      }
+      // A synchronous instantiate cannot wait for the pool, so start loading
+      // every pool worker in the background and return now. The pool is usable
+      // before it is ready: a worker queues a 'start' that arrives before its
+      // instance exists and runs it once loaded (see handleAfterLoad and
+      // _loaded in @emnapi/wasi-threads worker.ts). A worker whose load fails
+      // is terminated and leaves the pool; the next spawn creates a new one.
+      // The workers are not ref()'d, so a Node.js process can still exit while
+      // the loads are in flight (the pool workers are unref()'d when created).
+      // This is the same on every environment: nothing here blocks, so a
+      // browser main thread delivers the loads once it yields.
+      const PThread = napiModule.PThread
+      const workers = PThread.unusedWorkers.slice()
+      for (let i = 0; i < workers.length; ++i) {
+        const worker = workers[i]
+        if (!worker.whenLoaded) {
+          PThread.loadWasmModuleToWorker(worker).then(undefined, () => {})
+        }
       }
     }
 
