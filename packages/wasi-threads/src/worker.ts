@@ -121,12 +121,14 @@ export class ThreadMessageHandler {
   protected _loaded (err: Error | null, source: WebAssembly.WebAssemblyInstantiatedSource | null, payload: LoadPayload): void {
     if (err) {
       notifyPthreadCreateResult(payload.sab, 2, err)
+      this._failQueuedStarts(err)
       throw err
     }
 
     if (source == null) {
       const err = new TypeError('onLoad should return an object')
       notifyPthreadCreateResult(payload.sab, 2, err)
+      this._failQueuedStarts(err)
       throw err
     }
 
@@ -135,6 +137,7 @@ export class ThreadMessageHandler {
     if (!instance) {
       const err = new TypeError('onLoad should return an object which includes "instance"')
       notifyPthreadCreateResult(payload.sab, 2, err)
+      this._failQueuedStarts(err)
       throw err
     }
 
@@ -149,6 +152,20 @@ export class ThreadMessageHandler {
       const data = messages[i]
       this.handle({ data })
     }
+  }
+
+  /**
+   * A 'start' sent to a pool worker before its load finished is queued in
+   * `messagesBeforeLoad`. When the load fails, it never runs, so tell each
+   * waiting spawner (`waitThreadStart`) that the spawn failed, and drop it.
+   * Other queued messages are kept.
+   */
+  private _failQueuedStarts (err: Error): void {
+    this.messagesBeforeLoad = this.messagesBeforeLoad.filter((data) => {
+      if (data?.__emnapi__?.type !== 'start') return true
+      notifyPthreadCreateResult((data.__emnapi__.payload as StartPayload).sab, 2, err)
+      return false
+    })
   }
 
   protected handleAfterLoad<E extends WorkerMessageEvent> (e: E, f: (e: E) => void): void {

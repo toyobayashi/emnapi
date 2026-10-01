@@ -287,7 +287,10 @@ export class WASIThreads {
         worker.whenLoaded!.catch((err: any) => {
           delete worker.whenLoaded
           PThread!.cleanThread(worker, tid, true)
-          throw err
+          // thread-spawn already reported success, so a load that fails later
+          // can only clean up the thread and report the error. Rethrowing here
+          // would reject a promise that nobody holds.
+          PThread!.printErr('failed to load the worker of thread ' + tid + ': ' + ((err && err.stack) || err))
         })
       }
 
