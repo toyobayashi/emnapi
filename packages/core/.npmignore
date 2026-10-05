@@ -7,5 +7,6 @@ node_modules
 .npmignore
 api-extractor.json
 tsconfig.json
+/test
 /dist/types
 /dist/**/types

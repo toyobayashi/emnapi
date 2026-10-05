@@ -164,12 +164,7 @@ export class ThreadManager {
       if (this._reuseWorker.size) {
         let pthreadPoolSize = this._reuseWorker.size
         while (pthreadPoolSize--) {
-          const worker = this.allocateUnusedWorker()
-          if (ENVIRONMENT_IS_NODE) {
-            // https://github.com/nodejs/node/issues/53036
-            (worker as NodeWorker).once('message', () => {});
-            (worker as NodeWorker).unref()
-          }
+          this.allocatePoolWorker()
         }
       }
     }
@@ -276,8 +271,7 @@ export class ThreadManager {
         }
         if (!worker.loaded) {
           reject(error)
-          _this.loadRejects.delete(worker)
-          _this.terminateWorker(worker)
+          _this.dropFailedLoad(worker)
           return
         }
         _this.fail(error, !ENVIRONMENT_IS_NODE)
@@ -313,8 +307,7 @@ export class ThreadManager {
             const error = deserializeError(threadError.error)
             if (!worker.loaded && threadError.phase === 'load') {
               reject(error)
-              this.loadRejects.delete(worker)
-              this.terminateWorker(worker)
+              this.dropFailedLoad(worker)
             } else {
               this.fail(error, true)
             }
@@ -369,8 +362,7 @@ export class ThreadManager {
           error = memoryError
         }
         reject(error)
-        this.loadRejects.delete(worker)
-        this.terminateWorker(worker)
+        this.dropFailedLoad(worker)
       }
     })
     return worker.whenLoaded
@@ -388,6 +380,29 @@ export class ThreadManager {
     return worker
   }
 
+  private allocatePoolWorker (): WorkerLike {
+    const worker = this.allocateUnusedWorker()
+    if (ENVIRONMENT_IS_NODE) {
+      // https://github.com/nodejs/node/issues/53036
+      (worker as NodeWorker).once('message', () => {});
+      (worker as NodeWorker).unref()
+    }
+    return worker
+  }
+
+  /**
+   * A load that fails while the worker is idle in the pool was a background
+   * preload. Put a fresh, unloaded worker in its slot, so the pool keeps its
+   * size and the next spawn loads it, as if the pool was never preloaded.
+   */
+  private dropFailedLoad (worker: WorkerLike): void {
+    // Check before terminateWorker removes the worker from the pool.
+    const idle = this.unusedWorkers.indexOf(worker) !== -1
+    this.loadRejects.delete(worker)
+    this.terminateWorker(worker)
+    if (idle && !this._fatalError) this.allocatePoolWorker()
+  }
+
   public getNewWorker (sab?: Int32Array): WorkerLike | undefined {
     this.assertRunning()
     if (this._reuseWorker) {
@@ -400,16 +415,31 @@ export class ThreadManager {
             return
           }
         }
-        const worker = this.allocateUnusedWorker()
-
+        return this.allocateAndLoadWorker(sab)
+      }
+      const worker = this.unusedWorkers.pop()!
+      // A pool worker may never have been sent 'load' (a pool re-created by
+      // terminateAllThreads, or one created for a synchronous instantiate that
+      // was not loaded yet). Start its load now, so that `whenLoaded` exists
+      // for the caller. The worker queues the 'start' that follows until its
+      // instance is ready.
+      if (!worker.whenLoaded) {
         this.loadWasmModuleToWorker(worker, sab)
       }
-      return this.unusedWorkers.pop()
+      return worker
     }
-    const worker = this.allocateUnusedWorker()
+    return this.allocateAndLoadWorker(sab)
+  }
 
+  private allocateAndLoadWorker (sab?: Int32Array): WorkerLike | undefined {
+    const worker = this.allocateUnusedWorker()
+    // Take the worker out of the pool before its load starts, so a load that
+    // fails right away (beforeLoad or postMessage throws) is not taken for a
+    // failed background preload: the worker is terminated, no replacement is
+    // added, and the caller gets no worker.
+    this.unusedWorkers.pop()
     this.loadWasmModuleToWorker(worker, sab)
-    return this.unusedWorkers.pop()
+    return this.expectedTerminations.has(worker) ? undefined : worker
   }
 
   public cleanThread (worker: WorkerLike, tid: number, force?: boolean): void {
@@ -427,14 +457,23 @@ export class ThreadManager {
 
     this.expectedTerminations.add(worker)
     this.registeredWorkers.delete(worker)
+    // A terminated worker must leave the pool, so getNewWorker never hands it
+    // out. This covers every failed load and any idle worker terminated on
+    // purpose. shutdownAllWorkers iterates a copy and resets the pool after.
+    const index = this.unusedWorkers.indexOf(worker)
+    if (index !== -1) this.unusedWorkers.splice(index, 1)
     this.loadRejects.delete(worker)
     worker.terminate()
     this.messageEvents.get(worker)?.clear()
     this.messageEvents.delete(worker);
     (worker as Worker).onmessage = (e: any) => {
       if (e.data.__emnapi__) {
+        const type = e.data.__emnapi__.type
+        // A worker terminated while it was still loading may still post
+        // 'loaded'; that is harmless.
+        if (type === 'loaded') return
         const err = this.printErr
-        err('received "' + e.data.__emnapi__.type + '" command from terminated worker: ' + tid)
+        err('received "' + type + '" command from terminated worker: ' + tid)
       }
     }
   }
