@@ -154,6 +154,21 @@ async function sharedArrayBuffer (target) {
   assert.strictEqual(binding.TestGetSharedArrayBufferInfo(buffer), 16)
 }
 
+async function tsfnMultiThreadCountRelease () {
+  const binding = await loadSmoke('tsfn_shutdown_multi_thread_count_release')
+  for (const abort of [false, true]) {
+    let calls = 0
+    await new Promise(resolve => {
+      binding.run(abort, () => {
+        calls++
+        resolve()
+      })
+    })
+    await new Promise(resolve => setTimeout(resolve, 0))
+    assert.strictEqual(calls, 1)
+  }
+}
+
 async function version () {
   const binding = await loadSmoke('version')
   const [major, minor, patch, release] = binding.testGetNodeVersion()
@@ -229,6 +244,11 @@ const equivalents = {
   'tsfn_abort/tsfn_abort.test.js': async () => {
     await loadSmoke('tsfn_abort')
     await workerFailure('thread-safe function abort')
+  },
+  'tsfn_shutdown/multi_thread_count_release.test.js': tsfnMultiThreadCountRelease,
+  'tsfn_shutdown/reentrant_release.test.js': async () => {
+    await loadSmoke('tsfn_shutdown_reentrant_release')
+    await workerRoundTrip()
   },
   'tsfn_shutdown/tsfn_shutdown.test.js': async () => {
     await loadSmoke('tsfn_shutdown')
