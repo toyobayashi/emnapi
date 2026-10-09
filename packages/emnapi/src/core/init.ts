@@ -1,5 +1,5 @@
 /* eslint-disable @stylistic/indent */
-import { from64, makeDynCall, makeSetValue, to64 } from 'emscripten:parse-tools'
+import { POINTER_SIZE, from64, makeDynCall, makeSetValue, to64 } from 'emscripten:parse-tools'
 
 export interface InitOptions {
   instance: WebAssembly.Instance
@@ -129,12 +129,31 @@ export var napiModule: INapiModule = {
       const nodeRegisterModuleSymbol = `node_register_module_v${NODE_MODULE_VERSION}`
       if (typeof instance.exports[nodeRegisterModuleSymbol] === 'function') {
         const scope = emnapiCtx.isolate.openScope()
+        const malloc = instance.exports.malloc as (size: number | bigint) => number | bigint
+        const free = instance.exports.free as (ptr: number | bigint) => void
+        let exportsSlot: number | bigint = 0
+        let moduleSlot: number | bigint = 0
         try {
           const exports = napiModule.exports
 
           const exportsHandle = scope.add(exports)
           const moduleHandle = scope.add(napiModule)
-          instance.exports[nodeRegisterModuleSymbol](to64('exportsHandle'), to64('moduleHandle'), to64('5'))
+          const size = POINTER_SIZE
+          exportsSlot = malloc(to64('size'))
+          moduleSlot = malloc(to64('size'))
+          from64('exportsSlot')
+          from64('moduleSlot')
+          try {
+            if (!exportsSlot || !moduleSlot) {
+              throw new Error('Failed to allocate V8 local handle slots')
+            }
+            makeSetValue('exportsSlot', 0, 'exportsHandle', '*')
+            makeSetValue('moduleSlot', 0, 'moduleHandle', '*')
+            instance.exports[nodeRegisterModuleSymbol](to64('exportsSlot'), to64('moduleSlot'), to64('5'))
+          } finally {
+            if (moduleSlot) free(to64('moduleSlot'))
+            if (exportsSlot) free(to64('exportsSlot'))
+          }
         } catch (err) {
           if (err !== 'unwind') {
             throw err

@@ -451,6 +451,135 @@ call npx.cmd node-gyp configure --arch=wasm32 --nodedir=./node_modules/emnapi --
 make -C %~dp0build
 ```
 
+### Experimental V8 API shim and NAN
+
+The V8 API shim is experimental and incomplete. It currently provides a
+minimal compatibility layer focused on the V8 APIs NAN uses; it is not a
+complete V8 implementation.
+
+Install NAN if the addon uses it:
+
+```bash
+npm install -D nan
+```
+
+A minimal NAN addon looks like this:
+
+```cpp
+#include <nan.h>
+
+NAN_METHOD(Hello) {
+  info.GetReturnValue().Set(Nan::New("world").ToLocalChecked());
+}
+
+NAN_MODULE_INIT(Init) {
+  Nan::SetMethod(target, "hello", Hello);
+}
+
+NODE_MODULE(binding, Init)
+```
+
+You can also use the V8 API directly:
+
+```cpp
+#include <node.h>
+#include <v8.h>
+
+void Hello(const v8::FunctionCallbackInfo<v8::Value>& info) {
+  info.GetReturnValue().Set(
+      v8::String::NewFromUtf8(info.GetIsolate(), "world").ToLocalChecked());
+}
+
+NODE_MODULE_INIT() {
+  NODE_SET_METHOD(exports, "hello", Hello);
+}
+```
+
+The example that uses the V8 API directly can be built single-threaded. With
+CMake, link the `v8` and `emnapi` targets:
+
+```cmake
+cmake_minimum_required(VERSION 3.13)
+project(binding LANGUAGES C CXX)
+
+add_subdirectory("node_modules/emnapi" emnapi)
+add_executable(binding binding.cpp)
+target_link_libraries(binding PRIVATE v8 emnapi)
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
+  target_link_options(binding PRIVATE
+    "-sWASM_BIGINT=1"
+    "-sALLOW_MEMORY_GROWTH=1"
+    "-sALLOW_TABLE_GROWTH=1"
+    "-sMODULARIZE=1"
+    "-sEXPORTED_RUNTIME_METHODS=['emnapiInit','ExitStatus','wasmMemory','growMemory']"
+    "-sEXPORTED_FUNCTIONS=['_malloc','_free','_emnapi_create_env','_emnapi_delete_env']"
+  )
+endif()
+```
+
+Synchronous NAN addons can use the single-threaded `v8` and `emnapi` targets.
+Add NAN's include directory to the target:
+
+```cmake
+target_include_directories(binding PRIVATE "node_modules/nan")
+target_link_libraries(binding PRIVATE v8 emnapi)
+```
+
+The bundled `uv.h` exposes the libuv types NAN needs to compile without
+including pthread headers. Thread-backed libuv functions are still implemented
+only in threaded builds. In particular, NAN's `AsyncWorker` and progress
+workers call `uv_queue_work`, so addons that use them need the threaded
+targets:
+
+```cmake
+target_link_libraries(binding PRIVATE v8-mt emnapi-mt)
+target_compile_options(binding PRIVATE -pthread)
+target_link_options(binding PRIVATE -pthread)
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
+  target_link_options(binding PRIVATE
+    "-sPTHREAD_POOL_SIZE=4"
+    "-sPTHREAD_POOL_SIZE_STRICT=2"
+  )
+endif()
+```
+
+The CMake targets add the required Emscripten JavaScript libraries. The V8
+shim is available for Emscripten and WASI targets; the bare
+`wasm32-unknown-unknown` target does not build it.
+
+For Emscripten, initialize the generated module with an emnapi context:
+
+```js
+import { createRequire } from 'node:module'
+import { createContext } from '@emnapi/runtime'
+
+const require = createRequire(import.meta.url)
+const createModule = require('./build/binding.js')
+const Module = await createModule()
+const binding = Module.emnapiInit({ context: createContext() })
+console.log(binding.hello())
+```
+
+To instantiate a WASI module through `@emnapi/core`, pass the V8 plugin and
+the WASI instance to `instantiateNapiModule`:
+
+```js
+import { instantiateNapiModule } from '@emnapi/core'
+import v8 from '@emnapi/core/plugins/v8'
+import { createContext } from '@emnapi/runtime'
+
+const { napiModule } = await instantiateNapiModule(wasmBytes, {
+  context: createContext(),
+  wasi,
+  plugins: [v8]
+})
+const binding = napiModule.exports
+```
+
+The V8 plugin is the only plugin required for the V8 shim.
+
 ### Using Rust
 
 See [napi-rs](https://github.com/napi-rs/napi-rs) 

@@ -95,23 +95,32 @@ export function _v8_make_weak (ref: Ptr, data: Ptr, callback: Ptr, weak_callback
   const refValue = emnapiCtx.isolate.getRef(ref)
   if (!refValue) return
   from64('callback')
-  refValue.setWeak(data, (data) => {
-    let field0 = 0
-    let field1 = 0
-    if (type === 1) {
-      const id = refValue.slot()
-      if (id) {
-        const value = emnapiCtx.jsValueFromNapiValue(id)
-        field0 = emnapiCtx.isolate.getInternalField(value, 0)
-        field1 = emnapiCtx.isolate.getInternalField(value, 1)
-        if ((typeof field0 !== 'number' && typeof field0 !== 'bigint') ||
-            (typeof field1 !== 'number' && typeof field1 !== 'bigint')) {
-          throw new Error('Internal field is not a number')
-        }
+  let field0 = 0
+  let field1 = 0
+  if (type === 1) {
+    const value = refValue.deref()
+    if (value !== undefined) {
+      field0 = emnapiCtx.isolate.getInternalField(value, 0) ?? 0
+      field1 = emnapiCtx.isolate.getInternalField(value, 1) ?? 0
+      if ((typeof field0 !== 'number' && typeof field0 !== 'bigint') ||
+          (typeof field1 !== 'number' && typeof field1 !== 'bigint')) {
+        throw new Error('Internal field is not a number')
       }
     }
+  }
+  refValue.setWeak(data, (data) => {
     makeDynCall('vppipp', 'callback')(weak_callback, data, type, field0, field1)
   })
+}
+
+/**
+ * @__deps $emnapiCtx
+ * @__sig ip
+ */
+export function _v8_is_weak (ref: Ptr): number {
+  const refValue = emnapiCtx.isolate.getRef(ref)
+  if (!refValue || typeof WeakRef !== 'function') return 0
+  return refValue.getSlot() instanceof WeakRef ? 1 : 0
 }
 
 /**

@@ -17,7 +17,7 @@ Local<External> External::New(v8::Isolate* isolate, void* value) {
 }
 
 void* External::Value() const {
-  return _v8_external_value(this);
+  return _v8_external_value(v8impl::HandleValuePointer(this));
 }
 
 }

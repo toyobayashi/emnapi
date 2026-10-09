@@ -53,7 +53,7 @@ MaybeLocal<String> String::NewExternalTwoByte(Isolate* isolate, ExternalStringRe
 MaybeLocal<RegExp> RegExp::New(Local<Context> context,
                                Local<String> pattern,
                                Flags flags) {
-  auto regex = _v8_regex_new(*context, v8impl::AddressFromV8LocalValue(pattern), flags);
+  auto regex = _v8_regex_new(v8impl::HandleValuePointer(*context), v8impl::AddressFromV8LocalValue(pattern), flags);
   if (!regex) return MaybeLocal<RegExp>();
   return v8impl::V8LocalValueFromAddress(regex).As<RegExp>();
 }
@@ -64,22 +64,22 @@ Local<Value> StringObject::New(Isolate* isolate, Local<String> value) {
 }
 
 Local<String> StringObject::ValueOf() const {
-  auto str = _v8_string_object_value_of(this);
+  auto str = _v8_string_object_value_of(v8impl::HandleValuePointer(this));
   return v8impl::V8LocalValueFromAddress(str).As<String>();
 }
 
 int String::Utf8Length(v8::Isolate* isolate) const {
-  return _v8_string_utf8_length(this, isolate);
+  return _v8_string_utf8_length(v8impl::HandleValuePointer(this), isolate);
 }
 
 int String::Length() const {
-  return _v8_string_length(this);
+  return _v8_string_length(v8impl::HandleValuePointer(this));
 }
 
 int String::WriteUtf8(Isolate* isolate, char* buffer, int length,
                 int* nchars_ref, int options) const {
   return _v8_string_write_utf8(
-      this, isolate, buffer, length, nchars_ref, options);
+      v8impl::HandleValuePointer(this), isolate, buffer, length, nchars_ref, options);
 }
 
 size_t String::WriteUtf8V2(Isolate* isolate, char* buffer, size_t capacity,

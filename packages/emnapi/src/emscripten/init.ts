@@ -1,5 +1,5 @@
 /* eslint-disable @stylistic/indent */
-import { from64, makeDynCall, makeSetValue, to64 } from 'emscripten:parse-tools'
+import { POINTER_SIZE, from64, makeDynCall, makeSetValue, to64 } from 'emscripten:parse-tools'
 import { abort, Module, _emnapi_create_env, _emnapi_delete_env } from 'emscripten:runtime'
 
 // declare const global: typeof globalThis
@@ -117,7 +117,21 @@ export function emnapiInit (options: InitOptions): any {
 
       const exportsHandle = scope.add(exports)
       const moduleHandle = scope.add(emnapiModule)
-      Module[emscriptenExportedSymbol](to64('exportsHandle'), to64('moduleHandle'), to64('5'))
+      let exportsSlot = Module._malloc(POINTER_SIZE)
+      let moduleSlot = Module._malloc(POINTER_SIZE)
+      from64('exportsSlot')
+      from64('moduleSlot')
+      try {
+        if (!exportsSlot || !moduleSlot) {
+          throw new Error('Failed to allocate V8 local handle slots')
+        }
+        makeSetValue('exportsSlot', 0, 'exportsHandle', '*')
+        makeSetValue('moduleSlot', 0, 'moduleHandle', '*')
+        Module[emscriptenExportedSymbol](to64('exportsSlot'), to64('moduleSlot'), to64('5'))
+      } finally {
+        if (moduleSlot) Module._free(to64('moduleSlot'))
+        if (exportsSlot) Module._free(to64('exportsSlot'))
+      }
     } catch (err) {
       if (err !== 'unwind') {
         throw err

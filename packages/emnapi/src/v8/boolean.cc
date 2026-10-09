@@ -11,7 +11,7 @@ extern "C" {
 void Boolean::CheckCast(v8::Data*) {}
 
 bool Boolean::Value() const {
-  return _v8_boolean_value(this);
+  return _v8_boolean_value(v8impl::HandleValuePointer(this));
 }
 
 Local<Value> BooleanObject::New(Isolate* isolate, bool value) {
@@ -20,7 +20,7 @@ Local<Value> BooleanObject::New(Isolate* isolate, bool value) {
 }
 
 bool BooleanObject::ValueOf() const {
-  return static_cast<bool>(_v8_boolean_object_value_of(this));
+  return static_cast<bool>(_v8_boolean_object_value_of(v8impl::HandleValuePointer(this)));
 }
 
 }

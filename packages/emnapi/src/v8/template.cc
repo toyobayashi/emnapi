@@ -95,6 +95,9 @@ struct FunctionCallbackInfoImpl {
   internal::Address* implicit_args_;
   internal::Address* values_;
   int length_;
+  // Keep the V8-compatible prefix above unchanged; the local handle frame is
+  // only lifetime management for the wrapper's temporary Local slots.
+  v8impl::ScopedLocalHandles local_handles_;
 
   FunctionCallbackInfoImpl(internal::Address info) {
     size_t argc = 0;
@@ -108,7 +111,7 @@ struct FunctionCallbackInfoImpl {
     *(list + 1) = reinterpret_cast<internal::Address>(Isolate::GetCurrent());
     *(list + 2) = 0;
     // *(list + 3) = reinterpret_cast<internal::Address>(_v8_cbinfo_rv(info));
-    *(list + 3) = internal::ValueHelper::kEmpty;
+    *(list + 3) = static_cast<internal::Address>(v8impl::Constant::kEmpty);
     // *(list + 4) = reinterpret_cast<internal::Address>(_v8_cbinfo_data(info));
     *(list + 5) = reinterpret_cast<internal::Address>(_v8_cbinfo_new_target(info));
     // *(list + 6) = argc;
@@ -137,11 +140,12 @@ internal::Address CallbackWrap(internal::Address info, v8::FunctionCallback call
 
 struct PropertyCallbackInfoImpl {
   internal::Address args_[8];
+  v8impl::ScopedLocalHandles local_handles_;
 
   PropertyCallbackInfoImpl(internal::Address info) : args_{} {
     args_[3] = reinterpret_cast<internal::Address>(Isolate::GetCurrent());
-    args_[4] = internal::ValueHelper::kEmpty;
-    args_[5] = internal::ValueHelper::kEmpty;
+    args_[4] = static_cast<internal::Address>(v8impl::Constant::kEmpty);
+    args_[5] = static_cast<internal::Address>(v8impl::Constant::kEmpty);
     _v8_get_property_cb_info(info, args_);
   }
 
@@ -160,8 +164,8 @@ internal::Address PropertyCallbackReturnValue(
     bool emptyMeansNoIntercept = false) {
   if (!intercepted) return 0;
   if (cbinfo.ReturnValue() == 0 ||
-      cbinfo.ReturnValue() == 1 ||
-      cbinfo.ReturnValue() == internal::ValueHelper::kEmpty) {
+      cbinfo.ReturnValue() == static_cast<internal::Address>(
+          v8impl::Constant::kEmpty)) {
     if (emptyMeansNoIntercept) return 0;
     return v8impl::AddressFromV8LocalValue(Undefined(Isolate::GetCurrent()));
   }
@@ -407,8 +411,8 @@ Local<FunctionTemplate> FunctionTemplate::New(
     uint16_t allowed_receiver_instance_type_range_start,
     uint16_t allowed_receiver_instance_type_range_end) {
   internal::Address tpl_value = _v8_function_template_new(isolate,
-    CallbackWrap, callback, reinterpret_cast<internal::Address>(*data),
-    reinterpret_cast<internal::Address>(*signature), length,
+    CallbackWrap, callback, v8impl::AddressFromV8LocalValue(data),
+    v8impl::AddressFromV8LocalValue(signature), length,
     behavior, side_effect_type, c_function, instance_type,
     allowed_receiver_instance_type_range_start,
     allowed_receiver_instance_type_range_end);
@@ -416,41 +420,37 @@ Local<FunctionTemplate> FunctionTemplate::New(
 }
 
 MaybeLocal<Function> FunctionTemplate::GetFunction(v8::Local<v8::Context> context) {
-  auto func = _v8_function_template_get_function(this, *context);
+  auto func = _v8_function_template_get_function(v8impl::HandleValuePointer(this), v8impl::HandleValuePointer(*context));
   if (!func) return MaybeLocal<Function>();
   return v8impl::V8LocalValueFromAddress(func).As<Function>();
 }
 
 void FunctionTemplate::SetClassName(v8::Local<v8::String> name) {
-  _v8_function_template_set_class_name(this, v8impl::AddressFromV8LocalValue(name));
+  _v8_function_template_set_class_name(v8impl::HandleValuePointer(this), v8impl::AddressFromV8LocalValue(name));
 }
 
 void FunctionTemplate::SetCallHandler(
     FunctionCallback callback, Local<Value> data, SideEffectType side_effect_type,
     const MemorySpan<const CFunction>& c_function) {
   _v8_function_template_set_call_handler(
-      this, CallbackWrap, callback, v8impl::AddressFromV8LocalValue(data));
+      v8impl::HandleValuePointer(this), CallbackWrap, callback, v8impl::AddressFromV8LocalValue(data));
 }
 
 Local<ObjectTemplate> FunctionTemplate::InstanceTemplate() {
-  internal::Address v = _v8_function_template_instance_template(this);
-  v8::Local<v8::ObjectTemplate> local;
-  memcpy(static_cast<void*>(&local), &v, sizeof(v));
-  return local;
+  internal::Address v = _v8_function_template_instance_template(v8impl::HandleValuePointer(this));
+  return v8impl::V8LocalValueFromAddress(v).As<ObjectTemplate>();
 }
 
 Local<ObjectTemplate> FunctionTemplate::PrototypeTemplate() {
-  internal::Address v = _v8_function_template_prototype_template(this);
-  v8::Local<v8::ObjectTemplate> local;
-  memcpy(static_cast<void*>(&local), &v, sizeof(v));
-  return local;
+  internal::Address v = _v8_function_template_prototype_template(v8impl::HandleValuePointer(this));
+  return v8impl::V8LocalValueFromAddress(v).As<ObjectTemplate>();
 }
 
 void Template::Set(Local<Name> name, Local<Data> value,
                    PropertyAttribute attributes) {
   internal::Address name_value = v8impl::AddressFromV8LocalValue(name);
-  internal::Address value_value = reinterpret_cast<internal::Address>(*value);
-  _v8_template_set(this, name_value, value_value, attributes);
+  internal::Address value_value = v8impl::AddressFromV8LocalValue(value);
+  _v8_template_set(v8impl::HandleValuePointer(this), name_value, value_value, attributes);
 }
 
 void Template::SetNativeDataProperty(
@@ -459,7 +459,8 @@ void Template::SetNativeDataProperty(
     PropertyAttribute attribute, SideEffectType getter_side_effect_type,
     SideEffectType setter_side_effect_type) {
   _v8_object_template_set_native_data_property(
-      static_cast<ObjectTemplate*>(this),
+      reinterpret_cast<ObjectTemplate*>(
+          internal::ValueHelper::ValueAsAddress(this)),
       v8impl::AddressFromV8LocalValue(name),
       PropertyGetterWrap, PropertySetterWrap, getter, setter,
       v8impl::AddressFromV8LocalValue(data), attribute,
@@ -467,36 +468,36 @@ void Template::SetNativeDataProperty(
 }
 
 Local<Signature> Signature::New(Isolate* isolate, Local<FunctionTemplate> receiver) {
-  internal::Address signature = _v8_signature_new(isolate, reinterpret_cast<internal::Address>(*receiver));
+  internal::Address signature = _v8_signature_new(isolate, v8impl::AddressFromV8LocalValue(receiver));
   return v8impl::V8LocalValueFromAddress(signature).As<Signature>();
 }
 
 Local<ObjectTemplate> ObjectTemplate::New(Isolate* isolate, Local<FunctionTemplate> constructor) {
-  internal::Address obj_tpl_value = _v8_object_template_new(isolate, reinterpret_cast<internal::Address>(*constructor));
+  internal::Address obj_tpl_value = _v8_object_template_new(isolate, v8impl::AddressFromV8LocalValue(constructor));
   if (!obj_tpl_value) return Local<ObjectTemplate>();
   return v8impl::V8LocalValueFromAddress(obj_tpl_value).As<ObjectTemplate>();
 }
 
 MaybeLocal<Object> ObjectTemplate::NewInstance(v8::Local<v8::Context> context) {
-  internal::Address obj_value = _v8_object_template_new_instance(this, *context);
+  internal::Address obj_value = _v8_object_template_new_instance(v8impl::HandleValuePointer(this), v8impl::HandleValuePointer(*context));
   if (!obj_value) return MaybeLocal<Object>();
   return v8impl::V8LocalValueFromAddress(obj_value).As<Object>();
 }
 
 void ObjectTemplate::SetInternalFieldCount(int value) {
-  _v8_object_template_set_internal_field_count(this, value);
+  _v8_object_template_set_internal_field_count(v8impl::HandleValuePointer(this), value);
 }
 
 void ObjectTemplate::SetCallAsFunctionHandler(
     FunctionCallback callback, Local<Value> data) {
   _v8_object_template_set_call_as_function_handler(
-      this, CallbackWrap, callback, v8impl::AddressFromV8LocalValue(data));
+      v8impl::HandleValuePointer(this), CallbackWrap, callback, v8impl::AddressFromV8LocalValue(data));
 }
 
 void ObjectTemplate::SetHandler(
     const NamedPropertyHandlerConfiguration& configuration) {
   _v8_object_template_set_named_property_handler(
-      this, NamedPropertyGetterWrap, NamedPropertySetterWrap,
+      v8impl::HandleValuePointer(this), NamedPropertyGetterWrap, NamedPropertySetterWrap,
       NamedPropertyQueryWrap, NamedPropertyDeleterWrap,
       NamedPropertyEnumeratorWrap,
       reinterpret_cast<internal::Address>(configuration.getter),
@@ -511,7 +512,7 @@ void ObjectTemplate::SetHandler(
 void ObjectTemplate::SetHandler(
     const IndexedPropertyHandlerConfiguration& configuration) {
   _v8_object_template_set_indexed_property_handler(
-      this, IndexedPropertyGetterWrap, IndexedPropertySetterWrap,
+      v8impl::HandleValuePointer(this), IndexedPropertyGetterWrap, IndexedPropertySetterWrap,
       IndexedPropertyQueryWrap, IndexedPropertyDeleterWrap,
       IndexedPropertyEnumeratorWrap,
       reinterpret_cast<internal::Address>(configuration.getter),
@@ -529,7 +530,7 @@ MaybeLocal<Function> Function::New(
       ConstructorBehavior behavior,
       SideEffectType side_effect_type) {
   internal::Address func_value = _v8_function_new(
-    *context, CallbackWrap, callback, reinterpret_cast<internal::Address>(*data),
+    v8impl::HandleValuePointer(*context), CallbackWrap, callback, v8impl::AddressFromV8LocalValue(data),
     length, static_cast<int>(behavior), static_cast<int>(side_effect_type));
   if (!func_value) return MaybeLocal<Function>();
   return v8impl::V8LocalValueFromAddress(func_value).As<Function>();

@@ -7,7 +7,7 @@ extern "C" {
 }
 
 MaybeLocal<Value> Date::New(Local<Context> context, double time) {
-  auto n = _v8_date_new(*context, time);
+  auto n = _v8_date_new(v8impl::HandleValuePointer(*context), time);
   if (!n) return MaybeLocal<Value>();
   return v8impl::V8LocalValueFromAddress(n);
 }

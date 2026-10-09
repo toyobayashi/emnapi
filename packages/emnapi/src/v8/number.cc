@@ -19,21 +19,21 @@ void Uint32::CheckCast(v8::Data*) {}
 void Int32::CheckCast(v8::Data*) {}
 
 double Number::Value() const {
-  return _v8_number_value(this);
+  return _v8_number_value(v8impl::HandleValuePointer(this));
 }
 
 int64_t Integer::Value() const {
   int64_t ret = 0;
-  _v8_integer_value(this, &ret);
+  _v8_integer_value(v8impl::HandleValuePointer(this), &ret);
   return ret;
 }
 
 uint32_t Uint32::Value() const {
-  return _v8_uint32_value(this);
+  return _v8_uint32_value(v8impl::HandleValuePointer(this));
 }
 
 int32_t Int32::Value() const {
-  return _v8_int32_value(this);
+  return _v8_int32_value(v8impl::HandleValuePointer(this));
 }
 
 Local<Number> Number::New(Isolate* isolate, double value) {
