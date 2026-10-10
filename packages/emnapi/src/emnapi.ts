@@ -387,7 +387,7 @@ export function emnapi_release_external_sharedarraybuffer (handle: void_p): void
  * Can be called on any thread. Increments refcount and registers in
  * the current thread's FinalizationRegistry.
  * Exposed as Module.emnapiAcquireExternalSharedArrayBuffer (emscripten) or
- * napiModule.emnapi.acquireExternalSharedArrayBuffer (core).
+ * addonModule.emnapi.acquireExternalSharedArrayBuffer (core).
  */
 export function $emnapiAcquireExternalSharedArrayBuffer (handle: number, sab?: SharedArrayBuffer): SharedArrayBuffer {
   if (sab != null && !emnapiExternalMemory.isSharedArrayBuffer(sab)) {

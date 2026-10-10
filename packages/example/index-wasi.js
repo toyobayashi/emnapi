@@ -6,8 +6,8 @@ const emnapiCtx = createContext()
 init(new URL('./out/wasi-sdk/binding.wasm', import.meta.url), {
   context: emnapiCtx,
   asyncWorkPoolSize: 4,
-}).then(({ instance, napiModule }) => {
-  const binding = napiModule.exports
+}).then(({ instance, addonModule }) => {
+  const binding = addonModule.exports
   binding.run((current, total) => {
     console.log(`run ${current} / ${total}`)
   }, () => {

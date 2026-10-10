@@ -163,10 +163,12 @@ async function buildNonEmscriptenMain (tsconfigPath, outputDir) {
           return `import { _WebAssembly as WebAssembly } from '@/util'
 import { ThreadManager } from '@emnapi/wasi-threads'
 
-export function createNapiModule (options) {
+export function createAddonModule (options) {
   ${parsedCode}
-  return napiModule;
+  return addonModule;
 }
+
+export const createNapiModule = createAddonModule;
 `
         }
       }
@@ -176,7 +178,7 @@ export function createNapiModule (options) {
     // file: coreOut,
     dir: outputDir,
     format: 'iife',
-    name: 'napiModule',
+    name: 'addonModule',
     strict: false
   })
   console.log(`${input} -> ${path.join(outputDir, 'index.js')}`)

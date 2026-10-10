@@ -4,10 +4,10 @@
 ;(async function main () {
   const init = async function () {
     const { WASI } = await import('../../../node_modules/@tybys/wasm-util/dist/wasm-util.esm.js')
-    const { createNapiModule, loadNapiModule } = await import('../../core/dist/emnapi-core.full.js')
+    const { createAddonModule, loadAddon } = await import('../../core/dist/emnapi-core.full.js')
     const { getDefaultContext } = await import('../../runtime/dist/emnapi.js')
     const wasi = new WASI()
-    const napiModule = createNapiModule({
+    const addonModule = createAddonModule({
       context: getDefaultContext(),
       reuseWorker: {
         size: 4
@@ -24,16 +24,16 @@
     })
 
     const p = new Promise((resolve, reject) => {
-      loadNapiModule(napiModule, '../.build/wasm32-wasip1-threads/Debug/async.wasm', {
+      loadAddon(addonModule, '../.build/wasm32-wasip1-threads/Debug/async.wasm', {
         wasi,
         overwriteImports (importObject) {
           importObject.env.memory = wasmMemory
         }
       }).then(() => {
-        resolve(napiModule.exports)
+        resolve(addonModule.exports)
       }).catch(reject)
     })
-    p.Module = napiModule
+    p.Module = addonModule
     return p
   }
   const test_async = await init()

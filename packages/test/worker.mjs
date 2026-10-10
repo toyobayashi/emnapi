@@ -69,7 +69,7 @@ import { v8, asyncWork, tsfn } from '../../node_modules/@emnapi/core/dist/plugin
     })()
   }
 
-  const { instantiateNapiModule, MessageHandler } = emnapiCore
+  const { instantiateAddon, MessageHandler } = emnapiCore
 
   const handler = new MessageHandler({
     async onLoad ({ wasmModule, wasmMemory }) {
@@ -95,7 +95,7 @@ import { v8, asyncWork, tsfn } from '../../node_modules/@emnapi/core/dist/plugin
         return new TextDecoder().decode(shared ? HEAPU8.slice(ptr, end) : HEAPU8.subarray(ptr, end))
       }
 
-      return instantiateNapiModule(wasmModule, {
+      return instantiateAddon(wasmModule, {
         childThread: true,
         wasi,
         overwriteImports (importObject) {
