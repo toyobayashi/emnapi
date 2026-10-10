@@ -2,17 +2,19 @@
 const assert = require('assert')
 const tap = require('tap')
 const test = tap.test
+const waitForTap = require('./tap-promise')
 
 module.exports = {
   target: 'nan_nannew',
   test: async function (bindings) {
+    const pending = []
     for (var symbol in bindings) {
       if (typeof bindings[symbol] == 'function' && symbol.match(/^test.*/)) {
-        test('C++: ' + symbol, bindings[symbol]);
+        pending.push(waitForTap(test('C++: ' + symbol, bindings[symbol])))
       }
     }
 
-    test('numbers', function (t) {
+    pending.push(waitForTap(test('numbers', function (t) {
       t.plan(12);
 
       t.type(bindings.newIntegerWithValue, 'function');
@@ -30,10 +32,10 @@ module.exports = {
       t.equals(bindings.newUint32WithValue(5), 5);
       t.type(bindings.newUint32WithValue(5), 'number');
       t.end();
-    });
+    })))
 
 
-    test('strings', function (t) {
+    pending.push(waitForTap(test('strings', function (t) {
       t.plan(3);
 
       t.equals(bindings.newStringFromChars(), "hello?");
@@ -41,12 +43,14 @@ module.exports = {
       t.equals(bindings.newStringFromStdString(), "hello!");
 
       t.end();
-    });
+    })))
 
-    test('test MakeMaybe(...)', function (t) {
+    pending.push(waitForTap(test('test MakeMaybe(...)', function (t) {
       t.plan(1);
       t.ok(bindings.invokeMakeMaybe() - Math.PI < 10e-8);
       t.end();
-    });
+    })))
+
+    await Promise.all(pending)
   }
 }

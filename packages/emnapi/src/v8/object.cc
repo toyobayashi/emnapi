@@ -45,11 +45,12 @@ namespace {
 
 struct ObjectPropertyCallbackInfoImpl {
   internal::Address args_[8];
+  v8impl::ScopedLocalHandles local_handles_;
 
   explicit ObjectPropertyCallbackInfoImpl(internal::Address info) : args_{} {
     args_[3] = reinterpret_cast<internal::Address>(Isolate::GetCurrent());
-    args_[4] = internal::ValueHelper::kEmpty;
-    args_[5] = internal::ValueHelper::kEmpty;
+    args_[4] = static_cast<internal::Address>(v8impl::Constant::kEmpty);
+    args_[5] = static_cast<internal::Address>(v8impl::Constant::kEmpty);
     _v8_get_property_cb_info(info, args_);
   }
 
@@ -83,20 +84,20 @@ internal::Address ObjectPropertySetterWrap(
 void Object::CheckCast(v8::Value*) {}
 
 MaybeLocal<Value> Object::Get(v8::Local<v8::Context> context, uint32_t index) {
-  internal::Address value_address = _v8_object_get_index(this, *context, index);
+  internal::Address value_address = _v8_object_get_index(v8impl::HandleValuePointer(this), v8impl::HandleValuePointer(*context), index);
   if (!value_address) return MaybeLocal<Value>();
   return v8impl::V8LocalValueFromAddress(value_address).As<Value>();
 }
 
 MaybeLocal<Value> Object::Get(v8::Local<v8::Context> context, v8::Local<v8::Value> key) {
-  internal::Address value_address = _v8_object_get_key(this, *context, v8impl::AddressFromV8LocalValue(key));
+  internal::Address value_address = _v8_object_get_key(v8impl::HandleValuePointer(this), v8impl::HandleValuePointer(*context), v8impl::AddressFromV8LocalValue(key));
   if (!value_address) return MaybeLocal<Value>();
   return v8impl::V8LocalValueFromAddress(value_address).As<Value>();
 }
 
 Maybe<bool> Object::Set(v8::Local<v8::Context> context, v8::Local<v8::Value> key, v8::Local<v8::Value> value) {
   int success = 0;
-  int r = _v8_object_set(this, *context,
+  int r = _v8_object_set(v8impl::HandleValuePointer(this), v8impl::HandleValuePointer(*context),
     v8impl::AddressFromV8LocalValue(key), v8impl::AddressFromV8LocalValue(value), &success);
   if (r != 0) return Nothing<bool>();
   return Just<bool>(success);
@@ -104,7 +105,7 @@ Maybe<bool> Object::Set(v8::Local<v8::Context> context, v8::Local<v8::Value> key
 
 Maybe<bool> Object::Set(v8::Local<v8::Context> context, uint32_t index, v8::Local<v8::Value> value) {
   int success = 0;
-  int r = _v8_object_set_index(this, *context, index,
+  int r = _v8_object_set_index(v8impl::HandleValuePointer(this), v8impl::HandleValuePointer(*context), index,
     v8impl::AddressFromV8LocalValue(value), &success);
   if (r != 0) return Nothing<bool>();
   return Just<bool>(success != 0);
@@ -115,7 +116,7 @@ Maybe<bool> Object::DefineOwnProperty(
     PropertyAttribute attributes) {
   int success = 0;
   int r = _v8_object_define_own_property(
-      this, *context, v8impl::AddressFromV8LocalValue(key),
+      v8impl::HandleValuePointer(this), v8impl::HandleValuePointer(*context), v8impl::AddressFromV8LocalValue(key),
       v8impl::AddressFromV8LocalValue(value), attributes, &success);
   if (r != 0) return Nothing<bool>();
   return Just<bool>(success != 0);
@@ -125,7 +126,7 @@ Maybe<PropertyAttribute> Object::GetPropertyAttributes(
     Local<Context> context, Local<Value> key) {
   int attributes = None;
   int r = _v8_object_get_property_attributes(
-      this, *context, v8impl::AddressFromV8LocalValue(key), &attributes);
+      v8impl::HandleValuePointer(this), v8impl::HandleValuePointer(*context), v8impl::AddressFromV8LocalValue(key), &attributes);
   if (r != 0) return Nothing<PropertyAttribute>();
   return Just<PropertyAttribute>(static_cast<PropertyAttribute>(attributes));
 }
@@ -133,14 +134,14 @@ Maybe<PropertyAttribute> Object::GetPropertyAttributes(
 Maybe<bool> Object::Has(Local<Context> context, Local<Value> key) {
   int has = 0;
   int r = _v8_object_has(
-      this, *context, v8impl::AddressFromV8LocalValue(key), &has);
+      v8impl::HandleValuePointer(this), v8impl::HandleValuePointer(*context), v8impl::AddressFromV8LocalValue(key), &has);
   if (r != 0) return Nothing<bool>();
   return Just<bool>(has != 0);
 }
 
 Maybe<bool> Object::Has(Local<Context> context, uint32_t index) {
   int has = 0;
-  int r = _v8_object_has_index(this, *context, index, &has);
+  int r = _v8_object_has_index(v8impl::HandleValuePointer(this), v8impl::HandleValuePointer(*context), index, &has);
   if (r != 0) return Nothing<bool>();
   return Just<bool>(has != 0);
 }
@@ -148,26 +149,26 @@ Maybe<bool> Object::Has(Local<Context> context, uint32_t index) {
 Maybe<bool> Object::Delete(Local<Context> context, Local<Value> key) {
   int success = 0;
   int r = _v8_object_delete(
-      this, *context, v8impl::AddressFromV8LocalValue(key), &success);
+      v8impl::HandleValuePointer(this), v8impl::HandleValuePointer(*context), v8impl::AddressFromV8LocalValue(key), &success);
   if (r != 0) return Nothing<bool>();
   return Just<bool>(success != 0);
 }
 
 Maybe<bool> Object::Delete(Local<Context> context, uint32_t index) {
   int success = 0;
-  int r = _v8_object_delete_index(this, *context, index, &success);
+  int r = _v8_object_delete_index(v8impl::HandleValuePointer(this), v8impl::HandleValuePointer(*context), index, &success);
   if (r != 0) return Nothing<bool>();
   return Just<bool>(success != 0);
 }
 
 MaybeLocal<Array> Object::GetPropertyNames(Local<Context> context) {
-  internal::Address names = _v8_object_get_property_names(this, *context);
+  internal::Address names = _v8_object_get_property_names(v8impl::HandleValuePointer(this), v8impl::HandleValuePointer(*context));
   if (!names) return MaybeLocal<Array>();
   return v8impl::V8LocalValueFromAddress(names).As<Array>();
 }
 
 MaybeLocal<Array> Object::GetOwnPropertyNames(Local<Context> context) {
-  internal::Address names = _v8_object_get_own_property_names(this, *context);
+  internal::Address names = _v8_object_get_own_property_names(v8impl::HandleValuePointer(this), v8impl::HandleValuePointer(*context));
   if (!names) return MaybeLocal<Array>();
   return v8impl::V8LocalValueFromAddress(names).As<Array>();
 }
@@ -175,7 +176,7 @@ MaybeLocal<Array> Object::GetOwnPropertyNames(Local<Context> context) {
 Maybe<bool> Object::SetPrototype(Local<Context> context, Local<Value> prototype) {
   int success = 0;
   int r = _v8_object_set_prototype(
-      this, *context, v8impl::AddressFromV8LocalValue(prototype), &success);
+      v8impl::HandleValuePointer(this), v8impl::HandleValuePointer(*context), v8impl::AddressFromV8LocalValue(prototype), &success);
   if (r != 0) return Nothing<bool>();
   return Just<bool>(success != 0);
 }
@@ -183,7 +184,7 @@ Maybe<bool> Object::SetPrototype(Local<Context> context, Local<Value> prototype)
 Maybe<bool> Object::HasOwnProperty(Local<Context> context, Local<Name> key) {
   int has = 0;
   int r = _v8_object_has_own_property(
-      this, *context, v8impl::AddressFromV8LocalValue(key), &has);
+      v8impl::HandleValuePointer(this), v8impl::HandleValuePointer(*context), v8impl::AddressFromV8LocalValue(key), &has);
   if (r != 0) return Nothing<bool>();
   return Just<bool>(has != 0);
 }
@@ -191,17 +192,20 @@ Maybe<bool> Object::HasOwnProperty(Local<Context> context, Local<Name> key) {
 MaybeLocal<Value> Object::CallAsFunction(
     Local<Context> context, Local<Value> receiver, int argc,
     Local<Value> argv[]) {
+  const auto arguments = v8impl::AddressArrayFromV8LocalValues(argc, argv);
   internal::Address result = _v8_object_call_as_function(
-      this, *context, v8impl::AddressFromV8LocalValue(receiver), argc,
-      reinterpret_cast<internal::Address*>(argv));
+      v8impl::HandleValuePointer(this), v8impl::HandleValuePointer(*context), v8impl::AddressFromV8LocalValue(receiver), argc,
+      const_cast<internal::Address*>(arguments.data()));
   if (!result) return MaybeLocal<Value>();
   return v8impl::V8LocalValueFromAddress(result);
 }
 
 MaybeLocal<Value> Object::CallAsConstructor(
     Local<Context> context, int argc, Local<Value> argv[]) {
+  const auto arguments = v8impl::AddressArrayFromV8LocalValues(argc, argv);
   internal::Address result = _v8_object_call_as_constructor(
-      this, *context, argc, reinterpret_cast<internal::Address*>(argv));
+      v8impl::HandleValuePointer(this), v8impl::HandleValuePointer(*context), argc,
+      const_cast<internal::Address*>(arguments.data()));
   if (!result) return MaybeLocal<Value>();
   return v8impl::V8LocalValueFromAddress(result);
 }
@@ -217,7 +221,7 @@ Maybe<bool> Object::SetNativeDataProperty(
       : v8impl::AddressFromV8LocalValue(data);
   int success = 0;
   int r = _v8_object_set_native_data_property(
-      this, *context, v8impl::AddressFromV8LocalValue(name),
+      v8impl::HandleValuePointer(this), v8impl::HandleValuePointer(*context), v8impl::AddressFromV8LocalValue(name),
       ObjectPropertyGetterWrap, ObjectPropertySetterWrap,
       getter, setter, data_address, attribute,
       getter_side_effect_type, setter_side_effect_type, &success);
@@ -227,27 +231,27 @@ Maybe<bool> Object::SetNativeDataProperty(
 
 Maybe<bool> Object::SetPrivate(Local<Context> context, Local<Private> key, Local<Value> value) {
   int success = 0;
-  int r = _v8_object_set_private(this, *context, reinterpret_cast<internal::Address>(*key), reinterpret_cast<internal::Address>(*value), &success);
+  int r = _v8_object_set_private(v8impl::HandleValuePointer(this), v8impl::HandleValuePointer(*context), v8impl::AddressFromV8LocalValue(key), v8impl::AddressFromV8LocalValue(value), &success);
   if (r != 0) return Nothing<bool>();
   return Just<bool>(success);
 }
 
 Maybe<bool> Object::HasPrivate(Local<Context> context, Local<Private> key) {
   int has = 0;
-  int r = _v8_object_has_private(this, *context, reinterpret_cast<internal::Address>(*key), &has);
+  int r = _v8_object_has_private(v8impl::HandleValuePointer(this), v8impl::HandleValuePointer(*context), v8impl::AddressFromV8LocalValue(key), &has);
   if (r != 0) return Nothing<bool>();
   return Just<bool>(has != 0);
 }
 
 MaybeLocal<Value> Object::GetPrivate(Local<Context> context, Local<Private> key) {
-  internal::Address value_address = _v8_object_get_private(this, *context, reinterpret_cast<internal::Address>(*key));
+  internal::Address value_address = _v8_object_get_private(v8impl::HandleValuePointer(this), v8impl::HandleValuePointer(*context), v8impl::AddressFromV8LocalValue(key));
   if (!value_address) return MaybeLocal<Value>();
   return v8impl::V8LocalValueFromAddress(value_address).As<Value>();
 }
 
 Maybe<bool> Object::DeletePrivate(Local<Context> context, Local<Private> key) {
   int success = 0;
-  int r = _v8_object_delete_private(this, *context, reinterpret_cast<internal::Address>(*key), &success);
+  int r = _v8_object_delete_private(v8impl::HandleValuePointer(this), v8impl::HandleValuePointer(*context), v8impl::AddressFromV8LocalValue(key), &success);
   if (r != 0) return Nothing<bool>();
   return Just<bool>(success);
 }
@@ -264,27 +268,25 @@ Local<Private> Private::ForApi(Isolate* isolate, Local<String> name) {
 }
 
 void Object::SetInternalField(int index, v8::Local<v8::Data> data) {
-  _v8_object_set_internal_field(this, index, reinterpret_cast<internal::Address>(*data));
+  _v8_object_set_internal_field(v8impl::HandleValuePointer(this), index, v8impl::AddressFromV8LocalValue(data));
 }
 
 void Object::SetAlignedPointerInInternalField(int index, void* data) {
-  _v8_object_set_aligned_pointer_in_internal_field(this, index, data);
+  _v8_object_set_aligned_pointer_in_internal_field(v8impl::HandleValuePointer(this), index, data);
 }
 
 void* Object::SlowGetAlignedPointerFromInternalField(int index) {
-  return _v8_object_get_aligned_pointer_in_internal_field(this, index);
+  return _v8_object_get_aligned_pointer_in_internal_field(v8impl::HandleValuePointer(this), index);
 }
 
 int Object::InternalFieldCount() const {
-  return _v8_object_internal_field_count(this);
+  return _v8_object_internal_field_count(v8impl::HandleValuePointer(this));
 }
 
 Local<Data> Object::SlowGetInternalField(int index) {
-  internal::Address data_value = _v8_object_get_internal_field(this, index);
-  Local<Data> data;
-  if (!data_value) return data;
-  memcpy(static_cast<void*>(&data), &data_value, sizeof(data_value));
-  return data;
+  internal::Address data_value = _v8_object_get_internal_field(v8impl::HandleValuePointer(this), index);
+  if (!data_value) return Local<Data>();
+  return v8impl::V8LocalValueFromAddress(data_value).As<Data>();
 }
 
 }

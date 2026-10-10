@@ -48,12 +48,12 @@ size_t BackingStore::ByteLength() const {
 
 size_t ArrayBuffer::ByteLength() const {
   return _v8_array_buffer_byte_length(
-      reinterpret_cast<internal::Address>(this));
+      internal::ValueHelper::ValueAsAddress(this));
 }
 
 std::shared_ptr<BackingStore> ArrayBuffer::GetBackingStore() {
   size_t byte_length = 0;
-  const internal::Address buffer = reinterpret_cast<internal::Address>(this);
+  const internal::Address buffer = internal::ValueHelper::ValueAsAddress(this);
   internal::Address data = _v8_array_buffer_get_backing_store(
       buffer, &byte_length);
   void* token = std::malloc(1);
@@ -76,19 +76,19 @@ void* ArrayBuffer::Data() const {
 
 Local<ArrayBuffer> ArrayBufferView::Buffer() {
   internal::Address value = _v8_array_buffer_view_buffer(
-      reinterpret_cast<internal::Address>(this));
+      internal::ValueHelper::ValueAsAddress(this));
   if (!value) return Local<ArrayBuffer>();
   return v8impl::V8LocalValueFromAddress(value).As<ArrayBuffer>();
 }
 
 size_t ArrayBufferView::ByteOffset() {
   return _v8_array_buffer_view_byte_offset(
-      reinterpret_cast<internal::Address>(this));
+      internal::ValueHelper::ValueAsAddress(this));
 }
 
 size_t ArrayBufferView::ByteLength() {
   return _v8_array_buffer_view_byte_length(
-      reinterpret_cast<internal::Address>(this));
+      internal::ValueHelper::ValueAsAddress(this));
 }
 
 size_t ArrayBufferView::CopyContents(void* dest, size_t byte_length) {

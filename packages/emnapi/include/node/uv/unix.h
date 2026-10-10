@@ -1,12 +1,12 @@
 #ifndef UV_UNIX_H
 #define UV_UNIX_H
 
+#include <stdint.h>
+
 #if defined(__EMSCRIPTEN_PTHREADS__) || defined(_REENTRANT)
 
 #include <semaphore.h>
 #include <pthread.h>
-
-#include "threadpool.h"
 
 #define UV_ONCE_INIT PTHREAD_ONCE_INIT
 
@@ -17,7 +17,21 @@ typedef sem_t uv_sem_t;
 typedef pthread_cond_t uv_cond_t;
 typedef pthread_key_t uv_key_t;
 
+#else
+
+/* Keep libuv's public handle types available for single-threaded NAN builds.
+ * Thread-backed uv functions are only implemented in threaded builds. */
+#define UV_ONCE_INIT 0
+typedef uintptr_t uv_once_t;
+typedef uintptr_t uv_thread_t;
+typedef uintptr_t uv_mutex_t;
+typedef uintptr_t uv_sem_t;
+typedef uintptr_t uv_cond_t;
+typedef uintptr_t uv_key_t;
+
 #endif
+
+#include "threadpool.h"
 
 #define UV_HANDLE_PRIVATE_FIELDS                                              \
   uv_handle_t* next_closing;                                                  \

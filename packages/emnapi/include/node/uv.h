@@ -1,8 +1,6 @@
 #ifndef UV_H
 #define UV_H
 
-#if defined(__EMSCRIPTEN_PTHREADS__) || defined(_REENTRANT)
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -199,5 +197,4 @@ struct uv_loop_s {
 }
 #endif
 
-#endif
 #endif /* UV_H */

@@ -2,11 +2,12 @@
 const assert = require('assert')
 const tap = require('tap')
 const test = tap.test
+const waitForTap = require('./tap-promise')
 
 module.exports = {
   target: 'nan_morenews',
   test: async function (bindings) {
-    test('morenews', function (t) {
+    return waitForTap(test('morenews', function (t) {
       t.plan(16);
       t.type(bindings.newNumber, 'function');
       t.type(bindings.newPositiveInteger, 'function');
@@ -25,6 +26,6 @@ module.exports = {
       t.equal(bindings.newUcs2String(), 'strïng');
       t.equals(bindings.newExternalStringResource(), 'strïng');
       t.equals(bindings.newExternalAsciiStringResource(), 'string');
-    });
+    }))
   }
 }

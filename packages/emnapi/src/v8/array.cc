@@ -13,7 +13,7 @@ Local<Array> Array::New(Isolate* isolate, int length) {
 }
 
 uint32_t Array::Length() const {
-  return _v8_array_length(this);
+  return _v8_array_length(v8impl::HandleValuePointer(this));
 }
 
 }

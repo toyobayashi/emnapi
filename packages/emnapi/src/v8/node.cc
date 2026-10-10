@@ -120,11 +120,13 @@ void EmitAsyncDestroy(v8::Isolate*, async_context asyncContext) {
 v8::MaybeLocal<v8::Value> MakeCallback(
     v8::Isolate*, v8::Local<v8::Object> recv, v8::Local<v8::Function> callback,
     int argc, v8::Local<v8::Value>* argv, async_context asyncContext) {
+  const auto arguments = v8::v8impl::AddressArrayFromV8LocalValues(argc, argv);
   v8::internal::Address result = 0;
   napi_status status = _emnapi_node_make_callback(
       nullptr, v8::v8impl::AddressFromV8LocalValue(recv),
       v8::v8impl::AddressFromV8LocalValue(callback),
-      reinterpret_cast<v8::internal::Address*>(argv), static_cast<size_t>(argc),
+      const_cast<v8::internal::Address*>(arguments.data()),
+      static_cast<size_t>(argc),
       asyncContext.async_id, asyncContext.trigger_async_id, &result);
   if (status != napi_ok) return v8::MaybeLocal<v8::Value>();
   return v8::v8impl::V8LocalValueFromAddress(result);

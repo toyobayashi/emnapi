@@ -12,7 +12,7 @@ extern "C" {
 void Context::CheckCast(v8::Data*) {}
 
 Local<Object> Context::Global() {
-  return v8impl::V8LocalValueFromAddress(_v8_context_global(this)).As<Object>();
+  return v8impl::V8LocalValueFromAddress(_v8_context_global(v8impl::HandleValuePointer(this))).As<Object>();
 }
 
 Isolate* Context::GetIsolate() {

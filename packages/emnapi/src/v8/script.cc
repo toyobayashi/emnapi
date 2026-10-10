@@ -23,14 +23,12 @@ void ScriptOrigin::VerifyHostDefinedOptions() const {
 }
 
 Local<Script> UnboundScript::BindToCurrentContext() {
-  Local<Script> ret;
-  internal::Address v = _v8_unbound_script_bind_to_current_context(this);
-  memcpy(static_cast<void*>(&ret), &v, sizeof(v));
-  return ret;
+  internal::Address v = _v8_unbound_script_bind_to_current_context(v8impl::HandleValuePointer(this));
+  return v8impl::V8LocalValueFromAddress(v).As<Script>();
 }
 
 MaybeLocal<Value> Script::Run(Local<Context> context) {
-  return v8impl::V8LocalValueFromAddress(_v8_script_run(this, *context));
+  return v8impl::V8LocalValueFromAddress(_v8_script_run(v8impl::HandleValuePointer(this), v8impl::HandleValuePointer(*context)));
 }
 
 MaybeLocal<Script> ScriptCompiler::Compile(Local<Context> context, Source* source, ScriptCompiler::CompileOptions options, v8::ScriptCompiler::NoCacheReason no_cache_reason) {
@@ -47,15 +45,13 @@ ScriptCompiler::CompileUnboundScript(Isolate* isolate,
                                      ScriptCompiler::CompileOptions options,
                                      ScriptCompiler::NoCacheReason reason) {
   if (!source || source->source_string.IsEmpty()) return Local<UnboundScript>();
-  Local<UnboundScript> ret;
   internal::Address v = _v8_script_compiler_compile_unbound_script(
     isolate,
     v8impl::AddressFromV8LocalValue(source->source_string),
     options,
     reason
   );
-  memcpy(static_cast<void*>(&ret), &v, sizeof(v));
-  return ret;
+  return v8impl::V8LocalValueFromAddress(v).As<UnboundScript>();
 }
 
 ScriptCompiler::ConsumeCodeCacheTask::~ConsumeCodeCacheTask() {

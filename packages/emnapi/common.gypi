@@ -21,7 +21,6 @@
     'defines': [
       'BUILDING_NODE_EXTENSION',
       '__STDC_FORMAT_MACROS',
-      'V8_ENABLE_DIRECT_HANDLE',
     ],
 
     'cflags': [

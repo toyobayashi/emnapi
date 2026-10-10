@@ -146,10 +146,6 @@ export default defineConfig({
         replacement: browserDir + 'empty.mjs'
       },
       {
-        find: 'tap',
-        replacement: browserDir + 'tap.js'
-      },
-      {
         find: fileURLToPath(new URL('./common.js', import.meta.url)),
         replacement: browserDir + 'common.js'
       },

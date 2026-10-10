@@ -20,6 +20,7 @@ extern "C" {
                                WeakCallbackInfo<void>::Callback weak_callback,
                                WeakCallbackType type);
   V8_EXTERN void* _v8_clear_weak(internal::Address location);
+  V8_EXTERN int _v8_is_weak(internal::Address location);
   V8_EXTERN int _v8_global_reference_equals(internal::Address lhs, internal::Address rhs);
   V8_EXTERN internal::Address _v8_global_value_identity(internal::Address value);
   V8_EXTERN void _v8_retain_global_value_identity(internal::Address identity);
@@ -51,6 +52,9 @@ Isolate::Isolate(): data_{} {
 
 struct GlobalHandle {
   Address object;
+  uint16_t class_id = 0;
+  uint8_t index = 0;
+  uint8_t flags = 0;
   Address ref;
 };
 
@@ -70,7 +74,10 @@ internal::Address* GlobalizeReference(internal::Isolate* isolate,
                                       internal::Address value) {
   internal::Address ref_id = _v8_globalize_reference(isolate, value);
   internal::Address object_id = _v8_global_value_identity(value);
-  return reinterpret_cast<internal::Address*>(new internal::GlobalHandle{object_id, ref_id});
+  internal::GlobalHandle* handle = new internal::GlobalHandle{};
+  handle->object = object_id;
+  handle->ref = ref_id;
+  return reinterpret_cast<internal::Address*>(handle);
 }
 
 void DisposeGlobal(internal::Address* global_handle) {
@@ -86,8 +93,11 @@ internal::Address* CopyGlobalReference(internal::Address* from) {
       reinterpret_cast<const internal::GlobalHandle*>(from);
   internal::Address ref_id = _v8_copy_global_reference(source->ref);
   _v8_retain_global_value_identity(source->object);
-  return reinterpret_cast<internal::Address*>(
-      new internal::GlobalHandle{source->object, ref_id});
+  internal::GlobalHandle* handle = new internal::GlobalHandle{};
+  handle->object = source->object;
+  handle->flags = source->flags;
+  handle->ref = ref_id;
+  return reinterpret_cast<internal::Address*>(handle);
 }
 
 internal::Address LocalFromGlobalReference(internal::Address global_handle) {
@@ -126,11 +136,21 @@ static void WeakCallback(WeakCallbackInfo<void>::Callback weak_callback,
 void MakeWeak(internal::Address* location, void* data,
               WeakCallbackInfo<void>::Callback weak_callback,
               WeakCallbackType type) {
-  _v8_make_weak(*location, data, WeakCallback, weak_callback, type);
+  const internal::GlobalHandle* handle =
+      reinterpret_cast<const internal::GlobalHandle*>(location);
+  _v8_make_weak(handle->ref, data, WeakCallback, weak_callback, type);
+  if (_v8_is_weak(handle->ref) != 0) {
+    internal::Internals::UpdateNodeState(
+        location, internal::Internals::kNodeStateIsWeakValue);
+  }
 }
 
 void* ClearWeak(internal::Address* location) {
-  return _v8_clear_weak(*location);
+  const internal::GlobalHandle* handle =
+      reinterpret_cast<const internal::GlobalHandle*>(location);
+  void* parameter = _v8_clear_weak(handle->ref);
+  internal::Internals::UpdateNodeState(location, 0);
+  return parameter;
 };
 
 bool GlobalHandlesEqual(internal::Address* lhs, internal::Address* rhs) {

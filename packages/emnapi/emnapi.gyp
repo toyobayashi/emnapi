@@ -168,9 +168,6 @@
         'node.cc',
         'script.cc'
       ],
-      'defines': [
-        'V8_ENABLE_DIRECT_HANDLE'
-      ],
       'link_settings': {
         'target_conditions': [
           ['_type == "executable" and OS == "emscripten"', {
