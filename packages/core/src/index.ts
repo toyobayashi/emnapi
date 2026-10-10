@@ -1,5 +1,9 @@
-export { createNapiModule } from './emnapi/index'
+export { createAddonModule, createNapiModule } from './emnapi/index'
 export {
+  loadAddon,
+  loadAddonSync,
+  instantiateAddon,
+  instantiateAddonSync,
   loadNapiModule,
   loadNapiModuleSync,
   instantiateNapiModule,
@@ -14,6 +18,7 @@ export const version = __VERSION__
 export type {
   PointerInfo,
   InitOptions,
+  AddonModule,
   NapiModule,
   NodeBinding,
   CreateWorkerInfo,
@@ -28,6 +33,7 @@ export type {
   LoadOptions,
   InstantiateOptions,
   LoadedSource,
+  InstantiatedAddonSource,
   InstantiatedSource
 } from './load'
 

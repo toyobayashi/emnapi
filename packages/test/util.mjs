@@ -3,7 +3,7 @@ import fs from 'fs'
 import { Worker } from 'worker_threads'
 import { getDefaultContext } from '@emnapi/runtime'
 import { WASI } from './wasi.js'
-import { createNapiModule, loadNapiModule } from '@emnapi/core'
+import { createAddonModule, loadAddon } from '@emnapi/core'
 import v8 from '@emnapi/core/plugins/v8'
 import asyncWork from '@emnapi/core/plugins/async-work'
 import tsfn from '@emnapi/core/plugins/threadsafe-function'
@@ -74,7 +74,7 @@ export function loadPath (request, options) {
         version: 'preview1',
         fs
       })
-      const napiModule = createNapiModule({
+      const addonModule = createAddonModule({
         context,
         filename: request,
         asyncWorkPoolSize: process.env.EMNAPI_TEST_WASI_THREADS
@@ -106,8 +106,8 @@ export function loadPath (request, options) {
       })
 
       const p = new Promise((resolve, reject) => {
-        loadNapiModule(
-          napiModule,
+        loadAddon(
+          addonModule,
           getWasmInput(request),
           {
             wasi,
@@ -123,19 +123,19 @@ export function loadPath (request, options) {
             }
           }
         ).then((source) => {
-          napiModule.wasmMemory = source.instance.exports.memory
+          addonModule.wasmMemory = source.instance.exports.memory
           if (process.env.EMNAPI_TEST_4GB) {
             source.instance.exports.malloc(2147483648)
           }
-          resolve(napiModule.exports)
+          resolve(addonModule.exports)
         }).catch(reject)
       })
-      p.Module = napiModule
+      p.Module = addonModule
       return p
     }
 
     if (process.env.EMNAPI_TEST_WASM32) {
-      const napiModule = createNapiModule({
+      const addonModule = createAddonModule({
         context,
         asyncWorkPoolSize: ASYNC_WORK_POOL_SIZE,
         onCreateWorker () {
@@ -163,8 +163,8 @@ export function loadPath (request, options) {
           maximum: 4294967296 / 65536,
           shared: true
         })
-        loadNapiModule(
-          napiModule,
+        loadAddon(
+          addonModule,
           getWasmInput(request),
           {
             overwriteImports (importObject) {
@@ -190,11 +190,11 @@ export function loadPath (request, options) {
           }
         ).then(({ instance }) => {
           wasmMemory = instance.exports.memory || sharedMemory
-          napiModule.wasmMemory = wasmMemory
-          resolve(napiModule.exports)
+          addonModule.wasmMemory = wasmMemory
+          resolve(addonModule.exports)
         }).catch(reject)
       })
-      p.Module = napiModule
+      p.Module = addonModule
       return p
     }
 

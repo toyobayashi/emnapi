@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { EventEmitter } from 'node:events'
 import { getDefaultContext } from '@emnapi/runtime'
+import * as emnapiCore from '@emnapi/core'
 import { instantiateNapiModuleSync } from '@emnapi/core'
 
 // The smallest module that Node-API init accepts:
@@ -31,6 +32,88 @@ const wasm = new Uint8Array([
   0x0b, 0x05, 0x00, 0x41, 0xc0, 0x00, 0x0b, 0x02, 0x00, 0x0b, 0x04, 0x00,
   0x41, 0x00, 0x0b
 ])
+
+// The addon-neutral API is available while the old N-API names stay usable
+// through the 2.0.0 beta releases.
+for (const name of [
+  'createAddonModule',
+  'loadAddon',
+  'loadAddonSync',
+  'instantiateAddon',
+  'instantiateAddonSync',
+  'createNapiModule',
+  'loadNapiModule',
+  'loadNapiModuleSync',
+  'instantiateNapiModule',
+  'instantiateNapiModuleSync'
+]) {
+  assert.strictEqual(typeof emnapiCore[name], 'function', `${name} must be exported`)
+}
+
+{
+  const addonModule = emnapiCore.createAddonModule({ context: getDefaultContext() })
+  const source = emnapiCore.loadAddonSync(addonModule, wasm)
+  assert.ok(source.instance instanceof WebAssembly.Instance)
+  assert.strictEqual(addonModule.loaded, true)
+}
+
+{
+  const addonModule = emnapiCore.createAddonModule({ context: getDefaultContext() })
+  const source = await emnapiCore.loadAddon(addonModule, wasm)
+  assert.ok(source.instance instanceof WebAssembly.Instance)
+  assert.strictEqual(addonModule.loaded, true)
+}
+
+{
+  const source = emnapiCore.instantiateAddonSync(wasm, { context: getDefaultContext() })
+  assert.ok(source.instance instanceof WebAssembly.Instance)
+  assert.ok(source.addonModule)
+  assert.strictEqual('napiModule' in source, false)
+}
+
+{
+  const source = await emnapiCore.instantiateAddon(wasm, { context: getDefaultContext() })
+  assert.ok(source.instance instanceof WebAssembly.Instance)
+  assert.ok(source.addonModule)
+  assert.strictEqual('napiModule' in source, false)
+}
+
+{
+  const napiModule = emnapiCore.createNapiModule({ context: getDefaultContext() })
+  const source = emnapiCore.loadNapiModuleSync(napiModule, wasm)
+  assert.ok(source.instance instanceof WebAssembly.Instance)
+  assert.strictEqual(napiModule.loaded, true)
+}
+
+{
+  const napiModule = emnapiCore.createNapiModule({ context: getDefaultContext() })
+  const source = await emnapiCore.loadNapiModule(napiModule, wasm)
+  assert.ok(source.instance instanceof WebAssembly.Instance)
+  assert.strictEqual(napiModule.loaded, true)
+}
+
+{
+  const source = await emnapiCore.instantiateNapiModule(wasm, { context: getDefaultContext() })
+  assert.ok(source.instance instanceof WebAssembly.Instance)
+  assert.ok(source.napiModule)
+  assert.strictEqual('addonModule' in source, false)
+}
+
+{
+  const addonModule = emnapiCore.createAddonModule({ context: getDefaultContext() })
+  const handler = new emnapiCore.MessageHandler({ postMessage () {}, onLoad: () => ({ addonModule }) })
+  handler.instantiate({})
+  assert.strictEqual(handler.addonModule, addonModule)
+  assert.strictEqual(handler.napiModule, addonModule)
+}
+
+{
+  const napiModule = emnapiCore.createNapiModule({ context: getDefaultContext() })
+  const handler = new emnapiCore.MessageHandler({ postMessage () {}, onLoad: () => ({ napiModule }) })
+  handler.instantiate({})
+  assert.strictEqual(handler.addonModule, napiModule)
+  assert.strictEqual(handler.napiModule, napiModule)
+}
 
 class FakeWorker extends EventEmitter {
   constructor () {

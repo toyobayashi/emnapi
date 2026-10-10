@@ -5,18 +5,20 @@ import {
   type WorkerMessageEvent,
   type WorkerMessageType
 } from '@emnapi/wasi-threads'
-import type { NapiModule } from './emnapi/index'
-import type { InstantiatedSource } from './load'
+import type { AddonModule, NapiModule } from './emnapi/index'
+import type { InstantiatedAddonSource, InstantiatedSource } from './load'
 
 export type { ThreadMessageHandlerOptions, LoadPayload }
 
 /** @public */
 export interface MessageHandlerOptions extends ThreadMessageHandlerOptions {
-  onLoad: (data: LoadPayload) => InstantiatedSource | PromiseLike<InstantiatedSource>
+  onLoad: (data: LoadPayload) => InstantiatedAddonSource | InstantiatedSource | PromiseLike<InstantiatedAddonSource | InstantiatedSource>
 }
 
 /** @public */
 export class MessageHandler extends ThreadMessageHandler {
+  public addonModule: AddonModule | undefined
+  /** @deprecated Use addonModule instead. This property will be removed in 2.0.0-rc. */
   public napiModule: NapiModule | undefined
 
   public constructor (options: MessageHandlerOptions) {
@@ -34,6 +36,7 @@ export class MessageHandler extends ThreadMessageHandler {
         }
       }
     })
+    this.addonModule = undefined
     this.napiModule = undefined
   }
 
@@ -46,17 +49,23 @@ export class MessageHandler extends ThreadMessageHandler {
     } */
   }
 
-  public override instantiate (data: LoadPayload): InstantiatedSource | PromiseLike<InstantiatedSource> {
-    const source = this.onLoad!(data) as InstantiatedSource | PromiseLike<InstantiatedSource>
-    const then = (source as PromiseLike<InstantiatedSource>).then
+  public override instantiate (data: LoadPayload): InstantiatedAddonSource | InstantiatedSource | PromiseLike<InstantiatedAddonSource | InstantiatedSource> {
+    const source = this.onLoad!(data) as InstantiatedAddonSource | InstantiatedSource | PromiseLike<InstantiatedAddonSource | InstantiatedSource>
+    const then = (source as PromiseLike<InstantiatedAddonSource | InstantiatedSource>).then
     if (typeof then === 'function') {
-      return (source as PromiseLike<InstantiatedSource>).then((result) => {
-        this.napiModule = result.napiModule
+      return (source as PromiseLike<InstantiatedAddonSource | InstantiatedSource>).then((result) => {
+        this.setAddonModule(result)
         return result
       })
     }
-    this.napiModule = (source as InstantiatedSource).napiModule
+    this.setAddonModule(source as InstantiatedAddonSource | InstantiatedSource)
     return source
+  }
+
+  private setAddonModule (source: InstantiatedAddonSource | InstantiatedSource): void {
+    const addonModule = 'addonModule' in source ? source.addonModule : source.napiModule
+    this.addonModule = addonModule
+    this.napiModule = addonModule
   }
 
   public override handle (e: WorkerMessageEvent): void {
@@ -67,7 +76,7 @@ export class MessageHandler extends ThreadMessageHandler {
       try {
         if (type === 'async-worker-init') {
           this.handleAfterLoad(e, () => {
-            this.napiModule!.initWorker(payload.arg, payload.func)
+            this.addonModule!.initWorker(payload.arg, payload.func)
           })
         }
       } catch (err) {

@@ -41,9 +41,9 @@ emnapiString.init()
 // emnapiTSFN.init()
 initMod.PThread.init()
 
-initMod.napiModule.emnapi.syncMemory = emnapiMod.$emnapiSyncMemory
-initMod.napiModule.emnapi.getMemoryAddress = emnapiMod.$emnapiGetMemoryAddress
-initMod.napiModule.emnapi.acquireExternalSharedArrayBuffer = emnapiMod.$emnapiAcquireExternalSharedArrayBuffer
+initMod.addonModule.emnapi.syncMemory = emnapiMod.$emnapiSyncMemory
+initMod.addonModule.emnapi.getMemoryAddress = emnapiMod.$emnapiGetMemoryAddress
+initMod.addonModule.emnapi.acquireExternalSharedArrayBuffer = emnapiMod.$emnapiAcquireExternalSharedArrayBuffer
 
 function addImports (mod: any): void {
   const keys = Object.keys(mod)
@@ -52,11 +52,11 @@ function addImports (mod: any): void {
     if (k.indexOf('$') === 0) continue
 
     if (k.indexOf('emnapi_') === 0) {
-      initMod.napiModule.imports.emnapi[k] = mod[k]
+      initMod.addonModule.imports.emnapi[k] = mod[k]
     } else if (k.indexOf('_emnapi_') === 0 || k.indexOf('_v8_') === 0 || k === 'napi_set_last_error' || k === 'napi_clear_last_error') {
-      initMod.napiModule.imports.env[k] = mod[k]
+      initMod.addonModule.imports.env[k] = mod[k]
     } else {
-      initMod.napiModule.imports.napi[k] = mod[k]
+      initMod.addonModule.imports.napi[k] = mod[k]
     }
   }
 }
@@ -83,13 +83,13 @@ addImports(scriptMod)
 addImports(valueOperationMod)
 addImports(versionMod)
 
-// napiModule.imports.napi.napi_create_threadsafe_function = napi_create_threadsafe_function
-// napiModule.imports.napi.napi_get_threadsafe_function_context = napi_get_threadsafe_function_context
-// napiModule.imports.napi.napi_call_threadsafe_function = napi_call_threadsafe_function
-// napiModule.imports.napi.napi_acquire_threadsafe_function = napi_acquire_threadsafe_function
-// napiModule.imports.napi.napi_release_threadsafe_function = napi_release_threadsafe_function
-// napiModule.imports.napi.napi_unref_threadsafe_function = napi_unref_threadsafe_function
-// napiModule.imports.napi.napi_ref_threadsafe_function = napi_ref_threadsafe_function
+// addonModule.imports.napi.napi_create_threadsafe_function = napi_create_threadsafe_function
+// addonModule.imports.napi.napi_get_threadsafe_function_context = napi_get_threadsafe_function_context
+// addonModule.imports.napi.napi_call_threadsafe_function = napi_call_threadsafe_function
+// addonModule.imports.napi.napi_acquire_threadsafe_function = napi_acquire_threadsafe_function
+// addonModule.imports.napi.napi_release_threadsafe_function = napi_release_threadsafe_function
+// addonModule.imports.napi.napi_unref_threadsafe_function = napi_unref_threadsafe_function
+// addonModule.imports.napi.napi_ref_threadsafe_function = napi_ref_threadsafe_function
 
 const pluginCtx: any = {
   emnapiString,
@@ -117,7 +117,7 @@ Object.keys(utilMod).forEach(k => {
   })
 })
 
-initMod.napiModule.plugins = (options.plugins ?? []).map((plugin) => {
+initMod.addonModule.plugins = (options.plugins ?? []).map((plugin) => {
   if (typeof plugin === 'function') {
     return plugin(pluginCtx)
   }
@@ -127,13 +127,13 @@ initMod.napiModule.plugins = (options.plugins ?? []).map((plugin) => {
   throw new TypeError('Invalid plugin')
 })
 
-initMod.napiModule.plugins.forEach((plugin) => {
+initMod.addonModule.plugins.forEach((plugin) => {
   if (typeof plugin.importObject === 'function') {
-    const importObject = plugin.importObject(initMod.napiModule.imports)
+    const importObject = plugin.importObject(initMod.addonModule.imports)
     if (importObject) {
-      initMod.napiModule.imports = importObject as typeof initMod.napiModule.imports
+      initMod.addonModule.imports = importObject as typeof initMod.addonModule.imports
     }
   }
 })
 
-export default initMod.napiModule
+export default initMod.addonModule
