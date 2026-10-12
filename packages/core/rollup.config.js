@@ -13,6 +13,9 @@ export default [
   ...defineConfig({
     outputName: 'emnapiCore',
     outputFile: 'emnapi-core',
+    compilerOptions: {
+      removeComments: false
+    },
     defines: {
       __VERSION__: JSON.stringify(pkg.version)
     },

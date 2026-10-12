@@ -1,4 +1,4 @@
-import { emnapiEnv, onCreateWorker, napiModule, singleThreadAsyncWork, _emnapi_async_work_pool_size } from 'emnapi:shared'
+import { emnapiEnv, onCreateWorker, addonModule, singleThreadAsyncWork, _emnapi_async_work_pool_size } from 'emnapi:shared'
 import { PThread, ENVIRONMENT_IS_NODE, ENVIRONMENT_IS_PTHREAD, wasmInstance, _free, wasmMemory, _malloc, abort } from 'emscripten:runtime'
 import { POINTER_SIZE, to64, makeDynCall, makeSetValue, from64, makeGetValue } from 'emscripten:parse-tools'
 import { emnapiAWST } from '../async-work'
@@ -11,7 +11,7 @@ declare var emnapiCtx: Context
 declare var emnapiNodeBinding: NodeBinding | undefined
 
 const {
-  // onCreateWorker, napiModule, singleThreadAsyncWork, _emnapi_async_work_pool_size,
+  // onCreateWorker, addonModule, singleThreadAsyncWork, _emnapi_async_work_pool_size,
   // PThread, ENVIRONMENT_IS_NODE, ENVIRONMENT_IS_PTHREAD, wasmInstance, _free, wasmMemory, _malloc,
   _emnapi_node_emit_async_init, _emnapi_node_emit_async_destroy,
   _emnapi_runtime_keepalive_pop, _emnapi_runtime_keepalive_push
@@ -531,7 +531,7 @@ export function _emnapi_async_worker (globalAddress: number): number {
     const data = emnapiAWMT.getData(work)
     makeDynCall('vpp', 'execute')(env, data)
     Atomics.store(statusBuffer, 0, AsyncWorkStatus.Completed)
-    const postMessage = napiModule.postMessage!
+    const postMessage = addonModule.postMessage!
     postMessage({
       __emnapi__: {
         type: 'async-work-complete',
@@ -601,7 +601,7 @@ export function _emnapi_spawn_worker (f: number, globalAddress: number): number 
 }
 
 function initWorker (startArg: number, func: [number, number]): void {
-  if (napiModule.childThread) {
+  if (addonModule.childThread) {
     if (typeof wasmInstance.exports.emnapi_async_worker_init !== 'function') {
       throw new TypeError('`emnapi_async_worker_init` is not exported, please try to add `--export=emnapi_async_worker_init` to linker flags')
     }
@@ -612,4 +612,4 @@ function initWorker (startArg: number, func: [number, number]): void {
     throw new Error('startThread is only available in child threads')
   }
 }
-napiModule.initWorker = initWorker
+addonModule.initWorker = initWorker

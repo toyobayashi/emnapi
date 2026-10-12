@@ -1,7 +1,7 @@
 import { type WASIInstance, WASIThreads } from '@emnapi/wasi-threads'
 import { type InputType, load, loadSync } from './util'
-import { createNapiModule } from './emnapi/index'
-import type { CreateOptions, NapiModule } from './emnapi/index'
+import { createAddonModule } from './emnapi/index'
+import type { AddonModule, CreateOptions, NapiModule } from './emnapi/index'
 
 /** @public */
 export interface LoadedSource extends WebAssembly.WebAssemblyInstantiatedSource {
@@ -9,7 +9,16 @@ export interface LoadedSource extends WebAssembly.WebAssemblyInstantiatedSource 
 }
 
 /** @public */
+export interface InstantiatedAddonSource extends LoadedSource {
+  addonModule: AddonModule
+}
+
+/**
+ * @public
+ * @deprecated Use InstantiatedAddonSource instead. This type will be removed in 2.0.0-rc.
+ */
 export interface InstantiatedSource extends LoadedSource {
+  /** @deprecated Use addonModule from instantiateAddon or instantiateAddonSync. */
   napiModule: NapiModule
 }
 
@@ -25,19 +34,21 @@ export interface LoadOptions {
 /** @public */
 export declare type InstantiateOptions = CreateOptions & LoadOptions
 
-function loadNapiModuleImpl<T> (
+function loadAddonModuleImpl<T> (
   loadFn: (wasmInput: InputType | Promise<InputType>, importObject: WebAssembly.Imports, callback: LoadCallback<WebAssembly.WebAssemblyInstantiatedSource, T>) => Promise<T>,
-  userNapiModule: NapiModule | undefined,
+  userAddonModule: AddonModule | undefined,
   wasmInput: InputType | Promise<InputType>,
-  options?: LoadOptions | InstantiateOptions
-): Promise<InstantiatedSource>
-function loadNapiModuleImpl<T> (
+  options?: LoadOptions | InstantiateOptions,
+  useLegacyPropertyName?: boolean
+): Promise<InstantiatedAddonSource | InstantiatedSource>
+function loadAddonModuleImpl<T> (
   loadFn: (wasmInput: InputType, importObject: WebAssembly.Imports, callback: LoadCallback<WebAssembly.WebAssemblyInstantiatedSource, T>) => T,
-  userNapiModule: NapiModule | undefined,
+  userAddonModule: AddonModule | undefined,
   wasmInput: InputType,
-  options?: LoadOptions | InstantiateOptions
-): InstantiatedSource
-function loadNapiModuleImpl (loadFn: Function, userNapiModule: NapiModule | undefined, wasmInput: InputType | Promise<InputType>, options?: any): any {
+  options?: LoadOptions | InstantiateOptions,
+  useLegacyPropertyName?: boolean
+): InstantiatedAddonSource | InstantiatedSource
+function loadAddonModuleImpl (loadFn: Function, userAddonModule: AddonModule | undefined, wasmInput: InputType | Promise<InputType>, options?: any, useLegacyPropertyName = false): any {
   options = options ?? {} as InstantiateOptions
 
   const getMemory = options!.getMemory
@@ -53,38 +64,38 @@ function loadNapiModuleImpl (loadFn: Function, userNapiModule: NapiModule | unde
     throw new TypeError('options.beforeInit is not a function')
   }
 
-  let napiModule: NapiModule
-  const isLoad = typeof userNapiModule === 'object' && userNapiModule !== null
+  let addonModule: AddonModule
+  const isLoad = typeof userAddonModule === 'object' && userAddonModule !== null
   if (isLoad) {
-    if (userNapiModule.loaded) {
-      throw new Error('napiModule has already loaded')
+    if (userAddonModule.loaded) {
+      throw new Error(`${useLegacyPropertyName ? 'napiModule' : 'addonModule'} has already loaded`)
     }
-    napiModule = userNapiModule
+    addonModule = userAddonModule
   } else {
-    napiModule = createNapiModule(options!)
+    addonModule = createAddonModule(options!)
   }
 
   const wasi = options!.wasi
   let wasiThreads: WASIThreads | undefined
 
   let importObject: WebAssembly.Imports = {
-    env: napiModule.imports.env,
-    napi: napiModule.imports.napi,
-    emnapi: napiModule.imports.emnapi
+    env: addonModule.imports.env,
+    napi: addonModule.imports.napi,
+    emnapi: addonModule.imports.emnapi
   }
 
   if (wasi) {
     wasiThreads = new WASIThreads(
-      napiModule.childThread
+      addonModule.childThread
         ? {
             wasi,
             childThread: true,
-            postMessage: napiModule.postMessage!
+            postMessage: addonModule.postMessage!
           }
         : {
             wasi,
-            threadManager: napiModule.PThread,
-            waitThreadStart: napiModule.waitThreadStart
+            threadManager: addonModule.PThread,
+            waitThreadStart: addonModule.waitThreadStart
           }
     )
 
@@ -138,37 +149,41 @@ function loadNapiModuleImpl (loadFn: Function, userNapiModule: NapiModule | unde
     if (wasi) {
       instance = wasiThreads!.initialize(instance, module, memory)
     } else {
-      napiModule.PThread.setup(module, memory)
+      addonModule.PThread.setup(module, memory)
     }
 
-    const emnapiInit = (): LoadedSource | InstantiatedSource => {
+    const emnapiInit = (): LoadedSource | InstantiatedAddonSource | InstantiatedSource => {
       if (beforeInit) {
         beforeInit({
           instance: originalInstance,
           module
         })
       }
-      napiModule.init({
+      addonModule.init({
         instance,
         module,
         memory,
         table
       })
 
-      const ret: LoadedSource | InstantiatedSource = {
+      const ret: LoadedSource | InstantiatedAddonSource | InstantiatedSource = {
         instance: originalInstance,
         module,
         usedInstance: instance
       }
       if (!isLoad) {
-        (ret as InstantiatedSource).napiModule = napiModule
+        if (useLegacyPropertyName) {
+          (ret as InstantiatedSource).napiModule = addonModule
+        } else {
+          (ret as InstantiatedAddonSource).addonModule = addonModule
+        }
       }
       return ret
     }
 
-    if (napiModule.PThread.shouldPreloadWorkers()) {
+    if (addonModule.PThread.shouldPreloadWorkers()) {
       if (loadFn === loadCallback) {
-        return napiModule.PThread.loadWasmModuleToAllWorkers().then(emnapiInit)
+        return addonModule.PThread.loadWasmModuleToAllWorkers().then(emnapiInit)
       }
       // A synchronous instantiate cannot wait for the pool, so start loading
       // every pool worker in the background and return now. The pool is usable
@@ -181,7 +196,7 @@ function loadNapiModuleImpl (loadFn: Function, userNapiModule: NapiModule | unde
       // the loads are in flight (the pool workers are unref()'d when created).
       // This is the same on every environment: nothing here blocks, so a
       // browser main thread delivers the loads once it yields.
-      const PThread = napiModule.PThread
+      const PThread = addonModule.PThread
       const workers = PThread.unusedWorkers.slice()
       for (let i = 0; i < workers.length; ++i) {
         const worker = workers[i]
@@ -219,6 +234,34 @@ function loadSyncCallback<T> (wasmInput: InputType, importObject: WebAssembly.Im
 }
 
 /** @public */
+export function loadAddon (
+  addonModule: AddonModule,
+  /** Only support `BufferSource` or `WebAssembly.Module` on Node.js */
+  wasmInput: InputType | Promise<InputType>,
+  options?: LoadOptions
+): Promise<LoadedSource> {
+  if (typeof addonModule !== 'object' || addonModule === null) {
+    throw new TypeError('Invalid addonModule')
+  }
+  return loadAddonModuleImpl(loadCallback, addonModule, wasmInput, options)
+}
+
+/** @public */
+export function loadAddonSync (
+  addonModule: AddonModule,
+  wasmInput: BufferSource | WebAssembly.Module,
+  options?: LoadOptions
+): LoadedSource {
+  if (typeof addonModule !== 'object' || addonModule === null) {
+    throw new TypeError('Invalid addonModule')
+  }
+  return loadAddonModuleImpl(loadSyncCallback, addonModule, wasmInput, options)
+}
+
+/**
+ * @public
+ * @deprecated Use loadAddon instead. This API will be removed in 2.0.0-rc.
+ */
 export function loadNapiModule (
   napiModule: NapiModule,
   /** Only support `BufferSource` or `WebAssembly.Module` on Node.js */
@@ -228,10 +271,13 @@ export function loadNapiModule (
   if (typeof napiModule !== 'object' || napiModule === null) {
     throw new TypeError('Invalid napiModule')
   }
-  return loadNapiModuleImpl(loadCallback, napiModule, wasmInput, options)
+  return loadAddonModuleImpl(loadCallback, napiModule, wasmInput, options, true)
 }
 
-/** @public */
+/**
+ * @public
+ * @deprecated Use loadAddonSync instead. This API will be removed in 2.0.0-rc.
+ */
 export function loadNapiModuleSync (
   napiModule: NapiModule,
   wasmInput: BufferSource | WebAssembly.Module,
@@ -240,22 +286,45 @@ export function loadNapiModuleSync (
   if (typeof napiModule !== 'object' || napiModule === null) {
     throw new TypeError('Invalid napiModule')
   }
-  return loadNapiModuleImpl(loadSyncCallback, napiModule, wasmInput, options)
+  return loadAddonModuleImpl(loadSyncCallback, napiModule, wasmInput, options, true)
 }
 
 /** @public */
+export function instantiateAddon (
+  /** Only support `BufferSource` or `WebAssembly.Module` on Node.js */
+  wasmInput: InputType | Promise<InputType>,
+  options: InstantiateOptions
+): Promise<InstantiatedAddonSource> {
+  return loadAddonModuleImpl(loadCallback, undefined, wasmInput, options) as Promise<InstantiatedAddonSource>
+}
+
+/** @public */
+export function instantiateAddonSync (
+  wasmInput: BufferSource | WebAssembly.Module,
+  options: InstantiateOptions
+): InstantiatedAddonSource {
+  return loadAddonModuleImpl(loadSyncCallback, undefined, wasmInput, options) as InstantiatedAddonSource
+}
+
+/**
+ * @public
+ * @deprecated Use instantiateAddon instead. This API will be removed in 2.0.0-rc.
+ */
 export function instantiateNapiModule (
   /** Only support `BufferSource` or `WebAssembly.Module` on Node.js */
   wasmInput: InputType | Promise<InputType>,
   options: InstantiateOptions
 ): Promise<InstantiatedSource> {
-  return loadNapiModuleImpl(loadCallback, undefined, wasmInput, options)
+  return loadAddonModuleImpl(loadCallback, undefined, wasmInput, options, true) as Promise<InstantiatedSource>
 }
 
-/** @public */
+/**
+ * @public
+ * @deprecated Use instantiateAddonSync instead. This API will be removed in 2.0.0-rc.
+ */
 export function instantiateNapiModuleSync (
   wasmInput: BufferSource | WebAssembly.Module,
   options: InstantiateOptions
 ): InstantiatedSource {
-  return loadNapiModuleImpl(loadSyncCallback, undefined, wasmInput, options)
+  return loadAddonModuleImpl(loadSyncCallback, undefined, wasmInput, options, true) as InstantiatedSource
 }

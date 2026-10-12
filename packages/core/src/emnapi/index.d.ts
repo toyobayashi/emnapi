@@ -17,7 +17,7 @@ export declare interface InitOptions {
 }
 
 /** @public */
-export declare interface NapiModule {
+export declare interface AddonModule {
   imports: {
     env: any
     napi: any
@@ -55,6 +55,12 @@ export declare interface NapiModule {
   /** @internal */
   PThread: ThreadManager
 }
+
+/**
+ * @public
+ * @deprecated Use AddonModule instead. This alias will be removed in 2.0.0-rc.
+ */
+export declare interface NapiModule extends AddonModule {}
 
 /** @public */
 export declare interface NodeBinding {
@@ -111,6 +117,14 @@ export declare type CreateOptions = BaseCreateOptions & ({
 })
 
 /** @public */
+export declare function createAddonModule (
+  options: CreateOptions
+): AddonModule
+
+/**
+ * @public
+ * @deprecated Use createAddonModule instead. This API will be removed in 2.0.0-rc.
+ */
 export declare function createNapiModule (
   options: CreateOptions
 ): NapiModule

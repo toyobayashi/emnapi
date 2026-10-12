@@ -563,32 +563,34 @@ console.log(binding.hello())
 ```
 
 To instantiate a WASI module through `@emnapi/core`, pass the V8 plugin and
-the WASI instance to `instantiateNapiModule`:
+the WASI instance to `instantiateAddon`:
 
 ```js
-import { instantiateNapiModule } from '@emnapi/core'
+import { instantiateAddon } from '@emnapi/core'
 import v8 from '@emnapi/core/plugins/v8'
 import { createContext } from '@emnapi/runtime'
 
-const { napiModule } = await instantiateNapiModule(wasmBytes, {
+const { addonModule } = await instantiateAddon(wasmBytes, {
   context: createContext(),
   wasi,
   plugins: [v8]
 })
-const binding = napiModule.exports
+const binding = addonModule.exports
 ```
 
 The V8 plugin is the only plugin required for the V8 shim.
+The N-API-named APIs are deprecated for the 2.0.0 beta and will be removed
+in 2.0.0-rc. The legacy `napiModule` result property follows the same schedule.
 
 ### Using Rust
 
 See [napi-rs](https://github.com/napi-rs/napi-rs) 
 
-### Reference for instantiateNapiModule input parameters
+### Reference for instantiateAddon input parameters
 
 ```js
 // emnapi main thread (could be in a Worker)
-instantiateNapiModule(input, {
+instantiateAddon(input, {
   context: getDefaultContext(),
   asyncWorkPoolSize: 4, // the same effect to UV_THREADPOOL_SIZE, must less than `reuseWorker.size`
   wasi: new WASI(/* ... */),
@@ -605,9 +607,9 @@ instantiateNapiModule(input, {
   /**
    * Reuse the thread worker after thread exit to avoid re-creatation
    *
-   * With `size > 0`, `instantiateNapiModule` / `loadNapiModule` wait until
-   * every pool worker has loaded. `instantiateNapiModuleSync` /
-   * `loadNapiModuleSync` also accept a pool: they start loading the pool
+   * With `size > 0`, `instantiateAddon` / `loadAddon` wait until every pool
+   * worker has loaded. `instantiateAddonSync` / `loadAddonSync` also accept a
+   * pool: they start loading the pool
    * workers in the background and return without waiting, so the pool is
    * not guaranteed to be ready. A thread started on a pool worker that is
    * still loading runs once that worker has loaded.

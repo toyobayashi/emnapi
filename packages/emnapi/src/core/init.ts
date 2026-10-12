@@ -8,7 +8,7 @@ export interface InitOptions {
   table?: WebAssembly.Table
 }
 
-export interface INapiModule {
+export interface IAddonModule {
   imports: {
     env: any
     napi: any
@@ -83,7 +83,7 @@ function setLastError (env: napi_env, error_code: napi_status, engine_error_code
   return error_code
 }
 
-export var napiModule: INapiModule = {
+export var addonModule: IAddonModule = {
   imports: {
     env: {},
     napi: {},
@@ -101,7 +101,7 @@ export var napiModule: INapiModule = {
   PThread: undefined!,
 
   init (options: InitOptions) {
-    if (napiModule.loaded) return napiModule.exports
+    if (addonModule.loaded) return addonModule.exports
     if (!options) throw new TypeError('Invalid napi init options')
     const instance = options.instance
     if (!instance?.exports) throw new TypeError('Invalid wasm instance')
@@ -123,7 +123,7 @@ export var napiModule: INapiModule = {
     _emnapi_create_env = exports.emnapi_create_env as () => void_p
     _emnapi_delete_env = exports.emnapi_delete_env as (ptr: void_p) => void
 
-    if (!napiModule.childThread) {
+    if (!addonModule.childThread) {
       // main thread only
       const NODE_MODULE_VERSION = Version.NODE_MODULE_VERSION
       const nodeRegisterModuleSymbol = `node_register_module_v${NODE_MODULE_VERSION}`
@@ -134,10 +134,10 @@ export var napiModule: INapiModule = {
         let exportsSlot: number | bigint = 0
         let moduleSlot: number | bigint = 0
         try {
-          const exports = napiModule.exports
+          const exports = addonModule.exports
 
           const exportsHandle = scope.add(exports)
-          const moduleHandle = scope.add(napiModule)
+          const moduleHandle = scope.add(addonModule)
           const size = POINTER_SIZE
           exportsSlot = malloc(to64('size'))
           moduleSlot = malloc(to64('size'))
@@ -161,14 +161,14 @@ export var napiModule: INapiModule = {
         } finally {
           emnapiCtx.isolate.closeScope(scope)
         }
-        napiModule.loaded = true
-        delete napiModule.envObject
-        return napiModule.exports
+        addonModule.loaded = true
+        delete addonModule.envObject
+        return addonModule.exports
       }
 
       const find = Object.keys(instance.exports).filter(k => k.startsWith('node_register_module_v'))
       if (find.length > 0) {
-        throw new Error(`The module${napiModule.filename ? ` '${napiModule.filename}'` : ''}
+        throw new Error(`The module${addonModule.filename ? ` '${addonModule.filename}'` : ''}
     was compiled against a different Node.js version using
     NODE_MODULE_VERSION ${find[0].slice(22)}. This version of Node.js requires
     NODE_MODULE_VERSION ${NODE_MODULE_VERSION}.`)
@@ -180,9 +180,9 @@ export var napiModule: INapiModule = {
         moduleApiVersion = node_api_module_get_api_version_v1()
       }
 
-      const envObject = napiModule.envObject || (() => {
-        const envObject = napiModule.envObject = emnapiEnv = emnapiCtx.createEnv(
-          napiModule.filename,
+      const envObject = addonModule.envObject || (() => {
+        const envObject = addonModule.envObject = emnapiEnv = emnapiCtx.createEnv(
+          addonModule.filename,
           moduleApiVersion,
           {
             address: () => {
@@ -216,12 +216,12 @@ export var napiModule: INapiModule = {
       const scope = emnapiCtx.openScope(envObject)
       try {
         envObject.callIntoModule((_envObject) => {
-          const exports = napiModule.exports
+          const exports = addonModule.exports
           const env = envObject.address
           const exportsHandle = scope.add(exports)
           const napi_register_wasm_v1 = instance.exports.napi_register_wasm_v1 as Function
           const napiValue = napi_register_wasm_v1(to64('env'), to64('exportsHandle'))
-          napiModule.exports = (!napiValue) ? exports : emnapiCtx.jsValueFromNapiValue(napiValue)!
+          addonModule.exports = (!napiValue) ? exports : emnapiCtx.jsValueFromNapiValue(napiValue)!
         })
       } catch (e) {
         if (e !== 'unwind') {
@@ -230,9 +230,9 @@ export var napiModule: INapiModule = {
       } finally {
         emnapiCtx.closeScope(envObject, scope)
       }
-      napiModule.loaded = true
-      delete napiModule.envObject
-      return napiModule.exports
+      addonModule.loaded = true
+      delete addonModule.envObject
+      return addonModule.exports
     }
   }
 }
@@ -261,11 +261,11 @@ if (!ENVIRONMENT_IS_PTHREAD) {
   if (typeof postMsg !== 'function') {
     throw new TypeError('No postMessage found')
   }
-  napiModule.postMessage = postMsg
+  addonModule.postMessage = postMsg
 }
 
 if (typeof options.filename === 'string') {
-  napiModule.filename = options.filename
+  addonModule.filename = options.filename
 }
 
 if (typeof options.onCreateWorker === 'function') {
@@ -308,7 +308,7 @@ export function _emnapi_async_work_pool_size (): number {
   return Math.abs(emnapiAsyncWorkPoolSize)
 }
 
-napiModule.imports.env._emnapi_async_work_pool_size = _emnapi_async_work_pool_size
+addonModule.imports.env._emnapi_async_work_pool_size = _emnapi_async_work_pool_size
 
 // ------------------------------ pthread -------------------------------
 
@@ -320,7 +320,7 @@ function emnapiAddSendListener (worker: any): boolean {
     const __emnapi__ = data.__emnapi__
     if (__emnapi__ && __emnapi__.type === 'async-send') {
       if (ENVIRONMENT_IS_PTHREAD) {
-        const postMessage = napiModule.postMessage!
+        const postMessage = addonModule.postMessage!
         postMessage({ __emnapi__ })
       } else {
         const { type, callback, data } = __emnapi__.payload
@@ -350,7 +350,7 @@ function emnapiAddSendListener (worker: any): boolean {
   return true
 }
 
-napiModule.emnapi.addSendListener = emnapiAddSendListener
+addonModule.emnapi.addSendListener = emnapiAddSendListener
 
 export var PThread = new ThreadManager(
   ENVIRONMENT_IS_PTHREAD
@@ -368,6 +368,6 @@ export var PThread = new ThreadManager(
       }
 )
 
-napiModule.PThread = PThread
+addonModule.PThread = PThread
 
 export * from './addfunction'

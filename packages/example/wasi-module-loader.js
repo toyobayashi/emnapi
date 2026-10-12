@@ -44,7 +44,7 @@ export default async function init (url, options) {
     return fetch(url)
   }
 
-  return emnapiCore.instantiateNapiModule(fetchWasm(), {
+  return emnapiCore.instantiateAddon(fetchWasm(), {
     reuseWorker: {
       size: 4,
       strict: true
@@ -109,7 +109,7 @@ function createMessageHandler () {
         fs,
       })
 
-      return emnapiCore.instantiateNapiModule(wasmModule, {
+      return emnapiCore.instantiateAddon(wasmModule, {
         childThread: true,
         wasi,
         overwriteImports (importObject) {

@@ -8,10 +8,10 @@ import * as emnapi from '../../runtime/dist/emnapi.js'
 (async function main () {
   const init = function () {
     const { WASI } = wasmUtil
-    const { createNapiModule, loadNapiModule } = emnapiCore
+    const { createAddonModule, loadAddon } = emnapiCore
     const { getDefaultContext } = emnapi
     const wasi = new WASI()
-    const napiModule = createNapiModule({
+    const addonModule = createAddonModule({
       context: getDefaultContext(),
       reuseWorker: {
         size: 1,
@@ -28,16 +28,16 @@ import * as emnapi from '../../runtime/dist/emnapi.js'
     })
 
     const p = new Promise((resolve, reject) => {
-      loadNapiModule(napiModule, '../.build/wasm32-wasip1-threads/Debug/trap_in_thread.wasm', {
+      loadAddon(addonModule, '../.build/wasm32-wasip1-threads/Debug/trap_in_thread.wasm', {
         wasi,
         overwriteImports (importObject) {
           importObject.env.memory = wasmMemory
         }
       }).then(() => {
-        resolve(napiModule.exports)
+        resolve(addonModule.exports)
       }).catch(reject)
     })
-    p.Module = napiModule
+    p.Module = addonModule
     return p
   }
   const binding = await init()
