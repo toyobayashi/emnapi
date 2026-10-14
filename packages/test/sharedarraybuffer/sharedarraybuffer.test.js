@@ -56,6 +56,25 @@ module.exports = loadPromise.then(async (test_sharedarraybuffer) => {
     assert.strictEqual(result, true)
   }
 
+  // Native code writes the whole buffer after it grew past its length at
+  // the first napi_get_arraybuffer_info, and emnapi_sync_memory copies all of
+  // it back to JS, like native Node-API where the data covers the current length
+  {
+    const growables = []
+    if (typeof SharedArrayBuffer.prototype.grow === 'function') {
+      growables.push(['SharedArrayBuffer', new SharedArrayBuffer(4, { maxByteLength: 64 }), (b) => b.grow(64)])
+    }
+    if (typeof ArrayBuffer.prototype.resize === 'function') {
+      growables.push(['ArrayBuffer', new ArrayBuffer(4, { maxByteLength: 64 }), (b) => b.resize(64)])
+    }
+    for (const [kind, buf, grow] of growables) {
+      assert.strictEqual(test_sharedarraybuffer.TestSharedArrayBufferData(buf), true, kind)
+      grow(buf)
+      assert.strictEqual(test_sharedarraybuffer.TestSharedArrayBufferData(buf), true, kind)
+      assert.deepStrictEqual(Array.from(new Uint8Array(buf)), Array.from({ length: 64 }, (_, i) => i % 256), kind)
+    }
+  }
+
   // Test zero-length SharedArrayBuffer
   {
     const sab = test_sharedarraybuffer.TestCreateSharedArrayBuffer(0)

@@ -94,8 +94,11 @@ export function _v8_array_buffer_get_backing_store (
 ): Ptr {
   const value = emnapiCtx.jsValueFromNapiValue<ArrayBufferLike>(buffer)
   if (value == null) return 0
-  const pointer = emnapiExternalMemory.getArrayBufferPointer(value as ArrayBufferLike, true).address
+  // read the length before the copy is made (as napi_get_arraybuffer_info
+  // does): another thread can grow a growable SharedArrayBuffer, and the
+  // length must fit in the copy
   const byteLength = emnapiExternalMemory.bufferByteLength(value as ArrayBufferLike)
+  const pointer = emnapiExternalMemory.getArrayBufferPointer(value as ArrayBufferLike, true).address
   from64('byte_length')
   if (byte_length) makeSetValue('byte_length', 0, 'byteLength', SIZE_TYPE)
   return pointer
