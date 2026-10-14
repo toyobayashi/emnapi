@@ -382,13 +382,20 @@ export const emnapiExternalMemory: {
 
   getViewPointer: function<T extends ArrayBufferView> (view: T, shouldCopy: boolean): ViewPointer<T> {
     view = emnapiExternalMemory.getOrUpdateMemoryView(view)
+    // getOrUpdateMemoryView() registers every view it finds on the wasm memory
+    // or re-creates on it, so ask the table instead of comparing the view's
+    // buffer with wasmMemory.buffer again: a memory.grow (in Node.js 24 even of
+    // 0 pages) on any thread gives a shared memory a new buffer object on every
+    // thread, at any interrupt check, and the old object is still the wasm
+    // memory. Taking it for a foreign buffer would copy the whole memory and
+    // give native code a pointer into the copy
+    const info = emnapiExternalMemory.wasmMemoryViewTable.get(view)
+    if (info !== undefined) {
+      const { address, ownership, runtimeAllocated } = info
+      return { address, ownership, runtimeAllocated, view }
+    }
     const buffer = emnapiExternalMemory.viewBuffer(view)
     if (buffer === wasmMemory.buffer) {
-      const info = emnapiExternalMemory.wasmMemoryViewTable.get(view)
-      if (info !== undefined) {
-        const { address, ownership, runtimeAllocated } = info
-        return { address, ownership, runtimeAllocated, view }
-      }
       return { address: emnapiExternalMemory.viewByteOffset(view), ownership: ReferenceOwnership.kUserland, runtimeAllocated: 0, view }
     }
 
