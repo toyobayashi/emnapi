@@ -338,6 +338,24 @@ static napi_value getArrayBufferInfoOutputs(napi_env env,
   return ret;
 }
 
+#ifdef __wasm__
+// emnapi_sync_memory(env, jsToWasm, &value, 0, length); a negative length
+// means NAPI_AUTO_LENGTH. Returns the (maybe updated) value.
+static napi_value syncMemory(napi_env env, napi_callback_info info) {
+  size_t argc = 3;
+  napi_value args[3];
+  NODE_API_CALL(env, napi_get_cb_info(env, info, &argc, args, NULL, NULL));
+  NODE_API_ASSERT(env, argc == 3, "Wrong number of arguments");
+  bool js_to_wasm;
+  int64_t length;
+  NODE_API_CALL(env, napi_get_value_bool(env, args[0], &js_to_wasm));
+  NODE_API_CALL(env, napi_get_value_int64(env, args[2], &length));
+  NODE_API_CALL(env, emnapi_sync_memory(env, js_to_wasm, &args[1], 0,
+      length < 0 ? NAPI_AUTO_LENGTH : (size_t)length));
+  return args[1];
+}
+#endif
+
 static napi_value bufferFromArrayBuffer(napi_env env,
                                         napi_callback_info info) {
   napi_status status;
@@ -387,6 +405,9 @@ static napi_value Init(napi_env env, napi_value exports) {
     DECLARE_NODE_API_PROPERTY("getDataViewInfoOutputs", getDataViewInfoOutputs),
     DECLARE_NODE_API_PROPERTY("getArrayBufferInfoOutputs", getArrayBufferInfoOutputs),
     DECLARE_NODE_API_PROPERTY("bufferFromArrayBuffer", bufferFromArrayBuffer),
+#ifdef __wasm__
+    DECLARE_NODE_API_PROPERTY("syncMemory", syncMemory),
+#endif
   };
 
   NODE_API_CALL(env, napi_define_properties(

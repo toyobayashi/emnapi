@@ -52,6 +52,130 @@ module.exports = loadPromise.then(async binding => {
   assert.deepStrictEqual(binding.getMemoryDataAsArray(typedArray), Array(6).fill(99))
   assert.deepStrictEqual(binding.getMemoryDataAsArray(dataView), Array(6).fill(99))
 
+  // A resizable ArrayBuffer or a growable SharedArrayBuffer can get longer
+  // after emnapi copied it into wasm memory. A later copy and the reported
+  // length must still fit in wasm memory that belongs to the buffer: the
+  // Buffers allocated right after the first (small) copy must stay intact.
+  const assertIntact = (sentinels, message) => {
+    for (const sentinel of sentinels) {
+      // napi_get_buffer_info reads the Buffer's own wasm memory, also after
+      // the wasm memory grew
+      assert.strictEqual(binding.bufferInfo(sentinel), true, message)
+    }
+  }
+  const growables = []
+  if (typeof ArrayBuffer.prototype.resize === 'function') {
+    growables.push(['ArrayBuffer', () => new ArrayBuffer(4, { maxByteLength: 4096 }), (b, n) => b.resize(n)])
+  }
+  if (typeof SharedArrayBuffer === 'function' && typeof SharedArrayBuffer.prototype.grow === 'function') {
+    growables.push(['SharedArrayBuffer', () => new SharedArrayBuffer(4, { maxByteLength: 4096 }), (b, n) => b.grow(n)])
+  }
+  const viewsOf = [
+    ['the buffer', (b) => b],
+    ['Uint8Array', (b) => new Uint8Array(b)],
+    ['DataView', (b) => new DataView(b)],
+    ['fixed-length Uint8Array', (b) => new Uint8Array(b, 0, 4)]
+  ]
+  for (const [kind, create, grow] of growables) {
+    for (const [name, viewOf] of viewsOf) {
+      // getMemoryDataAsArray picks napi_get_arraybuffer_info with napi_is_arraybuffer
+      if (kind === 'SharedArrayBuffer' && name === 'the buffer') continue
+      const label = `${name} over a growable ${kind}`
+      const buf = create()
+      const view = viewOf(buf)
+      const byteLength = () => ArrayBuffer.isView(view) ? view.byteLength : buf.byteLength
+      new Uint8Array(buf).fill(1)
+      assert.deepStrictEqual(binding.getMemoryDataAsArray(view), Array(4).fill(1), label)
+      const sentinels = Array.from({ length: 8 }, () => binding.newBuffer())
+      grow(buf, 4096)
+      new Uint8Array(buf).fill(0x77)
+      assert.deepStrictEqual(binding.getMemoryDataAsArray(view), Array(byteLength()).fill(0x77), label)
+      assertIntact(sentinels, `${label}: wasm memory after the copy was overwritten`)
+      if (kind === 'ArrayBuffer' && name !== 'fixed-length Uint8Array') {
+        // shrink, then grow back: the copy and the length follow the buffer
+        buf.resize(2)
+        assert.deepStrictEqual(binding.getMemoryDataAsArray(view), [0x77, 0x77], label)
+        buf.resize(4096)
+        new Uint8Array(buf).fill(0x78)
+        assert.deepStrictEqual(binding.getMemoryDataAsArray(view), Array(4096).fill(0x78), label)
+        assertIntact(sentinels, `${label}: wasm memory after the copy was overwritten`)
+      }
+    }
+  }
+
+  // emnapi_sync_memory never copies more than the wasm copy holds: with the
+  // default length it stops at the end of the copy, and a longer explicit
+  // length is a RangeError
+  if (binding.syncMemory && typeof ArrayBuffer.prototype.resize === 'function') {
+    for (const viewOf of [(b) => b, (b) => new Uint8Array(b)]) {
+      const rab = new ArrayBuffer(4, { maxByteLength: 4096 })
+      new Uint8Array(rab).fill(1)
+      binding.getMemoryDataAsArray(viewOf(rab))
+      const sentinels = Array.from({ length: 8 }, () => binding.newBuffer())
+      rab.resize(4096)
+      new Uint8Array(rab).fill(0x77)
+      binding.syncMemory(false, viewOf(rab), -1)
+      assert.deepStrictEqual([...new Uint8Array(rab, 0, 4)], [1, 1, 1, 1])
+      assert(new Uint8Array(rab, 4).every((x) => x === 0x77), 'sync copied wasm memory from after the copy')
+      binding.syncMemory(true, viewOf(rab), -1)
+      assertIntact(sentinels, 'sync wrote past the copy')
+      assert.throws(() => binding.syncMemory(false, viewOf(rab), 8), RangeError)
+    }
+  }
+
+  // a copy that moved to a bigger block fills only the start of it: the rest
+  // is room to grow into and holds old heap data. When the buffer grows into
+  // that room with no get-info call, emnapi_sync_memory must not copy it to JS
+  if (binding.syncMemory && typeof ArrayBuffer.prototype.resize === 'function') {
+    for (const viewOf of [(b) => b, (b) => new Uint8Array(b)]) {
+      const rab = new ArrayBuffer(16, { maxByteLength: 4096 })
+      binding.getMemoryDataAsArray(viewOf(rab))
+      rab.resize(17)
+      new Uint8Array(rab).fill(2)
+      // the copy moves to a block of 32 bytes
+      assert.deepStrictEqual(binding.getMemoryDataAsArray(viewOf(rab)), Array(17).fill(2))
+      rab.resize(32)
+      new Uint8Array(rab, 17).fill(3)
+      binding.syncMemory(false, viewOf(rab), -1)
+      assert.deepStrictEqual([...new Uint8Array(rab)], [...Array(17).fill(2), ...Array(15).fill(3)],
+        'sync copied the rest of the block')
+      assert.throws(() => binding.syncMemory(false, viewOf(rab), 32), RangeError)
+    }
+  }
+
+  // a shrink seen by a get-info call drops the bytes past the new length
+  // from the copy. When the buffer grows back with no get-info call, those
+  // bytes are zero in JS, and emnapi_sync_memory must not bring the old
+  // bytes back from the block (buffer_userland.test.js: the same without a
+  // FinalizationRegistry)
+  if (binding.syncMemory && typeof ArrayBuffer.prototype.resize === 'function') {
+    for (const viewOf of [(b) => b, (b) => new Uint8Array(b)]) {
+      const rab = new ArrayBuffer(16, { maxByteLength: 4096 })
+      new Uint8Array(rab).fill(0xaa)
+      binding.getMemoryDataAsArray(viewOf(rab))
+      rab.resize(2)
+      assert.deepStrictEqual(binding.getMemoryDataAsArray(viewOf(rab)), [0xaa, 0xaa])
+      rab.resize(16)
+      binding.syncMemory(false, viewOf(rab), -1)
+      assert.deepStrictEqual([...new Uint8Array(rab)], [0xaa, 0xaa, ...Array(14).fill(0)],
+        'sync copied bytes the shrink dropped')
+      assert.throws(() => binding.syncMemory(false, viewOf(rab), 16), RangeError)
+    }
+  }
+
+  // a copy that had to move to a bigger block keeps its old block until the
+  // ArrayBuffer is collected: native code may still hold the old pointer
+  if (loadPromise.Module && typeof ArrayBuffer.prototype.resize === 'function') {
+    const rab = new ArrayBuffer(4, { maxByteLength: 4096 })
+    const oldData = binding.getInfoOutputs(new Uint8Array(rab)).data
+    rab.resize(4096)
+    binding.getInfoOutputs(new Uint8Array(rab))
+    for (let i = 0; i < 16; ++i) {
+      const data = binding.getInfoOutputs(new Uint8Array(new ArrayBuffer(4))).data
+      assert.notStrictEqual(data, oldData, 'the old block was freed while the ArrayBuffer is alive')
+    }
+  }
+
   const buffer = Buffer.allocUnsafe(6).fill(66)
   arrayBuffer = buffer.buffer
   typedArray = new Uint8Array(arrayBuffer, buffer.byteOffset, buffer.byteLength)

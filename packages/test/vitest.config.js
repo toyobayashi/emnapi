@@ -30,6 +30,7 @@ const isNonThreadedStandaloneWasm = Boolean(
 )
 const nonThreadedStandaloneExcludes = [
   '**/v8_hello_world/**',
+  '**/v8_array_buffer/**',
   '**/nan/**',
   '**/nan-extensions/**',
   '**/node-addon-api/**',

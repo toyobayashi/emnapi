@@ -40,6 +40,9 @@ export function napi_get_arraybuffer_info (env: napi_env, arraybuffer: napi_valu
   // an external buffer), which detaches the previous non-shared buffer, so
   // each value is resolved into a local BEFORE its makeSetValue write (the
   // store target is evaluated before the RHS).
+  // read the length before the copy is made: another thread can grow a
+  // growable SharedArrayBuffer, and the length must fit in the copy
+  const len = emnapiExternalMemory.bufferByteLength(jsValue)
   if (data) {
     from64('data')
 
@@ -49,7 +52,6 @@ export function napi_get_arraybuffer_info (env: napi_env, arraybuffer: napi_valu
   if (byte_length) {
     from64('byte_length')
 
-    const len = emnapiExternalMemory.bufferByteLength(jsValue)
     makeSetValue('byte_length', 0, 'len', SIZE_TYPE)
   }
   return envObject.clearLastError()

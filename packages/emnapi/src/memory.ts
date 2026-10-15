@@ -8,6 +8,14 @@ export interface ArrayBufferPointer {
   address: number
   ownership: ReferenceOwnership
   runtimeAllocated: 0 | 1
+  // size of the block emnapi malloc'd for its copy (only set when emnapi made
+  // the copy). A resizable ArrayBuffer or a growable SharedArrayBuffer can get
+  // longer than this block after the copy was made
+  capacity?: number
+  // how many bytes at the start of that block hold the buffer's data. The
+  // rest of the block is room for the buffer to grow into and holds old heap
+  // data, so it is not part of the copy
+  copied?: number
 }
 
 export interface MemoryViewDescriptor extends ArrayBufferPointer {
@@ -49,9 +57,11 @@ export const emnapiExternalMemory: {
     }
     arrayBuffer: {
       byteLength: (this: any) => number
+      maxByteLength: ((this: any) => number) | undefined
     }
     sharedArrayBuffer: {
       byteLength: (this: any) => number
+      maxByteLength: ((this: any) => number) | undefined
     } | undefined
     ctors: { [name: string]: ViewConstuctor | undefined }
     // captured once from the runtime Buffer at the first Buffer-descriptor
@@ -64,6 +74,7 @@ export const emnapiExternalMemory: {
   isSharedArrayBuffer: (value: any) => value is SharedArrayBuffer
   isDetachedArrayBuffer: (arrayBuffer: ArrayBufferLike) => boolean
   bufferByteLength: (buffer: ArrayBufferLike) => number
+  bufferMaxByteLength: (buffer: ArrayBufferLike) => number | undefined
   viewBuffer: (view: ArrayBufferView) => ArrayBufferLike
   viewByteOffset: (view: ArrayBufferView) => number
   viewLength: (view: ArrayBufferView) => number
@@ -76,6 +87,7 @@ export const emnapiExternalMemory: {
   getOrUpdateMemoryView: <T extends ArrayBufferView>(view: T) => T
   getArrayBufferPointer: (arrayBuffer: ArrayBufferLike, shouldCopy: boolean) => ArrayBufferPointer
   getViewPointer: <T extends ArrayBufferView>(view: T, shouldCopy: boolean) => ViewPointer<T>
+  copyBytesFrom: (arrayBuffer: ArrayBufferLike, byteOffset: number) => number
 } = {
   registry: typeof FinalizationRegistry === 'function' ? new FinalizationRegistry(function (_pointer) { _free(to64('_pointer') as number) }) : undefined,
   table: new WeakMap(),
@@ -100,6 +112,9 @@ export const emnapiExternalMemory: {
     const sharedArrayBufferByteLength = typeof SharedArrayBuffer === 'function'
       ? Object.getOwnPropertyDescriptor(SharedArrayBuffer.prototype, 'byteLength')?.get
       : undefined
+    const sharedArrayBufferMaxByteLength = typeof SharedArrayBuffer === 'function'
+      ? Object.getOwnPropertyDescriptor(SharedArrayBuffer.prototype, 'maxByteLength')?.get
+      : undefined
 
     // cached intrinsic prototype getters and element-type constructors: they
     // read the internal slots directly like native Node-API does, so user
@@ -122,13 +137,17 @@ export const emnapiExternalMemory: {
         byteLength: Object.getOwnPropertyDescriptor(DataView.prototype, 'byteLength')!.get!
       },
       arrayBuffer: {
-        byteLength: Object.getOwnPropertyDescriptor(ArrayBuffer.prototype, 'byteLength')!.get!
+        byteLength: Object.getOwnPropertyDescriptor(ArrayBuffer.prototype, 'byteLength')!.get!,
+        // undefined on engines without resizable ArrayBuffers
+        maxByteLength: Object.getOwnPropertyDescriptor(ArrayBuffer.prototype, 'maxByteLength')?.get
       },
       // a SharedArrayBuffer polyfill may lack the byteLength accessor: degrade
       // to the hidden-global classification path instead of throwing here
       sharedArrayBuffer: sharedArrayBufferByteLength !== undefined
         ? {
-            byteLength: sharedArrayBufferByteLength
+            byteLength: sharedArrayBufferByteLength,
+            // undefined on engines without growable SharedArrayBuffers
+            maxByteLength: sharedArrayBufferMaxByteLength
           }
         : undefined,
       ctors: {
@@ -217,6 +236,19 @@ export const emnapiExternalMemory: {
     }
   },
 
+  // the length a resizable ArrayBuffer or growable SharedArrayBuffer can grow
+  // to (byteLength for a fixed-length one); undefined when the engine has no
+  // maxByteLength getter
+  bufferMaxByteLength: function (buffer: ArrayBufferLike): number | undefined {
+    const intrinsics = emnapiExternalMemory.intrinsics
+    try {
+      return intrinsics.arrayBuffer.maxByteLength?.call(buffer)
+    } catch (_) {
+      // the ArrayBuffer getter throws for a SharedArrayBuffer
+      return intrinsics.sharedArrayBuffer?.maxByteLength?.call(buffer)
+    }
+  },
+
   viewBuffer: function (view: ArrayBufferView): ArrayBufferLike {
     const intrinsics = emnapiExternalMemory.intrinsics
     return intrinsics.typedArray.tag.call(view) === undefined
@@ -299,8 +331,53 @@ export const emnapiExternalMemory: {
         cachedInfo.address = 0
         return cachedInfo
       }
-      if (shouldCopy && cachedInfo.ownership === ReferenceOwnership.kRuntime && cachedInfo.runtimeAllocated === 1) {
-        emnapiExternalMemory.getHEAPU8().set(new Uint8Array(arrayBuffer), cachedInfo.address)
+      if (shouldCopy && cachedInfo.runtimeAllocated === 1) {
+        const byteLength = emnapiExternalMemory.bufferByteLength(arrayBuffer)
+        // without a FinalizationRegistry (kUserland) native code owns the
+        // block and may have freed it, so emnapi never writes into it again:
+        // a buffer longer than its copy gets a new block
+        const userland = cachedInfo.ownership === ReferenceOwnership.kUserland
+        if (byteLength > (userland ? cachedInfo.copied! : cachedInfo.capacity!)) {
+          // a resizable ArrayBuffer or growable SharedArrayBuffer grew past
+          // its copy: copy it into a bigger block. The old block is not freed
+          // here, because native code (an earlier data pointer, a
+          // v8::BackingStore) may still use it. With a FinalizationRegistry
+          // (kRuntime) every block stays registered and is freed when the
+          // ArrayBuffer is collected. Without one (kUserland) emnapi never
+          // frees a block, and get-info gives native code only the address
+          // of the newest one. Doubling the size keeps the number of blocks
+          // small when a buffer grows in small steps. A kUserland block is
+          // never reused, so it gets the exact size.
+          let capacity = userland ? byteLength : cachedInfo.capacity! * 2
+          // no bigger than the buffer can grow to, and below 2 GiB: wasm32
+          // sbrk takes a signed size and emnapi's emmalloc traps on a request
+          // near 2 GiB
+          const maxByteLength = emnapiExternalMemory.bufferMaxByteLength(arrayBuffer)
+          if (maxByteLength !== undefined && capacity > maxByteLength) capacity = maxByteLength
+          if (capacity > 0x7f000000) capacity = 0x7f000000
+          if (capacity < byteLength) capacity = byteLength
+          // retry with the exact size when malloc returns 0. With
+          // ABORTING_MALLOC (on by default in emscripten builds without
+          // memory growth) malloc aborts instead, so a bigger block that does
+          // not fit aborts even if the exact size would fit
+          let pointer = _malloc(to64('capacity'))
+          if (!pointer && capacity !== byteLength) {
+            capacity = byteLength
+            pointer = _malloc(to64('capacity'))
+          }
+          if (!pointer) throw new Error('Out of memory')
+          from64('pointer')
+          cachedInfo.address = pointer as number
+          cachedInfo.capacity = capacity
+          emnapiExternalMemory.registry?.register(arrayBuffer, pointer as number)
+          emnapiExternalMemory.getHEAPU8().set(new Uint8Array(arrayBuffer, 0, byteLength), cachedInfo.address)
+        } else if (!userland) {
+          emnapiExternalMemory.getHEAPU8().set(new Uint8Array(arrayBuffer, 0, byteLength), cachedInfo.address)
+        }
+        // the block now holds the buffer's data up to byteLength, and no
+        // further: after a shrink, the bytes past the new length are not
+        // the buffer's data any more
+        cachedInfo.copied = byteLength
       }
       return cachedInfo
     }
@@ -317,11 +394,15 @@ export const emnapiExternalMemory: {
     let pointer = _malloc(to64('byteLength'))
     if (!pointer) throw new Error('Out of memory')
     from64('pointer')
-    emnapiExternalMemory.getHEAPU8().set(new Uint8Array(arrayBuffer), pointer as number)
+    // copy exactly byteLength bytes: another thread can grow a growable
+    // SharedArrayBuffer after its length was read
+    emnapiExternalMemory.getHEAPU8().set(new Uint8Array(arrayBuffer, 0, byteLength), pointer as number)
 
     info.address = pointer as number
     info.ownership = emnapiExternalMemory.registry ? ReferenceOwnership.kRuntime : ReferenceOwnership.kUserland
     info.runtimeAllocated = 1
+    info.capacity = byteLength
+    info.copied = byteLength
 
     emnapiExternalMemory.table.set(arrayBuffer, info)
     emnapiExternalMemory.registry?.register(arrayBuffer, pointer as number)
@@ -394,6 +475,14 @@ export const emnapiExternalMemory: {
 
     const { address, ownership, runtimeAllocated } = emnapiExternalMemory.getArrayBufferPointer(buffer, shouldCopy)
     return { address: address === 0 ? 0 : (address + emnapiExternalMemory.viewByteOffset(view)), ownership, runtimeAllocated, view }
+  },
+
+  // bytes of emnapi's copy of arrayBuffer that start byteOffset bytes into
+  // it (the block can be longer than the copy); Infinity when emnapi did not
+  // make the copy (no known size)
+  copyBytesFrom: function (arrayBuffer: ArrayBufferLike, byteOffset: number): number {
+    const copied = emnapiExternalMemory.table.get(arrayBuffer)?.copied
+    return copied === undefined ? Infinity : (copied > byteOffset ? copied - byteOffset : 0)
   }
 }
 

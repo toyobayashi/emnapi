@@ -177,12 +177,15 @@ export function $emnapiSyncMemory<T extends ArrayBufferLike | ArrayBufferView> (
   if (arrayBufferOrView instanceof ArrayBuffer || emnapiExternalMemory.isSharedArrayBuffer(arrayBufferOrView)) {
     const pointer = emnapiExternalMemory.getArrayBufferPointer(arrayBufferOrView, false).address
     if (!pointer) throw new Error('Unknown ArrayBuffer address')
+    // a resizable or growable buffer can be longer than emnapi's copy of it
+    const copyBytes = emnapiExternalMemory.copyBytesFrom(arrayBufferOrView, 0)
     if (typeof len !== 'number' || len === -1 || len === 4294967295) {
-      len = arrayBufferOrView.byteLength - offset
+      len = Math.min(arrayBufferOrView.byteLength - offset, copyBytes)
     }
     len = len >>> 0
     if (len === 0) return arrayBufferOrView as (T extends ArrayBufferView ? ArrayBufferView : T)
     view = new Uint8Array(arrayBufferOrView, offset, len)
+    if (len > copyBytes) throw new RangeError('The range is larger than the wasm copy of the buffer')
 
     const wasmMemoryU8 = emnapiExternalMemory.getHEAPU8()
     if (!js_to_wasm) {
@@ -199,12 +202,15 @@ export function $emnapiSyncMemory<T extends ArrayBufferLike | ArrayBufferView> (
     const latestView = viewPointerInfo.view
     const pointer = viewPointerInfo.address
     if (!pointer) throw new Error('Unknown ArrayBuffer address')
+    // a resizable or growable buffer can be longer than emnapi's copy of it
+    const copyBytes = emnapiExternalMemory.copyBytesFrom(emnapiExternalMemory.viewBuffer(latestView), emnapiExternalMemory.viewByteOffset(latestView))
     if (typeof len !== 'number' || len === -1 || len === 4294967295) {
-      len = latestView.byteLength - offset
+      len = Math.min(latestView.byteLength - offset, copyBytes)
     }
     len = len >>> 0
     if (len === 0) return latestView as (T extends ArrayBufferView ? ArrayBufferView : T)
     view = new Uint8Array(latestView.buffer, latestView.byteOffset + offset, len)
+    if (len > copyBytes) throw new RangeError('The range is larger than the wasm copy of the buffer')
 
     const wasmMemoryU8 = emnapiExternalMemory.getHEAPU8()
     if (!js_to_wasm) {

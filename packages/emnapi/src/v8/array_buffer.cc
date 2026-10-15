@@ -95,9 +95,16 @@ size_t ArrayBufferView::CopyContents(void* dest, size_t byte_length) {
   Local<ArrayBuffer> buffer = Buffer();
   if (buffer.IsEmpty()) return 0;
   std::shared_ptr<BackingStore> store = buffer->GetBackingStore();
-  const size_t length = std::min(byte_length, ByteLength());
+  // the view can reach past the store's copy of the buffer: another thread
+  // can grow a growable SharedArrayBuffer after the copy was made. Copy only
+  // bytes the store holds
+  const size_t store_length = store->ByteLength();
+  const size_t offset = ByteOffset();
+  if (offset >= store_length) return 0;
+  const size_t length =
+      std::min({byte_length, ByteLength(), store_length - offset});
   if (length != 0) {
-    std::memcpy(dest, static_cast<char*>(store->Data()) + ByteOffset(), length);
+    std::memcpy(dest, static_cast<char*>(store->Data()) + offset, length);
   }
   return length;
 }

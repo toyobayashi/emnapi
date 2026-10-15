@@ -34,6 +34,7 @@ let ignore = [
 
 const pthread = [
   'v8_hello_world/**/*',
+  'v8_array_buffer/**/*',
   'nan/**/*',
   'nan-extensions/**/*',
   'node-addon-api/**/*',
@@ -51,6 +52,7 @@ const pthread = [
 if (!require('fs').existsSync(path.join(__dirname, '../../emnapi/include/node/v8.h'))) {
   console.log('v8 headers not found, skipping v8_hello_world tests')
   ignore.push('v8_hello_world/**/*')
+  ignore.push('v8_array_buffer/**/*')
   ignore.push('nan/**/*')
 }
 
