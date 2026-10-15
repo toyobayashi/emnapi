@@ -521,8 +521,6 @@ const emnapiTSFN = {
   },
   releaseResources (func: number) {
     if (emnapiTSFN.getState(func) !== State.kClosed) {
-      emnapiTSFN.setState(func, State.kClosed)
-
       const env = emnapiTSFN.getEnv(func)
       const envObject = emnapiEnv
       const ref = emnapiTSFN.getRef(func)
@@ -579,13 +577,14 @@ const emnapiTSFN = {
     }
   },
   maybeDelete (func: number) {
+    // Unrefing the environment can run user finalizers that reenter TSFN
+    // release. Keep the state at kClosing until resource release completes.
+    emnapiTSFN.releaseResources(func)
+
     let shouldDelete = false
     emnapiTSFN.getMutex(func).execute(() => {
-      if (emnapiTSFN.getThreadCount(func) > 0) {
-        emnapiTSFN.releaseResources(func)
-      } else {
-        shouldDelete = true
-      }
+      emnapiTSFN.setState(func, State.kClosed)
+      shouldDelete = emnapiTSFN.getThreadCount(func) === 0
     })
     if (shouldDelete) {
       emnapiTSFN.destroy(func)
