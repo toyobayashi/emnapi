@@ -31,11 +31,12 @@ module.exports = load('general').then(async test_general => {
   async function testFinalizeAndWrap () {
     assert.strictEqual(test_general.derefItemWasCalled(), false)
     let finalizeAndWrap = {}
+    let finalizerOnlyCount = 0
     test_general.wrap(finalizeAndWrap)
-    test_general.addFinalizerOnly(finalizeAndWrap, common.mustCall())
+    test_general.addFinalizerOnly(finalizeAndWrap, common.mustCall(() => { finalizerOnlyCount++ }))
     finalizeAndWrap = null
     await common.gcUntil('test finalize and wrap',
-      () => test_general.derefItemWasCalled())
+      () => test_general.derefItemWasCalled() && finalizerOnlyCount === 1)
   }
   await testFinalizeAndWrap()
 })
