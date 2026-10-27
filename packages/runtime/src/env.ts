@@ -296,13 +296,26 @@ export class NodeEnv extends Env {
   public override enqueueFinalizer (finalizer: RefTracker): void {
     super.enqueueFinalizer(finalizer)
     if (!this.finalizationScheduled && !this.destructing) {
-      this.finalizationScheduled = true
-      this.ref()
-      this.ctx.features.setImmediate(() => {
+      const drain = (): void => {
         this.finalizationScheduled = false
         this.unref()
         this.drainFinalizerQueue()
-      })
+      }
+      try {
+        this.ctx.features.setImmediate(drain)
+      } catch (_) {
+        // GC callbacks may run without an I/O context (e.g. workerd),
+        // where host timers are forbidden; fall back to a microtask.
+        if (typeof queueMicrotask === 'function') {
+          queueMicrotask(drain)
+        } else {
+          Promise.resolve().then(drain)
+        }
+      }
+      // Mark as scheduled only after scheduling succeeds, so a failed schedule
+      // leaves nothing to roll back. Safe because drain always runs asynchronously.
+      this.finalizationScheduled = true
+      this.ref()
     }
   }
 
