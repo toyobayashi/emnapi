@@ -312,6 +312,13 @@ if((NOT IS_WASM) OR IS_EMSCRIPTEN OR IS_WASI_THREADS)
   add_test("tsfn_shutdown" "./tsfn_shutdown/binding.cc" ON)
   add_test("tsfn_shutdown_multi_thread_count_release" "./tsfn_shutdown/multi_thread_count_release.c" ON)
   add_test("tsfn_shutdown_reentrant_release" "./tsfn_shutdown/reentrant_release.c" ON)
+  if(IS_EMSCRIPTEN)
+    # This fixture tests an external Worker and does not create C pthreads itself.
+    target_link_options("tsfn_shutdown_reentrant_release" PRIVATE
+      "-sPTHREAD_POOL_SIZE=0"
+      "-sPTHREAD_POOL_SIZE_STRICT=0"
+    )
+  endif()
   add_test("tsfn_abort" "./tsfn_abort/binding.cc" ON)
   target_compile_options("tsfn_abort" PRIVATE "-fno-rtti")
   add_test("async_cleanup_hook" "./async_cleanup_hook/binding.c" ON)

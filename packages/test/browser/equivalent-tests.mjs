@@ -1,9 +1,9 @@
 import assert from 'assert'
 import { load } from '../util.mjs'
 
-function createWorker (source) {
+function createWorker (source, options) {
   const url = URL.createObjectURL(new Blob([source], { type: 'text/javascript' }))
-  const worker = new globalThis.Worker(url)
+  const worker = new globalThis.Worker(url, options)
   const dispose = () => {
     worker.terminate()
     URL.revokeObjectURL(url)
@@ -155,17 +155,70 @@ async function sharedArrayBuffer (target) {
 }
 
 async function tsfnMultiThreadCountRelease () {
-  const binding = await loadSmoke('tsfn_shutdown_multi_thread_count_release')
+  const run = await loadSmoke('tsfn_shutdown_multi_thread_count_release')
   for (const abort of [false, true]) {
     let calls = 0
     await new Promise(resolve => {
-      binding.run(abort, () => {
+      run(abort, () => {
         calls++
         resolve()
       })
     })
     await new Promise(resolve => setTimeout(resolve, 0))
     assert.strictEqual(calls, 1)
+  }
+}
+
+async function tsfnReentrantRelease () {
+  const loadPromise = load('tsfn_shutdown_reentrant_release')
+  const binding = await loadPromise
+  const memory = loadPromise.Module.wasmMemory
+  const markerIndex = (memory.buffer.byteLength >>> 2) - 1
+  const sharedView = new Int32Array(memory.buffer)
+  Atomics.store(sharedView, markerIndex, 0)
+  const utilUrl = new URL('../util.mjs', import.meta.url).href
+  const { worker, dispose } = createWorker(`
+    globalThis.__vitest_browser_runner__ = { wrapDynamicImport: callback => callback() }
+    self.addEventListener('message', async ({ data }) => {
+      try {
+        globalThis.process ||= { env: {} }
+        globalThis.process.env ||= {}
+        Object.assign(globalThis.process.env, data.browserEnv)
+        globalThis.__EMNAPI_BROWSER_ENV__ = data.browserEnv
+        const { load, getEntry, destroyContext } = await import(${JSON.stringify(utilUrl)})
+        const target = 'tsfn_shutdown_reentrant_release'
+        const backend = getEntry(target).pathname.endsWith('.wasm') ? 'wasi' : 'emscripten'
+        await load(target, { memory: data.memory })
+        Atomics.store(new Int32Array(data.memory.buffer), data.markerIndex, 0x5a17)
+        await destroyContext()
+        self.postMessage({ ok: true, backend })
+      } catch (err) {
+        self.postMessage({ error: err && err.stack ? err.stack : String(err) })
+      }
+    }, { once: true })
+  `, { type: 'module' })
+
+  try {
+    const result = await new Promise((resolve, reject) => {
+      worker.addEventListener('message', event => resolve(event.data), { once: true })
+      worker.addEventListener('error', event => {
+        event.preventDefault()
+        reject(new Error(`${event.message} (${event.filename}:${event.lineno})`))
+      }, { once: true })
+      worker.postMessage({
+        memory,
+        markerIndex,
+        browserEnv: globalThis.__EMNAPI_BROWSER_ENV__ || {}
+      })
+    })
+    if (result.error) throw new Error(result.error)
+    assert.strictEqual(result.ok, true)
+    const expectedBackend = globalThis.__EMNAPI_BROWSER_ENV__.EMNAPI_TEST_WASI_THREADS ? 'wasi' : 'emscripten'
+    assert.strictEqual(result.backend, expectedBackend)
+    assert.strictEqual(Atomics.load(sharedView, markerIndex), 0x5a17)
+    assert.strictEqual(binding.reentered(), true, JSON.stringify(result))
+  } finally {
+    dispose()
   }
 }
 
@@ -246,10 +299,7 @@ const equivalents = {
     await workerFailure('thread-safe function abort')
   },
   'tsfn_shutdown/multi_thread_count_release.test.js': tsfnMultiThreadCountRelease,
-  'tsfn_shutdown/reentrant_release.test.js': async () => {
-    await loadSmoke('tsfn_shutdown_reentrant_release')
-    await workerRoundTrip()
-  },
+  'tsfn_shutdown/reentrant_release.test.js': tsfnReentrantRelease,
   'tsfn_shutdown/tsfn_shutdown.test.js': async () => {
     await loadSmoke('tsfn_shutdown')
     await workerRoundTrip()

@@ -11,6 +11,20 @@ import tsfn from '@emnapi/core/plugins/threadsafe-function'
 
 const context = getDefaultContext()
 
+if (globalThis.__EMNAPI_BROWSER_ENV__) {
+  Object.assign(process.env, globalThis.__EMNAPI_BROWSER_ENV__)
+}
+
+export async function destroyContext () {
+  const envs = context.envStore._values.filter(Boolean)
+  // Browser Workers have no Node worker-environment teardown hook. Drain the
+  // emnapi cleanup hooks, let pending close callbacks run, then dispose any
+  // envs that are still held by thread-safe functions.
+  context.runCleanup()
+  await new Promise(resolve => setTimeout(resolve, 100))
+  for (const env of envs) env.dispose()
+}
+
 function getDir () {
   let buildDir
   if (process.env.EMNAPI_TEST_WASI_THREADS) {
@@ -38,7 +52,7 @@ const ASYNC_WORK_POOL_SIZE = typeof window === 'undefined'
 const wasmInputCache = new Map()
 
 function getWasmInput (request) {
-  if (typeof window === 'undefined') {
+  if (typeof process === 'object' && process !== null && typeof process.versions?.node === 'string') {
     return fs.readFileSync(request)
   }
 
