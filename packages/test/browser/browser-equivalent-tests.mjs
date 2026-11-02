@@ -29,6 +29,8 @@ export const browserEquivalentTests = new Map([
   ['tsfn2/tsfn2.test.js', 'requires @emnapi/node-binding thread-safe callback integration'],
   ['tsfn2/tsfn2_st.test.js', 'the single-thread TSFN fixture is not built by the default test build'],
   ['tsfn_abort/tsfn_abort.test.js', 'requires @emnapi/node-binding fatal callback integration'],
+  ['tsfn_shutdown/multi_thread_count_release.test.js', 'checks TSFN release counts and finalizer execution'],
+  ['tsfn_shutdown/reentrant_release.test.js', 'requires Node worker environment teardown semantics'],
   ['tsfn_shutdown/tsfn_shutdown.test.js', 'asserts child-process shutdown behavior'],
   ['v8_hello_world/v8_hello_world.test.js', 'asserts the Node CommonJS require cache'],
   ['version/version.test.js', 'asserts the host Node runtime version']

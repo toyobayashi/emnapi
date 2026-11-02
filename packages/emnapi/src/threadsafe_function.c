@@ -85,7 +85,6 @@ _emnapi_tsfn_create(napi_env env,
 
 static void _emnapi_tsfn_release_resources(napi_threadsafe_function func) {
   if (func->state != napi_tsfn_state_closed) {
-    func->state = napi_tsfn_state_closed;
     if (func->ref != NULL) {
       EMNAPI_ASSERT_CALL(napi_delete_reference(func->env, func->ref));
       func->ref = NULL;
@@ -189,14 +188,19 @@ static void _emnapi_tsfn_empty_queue(napi_threadsafe_function func) {
 }
 
 static void _emnapi_tsfn_maybe_delete(napi_threadsafe_function func) {
+  // This can unref the environment, which may invoke user finalizers that
+  // reenter napi_release_threadsafe_function. Keep the state at kClosing
+  // until all such callbacks have returned.
+  CHECK_EQ(func->state, napi_tsfn_state_closing);
+  _emnapi_tsfn_release_resources(func);
+
   pthread_mutex_lock(&func->mutex);
+  func->state = napi_tsfn_state_closed;
   if (func->thread_count > 0) {
-    _emnapi_tsfn_release_resources(func);
     pthread_mutex_unlock(&func->mutex);
     return;
-  } else {
-    pthread_mutex_unlock(&func->mutex);
   }
+  pthread_mutex_unlock(&func->mutex);
   _emnapi_tsfn_destroy(func);
 }
 

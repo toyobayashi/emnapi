@@ -2,6 +2,7 @@
 import fs from 'fs'
 import { Worker } from 'worker_threads'
 import { getDefaultContext } from '@emnapi/runtime'
+import { createInstanceProxy } from '@emnapi/wasi-threads'
 import { WASI } from './wasi.js'
 import { createAddonModule, loadAddon } from '@emnapi/core'
 import v8 from '@emnapi/core/plugins/v8'
@@ -9,6 +10,20 @@ import asyncWork from '@emnapi/core/plugins/async-work'
 import tsfn from '@emnapi/core/plugins/threadsafe-function'
 
 const context = getDefaultContext()
+
+if (globalThis.__EMNAPI_BROWSER_ENV__) {
+  Object.assign(process.env, globalThis.__EMNAPI_BROWSER_ENV__)
+}
+
+export async function destroyContext () {
+  const envs = context.envStore._values.filter(Boolean)
+  // Browser Workers have no Node worker-environment teardown hook. Drain the
+  // emnapi cleanup hooks, let pending close callbacks run, then dispose any
+  // envs that are still held by thread-safe functions.
+  context.runCleanup()
+  await new Promise(resolve => setTimeout(resolve, 100))
+  for (const env of envs) env.dispose()
+}
 
 function getDir () {
   let buildDir
@@ -37,7 +52,7 @@ const ASYNC_WORK_POOL_SIZE = typeof window === 'undefined'
 const wasmInputCache = new Map()
 
 function getWasmInput (request) {
-  if (typeof window === 'undefined') {
+  if (typeof process === 'object' && process !== null && typeof process.versions?.node === 'string') {
     return fs.readFileSync(request)
   }
 
@@ -65,15 +80,25 @@ function emscripten_get_now () {
 
 export function loadPath (request, options) {
   try {
+    const memory = options && options.memory
+    const addonOptions = options && { ...options }
+    if (addonOptions) delete addonOptions.memory
+
     if (process.env.EMNAPI_TEST_NATIVE) {
       return import(/* @vite-ignore */ request)
     }
 
     if (process.env.EMNAPI_TEST_WASI) {
+      let wasmMemory = memory
       const wasi = new WASI({
         version: 'preview1',
         fs
       })
+      if (memory && process.env.EMNAPI_TEST_WASI_THREADS) {
+        // The shared memory was initialized by the parent instance. Avoid rerunning the reactor's _initialize.
+        const initialize = wasi.initialize.bind(wasi)
+        wasi.initialize = instance => initialize(createInstanceProxy(instance, memory))
+      }
       const addonModule = createAddonModule({
         context,
         filename: request,
@@ -102,7 +127,7 @@ export function loadPath (request, options) {
           asyncWork,
           tsfn
         ],
-        ...(options || {})
+        ...(addonOptions || {})
       })
 
       const p = new Promise((resolve, reject) => {
@@ -113,17 +138,20 @@ export function loadPath (request, options) {
             wasi,
             overwriteImports (importObject) {
               importObject.env.emscripten_get_now = emscripten_get_now
-              if (process.env.EMNAPI_TEST_WASI_THREADS) {
-                importObject.env.memory = new WebAssembly.Memory({
+              if (memory) {
+                importObject.env.memory = memory
+              } else if (process.env.EMNAPI_TEST_WASI_THREADS) {
+                wasmMemory = new WebAssembly.Memory({
                   initial: 16777216 / 65536,
                   maximum: 4294967296 / 65536,
                   shared: true
                 })
+                importObject.env.memory = wasmMemory
               }
             }
           }
         ).then((source) => {
-          addonModule.wasmMemory = source.instance.exports.memory
+          addonModule.wasmMemory = source.instance.exports.memory || wasmMemory
           if (process.env.EMNAPI_TEST_4GB) {
             source.instance.exports.malloc(2147483648)
           }
@@ -145,7 +173,7 @@ export function loadPath (request, options) {
           })
         },
         plugins: [v8, asyncWork, tsfn],
-        ...(options || {})
+        ...(addonOptions || {})
       })
       const p = new Promise((resolve, reject) => {
         let wasmMemory
@@ -158,7 +186,7 @@ export function loadPath (request, options) {
           const shared = (typeof SharedArrayBuffer === 'function') && (wasmMemory.buffer instanceof SharedArrayBuffer)
           return new TextDecoder().decode(shared ? HEAPU8.slice(ptr, end) : HEAPU8.subarray(ptr, end))
         }
-        const sharedMemory = new WebAssembly.Memory({
+        const sharedMemory = memory || new WebAssembly.Memory({
           initial: 16777216 / 65536,
           maximum: 4294967296 / 65536,
           shared: true
@@ -203,7 +231,7 @@ export function loadPath (request, options) {
         resolve(Module.emnapiInit({
           context,
           asyncWorkPoolSize: ASYNC_WORK_POOL_SIZE,
-          ...(options || {})
+          ...(addonOptions || {})
         }))
       } catch (err) {
         reject(err)
@@ -233,6 +261,7 @@ export function loadPath (request, options) {
         }
         mod.default({
           mainScriptUrlOrBlob,
+          wasmMemory: memory,
           locateFile (path, scriptDirectory) {
             if (typeof window !== 'undefined') {
               return new URL(path, getDir()).href
