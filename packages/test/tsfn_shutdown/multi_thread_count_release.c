@@ -23,10 +23,10 @@ static napi_value Run(napi_env env, napi_callback_info info) {
   size_t argc = 2;
   napi_value args[2];
   NODE_API_CALL(env, napi_get_cb_info(env, info, &argc, args, NULL, NULL));
-  bool abort;
+  bool use_abort;
   napi_ref callback_ref;
   napi_threadsafe_function tsfn;
-  NODE_API_CALL(env, napi_get_value_bool(env, args[0], &abort));
+  NODE_API_CALL(env, napi_get_value_bool(env, args[0], &use_abort));
   NODE_API_CALL(env, napi_create_reference(env, args[1], 1, &callback_ref));
   napi_value name;
   NODE_API_CALL(env,
@@ -44,7 +44,7 @@ static napi_value Run(napi_env env, napi_callback_info info) {
                                                 NULL,
                                                 CallJs,
                                                 &tsfn));
-  if (abort) {
+  if (use_abort) {
     NODE_API_CALL(env, napi_release_threadsafe_function(tsfn, napi_tsfn_abort));
     for (int i = 1; i < THREAD_COUNT; i++) {
       napi_status status =
@@ -65,6 +65,5 @@ NAPI_MODULE_INIT() {
   napi_value run;
   NODE_API_CALL(
       env, napi_create_function(env, "run", NAPI_AUTO_LENGTH, Run, NULL, &run));
-  NODE_API_CALL(env, napi_set_named_property(env, exports, "run", run));
-  return exports;
+  return run;
 }
