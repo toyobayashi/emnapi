@@ -13,3 +13,4 @@ out
 /script/*.cmake
 *.tgz
 temp
+/docs
