@@ -141,7 +141,7 @@ jobs:
         - name: '@emnapi/ts-transform-emscripten-parse-tools'
           target: ts-transform-emscripten-parse-tools
           needs_wasi_sdk: 'false'
-          build: npm run build -w packages/ts-transform-emscripten-parse-tools
+          build: npm run build -w packages/ts-transform-emscripten-esm-library -w packages/ts-transform-emscripten-parse-tools
           test: npm run test -w packages/ts-transform-emscripten-parse-tools
         - name: '@emnapi/runtime'
           target: runtime
