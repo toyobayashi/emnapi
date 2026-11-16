@@ -8,6 +8,29 @@
     "build": "tsc -p ./tsconfig.json"
   },
   "main": "./out/index.js",
+  "exports": {
+    ".": {
+      "types": {
+        "module-sync": "./out/index.d.ts",
+        "import": "./out/index.d.ts",
+        "require": "./out/index.d.ts",
+        "default": "./out/index.d.ts"
+      },
+      "module-sync": "./out/index.js",
+      "default": "./out/index.js"
+    },
+    "./transformer-compat": {
+      "types": {
+        "module-sync": "./out/transformer-compat.d.ts",
+        "import": "./out/transformer-compat.d.ts",
+        "require": "./out/transformer-compat.d.ts",
+        "default": "./out/transformer-compat.d.ts"
+      },
+      "module-sync": "./out/transformer-compat.js",
+      "default": "./out/transformer-compat.js"
+    },
+    "./package.json": "./package.json"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/toyobayashi/emnapi.git"

@@ -2,22 +2,25 @@ import assert from 'node:assert/strict'
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import test from 'node:test'
-import ts from 'typescript'
+import { ModuleKind, ModuleResolutionKind } from 'typescript/sync'
+import { ScriptTarget } from 'typescript/ast'
 import { createTransformerFactory } from '@emnapi/ts-transform-macro'
+import { emitWithTransformer } from '../../shared/test/transformer-harness.js'
 
 const inputDir = join(import.meta.dirname, 'input')
-const program = ts.createProgram([
+const rootFiles = [
   join(inputDir, 'macros.ts'),
   join(inputDir, 'use-macros.ts'),
   join(inputDir, 'types.d.ts')
-], {
-  module: ts.ModuleKind.ESNext,
-  moduleResolution: ts.ModuleResolutionKind.Node10,
-  target: ts.ScriptTarget.ES2021,
+]
+const compilerOptions = {
+  module: ModuleKind.ESNext,
+  moduleResolution: ModuleResolutionKind.Node10,
+  target: ScriptTarget.ES2021,
   noEmit: false,
   noEmitOnError: false,
   strict: true
-})
+}
 
 const cases = [
   { name: 'removes real macro declarations', source: 'macros.ts', output: 'macros.js' },
@@ -26,16 +29,13 @@ const cases = [
 
 function transform (fileName) {
   const sourcePath = join(inputDir, fileName)
-  const sourceFile = program.getSourceFile(sourcePath)
-  assert.ok(sourceFile, `TypeScript Program did not include ${sourcePath}`)
-  const emitted = []
-  program.emit(sourceFile, (emittedFile, text) => {
-    emitted.push({ emittedFile, text })
-  }, undefined, false, {
-    before: [createTransformerFactory(program)]
+  return emitWithTransformer({
+    rootFiles,
+    compilerOptions,
+    sourceFileName: sourcePath,
+    transformerFactory: createTransformerFactory,
+    transformerOptions: {}
   })
-  assert.equal(emitted.length, 1)
-  return emitted[0].text
 }
 
 for (const { name, source, output } of cases) {

@@ -19,9 +19,6 @@ const output = transformWithOptions(
     exportedRuntimeMethods: [ /* ... */ ],
 
     /** @type {boolean} */
-    processDirective: true,
-
-    /** @type {boolean} */
     processParseTools: true,
 
     /** @type {string} */
@@ -32,6 +29,8 @@ const output = transformWithOptions(
   }
 )
 ```
+
+For Emscripten conditionals, run `@emnapi/ts-transform-constexpr` with `mode: 'preserve'` before this transform. The example below shows the marker calls it produces; this package turns those markers into preprocessor directives.
 
 <table>
 <thead>
@@ -257,11 +256,11 @@ function _y() {
 ```js
 export function getPointerSize () {
   let result
-  // #if MEMORY64
+  __emnapi_conditional_if__("MEMORY64")
   result = 8
-  // #else
+  __emnapi_conditional_else__()
   result = 4
-  // #endif
+  __emnapi_conditional_endif__()
   return result
 }
 ```

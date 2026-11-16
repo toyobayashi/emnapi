@@ -4,13 +4,17 @@ export function runScript(env, script, result) {
     let status;
     if (!env)
         return 1 /* napi_status.napi_invalid_arg */;
-    // @ts-expect-error
     const envObject = emnapiEnv;
     envObject.checkGCAccess();
     if (!envObject.lastException.isEmpty())
         return envObject.setLastError(10 /* napi_status.napi_pending_exception */);
     if (!envObject.canCallIntoJs())
-        return envObject.setLastError(envObject.moduleApiVersion >= 10 ? 23 /* napi_status.napi_cannot_run_js */ : 10 /* napi_status.napi_pending_exception */);
+        return envObject.setLastError(envObject.moduleApiVersion
+            >= 10
+            ?
+                23
+            :
+                10);
     envObject.clearLastError();
     try {
         if (!script)
@@ -29,24 +33,35 @@ export function runScript(env, script, result) {
 export function checkStringArgs(env, str, length, result) {
     if (!env)
         return 1 /* napi_status.napi_invalid_arg */;
-    // @ts-expect-error
     const envObject = emnapiEnv;
     envObject.checkGCAccess();
-    const autoLength = length === -1 || length === 4294967295;
-    const sizelength = length >>> 0;
-    if (length !== 0) {
+    const autoLength = length
+        ===
+            -1
+        || // This unannotated dollar helper follows packages/emnapi/src/emnapi.ts; it must survive macro removal.
+            length
+                === 4294967295;
+    const sizelength = length
+        >>> 0;
+    if (length
+        !== 0) {
         if (!str)
             return envObject.setLastError(1 /* napi_status.napi_invalid_arg */);
     }
     if (!result)
         return envObject.setLastError(1 /* napi_status.napi_invalid_arg */);
-    if (!(autoLength || (sizelength <= 2147483647)))
+    if (!(autoLength ||
+        (sizelength <= 2147483647)))
         return envObject.setLastError(1 /* napi_status.napi_invalid_arg */);
     return autoLength ? sizelength : envObject.clearLastError();
 }
 // This direct call (without !) is from packages/emnapi/src/value/create.ts.
 export function checkPropertyName(envObject, name_value) {
-    if (!(typeof name_value === "string" || typeof name_value === "symbol"))
+    if (!(typeof name_value
+        === 'string'
+        ||
+            typeof name_value
+                === 'symbol'))
         return envObject.setLastError(4 /* napi_status.napi_name_expected */);
     return (0 /* napi_status.napi_ok */);
 }

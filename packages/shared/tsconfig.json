@@ -8,6 +8,7 @@
     "declaration": true,
     "sourceMap": true,
     "declarationMap": true,
+    "rootDir": "./src",
     "outDir": "out",
     "rewriteRelativeImportExtensions": true
   },

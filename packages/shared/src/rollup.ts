@@ -1,5 +1,5 @@
 import type { InputPluginOption, InputOptions, RollupOptions, NullValue, ExternalOption, Plugin, OutputOptions } from 'rollup'
-import ts from 'typescript'
+import type { RawCompilerOptions } from 'typescript/sync'
 import path from 'path'
 import fs from 'fs'
 import {
@@ -13,12 +13,11 @@ import MagicString from 'magic-string'
 
 import { createRequire } from 'module'
 import { EOL } from 'os'
+import { rollupTypescript } from './rollup-typescript.js'
 const require = createRequire(import.meta.url)
 
-const rollupTypescript = require('@rollup/plugin-typescript').default as typeof import('@rollup/plugin-typescript').default
 const rollupNodeResolve = require('@rollup/plugin-node-resolve').default as typeof import('@rollup/plugin-node-resolve').default
 const rollupReplace = require('@rollup/plugin-replace').default as typeof import('@rollup/plugin-replace').default
-const transformPureClass = require('@tybys/ts-transform-pure-class').default as typeof import('@tybys/ts-transform-pure-class').default
 const rollupTerser = require('@rollup/plugin-terser').default
 
 interface RollupApiExtractorOptions {
@@ -72,7 +71,7 @@ export interface MakeConfigOptions extends Omit<InputOptions, 'external'> {
   format: Format
   sourcemap?: boolean | 'inline' | 'hidden'
   minify?: boolean
-  compilerOptions?: ts.CompilerOptions
+  compilerOptions?: RawCompilerOptions
   defines?: Record<string, any>
   external?: ExternalOption | ((source: string, importer: string | undefined, isResolved: boolean, format: Format) => boolean | NullValue)
   apiExtractorCallback?: (result: ExtractorResult, format: Format) => any
@@ -122,22 +121,15 @@ export function makeConfig (options: MakeConfigOptions): RollupOptions {
     staticDtsContent,
     ...restInput
   } = options ?? {}
-  const target = compilerOptions?.target ?? ts.ScriptTarget.ES2021
-
   const defaultPlugins: InputPluginOption[] = [
-    rollupRegion(),
     rollupTypescript({
-      tslib: require.resolve('tslib'),
       compilerOptions: {
-        ...(target !== ts.ScriptTarget.ES5 ? { removeComments: true, downlevelIteration: false } : {}),
+        removeComments: true,
+        downlevelIteration: false,
         ...options?.compilerOptions
-      },
-      transformers: {
-        after: [
-          transformPureClass
-        ]
       }
     }),
+    rollupRegion(),
     ...(minify || format === 'esm-browser' || format === 'iife'
       ? []
       : staticDtsContent == null

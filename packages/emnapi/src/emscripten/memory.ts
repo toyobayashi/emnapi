@@ -19,27 +19,27 @@ export function napi_adjust_external_memory (
 
   let change_in_bytes: bigint
 
-// #if WASM_BIGINT
-  if (!high) return envObject.setLastError(napi_status.napi_invalid_arg)
-  change_in_bytes = BigInt(low)
-// #else
-  if (!adjusted_value) return envObject.setLastError(napi_status.napi_invalid_arg)
-  change_in_bytes = BigInt(low >>> 0) + (BigInt(high) << BigInt(32))
-// #endif
+  if (constexpr('WASM_BIGINT')) {
+    if (!high) return envObject.setLastError(napi_status.napi_invalid_arg)
+    change_in_bytes = BigInt(low)
+  } else {
+    if (!adjusted_value) return envObject.setLastError(napi_status.napi_invalid_arg)
+    change_in_bytes = BigInt(low >>> 0) + (BigInt(high) << BigInt(32))
+  }
 
   const adjusted_memory = emnapiCtx.adjustAmountOfExternalAllocatedMemory(change_in_bytes)
 
-// #if WASM_BIGINT
-  from64('high')
-  if (emnapiCtx.features.BigInt) {
-    makeSetValue('high', 0, 'adjusted_memory', 'i64')
+  if (constexpr('WASM_BIGINT')) {
+    from64('high')
+    if (emnapiCtx.features.BigInt) {
+      makeSetValue('high', 0, 'adjusted_memory', 'i64')
+    } else {
+      emnapiSetValueI64(high, Number(adjusted_memory))
+    }
   } else {
-    emnapiSetValueI64(high, Number(adjusted_memory))
+    from64('adjusted_value')
+    makeSetValue('adjusted_value', 0, 'adjusted_memory', 'i64')
   }
-// #else
-  from64('adjusted_value')
-  makeSetValue('adjusted_value', 0, 'adjusted_memory', 'i64')
-// #endif
 
   return envObject.clearLastError()
 }

@@ -1,28 +1,27 @@
 const path = require('path')
 const fs = require('fs-extra')
 const rollup = require('rollup')
-const ts = require('typescript')
-const rollupTypescript = require('@rollup/plugin-typescript').default
 const rollupNodeResolve = require('@rollup/plugin-node-resolve').default
 const rollupReplace = require('@rollup/plugin-replace').default
 const rollupTerser = require('@rollup/plugin-terser').default
 const runtimeOut = path.join(__dirname, '../dist/emnapi.iife.js')
-const { compile } = require('@tybys/tsapi')
 
-function build () {
-  compile(path.join(__dirname, '../tsconfig.json'), {
-    optionsToExtend: {
-      target: require('typescript').ScriptTarget.ES2021,
-      outDir: path.join(__dirname, '../lib'),
-      emitDeclarationOnly: true,
-      declaration: true,
-      declarationMap: true,
-      declarationDir: path.join(__dirname, '../lib/typings')
-    }
+async function build () {
+  const [{ ScriptTarget }, { emitDeclarations, rollupTypescript }] = await Promise.all([
+    import('typescript/ast'),
+    import('@emnapi/shared')
+  ])
+  emitDeclarations(path.join(__dirname, '../tsconfig.json'), {
+    target: ScriptTarget.ES2021,
+    outDir: path.join(__dirname, '../lib'),
+    emitDeclarationOnly: true,
+    declaration: true,
+    declarationMap: true,
+    declarationDir: path.join(__dirname, '../lib/typings')
   })
 
   /**
-   * @param {ts.ScriptTarget} esversion
+   * @param {number} esversion
    * @param {boolean=} minify
    * @returns {rollup.RollupOptions}
    */
@@ -33,26 +32,10 @@ function build () {
       plugins: [
         rollupTypescript({
           tsconfig: path.join(__dirname, '../tsconfig.json'),
-          tslib: path.join(
-            path.dirname(require.resolve('tslib')),
-            JSON.parse(fs.readFileSync(path.join(path.dirname(require.resolve('tslib')), 'package.json'))).module
-          ),
           compilerOptions: {
             target: esversion,
-            ...(esversion !== ts.ScriptTarget.ES5
-              ? {
-                  removeComments: true,
-                  downlevelIteration: false
-                }
-              : {})
-          },
-          include: [
-            './src/**/*.ts'
-          ],
-          transformers: {
-            after: [
-              require('@tybys/ts-transform-pure-class').default
-            ]
+            removeComments: true,
+            downlevelIteration: false
           }
         }),
         rollupNodeResolve({
@@ -81,7 +64,7 @@ function build () {
 
   return Promise.all(([
     {
-      input: createInput(ts.ScriptTarget.ES2021, false),
+      input: createInput(ScriptTarget.ES2021, false),
       output: {
         file: runtimeOut,
         format: 'iife',
@@ -91,7 +74,7 @@ function build () {
       }
     },
     {
-      input: createInput(ts.ScriptTarget.ES2021, false),
+      input: createInput(ScriptTarget.ES2021, false),
       output: {
         file: path.join(path.dirname(runtimeOut), 'emnapi.js'),
         format: 'umd',
@@ -101,7 +84,7 @@ function build () {
       }
     },
     {
-      input: createInput(ts.ScriptTarget.ES2021, true),
+      input: createInput(ScriptTarget.ES2021, true),
       output: {
         file: path.join(path.dirname(runtimeOut), 'emnapi.min.js'),
         format: 'umd',
@@ -111,7 +94,7 @@ function build () {
       }
     },
     {
-      input: createInput(ts.ScriptTarget.ES2021, false, ['tslib']),
+      input: createInput(ScriptTarget.ES2021, false, ['tslib']),
       output: {
         file: path.join(path.dirname(runtimeOut), 'emnapi.cjs.js'),
         format: 'cjs',
@@ -121,7 +104,7 @@ function build () {
       }
     },
     {
-      input: createInput(ts.ScriptTarget.ES2021, true, ['tslib']),
+      input: createInput(ScriptTarget.ES2021, true, ['tslib']),
       output: {
         file: path.join(path.dirname(runtimeOut), 'emnapi.cjs.min.js'),
         format: 'cjs',
@@ -131,7 +114,7 @@ function build () {
       }
     },
     {
-      input: createInput(ts.ScriptTarget.ES2021, false, ['tslib']),
+      input: createInput(ScriptTarget.ES2021, false, ['tslib']),
       output: {
         file: path.join(path.dirname(runtimeOut), 'emnapi.mjs'),
         format: 'esm',
@@ -141,7 +124,7 @@ function build () {
       }
     },
     {
-      input: createInput(ts.ScriptTarget.ES2021, true, ['tslib']),
+      input: createInput(ScriptTarget.ES2021, true, ['tslib']),
       output: {
         file: path.join(path.dirname(runtimeOut), 'emnapi.min.mjs'),
         format: 'esm',
@@ -151,7 +134,7 @@ function build () {
       }
     },
     {
-      input: createInput(ts.ScriptTarget.ES2021, false, ['tslib']),
+      input: createInput(ScriptTarget.ES2021, false, ['tslib']),
       output: {
         file: path.join(path.dirname(runtimeOut), 'emnapi.esm-bundler.js'),
         format: 'esm',

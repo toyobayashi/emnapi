@@ -30,27 +30,3 @@ module.exports = {
   }
 }
 ```
-
-```js
-// rollup.config.mjs
-import { defineConfig } from 'rollup'
-import rollupTypescript from '@rollup/plugin-typescript'
-import { createTransformerFactory } from '@emnapi/ts-transform-macro'
-
-export default defineConfig({
-  plugins: [
-    rollupTypescript({
-      transformers: {
-        before: [
-          {
-            type: 'program',
-            factory: (program) => {
-              return createTransformerFactory(program)
-            }
-          }
-        ]
-      }
-    })
-  ]
-})
-```

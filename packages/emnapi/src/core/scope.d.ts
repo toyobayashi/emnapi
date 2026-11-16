@@ -30,5 +30,5 @@ declare const options: CreateOptions
 declare type MainThreadBaseOptions = import('../../../wasi-threads/dist/types/index').MainThreadBaseOptions
 declare type ThreadManagerOptionsMain = import('../../../wasi-threads/dist/types/index').ThreadManagerOptionsMain
 declare const ThreadManager: typeof import('../../../wasi-threads/dist/types/index').ThreadManager
-// eslint-disable-next-line @typescript-eslint/no-redeclare
+// eslint-disable-next-line no-redeclare
 declare type ThreadManager = import('../../../wasi-threads/dist/types/index').ThreadManager

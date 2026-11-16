@@ -1,23 +1,167 @@
 import type {
-  TransformerFactory,
   SourceFile,
-  Program,
-  TransformationContext,
-  VisitResult,
   Node,
+  Identifier,
   FunctionDeclaration,
   VariableDeclaration,
-  Visitor,
-  Symbol,
-  JSDocTagInfo,
   ExpressionStatement,
   ObjectLiteralExpression
-} from 'typescript'
+} from 'typescript/ast'
+
+import type { Program, Symbol, JSDocTagInfo } from 'typescript/sync'
+import { API, ModuleKind, SymbolFlags } from 'typescript/sync'
+import { serverFS } from 'typescript/fs'
 
 import { EOL } from 'os'
-import { normalize } from 'path'
+import path from 'path'
 
-import * as ts from 'typescript'
+import * as tsAst from 'typescript/ast'
+import {
+  createLegacyFactory,
+  createSyntheticCommentStore,
+  createTsCompat,
+  findPrintedSnippet,
+  normalizeSyntheticRanges,
+  preserveNodeMetadata,
+  sameSymbol,
+  setOriginalNode,
+  getTypeChecker,
+  resolveDeclaration,
+  type TransformationContext,
+  type TransformerFactory,
+  type VisitResult,
+  type Visitor
+} from '@emnapi/shared/transformer-compat'
+
+const syntheticComments = createSyntheticCommentStore()
+const getSyntheticComments = syntheticComments.get
+const ts = createTsCompat({
+  ModuleKind,
+  SymbolFlags,
+  addSyntheticLeadingComment: syntheticComments.addLeading,
+  addSyntheticTrailingComment: syntheticComments.addTrailing,
+  setOriginalNode
+}, preserveNodeMetadata)
+
+function addParseToolsComments<T extends Node> (node: T): T {
+  const anchor = ts.isCallExpression(node) ? 'direct' : 'context'
+  syntheticComments.add(node, ts.SyntaxKind.MultiLineCommentTrivia, ' {{{ ', true, false, { parseTools: anchor })
+  return syntheticComments.add(node, ts.SyntaxKind.MultiLineCommentTrivia, ' }}} ', false, false, { parseTools: anchor })
+}
+
+function stripJavaScriptTypes (sourceFile: SourceFile): SourceFile {
+  const factory = tsAst.factory
+  const updateParameters = (parameters: readonly any[]) => parameters.map(parameter => {
+    if (!parameter.type) return parameter
+    return preserveNodeMetadata(factory.updateParameterDeclaration(
+      parameter,
+      parameter.modifiers,
+      parameter.dotDotDotToken,
+      parameter.name,
+      parameter.questionToken,
+      undefined,
+      parameter.initializer
+    ), parameter)
+  })
+  const visit = (node: Node): Node => {
+    const children = tsAst.visitEachChild(node, visit as tsAst.Visitor)
+    if (tsAst.isFunctionDeclaration(children) && children.type) {
+      return preserveNodeMetadata(factory.updateFunctionDeclaration(children, children.modifiers, children.asteriskToken, children.name, children.typeParameters, updateParameters(children.parameters), undefined, children.body), children)
+    }
+    if (tsAst.isFunctionExpression(children) && children.type) {
+      return preserveNodeMetadata(factory.updateFunctionExpression(children, children.modifiers, children.asteriskToken, children.name, children.typeParameters, updateParameters(children.parameters), undefined, children.body), children)
+    }
+    if (tsAst.isArrowFunction(children) && (children.type || children.parameters.some(parameter => parameter.type))) {
+      return preserveNodeMetadata(factory.updateArrowFunction(children, children.modifiers, children.typeParameters, updateParameters(children.parameters), undefined, children.equalsGreaterThanToken, children.body), children)
+    }
+    if (tsAst.isMethodDeclaration(children) && children.type) {
+      return preserveNodeMetadata(factory.updateMethodDeclaration(children, children.modifiers, children.asteriskToken, children.name, children.postfixToken, children.typeParameters, updateParameters(children.parameters), undefined, children.body), children)
+    }
+    return preserveNodeMetadata(children, node)
+  }
+  return visit(sourceFile) as SourceFile
+}
+
+function printWithParseToolsComments (api: API, sourceFile: SourceFile): string {
+  normalizeSyntheticRanges(sourceFile)
+  const annotations: Array<{ snippet: string; parentSnippet?: string; comments: any[] }> = []
+  const visit = (node: Node, parent?: Node): Node => {
+    const comments = getSyntheticComments(node)
+    if (comments?.length) {
+      const snippet = api.printer.printNode(node)
+      const parentSnippet = parent ? api.printer.printNode(parent) : undefined
+      if (snippet) annotations.push({ snippet, parentSnippet, comments })
+    }
+    tsAst.visitEachChild(node, child => {
+      visit(child, node)
+      return child
+    })
+    return node
+  }
+  visit(sourceFile)
+
+  let output = api.printer.printFile(sourceFile)
+  const offsets = new Map<string, number>()
+  const insertions: Array<{ at: number; text: string }> = []
+  for (const annotation of annotations) {
+    const parseToolsAnchor = annotation.comments.find(comment => comment.parseTools)?.parseTools
+    const useParent = parseToolsAnchor === 'context' && Boolean(annotation.parentSnippet)
+    const context = useParent ? annotation.parentSnippet! : annotation.snippet
+    let snippetLength = annotation.snippet.length
+    let startAt = offsets.get(context) ?? 0
+    let at = findPrintedSnippet(output, context, startAt)
+    if (at === -1) at = findPrintedSnippet(output, context, 0)
+    if (at === -1) {
+      const match = findPrintedSnippetIgnoringComments(output, context, startAt)
+      if (match) {
+        at = match.index
+        if (!useParent) snippetLength = match.length
+      }
+    }
+    if (at === -1) {
+      const match = findPrintedSnippetIgnoringComments(output, context, 0)
+      if (match) {
+        at = match.index
+        if (!useParent) snippetLength = match.length
+      }
+    }
+    if (at === -1) continue
+    if (useParent) {
+      const childAt = findPrintedSnippet(context, annotation.snippet, 0)
+      if (childAt === -1) continue
+      at += childAt
+    }
+    offsets.set(context, at + Math.max(1, context.length))
+    for (const comment of annotation.comments) {
+      const text = comment.kind === ts.SyntaxKind.SingleLineCommentTrivia
+        ? `//${comment.text}${comment.hasTrailingNewLine ? '\n' : ''}`
+        : `/*${comment.text}*/`
+      insertions.push({ at: comment.leading ? at : at + snippetLength, text })
+    }
+  }
+  insertions.sort((a, b) => b.at - a.at)
+  for (const insertion of insertions) {
+    output = output.slice(0, insertion.at) + insertion.text + output.slice(insertion.at)
+  }
+  return output
+}
+
+function findPrintedSnippetIgnoringComments (code: string, snippet: string, from: number): { index: number; length: number } | undefined {
+  const tokens = snippet.match(/"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`|[A-Za-z_$][\w$]*|\d+(?:\.\d+)?|===|!==|=>|\?\?|\.\.\.|[^\s]/g)
+  if (!tokens?.length) return undefined
+  const escape = (token: string) => token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const separator = '(?:\\s|/\\*[\\s\\S]*?\\*/|//[^\\r\\n]*(?:\\r?\\n|$))*'
+  const pattern = new RegExp(tokens.map(escape).join(separator), 'g')
+  pattern.lastIndex = from
+  const isWord = (char: string | undefined) => char !== undefined && /[A-Za-z0-9_$]/.test(char)
+  let match: RegExpExecArray | null
+  while ((match = pattern.exec(code))) {
+    const start = match.index
+    const end = start + match[0].length
+    if (!isWord(code[start - 1]) && !isWord(code[end])) return { index: start, length: match[0].length }
+  }
+  return undefined
+}
 
 export interface BaseTransformOptions {
   /** @default 'emscripten:runtime' */
@@ -32,7 +176,7 @@ interface SymbolWrap/* <T extends VariableDeclaration | FunctionDeclaration> */ 
   deps: Set<VariableDeclaration | FunctionDeclaration>
   exported: Symbol | undefined
   replaceNode: Node
-  jsdocTags: JSDocTagInfo[] | undefined
+  jsdocTags: readonly JSDocTagInfo[] | undefined
 }
 
 class Transformer {
@@ -55,7 +199,7 @@ class Transformer {
 
   transform (source: SourceFile): SourceFile {
     source = ts.visitNode(source, this.parseToolsVisitor) as SourceFile
-    ts.visitNode(source, this.collectExportedFunctionVisitor)
+    ts.visitNode(source, this.collectExportedFunctionVisitor as any)
 
     const result = ts.visitEachChild(source, this.finalVisitor, this.ctx)
     let statements = [
@@ -97,26 +241,34 @@ class Transformer {
 
   parseToolsVisitor (node: Node): VisitResult<Node> {
     if (this._parseToolsModuleSpecifier) {
-      const typeChecker = this.program.getTypeChecker()
+      const typeChecker = getTypeChecker(this.program)
       if (ts.isCallExpression(node) && ts.isIdentifier(node.expression)) {
-        const d = typeChecker.getSymbolAtLocation(node.expression)?.declarations?.[0]
+        const d = resolveDeclaration(typeChecker.getSymbolAtLocation(node.expression)?.declarations?.[0], this.program)
         if (d && ts.isImportSpecifier(d)) {
-          const moduleSpecifier = d.parent.parent.parent.moduleSpecifier
+          const moduleSpecifier = (d.parent.parent.parent as any).moduleSpecifier
           if (ts.isStringLiteral(moduleSpecifier) && moduleSpecifier.text === this._parseToolsModuleSpecifier) {
-            return ts.addSyntheticTrailingComment(ts.addSyntheticLeadingComment(node,
-              ts.SyntaxKind.MultiLineCommentTrivia, ' {{{ ', false
-            ), ts.SyntaxKind.MultiLineCommentTrivia, ' }}} ', false)
+            return addParseToolsComments(node)
           }
         }
       }
-      if (ts.isIdentifier(node) && !ts.isImportSpecifier(node.parent) && !ts.isImportClause(node.parent) && !ts.isImportEqualsDeclaration(node.parent) && !ts.isImportTypeNode(node.parent)) {
-        const d = typeChecker.getSymbolAtLocation(node)?.declarations?.[0]
+      const parent = node.parent
+      if (ts.isIdentifier(node) && parent && !ts.isImportSpecifier(parent) && !ts.isImportClause(parent) && !ts.isImportEqualsDeclaration(parent) && !ts.isImportTypeNode(parent)) {
+        let ancestor: Node | undefined = parent
+        while (ancestor) {
+          if (ts.isCallExpression(ancestor) && ts.isIdentifier(ancestor.expression)) {
+            const declaration = resolveDeclaration(typeChecker.getSymbolAtLocation(ancestor.expression)?.declarations?.[0], this.program)
+            if (declaration && ts.isImportSpecifier(declaration)) {
+              const moduleSpecifier = (declaration.parent.parent.parent as any).moduleSpecifier
+              if (ts.isStringLiteral(moduleSpecifier) && moduleSpecifier.text === this._parseToolsModuleSpecifier) return node
+            }
+          }
+          ancestor = ancestor.parent
+        }
+        const d = resolveDeclaration(typeChecker.getSymbolAtLocation(node)?.declarations?.[0], this.program)
         if (d && ts.isImportSpecifier(d)) {
-          const moduleSpecifier = d.parent.parent.parent.moduleSpecifier
+          const moduleSpecifier = (d.parent.parent.parent as any).moduleSpecifier
           if (ts.isStringLiteral(moduleSpecifier) && moduleSpecifier.text === this._parseToolsModuleSpecifier) {
-            return ts.addSyntheticTrailingComment(ts.addSyntheticLeadingComment(node,
-              ts.SyntaxKind.MultiLineCommentTrivia, ' {{{ ', false
-            ), ts.SyntaxKind.MultiLineCommentTrivia, ' }}} ', false)
+            return addParseToolsComments(node)
           }
         }
       }
@@ -136,9 +288,9 @@ class Transformer {
     return ts.visitEachChild(node, this.finalVisitor, this.ctx)
   }
 
-  tryGetExportSymbol (exportedSymbols: Symbol[], sym: Symbol): Symbol | undefined {
-    const typeChecker = this.program.getTypeChecker()
-    return exportedSymbols.includes(sym)
+  tryGetExportSymbol (exportedSymbols: readonly Symbol[], sym: Symbol): Symbol | undefined {
+    const typeChecker = getTypeChecker(this.program)
+    return exportedSymbols.some(s => sameSymbol(s, sym))
       ? sym
       : (() => {
           const index = exportedSymbols
@@ -148,7 +300,7 @@ class Transformer {
               }
               return s
             })
-            .indexOf(sym)
+            .findIndex(s => sameSymbol(s, sym))
           if (index !== -1) {
             return exportedSymbols[index]
           }
@@ -156,19 +308,19 @@ class Transformer {
         })()
   }
 
-  trackDeps (decl: FunctionDeclaration | VariableDeclaration, exported: Symbol | undefined, parent: SymbolWrap | null, exportedSymbols: Symbol[]): void {
+  trackDeps (decl: FunctionDeclaration | VariableDeclaration, exported: Symbol | undefined, parent: SymbolWrap | null, exportedSymbols: readonly Symbol[]): void {
     if (parent) {
       parent.deps.add(decl)
     }
     if (this.wrap.has(decl)) {
       return
     }
-    const typeChecker = this.program.getTypeChecker()
+    const typeChecker = getTypeChecker(this.program)
     const wrap: SymbolWrap = {
       deps: new Set(),
       exported,
       replaceNode: decl,
-      jsdocTags: typeChecker.getSymbolAtLocation(decl.name!)!.getJsDocTags()
+      jsdocTags: typeChecker.getSymbolAtLocation(decl.name!)!.getJsDocTags(typeChecker)
     }
     this.wrap.set(decl, wrap)
 
@@ -180,8 +332,10 @@ class Transformer {
       : decl.initializer ? typeChecker.getSymbolsInScope(decl.initializer, targetSymbolFlags) : []
 
     const outScopedSyms = accessableSyms.filter((s) => {
-      const valueDeclaration = s.declarations?.[0]
+      const valueDeclaration = resolveDeclaration(s.declarations?.[0], this.program)
       if (!valueDeclaration) return false
+      const sourceFile = valueDeclaration.getSourceFile()
+      if (this.program.isSourceFileDefaultLibrary(sourceFile) || this.program.isSourceFileFromExternalLibrary(sourceFile)) return false
       if (!(ts.isVariableDeclaration(valueDeclaration) || ts.isFunctionDeclaration(valueDeclaration))) {
         return false
       }
@@ -202,7 +356,7 @@ class Transformer {
     const valueVisitor: Visitor = (node) => {
       if (ts.isIdentifier(node)) {
         const symbolValue = typeChecker.getSymbolAtLocation(node)
-        if (symbolValue && outScopedSyms.includes(symbolValue)) {
+        if (symbolValue && outScopedSyms.some(s => sameSymbol(s, symbolValue))) {
           outScopedAndUsedSyms.add(symbolValue)
         }
       }
@@ -222,7 +376,7 @@ class Transformer {
           return this.ctx.factory.updateFunctionDeclaration(node,
             node.modifiers?.filter((m) => m.kind !== ts.SyntaxKind.ExportKeyword),
             node.asteriskToken,
-            ts.visitNode(node.name, renameVisitor) as ts.Identifier | undefined,
+            node.name ? (ts.visitNode(node.name, renameVisitor) as Identifier | undefined) ?? node.name : undefined,
             node.typeParameters,
             node.parameters,
             node.type,
@@ -247,10 +401,15 @@ class Transformer {
     }
 
     wrap.replaceNode = ts.visitNode(decl, renameVisitor)!
+    if (wrap.replaceNode !== decl && wrap.replaceNode.pos < 0) {
+      ;(wrap.replaceNode as any).pos = decl.pos
+      ;(wrap.replaceNode as any).end = decl.end
+    }
   }
 
-  handleInternalSymbol (sym: Symbol, parent: SymbolWrap, exportedSymbols: Symbol[]): void {
-    const decl = sym.declarations?.[0] as VariableDeclaration | FunctionDeclaration
+  handleInternalSymbol (sym: Symbol, parent: SymbolWrap, exportedSymbols: readonly Symbol[]): void {
+    const decl = resolveDeclaration(sym.declarations?.[0], this.program) as VariableDeclaration | FunctionDeclaration | undefined
+    if (!decl) return
 
     this.trackDeps(decl, this.tryGetExportSymbol(exportedSymbols, sym), parent, exportedSymbols)
   }
@@ -309,9 +468,9 @@ class Transformer {
           // console.log(JSON.stringify(wrap.jsdocTags, null, 2))
           const map = new Map<string, string[]>()
           if (wrap.jsdocTags) {
-            const emscriptenModifiers = wrap.jsdocTags.filter(info => Boolean(info.name.startsWith('__') && info.name !== '__deps' && info.text?.[0]?.text))
+            const emscriptenModifiers = wrap.jsdocTags.filter(info => Boolean(info.name.startsWith('__') && info.name !== '__deps' && info.text))
               .map(info => {
-                let text = info.text![0].text
+                let text = info.text!
                 if (text.startsWith('```')) {
                   text = text.match(/^```(\r?\n)*([\s\S]*?)(\r?\n)*```$/)?.[2] ?? text
                 } else if (text.startsWith('`')) {
@@ -334,7 +493,7 @@ class Transformer {
             }
           }
 
-          const depsInTags = wrap.jsdocTags?.filter(info => Boolean((info.name === '__deps' || info.name === 'deps') && info.text?.[0]?.text)) ?? []
+          const depsInTags = wrap.jsdocTags?.filter(info => Boolean((info.name === '__deps' || info.name === 'deps') && info.text)) ?? []
 
           return [
             factory.createPropertyAssignment(
@@ -366,7 +525,7 @@ class Transformer {
                         return factory.createStringLiteral(w.exported ? name : `$${name as string}`)
                       }),
                       ...(depsInTags.map(info => {
-                        return factory.createStringLiteral(info.text![0].text)
+                        return factory.createStringLiteral(info.text!)
                       }))
                     ], false)
                   )
@@ -406,7 +565,7 @@ class Transformer {
       }
     }
 
-    const typeChecker = this.program.getTypeChecker()
+    const typeChecker = getTypeChecker(this.program)
     const exportedSymbols = typeChecker.getExportsOfModule(typeChecker.getSymbolAtLocation(source)!)
 
     for (let i = 0; i < exportedSymbols.length; ++i) {
@@ -417,7 +576,7 @@ class Transformer {
       const exportedSym = (exportedSymMaybeAlias.flags & ts.SymbolFlags.Alias)
         ? typeChecker.getAliasedSymbol(exportedSymMaybeAlias)
         : exportedSymMaybeAlias
-      const valueDeclaration = exportedSym.declarations?.[0]
+      const valueDeclaration = resolveDeclaration(exportedSym.declarations?.[0], this.program)
       if (!(valueDeclaration && ((ts.isFunctionDeclaration(valueDeclaration) && valueDeclaration.body) || (ts.isVariableDeclaration(valueDeclaration) && valueDeclaration.initializer)))) {
         throw new Error('Unsupported export')
       }
@@ -428,7 +587,8 @@ class Transformer {
       const exportedSym = (exportedSymMaybeAlias.flags & ts.SymbolFlags.Alias)
         ? typeChecker.getAliasedSymbol(exportedSymMaybeAlias)
         : exportedSymMaybeAlias
-      const valueDeclaration = exportedSym.declarations?.[0] as FunctionDeclaration | VariableDeclaration
+      const valueDeclaration = resolveDeclaration(exportedSym.declarations?.[0], this.program) as FunctionDeclaration | VariableDeclaration | undefined
+      if (!valueDeclaration) throw new Error('Unsupported export')
       this.trackDeps(valueDeclaration, exportedSymMaybeAlias, null, exportedSymbols)
     }
 
@@ -436,7 +596,7 @@ class Transformer {
   }
 }
 
-function createTransformerFactory (program: Program, options?: BaseTransformOptions): TransformerFactory<SourceFile> {
+function createTransformerFactory (program: Program, options?: BaseTransformOptions): TransformerFactory {
   return (context) => {
     const transformer = new Transformer(context, program, options)
 
@@ -445,28 +605,48 @@ function createTransformerFactory (program: Program, options?: BaseTransformOpti
 }
 
 function transform (fileName: string, sourceText: string, options?: BaseTransformOptions): string {
+  const normalizedFileName = path.resolve(fileName)
   const compilerOptions = {
     allowJs: true,
-    module: ts.ModuleKind.ESNext,
+    module: ModuleKind.ESNext,
     target: ts.ScriptTarget.ESNext,
-    noEmit: true
+    noEmit: true,
+    checkJs: false
   }
-  const source = ts.createSourceFile(fileName, sourceText, ts.ScriptTarget.ESNext, true, ts.ScriptKind.JS)
-  const host = ts.createCompilerHost(compilerOptions, true)
-  host.getSourceFile = filePath => normalize(filePath) === fileName ? source : undefined
-  const program = ts.createProgram({
-    rootNames: [fileName],
-    options: compilerOptions,
-    host
+  const api = new API({
+    cwd: path.dirname(normalizedFileName),
+    fs: {
+      directoryExists: serverFS.useOS,
+      fileExists (pathName: string) {
+        return path.resolve(pathName) === normalizedFileName ? true : serverFS.useOS
+      },
+      getAccessibleEntries: serverFS.useOS,
+      readFile (pathName: string) {
+        return path.resolve(pathName) === normalizedFileName ? sourceText : serverFS.useOS
+      },
+      realpath (pathName: string) {
+        return path.resolve(pathName) === normalizedFileName ? normalizedFileName : serverFS.useOS
+      },
+      stat (pathName: string) {
+        return path.resolve(pathName) === normalizedFileName
+          ? { mode: 0o100644, size: Buffer.byteLength(sourceText), mtime: new Date() }
+          : serverFS.useOS
+      },
+      writeFile: serverFS.noop,
+      removeFile: serverFS.noop
+    }
   })
-
-  const transformerFactory = createTransformerFactory(program, options)
-
-  const transformResult = ts.transform(source, [transformerFactory])
-  const printer = ts.createPrinter({
-    newLine: process.platform === 'win32' ? ts.NewLineKind.CarriageReturnLineFeed : ts.NewLineKind.LineFeed
-  })
-  return printer.printNode(ts.EmitHint.SourceFile, transformResult.transformed[0], transformResult.transformed[0])
+  const program = api.createProgram([normalizedFileName], compilerOptions)
+  try {
+    const source = program.getSourceFile(normalizedFileName)
+    if (!source) throw new Error(`TypeScript did not load ${normalizedFileName}`)
+    const transformer = createTransformerFactory(program, options)({ factory: createLegacyFactory() })
+    const transformed = transformer(source)
+    return printWithParseToolsComments(api, source.scriptKind === tsAst.ScriptKind.JS ? stripJavaScriptTypes(transformed) : transformed)
+  } finally {
+    program.dispose()
+    api.close()
+  }
 }
 
 export interface TransformOptions extends BaseTransformOptions {
@@ -475,18 +655,22 @@ export interface TransformOptions extends BaseTransformOptions {
   /** @default [] */
   exportedRuntimeMethods?: string[]
   /** @default true */
-  processDirective?: boolean
-  /** @default true */
   processParseTools?: boolean
 }
 
 function transformWithOptions (fileName: string, sourceText: string, options?: TransformOptions): string {
   const defaultLibraryFuncsToInclude = options?.defaultLibraryFuncsToInclude ?? []
   const exportedRuntimeMethods = options?.exportedRuntimeMethods ?? []
-  const processDirective = options?.processDirective ?? true
   const processParseTools = options?.processParseTools ?? true
 
   let result = transform(fileName, sourceText, options)
+
+  const conditionalLiteral = '"(?:\\\\.|[^"\\\\])*"'
+  result = result
+    .replace(new RegExp(`^[\\t ]*__emnapi_conditional_if__\\((${conditionalLiteral})\\);[\\t ]*$`, 'gm'), (_match, literal: string) => `#if ${JSON.parse(literal)}`)
+    .replace(new RegExp(`^[\\t ]*__emnapi_conditional_elif__\\((${conditionalLiteral})\\);[\\t ]*$`, 'gm'), (_match, literal: string) => `#elif ${JSON.parse(literal)}`)
+    .replace(/^[\t ]*__emnapi_conditional_else__\(\);[\t ]*$/gm, '#else')
+    .replace(/^[\t ]*__emnapi_conditional_endif__\(\);[\t ]*$/gm, '#endif')
 
   const prefix = [
     ...defaultLibraryFuncsToInclude
@@ -495,14 +679,10 @@ function transformWithOptions (fileName: string, sourceText: string, options?: T
       .map(sym => `{{{ ((typeof EXPORTED_RUNTIME_METHODS.add === "function" ? EXPORTED_RUNTIME_METHODS.add("${sym}") : (EXPORTED_RUNTIME_METHODS.indexOf("${sym}") === -1 ? EXPORTED_RUNTIME_METHODS.push("${sym}") : undefined)), "") }}}`)
   ].join(EOL)
 
-  if (processDirective) {
-    result = result.replace(/(\r?\n)\s*\/\/\s+(#((if)|(else)|(elif)|(endif)))/g, '$1$2')
-  }
-
   if (processParseTools) {
     result = result
-      .replace(/\/\* \{\{\{ \*\//g, '{{{')
-      .replace(/\/\* \}\}\} \*\//g, '}}}')
+      .replace(/\/\* \{\{\{ \*\//g, '{{{ ')
+      .replace(/\/\* \}\}\} \*\//g, ' }}}')
   }
 
   return prefix + (prefix ? EOL : '') + result
@@ -520,7 +700,6 @@ function getDefaultOptions (options?: TransformOptions): Required<TransformOptio
     ...getDefaultBaseOptions(options),
     defaultLibraryFuncsToInclude: options?.defaultLibraryFuncsToInclude ?? [],
     exportedRuntimeMethods: options?.exportedRuntimeMethods ?? [],
-    processDirective: options?.processDirective ?? true,
     processParseTools: options?.processParseTools ?? true
   }
 }

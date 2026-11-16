@@ -1,19 +1,22 @@
 const fs = require('fs')
 const path = require('path')
-const { createRequire } = require('module')
 const { spawnSync } = require('child_process')
-const ts = require('typescript')
-const rollupTypescript = require('@rollup/plugin-typescript').default
 const rollupAlias = require('@rollup/plugin-alias').default
 const rollupReplace = require('@rollup/plugin-replace').default
 const { rollup } = require('rollup')
-const { rollupRegion } = require('@emnapi/shared')
 
 const runtimeModuleSpecifier = 'emscripten:runtime'
 const parseToolsModuleSpecifier = 'emscripten:parse-tools'
 const sharedModuleSpecifier = 'emnapi:shared'
-const runtimeRequire = createRequire(path.join(__dirname, '../../runtime/index.js'))
 const ctxVarName = 'emnapiPluginCtx'
+
+async function getTypeScriptRollupTools () {
+  const [{ ModuleKind }, { rollupRegion, rollupTypescript }] = await Promise.all([
+    import('typescript/sync'),
+    import('@emnapi/shared')
+  ])
+  return { ModuleKind, rollupRegion, rollupTypescript }
+}
 
 const temp = path.join(__dirname, '../../../temp')
 const out = path.join(temp, 'runtime.wasm')
@@ -43,37 +46,41 @@ async function buildRuntimeBinary () {
 }
 
 async function buildEmscriptenMain (tsconfigPath, libOut) {
-  const tsconfig = JSON.parse(fs.readFileSync(tsconfigPath, 'utf8'))
-  const include = tsconfig.include.map(s => path.join(path.dirname(tsconfigPath), s))
+  const { ModuleKind, rollupRegion, rollupTypescript } = await getTypeScriptRollupTools()
   const input = path.join(__dirname, '../src/emscripten/index.ts')
 
   const emnapiRollupBuild = await rollup({
     input,
     treeshake: false,
     plugins: [
-      rollupRegion(),
-      rollupReplace({
-        preventAssignment: true,
-        __EMNAPI_RUNTIME_BINARY__
-      }),
       rollupTypescript({
         tsconfig: tsconfigPath,
-        tslib: path.join(
-          path.dirname(runtimeRequire.resolve('tslib')),
-          JSON.parse(fs.readFileSync(path.join(path.dirname(runtimeRequire.resolve('tslib')), 'package.json'))).module
-        ),
         compilerOptions: {
-          module: ts.ModuleKind.ESNext
+          module: ModuleKind.ESNext
         },
-        include,
         transformers: {
           before: [
             {
               type: 'program',
-              factory: require('@emnapi/ts-transform-macro').createTransformerFactory
+              factory (program) {
+                return require('@emnapi/ts-transform-macro').createTransformerFactory(program, {})
+              }
+            },
+            {
+              type: 'program',
+              factory (program) {
+                return require('@emnapi/ts-transform-constexpr').createTransformerFactory(program, {
+                  mode: 'preserve'
+                })
+              }
             }
           ]
         }
+      }),
+      rollupRegion(),
+      rollupReplace({
+        preventAssignment: true,
+        __EMNAPI_RUNTIME_BINARY__
       }),
       rollupAlias({
         entries: [
@@ -98,32 +105,24 @@ async function buildEmscriptenMain (tsconfigPath, libOut) {
 }
 
 async function buildNonEmscriptenMain (tsconfigPath, outputDir) {
+  const { ModuleKind, rollupRegion, rollupTypescript } = await getTypeScriptRollupTools()
   const input = path.join(__dirname, '../src/core/index.ts')
-  const tsconfig = JSON.parse(fs.readFileSync(tsconfigPath, 'utf8'))
   const coreRollupBuild = await rollup({
     input,
     treeshake: false,
     plugins: [
-      rollupRegion(),
-      rollupReplace({
-        preventAssignment: true,
-        __EMNAPI_RUNTIME_BINARY__
-      }),
       rollupTypescript({
         tsconfig: tsconfigPath,
-        tslib: path.join(
-          path.dirname(runtimeRequire.resolve('tslib')),
-          JSON.parse(fs.readFileSync(path.join(path.dirname(runtimeRequire.resolve('tslib')), 'package.json'))).module
-        ),
         compilerOptions: {
-          module: ts.ModuleKind.ESNext
+          module: ModuleKind.ESNext
         },
-        include: tsconfig.include.map(s => path.join(path.dirname(tsconfigPath), s)),
         transformers: {
           before: [
             {
               type: 'program',
-              factory: require('@emnapi/ts-transform-macro').createTransformerFactory
+              factory (program) {
+                return require('@emnapi/ts-transform-macro').createTransformerFactory(program, {})
+              }
             },
             {
               type: 'program',
@@ -136,9 +135,29 @@ async function buildNonEmscriptenMain (tsconfigPath, outputDir) {
                   parseToolsModuleSpecifier
                 })
               }
+            },
+            {
+              type: 'program',
+              factory (program) {
+                return require('@emnapi/ts-transform-constexpr').createTransformerFactory(program, {
+                  mode: 'evaluate',
+                  defines: {
+                    DYNAMIC_EXECUTION: 1,
+                    TEXTDECODER: 1,
+                    LEGACY_RUNTIME: 1,
+                    WASM_BIGINT: 1,
+                    MEMORY64: 0
+                  }
+                })
+              }
             }
           ]
         }
+      }),
+      rollupRegion(),
+      rollupReplace({
+        preventAssignment: true,
+        __EMNAPI_RUNTIME_BINARY__
       }),
       rollupAlias({
         entries: [
@@ -147,24 +166,13 @@ async function buildNonEmscriptenMain (tsconfigPath, outputDir) {
         ]
       }),
       {
-        name: 'preprocess',
+        name: 'wrap-core',
         renderChunk (code) {
-          const { Compiler } = require('./preprocess.js')
-          const compiler = new Compiler({
-            defines: {
-              DYNAMIC_EXECUTION: 1,
-              TEXTDECODER: 1,
-              LEGACY_RUNTIME: 1,
-              WASM_BIGINT: 1,
-              MEMORY64: 0
-            }
-          })
-          const parsedCode = compiler.parseCode(code)
           return `import { _WebAssembly as WebAssembly } from '@/util'
 import { ThreadManager } from '@emnapi/wasi-threads'
 
 export function createAddonModule (options) {
-  ${parsedCode}
+  ${code}
   return addonModule;
 }
 
@@ -185,31 +193,36 @@ export const createNapiModule = createAddonModule;
 }
 
 async function buildEmscriptenPlugin (tsconfigPath, input, output) {
-  const tsconfig = JSON.parse(fs.readFileSync(tsconfigPath, 'utf8'))
+  const { ModuleKind, rollupRegion, rollupTypescript } = await getTypeScriptRollupTools()
   const emscriptenAsyncWorkRollupBuild = await rollup({
     input,
     treeshake: false,
     plugins: [
-      rollupRegion(),
       rollupTypescript({
         tsconfig: tsconfigPath,
-        tslib: path.join(
-          path.dirname(runtimeRequire.resolve('tslib')),
-          JSON.parse(fs.readFileSync(path.join(path.dirname(runtimeRequire.resolve('tslib')), 'package.json'))).module
-        ),
         compilerOptions: {
-          module: ts.ModuleKind.ESNext
+          module: ModuleKind.ESNext
         },
-        include: tsconfig.include.map(s => path.join(path.dirname(tsconfigPath), s)),
         transformers: {
           before: [
             {
               type: 'program',
-              factory: require('@emnapi/ts-transform-macro').createTransformerFactory
+              factory (program) {
+                return require('@emnapi/ts-transform-macro').createTransformerFactory(program, {})
+              }
+            },
+            {
+              type: 'program',
+              factory (program) {
+                return require('@emnapi/ts-transform-constexpr').createTransformerFactory(program, {
+                  mode: 'preserve'
+                })
+              }
             }
           ]
         }
       }),
+      rollupRegion(),
       rollupAlias({
         entries: [
           { find: sharedModuleSpecifier, replacement: path.join(__dirname, '../src/emscripten/init.ts') }
@@ -231,29 +244,25 @@ async function buildEmscriptenPlugin (tsconfigPath, input, output) {
 }
 
 async function buildNonEmscriptenPlugin (tsconfigPath, input, output, destructPluginContext, exportModules = ['env']) {
-  const tsconfig = JSON.parse(fs.readFileSync(tsconfigPath, 'utf8'))
+  const { ModuleKind, rollupRegion, rollupTypescript } = await getTypeScriptRollupTools()
   const modVar = 'mod'
   const coreV8RollupBuild = await rollup({
     input,
     treeshake: false,
     external: ['emscripten:runtime', 'emnapi:shared'],
     plugins: [
-      rollupRegion(),
       rollupTypescript({
         tsconfig: tsconfigPath,
-        tslib: path.join(
-          path.dirname(runtimeRequire.resolve('tslib')),
-          JSON.parse(fs.readFileSync(path.join(path.dirname(runtimeRequire.resolve('tslib')), 'package.json'))).module
-        ),
         compilerOptions: {
-          module: ts.ModuleKind.ESNext
+          module: ModuleKind.ESNext
         },
-        include: tsconfig.include.map(s => path.join(path.dirname(tsconfigPath), s)),
         transformers: {
           before: [
             {
               type: 'program',
-              factory: require('@emnapi/ts-transform-macro').createTransformerFactory
+              factory (program) {
+                return require('@emnapi/ts-transform-macro').createTransformerFactory(program, {})
+              }
             },
             {
               type: 'program',
@@ -269,27 +278,32 @@ async function buildNonEmscriptenPlugin (tsconfigPath, input, output, destructPl
                   parseToolsModuleSpecifier
                 })
               }
+            },
+            {
+              type: 'program',
+              factory (program) {
+                return require('@emnapi/ts-transform-constexpr').createTransformerFactory(program, {
+                  mode: 'evaluate',
+                  defines: {
+                    DYNAMIC_EXECUTION: 1,
+                    TEXTDECODER: 1,
+                    LEGACY_RUNTIME: 1,
+                    WASM_BIGINT: 1,
+                    MEMORY64: 0
+                  }
+                })
+              }
             }
           ]
         }
       }),
+      rollupRegion(),
       {
-        name: 'preprocess',
+        name: 'wrap-plugin',
         renderChunk (code) {
-          const { Compiler } = require('./preprocess.js')
-          const compiler = new Compiler({
-            defines: {
-              DYNAMIC_EXECUTION: 1,
-              TEXTDECODER: 1,
-              LEGACY_RUNTIME: 1,
-              WASM_BIGINT: 1,
-              MEMORY64: 0
-            }
-          })
-          const parsedCode = compiler.parseCode(code)
           return `export default function (${ctxVarName}) {
   ${destructPluginContext ? `const { ${destructPluginContext.join(', ')} } = ${ctxVarName}` : ''}
-  ${parsedCode}
+  ${code}
   return {
     importObject: (original) => {
 ${typeof exportModules === 'function'

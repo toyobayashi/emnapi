@@ -1,5 +1,7 @@
 {
   "compilerOptions": {
+    "skipLibCheck": true,
+    "types": ["node"],
     "noImplicitAny": true,
     "noImplicitReturns": true,
     "noImplicitThis": true,

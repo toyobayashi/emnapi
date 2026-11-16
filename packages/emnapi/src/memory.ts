@@ -510,9 +510,6 @@ export interface ExternalSABInfo {
  *   offset 4*POINTER_SIZE: finalize_data (pointer)
  *   offset 5*POINTER_SIZE: finalize_hint (pointer)
  *   Total: 6 * POINTER_SIZE bytes
- */
-
-/**
  * @__postset
  * ```
  * emnapiExternalSAB.init();
