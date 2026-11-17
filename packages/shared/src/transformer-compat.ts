@@ -1,5 +1,5 @@
 import type { Node, NodeArray } from 'typescript/ast'
-import type { Program, Checker, Symbol } from 'typescript/sync'
+import type { Program, Checker, Symbol, Type } from 'typescript/sync'
 import { factory, NodeFlags, SyntaxKind, TokenFlags } from 'typescript/ast'
 import * as tsAst from 'typescript/ast'
 
@@ -71,12 +71,33 @@ export function sameSymbol (left: Symbol | undefined, right: Symbol | undefined)
   return Boolean(left && right && left.id === right.id)
 }
 
+const symbolCacheByChecker = new WeakMap<Checker, WeakMap<Node, Symbol | undefined>>()
+const typeCacheByChecker = new WeakMap<Checker, WeakMap<Node, Type>>()
+
 export function getSymbolAtLocation (checker: Checker, node: Node) {
-  return checker.getSymbolAtLocation(getOriginalNode(node))
+  const original = getOriginalNode(node)
+  let cache = symbolCacheByChecker.get(checker)
+  if (!cache) {
+    cache = new WeakMap()
+    symbolCacheByChecker.set(checker, cache)
+  }
+  if (cache.has(original)) return cache.get(original)
+  const symbol = checker.getSymbolAtLocation(original)
+  cache.set(original, symbol)
+  return symbol
 }
 
 export function getTypeAtLocation (checker: Checker, node: Node) {
-  return checker.getTypeAtLocation(getOriginalNode(node))
+  const original = getOriginalNode(node)
+  let cache = typeCacheByChecker.get(checker)
+  if (!cache) {
+    cache = new WeakMap()
+    typeCacheByChecker.set(checker, cache)
+  }
+  if (cache.has(original)) return cache.get(original)!
+  const type = checker.getTypeAtLocation(original)
+  cache.set(original, type)
+  return type
 }
 
 export function getConstantValue (checker: Checker, node: Node) {

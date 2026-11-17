@@ -1,6 +1,6 @@
 import fs from 'node:fs'
 import path from 'node:path'
-import type { Plugin, SourceMapInput } from 'rollup'
+import type { InputOption, Plugin, SourceMapInput } from 'rollup'
 import { API, EmitOnly, ModuleKind } from 'typescript/sync'
 import type { CreateSourceFileOptions, Program, RawCompilerOptions, Snapshot } from 'typescript/sync'
 import * as ts from 'typescript/ast'
@@ -31,6 +31,18 @@ function canonicalPath (fileName: string): string {
 
 function isTypeScriptSource (fileName: string): boolean {
   return /\.(?:ts|tsx|mts|cts)$/i.test(fileName) && !/\.d\.(?:ts|mts|cts)$/i.test(fileName)
+}
+
+function getTypeScriptInputs (input: InputOption | undefined, cwd: string): string[] {
+  const entries = typeof input === 'string'
+    ? [input]
+    : Array.isArray(input)
+      ? input
+      : input ? Object.values(input) : []
+  return entries
+    .map(fileName => fileName.split('?')[0])
+    .filter(isTypeScriptSource)
+    .map(fileName => canonicalPath(path.resolve(cwd, fileName)))
 }
 
 function countOccurrences (code: string, value: string): number {
@@ -130,12 +142,19 @@ function printTransformedFile (api: API, sourceFile: ts.SourceFile): string {
 function createSnapshotProgram (
   api: API,
   tsconfigPath: string,
-  compilerOptions: RawCompilerOptions = {}
+  compilerOptions: RawCompilerOptions = {},
+  inputFiles: string[] = []
 ): { parsed: ReturnType<API['parseConfigFile']>; snapshot: Snapshot; program: Program } {
   const parsed = api.parseConfigFile(tsconfigPath)
+  const rootFiles = inputFiles.length > 0
+    ? [...new Set([
+        ...parsed.fileNames.filter(fileName => !isTypeScriptSource(fileName)),
+        ...inputFiles
+      ])]
+    : parsed.fileNames
   const snapshot = api.createSnapshot({
     createPrograms: [{
-      rootFiles: parsed.fileNames,
+      rootFiles,
       compilerOptions: {
         ...parsed.options,
         ...compilerOptions,
@@ -177,6 +196,7 @@ export function rollupTypescript (options: RollupTypescriptOptions = {}): Plugin
   let snapshot: Snapshot | undefined
   let program: Program | undefined
   let parsed: ReturnType<API['parseConfigFile']> | undefined
+  let inputFiles: string[] = []
 
   const fileSystem: FileSystemCallbacks = {
     directoryExists: serverFS.useOS,
@@ -193,11 +213,15 @@ export function rollupTypescript (options: RollupTypescriptOptions = {}): Plugin
 
   const plugin: Plugin = {
     name: 'emnapi-typescript',
+    options (rollupOptions) {
+      inputFiles = getTypeScriptInputs(rollupOptions.input, process.cwd())
+      return null
+    },
     buildStart () {
       transformedFiles.clear()
       api = new API({ cwd: path.dirname(tsconfigPath), fs: fileSystem })
 
-      const original = createSnapshotProgram(api, tsconfigPath, options.compilerOptions)
+      const original = createSnapshotProgram(api, tsconfigPath, options.compilerOptions, inputFiles)
       parsed = original.parsed
       originalSnapshot = original.snapshot
       Object.defineProperty(original.program, '__emnapiCreateSourceFile', {
@@ -223,7 +247,7 @@ export function rollupTypescript (options: RollupTypescriptOptions = {}): Plugin
       originalSnapshot.dispose()
       originalSnapshot = undefined
 
-      const transformed = createSnapshotProgram(api, tsconfigPath, options.compilerOptions)
+      const transformed = createSnapshotProgram(api, tsconfigPath, options.compilerOptions, inputFiles)
       snapshot = transformed.snapshot
       program = transformed.program
     },
