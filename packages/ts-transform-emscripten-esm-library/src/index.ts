@@ -8,7 +8,7 @@ import type {
   ObjectLiteralExpression
 } from 'typescript/ast'
 
-import type { Program, Symbol, JSDocTagInfo } from 'typescript/sync'
+import type { Checker, Program, Symbol, JSDocTagInfo } from 'typescript/sync'
 import { API, ModuleKind, SymbolFlags } from 'typescript/sync'
 import { serverFS } from 'typescript/fs'
 
@@ -25,7 +25,6 @@ import {
   preserveNodeMetadata,
   sameSymbol,
   setOriginalNode,
-  getTypeChecker,
   resolveDeclaration,
   type TransformationContext,
   type TransformerFactory,
@@ -185,11 +184,16 @@ class Transformer {
 
   private readonly _runtimeModuleSpecifier: string
   private readonly _parseToolsModuleSpecifier: string
+  private readonly typeChecker: Checker
+  private readonly symbolsByNode = new WeakMap<Node, Symbol | undefined>()
+  private readonly exportedSymbolIds = new Set<number>()
+  private readonly exportedSymbolsByAliasId = new Map<number, Symbol>()
 
   constructor (public ctx: TransformationContext, public program: Program, options?: BaseTransformOptions) {
     const { runtimeModuleSpecifier, parseToolsModuleSpecifier } = getDefaultBaseOptions(options)
     this._runtimeModuleSpecifier = runtimeModuleSpecifier
     this._parseToolsModuleSpecifier = parseToolsModuleSpecifier
+    this.typeChecker = program.getProject().checker
 
     this.transform = this.transform.bind(this)
     this.parseToolsVisitor = this.parseToolsVisitor.bind(this)
@@ -198,6 +202,7 @@ class Transformer {
   }
 
   transform (source: SourceFile): SourceFile {
+    this.prefetchSymbols(source)
     source = ts.visitNode(source, this.parseToolsVisitor) as SourceFile
     ts.visitNode(source, this.collectExportedFunctionVisitor as any)
 
@@ -239,11 +244,42 @@ class Transformer {
     return this.ctx.factory.updateSourceFile(result, statements)
   }
 
+  private prefetchSymbols (source: SourceFile): void {
+    const nodes: Node[] = [source]
+    const visit = (node: Node): void => {
+      if (ts.isIdentifier(node)) nodes.push(node)
+      node.forEachChild(visit)
+    }
+    visit(source)
+
+    const symbols = this.typeChecker.getSymbolAtLocation(nodes)
+    for (let i = 0; i < nodes.length; i++) {
+      this.symbolsByNode.set(nodes[i], symbols[i])
+    }
+  }
+
+  private getSymbolAtLocation (node: Node): Symbol | undefined {
+    return this.symbolsByNode.get(node)
+  }
+
+  private indexExportedSymbols (exportedSymbols: readonly Symbol[]): void {
+    this.exportedSymbolIds.clear()
+    this.exportedSymbolsByAliasId.clear()
+    for (const symbol of exportedSymbols) {
+      this.exportedSymbolIds.add(symbol.id)
+      if (symbol.flags & ts.SymbolFlags.Alias) {
+        const target = this.typeChecker.getAliasedSymbol(symbol)
+        if (!this.exportedSymbolsByAliasId.has(target.id)) {
+          this.exportedSymbolsByAliasId.set(target.id, symbol)
+        }
+      }
+    }
+  }
+
   parseToolsVisitor (node: Node): VisitResult<Node> {
     if (this._parseToolsModuleSpecifier) {
-      const typeChecker = getTypeChecker(this.program)
       if (ts.isCallExpression(node) && ts.isIdentifier(node.expression)) {
-        const d = resolveDeclaration(typeChecker.getSymbolAtLocation(node.expression)?.declarations?.[0], this.program)
+        const d = resolveDeclaration(this.getSymbolAtLocation(node.expression)?.declarations?.[0], this.program)
         if (d && ts.isImportSpecifier(d)) {
           const moduleSpecifier = (d.parent.parent.parent as any).moduleSpecifier
           if (ts.isStringLiteral(moduleSpecifier) && moduleSpecifier.text === this._parseToolsModuleSpecifier) {
@@ -256,7 +292,7 @@ class Transformer {
         let ancestor: Node | undefined = parent
         while (ancestor) {
           if (ts.isCallExpression(ancestor) && ts.isIdentifier(ancestor.expression)) {
-            const declaration = resolveDeclaration(typeChecker.getSymbolAtLocation(ancestor.expression)?.declarations?.[0], this.program)
+            const declaration = resolveDeclaration(this.getSymbolAtLocation(ancestor.expression)?.declarations?.[0], this.program)
             if (declaration && ts.isImportSpecifier(declaration)) {
               const moduleSpecifier = (declaration.parent.parent.parent as any).moduleSpecifier
               if (ts.isStringLiteral(moduleSpecifier) && moduleSpecifier.text === this._parseToolsModuleSpecifier) return node
@@ -264,7 +300,7 @@ class Transformer {
           }
           ancestor = ancestor.parent
         }
-        const d = resolveDeclaration(typeChecker.getSymbolAtLocation(node)?.declarations?.[0], this.program)
+        const d = resolveDeclaration(this.getSymbolAtLocation(node)?.declarations?.[0], this.program)
         if (d && ts.isImportSpecifier(d)) {
           const moduleSpecifier = (d.parent.parent.parent as any).moduleSpecifier
           if (ts.isStringLiteral(moduleSpecifier) && moduleSpecifier.text === this._parseToolsModuleSpecifier) {
@@ -288,39 +324,23 @@ class Transformer {
     return ts.visitEachChild(node, this.finalVisitor, this.ctx)
   }
 
-  tryGetExportSymbol (exportedSymbols: readonly Symbol[], sym: Symbol): Symbol | undefined {
-    const typeChecker = getTypeChecker(this.program)
-    return exportedSymbols.some(s => sameSymbol(s, sym))
-      ? sym
-      : (() => {
-          const index = exportedSymbols
-            .map(s => {
-              if (s.flags & ts.SymbolFlags.Alias) {
-                return typeChecker.getAliasedSymbol(s)
-              }
-              return s
-            })
-            .findIndex(s => sameSymbol(s, sym))
-          if (index !== -1) {
-            return exportedSymbols[index]
-          }
-          return undefined
-        })()
+  tryGetExportSymbol (sym: Symbol): Symbol | undefined {
+    if (this.exportedSymbolIds.has(sym.id)) return sym
+    return this.exportedSymbolsByAliasId.get(sym.id)
   }
 
-  trackDeps (decl: FunctionDeclaration | VariableDeclaration, exported: Symbol | undefined, parent: SymbolWrap | null, exportedSymbols: readonly Symbol[]): void {
+  trackDeps (decl: FunctionDeclaration | VariableDeclaration, exported: Symbol | undefined, parent: SymbolWrap | null): void {
     if (parent) {
       parent.deps.add(decl)
     }
     if (this.wrap.has(decl)) {
       return
     }
-    const typeChecker = getTypeChecker(this.program)
     const wrap: SymbolWrap = {
       deps: new Set(),
       exported,
       replaceNode: decl,
-      jsdocTags: typeChecker.getSymbolAtLocation(decl.name!)!.getJsDocTags(typeChecker)
+      jsdocTags: this.getSymbolAtLocation(decl.name!)!.getJsDocTags(this.typeChecker)
     }
     this.wrap.set(decl, wrap)
 
@@ -328,8 +348,8 @@ class Transformer {
     // const functionScopedSyms = typeChecker.getSymbolsInScope(decl, ts.SymbolFlags.FunctionScopedVariable)
     const targetSymbolFlags = ts.SymbolFlags.Variable | ts.SymbolFlags.Function | ts.SymbolFlags.Class | ts.SymbolFlags.Enum
     const accessableSyms = ts.isFunctionDeclaration(decl)
-      ? typeChecker.getSymbolsInScope(decl, targetSymbolFlags)
-      : decl.initializer ? typeChecker.getSymbolsInScope(decl.initializer, targetSymbolFlags) : []
+      ? this.typeChecker.getSymbolsInScope(decl, targetSymbolFlags)
+      : decl.initializer ? this.typeChecker.getSymbolsInScope(decl.initializer, targetSymbolFlags) : []
 
     const outScopedSyms = accessableSyms.filter((s) => {
       const valueDeclaration = resolveDeclaration(s.declarations?.[0], this.program)
@@ -347,7 +367,7 @@ class Transformer {
       return node !== decl
     }).map(s => {
       if (s.flags & ts.SymbolFlags.ExportValue) {
-        return typeChecker.getExportSymbolOfSymbol(s)
+        return this.typeChecker.getExportSymbolOfSymbol(s)
       }
       return s
     })
@@ -355,7 +375,7 @@ class Transformer {
 
     const valueVisitor: Visitor = (node) => {
       if (ts.isIdentifier(node)) {
-        const symbolValue = typeChecker.getSymbolAtLocation(node)
+        const symbolValue = this.getSymbolAtLocation(node)
         if (symbolValue && outScopedSyms.some(s => sameSymbol(s, symbolValue))) {
           outScopedAndUsedSyms.add(symbolValue)
         }
@@ -366,7 +386,7 @@ class Transformer {
 
     // console.log(decl.getText(), [...outScopedAndUsedSyms].map(s => s.escapedName))
     outScopedAndUsedSyms.forEach(s => {
-      this.handleInternalSymbol(s, wrap, exportedSymbols)
+      this.handleInternalSymbol(s, wrap)
     })
 
     this.exported.add(decl)
@@ -386,9 +406,9 @@ class Transformer {
         return node
       }
       if (ts.isIdentifier(node)) {
-        const symbolValue = typeChecker.getSymbolAtLocation(node)
+        const symbolValue = this.getSymbolAtLocation(node)
         if (symbolValue) {
-          const exportedSym = this.tryGetExportSymbol(exportedSymbols, symbolValue)
+          const exportedSym = this.tryGetExportSymbol(symbolValue)
           if (exportedSym) {
             if ((exportedSym.escapedName as string).startsWith('$')) {
               return ts.setOriginalNode(this.ctx.factory.createIdentifier((exportedSym.escapedName as string).substring(1)), node)
@@ -407,11 +427,11 @@ class Transformer {
     }
   }
 
-  handleInternalSymbol (sym: Symbol, parent: SymbolWrap, exportedSymbols: readonly Symbol[]): void {
+  handleInternalSymbol (sym: Symbol, parent: SymbolWrap): void {
     const decl = resolveDeclaration(sym.declarations?.[0], this.program) as VariableDeclaration | FunctionDeclaration | undefined
     if (!decl) return
 
-    this.trackDeps(decl, this.tryGetExportSymbol(exportedSymbols, sym), parent, exportedSymbols)
+    this.trackDeps(decl, this.tryGetExportSymbol(sym), parent)
   }
 
   createMergeExpressionStatement (objectLiteral: ObjectLiteralExpression): ExpressionStatement {
@@ -565,8 +585,8 @@ class Transformer {
       }
     }
 
-    const typeChecker = getTypeChecker(this.program)
-    const exportedSymbols = typeChecker.getExportsOfModule(typeChecker.getSymbolAtLocation(source)!)
+    const exportedSymbols = this.typeChecker.getExportsOfModule(this.getSymbolAtLocation(source)!)
+    this.indexExportedSymbols(exportedSymbols)
 
     for (let i = 0; i < exportedSymbols.length; ++i) {
       const exportedSymMaybeAlias = exportedSymbols[i]
@@ -574,7 +594,7 @@ class Transformer {
         throw new Error('cannot export $')
       }
       const exportedSym = (exportedSymMaybeAlias.flags & ts.SymbolFlags.Alias)
-        ? typeChecker.getAliasedSymbol(exportedSymMaybeAlias)
+        ? this.typeChecker.getAliasedSymbol(exportedSymMaybeAlias)
         : exportedSymMaybeAlias
       const valueDeclaration = resolveDeclaration(exportedSym.declarations?.[0], this.program)
       if (!(valueDeclaration && ((ts.isFunctionDeclaration(valueDeclaration) && valueDeclaration.body) || (ts.isVariableDeclaration(valueDeclaration) && valueDeclaration.initializer)))) {
@@ -585,11 +605,11 @@ class Transformer {
     for (let i = 0; i < exportedSymbols.length; ++i) {
       const exportedSymMaybeAlias = exportedSymbols[i]
       const exportedSym = (exportedSymMaybeAlias.flags & ts.SymbolFlags.Alias)
-        ? typeChecker.getAliasedSymbol(exportedSymMaybeAlias)
+        ? this.typeChecker.getAliasedSymbol(exportedSymMaybeAlias)
         : exportedSymMaybeAlias
       const valueDeclaration = resolveDeclaration(exportedSym.declarations?.[0], this.program) as FunctionDeclaration | VariableDeclaration | undefined
       if (!valueDeclaration) throw new Error('Unsupported export')
-      this.trackDeps(valueDeclaration, exportedSymMaybeAlias, null, exportedSymbols)
+      this.trackDeps(valueDeclaration, exportedSymMaybeAlias, null)
     }
 
     return source
