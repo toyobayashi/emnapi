@@ -250,6 +250,21 @@ export function rollupTypescript (options: RollupTypescriptOptions = {}): Plugin
       const transformed = createSnapshotProgram(api, tsconfigPath, options.compilerOptions, inputFiles)
       snapshot = transformed.snapshot
       program = transformed.program
+
+      const declarationOptions = options.compilerOptions ?? {}
+      if (declarationOptions.declaration || declarationOptions.emitDeclarationOnly || parsed?.options.declaration || parsed?.options.emitDeclarationOnly) {
+        const declarationFiles = inputFiles.length > 0
+          ? inputFiles
+          : program.getSourceFileNames().filter(isTypeScriptSource)
+        const emitted = program.getDeclarationEmit(declarationFiles)
+        if (emitted.emitSkipped) {
+          this.error(`TypeScript declaration emit was skipped for ${declarationFiles.join(', ')}: ${emitted.diagnostics.map(diagnostic => diagnostic.text).join('\n')}`)
+        }
+        for (const [fileName, output] of emitted.outputFiles) {
+          fs.mkdirSync(path.dirname(fileName), { recursive: true })
+          fs.writeFileSync(fileName, output.text, 'utf8')
+        }
+      }
     },
     resolveId (source, importer) {
       if (!importer || !program || !parsed) return null

@@ -131,17 +131,22 @@ jobs:
         - name: Emscripten ESM library
           target: ts-transform-emscripten-esm-library
           needs_wasi_sdk: 'false'
-          build: npm run build -w packages/ts-transform-emscripten-esm-library -w packages/rollup-plugin-emscripten-esm-library
+          build: npm run build -w packages/shared -w packages/ts-transform-emscripten-esm-library -w packages/rollup-plugin-emscripten-esm-library
           test: npm run test -w packages/ts-transform-emscripten-esm-library
         - name: '@emnapi/ts-transform-macro'
           target: ts-transform-macro
           needs_wasi_sdk: 'false'
-          build: npm run build -w packages/ts-transform-macro
+          build: npm run build -w packages/shared -w packages/ts-transform-macro
           test: npm run test -w packages/ts-transform-macro
+        - name: '@emnapi/ts-transform-constexpr'
+          target: ts-transform-constexpr
+          needs_wasi_sdk: 'false'
+          build: npm run build -w packages/shared -w packages/ts-transform-constexpr
+          test: npm run test -w packages/ts-transform-constexpr
         - name: '@emnapi/ts-transform-emscripten-parse-tools'
           target: ts-transform-emscripten-parse-tools
           needs_wasi_sdk: 'false'
-          build: npm run build -w packages/ts-transform-emscripten-esm-library -w packages/ts-transform-emscripten-parse-tools
+          build: npm run build -w packages/shared -w packages/ts-transform-emscripten-esm-library -w packages/ts-transform-emscripten-parse-tools
           test: npm run test -w packages/ts-transform-emscripten-parse-tools
         - name: '@emnapi/runtime'
           target: runtime
