@@ -156,7 +156,7 @@ jobs:
         - name: '@emnapi/core'
           target: core
           needs_wasi_sdk: 'false'
-          build: npm run build -w packages/shared -w packages/ts-transform-macro -w packages/ts-transform-emscripten-esm-library -w packages/ts-transform-emscripten-parse-tools -w packages/rollup-plugin-emscripten-esm-library -w packages/runtime -w packages/wasi-threads -w packages/emnapi -w packages/core
+          build: npm run build -w packages/shared -w packages/ts-transform-macro -w packages/ts-transform-emscripten-esm-library -w packages/ts-transform-emscripten-parse-tools -w packages/ts-transform-constexpr -w packages/rollup-plugin-emscripten-esm-library -w packages/runtime -w packages/wasi-threads -w packages/emnapi -w packages/core
           test: npm run test -w packages/core
         - name: '@emnapi/wasi-threads'
           target: wasm32-wasip1-threads

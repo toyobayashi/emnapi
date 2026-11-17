@@ -253,9 +253,8 @@ export function rollupTypescript (options: RollupTypescriptOptions = {}): Plugin
 
       const declarationOptions = options.compilerOptions ?? {}
       if (declarationOptions.declaration || declarationOptions.emitDeclarationOnly || parsed?.options.declaration || parsed?.options.emitDeclarationOnly) {
-        const declarationFiles = inputFiles.length > 0
-          ? inputFiles
-          : program.getSourceFileNames().filter(isTypeScriptSource)
+        const declarationFiles = program.getSourceFileNames()
+          .filter(fileName => isTypeScriptSource(fileName) && !fileName.split(path.sep).includes('node_modules'))
         const emitted = program.getDeclarationEmit(declarationFiles)
         if (emitted.emitSkipped) {
           this.error(`TypeScript declaration emit was skipped for ${declarationFiles.join(', ')}: ${emitted.diagnostics.map(diagnostic => diagnostic.text).join('\n')}`)
