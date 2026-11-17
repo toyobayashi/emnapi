@@ -86,31 +86,35 @@ export function getConstantValue (checker: Checker, node: Node) {
 export function preserveTextRange<T> (updated: T, original: Node): T {
   const target: any = updated
   if (!target || target === original) return updated
+  const setRange = (node: any, pos: number, end: number): void => {
+    for (const [key, value] of [['pos', pos], ['end', end]] as const) {
+      if (Object.getOwnPropertyDescriptor(node, key)?.writable) {
+        node[key] = value
+      } else {
+        Object.defineProperty(node, key, { value, writable: true, configurable: true })
+      }
+    }
+  }
   if (Array.isArray(target)) {
     if (target.length > 0 && target[0]?.pos < 0 && original.pos >= 0) {
-      target[0].pos = original.pos
-      target[0].end = original.end
+      setRange(target[0], original.pos, original.end)
     }
     return updated
   }
-  const range = Object.getOwnPropertyDescriptor(target, 'pos')
-  if (range?.writable && target.pos < 0 && original.pos >= 0) {
-    target.pos = original.pos
-    target.end = original.end
+  if (target.pos < 0 && original.pos >= 0) {
+    setRange(target, original.pos, original.end)
   }
   for (const key of ['statements', 'parameters', 'arguments', 'properties', 'elements', 'declarations', 'clauses']) {
     const targetList: any = target[key]
     const sourceList: any = (original as any)[key]
     if (Array.isArray(targetList) && Array.isArray(sourceList) && (targetList as any).pos < 0 && (sourceList as any).pos >= 0) {
-      ;(targetList as any).pos = (sourceList as any).pos
-      ;(targetList as any).end = (sourceList as any).end
+      setRange(targetList, (sourceList as any).pos, (sourceList as any).end)
     }
   }
   return updated
 }
 
-export function preserveNodeMetadata<T> (updated: T, original: Node): T {
-  preserveTextRange(updated, original)
+export function preserveSyntheticComments<T> (updated: T, original: Node): T {
   const comments = (original as any).__ts7SyntheticComments as SyntheticComment[] | undefined
   if (!comments?.length) return updated
 
@@ -131,6 +135,11 @@ export function preserveNodeMetadata<T> (updated: T, original: Node): T {
     }
   }
   return updated
+}
+
+export function preserveNodeMetadata<T> (updated: T, original: Node): T {
+  preserveTextRange(updated, original)
+  return preserveSyntheticComments(updated, original)
 }
 
 export function createTsCompat<T extends Record<string, any> = Record<string, never>> (

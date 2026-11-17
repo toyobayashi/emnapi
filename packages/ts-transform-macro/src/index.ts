@@ -1,4 +1,5 @@
 import type {
+  SourceFile,
   CallExpression,
   Node,
   Identifier,
@@ -97,8 +98,13 @@ function cloneNode<T extends Node> (node: T): T {
 
 function preserveLeadingStatementComments (original: Node, copied: Node): void {
   if (!ts.isStatement(original)) return
-  const sourceNode = getOriginalNode(original)
-  const trivia = sourceNode.getFullText().slice(0, sourceNode.getLeadingTriviaWidth())
+  let trivia: string
+  try {
+    const sourceNode = getOriginalNode(original)
+    trivia = sourceNode.getFullText().slice(0, sourceNode.getLeadingTriviaWidth())
+  } catch {
+    return
+  }
   const comments = trivia.match(/\/\*[\s\S]*?\*\/|\/\/[^\r\n]*/g) ?? []
   if (comments.length === 0) return
   const annotations = comments.map(comment => ({
@@ -107,7 +113,16 @@ function preserveLeadingStatementComments (original: Node, copied: Node): void {
     leading: true,
     hasTrailingNewLine: comment.startsWith('//')
   }))
-  Object.defineProperty(copied, '__ts7SyntheticComments', { value: annotations, configurable: true })
+  const existing = (copied as any).__ts7SyntheticComments ?? []
+  const additions = annotations.filter(comment => !existing.some((item: any) => (
+    item.kind === comment.kind && item.text === comment.text && item.leading
+  )))
+  if (additions.length > 0) {
+    Object.defineProperty(copied, '__ts7SyntheticComments', {
+      value: [...existing, ...additions],
+      configurable: true
+    })
+  }
 }
 
 function hasMacroDoc (checker: TypeChecker, node: Node): boolean {
@@ -355,7 +370,7 @@ class Transform {
     if ((ts.isExpressionStatement(n) || ts.isReturnStatement(n)) && n.expression && ts.isCallExpression(n.expression)) {
       const { valueDeclaration, type } = this.getDeclarationIfMacroCall(n.expression)
       if (valueDeclaration && (ts.isFunctionDeclaration(valueDeclaration) || ts.isArrowFunction(valueDeclaration) || ts.isFunctionExpression(valueDeclaration)) && valueDeclaration.body) {
-        return this.expandMacro(n.expression, valueDeclaration, type, n)
+        return prepareMacroExpansion(this.expandMacro(n.expression, valueDeclaration, type, n))
       }
     }
 
@@ -365,7 +380,7 @@ class Transform {
         const call = ts.isCallExpression(expression) ? expression : expression.expression as CallExpression
         const { valueDeclaration, type } = this.getDeclarationIfMacroCall(call)
         if (valueDeclaration && (ts.isFunctionDeclaration(valueDeclaration) || ts.isArrowFunction(valueDeclaration) || ts.isFunctionExpression(valueDeclaration)) && valueDeclaration.body && type === JSDocTagType.MACRO) {
-          return this.expandMacro(call, valueDeclaration, type, n)
+          return prepareMacroExpansion(this.expandMacro(call, valueDeclaration, type, n))
         }
       }
     }
@@ -376,7 +391,7 @@ class Transform {
         (ts.isArrowFunction(valueDeclaration) && ts.isExpression(valueDeclaration.body)) ||
         ((ts.isFunctionDeclaration(valueDeclaration) || ts.isArrowFunction(valueDeclaration) || ts.isFunctionExpression(valueDeclaration)) && valueDeclaration.body && type === JSDocTagType.INLINE)
       )) {
-        return this.expandMacro(n, valueDeclaration, type, n)
+        return prepareMacroExpansion(this.expandMacro(n, valueDeclaration, type, n))
       }
     }
 
@@ -494,12 +509,12 @@ class Transform {
 function createTransformerFactory (program: Program, config: TransformOptions): TransformerFactory {
   const typeChecker = program.getProject().checker
   return (context) => {
-  const transform = new Transform(program, context, typeChecker, config)
+    const transform = new Transform(program, context, typeChecker, config)
 
     return (src) => {
       if (src.isDeclarationFile) return src
 
-      return ts.visitEachChild(
+      const transformed = ts.visitEachChild(
         ts.visitEachChild(
           ts.visitEachChild(src, transform.visitor, context),
           transform.removeImportExport,
@@ -508,8 +523,54 @@ function createTransformerFactory (program: Program, config: TransformOptions): 
         transform.removeVisitor,
         context
       )
+      resetForeignSourceRanges(transformed, src.fileName)
+      return transformed
     }
   }
+}
+
+function resetForeignSourceRanges (sourceFile: SourceFile, destinationFileName: string): void {
+  const resetRange = (node: any): void => {
+    Object.defineProperty(node, 'pos', { value: -1, writable: true, configurable: true })
+    Object.defineProperty(node, 'end', { value: -1, writable: true, configurable: true })
+  }
+
+  const visit = (node: Node, inheritedForeign: boolean): void => {
+    const original = (node as any).__ts7OriginalNode as Node | undefined
+    let foreign = inheritedForeign
+    if (original) {
+      try {
+        foreign = original.getSourceFile().fileName !== destinationFileName
+      } catch {}
+    }
+    if (foreign) resetRange(node)
+    node.forEachChild(child => visit(child, foreign), nodes => {
+      if (foreign) resetRange(nodes)
+      for (const child of nodes) visit(child, foreign)
+    })
+  }
+  visit(sourceFile, false)
+}
+
+function prepareMacroExpansion<T extends Node> (result: VisitResult<T>): VisitResult<T> {
+  const resetRange = (node: any): void => {
+    Object.defineProperty(node, 'pos', { value: -1, writable: true, configurable: true })
+    Object.defineProperty(node, 'end', { value: -1, writable: true, configurable: true })
+  }
+  const visit = (node: Node): void => {
+    preserveLeadingStatementComments(node, node)
+    resetRange(node)
+    node.forEachChild(child => visit(child), nodes => {
+      resetRange(nodes)
+      for (const child of nodes) visit(child)
+    })
+  }
+  if (Array.isArray(result)) {
+    for (const node of result) visit(node)
+  } else if (result) {
+    visit(result as Node)
+  }
+  return result
 }
 
 export { createTransformerFactory }
