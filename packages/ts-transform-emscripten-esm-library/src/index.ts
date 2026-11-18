@@ -23,7 +23,6 @@ import {
   findPrintedSnippet,
   normalizeSyntheticRanges,
   preserveNodeMetadata,
-  sameSymbol,
   setOriginalNode,
   resolveDeclaration,
   type TransformationContext,
@@ -188,6 +187,8 @@ class Transformer {
   private readonly symbolsByNode = new WeakMap<Node, Symbol | undefined>()
   private readonly exportedSymbolIds = new Set<number>()
   private readonly exportedSymbolsByAliasId = new Map<number, Symbol>()
+  private readonly dependencyDeclarationsBySymbolId = new Map<number, VariableDeclaration | FunctionDeclaration | null>()
+  private readonly trackableSourceFiles = new Map<string, boolean>()
 
   constructor (public ctx: TransformationContext, public program: Program, options?: BaseTransformOptions) {
     const { runtimeModuleSpecifier, parseToolsModuleSpecifier } = getDefaultBaseOptions(options)
@@ -260,6 +261,41 @@ class Transformer {
 
   private getSymbolAtLocation (node: Node): Symbol | undefined {
     return this.symbolsByNode.get(node)
+  }
+
+  private getDependencyDeclaration (symbol: Symbol): VariableDeclaration | FunctionDeclaration | undefined {
+    if (this.dependencyDeclarationsBySymbolId.has(symbol.id)) {
+      return this.dependencyDeclarationsBySymbolId.get(symbol.id) ?? undefined
+    }
+    const declaration = resolveDeclaration(symbol.declarations?.[0], this.program)
+    const valueDeclaration = declaration && (ts.isVariableDeclaration(declaration) || ts.isFunctionDeclaration(declaration))
+      ? declaration
+      : null
+    this.dependencyDeclarationsBySymbolId.set(symbol.id, valueDeclaration)
+    return valueDeclaration ?? undefined
+  }
+
+  private isTrackableSourceFile (sourceFile: SourceFile): boolean {
+    const fileName = sourceFile.fileName
+    const cached = this.trackableSourceFiles.get(fileName)
+    if (cached !== undefined) return cached
+    const trackable = !this.program.isSourceFileDefaultLibrary(sourceFile) && !this.program.isSourceFileFromExternalLibrary(sourceFile)
+    this.trackableSourceFiles.set(fileName, trackable)
+    return trackable
+  }
+
+  private getOutOfScopeSymbolId (symbol: Symbol, parent: Node): number | undefined {
+    const declaration = this.getDependencyDeclaration(symbol)
+    if (!declaration) return undefined
+    if (!this.isTrackableSourceFile(declaration.getSourceFile())) return undefined
+
+    let node: Node | undefined = declaration
+    while (node && node !== parent) node = node.parent
+    if (node === parent) return undefined
+
+    return (symbol.flags & ts.SymbolFlags.ExportValue)
+      ? this.typeChecker.getExportSymbolOfSymbol(symbol).id
+      : symbol.id
   }
 
   private indexExportedSymbols (exportedSymbols: readonly Symbol[]): void {
@@ -344,40 +380,21 @@ class Transformer {
     }
     this.wrap.set(decl, wrap)
 
-    // const syms = typeChecker.getSymbolsInScope(decl, ts.SymbolFlags.Value)
-    // const functionScopedSyms = typeChecker.getSymbolsInScope(decl, ts.SymbolFlags.FunctionScopedVariable)
-    const targetSymbolFlags = ts.SymbolFlags.Variable | ts.SymbolFlags.Function | ts.SymbolFlags.Class | ts.SymbolFlags.Enum
-    const accessableSyms = ts.isFunctionDeclaration(decl)
-      ? this.typeChecker.getSymbolsInScope(decl, targetSymbolFlags)
-      : decl.initializer ? this.typeChecker.getSymbolsInScope(decl.initializer, targetSymbolFlags) : []
-
-    const outScopedSyms = accessableSyms.filter((s) => {
-      const valueDeclaration = resolveDeclaration(s.declarations?.[0], this.program)
-      if (!valueDeclaration) return false
-      const sourceFile = valueDeclaration.getSourceFile()
-      if (this.program.isSourceFileDefaultLibrary(sourceFile) || this.program.isSourceFileFromExternalLibrary(sourceFile)) return false
-      if (!(ts.isVariableDeclaration(valueDeclaration) || ts.isFunctionDeclaration(valueDeclaration))) {
-        return false
-      }
-      let node: Node = valueDeclaration
-      while (node && node !== decl) {
-        node = node.parent
-      }
-      // not in scope
-      return node !== decl
-    }).map(s => {
-      if (s.flags & ts.SymbolFlags.ExportValue) {
-        return this.typeChecker.getExportSymbolOfSymbol(s)
-      }
-      return s
-    })
-    const outScopedAndUsedSyms = new Set<Symbol>()
+    const outOfScopeSymbolIds = new Map<number, number | null>()
+    const outScopedAndUsedSyms = new Map<number, Symbol>()
 
     const valueVisitor: Visitor = (node) => {
       if (ts.isIdentifier(node)) {
         const symbolValue = this.getSymbolAtLocation(node)
-        if (symbolValue && outScopedSyms.some(s => sameSymbol(s, symbolValue))) {
-          outScopedAndUsedSyms.add(symbolValue)
+        if (symbolValue) {
+          let outOfScopeSymbolId = outOfScopeSymbolIds.get(symbolValue.id)
+          if (outOfScopeSymbolId === undefined) {
+            outOfScopeSymbolId = this.getOutOfScopeSymbolId(symbolValue, decl) ?? null
+            outOfScopeSymbolIds.set(symbolValue.id, outOfScopeSymbolId)
+          }
+          if (outOfScopeSymbolId === symbolValue.id) {
+            outScopedAndUsedSyms.set(symbolValue.id, symbolValue)
+          }
         }
       }
       return ts.visitEachChild(node, valueVisitor, this.ctx)
