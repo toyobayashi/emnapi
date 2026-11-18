@@ -36,10 +36,7 @@
     "@rollup/plugin-node-resolve": "^16.0.0",
     "@rollup/plugin-replace": "^6.0.2",
     "@rollup/plugin-terser": "^0.4.4",
-    "@rollup/plugin-typescript": "12.1.2",
     "@tybys/cross-zip": "^3.1.0",
-    "@tybys/ts-transform-pure-class": "^0.1.1",
-    "@tybys/tsapi": "^0.6.0",
     "@types/fs-extra": "^11.0.4",
     "@types/node": "^22.10.7",
     "env-paths": "^3.0.0",
@@ -48,14 +45,14 @@
     "glob": "^10.4.5",
     "neostandard": "^0.12.1",
     "rollup": "^4.31.0",
-    "typescript": "~5.8.2",
-    "typescript-eslint": "^8.28.0"
+    "typescript": "7.1.0-beta"
   },
   "workspaces": [
     "packages/shared",
     "packages/ts-transform-macro",
     "packages/ts-transform-emscripten-esm-library",
     "packages/ts-transform-emscripten-parse-tools",
+    "packages/ts-transform-constexpr",
     "packages/rollup-plugin-emscripten-esm-library",
     "packages/runtime",
     "packages/node",

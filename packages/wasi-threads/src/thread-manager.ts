@@ -254,7 +254,6 @@ export class ThreadManager {
     this.registeredWorkers.add(worker)
     const err = this.printErr
     const beforeLoad = this._beforeLoad
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
     const _this = this
     worker.whenLoaded = new Promise<WorkerLike>((resolve, reject) => {
       const handleError = function (e: Event | Error): void {

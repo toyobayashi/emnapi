@@ -20,7 +20,7 @@ function checkAsyncHooks () {
 module.exports = common.runTest(test)
 
 function installAsyncHooksForTest () {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  // eslint-disable-next-line no-unused-vars
   return new Promise((resolve, reject) => {
     let id
     const events = []

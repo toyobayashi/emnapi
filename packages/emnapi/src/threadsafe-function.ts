@@ -67,55 +67,55 @@ const emnapiTSFN = {
   },
   init () {
     emnapiTSFN._liveSet = new Set<number>()
-// #if MEMORY64
-    emnapiTSFN.offset.__size__ = NapiTSFNOffset64.__size__
-    emnapiTSFN.offset.resource = NapiTSFNOffset64.async_resource_resource
-    emnapiTSFN.offset.async_id = NapiTSFNOffset64.async_resource_async_context_async_id
-    emnapiTSFN.offset.trigger_async_id = NapiTSFNOffset64.async_resource_async_context_trigger_async_id
-    emnapiTSFN.offset.queue_size = NapiTSFNOffset64.queue_size
-    emnapiTSFN.offset.is_some = NapiTSFNOffset64.async_resource_is_some
-    emnapiTSFN.offset.queue = NapiTSFNOffset64.queue
-    emnapiTSFN.offset.async_pending = NapiTSFNOffset64.async_pending
-    emnapiTSFN.offset.async_u_fd = NapiTSFNOffset64.async_u_fd
-    emnapiTSFN.offset.thread_count = NapiTSFNOffset64.thread_count
-    emnapiTSFN.offset.state = NapiTSFNOffset64.state
-    emnapiTSFN.offset.dispatch_state = NapiTSFNOffset64.dispatch_state
-    emnapiTSFN.offset.context = NapiTSFNOffset64.context
-    emnapiTSFN.offset.max_queue_size = NapiTSFNOffset64.max_queue_size
-    emnapiTSFN.offset.ref = NapiTSFNOffset64.ref
-    emnapiTSFN.offset.env = NapiTSFNOffset64.env
-    emnapiTSFN.offset.finalize_data = NapiTSFNOffset64.finalize_data
-    emnapiTSFN.offset.finalize_cb = NapiTSFNOffset64.finalize_cb
-    emnapiTSFN.offset.call_js_cb = NapiTSFNOffset64.call_js_cb
-    emnapiTSFN.offset.handles_closing = NapiTSFNOffset64.handles_closing
-    emnapiTSFN.offset.async_ref = NapiTSFNOffset64.async_ref
-    emnapiTSFN.offset.mutex = NapiTSFNOffset64.mutex
-    emnapiTSFN.offset.cond = NapiTSFNOffset64.cond
-// #else
-    emnapiTSFN.offset.__size__ = NapiTSFNOffset32.__size__
-    emnapiTSFN.offset.resource = NapiTSFNOffset32.async_resource_resource
-    emnapiTSFN.offset.async_id = NapiTSFNOffset32.async_resource_async_context_async_id
-    emnapiTSFN.offset.trigger_async_id = NapiTSFNOffset32.async_resource_async_context_trigger_async_id
-    emnapiTSFN.offset.queue_size = NapiTSFNOffset32.queue_size
-    emnapiTSFN.offset.is_some = NapiTSFNOffset32.async_resource_is_some
-    emnapiTSFN.offset.queue = NapiTSFNOffset32.queue
-    emnapiTSFN.offset.async_pending = NapiTSFNOffset32.async_pending
-    emnapiTSFN.offset.async_u_fd = NapiTSFNOffset32.async_u_fd
-    emnapiTSFN.offset.thread_count = NapiTSFNOffset32.thread_count
-    emnapiTSFN.offset.state = NapiTSFNOffset32.state
-    emnapiTSFN.offset.dispatch_state = NapiTSFNOffset32.dispatch_state
-    emnapiTSFN.offset.context = NapiTSFNOffset32.context
-    emnapiTSFN.offset.max_queue_size = NapiTSFNOffset32.max_queue_size
-    emnapiTSFN.offset.ref = NapiTSFNOffset32.ref
-    emnapiTSFN.offset.env = NapiTSFNOffset32.env
-    emnapiTSFN.offset.finalize_data = NapiTSFNOffset32.finalize_data
-    emnapiTSFN.offset.finalize_cb = NapiTSFNOffset32.finalize_cb
-    emnapiTSFN.offset.call_js_cb = NapiTSFNOffset32.call_js_cb
-    emnapiTSFN.offset.handles_closing = NapiTSFNOffset32.handles_closing
-    emnapiTSFN.offset.async_ref = NapiTSFNOffset32.async_ref
-    emnapiTSFN.offset.mutex = NapiTSFNOffset32.mutex
-    emnapiTSFN.offset.cond = NapiTSFNOffset32.cond
-// #endif
+    if (constexpr('MEMORY64')) {
+      emnapiTSFN.offset.__size__ = NapiTSFNOffset64.__size__
+      emnapiTSFN.offset.resource = NapiTSFNOffset64.async_resource_resource
+      emnapiTSFN.offset.async_id = NapiTSFNOffset64.async_resource_async_context_async_id
+      emnapiTSFN.offset.trigger_async_id = NapiTSFNOffset64.async_resource_async_context_trigger_async_id
+      emnapiTSFN.offset.queue_size = NapiTSFNOffset64.queue_size
+      emnapiTSFN.offset.is_some = NapiTSFNOffset64.async_resource_is_some
+      emnapiTSFN.offset.queue = NapiTSFNOffset64.queue
+      emnapiTSFN.offset.async_pending = NapiTSFNOffset64.async_pending
+      emnapiTSFN.offset.async_u_fd = NapiTSFNOffset64.async_u_fd
+      emnapiTSFN.offset.thread_count = NapiTSFNOffset64.thread_count
+      emnapiTSFN.offset.state = NapiTSFNOffset64.state
+      emnapiTSFN.offset.dispatch_state = NapiTSFNOffset64.dispatch_state
+      emnapiTSFN.offset.context = NapiTSFNOffset64.context
+      emnapiTSFN.offset.max_queue_size = NapiTSFNOffset64.max_queue_size
+      emnapiTSFN.offset.ref = NapiTSFNOffset64.ref
+      emnapiTSFN.offset.env = NapiTSFNOffset64.env
+      emnapiTSFN.offset.finalize_data = NapiTSFNOffset64.finalize_data
+      emnapiTSFN.offset.finalize_cb = NapiTSFNOffset64.finalize_cb
+      emnapiTSFN.offset.call_js_cb = NapiTSFNOffset64.call_js_cb
+      emnapiTSFN.offset.handles_closing = NapiTSFNOffset64.handles_closing
+      emnapiTSFN.offset.async_ref = NapiTSFNOffset64.async_ref
+      emnapiTSFN.offset.mutex = NapiTSFNOffset64.mutex
+      emnapiTSFN.offset.cond = NapiTSFNOffset64.cond
+    } else {
+      emnapiTSFN.offset.__size__ = NapiTSFNOffset32.__size__
+      emnapiTSFN.offset.resource = NapiTSFNOffset32.async_resource_resource
+      emnapiTSFN.offset.async_id = NapiTSFNOffset32.async_resource_async_context_async_id
+      emnapiTSFN.offset.trigger_async_id = NapiTSFNOffset32.async_resource_async_context_trigger_async_id
+      emnapiTSFN.offset.queue_size = NapiTSFNOffset32.queue_size
+      emnapiTSFN.offset.is_some = NapiTSFNOffset32.async_resource_is_some
+      emnapiTSFN.offset.queue = NapiTSFNOffset32.queue
+      emnapiTSFN.offset.async_pending = NapiTSFNOffset32.async_pending
+      emnapiTSFN.offset.async_u_fd = NapiTSFNOffset32.async_u_fd
+      emnapiTSFN.offset.thread_count = NapiTSFNOffset32.thread_count
+      emnapiTSFN.offset.state = NapiTSFNOffset32.state
+      emnapiTSFN.offset.dispatch_state = NapiTSFNOffset32.dispatch_state
+      emnapiTSFN.offset.context = NapiTSFNOffset32.context
+      emnapiTSFN.offset.max_queue_size = NapiTSFNOffset32.max_queue_size
+      emnapiTSFN.offset.ref = NapiTSFNOffset32.ref
+      emnapiTSFN.offset.env = NapiTSFNOffset32.env
+      emnapiTSFN.offset.finalize_data = NapiTSFNOffset32.finalize_data
+      emnapiTSFN.offset.finalize_cb = NapiTSFNOffset32.finalize_cb
+      emnapiTSFN.offset.call_js_cb = NapiTSFNOffset32.call_js_cb
+      emnapiTSFN.offset.handles_closing = NapiTSFNOffset32.handles_closing
+      emnapiTSFN.offset.async_ref = NapiTSFNOffset32.async_ref
+      emnapiTSFN.offset.mutex = NapiTSFNOffset32.mutex
+      emnapiTSFN.offset.cond = NapiTSFNOffset32.cond
+    }
     emnapiTSFN.offset.mutex = emnapiTSFN.offset.mutex + 4
     if (typeof PThread !== 'undefined') {
       PThread.unusedWorkers.forEach(emnapiTSFN.addListener)
@@ -387,25 +387,25 @@ const emnapiTSFN = {
   addQueueSize (func: number): void {
     const offset = emnapiTSFN.offset.queue_size
     let arr: any, index: number
-// #if MEMORY64
-    arr = new BigUint64Array(emnapiTSFN.ensureBufferFor(func + offset + 8))
-    index = (func + offset) >>> 3
-// #else
-    arr = new Uint32Array(emnapiTSFN.ensureBufferFor(func + offset + 4))
-    index = (func + offset) >>> 2
-// #endif
+    if (constexpr('MEMORY64')) {
+      arr = new BigUint64Array(emnapiTSFN.ensureBufferFor(func + offset + 8))
+      index = (func + offset) >>> 3
+    } else {
+      arr = new Uint32Array(emnapiTSFN.ensureBufferFor(func + offset + 4))
+      index = (func + offset) >>> 2
+    }
     Atomics.add(arr, index, to64('1') as any)
   },
   subQueueSize (func: number): void {
     const offset = emnapiTSFN.offset.queue_size
     let arr: any, index: number
-// #if MEMORY64
-    arr = new BigUint64Array(emnapiTSFN.ensureBufferFor(func + offset + 8))
-    index = (func + offset) >>> 3
-// #else
-    arr = new Uint32Array(emnapiTSFN.ensureBufferFor(func + offset + 4))
-    index = (func + offset) >>> 2
-// #endif
+    if (constexpr('MEMORY64')) {
+      arr = new BigUint64Array(emnapiTSFN.ensureBufferFor(func + offset + 8))
+      index = (func + offset) >>> 3
+    } else {
+      arr = new Uint32Array(emnapiTSFN.ensureBufferFor(func + offset + 4))
+      index = (func + offset) >>> 2
+    }
     Atomics.sub(arr, index, to64('1') as any)
   },
   getThreadCount (func: number): number {
@@ -414,25 +414,25 @@ const emnapiTSFN = {
   addThreadCount (func: number): void {
     const offset = emnapiTSFN.offset.thread_count
     let arr: any, index: number
-// #if MEMORY64
-    arr = new BigUint64Array(emnapiTSFN.ensureBufferFor(func + offset + 8))
-    index = (func + offset) >>> 3
-// #else
-    arr = new Uint32Array(emnapiTSFN.ensureBufferFor(func + offset + 4))
-    index = (func + offset) >>> 2
-// #endif
+    if (constexpr('MEMORY64')) {
+      arr = new BigUint64Array(emnapiTSFN.ensureBufferFor(func + offset + 8))
+      index = (func + offset) >>> 3
+    } else {
+      arr = new Uint32Array(emnapiTSFN.ensureBufferFor(func + offset + 4))
+      index = (func + offset) >>> 2
+    }
     Atomics.add(arr, index, to64('1') as any)
   },
   subThreadCount (func: number): void {
     const offset = emnapiTSFN.offset.thread_count
     let arr: any, index: number
-// #if MEMORY64
-    arr = new BigUint64Array(emnapiTSFN.ensureBufferFor(func + offset + 8))
-    index = (func + offset) >>> 3
-// #else
-    arr = new Uint32Array(emnapiTSFN.ensureBufferFor(func + offset + 4))
-    index = (func + offset) >>> 2
-// #endif
+    if (constexpr('MEMORY64')) {
+      arr = new BigUint64Array(emnapiTSFN.ensureBufferFor(func + offset + 8))
+      index = (func + offset) >>> 3
+    } else {
+      arr = new Uint32Array(emnapiTSFN.ensureBufferFor(func + offset + 4))
+      index = (func + offset) >>> 2
+    }
     Atomics.sub(arr, index, to64('1') as any)
   },
   getState (func: number): number {
@@ -478,44 +478,44 @@ const emnapiTSFN = {
     let ret: any
     let arr: any
     if (unsigned) {
-// #if MEMORY64
-      arr = new BigUint64Array(emnapiTSFN.ensureBufferFor(offset + 8))
-      ret = Number(Atomics.load(arr, offset >>> 3))
-// #else
-      arr = new Uint32Array(emnapiTSFN.ensureBufferFor(offset + 4))
-      ret = Atomics.load(arr, offset >>> 2)
-// #endif
+      if (constexpr('MEMORY64')) {
+        arr = new BigUint64Array(emnapiTSFN.ensureBufferFor(offset + 8))
+        ret = Number(Atomics.load(arr, offset >>> 3))
+      } else {
+        arr = new Uint32Array(emnapiTSFN.ensureBufferFor(offset + 4))
+        ret = Atomics.load(arr, offset >>> 2)
+      }
       return ret
     } else {
-// #if MEMORY64
-      arr = new BigInt64Array(emnapiTSFN.ensureBufferFor(offset + 8))
-      ret = Number(Atomics.load(arr, offset >>> 3))
-// #else
-      arr = new Int32Array(emnapiTSFN.ensureBufferFor(offset + 4))
-      ret = Atomics.load(arr, offset >>> 2)
-// #endif
+      if (constexpr('MEMORY64')) {
+        arr = new BigInt64Array(emnapiTSFN.ensureBufferFor(offset + 8))
+        ret = Number(Atomics.load(arr, offset >>> 3))
+      } else {
+        arr = new Int32Array(emnapiTSFN.ensureBufferFor(offset + 4))
+        ret = Atomics.load(arr, offset >>> 2)
+      }
       return ret
     }
   },
   storeSizeTypeValue (offset: number, value: number, unsigned: boolean): void {
     let arr: any
     if (unsigned) {
-// #if MEMORY64
-      arr = new BigUint64Array(emnapiTSFN.ensureBufferFor(offset + 8))
-      Atomics.store(arr, offset >>> 3, BigInt(value) as any)
-// #else
-      arr = new Uint32Array(emnapiTSFN.ensureBufferFor(offset + 4))
-      Atomics.store(arr, offset >>> 2, value)
-// #endif
+      if (constexpr('MEMORY64')) {
+        arr = new BigUint64Array(emnapiTSFN.ensureBufferFor(offset + 8))
+        Atomics.store(arr, offset >>> 3, BigInt(value) as any)
+      } else {
+        arr = new Uint32Array(emnapiTSFN.ensureBufferFor(offset + 4))
+        Atomics.store(arr, offset >>> 2, value)
+      }
       return undefined
     } else {
-// #if MEMORY64
-      arr = new BigInt64Array(emnapiTSFN.ensureBufferFor(offset + 8))
-      Atomics.store(arr, offset >>> 3, BigInt(value >>> 0) as any)
-// #else
-      arr = new Int32Array(emnapiTSFN.ensureBufferFor(offset + 4))
-      Atomics.store(arr, offset >>> 2, value >>> 0)
-// #endif
+      if (constexpr('MEMORY64')) {
+        arr = new BigInt64Array(emnapiTSFN.ensureBufferFor(offset + 8))
+        Atomics.store(arr, offset >>> 3, BigInt(value >>> 0) as any)
+      } else {
+        arr = new Int32Array(emnapiTSFN.ensureBufferFor(offset + 4))
+        Atomics.store(arr, offset >>> 2, value >>> 0)
+      }
       return undefined
     }
   },

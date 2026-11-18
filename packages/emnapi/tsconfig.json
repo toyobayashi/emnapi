@@ -1,6 +1,7 @@
 {
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
+    "rootDir": "./src",
     "paths": {
       "emnapi:shared": ["./src/emscripten/init"]
     }

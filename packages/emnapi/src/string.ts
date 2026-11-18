@@ -47,97 +47,103 @@ export var emnapiString = {
     emnapiString.cachedMemoryBuffer = undefined
     emnapiString.cachedHEAPU8 = undefined
     emnapiString.cachedHEAPU16 = undefined
-// #if !TEXTDECODER || TEXTDECODER == 1
-    const fallbackDecoder = {
-      decode (bytes: Uint8Array) {
-        let inputIndex = 0
-        const pendingSize = Math.min(0x1000, bytes.length + 1)
-        const pending = new Uint16Array(pendingSize)
-        const chunks = []
-        let pendingIndex = 0
+    let fallbackDecoder: {
+      decode(bytes: Uint8Array<ArrayBufferLike>): string;
+    }
+    if (constexpr('!TEXTDECODER || TEXTDECODER == 1')) {
+      fallbackDecoder = {
+        decode (bytes: Uint8Array) {
+          let inputIndex = 0
+          const pendingSize = Math.min(0x1000, bytes.length + 1)
+          const pending = new Uint16Array(pendingSize)
+          const chunks = []
+          let pendingIndex = 0
 
-        for (;;) {
-          const more = inputIndex < bytes.length
+          for (;;) {
+            const more = inputIndex < bytes.length
 
-          if (!more || (pendingIndex >= pendingSize - 1)) {
-            const subarray = pending.subarray(0, pendingIndex)
-            const arraylike = subarray as unknown as number[]
-            chunks.push(String.fromCharCode.apply(null, arraylike))
+            if (!more || (pendingIndex >= pendingSize - 1)) {
+              const subarray = pending.subarray(0, pendingIndex)
+              const arraylike = subarray as unknown as number[]
+              chunks.push(String.fromCharCode.apply(null, arraylike))
 
-            if (!more) {
-              return chunks.join('')
+              if (!more) {
+                return chunks.join('')
+              }
+
+              bytes = bytes.subarray(inputIndex)
+              inputIndex = 0
+              pendingIndex = 0
             }
 
-            bytes = bytes.subarray(inputIndex)
-            inputIndex = 0
-            pendingIndex = 0
-          }
+            const byte1 = bytes[inputIndex++]
+            if ((byte1 & 0x80) === 0) {
+              pending[pendingIndex++] = byte1
+            } else if ((byte1 & 0xe0) === 0xc0) {
+              const byte2 = bytes[inputIndex++] & 0x3f
+              pending[pendingIndex++] = ((byte1 & 0x1f) << 6) | byte2
+            } else if ((byte1 & 0xf0) === 0xe0) {
+              const byte2 = bytes[inputIndex++] & 0x3f
+              const byte3 = bytes[inputIndex++] & 0x3f
+              pending[pendingIndex++] = ((byte1 & 0x1f) << 12) | (byte2 << 6) | byte3
+            } else if ((byte1 & 0xf8) === 0xf0) {
+              const byte2 = bytes[inputIndex++] & 0x3f
+              const byte3 = bytes[inputIndex++] & 0x3f
+              const byte4 = bytes[inputIndex++] & 0x3f
 
-          const byte1 = bytes[inputIndex++]
-          if ((byte1 & 0x80) === 0) {
-            pending[pendingIndex++] = byte1
-          } else if ((byte1 & 0xe0) === 0xc0) {
-            const byte2 = bytes[inputIndex++] & 0x3f
-            pending[pendingIndex++] = ((byte1 & 0x1f) << 6) | byte2
-          } else if ((byte1 & 0xf0) === 0xe0) {
-            const byte2 = bytes[inputIndex++] & 0x3f
-            const byte3 = bytes[inputIndex++] & 0x3f
-            pending[pendingIndex++] = ((byte1 & 0x1f) << 12) | (byte2 << 6) | byte3
-          } else if ((byte1 & 0xf8) === 0xf0) {
-            const byte2 = bytes[inputIndex++] & 0x3f
-            const byte3 = bytes[inputIndex++] & 0x3f
-            const byte4 = bytes[inputIndex++] & 0x3f
-
-            let codepoint = ((byte1 & 0x07) << 0x12) | (byte2 << 0x0c) | (byte3 << 0x06) | byte4
-            if (codepoint > 0xffff) {
-              codepoint -= 0x10000
-              pending[pendingIndex++] = (codepoint >>> 10) & 0x3ff | 0xd800
-              codepoint = 0xdc00 | codepoint & 0x3ff
+              let codepoint = ((byte1 & 0x07) << 0x12) | (byte2 << 0x0c) | (byte3 << 0x06) | byte4
+              if (codepoint > 0xffff) {
+                codepoint -= 0x10000
+                pending[pendingIndex++] = (codepoint >>> 10) & 0x3ff | 0xd800
+                codepoint = 0xdc00 | codepoint & 0x3ff
+              }
+              pending[pendingIndex++] = codepoint
+            } else {
+              // invalid
             }
-            pending[pendingIndex++] = codepoint
-          } else {
-            // invalid
           }
         }
       }
     }
-// #endif
     let utf8Decoder: any
-// #if !TEXTDECODER
-    utf8Decoder = fallbackDecoder
-// #elif TEXTDECODER == 1
-    utf8Decoder = typeof TextDecoder === 'function' ? new TextDecoder() : fallbackDecoder
-// #elif TEXTDECODER == 2
-    utf8Decoder = new TextDecoder()
-// #endif
+    if (constexpr('!TEXTDECODER')) {
+      utf8Decoder = fallbackDecoder!
+    } else if (constexpr('TEXTDECODER == 1')) {
+      utf8Decoder = typeof TextDecoder === 'function' ? new TextDecoder() : fallbackDecoder!
+    } else if (constexpr('TEXTDECODER == 2')) {
+      utf8Decoder = new TextDecoder()
+    }
     emnapiString.utf8Decoder = utf8Decoder
 
-// #if !TEXTDECODER || TEXTDECODER == 1
-    const fallbackDecoder2 = {
-      decode (input: Uint8Array) {
-        const bytes = new Uint16Array(input.buffer, input.byteOffset, input.byteLength / 2)
-        if (bytes.length <= 0x1000) {
-          return String.fromCharCode.apply(null, bytes as any)
+    let fallbackDecoder2: {
+      decode(input: Uint8Array<ArrayBufferLike>): string;
+    }
+    if (constexpr('!TEXTDECODER || TEXTDECODER == 1')) {
+      fallbackDecoder2 = {
+        decode (input: Uint8Array) {
+          const bytes = new Uint16Array(input.buffer, input.byteOffset, input.byteLength / 2)
+          if (bytes.length <= 0x1000) {
+            return String.fromCharCode.apply(null, bytes as any)
+          }
+          const chunks = [] as string[]
+          let i = 0
+          let len = 0
+          for (; i < bytes.length; i += len) {
+            len = Math.min(0x1000, bytes.length - i)
+            chunks.push(String.fromCharCode.apply(null, bytes.subarray(i, i + len) as any))
+          }
+          return chunks.join('')
         }
-        const chunks = [] as string[]
-        let i = 0
-        let len = 0
-        for (; i < bytes.length; i += len) {
-          len = Math.min(0x1000, bytes.length - i)
-          chunks.push(String.fromCharCode.apply(null, bytes.subarray(i, i + len) as any))
-        }
-        return chunks.join('')
       }
     }
-// #endif
     let utf16Decoder: any
-// #if !TEXTDECODER
-    utf16Decoder = fallbackDecoder2
-// #elif TEXTDECODER == 1
-    utf16Decoder = typeof TextDecoder === 'function' ? new TextDecoder('utf-16le') : fallbackDecoder2
-// #elif TEXTDECODER == 2
-    utf16Decoder = new TextDecoder('utf-16le')
-// #endif
+    if (constexpr('!TEXTDECODER')) {
+      utf16Decoder = fallbackDecoder2!
+    } else if (constexpr('TEXTDECODER == 1')) {
+      utf16Decoder = typeof TextDecoder === 'function' ? new TextDecoder('utf-16le') : fallbackDecoder2!
+    } else if (constexpr('TEXTDECODER == 2')) {
+      utf16Decoder = new TextDecoder('utf-16le')
+    }
     emnapiString.utf16Decoder = utf16Decoder
   },
   lengthBytesUTF8 (str: string): number {
@@ -167,33 +173,33 @@ export var emnapiString = {
     } else {
       end = ptr + (length >>> 0)
     }
-// #if TEXTDECODER != 2
-    length = end - ptr
-    if (length <= 16) {
-      let idx = ptr
-      var str = ''
-      while (idx < end) {
-        var u0 = HEAPU8[idx++]
-        if (!(u0 & 0x80)) { str += String.fromCharCode(u0); continue }
-        var u1 = HEAPU8[idx++] & 63
-        if ((u0 & 0xE0) === 0xC0) { str += String.fromCharCode(((u0 & 31) << 6) | u1); continue }
-        var u2 = HEAPU8[idx++] & 63
-        if ((u0 & 0xF0) === 0xE0) {
-          u0 = ((u0 & 15) << 12) | (u1 << 6) | u2
-        } else {
-          u0 = ((u0 & 7) << 18) | (u1 << 12) | (u2 << 6) | (HEAPU8[idx++] & 63)
-        }
+    if (constexpr('TEXTDECODER != 2')) {
+      length = end - ptr
+      if (length <= 16) {
+        let idx = ptr
+        var str = ''
+        while (idx < end) {
+          var u0 = HEAPU8[idx++]
+          if (!(u0 & 0x80)) { str += String.fromCharCode(u0); continue }
+          var u1 = HEAPU8[idx++] & 63
+          if ((u0 & 0xE0) === 0xC0) { str += String.fromCharCode(((u0 & 31) << 6) | u1); continue }
+          var u2 = HEAPU8[idx++] & 63
+          if ((u0 & 0xF0) === 0xE0) {
+            u0 = ((u0 & 15) << 12) | (u1 << 6) | u2
+          } else {
+            u0 = ((u0 & 7) << 18) | (u1 << 12) | (u2 << 6) | (HEAPU8[idx++] & 63)
+          }
 
-        if (u0 < 0x10000) {
-          str += String.fromCharCode(u0)
-        } else {
-          var ch = u0 - 0x10000
-          str += String.fromCharCode(0xD800 | (ch >> 10), 0xDC00 | (ch & 0x3FF))
+          if (u0 < 0x10000) {
+            str += String.fromCharCode(u0)
+          } else {
+            var ch = u0 - 0x10000
+            str += String.fromCharCode(0xD800 | (ch >> 10), 0xDC00 | (ch & 0x3FF))
+          }
         }
+        return str
       }
-      return str
     }
-// #endif
     return emnapiString.utf8Decoder.decode(emnapiString.getHeapViewOrCopy(HEAPU8, ptr, end))
   },
   stringToUTF8 (str: string, outPtr: number, maxBytesToWrite: number): number {
@@ -245,12 +251,12 @@ export var emnapiString = {
     } else {
       end = ptr + (length >>> 0) * 2
     }
-// #if TEXTDECODER != 2
-    length = end - ptr
-    if (length <= 32) {
-      return String.fromCharCode.apply(null, new Uint16Array(wasmMemory.buffer, ptr, length / 2) as any)
+    if (constexpr('TEXTDECODER != 2')) {
+      length = end - ptr
+      if (length <= 32) {
+        return String.fromCharCode.apply(null, new Uint16Array(wasmMemory.buffer, ptr, length / 2) as any)
+      }
     }
-// #endif
 
     const HEAPU8 = emnapiString.getHEAPU8()
     return emnapiString.utf16Decoder.decode(emnapiString.getHeapViewOrCopy(HEAPU8, ptr, end))

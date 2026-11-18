@@ -2,7 +2,6 @@
   "files.associations": {
     "**/api-extractor*.json": "jsonc"
   },
-  "typescript.tsdk": "./node_modules/typescript/lib",
   "cmake.sourceDirectory": "${workspaceFolder}/packages/test",
   "cmake.options.advanced": {
     "configurePreset": {

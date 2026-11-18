@@ -13,11 +13,11 @@ export function emnapiCreateFunction<F extends (...args: any[]) => any> (envObje
 
   let dynamicExecution: boolean
 
-// #if DYNAMIC_EXECUTION == 0
-  dynamicExecution = false
-// #else
-  dynamicExecution = true
-// #endif
+  if (constexpr('DYNAMIC_EXECUTION == 0')) {
+    dynamicExecution = false
+  } else {
+    dynamicExecution = true
+  }
 
   if (!functionName) {
     return {

@@ -1,6 +1,6 @@
 import { join } from 'path'
 import { defineConfig } from 'rollup'
-import rollupTs from '@rollup/plugin-typescript'
+import { rollupTypescript } from '@emnapi/shared'
 import { plugin as rollupEmscripten } from '@emnapi/rollup-plugin-emscripten-esm-library'
 
 export default defineConfig({
@@ -10,7 +10,7 @@ export default defineConfig({
     format: 'esm'
   },
   plugins: [
-    rollupTs({ tsconfig: join(import.meta.dirname, 'tsconfig.json') }),
+    rollupTypescript({ tsconfig: join(import.meta.dirname, 'tsconfig.json') }),
     rollupEmscripten()
   ]
 })

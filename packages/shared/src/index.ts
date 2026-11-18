@@ -1,2 +1,5 @@
 export * from './rollup.ts'
+export * from './rollup-typescript.ts'
+export * from './transformer-compat.ts'
+export * from './transformer-factory.ts'
 export * from './build.ts'

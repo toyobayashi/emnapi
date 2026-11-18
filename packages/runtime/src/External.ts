@@ -8,7 +8,7 @@ export function isExternal (object: unknown): object is External {
   return externalValue.has(object as any)
 }
 
-/** @public */ // eslint-disable-next-line @typescript-eslint/no-redeclare
+/** @public */ // eslint-disable-next-line no-redeclare
 export const External = (() => {
   function External (this: External, value: number | bigint): void {
     Object.setPrototypeOf(this, null)

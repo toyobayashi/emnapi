@@ -175,15 +175,15 @@ NODE_MODULE_VERSION ${NODE_MODULE_VERSION}.`)
           from64('env')
           ;(env as number) -= 8
           from64('engine_reserved')
-// #if MEMORY64
-          makeSetValue('env', NapiEnvOffset64.last_error_error_code, 'error_code', 'i32')
-          makeSetValue('env', NapiEnvOffset64.last_error_engine_error_code, 'engine_error_code', 'u32')
-          makeSetValue('env', NapiEnvOffset64.last_error_engine_reserved, 'engine_reserved', '*')
-// #else
-          makeSetValue('env', NapiEnvOffset32.last_error_error_code, 'error_code', 'i32')
-          makeSetValue('env', NapiEnvOffset32.last_error_engine_error_code, 'engine_error_code', 'u32')
-          makeSetValue('env', NapiEnvOffset32.last_error_engine_reserved, 'engine_reserved', '*')
-// #endif
+          if (constexpr('MEMORY64')) {
+            makeSetValue('env', NapiEnvOffset64.last_error_error_code, 'error_code', 'i32')
+            makeSetValue('env', NapiEnvOffset64.last_error_engine_error_code, 'engine_error_code', 'u32')
+            makeSetValue('env', NapiEnvOffset64.last_error_engine_reserved, 'engine_reserved', '*')
+          } else {
+            makeSetValue('env', NapiEnvOffset32.last_error_error_code, 'error_code', 'i32')
+            makeSetValue('env', NapiEnvOffset32.last_error_engine_error_code, 'engine_error_code', 'u32')
+            makeSetValue('env', NapiEnvOffset32.last_error_engine_reserved, 'engine_reserved', '*')
+          }
           return error_code
         },
         makeDynCall_vppp: (cb: Ptr) => makeDynCall('vppp', 'cb'),
@@ -193,11 +193,11 @@ NODE_MODULE_VERSION ${NODE_MODULE_VERSION}.`)
       emnapiNodeBinding
     )
     let address = envObject.address
-// #if MEMORY64
-    makeSetValue('address - 8', NapiEnvOffset64.id, 'envObject.id', 'u32')
-// #else
-    makeSetValue('address - 8', NapiEnvOffset32.id, 'envObject.id', 'u32')
-// #endif
+    if (constexpr('MEMORY64')) {
+      makeSetValue('address - 8', NapiEnvOffset64.id, 'envObject.id', 'u32')
+    } else {
+      makeSetValue('address - 8', NapiEnvOffset32.id, 'envObject.id', 'u32')
+    }
     return envObject
   })()
 

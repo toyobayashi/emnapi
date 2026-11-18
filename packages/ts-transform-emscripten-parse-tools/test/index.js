@@ -2,22 +2,25 @@ import assert from 'node:assert/strict'
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import test from 'node:test'
-import ts from 'typescript'
+import { ModuleKind, ModuleResolutionKind } from 'typescript/sync'
+import { ScriptTarget } from 'typescript/ast'
 import { createTransformerFactory } from '@emnapi/ts-transform-emscripten-parse-tools'
+import { emitWithTransformer } from '../../shared/test/transformer-harness.js'
 
 const inputDir = join(import.meta.dirname, 'input')
 const entry = join(inputDir, 'use-parse-tools.ts')
-const program = ts.createProgram([
+const rootFiles = [
   entry,
   join(inputDir, 'parse-tools.d.ts'),
   join(inputDir, 'types.d.ts')
-], {
-  module: ts.ModuleKind.ESNext,
-  moduleResolution: ts.ModuleResolutionKind.Node10,
-  target: ts.ScriptTarget.ES2021,
+]
+const compilerOptions = {
+  module: ModuleKind.ESNext,
+  moduleResolution: ModuleResolutionKind.Node10,
+  target: ScriptTarget.ES2021,
   noEmit: false,
   noEmitOnError: false
-})
+}
 
 const cases = [
   { name: 'MEMORY32 usage forms', output: 'memory32.js', options: { defines: { MEMORY64: 0 } } },
@@ -26,20 +29,17 @@ const cases = [
 ]
 
 function transform (options) {
-  const sourceFile = program.getSourceFile(entry)
-  assert.ok(sourceFile, `TypeScript Program did not include ${entry}`)
-  const emitted = []
-  program.emit(sourceFile, (fileName, text) => {
-    emitted.push({ fileName, text })
-  }, undefined, false, {
-    before: [createTransformerFactory(program, {
+  return emitWithTransformer({
+    rootFiles,
+    compilerOptions,
+    sourceFileName: entry,
+    transformerFactory: createTransformerFactory,
+    transformerOptions: {
       runtimeModuleSpecifier: 'emscripten:runtime',
       parseToolsModuleSpecifier: 'emscripten:parse-tools',
       ...options
-    })]
+    }
   })
-  assert.equal(emitted.length, 1)
-  return emitted[0].text
 }
 
 for (const { name, output, options } of cases) {

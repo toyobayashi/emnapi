@@ -6,6 +6,7 @@
     "noEmitHelpers": true,
     "importHelpers": true,
     "moduleResolution": "Bundler",
+    "rootDir": "./src",
     "paths": {
       "tslib" : ["../../node_modules/tslib/tslib.d.ts"]
     },

@@ -1,0 +1,15 @@
+{
+  "extends": "../shared/tsconfig.base.json",
+  "compilerOptions": {
+    "target": "ES2021",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "declaration": true,
+    "sourceMap": true,
+    "declarationMap": true,
+    "rootDir": "./src",
+    "outDir": "dist"
+  },
+  "include": ["./src/**/*"]
+}

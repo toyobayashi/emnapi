@@ -10,7 +10,7 @@ export function runScript(env, script, result) {
     if (!envObject.lastException.isEmpty())
         return envObject.setLastError(10 /* napi_status.napi_pending_exception */);
     if (!envObject.canCallIntoJs())
-        return envObject.setLastError(envObject.moduleApiVersion >= 10 ? 23 /* napi_status.napi_cannot_run_js */ : 10 /* napi_status.napi_pending_exception */);
+        return envObject.setLastError(envObject.moduleApiVersion >= 10 /* napi_status.napi_pending_exception */ ? 23 /* napi_status.napi_cannot_run_js */ : 10);
     envObject.clearLastError();
     try {
         if (!script)
@@ -46,7 +46,7 @@ export function checkStringArgs(env, str, length, result) {
 }
 // This direct call (without !) is from packages/emnapi/src/value/create.ts.
 export function checkPropertyName(envObject, name_value) {
-    if (!(typeof name_value === "string" || typeof name_value === "symbol"))
+    if (!(typeof name_value === 'string' || typeof name_value === 'symbol'))
         return envObject.setLastError(4 /* napi_status.napi_name_expected */);
     return (0 /* napi_status.napi_ok */);
 }

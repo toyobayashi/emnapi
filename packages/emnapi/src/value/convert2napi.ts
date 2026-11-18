@@ -39,20 +39,20 @@ export function napi_create_int64 (env: napi_env, low: int32_t, high: int32_t, r
 
   let value: number
 
-// #if WASM_BIGINT
-  if (!high) return envObject.setLastError(napi_status.napi_invalid_arg)
-  value = Number(low)
+  if (constexpr('WASM_BIGINT')) {
+    if (!high) return envObject.setLastError(napi_status.napi_invalid_arg)
+    value = Number(low)
 
-  const v1 = emnapiCtx.napiValueFromJsValue(value)
-  from64('high')
-  makeSetValue('high', 0, 'v1', '*')
-// #else
-  if (!result) return envObject.setLastError(napi_status.napi_invalid_arg)
-  value = (low >>> 0) + (high * Math.pow(2, 32))
+    const v1 = emnapiCtx.napiValueFromJsValue(value)
+    from64('high')
+    makeSetValue('high', 0, 'v1', '*')
+  } else {
+    if (!result) return envObject.setLastError(napi_status.napi_invalid_arg)
+    value = (low >>> 0) + (high * Math.pow(2, 32))
 
-  const v2 = emnapiCtx.napiValueFromJsValue(value)
-  makeSetValue('result', 0, 'v2', '*')
-// #endif
+    const v2 = emnapiCtx.napiValueFromJsValue(value)
+    makeSetValue('result', 0, 'v2', '*')
+  }
 
   return envObject.clearLastError()
 }
@@ -179,20 +179,20 @@ export function napi_create_bigint_int64 (env: napi_env, low: int32_t, high: int
 
   let value: bigint
 
-// #if WASM_BIGINT
-  if (!high) return envObject.setLastError(napi_status.napi_invalid_arg)
-  value = low as unknown as bigint
+  if (constexpr('WASM_BIGINT')) {
+    if (!high) return envObject.setLastError(napi_status.napi_invalid_arg)
+    value = low as unknown as bigint
 
-  const v1 = emnapiCtx.napiValueFromJsValue(value)
-  from64('high')
-  makeSetValue('high', 0, 'v1', '*')
-// #else
-  if (!result) return envObject.setLastError(napi_status.napi_invalid_arg)
-  value = BigInt(low >>> 0) | (BigInt(high) << BigInt(32))
+    const v1 = emnapiCtx.napiValueFromJsValue(value)
+    from64('high')
+    makeSetValue('high', 0, 'v1', '*')
+  } else {
+    if (!result) return envObject.setLastError(napi_status.napi_invalid_arg)
+    value = BigInt(low >>> 0) | (BigInt(high) << BigInt(32))
 
-  const v2 = emnapiCtx.napiValueFromJsValue(value)
-  makeSetValue('result', 0, 'v2', '*')
-// #endif
+    const v2 = emnapiCtx.napiValueFromJsValue(value)
+    makeSetValue('result', 0, 'v2', '*')
+  }
 
   return envObject.clearLastError()
 }
@@ -208,20 +208,20 @@ export function napi_create_bigint_uint64 (env: napi_env, low: int32_t, high: in
 
   let value: bigint
 
-// #if WASM_BIGINT
-  if (!high) return envObject.setLastError(napi_status.napi_invalid_arg)
-  value = BigInt.asUintN(64, low as unknown as bigint)
+  if (constexpr('WASM_BIGINT')) {
+    if (!high) return envObject.setLastError(napi_status.napi_invalid_arg)
+    value = BigInt.asUintN(64, low as unknown as bigint)
 
-  const v1 = emnapiCtx.napiValueFromJsValue(value)
-  from64('high')
-  makeSetValue('high', 0, 'v1', '*')
-// #else
-  if (!result) return envObject.setLastError(napi_status.napi_invalid_arg)
-  value = BigInt(low >>> 0) | (BigInt(high >>> 0) << BigInt(32))
+    const v1 = emnapiCtx.napiValueFromJsValue(value)
+    from64('high')
+    makeSetValue('high', 0, 'v1', '*')
+  } else {
+    if (!result) return envObject.setLastError(napi_status.napi_invalid_arg)
+    value = BigInt(low >>> 0) | (BigInt(high >>> 0) << BigInt(32))
 
-  const v2 = emnapiCtx.napiValueFromJsValue(value)
-  makeSetValue('result', 0, 'v2', '*')
-// #endif
+    const v2 = emnapiCtx.napiValueFromJsValue(value)
+    makeSetValue('result', 0, 'v2', '*')
+  }
 
   return envObject.clearLastError()
 }

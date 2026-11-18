@@ -31,9 +31,9 @@ function sigToWasmTypes (sig: string): { parameters: string[]; results: string[]
     e: 'externref',
     p: 'i32',
   }
-// #if MEMORY64
-  typeNames.p = 'i64'
-// #endif
+  if (constexpr('MEMORY64')) {
+    typeNames.p = 'i64'
+  }
   const type = {
     parameters: [] as string[],
     results: sig[0] === 'v' ? [] : [typeNames[sig[0]]]
@@ -56,9 +56,9 @@ const wasmTypeCodes = (function () {
     d: 0x7c, // f64
     e: 0x6f, // externref
   }
-// #if MEMORY64
-  map.p = 0x7e
-// #endif
+  if (constexpr('MEMORY64')) {
+    map.p = 0x7e
+  }
   return map
 })()
 

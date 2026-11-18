@@ -11,12 +11,12 @@ function _z() {
 }
 (typeof addToLibrary === "function" ? addToLibrary : (...args) => mergeInto(LibraryManager.library, ...args))({
     $fortyTwo: "42",
+    $bar: "fortyTwo",
+    $bar__deps: ["$fortyTwo"],
     $x: x,
     $x__deps: ["$fortyTwo"],
     $foo: foo,
     $foo__deps: ["$fortyTwo"],
     z: _z,
-    z__deps: ["$foo"],
-    $bar: "fortyTwo",
-    $bar__deps: ["$fortyTwo"]
+    z__deps: ["$foo"]
 });

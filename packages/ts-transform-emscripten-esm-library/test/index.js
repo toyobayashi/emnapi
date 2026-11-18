@@ -47,8 +47,8 @@ test('internal', () => {
   testTransform('internal')
 })
 
-test('directives', () => {
-  testTransform('directives')
+test('conditional markers', () => {
+  testTransform('conditional-markers')
 })
 
 test('virtual modules', () => {

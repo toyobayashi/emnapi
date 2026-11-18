@@ -2,24 +2,22 @@
 
 import path from 'path'
 import fs from 'fs'
-import ts from 'typescript'
+import { ScriptTarget } from 'typescript/ast'
 import type { RollupOptions, RollupBuild, OutputOptions } from 'rollup'
 import { loadConfigFile } from 'rollup/loadConfigFile'
 import { pathToFileURL } from 'url'
+import { emitDeclarations } from './rollup-typescript.js'
 
 export async function build (workspace: string): Promise<void> {
-  const { compile } = await import('@tybys/tsapi')
   const { rollup } = await import('rollup')
 
-  compile(path.resolve(workspace, 'tsconfig.json'), {
-    optionsToExtend: {
-      target: ts.ScriptTarget.ES2021,
-      outDir: path.resolve(workspace, 'lib'),
-      emitDeclarationOnly: true,
-      declaration: true,
-      declarationMap: true,
-      declarationDir: path.resolve(workspace, 'lib/typings')
-    }
+  emitDeclarations(path.resolve(workspace, 'tsconfig.json'), {
+    target: ScriptTarget.ES2021,
+    outDir: path.resolve(workspace, 'lib'),
+    emitDeclarationOnly: true,
+    declaration: true,
+    declarationMap: true,
+    declarationDir: path.resolve(workspace, 'lib/typings')
   })
 
   const {
