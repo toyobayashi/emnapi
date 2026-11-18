@@ -2,6 +2,7 @@ import type {
   SourceFile,
   ExpressionStatement,
   CallExpression,
+  Identifier,
   StringLiteral,
   NumericLiteral,
   Expression,
@@ -18,6 +19,7 @@ import {
   addSyntheticTrailingComment,
   createTsCompat,
   getTypeChecker,
+  getSymbolAtLocation,
   resolveDeclaration,
   type NodeFactory,
   type TransformationContext,
@@ -39,6 +41,8 @@ function createSourceFile (program: Program, fileName: string, sourceText: strin
   if (typeof parse !== 'function') throw new Error('The TypeScript 7 compiler plugin did not provide a source file parser')
   return parse(fileName, sourceText, { scriptKind })
 }
+
+const parsedExpressionsByProgram = new WeakMap<Program, Map<string, Expression>>()
 
 export type CStyleBoolean = 0 | 1
 
@@ -94,6 +98,12 @@ function expandTo64 (factory: NodeFactory, defines: Record<string, any>, node: C
 }
 
 type Type = 'i8' | 'u8' | 'i16' | 'u16' | 'i32' | 'u32' | 'i64' | 'u64' | 'float' | 'double' | '*'
+const callsWithRemovedDeps = new Set([
+  'emnapiImplement',
+  'emnapiImplement2',
+  'emnapiImplementInternal',
+  'emnapiImplementHelper'
+])
 
 function getDataViewGetMethod (defines: Record<string, any>, type: Type): string {
   switch (type) {
@@ -130,8 +140,17 @@ function getDataViewSetMethod (defines: Record<string, any>, type: Type): string
 }
 
 function parseExpression (input: string, program: Program, factory?: NodeFactory): Expression {
-  const sourceFile = createSourceFile(program, '/emnapiExpression.ts', input, ts.ScriptKind.TS)
-  const expression = (sourceFile.statements[0] as ExpressionStatement).expression
+  let expressions = parsedExpressionsByProgram.get(program)
+  if (!expressions) {
+    expressions = new Map()
+    parsedExpressionsByProgram.set(program, expressions)
+  }
+  let expression = expressions.get(input)
+  if (!expression) {
+    const sourceFile = createSourceFile(program, '/emnapiExpression.ts', input, ts.ScriptKind.TS)
+    expression = (sourceFile.statements[0] as ExpressionStatement).expression
+    expressions.set(input, expression)
+  }
   return cloneNode(expression, factory)
 }
 
@@ -275,8 +294,11 @@ function updateBody<N extends FunctionLikeDeclaration> (factory: NodeFactory, no
 class Transform {
   ctx: TransformationContext
   defines: Record<string, any>
+  readonly typeChecker: TypeChecker
   insertWasmMemoryImport: boolean
   insertWasmTableImport: boolean
+  private readonly emscriptenMacroBySymbolId = new Map<number, boolean>()
+  private heapDataViewUseByNode = new WeakMap<Node, boolean>()
 
   readonly runtimeModuleSpecifier: string
   readonly parseToolsModuleSpecifier: string
@@ -289,6 +311,7 @@ class Transform {
     this.plugin = config?.plugin ?? false
 
     this.ctx = context
+    this.typeChecker = getTypeChecker(program)
     this.defines = config?.defines ?? {}
     this.visitor = this.visitor.bind(this)
     this.functionLikeDeclarationVisitor = this.functionLikeDeclarationVisitor.bind(this)
@@ -299,6 +322,27 @@ class Transform {
   resetSource (): void {
     this.insertWasmMemoryImport = false
     this.insertWasmTableImport = false
+    this.heapDataViewUseByNode = new WeakMap()
+  }
+
+  private usesHeapDataView (node: Node): boolean {
+    const cached = this.heapDataViewUseByNode.get(node)
+    if (cached !== undefined) return cached
+    if (ts.isIdentifier(node) && (node.text === 'HEAP_DATA_VIEW' || node.text === 'GET_HEAP_DATA_VIEW')) {
+      this.insertWasmMemoryImport = true
+      this.heapDataViewUseByNode.set(node, true)
+      return true
+    }
+    let usesHeapDataView = false
+    node.forEachChild(child => {
+      if (this.usesHeapDataView(child)) {
+        usesHeapDataView = true
+        return true
+      }
+      return undefined
+    })
+    this.heapDataViewUseByNode.set(node, usesHeapDataView)
+    return usesHeapDataView
   }
 
   createLazyEmscriptenRuntimeSymbol (name: string) {
@@ -399,26 +443,10 @@ class Transform {
   }
 
   injectHeapDataViewDeclaration (statements: NodeArray<Statement>): NodeArray<Statement> {
-    const isIncludeGetOrSet: (statement?: Node) => boolean = (statement) => {
-      if (!statement) return false
-      let includeGetOrSet = false
-      const statementVisitor: Visitor = (n) => {
-        if (ts.isIdentifier(n) && (n.text === 'HEAP_DATA_VIEW' || n.text === 'GET_HEAP_DATA_VIEW')) {
-          if (!this.insertWasmMemoryImport) {
-            this.insertWasmMemoryImport = true
-          }
-          includeGetOrSet = true
-        }
-        return ts.visitEachChild(n, statementVisitor, this.ctx)
-      }
-      ts.visitEachChild(statement, statementVisitor, this.ctx)
-      return includeGetOrSet
-    }
-
     const statementIndex = [] as number[]
     for (let i = 0; i < statements.length; ++i) {
       const statement = statements[i]
-      if (isIncludeGetOrSet(statement)) {
+      if (this.usesHeapDataView(statement)) {
         statementIndex.push(i)
       }
     }
@@ -436,7 +464,7 @@ class Transform {
 
       const injectVisitor: Visitor = (node) => {
         if (ts.isIfStatement(node)) {
-          if (!isIncludeGetOrSet(node.elseStatement)) {
+          if (!node.elseStatement || !this.usesHeapDataView(node.elseStatement)) {
             return this.ctx.factory.updateIfStatement(node, node.expression,
               ts.isBlock(node.thenStatement)
                 ? this.ctx.factory.updateBlock(node.thenStatement, this.injectHeapDataViewDeclaration(node.thenStatement.statements))
@@ -450,7 +478,7 @@ class Transform {
           }
         } else if (ts.isTryStatement(node)) {
           if (node.catchClause && !node.finallyBlock) {
-            if (!isIncludeGetOrSet(node.catchClause)) {
+            if (!this.usesHeapDataView(node.catchClause)) {
               return this.ctx.factory.updateTryStatement(node,
                 this.ctx.factory.updateBlock(node.tryBlock, this.injectHeapDataViewDeclaration(node.tryBlock.statements)),
                 node.catchClause,
@@ -458,7 +486,7 @@ class Transform {
               )
             }
           } else if (!node.catchClause && node.finallyBlock) {
-            if (!isIncludeGetOrSet(node.finallyBlock)) {
+            if (!this.usesHeapDataView(node.finallyBlock)) {
               return this.ctx.factory.updateTryStatement(node,
                 this.ctx.factory.updateBlock(node.tryBlock, this.injectHeapDataViewDeclaration(node.tryBlock.statements)),
                 node.catchClause,
@@ -466,7 +494,7 @@ class Transform {
               )
             }
           } else if (node.catchClause && node.finallyBlock) {
-            if (!(isIncludeGetOrSet(node.catchClause) && isIncludeGetOrSet(node.finallyBlock))) {
+            if (!(this.usesHeapDataView(node.catchClause) && this.usesHeapDataView(node.finallyBlock))) {
               return this.ctx.factory.updateTryStatement(node,
                 this.ctx.factory.updateBlock(node.tryBlock, this.injectHeapDataViewDeclaration(node.tryBlock.statements)),
                 node.catchClause
@@ -481,7 +509,7 @@ class Transform {
             throw new Error('unreachable')
           }
         } else if (ts.isSwitchStatement(node)) {
-          if (node.caseBlock.clauses.some((clause) => !isIncludeGetOrSet(clause))) {
+          if (node.caseBlock.clauses.some((clause) => !this.usesHeapDataView(clause))) {
             return this.ctx.factory.updateSwitchStatement(node, node.expression,
               this.ctx.factory.updateCaseBlock(node.caseBlock, node.caseBlock.clauses.map(clause => {
                 if (ts.isCaseClause(clause)) {
@@ -511,27 +539,29 @@ class Transform {
   }
 
   isEmscriptenMacro (node: Node): boolean {
-    const typeChecker = getTypeChecker(this.program)
+    let identifier: Identifier | undefined
     if (ts.isCallExpression(node) && ts.isIdentifier(node.expression)) {
-      const d = resolveDeclaration(typeChecker.getSymbolAtLocation(node.expression)?.declarations?.[0], this.program)
-      if (d && ts.isImportSpecifier(d)) {
-        const moduleSpecifier = (d.parent.parent.parent as any).moduleSpecifier
-        if (ts.isStringLiteral(moduleSpecifier) && moduleSpecifier.text === this.parseToolsModuleSpecifier) {
-          return true
-        }
+      identifier = node.expression
+    } else if (ts.isIdentifier(node)) {
+      const parent = node.parent
+      if (parent && !ts.isImportSpecifier(parent) && !ts.isImportClause(parent) && !ts.isImportEqualsDeclaration(parent) && !ts.isImportTypeNode(parent)) {
+        identifier = node
       }
     }
-    const parent = node.parent
-    if (ts.isIdentifier(node) && parent && !ts.isImportSpecifier(parent) && !ts.isImportClause(parent) && !ts.isImportEqualsDeclaration(parent) && !ts.isImportTypeNode(parent)) {
-      const d = resolveDeclaration(typeChecker.getSymbolAtLocation(node)?.declarations?.[0], this.program)
-      if (d && ts.isImportSpecifier(d)) {
-        const moduleSpecifier = (d.parent.parent.parent as any).moduleSpecifier
-        if (ts.isStringLiteral(moduleSpecifier) && moduleSpecifier.text === this.parseToolsModuleSpecifier) {
-          return true
-        }
-      }
-    }
-    return false
+    if (!identifier) return false
+
+    const symbol = getSymbolAtLocation(this.typeChecker, identifier)
+    if (!symbol) return false
+    const cached = this.emscriptenMacroBySymbolId.get(symbol.id)
+    if (cached !== undefined) return cached
+
+    const declaration = resolveDeclaration(symbol.declarations?.[0], this.program)
+    const moduleSpecifier = declaration && ts.isImportSpecifier(declaration)
+      ? (declaration.parent.parent.parent as any).moduleSpecifier
+      : undefined
+    const isEmscriptenMacro = Boolean(moduleSpecifier && ts.isStringLiteral(moduleSpecifier) && moduleSpecifier.text === this.parseToolsModuleSpecifier)
+    this.emscriptenMacroBySymbolId.set(symbol.id, isEmscriptenMacro)
+    return isEmscriptenMacro
   }
 
   visitor (node: Node): VisitResult<Node | undefined> {
@@ -568,13 +598,7 @@ class Transform {
           return this.expandGetHeapViewOrCopy(node)
         }
       }
-      const removeDeps = [
-        'emnapiImplement',
-        'emnapiImplement2',
-        'emnapiImplementInternal',
-        'emnapiImplementHelper'
-      ]
-      if (removeDeps.includes(functionName)) {
+      if (callsWithRemovedDeps.has(functionName)) {
         const arr = node.arguments.slice()
         if (arr.length > 3) {
           arr[3] = this.ctx.factory.createIdentifier('undefined')
@@ -664,7 +688,7 @@ class Transform {
           : (this.ctx.factory.createBinaryExpression(
               parseExpression(argv0.text, this.program, this.ctx.factory),
               this.ctx.factory.createToken(ts.SyntaxKind.PlusToken),
-              byteOffsetParameter(this.ctx.factory, this.defines, argv1, getTypeChecker(this.program), this.program)
+              byteOffsetParameter(this.ctx.factory, this.defines, argv1, this.typeChecker, this.program)
             )),
         this.ctx.factory.createTrue()
       ]
@@ -715,7 +739,7 @@ class Transform {
           : (this.ctx.factory.createBinaryExpression(
               parseExpression(argv0.text, this.program, this.ctx.factory),
               this.ctx.factory.createToken(ts.SyntaxKind.PlusToken),
-              byteOffsetParameter(this.ctx.factory, this.defines, argv1, getTypeChecker(this.program), this.program)
+              byteOffsetParameter(this.ctx.factory, this.defines, argv1, this.typeChecker, this.program)
             )),
         methodName === 'setBigInt64' || methodName === 'setBigUint64'
           ? (this.ctx.factory.createCallExpression(

@@ -125,10 +125,6 @@ function preserveLeadingStatementComments (original: Node, copied: Node): void {
   }
 }
 
-function hasMacroDoc (checker: TypeChecker, node: Node): boolean {
-  return Boolean(getSymbolAtLocation(checker, node)?.getJsDocTags(checker).some(info => info.name === JSDocTagType.INLINE || info.name === JSDocTagType.MACRO))
-}
-
 const enum JSDocTagType {
   INLINE = 'inline',
   MACRO = 'macro'
@@ -138,17 +134,26 @@ export interface TransformOptions {
   test?: string | RegExp | ((name: string) => boolean)
 }
 
+interface MacroCallInfo {
+  valueDeclaration: Declaration | undefined
+  type: JSDocTagType
+}
+
 class Transform {
   ctx: TransformationContext
   program: Program
   typeChecker: TypeChecker
   test?: string | RegExp | ((name: string) => boolean)
+  private readonly testRegex?: RegExp
+  private readonly macroCallInfo = new WeakMap<CallExpression, MacroCallInfo>()
+  private readonly macroDocBySymbolId = new Map<number, boolean>()
 
   constructor (program: Program, context: TransformationContext, typeChecker: TypeChecker, options?: TransformOptions) {
     this.program = program
     this.ctx = context
     this.typeChecker = typeChecker
     this.test = options?.test // ?? /^\$[_a-zA-Z0-9]+/
+    this.testRegex = typeof this.test === 'string' ? new RegExp(this.test) : undefined
     this.visitor = this.visitor.bind(this)
     this.removeImportExport = this.removeImportExport.bind(this)
     this.removeVisitor = this.removeVisitor.bind(this)
@@ -159,8 +164,18 @@ class Transform {
     return typeof this.test === 'function'
       ? this.test(text)
       : typeof this.test === 'string'
-        ? (new RegExp(this.test).test(text))
+        ? (this.testRegex!.lastIndex = 0, this.testRegex!.test(text))
         : this.test!.test(text)
+  }
+
+  hasMacroDoc (node: Node): boolean {
+    const symbol = getSymbolAtLocation(this.typeChecker, node)
+    if (!symbol) return false
+    const cached = this.macroDocBySymbolId.get(symbol.id)
+    if (cached !== undefined) return cached
+    const isMacro = symbol.getJsDocTags(this.typeChecker).some(info => info.name === JSDocTagType.INLINE || info.name === JSDocTagType.MACRO)
+    this.macroDocBySymbolId.set(symbol.id, isMacro)
+    return isMacro
   }
 
   isMacro (n: Node): boolean {
@@ -206,6 +221,10 @@ class Transform {
     const decl = cloneNode(valueDeclaration)
     const args = node.arguments.map(a => ts.visitNode(a, this.visitor) as Expression)
     const paramNames = valueDeclaration.parameters.map(p => p.name.getText())
+    const paramIndices = new Map<string, number>()
+    for (let i = 0; i < paramNames.length; i++) {
+      if (!paramIndices.has(paramNames[i])) paramIndices.set(paramNames[i], i)
+    }
     const macroBodyVisitor: Visitor = (nodeInMacro) => {
       const newNode = nodeInMacro
       let result: VisitResult<Node> = newNode
@@ -213,18 +232,26 @@ class Transform {
       if ((ts.isExpressionStatement(newNode) && ts.isCallExpression(newNode.expression)) || (ts.isReturnStatement(newNode) && newNode.expression && ts.isCallExpression(newNode.expression))) {
         const callExpressionExpression = (newNode.expression as CallExpression).expression
         if (ts.isIdentifier(callExpressionExpression)) {
-          const callArgs = (newNode.expression as CallExpression).arguments
-          const sym = resolveDeclaration(getSymbolAtLocation(checker, callExpressionExpression)?.valueDeclaration, this.program)
-          if (sym && paramNames.includes(callExpressionExpression.text)) {
-            const index = paramNames.indexOf(callExpressionExpression.text)
+          const index = paramIndices.get(callExpressionExpression.text)
+          const sym = index === undefined
+            ? undefined
+            : resolveDeclaration(getSymbolAtLocation(checker, callExpressionExpression)?.valueDeclaration, this.program)
+          if (sym && index !== undefined) {
+            const callArgs = (newNode.expression as CallExpression).arguments
             const arg = args[index]
             if ((ts.isArrowFunction(arg) || ts.isFunctionExpression(arg)) && ts.isBlock(arg.body)) {
               const names = arg.parameters.map(p => String((p.name as Identifier).text))
+              const callbackParamIndices = new Map<string, number>()
+              for (let i = 0; i < names.length; i++) {
+                if (!callbackParamIndices.has(names[i])) callbackParamIndices.set(names[i], i)
+              }
               const replaceIdentifierVisitor = (n: Node): Node => {
                 if (ts.isIdentifier(n)) {
-                  const sym = resolveDeclaration(getSymbolAtLocation(checker, n)?.valueDeclaration, this.program)
-                  if (sym && names.includes(n.text)) {
-                    const index = names.indexOf(n.text)
+                  const index = callbackParamIndices.get(n.text)
+                  const sym = index === undefined
+                    ? undefined
+                    : resolveDeclaration(getSymbolAtLocation(checker, n)?.valueDeclaration, this.program)
+                  if (sym && index !== undefined) {
                     return cloneNode(callArgs[index])
                   }
                 }
@@ -236,10 +263,12 @@ class Transform {
             }
           }
         }
-      } else if (ts.isIdentifier(newNode)/*  && !ts.isParameter(newNode.parent) */) {
-        const sym = resolveDeclaration(getSymbolAtLocation(checker, newNode)?.valueDeclaration, this.program)
-        if (sym && paramNames.includes(newNode.text)) {
-          const index = paramNames.indexOf(newNode.text)
+      } else if (ts.isIdentifier(newNode)) {
+        const index = paramIndices.get(newNode.text)
+        const sym = index === undefined
+          ? undefined
+          : resolveDeclaration(getSymbolAtLocation(checker, newNode)?.valueDeclaration, this.program)
+        if (sym && index !== undefined) {
           result = cloneNode(args[index])
         }
       }
@@ -316,6 +345,9 @@ class Transform {
   }
 
   getDeclarationIfMacroCall (node: CallExpression): { valueDeclaration: Declaration | undefined; type: JSDocTagType } {
+    const cached = this.macroCallInfo.get(node)
+    if (cached) return cached
+    let result: MacroCallInfo
     if (!this.test) {
       let t = JSDocTagType.MACRO
       if (((ts.isNonNullExpression(node.expression) && ts.isIdentifier(node.expression.expression)) || ts.isIdentifier(node.expression))) {
@@ -330,10 +362,13 @@ class Transform {
           return false
         }
         if (sym?.getJsDocTags(this.typeChecker).slice().reverse().some(someFn)) {
-          return { valueDeclaration: resolveDeclaration(sym.valueDeclaration, this.program), type: t }
+          result = { valueDeclaration: resolveDeclaration(sym.valueDeclaration, this.program), type: t }
+        } else {
+          result = { valueDeclaration: undefined, type: t }
         }
+      } else {
+        result = { valueDeclaration: undefined, type: t }
       }
-      return { valueDeclaration: undefined, type: t }
     } else {
       if (ts.isNonNullExpression(node.expression) &&
         ts.isIdentifier(node.expression.expression) &&
@@ -342,11 +377,16 @@ class Transform {
         const type = getTypeAtLocation(this.typeChecker, node.expression.expression)
         const sym = type.getSymbol()
         if (sym) {
-          return { valueDeclaration: resolveDeclaration(sym.valueDeclaration, this.program), type: JSDocTagType.MACRO }
+          result = { valueDeclaration: resolveDeclaration(sym.valueDeclaration, this.program), type: JSDocTagType.MACRO }
+        } else {
+          result = { valueDeclaration: undefined, type: JSDocTagType.MACRO }
         }
+      } else {
+        result = { valueDeclaration: undefined, type: JSDocTagType.MACRO }
       }
-      return { valueDeclaration: undefined, type: JSDocTagType.MACRO }
     }
+    this.macroCallInfo.set(node, result)
+    return result
   }
 
   visitor (n: Node): VisitResult<Node> {
@@ -407,10 +447,10 @@ class Transform {
         const n = decls[0]
         if (!this.test) {
           if (ts.isFunctionDeclaration(n)) {
-            return Boolean(n.name && hasMacroDoc(this.typeChecker, n.name))
+            return Boolean(n.name && this.hasMacroDoc(n.name))
           }
           if (ts.isArrowFunction(n) || ts.isFunctionExpression(n)) {
-            return Boolean(n.parent && ts.isVariableDeclaration(n.parent) && ts.isIdentifier(n.parent.name) && hasMacroDoc(this.typeChecker, n.parent.name))
+            return Boolean(n.parent && ts.isVariableDeclaration(n.parent) && ts.isIdentifier(n.parent.name) && this.hasMacroDoc(n.parent.name))
           }
         } else {
           if (ts.isFunctionDeclaration(n)) {
@@ -471,14 +511,13 @@ class Transform {
   }
 
   removeVisitor (n: Node): VisitResult<Node | undefined> {
-    const checker = this.typeChecker
     if (!this.test) {
-      if (ts.isFunctionDeclaration(n) && n.name && hasMacroDoc(checker, n.name)) {
+      if (ts.isFunctionDeclaration(n) && n.name && this.hasMacroDoc(n.name)) {
         return undefined
       }
       if (ts.isVariableStatement(n)) {
         const newDeclarations = n.declarationList.declarations.filter(
-          (d) => !(ts.isIdentifier(d.name) && hasMacroDoc(checker, d.name))
+          (d) => !(ts.isIdentifier(d.name) && this.hasMacroDoc(d.name))
         )
         if (newDeclarations.length > 0) {
           return this.ctx.factory.updateVariableStatement(n, n.modifiers, this.ctx.factory.updateVariableDeclarationList(n.declarationList, newDeclarations))
