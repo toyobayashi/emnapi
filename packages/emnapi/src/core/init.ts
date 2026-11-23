@@ -110,12 +110,12 @@ export var addonModule: IAddonModule = {
     const module = options.module
     const memory = options.memory || exports.memory
     const table = options.table || exports.__indirect_function_table
-    if (!(module instanceof WebAssembly.Module)) throw new TypeError('Invalid wasm module')
-    if (!(memory instanceof WebAssembly.Memory)) throw new TypeError('Invalid wasm memory')
-    if (!(table instanceof WebAssembly.Table)) throw new TypeError('Invalid wasm table')
+    if (!isWebAssemblyModule(module)) throw new TypeError('Invalid wasm module')
+    if (!isWebAssemblyMemory(memory)) throw new TypeError('Invalid wasm memory')
+    if (!isWebAssemblyTable(table)) throw new TypeError('Invalid wasm table')
     wasmModule = module
-    wasmMemory = memory
-    wasmTable = table
+    wasmMemory = memory as WebAssembly.Memory
+    wasmTable = table as WebAssembly.Table
     if (typeof exports.malloc !== 'function') throw new TypeError('malloc is not exported')
     if (typeof exports.free !== 'function') throw new TypeError('free is not exported')
     _malloc = exports.malloc as (size: number | bigint) => void_p

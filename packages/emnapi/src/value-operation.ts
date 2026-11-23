@@ -1,5 +1,6 @@
 import { emnapiCtx, emnapiEnv } from 'emnapi:shared'
 import { from64, makeSetValue } from 'emscripten:parse-tools'
+import { emnapiExternalMemory } from './memory'
 import { $CHECK_ENV_NOT_IN_GC, $CHECK_ARG, $PREAMBLE, $GET_RETURN_STATUS } from './macro'
 
 /** @__sig ippp */
@@ -161,7 +162,7 @@ export function napi_is_arraybuffer (env: napi_env, value: napi_value, result: P
   const h = emnapiCtx.jsValueFromNapiValue(value)!
   from64('result')
 
-  const r = h instanceof ArrayBuffer ? 1 : 0
+  const r = emnapiExternalMemory.isArrayBuffer(h) ? 1 : 0
   makeSetValue('result', 0, 'r', 'i8')
   return envObject.clearLastError()
 }
@@ -174,12 +175,7 @@ export function node_api_is_sharedarraybuffer (env: napi_env, value: napi_value,
   const h = emnapiCtx.jsValueFromNapiValue(value)!
   from64('result')
 
-  const r = (
-    (typeof SharedArrayBuffer === 'function' && h instanceof SharedArrayBuffer) ||
-    (Object.prototype.toString.call(h) === '[object SharedArrayBuffer]')
-  )
-    ? 1
-    : 0
+  const r = emnapiExternalMemory.isSharedArrayBuffer(h) ? 1 : 0
   makeSetValue('result', 0, 'r', 'i8')
   return envObject.clearLastError()
 }
@@ -272,17 +268,15 @@ export function napi_detach_arraybuffer (env: napi_env, arraybuffer: napi_value)
   const envObject: Env = $CHECK_ENV_NOT_IN_GC!(env)
   $CHECK_ARG!(envObject, arraybuffer)
   const value = emnapiCtx.jsValueFromNapiValue(arraybuffer)!
-  if (!(value instanceof ArrayBuffer)) {
-    if (typeof SharedArrayBuffer === 'function' && (value instanceof SharedArrayBuffer)) {
+  if (!emnapiExternalMemory.isArrayBuffer(value)) {
+    if (emnapiExternalMemory.isSharedArrayBuffer(value)) {
       return envObject.setLastError(napi_status.napi_detachable_arraybuffer_expected)
     }
     return envObject.setLastError(napi_status.napi_arraybuffer_expected)
   }
 
   try {
-    const MessageChannel = emnapiCtx.features.MessageChannel
-    const messageChannel = new MessageChannel!()
-    messageChannel.port1.postMessage(value, [value])
+    emnapiExternalMemory.detachArrayBuffer(value)
   } catch (_) {
     return envObject.setLastError(napi_status.napi_generic_failure)
   }
@@ -296,14 +290,9 @@ export function napi_is_detached_arraybuffer (env: napi_env, arraybuffer: napi_v
     $CHECK_ARG!(envObject, result)
     const h = emnapiCtx.jsValueFromNapiValue(arraybuffer)!
     from64('result')
-    if (h instanceof ArrayBuffer && h.byteLength === 0) {
-      try {
-        // eslint-disable-next-line no-new
-        new Uint8Array(h as ArrayBuffer)
-      } catch (_) {
-        makeSetValue('result', 0, '1', 'i8')
-        return $GET_RETURN_STATUS!(envObject)
-      }
+    if (emnapiExternalMemory.isArrayBuffer(h) && emnapiExternalMemory.isDetachedArrayBuffer(h)) {
+      makeSetValue('result', 0, '1', 'i8')
+      return $GET_RETURN_STATUS!(envObject)
     }
     makeSetValue('result', 0, '0', 'i8')
     return $GET_RETURN_STATUS!(envObject)

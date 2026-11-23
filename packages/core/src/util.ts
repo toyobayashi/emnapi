@@ -8,6 +8,83 @@ const _WebAssembly = typeof WebAssembly !== 'undefined'
     ? WXWebAssembly
     : undefined!
 
+const arrayBufferByteLengthGetter = typeof ArrayBuffer === 'function' && ArrayBuffer.prototype != null
+  ? Object.getOwnPropertyDescriptor(ArrayBuffer.prototype, 'byteLength')?.get
+  : undefined
+
+const wasmMemoryBufferGetter = typeof _WebAssembly === 'object' && _WebAssembly !== null &&
+  typeof _WebAssembly.Memory === 'function' && _WebAssembly.Memory.prototype != null
+  ? Object.getOwnPropertyDescriptor(_WebAssembly.Memory.prototype, 'buffer')?.get
+  : undefined
+
+const wasmTableLengthGetter = typeof _WebAssembly === 'object' && _WebAssembly !== null &&
+  typeof _WebAssembly.Table === 'function' && _WebAssembly.Table.prototype != null
+  ? Object.getOwnPropertyDescriptor(_WebAssembly.Table.prototype, 'length')?.get
+  : undefined
+
+export function isArrayBuffer (value: unknown): boolean {
+  if (typeof value !== 'object' || value === null) {
+    return false
+  }
+  if (arrayBufferByteLengthGetter !== undefined) {
+    try {
+      arrayBufferByteLengthGetter.call(value)
+      return true
+    } catch (_) {
+      return false
+    }
+  }
+  return typeof ArrayBuffer === 'function' && value instanceof ArrayBuffer
+}
+
+export function isWebAssemblyModule (value: unknown): boolean {
+  if (typeof value !== 'object' || value === null || typeof _WebAssembly !== 'object' || _WebAssembly === null) {
+    return false
+  }
+  if (typeof _WebAssembly.Module === 'function') {
+    if (typeof _WebAssembly.Module.imports === 'function') {
+      try {
+        _WebAssembly.Module.imports(value as WebAssembly.Module)
+        return true
+      } catch (_) {
+        return false
+      }
+    }
+    return value instanceof _WebAssembly.Module
+  }
+  return false
+}
+
+export function isWebAssemblyMemory (value: unknown): boolean {
+  if (typeof value !== 'object' || value === null || typeof _WebAssembly !== 'object' || _WebAssembly === null) {
+    return false
+  }
+  if (wasmMemoryBufferGetter !== undefined) {
+    try {
+      wasmMemoryBufferGetter.call(value)
+      return true
+    } catch (_) {
+      return false
+    }
+  }
+  return typeof _WebAssembly.Memory === 'function' && value instanceof _WebAssembly.Memory
+}
+
+export function isWebAssemblyTable (value: unknown): boolean {
+  if (typeof value !== 'object' || value === null || typeof _WebAssembly !== 'object' || _WebAssembly === null) {
+    return false
+  }
+  if (wasmTableLengthGetter !== undefined) {
+    try {
+      wasmTableLengthGetter.call(value)
+      return true
+    } catch (_) {
+      return false
+    }
+  }
+  return typeof _WebAssembly.Table === 'function' && value instanceof _WebAssembly.Table
+}
+
 export { _WebAssembly }
 
 function validateImports (imports: unknown): imports is object {
@@ -34,14 +111,14 @@ export function load (wasmInput: MaybePromise<InputType>, imports?: WebAssembly.
   } catch (_) {}
 
   // BufferSource
-  if (wasmInput instanceof ArrayBuffer || ArrayBuffer.isView(wasmInput)) {
+  if (isArrayBuffer(wasmInput) || ArrayBuffer.isView(wasmInput)) {
     return _WebAssembly.instantiate(wasmInput as BufferSource, imports)
   }
 
   // WebAssembly.Module
-  if (wasmInput instanceof _WebAssembly!.Module) {
-    return _WebAssembly.instantiate(wasmInput, imports).then((instance) => {
-      return { instance, module: wasmInput }
+  if (isWebAssemblyModule(wasmInput)) {
+    return _WebAssembly.instantiate(wasmInput as WebAssembly.Module, imports).then((instance) => {
+      return { instance, module: wasmInput as WebAssembly.Module }
     })
   }
 
@@ -84,10 +161,10 @@ export function loadSync (wasmInput: InputType, imports?: WebAssembly.Imports): 
 
   let module
 
-  if ((wasmInput instanceof ArrayBuffer) || ArrayBuffer.isView(wasmInput)) {
+  if (isArrayBuffer(wasmInput) || ArrayBuffer.isView(wasmInput)) {
     module = new _WebAssembly.Module(wasmInput as BufferSource)
-  } else if (wasmInput instanceof WebAssembly.Module) {
-    module = wasmInput
+  } else if (isWebAssemblyModule(wasmInput)) {
+    module = wasmInput as WebAssembly.Module
   } else {
     throw new TypeError('Invalid wasm source')
   }

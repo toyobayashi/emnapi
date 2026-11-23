@@ -47,4 +47,46 @@ module.exports = promise.then(test_typedarray => {
   console.log(`@emnapi/runtime: v${major}.${minor}.${patch}`)
 
   assert.strictEqual(test_typedarray.TestUint64(), 10823190267204339845n)
+
+  {
+    const ab = test_typedarray.CreateArrayBufferCopy()
+    assert.ok(ab instanceof ArrayBuffer)
+    assert.strictEqual(ab.byteLength, 4)
+    assert.deepStrictEqual([...new Uint8Array(ab)], [10, 20, 30, 40])
+  }
+
+  {
+    const [abNull, abNonNull] = test_typedarray.CreateArrayBufferCopyZero()
+    for (const ab of [abNull, abNonNull]) {
+      assert.ok(ab instanceof ArrayBuffer)
+      assert.strictEqual(ab.byteLength, 0)
+      assert.strictEqual(new Uint8Array(ab).length, 0)
+    }
+  }
+
+  assert.strictEqual(test_typedarray.CreateArrayBufferCopyInvalidArgs(), true)
+  assert.throws(() => test_typedarray.CreateArrayBufferCopyOutOfRange(), RangeError)
+
+  // Regression: copy from upper-half (> 2 GiB) wasm32 memory and, where
+  // supported (without Emscripten SAFE_HEAP's 32-bit sbrk overflow at 4 GiB),
+  // from a range ending exactly at byte 4294967296 (0x100000000).
+  if (process.env.EMNAPI_TEST_4GB && !process.env.MEMORY64 && promise.Module && promise.Module.wasmMemory) {
+    const mem = promise.Module.wasmMemory
+    const FOUR_GIB = 4294967296
+    const canTestExact4GiB = Boolean(process.env.EMNAPI_TEST_WASI || process.env.NODE_ENV === 'production')
+    if (canTestExact4GiB && mem.buffer.byteLength < FOUR_GIB) {
+      try {
+        if (promise.Module.growMemory) {
+          promise.Module.growMemory(FOUR_GIB)
+        } else {
+          mem.grow((FOUR_GIB - mem.buffer.byteLength) / 65536)
+        }
+      } catch (_) {}
+    }
+    const start = mem.buffer.byteLength - 4
+    new Uint8Array(mem.buffer, start, 4).set([0x11, 0x22, 0x33, 0x44])
+    const ab = test_typedarray.CreateArrayBufferCopyAt(start, 4)
+    assert.strictEqual(ab.byteLength, 4)
+    assert.deepStrictEqual([...new Uint8Array(ab)], [0x11, 0x22, 0x33, 0x44])
+  }
 })

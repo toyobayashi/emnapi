@@ -87,3 +87,4 @@ assert.deepStrictEqual(order, [0, 1, 3, 4])
 console.log(`ok - CJS entry exposes ${esmKeys.length} mutable named exports`)
 
 await import('./finalizer-scheduler.js')
+await import('./context-lifecycle.js')

@@ -32,3 +32,7 @@ declare type ThreadManagerOptionsMain = import('../../../wasi-threads/dist/types
 declare const ThreadManager: typeof import('../../../wasi-threads/dist/types/index').ThreadManager
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 declare type ThreadManager = import('../../../wasi-threads/dist/types/index').ThreadManager
+
+declare function isWebAssemblyModule (value: unknown): boolean
+declare function isWebAssemblyMemory (value: unknown): boolean
+declare function isWebAssemblyTable (value: unknown): boolean

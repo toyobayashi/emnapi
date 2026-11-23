@@ -67,6 +67,12 @@ napi_status emnapi_create_memory_view(napi_env env,
                                       void* finalize_hint,
                                       napi_value* result);
 
+EMNAPI_EXTERN
+napi_status emnapi_create_arraybuffer_copy(napi_env env,
+                                           const void* data,
+                                           size_t byte_length,
+                                           napi_value* result);
+
 
 EMNAPI_EXTERN
 napi_status emnapi_sync_memory(napi_env env,

@@ -58,6 +58,7 @@ export const emnapiExternalMemory: {
     arrayBuffer: {
       byteLength: (this: any) => number
       maxByteLength: ((this: any) => number) | undefined
+      transfer: ((this: any, newLength?: number) => ArrayBuffer) | undefined
     }
     sharedArrayBuffer: {
       byteLength: (this: any) => number
@@ -71,8 +72,10 @@ export const emnapiExternalMemory: {
   }
   init: () => void
   getHEAPU8: () => Uint8Array
+  isArrayBuffer: (value: any) => value is ArrayBuffer
   isSharedArrayBuffer: (value: any) => value is SharedArrayBuffer
   isDetachedArrayBuffer: (arrayBuffer: ArrayBufferLike) => boolean
+  detachArrayBuffer: (arrayBuffer: ArrayBuffer, useTransfer?: boolean) => void
   bufferByteLength: (buffer: ArrayBufferLike) => number
   bufferMaxByteLength: (buffer: ArrayBufferLike) => number | undefined
   viewBuffer: (view: ArrayBufferView) => ArrayBufferLike
@@ -109,6 +112,8 @@ export const emnapiExternalMemory: {
     emnapiExternalMemory.cachedMemoryBuffer = undefined
     emnapiExternalMemory.cachedHEAPU8 = undefined
 
+    const arrayBufferTransfer = Object.getOwnPropertyDescriptor(ArrayBuffer.prototype, 'transfer')?.value
+
     const sharedArrayBufferByteLength = typeof SharedArrayBuffer === 'function'
       ? Object.getOwnPropertyDescriptor(SharedArrayBuffer.prototype, 'byteLength')?.get
       : undefined
@@ -139,7 +144,9 @@ export const emnapiExternalMemory: {
       arrayBuffer: {
         byteLength: Object.getOwnPropertyDescriptor(ArrayBuffer.prototype, 'byteLength')!.get!,
         // undefined on engines without resizable ArrayBuffers
-        maxByteLength: Object.getOwnPropertyDescriptor(ArrayBuffer.prototype, 'maxByteLength')?.get
+        maxByteLength: Object.getOwnPropertyDescriptor(ArrayBuffer.prototype, 'maxByteLength')?.get,
+        // undefined on engines without ES2024 ArrayBuffer.prototype.transfer
+        transfer: typeof arrayBufferTransfer === 'function' ? arrayBufferTransfer : undefined
       },
       // a SharedArrayBuffer polyfill may lack the byteLength accessor: degrade
       // to the hidden-global classification path instead of throwing here
@@ -177,6 +184,20 @@ export const emnapiExternalMemory: {
     return emnapiExternalMemory.cachedHEAPU8!
   },
 
+  isArrayBuffer: function (value: any): value is ArrayBuffer {
+    if (typeof value !== 'object' || value === null) return false
+    // the intrinsic byteLength getter reads the internal slot: it accepts
+    // ArrayBuffer instances from any realm (including detached ones) and
+    // throws for SharedArrayBuffer, proxies, or anything else, without
+    // consulting user-controllable properties
+    try {
+      emnapiExternalMemory.intrinsics.arrayBuffer.byteLength.call(value)
+      return true
+    } catch (_) {
+      return false
+    }
+  },
+
   isSharedArrayBuffer (value: any): value is SharedArrayBuffer {
     const sharedArrayBuffer = emnapiExternalMemory.intrinsics.sharedArrayBuffer
     if (sharedArrayBuffer !== undefined) {
@@ -193,14 +214,19 @@ export const emnapiExternalMemory: {
     }
     // hidden-global environment (see #143): the SharedArrayBuffer global was
     // absent at init time, but the engine can still hand out genuine SABs
-    // (e.g. a shared WebAssembly.Memory buffer). A genuine ArrayBuffer
-    // answers the intrinsic byteLength probe, settling the common case
-    // without the (spoofable, user-JS-running) toString tag read below.
+    // (e.g. a shared WebAssembly.Memory buffer). Reject views and genuine
+    // ArrayBuffers via internal-slot checks first so the (spoofable,
+    // user-JS-running) toString tag read below never runs on them.
+    if (ArrayBuffer.isView(value)) return false
     try {
       emnapiExternalMemory.intrinsics.arrayBuffer.byteLength.call(value)
       return false
     } catch (_) {}
-    return Object.prototype.toString.call(value) === '[object SharedArrayBuffer]'
+    try {
+      return Object.prototype.toString.call(value) === '[object SharedArrayBuffer]'
+    } catch (_) {
+      return false
+    }
   },
 
   isDetachedArrayBuffer: function (arrayBuffer: ArrayBufferLike): boolean {
@@ -213,6 +239,56 @@ export const emnapiExternalMemory: {
       }
     }
     return false
+  },
+
+  detachArrayBuffer: function (arrayBuffer: ArrayBuffer, useTransfer?: boolean): void {
+    let detachErr: unknown
+    if (useTransfer) {
+      const transfer = emnapiExternalMemory.intrinsics.arrayBuffer.transfer
+      if (transfer !== undefined) {
+        try {
+          transfer.call(arrayBuffer, 0)
+        } catch (err) {
+          detachErr = err
+        }
+        if (emnapiExternalMemory.isDetachedArrayBuffer(arrayBuffer)) {
+          return
+        }
+      }
+    }
+    let cloneErr: unknown
+    if (typeof structuredClone === 'function') {
+      try {
+        structuredClone(null, { transfer: [arrayBuffer] })
+      } catch (err) {
+        cloneErr = err
+      }
+      if (emnapiExternalMemory.isDetachedArrayBuffer(arrayBuffer)) {
+        return
+      }
+    }
+    const MessageChannel = emnapiCtx.features.MessageChannel
+    if (!MessageChannel) {
+      throw cloneErr ?? detachErr ?? new Error('MessageChannel is not supported in this environment')
+    }
+    const messageChannel = new MessageChannel()
+    let postErr: unknown
+    try {
+      messageChannel.port1.postMessage(null, [arrayBuffer])
+    } catch (err) {
+      postErr = err
+    } finally {
+      try {
+        messageChannel.port1.close?.()
+      } catch (_) {}
+      try {
+        messageChannel.port2.close?.()
+      } catch (_) {}
+    }
+    if (emnapiExternalMemory.isDetachedArrayBuffer(arrayBuffer)) {
+      return
+    }
+    throw postErr ?? cloneErr ?? detachErr ?? new Error('Failed to detach ArrayBuffer')
   },
 
   bufferByteLength: function (buffer: ArrayBufferLike): number {
