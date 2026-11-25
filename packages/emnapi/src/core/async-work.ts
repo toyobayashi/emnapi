@@ -91,6 +91,7 @@ var emnapiAWMT = {
         const type = __emnapi__.type
         const payload = __emnapi__.payload
         if (type === 'async-work-complete') {
+          if (emnapiCtx?.isAborted?.()) return
           emnapiAWMT.callComplete(payload.work, napi_status.napi_ok)
         }
       }
@@ -323,12 +324,19 @@ var emnapiAWMT = {
     if (Atomics.compareExchange(new Int32Array(emnapiAWMT.ensureBufferFor(work + emnapiAWMT.offset.status + 4), work + emnapiAWMT.offset.status, 1), 0, AsyncWorkStatus.Pending, AsyncWorkStatus.Cancelled) !== AsyncWorkStatus.Pending) {
       return napi_status.napi_generic_failure
     }
-    emnapiCtx.features.setImmediate(() => {
+    const runComplete = (): void => {
+      if (emnapiCtx?.isAborted?.()) return
       emnapiAWMT.callComplete(work, napi_status.napi_cancelled)
-    })
+    }
+    if (typeof emnapiCtx.scheduleImmediate === 'function') {
+      emnapiCtx.scheduleImmediate(runComplete)
+    } else {
+      emnapiCtx.features.setImmediate(runComplete)
+    }
     return napi_status.napi_ok
   },
   callComplete: function (work: number, status: napi_status): void {
+    if (emnapiCtx?.isAborted?.()) return
     _emnapi_runtime_keepalive_pop()
     emnapiCtx.decreaseWaitingRequestCounter()
     const complete = emnapiAWMT.getComplete(work)

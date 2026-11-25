@@ -1,6 +1,8 @@
+import type { Context } from './Context'
 import type { Env } from './env'
 
 export class Finalizer {
+  private _ctx: Context
   private _makeDynCall_vppp: (cb: Ptr) => (a: Ptr, b: Ptr, c: Ptr) => void
 
   public constructor (
@@ -9,12 +11,14 @@ export class Finalizer {
     private _finalizeData: void_p = 0,
     private _finalizeHint: void_p = 0
   ) {
+    this._ctx = envObject.ctx
     this._makeDynCall_vppp = envObject.bridge.makeDynCall_vppp
   }
 
   public copy (): Finalizer {
     const newFina: Finalizer = Object.create(Finalizer.prototype)
     newFina.envObject = this.envObject
+    newFina._ctx = this._ctx
     newFina._makeDynCall_vppp = this._makeDynCall_vppp
     newFina._finalizeCallback = this._finalizeCallback
     newFina._finalizeData = this._finalizeData
@@ -27,6 +31,7 @@ export class Finalizer {
     target._finalizeData = this._finalizeData
     target._finalizeHint = this._finalizeHint
     target.envObject = this.envObject
+    target._ctx = this._ctx
     target._makeDynCall_vppp = this._makeDynCall_vppp
 
     this._finalizeCallback = 0
@@ -56,6 +61,7 @@ export class Finalizer {
     this.resetFinalizer()
 
     if (!finalize_callback) return
+    if (this._ctx?.isAborted()) return
 
     const fini = Number(finalize_callback)
     if (!this.envObject) {
@@ -67,6 +73,7 @@ export class Finalizer {
 
   public dispose (): void {
     this.envObject = undefined!
+    this._ctx = undefined!
     this._makeDynCall_vppp = undefined!
   }
 }

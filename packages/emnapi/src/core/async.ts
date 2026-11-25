@@ -1,4 +1,4 @@
-import { addonModule } from 'emnapi:shared'
+import { addonModule, emnapiCtx } from 'emnapi:shared'
 import { ENVIRONMENT_IS_NODE, wasmMemory, ENVIRONMENT_IS_PTHREAD, PThread } from 'emscripten:runtime'
 import { POINTER_SIZE, from64, makeDynCall, makeGetValue, to64 } from 'emscripten:parse-tools'
 import { _emnapi_set_immediate, _emnapi_next_tick } from '../util'
@@ -82,9 +82,11 @@ uvThreadpoolReady.ready = false
 /** @__sig vppi */
 export function _emnapi_after_uvthreadpool_ready (callback: number, q: number, type: number): void {
   if (uvThreadpoolReady.ready) {
+    if (emnapiCtx?.isAborted?.()) return
     makeDynCall('vpi', 'callback')(to64('q'), type)
   } else {
     uvThreadpoolReady.then(() => {
+      if (emnapiCtx?.isAborted?.()) return
       makeDynCall('vpi', 'callback')(to64('q'), type)
     })
   }

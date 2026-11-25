@@ -31,6 +31,7 @@ export function _node_buffer_new (
     const call = makeDynCall('vpp', 'callback')
     const persistent = emnapiCtx.isolate.createReference(buffer)
     persistent.setWeak({ call, data, hint }, (record) => {
+      if (emnapiCtx?.isAborted?.()) return
       record.call(record.data, record.hint)
     })
     return handle

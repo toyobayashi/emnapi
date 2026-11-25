@@ -92,7 +92,12 @@ export const emnapiExternalMemory: {
   getViewPointer: <T extends ArrayBufferView>(view: T, shouldCopy: boolean) => ViewPointer<T>
   copyBytesFrom: (arrayBuffer: ArrayBufferLike, byteOffset: number) => number
 } = {
-  registry: typeof FinalizationRegistry === 'function' ? new FinalizationRegistry(function (_pointer) { _free(to64('_pointer') as number) }) : undefined,
+  registry: typeof FinalizationRegistry === 'function'
+    ? new FinalizationRegistry(function (_pointer) {
+      if (emnapiCtx?.isAborted?.()) return
+      _free(to64('_pointer') as number)
+    })
+    : undefined,
   table: new WeakMap(),
   backingStoreTable: new Map(),
   wasmMemoryViewTable: new WeakMap(),
@@ -105,7 +110,12 @@ export const emnapiExternalMemory: {
   intrinsics: undefined!,
 
   init: function () {
-    emnapiExternalMemory.registry = typeof FinalizationRegistry === 'function' ? new FinalizationRegistry(function (_pointer) { _free(to64('_pointer') as number) }) : undefined
+    emnapiExternalMemory.registry = typeof FinalizationRegistry === 'function'
+      ? new FinalizationRegistry(function (_pointer) {
+        if (emnapiCtx?.isAborted?.()) return
+        _free(to64('_pointer') as number)
+      })
+      : undefined
     emnapiExternalMemory.table = new WeakMap()
     emnapiExternalMemory.backingStoreTable = new Map()
     emnapiExternalMemory.wasmMemoryViewTable = new WeakMap()
@@ -589,6 +599,7 @@ export interface ExternalSABInfo {
  */
 
 /**
+ * @__deps $emnapiCtx
  * @__postset
  * ```
  * emnapiExternalSAB.init();
@@ -609,6 +620,7 @@ export const emnapiExternalSAB: {
     emnapiExternalSAB.handleTable = new WeakMap()
     emnapiExternalSAB.registry = typeof FinalizationRegistry === 'function'
       ? new FinalizationRegistry(function (metaPtr: number) {
+        if (emnapiCtx?.isAborted?.()) return
         emnapiExternalSAB.release(metaPtr)
       })
       : undefined

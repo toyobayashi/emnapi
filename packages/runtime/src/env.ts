@@ -105,9 +105,15 @@ export abstract class Env extends Disposable {
 
   public callIntoModule<T> (fn: (env: Env) => T, handleException?: (envObject: Env, value: any) => void): T
   public callIntoModule<T> (fn: (env: Env) => T, handleException = handleThrow): T {
+    if (this.ctx.isAborted()) {
+      throw new Error('Context has been aborted')
+    }
     const openHandleScopesBefore = this.openHandleScopes
     this.clearLastError()
     const r = fn(this)
+    if (this.ctx.isAborted()) {
+      return r
+    }
     if (openHandleScopesBefore !== this.openHandleScopes) {
       this.bridge.abort('open_handle_scopes != open_handle_scopes_before')
     }
@@ -123,6 +129,7 @@ export abstract class Env extends Disposable {
   public abstract callFinalizer (cb: napi_finalize, data: void_p, hint: void_p): void
 
   public invokeFinalizerFromGC (finalizer: RefTracker): void {
+    if (this.ctx.isAborted()) return
     if (this.moduleApiVersion !== NAPI_VERSION_EXPERIMENTAL) {
       this.enqueueFinalizer(finalizer)
     } else {
@@ -161,12 +168,15 @@ export abstract class Env extends Disposable {
 
   /** @virtual */
   public deleteMe (): void {
+    if (this.ctx.isAborted()) return
     RefTracker.finalizeAll(this.finalizing_reflist)
+    if (this.ctx.isAborted()) return
     RefTracker.finalizeAll(this.reflist)
 
     this.lastException.reset()
     this.store.dealloc(this.id)
 
+    if (this.ctx.isAborted()) return
     this.bridge.deleteEnv(this.address)
   }
 
@@ -223,8 +233,10 @@ export class NodeEnv extends Env {
   }
 
   public override deleteMe (): void {
+    if (this.ctx.isAborted()) return
     this.destructing = true
     this.drainFinalizerQueue()
+    if (this.ctx.isAborted()) return
     super.deleteMe()
   }
 
@@ -294,10 +306,18 @@ export class NodeEnv extends Env {
   }
 
   public override enqueueFinalizer (finalizer: RefTracker): void {
+    if (this.ctx.isAborted()) return
     super.enqueueFinalizer(finalizer)
     if (!this.finalizationScheduled && !this.destructing) {
+      let done = false
+      let cancelPending: (() => void) | undefined
       const drain = (): void => {
+        if (done) return
+        done = true
+        cancelPending?.()
+        cancelPending = undefined
         this.finalizationScheduled = false
+        if (this.ctx.isAborted()) return
         this.unref()
         this.drainFinalizerQueue()
       }
@@ -314,14 +334,17 @@ export class NodeEnv extends Env {
       }
       // Mark as scheduled only after scheduling succeeds, so a failed schedule
       // leaves nothing to roll back. Safe because drain always runs asynchronously.
+      cancelPending = this.ctx.registerPendingTask(drain)
       this.finalizationScheduled = true
       this.ref()
     }
   }
 
   public drainFinalizerQueue (): void {
+    if (this.ctx.isAborted()) return
     for (const refTracker of this.pendingFinalizers) {
       this.pendingFinalizers.delete(refTracker)
+      if (this.ctx.isAborted()) return
       refTracker.finalize()
     }
   }

@@ -105,6 +105,7 @@ export class ThreadManager {
   public unusedWorkers: WorkerLike[] = []
   public pthreads: Record<number, WorkerLike> = Object.create(null)
   public get nextWorkerID (): number { return nextWorkerID }
+  public get fatalError (): Error | undefined { return this._fatalError }
 
   public wasmModule: WebAssembly.Module | null = null
   public wasmMemory: WebAssembly.Memory | null = null
@@ -452,7 +453,7 @@ export class ThreadManager {
     }
   }
 
-  public terminateWorker (worker: WorkerLike): void {
+  public terminateWorker (worker: WorkerLike): Promise<number | void> {
     const tid = worker.__emnapi_tid
 
     this.expectedTerminations.add(worker)
@@ -463,7 +464,6 @@ export class ThreadManager {
     const index = this.unusedWorkers.indexOf(worker)
     if (index !== -1) this.unusedWorkers.splice(index, 1)
     this.loadRejects.delete(worker)
-    worker.terminate()
     this.messageEvents.get(worker)?.clear()
     this.messageEvents.delete(worker);
     (worker as Worker).onmessage = (e: any) => {
@@ -476,6 +476,7 @@ export class ThreadManager {
         err('received "' + type + '" command from terminated worker: ' + tid)
       }
     }
+    return Promise.resolve(worker.terminate())
   }
 
   public terminateAllThreads (): void {

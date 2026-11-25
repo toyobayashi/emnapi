@@ -102,6 +102,7 @@ export var emnapiAWST = {
   },
 
   callComplete: function (work: AsyncWork, status: napi_status): void {
+    if (emnapiCtx?.isAborted?.()) return
     const complete = work.complete
     const env = work.env
     const data = work.data
@@ -147,11 +148,14 @@ export var emnapiAWST = {
       const execute = work.execute
       work.status = 2
       emnapiCtx.features.setImmediate(() => {
+        if (emnapiCtx?.isAborted?.()) return
         makeDynCall('vpp', 'execute')(env, data)
         emnapiAWST.queued.delete(id)
         work.status = 3
 
+        if (emnapiCtx?.isAborted?.()) return
         emnapiCtx.features.setImmediate(() => {
+          if (emnapiCtx?.isAborted?.()) return
           emnapiAWST.callComplete(work, napi_status.napi_ok)
         })
 
@@ -181,6 +185,7 @@ export var emnapiAWST = {
         }
 
         emnapiCtx.features.setImmediate(() => {
+          if (emnapiCtx?.isAborted?.()) return
           emnapiAWST.callComplete(work, napi_status.napi_cancelled)
         })
 
