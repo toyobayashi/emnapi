@@ -160,7 +160,7 @@ async function buildNonEmscriptenMain (tsconfigPath, outputDir) {
             }
           })
           const parsedCode = compiler.parseCode(code)
-          return `import { _WebAssembly as WebAssembly } from '@/util'
+          return `import { _WebAssembly as WebAssembly, isWebAssemblyModule, isWebAssemblyMemory, isWebAssemblyTable } from '@/util'
 import { ThreadManager } from '@emnapi/wasi-threads'
 
 export function createAddonModule (options) {

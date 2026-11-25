@@ -101,7 +101,48 @@ static napi_value copyBuffer(napi_env env, napi_callback_info info) {
   napi_value theBuffer;
   NODE_API_CALL(env, napi_create_buffer_copy(
       env, theTextSize, theText, NULL, &theBuffer));
+#ifdef __wasm__
+  void* address = (void*)1;
+  bool runtime_allocated = true;
+  NODE_API_CALL(env, emnapi_get_memory_address(
+      env, theBuffer, &address, NULL, &runtime_allocated));
+  NODE_API_ASSERT(env, address == NULL && !runtime_allocated,
+      "napi_create_buffer_copy with NULL result_data must not allocate a wasm mirror");
+#endif
   return theBuffer;
+}
+
+static napi_value copyBufferWithResultData(napi_env env, napi_callback_info info) {
+  napi_value theBuffer;
+  void* resultData = NULL;
+  NODE_API_CALL(env, napi_create_buffer_copy(
+      env, theTextSize, theText, &resultData, &theBuffer));
+  NODE_API_ASSERT(env, resultData != NULL,
+      "napi_create_buffer_copy must populate result_data");
+  NODE_API_ASSERT(env, strcmp((const char*)resultData, theText) == 0,
+      "napi_create_buffer_copy result_data must immediately contain copied bytes");
+  ((char*)resultData)[0] = 'X';
+#ifdef __wasm__
+  NODE_API_CALL(env, emnapi_sync_memory(
+      env, false, &theBuffer, 0, NAPI_AUTO_LENGTH));
+#endif
+  return theBuffer;
+}
+
+static napi_value copyBufferEdgeCases(napi_env env, napi_callback_info info) {
+  napi_value emptyBuffer;
+  void* resultData = (void*)1;
+  NODE_API_CALL(env, napi_create_buffer_copy(
+      env, 0, NULL, &resultData, &emptyBuffer));
+
+#ifdef __wasm__
+  napi_value unused = NULL;
+  napi_status status = napi_create_buffer_copy(env, 4, NULL, NULL, &unused);
+  NODE_API_ASSERT(env, status == napi_invalid_arg,
+      "napi_create_buffer_copy with NULL data and non-zero length must fail with napi_invalid_arg");
+#endif
+
+  return emptyBuffer;
 }
 
 static napi_value bufferHasInstance(napi_env env, napi_callback_info info) {
@@ -354,6 +395,21 @@ static napi_value syncMemory(napi_env env, napi_callback_info info) {
       length < 0 ? NAPI_AUTO_LENGTH : (size_t)length));
   return args[1];
 }
+
+static napi_value copyBufferAt(napi_env env, napi_callback_info info) {
+  size_t argc = 2;
+  napi_value args[2];
+  NODE_API_CALL(env, napi_get_cb_info(env, info, &argc, args, NULL, NULL));
+  NODE_API_ASSERT(env, argc == 2, "Wrong number of arguments");
+  double offset_d = 0;
+  double length_d = 0;
+  NODE_API_CALL(env, napi_get_value_double(env, args[0], &offset_d));
+  NODE_API_CALL(env, napi_get_value_double(env, args[1], &length_d));
+  napi_value buf = NULL;
+  NODE_API_CALL(env, napi_create_buffer_copy(
+      env, (size_t)(uint64_t)length_d, (const void*)(uintptr_t)(uint64_t)offset_d, NULL, &buf));
+  return buf;
+}
 #endif
 
 static napi_value bufferFromArrayBuffer(napi_env env,
@@ -395,6 +451,8 @@ static napi_value Init(napi_env env, napi_value exports) {
     DECLARE_NODE_API_PROPERTY("newExternalBuffer", newExternalBuffer),
     DECLARE_NODE_API_PROPERTY("getDeleterCallCount", getDeleterCallCount),
     DECLARE_NODE_API_PROPERTY("copyBuffer", copyBuffer),
+    DECLARE_NODE_API_PROPERTY("copyBufferWithResultData", copyBufferWithResultData),
+    DECLARE_NODE_API_PROPERTY("copyBufferEdgeCases", copyBufferEdgeCases),
     DECLARE_NODE_API_PROPERTY("bufferHasInstance", bufferHasInstance),
     DECLARE_NODE_API_PROPERTY("bufferInfo", bufferInfo),
     DECLARE_NODE_API_PROPERTY("staticBuffer", staticBuffer),
@@ -407,6 +465,7 @@ static napi_value Init(napi_env env, napi_value exports) {
     DECLARE_NODE_API_PROPERTY("bufferFromArrayBuffer", bufferFromArrayBuffer),
 #ifdef __wasm__
     DECLARE_NODE_API_PROPERTY("syncMemory", syncMemory),
+    DECLARE_NODE_API_PROPERTY("copyBufferAt", copyBufferAt),
 #endif
   };
 

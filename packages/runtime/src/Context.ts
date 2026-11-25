@@ -193,12 +193,18 @@ class NodejsWaitingRequestCounter {
 }
 
 export interface ContextOptions extends IsolateOptions {
+  /**
+   * Whether to automatically destroy the context on the Node.js `beforeExit` event.
+   * @defaultValue true
+   */
+  autoDestroy?: boolean
 }
 
 export class Context {
   private _isStopping = false
   private _canCallIntoJs = true
   private _suppressDestroy = false
+  private _beforeExitListener?: () => void
 
   private envStore = new ArrayStore<Env>()
   /** @internal */
@@ -213,13 +219,30 @@ export class Context {
     this.isolate = new Isolate(options)
     this.features = this.isolate.features
     this.cleanupQueue = new CleanupQueue()
-    if (typeof process === 'object' && process !== null && typeof process.once === 'function' && this.features.MessageChannel) {
-      this.refCounter = new NodejsWaitingRequestCounter(this.features.MessageChannel)
-      process.once('beforeExit', () => {
-        if (!this._suppressDestroy) {
-          this.destroy()
+    if (typeof process === 'object' && process !== null && typeof process.once === 'function') {
+      if (this.features.MessageChannel) {
+        this.refCounter = new NodejsWaitingRequestCounter(this.features.MessageChannel)
+      }
+      if (options?.autoDestroy !== false) {
+        const onBeforeExit = (): void => {
+          this._beforeExitListener = undefined
+          if (!this._suppressDestroy) {
+            this.destroy()
+          }
         }
-      })
+        this._beforeExitListener = onBeforeExit
+        process.once('beforeExit', onBeforeExit)
+      }
+    }
+  }
+
+  private _removeBeforeExitListener (): void {
+    const listener = this._beforeExitListener
+    if (listener !== undefined) {
+      this._beforeExitListener = undefined
+      if (typeof process === 'object' && process !== null && typeof process.removeListener === 'function') {
+        process.removeListener('beforeExit', listener)
+      }
     }
   }
 
@@ -237,6 +260,7 @@ export class Context {
    */
   public suppressDestroy (): void {
     this._suppressDestroy = true
+    this._removeBeforeExitListener()
   }
 
   public getRuntimeVersions () {
@@ -497,6 +521,7 @@ export class Context {
     this.setStopping(true)
     this.setCanCallIntoJs(false)
     this.runCleanup()
+    this._removeBeforeExitListener()
   }
 }
 

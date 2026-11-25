@@ -14,6 +14,10 @@ module.exports = loadPromise.then(async binding => {
     assert.strictEqual(binding.getDeleterCallCount(), 0)
     await common.gcUntil(() => binding.getDeleterCallCount() === 1)
     assert.strictEqual(binding.copyBuffer().toString(), binding.theText)
+    assert.strictEqual(binding.copyBufferWithResultData().toString(), 'X' + binding.theText.slice(1))
+    const emptyCopy = binding.copyBufferEdgeCases()
+    assert(emptyCopy instanceof Buffer, 'Expected an empty Buffer')
+    assert.strictEqual(emptyCopy.length, 0)
 
     let buffer = binding.staticBuffer()
     assert.strictEqual(binding.bufferHasInstance(buffer), true)
@@ -414,4 +418,26 @@ module.exports = loadPromise.then(async binding => {
   const abInfo = binding.getArrayBufferInfoOutputs(new ArrayBuffer(8))
   assert.strictEqual(abInfo.status, 0 /* napi_ok */)
   assert.strictEqual(abInfo.byteLength, 8)
+
+  // Regression: copy from upper-half (> 2 GiB) wasm32 memory and, where
+  // supported (without Emscripten SAFE_HEAP's 32-bit sbrk overflow at 4 GiB),
+  // from a range ending exactly at byte 4294967296 (0x100000000).
+  if (process.env.EMNAPI_TEST_4GB && !process.env.MEMORY64 && wasmMemory && binding.copyBufferAt) {
+    const FOUR_GIB = 4294967296
+    const canTestExact4GiB = Boolean(process.env.EMNAPI_TEST_WASI || process.env.NODE_ENV === 'production')
+    if (canTestExact4GiB && wasmMemory.buffer.byteLength < FOUR_GIB) {
+      try {
+        if (loadPromise.Module.growMemory) {
+          loadPromise.Module.growMemory(FOUR_GIB)
+        } else {
+          wasmMemory.grow((FOUR_GIB - wasmMemory.buffer.byteLength) / 65536)
+        }
+      } catch (_) {}
+    }
+    const start = wasmMemory.buffer.byteLength - 4
+    new Uint8Array(wasmMemory.buffer, start, 4).set([0x55, 0x66, 0x77, 0x88])
+    const copied = binding.copyBufferAt(start, 4)
+    assert.strictEqual(copied.length, 4)
+    assert.deepStrictEqual([...copied], [0x55, 0x66, 0x77, 0x88])
+  }
 })

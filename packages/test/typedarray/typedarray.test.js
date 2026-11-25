@@ -103,8 +103,27 @@ module.exports = load('typedarray').then(test_typedarray => {
   }
 
   {
-    const buffer = test_typedarray.NullArrayBuffer()
-    assert.ok(buffer instanceof ArrayBuffer)
-    assert.ok(test_typedarray.IsDetached(buffer))
+    const isNode = typeof process === 'object' && process !== null && typeof process.versions?.node === 'string' && typeof globalThis.__EMNAPI_BROWSER_ENV__ === 'undefined'
+    let messagePortsCreated = 0
+    let hook
+    if (isNode && typeof ArrayBuffer.prototype.transfer === 'function') {
+      const asyncHooks = require('async_hooks')
+      hook = asyncHooks.createHook({
+        init (_asyncId, type) {
+          if (type === 'MESSAGEPORT') messagePortsCreated++
+        }
+      }).enable()
+    }
+    try {
+      const buffer = test_typedarray.NullArrayBuffer()
+      assert.ok(buffer instanceof ArrayBuffer)
+      assert.strictEqual(buffer.byteLength, 0)
+      assert.ok(test_typedarray.IsDetached(buffer))
+      if (hook) {
+        assert.strictEqual(messagePortsCreated, 0, 'napi_create_external_arraybuffer(0) must not create MessageChannel handles')
+      }
+    } finally {
+      hook?.disable()
+    }
   }
 })

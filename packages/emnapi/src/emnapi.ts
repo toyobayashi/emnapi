@@ -136,6 +136,53 @@ export function emnapi_create_memory_view (
 }
 
 /**
+ * @__sig ipppp
+ */
+export function emnapi_create_arraybuffer_copy (
+  env: napi_env,
+  data: void_p,
+  byte_length: size_t,
+  result: Pointer<napi_value>
+): napi_status {
+  let value: napi_value
+
+  return $PREAMBLE!(env, (envObject) => {
+    $CHECK_ARG!(envObject, result)
+    from64('data')
+    from64('byte_length')
+    from64('result')
+
+    // #if !MEMORY64
+    byte_length = byte_length >>> 0
+    // #else
+    if (!(byte_length >= 0)) {
+      throw new RangeError('Memory out of range')
+    }
+    // #endif
+
+    let heap: Uint8Array | undefined
+    if (byte_length > 0) {
+      $CHECK_ARG!(envObject, data)
+      heap = emnapiExternalMemory.getHEAPU8()
+      if ((data as number) < 0 || (data as number) + byte_length > heap.byteLength) {
+        throw new RangeError('Memory out of range')
+      }
+    }
+
+    const arrayBuffer = new ArrayBuffer(byte_length)
+    if (byte_length > 0) {
+      new Uint8Array(arrayBuffer).set(
+        new Uint8Array(heap!.buffer, data as number, byte_length)
+      )
+    }
+
+    value = emnapiCtx.napiValueFromJsValue(arrayBuffer)
+    makeSetValue('result', 0, 'value', '*')
+    return $GET_RETURN_STATUS!(envObject)
+  })
+}
+
+/**
  * @__sig i
  */
 export function emnapi_is_support_weakref (): int {
@@ -174,7 +221,7 @@ export function $emnapiSyncMemory<T extends ArrayBufferLike | ArrayBufferView> (
   offset = offset ?? 0
   offset = offset >>> 0
   let view: Uint8Array
-  if (arrayBufferOrView instanceof ArrayBuffer || emnapiExternalMemory.isSharedArrayBuffer(arrayBufferOrView)) {
+  if (emnapiExternalMemory.isArrayBuffer(arrayBufferOrView) || emnapiExternalMemory.isSharedArrayBuffer(arrayBufferOrView)) {
     const pointer = emnapiExternalMemory.getArrayBufferPointer(arrayBufferOrView, false).address
     if (!pointer) throw new Error('Unknown ArrayBuffer address')
     // a resizable or growable buffer can be longer than emnapi's copy of it
@@ -240,7 +287,7 @@ export function emnapi_sync_memory (env: napi_env, js_to_wasm: bool, arraybuffer
     const id = makeGetValue('arraybuffer_or_view', 0, '*')
 
     const jsValue = emnapiCtx.jsValueFromNapiValue<ArrayBufferLike | ArrayBufferView>(id)!
-    const isArrayBuffer = jsValue instanceof ArrayBuffer
+    const isArrayBuffer = emnapiExternalMemory.isArrayBuffer(jsValue)
     const isDataView = jsValue instanceof DataView
     const isTypedArray = ArrayBuffer.isView(jsValue) && !isDataView
     if (!isArrayBuffer && !isTypedArray && !isDataView && !emnapiExternalMemory.isSharedArrayBuffer(jsValue)) {
@@ -258,17 +305,17 @@ export function emnapi_sync_memory (env: napi_env, js_to_wasm: bool, arraybuffer
   })
 }
 
-export function $emnapiGetMemoryAddress (arrayBufferOrView: ArrayBuffer | ArrayBufferView): ArrayBufferPointer {
-  const isArrayBuffer = arrayBufferOrView instanceof ArrayBuffer
-  const isDataView = arrayBufferOrView instanceof DataView
-  const isTypedArray = ArrayBuffer.isView(arrayBufferOrView) && !isDataView
-  if (!isArrayBuffer && !isTypedArray && !isDataView && !emnapiExternalMemory.isSharedArrayBuffer(arrayBufferOrView)) {
+export function $emnapiGetMemoryAddress (arrayBufferOrView: ArrayBufferLike | ArrayBufferView): ArrayBufferPointer {
+  const isArrayBuffer = emnapiExternalMemory.isArrayBuffer(arrayBufferOrView)
+  const isView = !isArrayBuffer && ArrayBuffer.isView(arrayBufferOrView)
+  const isSharedArrayBuffer = !isArrayBuffer && !isView && emnapiExternalMemory.isSharedArrayBuffer(arrayBufferOrView)
+  if (!isArrayBuffer && !isView && !isSharedArrayBuffer) {
     throw new TypeError('emnapiGetMemoryAddress expect ArrayBuffer or ArrayBufferView as first parameter')
   }
 
   let info: ArrayBufferPointer
-  if (isArrayBuffer) {
-    info = emnapiExternalMemory.getArrayBufferPointer(arrayBufferOrView as ArrayBuffer, false)
+  if (isArrayBuffer || isSharedArrayBuffer) {
+    info = emnapiExternalMemory.getArrayBufferPointer(arrayBufferOrView as ArrayBufferLike, false)
   } else {
     info = emnapiExternalMemory.getViewPointer(arrayBufferOrView as ArrayBufferView, false)
   }
@@ -292,7 +339,7 @@ export function emnapi_get_memory_address (env: napi_env, arraybuffer_or_view: n
       return envObject.setLastError(napi_status.napi_invalid_arg)
     }
 
-    const value = emnapiCtx.jsValueFromNapiValue<ArrayBuffer | ArrayBufferView>(arraybuffer_or_view)!
+    const value = emnapiCtx.jsValueFromNapiValue<ArrayBufferLike | ArrayBufferView>(arraybuffer_or_view)!
     info = $emnapiGetMemoryAddress(value)
 
     p = info.address

@@ -153,9 +153,7 @@ export function napi_create_external_arraybuffer (
     const arrayBuffer = new ArrayBuffer(byte_length)
     if (byte_length === 0) {
       try {
-        const MessageChannel = emnapiCtx.features.MessageChannel
-        const messageChannel = new MessageChannel!()
-        messageChannel.port1.postMessage(arrayBuffer, [arrayBuffer])
+        emnapiExternalMemory.detachArrayBuffer(arrayBuffer, true)
       } catch (_) {}
     } else {
       const u8arr = new Uint8Array(arrayBuffer)
@@ -393,7 +391,7 @@ export function napi_create_typedarray (
       return $GET_RETURN_STATUS!(envObject)
     }
 
-    if (buffer instanceof ArrayBuffer || emnapiExternalMemory.isSharedArrayBuffer(buffer)) {
+    if (emnapiExternalMemory.isArrayBuffer(buffer) || emnapiExternalMemory.isSharedArrayBuffer(buffer)) {
       switch (type) {
         case napi_typedarray_type.napi_int8_array:
           return createTypedArray(envObject, Int8Array, 1, buffer, byte_offset, length)
@@ -504,11 +502,35 @@ export function napi_create_buffer_copy (
     if (!Buffer) {
       throw emnapiCtx.createNotSupportBufferError('napi_create_buffer_copy', '')
     }
-    const arrayBuffer = emnapiCreateArrayBuffer(length, result_data, false)
-    const buffer = Buffer.from(arrayBuffer)
-    from64('data')
     from64('length')
-    buffer.set(emnapiExternalMemory.getHEAPU8().subarray(data as number, data as number + length))
+    from64('data')
+    // #if !MEMORY64
+    length = length >>> 0
+    // #else
+    if (!(length >= 0)) {
+      throw new RangeError('Memory out of range')
+    }
+    // #endif
+    let heap: Uint8Array | undefined
+    if (length > 0) {
+      $CHECK_ARG!(envObject, data)
+      heap = emnapiExternalMemory.getHEAPU8()
+      if ((data as number) < 0 || (data as number) + length > heap.byteLength) {
+        throw new RangeError('Memory out of range')
+      }
+    }
+    const arrayBuffer = new ArrayBuffer(length)
+    if (length > 0) {
+      new Uint8Array(arrayBuffer).set(
+        new Uint8Array(heap!.buffer, data as number, length)
+      )
+    }
+    const buffer = Buffer.from(arrayBuffer)
+    if (result_data) {
+      from64('result_data')
+      const p = length > 0 ? emnapiExternalMemory.getViewPointer(buffer, true).address : 0
+      makeSetValue('result_data', 0, 'p', '*')
+    }
     value = emnapiCtx.napiValueFromJsValue(buffer)
     from64('result')
     makeSetValue('result', 0, 'value', '*')
@@ -558,7 +580,7 @@ export function node_api_create_buffer_from_arraybuffer (
     byte_offset = byte_offset >>> 0
     byte_length = byte_length >>> 0
     const buffer = emnapiCtx.jsValueFromNapiValue(arraybuffer)!
-    if (!(buffer instanceof ArrayBuffer)) {
+    if (!emnapiExternalMemory.isArrayBuffer(buffer)) {
       return envObject.setLastError(napi_status.napi_invalid_arg)
     }
 
@@ -637,7 +659,7 @@ export function napi_create_dataview (
       return $GET_RETURN_STATUS!(envObject)
     }
 
-    if (value instanceof ArrayBuffer || emnapiExternalMemory.isSharedArrayBuffer(value)) {
+    if (emnapiExternalMemory.isArrayBuffer(value) || emnapiExternalMemory.isSharedArrayBuffer(value)) {
       return createDataview(value)
     } else {
       return envObject.setLastError(napi_status.napi_invalid_arg)

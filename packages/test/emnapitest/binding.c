@@ -120,6 +120,96 @@ static napi_value TestUint64(napi_env env, napi_callback_info info) {
   return output;
 }
 
+static napi_value CreateArrayBufferCopy(napi_env env, napi_callback_info info) {
+  uint8_t src[4] = { 10, 20, 30, 40 };
+  napi_value ab;
+  NODE_API_CALL(env, emnapi_create_arraybuffer_copy(env, src, sizeof(src), &ab));
+
+  // Mutate the wasm source immediately; the returned ArrayBuffer must keep the
+  // original copied bytes.
+  src[0] = 99;
+  src[3] = 88;
+
+  // Must NOT register a wasm mirror in emnapiExternalMemory.table.
+  void* address = (void*)1;
+  bool runtime_allocated = true;
+  emnapi_ownership ownership = emnapi_userland;
+  NODE_API_CALL(env, emnapi_get_memory_address(env, ab, &address, &ownership, &runtime_allocated));
+  NODE_API_ASSERT(env, address == NULL, "emnapi_create_arraybuffer_copy must not register a wasm address");
+  NODE_API_ASSERT(env, !runtime_allocated, "emnapi_create_arraybuffer_copy must not allocate a wasm mirror");
+
+  return ab;
+}
+
+static napi_value CreateArrayBufferCopyZero(napi_env env, napi_callback_info info) {
+  napi_value ab_null;
+  NODE_API_CALL(env, emnapi_create_arraybuffer_copy(env, NULL, 0, &ab_null));
+
+  uint8_t dummy = 42;
+  napi_value ab_nonnull;
+  NODE_API_CALL(env, emnapi_create_arraybuffer_copy(env, &dummy, 0, &ab_nonnull));
+
+  void* address = (void*)1;
+  bool runtime_allocated = true;
+  NODE_API_CALL(env, emnapi_get_memory_address(env, ab_null, &address, NULL, &runtime_allocated));
+  NODE_API_ASSERT(env, address == NULL && !runtime_allocated, "zero-length copy must not register a mirror");
+
+  napi_value pair;
+  NODE_API_CALL(env, napi_create_array_with_length(env, 2, &pair));
+  NODE_API_CALL(env, napi_set_element(env, pair, 0, ab_null));
+  NODE_API_CALL(env, napi_set_element(env, pair, 1, ab_nonnull));
+  return pair;
+}
+
+static napi_value CreateArrayBufferCopyInvalidArgs(napi_env env, napi_callback_info info) {
+  uint8_t src[4] = { 1, 2, 3, 4 };
+  napi_value ab = NULL;
+
+  napi_status status = emnapi_create_arraybuffer_copy(NULL, src, sizeof(src), &ab);
+  NODE_API_ASSERT(env, status == napi_invalid_arg, "NULL env must return napi_invalid_arg");
+
+  status = emnapi_create_arraybuffer_copy(env, src, sizeof(src), NULL);
+  NODE_API_ASSERT(env, status == napi_invalid_arg, "NULL result must return napi_invalid_arg");
+
+  status = emnapi_create_arraybuffer_copy(env, NULL, sizeof(src), &ab);
+  NODE_API_ASSERT(env, status == napi_invalid_arg, "NULL data with non-zero length must return napi_invalid_arg");
+
+  napi_value ok;
+  NODE_API_CALL(env, napi_get_boolean(env, true, &ok));
+  return ok;
+}
+
+static napi_value CreateArrayBufferCopyOutOfRange(napi_env env, napi_callback_info info) {
+  uint8_t src[4] = { 1, 2, 3, 4 };
+  size_t wasm_memory_size = __builtin_wasm_memory_size(0) << 16;
+  napi_value ab = NULL;
+#if __SIZEOF_SIZE_T__ == 8
+  // On wasm64, a 4 GiB length must not wrap to 0 via uint32 truncation.
+  napi_status status4g = emnapi_create_arraybuffer_copy(env, src, ((size_t)1 << 32), &ab);
+  NODE_API_ASSERT(env, status4g == napi_pending_exception, "4 GiB length must set pending RangeError on wasm64");
+  napi_value ignored_exc;
+  NODE_API_CALL(env, napi_get_and_clear_last_exception(env, &ignored_exc));
+#endif
+  napi_status status = emnapi_create_arraybuffer_copy(env, src, wasm_memory_size + 1, &ab);
+  NODE_API_ASSERT(env, status == napi_pending_exception, "out-of-range length must set pending RangeError");
+  return NULL;
+}
+
+static napi_value CreateArrayBufferCopyAt(napi_env env, napi_callback_info info) {
+  size_t argc = 2;
+  napi_value args[2];
+  NODE_API_CALL(env, napi_get_cb_info(env, info, &argc, args, NULL, NULL));
+  NODE_API_ASSERT(env, argc == 2, "Wrong number of arguments");
+  double offset_d = 0;
+  double length_d = 0;
+  NODE_API_CALL(env, napi_get_value_double(env, args[0], &offset_d));
+  NODE_API_CALL(env, napi_get_value_double(env, args[1], &length_d));
+  napi_value ab = NULL;
+  NODE_API_CALL(env, emnapi_create_arraybuffer_copy(
+      env, (const void*)(uintptr_t)(uint64_t)offset_d, (size_t)(uint64_t)length_d, &ab));
+  return ab;
+}
+
 EXTERN_C_START
 napi_value Init(napi_env env, napi_value exports) {
   napi_property_descriptor descriptors[] = {
@@ -133,6 +223,11 @@ napi_value Init(napi_env env, napi_value exports) {
     DECLARE_NODE_API_PROPERTY("GrowMemory", GrowMemory),
     DECLARE_NODE_API_PROPERTY("GetWasmMemorySize", GetWasmMemorySize),
     DECLARE_NODE_API_PROPERTY("TestUint64", TestUint64),
+    DECLARE_NODE_API_PROPERTY("CreateArrayBufferCopy", CreateArrayBufferCopy),
+    DECLARE_NODE_API_PROPERTY("CreateArrayBufferCopyZero", CreateArrayBufferCopyZero),
+    DECLARE_NODE_API_PROPERTY("CreateArrayBufferCopyInvalidArgs", CreateArrayBufferCopyInvalidArgs),
+    DECLARE_NODE_API_PROPERTY("CreateArrayBufferCopyOutOfRange", CreateArrayBufferCopyOutOfRange),
+    DECLARE_NODE_API_PROPERTY("CreateArrayBufferCopyAt", CreateArrayBufferCopyAt),
   };
 
   NODE_API_CALL(env, napi_define_properties(

@@ -399,7 +399,7 @@ target_compile_definitions("module_version_mismatch" PRIVATE "NAPI_VERSION=21474
 if(IS_WASM)
   if(IS_EMSCRIPTEN)
     add_test("emnapitest" "./emnapitest/binding.c" OFF)
-    target_link_options("emnapitest" PRIVATE "-sEXPORTED_RUNTIME_METHODS=['emnapiInit','ExitStatus','emnapiSyncMemory','HEAPU8']")
+    target_link_options("emnapitest" PRIVATE "-sEXPORTED_RUNTIME_METHODS=['emnapiInit','ExitStatus','emnapiSyncMemory','HEAPU8','wasmMemory','growMemory']")
   else()
     add_test("emnapitest" "./emnapitest/binding.c" OFF)
   endif()

@@ -190,6 +190,24 @@ export interface DylinkMetadata {
   tableAlign: number
 }
 
+function isWebAssemblyModule (value: unknown): boolean {
+  if (typeof value !== 'object' || value === null || typeof WebAssembly !== 'object' || WebAssembly === null) {
+    return false
+  }
+  if (typeof WebAssembly.Module === 'function') {
+    if (typeof WebAssembly.Module.imports === 'function') {
+      try {
+        WebAssembly.Module.imports(value as WebAssembly.Module)
+        return true
+      } catch (_) {
+        return false
+      }
+    }
+    return value instanceof WebAssembly.Module
+  }
+  return false
+}
+
 export function getDylinkMetadata (binary: WebAssembly.Module | Uint8Array): DylinkMetadata {
   let offset = 0
   let end = 0
@@ -228,17 +246,17 @@ export function getDylinkMetadata (binary: WebAssembly.Module | Uint8Array): Dyl
     if (condition) throw new Error(message)
   }
 
-  if (binary instanceof WebAssembly.Module) {
-    const dylinkSection = WebAssembly.Module.customSections(binary, 'dylink.0')
+  if (isWebAssemblyModule(binary)) {
+    const dylinkSection = WebAssembly.Module.customSections(binary as WebAssembly.Module, 'dylink.0')
     failIf(dylinkSection.length === 0, 'need dylink section')
     binary = new Uint8Array(dylinkSection[0])
     end = (binary as Uint8Array).length
   } else {
-    var int32View = new Uint32Array(new Uint8Array(binary.subarray(0, 24)).buffer)
+    var int32View = new Uint32Array(new Uint8Array((binary as Uint8Array).subarray(0, 24)).buffer)
     var magicNumberFound = int32View[0] === 0x6d736100 || int32View[0] === 0x0061736d
     failIf(!magicNumberFound, 'need to see wasm magic number') // \0asm
     // we should see the dylink custom section right after the magic number and wasm version
-    failIf(binary[8] !== 0, 'need the dylink section to be first')
+    failIf((binary as Uint8Array)[8] !== 0, 'need the dylink section to be first')
     offset = 9
     var section_size = getLEB() // section size
     end = offset + section_size
