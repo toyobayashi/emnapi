@@ -109,6 +109,7 @@ export function _v8_make_weak (ref: Ptr, data: Ptr, callback: Ptr, weak_callback
     }
   }
   refValue.setWeak(data, (data) => {
+    if (emnapiCtx?.isAborted?.()) return
     makeDynCall('vppipp', 'callback')(weak_callback, data, type, field0, field1)
   })
 }

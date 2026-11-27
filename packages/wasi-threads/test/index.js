@@ -250,6 +250,7 @@ async function testWorkerTrapIsTerminalWithoutChangingPThreadApi () {
   })
   await manager.loadWasmModuleToWorker(asyncWorker)
   manager.markId(pooledWorker)
+  assert.strictEqual(manager.fatalError, undefined)
 
   let resolveUncaught
   const uncaught = new Promise(resolve => { resolveUncaught = resolve })
@@ -267,6 +268,7 @@ async function testWorkerTrapIsTerminalWithoutChangingPThreadApi () {
     assert.strictEqual(error.name, 'RuntimeError')
     assert.strictEqual(error.message, 'memory access out of bounds')
     assert.match(error.stack, /wasi_thread_start/)
+    assert.strictEqual(manager.fatalError, error)
   } finally {
     process.setUncaughtExceptionCaptureCallback(null)
   }
@@ -278,10 +280,7 @@ async function testWorkerTrapIsTerminalWithoutChangingPThreadApi () {
   assert.strictEqual(created.length, 1, 'fatal cleanup must not recreate the worker pool')
   assert.throws(() => manager.getNewWorker(), /memory access out of bounds/)
 
-  // The compatibility boundary remains the Emscripten PThread surface; no
-  // emnapi-only state or failure methods are added to the manager instance.
   assert.strictEqual('state' in manager, false)
-  assert.strictEqual('fatalError' in manager, false)
   assert.strictEqual('throwIfFailed' in manager, false)
   assert.strictEqual('addThreadErrorListener' in manager, false)
 }
@@ -302,6 +301,7 @@ async function testWorkerLoadFailureIsNotTerminal () {
   })
 
   await assert.rejects(manager.loadWasmModuleToWorker(worker), /bad wasm module/)
+  assert.strictEqual(manager.fatalError, undefined)
   assert.strictEqual(worker.terminated, true)
   const nextWorker = manager.allocateUnusedWorker()
   assert.ok(nextWorker)
@@ -629,6 +629,70 @@ function testQueuedStartIsFailedWhenLoadFails () {
   })
 }
 
+async function testTerminateWorkerReturnsPromise () {
+  const errors = []
+  const manager = new ThreadManager({
+    printErr (text) { errors.push(text) },
+    onCreateWorker: () => new FakeWorker()
+  })
+  manager.setup({}, {})
+
+  // 1. Node-style worker returning Promise<number>
+  {
+    let resolveTerminate
+    const worker = manager.allocateUnusedWorker()
+    const terminatePromise = new Promise(resolve => { resolveTerminate = resolve })
+    worker.terminate = () => {
+      worker.terminated = true
+      return terminatePromise
+    }
+    let listenerCalls = 0
+    manager.addMessageEventListener(worker, () => { listenerCalls++ })
+
+    const ret = manager.terminateWorker(worker)
+    assert.strictEqual(ret, terminatePromise, 'should return Node terminate() Promise directly')
+    // State cleanup must already be complete synchronously before resolution.
+    assert.strictEqual(manager.unusedWorkers.includes(worker), false)
+    manager.fireMessageEvent(worker, { data: {} })
+    assert.strictEqual(listenerCalls, 0)
+    resolveTerminate(0)
+    assert.strictEqual(await ret, 0)
+  }
+
+  // 2. Browser-style worker returning void (undefined)
+  {
+    const worker = manager.allocateUnusedWorker()
+    worker.terminate = () => { worker.terminated = true }
+    const ret = manager.terminateWorker(worker)
+    assert.ok(ret instanceof Promise)
+    assert.strictEqual(await ret, undefined)
+    assert.strictEqual(manager.unusedWorkers.includes(worker), false)
+  }
+
+  // 3. Synchronous throw in worker.terminate() still throws synchronously after state cleanup
+  {
+    const worker = manager.allocateUnusedWorker()
+    let listenerCalls = 0
+    manager.addMessageEventListener(worker, () => { listenerCalls++ })
+    worker.terminate = () => { throw new Error('sync terminate boom') }
+
+    assert.throws(() => manager.terminateWorker(worker), /sync terminate boom/)
+    assert.strictEqual(manager.unusedWorkers.includes(worker), false)
+    manager.fireMessageEvent(worker, { data: {} })
+    assert.strictEqual(listenerCalls, 0)
+    worker.onmessage({ data: message('cleanup-thread', { tid: 1 }) })
+    assert.strictEqual(errors.length, 1)
+  }
+
+  // 4. Rejected Promise from worker.terminate() surfaces through returned Promise
+  {
+    const worker = manager.allocateUnusedWorker()
+    worker.terminate = () => Promise.reject(new Error('async terminate failed'))
+    await assert.rejects(manager.terminateWorker(worker), /async terminate failed/)
+    assert.strictEqual(manager.unusedWorkers.includes(worker), false)
+  }
+}
+
 await testThreadSpawnAfterCrossAgentMemoryGrowth()
 await testThreadSpawnNormalizesBigintAddress()
 await testThreadSpawnNormalizesNegativeAddress()
@@ -644,4 +708,5 @@ await testLoadFailureAfterSpawnIsReported()
 await testSpawnLoadsNeverLoadedPoolWorker()
 await testLateLoadedFromTerminatedWorkerIsQuiet()
 await testQueuedStartIsFailedWhenLoadFails()
+await testTerminateWorkerReturnsPromise()
 await main(WASI, WASIThreads, Worker, process, './worker.js')

@@ -107,11 +107,13 @@ class CleanupQueue {
     const hooks = this._cleanupHooks.slice()
     for (let i = hooks.length - 1; i >= 0; --i) {
       const cb = hooks[i]
+      if (cb.envObject.ctx.isAborted()) return
       if (typeof cb.fn === 'number') {
         cb.envObject.bridge.makeDynCall_vp(cb.fn)(cb.arg)
       } else {
         cb.fn(cb.arg)
       }
+      if (cb.envObject.ctx.isAborted()) return
       const lastIndex = this._cleanupHooks.length - 1
       if (this._cleanupHooks[lastIndex] === cb) {
         this._cleanupHooks.pop()
@@ -164,7 +166,7 @@ class CleanupQueue {
 }
 
 class NodejsWaitingRequestCounter {
-  private readonly refHandle: { ref: () => void; unref: () => void }
+  private readonly refHandle: { ref?: () => void; unref?: () => void; close?: () => void }
   private count: number
 
   constructor (MessageChannel: typeof globalThis.MessageChannel) {
@@ -190,6 +192,16 @@ class NodejsWaitingRequestCounter {
     }
     this.count--
   }
+
+  public abort (): void {
+    this.count = 0
+    if (this.refHandle.unref) {
+      this.refHandle.unref()
+    }
+    try {
+      this.refHandle.close?.()
+    } catch (_) {}
+  }
 }
 
 export interface ContextOptions extends IsolateOptions {
@@ -201,10 +213,13 @@ export interface ContextOptions extends IsolateOptions {
 }
 
 export class Context {
+  private _isAborted = false
   private _isStopping = false
   private _canCallIntoJs = true
   private _suppressDestroy = false
   private _beforeExitListener?: () => void
+  private readonly _pendingTasks = new Set<() => void>()
+  private _activeTaskDepth = 0
 
   private envStore = new ArrayStore<Env>()
   /** @internal */
@@ -476,6 +491,7 @@ export class Context {
   }
 
   public addCleanupHook (envObject: Env, fn: CleanupHookCallbackFunction, arg: number): void {
+    if (this._isAborted) return
     this.cleanupQueue.add(envObject, fn, arg)
   }
 
@@ -484,16 +500,19 @@ export class Context {
   }
 
   public runCleanup (): void {
-    while (!this.cleanupQueue.empty()) {
+    if (this._isAborted) return
+    while (!this._isAborted && !this.cleanupQueue.empty()) {
       this.cleanupQueue.drain()
     }
   }
 
   public increaseWaitingRequestCounter (): void {
+    if (this._isAborted) return
     this.refCounter?.increase()
   }
 
   public decreaseWaitingRequestCounter (): void {
+    if (this._isAborted) return
     this.refCounter?.decrease()
   }
 
@@ -506,7 +525,111 @@ export class Context {
   }
 
   public canCallIntoJs (): boolean {
-    return this._canCallIntoJs && !this._isStopping
+    return this._canCallIntoJs && !this._isStopping && !this._isAborted
+  }
+
+  public isAborted (): boolean {
+    return this._isAborted
+  }
+
+  /** @internal */
+  public registerPendingTask (task: () => void): () => void {
+    if (this._isAborted) {
+      return () => {}
+    }
+    this._pendingTasks.add(task)
+    return () => {
+      this._pendingTasks.delete(task)
+    }
+  }
+
+  /** @internal */
+  public scheduleImmediate (callback: () => void): void {
+    if (this._isAborted) return
+    let done = false
+    const run = (): void => {
+      if (done) return
+      done = true
+      cancel()
+      if (this._isAborted) return
+      this._activeTaskDepth++
+      try {
+        callback()
+      } finally {
+        this._activeTaskDepth--
+      }
+    }
+    const cancel = this.registerPendingTask(run)
+    try {
+      this.features.setImmediate(run)
+    } catch (err) {
+      done = true
+      cancel()
+      throw err
+    }
+  }
+
+  /** @internal */
+  public scheduleMicrotask (callback: () => void): void {
+    if (this._isAborted) return
+    let done = false
+    const run = (): void => {
+      if (done) return
+      done = true
+      cancel()
+      if (this._isAborted) return
+      this._activeTaskDepth++
+      try {
+        callback()
+      } finally {
+        this._activeTaskDepth--
+      }
+    }
+    const cancel = this.registerPendingTask(run)
+    Promise.resolve().then(run)
+  }
+
+  public hasPendingWork (): boolean {
+    return !this._isAborted && this._pendingTasks.size > 0
+  }
+
+  public flush (): void {
+    if (this._activeTaskDepth > 0) return
+    this._activeTaskDepth++
+    try {
+      while (!this._isAborted && this._pendingTasks.size > 0) {
+        const task = this._pendingTasks.values().next().value as () => void
+        this._pendingTasks.delete(task)
+        task()
+      }
+    } finally {
+      this._activeTaskDepth--
+    }
+  }
+
+  public async drain (): Promise<void> {
+    while (!this._isAborted) {
+      this.flush()
+      if (this._isAborted) return
+      await Promise.resolve()
+      if (this._isAborted || this._pendingTasks.size === 0) return
+    }
+  }
+
+  /**
+   * Permanently abort the context after a fatal error without running
+   * cleanup hooks or re-entering WebAssembly.
+   */
+  public abort (): void {
+    if (this._isAborted) return
+    this._isAborted = true
+    this._isStopping = true
+    this._canCallIntoJs = false
+    this._suppressDestroy = true
+    this._removeBeforeExitListener()
+    this.refCounter?.abort()
+    this.cleanupQueue.dispose()
+    this._pendingTasks.clear()
   }
 
   public getDylinkMetadata (binary: WebAssembly.Module | Uint8Array): DylinkMetadata {
@@ -518,6 +641,7 @@ export class Context {
    * Associated {@link Env | Env} will be destroyed.
    */
   public destroy (): void {
+    if (this._isAborted) return
     this.setStopping(true)
     this.setCanCallIntoJs(false)
     this.runCleanup()

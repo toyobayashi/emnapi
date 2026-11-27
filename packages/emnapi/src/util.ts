@@ -63,18 +63,30 @@ export function _emnapi_runtime_keepalive_pop (): void {
  * @__sig vpp
  */
 export function _emnapi_set_immediate (callback: number, data: number): void {
-  emnapiCtx.features.setImmediate(() => {
+  const call = (): void => {
+    if (emnapiCtx?.isAborted?.()) return
     makeDynCall('vp', 'callback')(data)
-  })
+  }
+  if (typeof emnapiCtx.scheduleImmediate === 'function') {
+    emnapiCtx.scheduleImmediate(call)
+  } else {
+    emnapiCtx.features.setImmediate(call)
+  }
 }
 
 /**
  * @__sig vpp
  */
 export function _emnapi_next_tick (callback: number, data: number): void {
-  Promise.resolve().then(() => {
+  const call = (): void => {
+    if (emnapiCtx?.isAborted?.()) return
     makeDynCall('vp', 'callback')(data)
-  })
+  }
+  if (typeof emnapiCtx.scheduleMicrotask === 'function') {
+    emnapiCtx.scheduleMicrotask(call)
+  } else {
+    Promise.resolve().then(call)
+  }
 }
 
 /**

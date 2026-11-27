@@ -323,11 +323,27 @@ function emnapiAddSendListener (worker: any): boolean {
         const postMessage = addonModule.postMessage!
         postMessage({ __emnapi__ })
       } else {
+        if (emnapiCtx?.isAborted?.()) return
         const { type, callback, data } = __emnapi__.payload
-        const call = (): void => makeDynCall('vp', 'callback')(data)
+        const call = (): void => {
+          if (emnapiCtx?.isAborted?.()) return
+          makeDynCall('vp', 'callback')(data)
+        }
         switch (type) {
-          case 0: emnapiCtx.features.setImmediate(call); break
-          case 1: Promise.resolve().then(call); break
+          case 0:
+            if (typeof emnapiCtx.scheduleImmediate === 'function') {
+              emnapiCtx.scheduleImmediate(call)
+            } else {
+              emnapiCtx.features.setImmediate(call)
+            }
+            break
+          case 1:
+            if (typeof emnapiCtx.scheduleMicrotask === 'function') {
+              emnapiCtx.scheduleMicrotask(call)
+            } else {
+              Promise.resolve().then(call)
+            }
+            break
           default: break
         }
       }

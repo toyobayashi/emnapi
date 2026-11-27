@@ -39,6 +39,9 @@ const enum State {
  */
 const emnapiTSFN = {
   _liveSet: {} as Set<number>,
+  _pendingCancels: {} as Map<number, () => void>,
+  _dispatching: {} as Set<number>,
+  _deferredFinalize: {} as Set<number>,
   offset: {
     __size__: 0,
     /* napi_ref */ resource: 0,
@@ -67,6 +70,9 @@ const emnapiTSFN = {
   },
   init () {
     emnapiTSFN._liveSet = new Set<number>()
+    emnapiTSFN._pendingCancels = new Map<number, () => void>()
+    emnapiTSFN._dispatching = new Set<number>()
+    emnapiTSFN._deferredFinalize = new Set<number>()
 // #if MEMORY64
     emnapiTSFN.offset.__size__ = NapiTSFNOffset64.__size__
     emnapiTSFN.offset.resource = NapiTSFNOffset64.async_resource_resource
@@ -138,6 +144,8 @@ const emnapiTSFN = {
         const type = __emnapi__.type
         const payload = __emnapi__.payload
         if (type === 'tsfn-send') {
+          if (emnapiCtx?.isAborted?.()) return
+          if (!emnapiTSFN._liveSet.has(payload.tsfn)) return
           const pendng = payload.tsfn + emnapiTSFN.offset.async_pending
           if (Atomics.load(new Int32Array(emnapiTSFN.ensureBufferFor(pendng + 4)), pendng >>> 2) !== 0) {
             emnapiTSFN.enqueue(payload.tsfn)
@@ -553,6 +561,9 @@ const emnapiTSFN = {
     }
   },
   destroy (func: number) {
+    emnapiTSFN._pendingCancels.get(func)?.()
+    emnapiTSFN._pendingCancels.delete(func)
+    emnapiTSFN._deferredFinalize.delete(func)
     emnapiTSFN._liveSet.delete(func)
     emnapiTSFN.destroyQueue(func)
     emnapiTSFN.releaseResources(func)
@@ -570,6 +581,7 @@ const emnapiTSFN = {
     const context = emnapiTSFN.getContext(func)
     let data: number
     for (let i = 0; i < drainQueue.length; i++) {
+      if (emnapiCtx?.isAborted?.()) return
       data = drainQueue[i]
       if (callJsCb) {
         makeDynCall('vpppp', 'callJsCb')(to64('0'), to64('0'), to64('context'), to64('data'))
@@ -580,6 +592,7 @@ const emnapiTSFN = {
     // Unrefing the environment can run user finalizers that reenter TSFN
     // release. Keep the state at kClosing until resource release completes.
     emnapiTSFN.releaseResources(func)
+    if (emnapiCtx?.isAborted?.()) return
 
     let shouldDelete = false
     emnapiTSFN.getMutex(func).execute(() => {
@@ -591,6 +604,9 @@ const emnapiTSFN = {
     }
   },
   finalize (func: number) {
+    if (emnapiCtx?.isAborted?.() || !emnapiTSFN._liveSet.has(func)) {
+      return
+    }
     const env = emnapiTSFN.getEnv(func)
     const envObject = emnapiEnv
     emnapiCtx.openScope(envObject)
@@ -612,6 +628,7 @@ const emnapiTSFN = {
 
     try {
       emnapiTSFN.emptyQueue(func)
+      if (emnapiCtx?.isAborted?.()) return
       if (finalize) {
         if (emnapiNodeBinding) {
           const resource = emnapiTSFN.getResource(func)
@@ -628,9 +645,24 @@ const emnapiTSFN = {
           f()
         }
       }
+      if (emnapiCtx?.isAborted?.()) return
       emnapiTSFN.maybeDelete(func)
     } finally {
       emnapiCtx.closeScope(envObject)
+    }
+  },
+  scheduleFinalize (func: number) {
+    if (emnapiCtx?.isAborted?.() || !emnapiTSFN._liveSet.has(func)) {
+      return
+    }
+    const runFinalize = (): void => {
+      if (emnapiCtx?.isAborted?.() || !emnapiTSFN._liveSet.has(func)) return
+      emnapiTSFN.finalize(func)
+    }
+    if (typeof emnapiCtx.scheduleImmediate === 'function') {
+      emnapiCtx.scheduleImmediate(runFinalize)
+    } else {
+      emnapiCtx.features.setImmediate(runFinalize)
     }
   },
   cleanup (func: number) {
@@ -654,9 +686,11 @@ const emnapiTSFN = {
       }
       emnapiTSFN.setHandlesClosing(func, 1)
       Atomics.store(new Int32Array(emnapiTSFN.ensureBufferFor(func + emnapiTSFN.offset.async_pending + 4)), (func + emnapiTSFN.offset.async_pending) >>> 2, 1)
-      emnapiCtx.features.setImmediate(() => {
-        emnapiTSFN.finalize(func)
-      })
+      if (emnapiTSFN._dispatching.has(func)) {
+        emnapiTSFN._deferredFinalize.add(func)
+      } else {
+        emnapiTSFN.scheduleFinalize(func)
+      }
     } finally {
       emnapiCtx.closeScope(envObject)
     }
@@ -739,48 +773,65 @@ const emnapiTSFN = {
     return has_more
   },
   dispatch (func: number) {
+    if (emnapiCtx?.isAborted?.() || !emnapiTSFN._liveSet.has(func)) {
+      return
+    }
     let has_more = true
 
     let iterations_left = 1000
     const dispatchStateAddress = func + emnapiTSFN.offset.dispatch_state
     const index = dispatchStateAddress >>> 2
-    while (has_more && --iterations_left !== 0) {
-      Atomics.store(
-        new Uint32Array(emnapiTSFN.ensureBufferFor(dispatchStateAddress + 4)),
-        index,
-        1
-      )
-      try {
-        has_more = emnapiTSFN.dispatchOne(func)
-      } catch (err) {
-        // A throwing callback must not leave dispatch_state marked as
-        // dispatching, or every later send() would be swallowed. Re-arm
-        // the state and schedule another drain before rethrowing.
-        if (emnapiTSFN._liveSet.has(func)) {
-          Atomics.exchange(
-            new Uint32Array(emnapiTSFN.ensureBufferFor(dispatchStateAddress + 4)),
-            index,
-            0
-          )
-          emnapiTSFN.send(func)
+    emnapiTSFN._dispatching.add(func)
+    try {
+      while (has_more && --iterations_left !== 0 && !emnapiCtx?.isAborted?.() && emnapiTSFN._liveSet.has(func)) {
+        Atomics.store(
+          new Uint32Array(emnapiTSFN.ensureBufferFor(dispatchStateAddress + 4)),
+          index,
+          1
+        )
+        try {
+          has_more = emnapiTSFN.dispatchOne(func)
+        } catch (err) {
+          // A throwing callback must not leave dispatch_state marked as
+          // dispatching, or every later send() would be swallowed. Re-arm
+          // the state and schedule another drain before rethrowing.
+          if (!emnapiCtx?.isAborted?.() && emnapiTSFN._liveSet.has(func)) {
+            Atomics.exchange(
+              new Uint32Array(emnapiTSFN.ensureBufferFor(dispatchStateAddress + 4)),
+              index,
+              0
+            )
+            emnapiTSFN.send(func)
+          }
+          throw err
         }
-        throw err
+
+        if (emnapiCtx?.isAborted?.() || !emnapiTSFN._liveSet.has(func)) {
+          return
+        }
+        if (Atomics.exchange(
+          new Uint32Array(emnapiTSFN.ensureBufferFor(dispatchStateAddress + 4)),
+          index,
+          0
+        ) !== 1) {
+          has_more = true
+        }
       }
 
-      if (Atomics.exchange(
-        new Uint32Array(emnapiTSFN.ensureBufferFor(dispatchStateAddress + 4)),
-        index,
-        0
-      ) !== 1) {
-        has_more = true
+      if (has_more && !emnapiCtx?.isAborted?.() && emnapiTSFN._liveSet.has(func)) {
+        emnapiTSFN.send(func)
       }
-    }
-
-    if (has_more) {
-      emnapiTSFN.send(func)
+    } finally {
+      emnapiTSFN._dispatching.delete(func)
+      if (emnapiTSFN._deferredFinalize.delete(func)) {
+        emnapiTSFN.scheduleFinalize(func)
+      }
     }
   },
   enqueue (func: number): void {
+    if (emnapiCtx?.isAborted?.() || !emnapiTSFN._liveSet.has(func) || emnapiTSFN.getHandlesClosing(func)) {
+      return
+    }
     // `pending` means a worker thread has requested a wakeup that has not
     // been drained on the main thread yet.
     const pending = func + emnapiTSFN.offset.async_pending
@@ -793,45 +844,87 @@ const emnapiTSFN = {
       return
     }
 
+    let done = false
+    let unregister: (() => void) | undefined
+    const cancelPending = (): void => {
+      done = true
+      unregister?.()
+      unregister = undefined
+      if (emnapiTSFN._pendingCancels.get(func) === cancelPending) {
+        emnapiTSFN._pendingCancels.delete(func)
+      }
+    }
+    const run = (): void => {
+      if (done) return
+      cancelPending()
+      if (emnapiCtx?.isAborted?.()) {
+        return
+      }
+      // After destroy(), the func address is freed.  Skip the atomics
+      // on that address entirely to avoid use-after-free (JS-side
+      // lifecycle check must run before touching the state words).
+      if (!emnapiTSFN._liveSet.has(func)) {
+        return
+      }
+      try {
+        // Consume the coalesced wakeup once, then let dispatch() observe any
+        // queue mutations through dispatch_state like the C implementation.
+        if (Atomics.exchange(state(), pending >>> 2, 0) === 0) {
+          return
+        }
+        emnapiTSFN.dispatch(func)
+      } finally {
+        // Allow a later wakeup to schedule a new drain chain. If another
+        // worker-thread send raced with this drain, enqueue one more turn.
+        if (!emnapiCtx?.isAborted?.() && emnapiTSFN._liveSet.has(func)) {
+          Atomics.store(state(), scheduled >>> 2, 0)
+          if (!emnapiTSFN.getHandlesClosing(func) && Atomics.load(state(), pending >>> 2) !== 0) {
+            emnapiTSFN.enqueue(func)
+          }
+        }
+      }
+    }
+    if (typeof emnapiCtx.registerPendingTask === 'function') {
+      unregister = emnapiCtx.registerPendingTask(run)
+    }
+    emnapiTSFN._pendingCancels.set(func, cancelPending)
+
     // Match uv_async_send-style coalescing in JS: the first turn represents
     // the wakeup reaching the main thread, and the second turn performs the
     // actual TSFN drain after nearby Send/Signal calls have had a chance to
     // collapse into the shared AsyncProgressWorker state.
-    emnapiCtx.features.setImmediate(() => {
-      if (!emnapiTSFN._liveSet.has(func)) {
-        return
-      }
-      if (Atomics.load(state(), pending >>> 2) === 0) {
-        Atomics.store(state(), scheduled >>> 2, 0)
-        return
-      }
-
+    try {
       emnapiCtx.features.setImmediate(() => {
-        // After destroy(), the func address is freed.  Skip the atomics
-        // on that address entirely to avoid use-after-free (JS-side
-        // lifecycle check must run before touching the state words).
-        if (!emnapiTSFN._liveSet.has(func)) {
+        if (done || emnapiCtx?.isAborted?.()) {
           return
         }
+        if (!emnapiTSFN._liveSet.has(func)) {
+          cancelPending()
+          return
+        }
+        if (Atomics.load(state(), pending >>> 2) === 0) {
+          cancelPending()
+          Atomics.store(state(), scheduled >>> 2, 0)
+          return
+        }
+
         try {
-          // Consume the coalesced wakeup once, then let dispatch() observe any
-          // queue mutations through dispatch_state like the C implementation.
-          if (Atomics.exchange(state(), pending >>> 2, 0) === 0) {
-            return
-          }
-          emnapiTSFN.dispatch(func)
-        } finally {
-          // Allow a later wakeup to schedule a new drain chain. If another
-          // worker-thread send raced with this drain, enqueue one more turn.
-          if (emnapiTSFN._liveSet.has(func)) {
+          emnapiCtx.features.setImmediate(run)
+        } catch (err) {
+          cancelPending()
+          if (!emnapiCtx?.isAborted?.() && emnapiTSFN._liveSet.has(func)) {
             Atomics.store(state(), scheduled >>> 2, 0)
-            if (Atomics.load(state(), pending >>> 2) !== 0) {
-              emnapiTSFN.enqueue(func)
-            }
           }
+          throw err
         }
       })
-    })
+    } catch (err) {
+      cancelPending()
+      if (!emnapiCtx?.isAborted?.() && emnapiTSFN._liveSet.has(func)) {
+        Atomics.store(state(), scheduled >>> 2, 0)
+      }
+      throw err
+    }
   },
   send (func: number): void {
     const dispatchStateAddress = func + emnapiTSFN.offset.dispatch_state
@@ -844,6 +937,9 @@ const emnapiTSFN = {
     // A wakeup is already pending, so this send only needs to leave the queued
     // work in the TSFN queue and let the existing drain pick it up.
     if (Atomics.load(new Int32Array(emnapiTSFN.ensureBufferFor(pendng + 4)), pendng >>> 2) !== 0) {
+      if (!((typeof ENVIRONMENT_IS_PTHREAD !== 'undefined') && ENVIRONMENT_IS_PTHREAD) && !emnapiTSFN.getHandlesClosing(func)) {
+        emnapiTSFN.enqueue(func)
+      }
       return
     }
 
@@ -864,6 +960,8 @@ const emnapiTSFN = {
         // coalesced drain chain directly.
         emnapiTSFN.enqueue(func)
       }
+    } else if (!((typeof ENVIRONMENT_IS_PTHREAD !== 'undefined') && ENVIRONMENT_IS_PTHREAD) && !emnapiTSFN.getHandlesClosing(func)) {
+      emnapiTSFN.enqueue(func)
     }
   }
 }

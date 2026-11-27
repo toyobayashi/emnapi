@@ -1,5 +1,6 @@
 import { ENVIRONMENT_IS_NODE, ENVIRONMENT_IS_PTHREAD, PThread } from 'emscripten:runtime'
 import { makeDynCall } from 'emscripten:parse-tools'
+import { emnapiCtx } from 'emnapi:shared'
 import { _emnapi_set_immediate, _emnapi_next_tick } from '../util'
 
 /**
@@ -31,6 +32,7 @@ export function _emnapi_worker_unref (pid: number): void {
  * the following helpers won't be linked into runtime code
  *
  * @__deps $PThread
+ * @__deps $emnapiCtx
  * @__postset
  * ```
  * PThread.unusedWorkers.forEach(emnapiAddSendListener);
@@ -55,6 +57,7 @@ export function $emnapiAddSendListener (worker: any): boolean {
       if (ENVIRONMENT_IS_PTHREAD) {
         postMessage({ __emnapi__ })
       } else {
+        if (emnapiCtx?.isAborted?.()) return
         const callback = __emnapi__.payload.callback
         makeDynCall('vp', 'callback')(__emnapi__.payload.data)
       }
